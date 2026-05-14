@@ -4698,11 +4698,13 @@ function renderCashFlow(){
     //   compound a full year immediately).
     inv=inv*(1+cfMu);
 
-    // Step 2 — savings contribution (committed; funded from surplus or cash drawdown)
-    inv+=effectiveSav;
+    // Step 2 — savings contribution: capped at available surplus (can't invest money
+    //   that doesn't exist). If there's a deficit, no savings occur that year.
+    const actualSav=Math.min(effectiveSav, Math.max(0, surp));
+    inv+=actualSav;
 
-    // Step 3 — surplus/deficit allocation after savings commitment
-    const surpAfterSav=surp-effectiveSav;
+    // Step 3 — true net position after savings commitment
+    const surpAfterSav=surp-actualSav;
     if(surpAfterSav>0){
       // Positive residual: split between investments (30%) and cash buffer (70%)
       inv+=surpAfterSav*0.30;
@@ -4760,8 +4762,8 @@ function renderCashFlow(){
       <td>${fmtMoney(tax)}</td>
       <td>${fmtMoney(livingExp)}</td>
       <td>${debt>0?fmtMoney(debt):"—"}</td>
-      <td>${retired?"—":fmtMoney(effectiveSav)}</td>
-      <td class="${surp>=0?'cf-pos':'cf-neg'}">${fmtMoney(surp)}</td>
+      <td>${retired?"—":actualSav>0?fmtMoney(actualSav)+(actualSav<effectiveSav?' <span style="font-size:10px;color:#c98a3a;cursor:default" title="Savings target: '+fmtMoney(effectiveSav)+' — constrained by surplus">⚠</span>':""):"—"}</td>
+      <td class="${surpAfterSav>=0?'cf-pos':'cf-neg'}">${fmtMoney(surpAfterSav)}</td>
       <td>${goalOut>0?fmtMoney(goalOut):"—"}</td>
       <td>${fmtMoney(cash)}</td>
       <td>${fmtMoney(inv)}</td>
