@@ -301,6 +301,29 @@ input[type=date]{color-scheme:light}
 .cf-tag-pen{background:rgba(76,175,125,.18);color:#1b6841}
 .cf-tag-goal{background:rgba(30,64,175,.15);color:#1e40af}
 .cf-tag-now{background:rgba(76,175,125,.18);color:#1b6841}
+/* ── Portfolio vs Proposal comparison panel ─────────── */
+.cfc-banner{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+.cfc-box{flex:1;min-width:140px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--rs);padding:10px 14px;text-align:center}
+.cfc-box .cb-lbl{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px}
+.cfc-box .cb-val{font-family:var(--fd);font-size:20px;color:var(--gold)}
+.cfc-box .cb-sub{font-size:10px;color:var(--text3);margin-top:2px}
+.cfc-tbl-wrap{overflow:auto;max-height:480px;border:1px solid var(--border);border-radius:var(--rs);margin-bottom:14px}
+.cfc-tbl{width:100%;border-collapse:collapse;font-size:12px;font-variant-numeric:tabular-nums}
+.cfc-tbl th{position:sticky;top:0;background:var(--bg3);color:var(--text);font-weight:600;text-align:right;padding:8px 10px;border-bottom:1px solid var(--border2);font-size:10px;text-transform:uppercase;letter-spacing:.05em;z-index:2}
+.cfc-tbl th.cf-l{text-align:left}
+.cfc-tbl th.th-cur{color:#5b9bd5}.cfc-tbl th.th-prop{color:var(--gold)}.cfc-tbl th.th-delta{color:var(--text3)}
+.cfc-tbl td{padding:6px 10px;text-align:right;border-bottom:1px solid var(--border)}
+.cfc-tbl td.cf-l{text-align:left;color:var(--text2)}
+.cfc-tbl tr.cf-now{background:rgba(30,64,175,.05);font-weight:500}
+.cfc-tbl tr.cf-now td{border-bottom:2px solid var(--gold)}
+.cfc-tbl tr.cf-ret{background:rgba(212,149,106,.13)}
+.cfc-tbl tr.cf-decade td{border-bottom:1px solid var(--border2)}
+.td-cur{color:var(--text2)}.td-prop{color:var(--gold)}
+.td-delta-pos{color:#1b6841;font-weight:600}.td-delta-neg{color:#a83232;font-weight:600}.td-delta-neu{color:var(--text3)}
+.cfc-gh-row{display:grid;grid-template-columns:1fr 72px 130px 130px 140px 120px;gap:6px 10px;font-size:10px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--text3);padding:6px 4px;border-bottom:1px solid var(--border2);margin-bottom:4px}
+.cfc-gr{display:grid;grid-template-columns:1fr 72px 130px 130px 140px 120px;gap:6px 10px;align-items:center;font-size:12px;padding:7px 4px;border-bottom:1px solid var(--border)}
+.cfc-gr:last-child{border-bottom:none}
+.cfc-gn{font-weight:600;color:var(--text)}.cfc-gy{color:var(--text3)}.cfc-ga{color:var(--text2);font-variant-numeric:tabular-nums}
 /* ── Investment breakdown tooltip ───────────────────── */
 .inv-cell{cursor:help;position:relative}
 .inv-cell:hover{color:var(--gold)!important;text-decoration:underline dotted rgba(201,169,110,.5)}
@@ -418,14 +441,14 @@ input[type=date]{color-scheme:light}
     <svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 1a7 7 0 100 14A7 7 0 008 1zm-.75 4.5h1.5v5h-1.5v-5zm0 6h1.5v1.5h-1.5z"/></svg>Liabilities
   </div>
   <div class="nav-grp-label">Analysis</div>
-  <div class="nav-item" data-tab="simulation" onclick="showTab('simulation',this)">
-    <svg viewBox="0 0 16 16" fill="currentColor"><path d="M1 12l4-5 3 3 3-4 4 5H1z"/></svg>Simulation
-  </div>
   <div class="nav-item" data-tab="portfolio" onclick="showTab('portfolio',this)">
     <svg viewBox="0 0 16 16" fill="currentColor"><path d="M2 2h12v3H2V2zm0 4.5h5.5v7.5H2V6.5zm6.5 0H14v3H8.5v-3zm0 4H14v3.5H8.5v-3.5z"/></svg>Portfolio
   </div>
   <div class="nav-item" data-tab="proposal" onclick="showTab('proposal',this)">
     <svg viewBox="0 0 16 16" fill="currentColor"><path d="M3 1h7l3 3v11a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1zm6.5 1v3h3l-3-3zM4.5 7h7v1h-7V7zm0 2.5h7v1h-7v-1zm0 2.5h5v1h-5v-1z"/></svg>Investment Proposal
+  </div>
+  <div class="nav-item" data-tab="simulation" onclick="showTab('simulation',this)">
+    <svg viewBox="0 0 16 16" fill="currentColor"><path d="M1 12l4-5 3 3 3-4 4 5H1z"/></svg>Simulation
   </div>
   <div class="nav-item" data-tab="compare" onclick="showTab('compare',this);runComparison()">
     <svg viewBox="0 0 16 16" fill="currentColor"><path d="M2 2v12h5V2H2zm7 0v6h5V2H9zm0 7.5v4.5h5V9.5H9z"/></svg>Portfolio Comparison
@@ -1018,6 +1041,33 @@ input[type=date]{color-scheme:light}
     <span><span class="swatch sw-pen"></span>State pension starts</span>
     <span><span class="swatch sw-goal"></span>Goal year</span>
     <span style="color:var(--text3)">Deterministic projection at the household's mean return; investment growth assumes reinvested surplus and a 30/70 cash–invest split during accumulation. In retirement, earned income → 0 and expenses swap to the inflation-adjusted retirement spend; state pension / Social Security is credited from the configured start age (with the chosen COLA treatment). <strong>Pension / SS / RMD</strong> column combines all income-equivalent payments including mandatory drawdowns from locked accounts (401k/IRA RMD starts at 73, Canadian RRIF at 71, Australian Super at 60). <strong>Ret. pool</strong> shows the remaining retirement account balance after each year's RMD deduction — it still grows at the portfolio mean return inside the account. <strong>Income tax</strong> is recomputed each year on gross earned income + pension + RMD; <strong>savings target</strong> is funded first each year from net cash flow before remaining surplus is split.</span>
+  </div>
+</div>
+
+<!-- Portfolio vs Proposal — Cash Flow & Goal Comparison -->
+<div class="panel" id="cfComparePanel" style="display:none">
+  <div class="ptitle">Portfolio vs Proposal — Cash Flow &amp; Goal Impact</div>
+  <div id="cfcHeader" class="cf-header" style="margin-bottom:12px"></div>
+  <div class="cfc-banner" id="cfcRetBanner"></div>
+  <div class="cfc-tbl-wrap">
+    <table class="cfc-tbl" id="cfcTable">
+      <thead><tr>
+        <th class="cf-l">Year</th>
+        <th class="cf-l">Age</th>
+        <th class="cf-l">Phase</th>
+        <th class="th-cur">Current Investments</th>
+        <th class="th-prop">Proposal Investments</th>
+        <th class="th-delta">Δ Investments</th>
+        <th class="th-cur">Current Net Worth</th>
+        <th class="th-prop">Proposal Net Worth</th>
+        <th class="th-delta">Δ Net Worth</th>
+      </tr></thead>
+      <tbody id="cfcBody"><tr><td colspan="9" style="text-align:center;color:var(--text3);padding:18px">Run the simulation to compare portfolios.</td></tr></tbody>
+    </table>
+  </div>
+  <div id="cfcGoals" style="margin-top:4px"></div>
+  <div class="cf-legend" style="margin-top:12px">
+    <span style="color:var(--text3)">All figures use the same household inputs (income, expenses, pensions, goals, loans). Only the investment return rate differs — current portfolio uses its holdings-weighted return; proposal uses the proposal's weighted return. A <strong style="color:var(--text2)">positive Δ</strong> means the proposal leaves more wealth at that point in time.</span>
   </div>
 </div>
 
@@ -4249,6 +4299,19 @@ function getEffectiveReturnParams(){
   const fee=getPortfolioAdvisoryFeePct();
   return {mu:Math.max(0,gross.mu-fee), sig:gross.sig};
 }
+// Investment-proposal weighted return params — mirrors runComparison() logic.
+// Uses p.exp (fetched expected return) if available, otherwise falls back to
+// asset-class defaults. Deducts proposal advisory fee.
+function getProposalReturnParams(){
+  const totalAlloc=proposals.reduce((s,p)=>s+p.alloc,0);
+  if(totalAlloc===0) return getReturnParams();
+  const DEF_RET={equity:8,fixed_income:4.5,real_estate:6.5,commodity:5.5,cash:0,mixed:6,alternative:9};
+  const DEF_VOL={equity:14,fixed_income:5,real_estate:11,commodity:16,cash:0,mixed:9,alternative:18};
+  const grossMu=proposals.reduce((s,p)=>s+(p.exp??DEF_RET[p.cls]??7)*p.alloc,0)/totalAlloc/100;
+  const sig=proposals.reduce((s,p)=>s+(DEF_VOL[p.cls]??12)*p.alloc,0)/totalAlloc/100;
+  const fee=getProposalAdvisoryFeePct();
+  return {mu:Math.max(0,grossMu-fee), sig};
+}
 function runMC(years,sims,muOverride,sigOverride){
   const {mu,sig} = (muOverride!=null)?{mu:muOverride,sig:sigOverride}:getEffectiveReturnParams();
   const inf=num("inf",3.8)/100, raise=num("raise",3)/100;
@@ -4643,126 +4706,135 @@ function renderCashFlow(){
   const retMuWork=Math.max(0.025, params.mu*0.70);
   const retMuRetired=0.035;
 
-  let loanBals=loans.map(l=>({bal:l.bal,rate:l.rate/100,yrs:l.yrs}));
-  let prop=num("aProp",0);
-  const other=num("aOther",0);
   const cy=currentYear();
-  const goalYears={};
-  goals.forEach(g=>{for(let y=g.startYear;y<=g.endYear;y++){goalYears[y]=(goalYears[y]||0)+g.amt;}});
+  const other=num("aOther",0);
 
-  let html="";
-  let depleted=false; // once wealth hits zero, flag all subsequent rows
-
-  for(let y=0;y<=horizon;y++){
-    const age=a1+y;
-    const retired=age>=retAge;
-    const phase=retired?"Retired":"Working";
-    const earnedInc=retired?0:inc;
-
-    // Pension / SS income — paid in nominal future dollars (calcPension handles COLA)
-    const pen1=calcPension(penSrc,penAnn,penStart,penCola,age,inf);
-    const c2AgeY=c2Age0+y;
-    const pen2=showC2?calcPension(penSrc2,penAnn2,penStart2,penCola2,c2AgeY,inf):0;
-
-    // ── Retirement pool ───────────────────────────────────────────────────────
-    // Pre-retirement: grows at conservative cfMu haircut (same as main portfolio).
-    // Post-retirement: re-allocated to 3.5% conservative (bond-heavy) mix.
-    // Voluntary 4% drawdown from retirement age; mandatory rules (RMD/RRIF/Super) apply later.
-    const retMu=retired?retMuRetired:retMuWork;
-    retPot=retPot*(1+retMu); // interest accrues inside tax-deferred wrapper
-    let rmd=0;
-    if(retired&&retPot>0){
-      const mandatoryRMD=calcRMD(retPot,age,country); // 0 before legal threshold age
-      const voluntaryRMD=retPot*0.04;                  // 4% voluntary from retirement date
-      rmd=Math.max(mandatoryRMD,voluntaryRMD);          // pool shrinks: retMu(3.5%) < withdrawal(≥4%)
-    }
-    retPot=Math.max(0,retPot-rmd);
-    const pen=pen1+pen2+rmd; // total pension/SS/drawdown income (taxable)
-
-    // Tax on total taxable income for the year
-    const tax=getApplyTax()?computeIncomeTax(earnedInc+pen):0;
-
-    // Living expenses: working years grow by inflation cumulatively (exp variable);
-    // retirement spending = retSpend in TODAY'S dollars inflated to year y's nominal dollars.
-    const livingExp=retired?retSpend*Math.pow(1+inf,y):exp;
-
-    // Debt service — standard amortisation; balance steps down each year
-    let debt=0;
-    loanBals.forEach(l=>{
-      if(l.bal<=0) return;
-      const r=l.rate,n=l.yrs;
-      const m=r>0&&n>0?l.bal*((r/12)*Math.pow(1+r/12,n*12))/(Math.pow(1+r/12,n*12)-1)*12:l.bal/Math.max(n,1);
-      const interest=l.bal*r;
-      const principal=Math.max(0,m-interest);
-      l.bal=Math.max(0,l.bal-principal);
-      l.yrs=Math.max(0,l.yrs-1);
-      debt+=m;
-    });
-
-    // ── Surplus (before savings commitment) ──────────────────────────────────
-    const surp=earnedInc+pen-tax-livingExp-debt;
-    const goalOut=goalYears[cy+y]||0;
-    const effectiveSav=retired?0:sav; // savings commitment stops at retirement
-
-    // ── Balance sheet update (correct order) ─────────────────────────────────
-    // Step 1 — beginning-of-period return: applies to PRIOR year's balance only.
-    //   New contributions/withdrawals this year earn nothing until next year.
-    //   This is the conservative convention vs end-of-period (which lets new money
-    //   compound a full year immediately).
-    const invOpen=inv; // capture opening balance for breakdown tooltip
-    const invReturn=inv*cfMu;
-    inv=inv*(1+cfMu);
-
-    // Step 2 — savings contribution: capped at available surplus (can't invest money
-    //   that doesn't exist). If there's a deficit, no savings occur that year.
-    const actualSav=Math.min(effectiveSav, Math.max(0, surp));
-    inv+=actualSav;
-
-    // Step 3 — true net position after savings commitment
-    const surpAfterSav=surp-actualSav;
-    let surpToInv=0, deficitDrain=0;
-    if(surpAfterSav>0){
-      // Positive residual: split between investments (30%) and cash buffer (70%)
-      surpToInv=surpAfterSav*0.30;
-      inv+=surpToInv;
-      cash+=surpAfterSav*0.70;
-    } else {
-      // Deficit: drain cash first, then liquidate investments if cash exhausted
-      cash+=surpAfterSav; // may turn negative
-      if(cash<0){
-        deficitDrain=cash; // negative — amount pulled from investments
-        inv+=cash;   // transfer shortfall to investments (reduces inv)
-        cash=0;
-        if(inv<0) inv=0; // fully depleted — can't go below zero
+  // ── Inner loop runner (closure) ──────────────────────────────────────────────
+  // All scenario-invariant inputs (income, expenses, pensions, loans, goals, inflation)
+  // are captured from the outer function's scope. Only the three scenario-specific
+  // parameters differ between current-portfolio and investment-proposal runs:
+  //   initInv  — starting invested balance
+  //   initCash — starting cash balance
+  //   loopMu   — annual investment return (already the conservative 70%-haircut rate)
+  function runLoop(initInv, initCash, loopMu){
+    let iv=initInv, ca=initCash, rp=retSeed;
+    const loopRetMuRetired=0.035; // post-retirement pool: bond-heavy conservative mix
+    let lb=loans.map(l=>({bal:l.bal,rate:l.rate/100,yrs:l.yrs}));
+    let pr=num("aProp",0);
+    let ic=getGrossIncome(), ex=getTotalExpenses();
+    const goalYrs={};
+    goals.forEach(g=>{for(let y=g.startYear;y<=g.endYear;y++){goalYrs[y]=(goalYrs[y]||0)+g.amt;}});
+    let dep=false;
+    const data=[];
+    for(let y=0;y<=horizon;y++){
+      const age=a1+y;
+      const retired=age>=retAge;
+      const phase=retired?"Retired":"Working";
+      const earnedInc=retired?0:ic;
+      const pen1=calcPension(penSrc,penAnn,penStart,penCola,age,inf);
+      const c2AgeY=c2Age0+y;
+      const pen2=showC2?calcPension(penSrc2,penAnn2,penStart2,penCola2,c2AgeY,inf):0;
+      // Retirement pool: grows at loopMu pre-retirement, 3.5% post-retirement
+      const retMu=retired?loopRetMuRetired:Math.max(0.025,loopMu);
+      rp=rp*(1+retMu);
+      let rmd=0;
+      if(retired&&rp>0){
+        const mandatoryRMD=calcRMD(rp,age,country);
+        const voluntaryRMD=rp*0.04;
+        rmd=Math.max(mandatoryRMD,voluntaryRMD);
       }
+      rp=Math.max(0,rp-rmd);
+      const pen=pen1+pen2+rmd;
+      const tax=getApplyTax()?computeIncomeTax(earnedInc+pen):0;
+      const livingExp=retired?retSpend*Math.pow(1+inf,y):ex;
+      let debt=0;
+      lb.forEach(l=>{
+        if(l.bal<=0) return;
+        const r=l.rate,n=l.yrs;
+        const m=r>0&&n>0?l.bal*((r/12)*Math.pow(1+r/12,n*12))/(Math.pow(1+r/12,n*12)-1)*12:l.bal/Math.max(n,1);
+        const interest=l.bal*r;
+        const principal=Math.max(0,m-interest);
+        l.bal=Math.max(0,l.bal-principal);
+        l.yrs=Math.max(0,l.yrs-1);
+        debt+=m;
+      });
+      const surp=earnedInc+pen-tax-livingExp-debt;
+      const goalOut=goalYrs[cy+y]||0;
+      const effectiveSav=retired?0:sav;
+      // Step 1 — beginning-of-period return on prior balance only (conservative convention)
+      const invOpen=iv;
+      const invReturn=iv*loopMu;
+      iv=iv*(1+loopMu);
+      // Step 2 — savings capped at available surplus (can't invest money that doesn't exist)
+      const actualSav=Math.min(effectiveSav,Math.max(0,surp));
+      iv+=actualSav;
+      // Step 3 — residual surplus: 30% to investments, 70% to cash; deficit drains cash then inv
+      const surpAfterSav=surp-actualSav;
+      let surpToInv=0, deficitDrain=0;
+      if(surpAfterSav>0){
+        surpToInv=surpAfterSav*0.30;
+        iv+=surpToInv;
+        ca+=surpAfterSav*0.70;
+      } else {
+        ca+=surpAfterSav;
+        if(ca<0){deficitDrain=ca; iv+=ca; ca=0; if(iv<0) iv=0;}
+      }
+      // Step 4 — goal outflows: cash first, then investments
+      let goalDrain=0;
+      if(goalOut>0){
+        const fromCash=Math.min(ca,goalOut);
+        ca-=fromCash;
+        const fromInv=Math.min(iv,goalOut-fromCash);
+        goalDrain=fromInv;
+        iv-=fromInv;
+        ca=Math.max(0,ca); iv=Math.max(0,iv);
+      }
+      // Step 5 — property appreciation and income/expense escalation
+      pr=pr*(1+propGrowth);
+      ic*=(1+raise); ex*=(1+inf);
+      const debtTotal=lb.reduce((s,l)=>s+l.bal,0);
+      const nw=ca+iv+pr+other+rp-debtTotal;
+      if(nw<=0&&y>0) dep=true;
+      data.push({y,age,retired,phase,earnedInc,pen,rmd,tax,livingExp,debt,
+        surp,effectiveSav,actualSav,surpAfterSav,goalOut,
+        invOpen,invReturn,surpToInv,deficitDrain,goalDrain,
+        inv:iv,cash:ca,retPot:rp,nw,depleted:dep});
     }
+    return data;
+  }
 
-    // Step 4 — goal outflows: drain cash first (most liquid), then investments
-    let goalDrain=0;
-    if(goalOut>0){
-      const fromCash=Math.min(cash,goalOut);
-      cash-=fromCash;
-      const fromInv=Math.min(inv,goalOut-fromCash);
-      goalDrain=fromInv; // amount pulled from investments for goals
-      inv-=fromInv;
-      // Any remaining gap means household is overcommitted; both pools clamped at 0
-      cash=Math.max(0,cash);
-      inv=Math.max(0,inv);
-    }
+  // ── Run current-portfolio scenario ──────────────────────────────────────────
+  const curData=runLoop(inv,cash,cfMu);
 
-    // Step 5 — property appreciation (conservative: inf − 1 pp, min 1%)
-    prop=prop*(1+propGrowth);
+  // ── Run investment-proposal scenario (if proposals are entered) ─────────────
+  const hasProposal=proposals.length>0;
+  let propData=null, propCfMu=cfMu, propParams=params;
+  if(hasProposal){
+    propParams=getProposalReturnParams();
+    propCfMu=Math.max(0.025,propParams.mu*0.70);
+    // Determine proposal investment seed:
+    //   • If the user set a target amount on the proposal tab → use that
+    //   • Otherwise → same total value as the current portfolio (same money, different allocation)
+    const prTarget=num("prAmount",0);
+    const prTotalInv=prTarget>0?prTarget:(pfInvested+pfCash);
+    // Split cash vs invested within the proposal by class weight
+    const totalAlloc=proposals.reduce((s,p)=>s+p.alloc,0);
+    const cashAlloc=totalAlloc>0?proposals.filter(p=>p.cls==="cash").reduce((s,p)=>s+p.alloc,0):0;
+    const cashFrac=totalAlloc>0?cashAlloc/totalAlloc:0;
+    const prInv=prTotalInv*(1-cashFrac);
+    // Keep the non-portfolio cash buffer (bank accounts, etc.) the same in both scenarios
+    const nonPfCash=Math.max(0,cash-pfCash);
+    const prCash=prTotalInv*cashFrac+nonPfCash;
+    propData=runLoop(prInv,prCash,propCfMu);
+  }
 
-    // Step 6 — escalate income and working expenses for next year
-    inc*=(1+raise);
-    exp*=(1+inf);
-
-    // ── Net worth (end of year y) ─────────────────────────────────────────────
-    const debtTotal=loanBals.reduce((s,l)=>s+l.bal,0);
-    const nw=cash+inv+prop+other+retPot-debtTotal;
-    if(nw<=0&&y>0) depleted=true;
-
-    // ── Row rendering ─────────────────────────────────────────────────────────
+  // ── Render main CF table (current-portfolio scenario) ───────────────────────
+  let html="";
+  curData.forEach(d=>{
+    const {y,age,retired,phase,earnedInc,pen,rmd,tax,livingExp,debt,
+      actualSav,effectiveSav,surpAfterSav,goalOut,
+      invOpen,invReturn,surpToInv,deficitDrain,goalDrain,
+      inv,cash,retPot,nw,depleted}=d;
     const yearLabel=cy+y;
     let cls=""; let tags="";
     if(y===0){cls="cf-now"; tags+='<span class="cf-tag cf-tag-now">today</span>';}
@@ -4772,7 +4844,6 @@ function renderCashFlow(){
     if(age===rmdStartAge&&rmdStartAge>retAge&&retSeed>0){tags+='<span class="cf-tag cf-tag-pen">mandatory RMD</span>';}
     if(goalOut>0){cls=cls+" cf-goal"; tags+='<span class="cf-tag cf-tag-goal">goal</span>';}
     if(depleted){cls=cls+" cf-depleted"; tags+='<span class="cf-tag" style="background:#7a1a1a;color:#ffaaaa;font-weight:600">DEPLETED</span>';}
-
     html+=`<tr class="${cls}">
       <td class="cf-l">${yearLabel}</td>
       <td class="cf-l">${age}</td>
@@ -4791,26 +4862,128 @@ function renderCashFlow(){
       <td><strong class="${nw<0?'cf-neg':''}">${fmtMoney(nw)}</strong></td>
       <td class="cf-l">${tags}</td>
     </tr>`;
-  }
+  });
   tbody.innerHTML=html;
 
   const cfPct=(cfMu*100).toFixed(1);
   const fullPct=(params.mu*100).toFixed(1);
-  const propPct=(propGrowth*100).toFixed(1);
+  const propGrowthPct=(propGrowth*100).toFixed(1);
   const returnSrc=hasPortfolio?"holdings-weighted return":"risk-profile return";
   const rmdNote=retSeed>0
     ?` · Ret. pool (${fmtMoney(retSeed)}): 3.5%/yr in retirement; 4% voluntary drawdown from age ${retAge}, mandatory rules from age ${rmdStartAge}.`
     :"";
   setH("cfHeader",
-    `<strong>Conservative cash flow projection</strong> — age ${a1} to 90 (${horizon+1} years) &nbsp;`+
+    `<strong>Conservative cash flow projection — Current Portfolio</strong> — age ${a1} to 90 (${horizon+1} years) &nbsp;`+
     `<span style="font-size:11px;background:var(--bg3);border:1px solid var(--border);border-radius:4px;padding:2px 8px;color:var(--text3)">Mode ${cfMode}</span><br>`+
     `<span style="font-size:12px;color:var(--text2)">${cfModeNote}</span><br>`+
     `<span style="font-size:11px;color:var(--text3)">`+
     `Investment return: <strong style="color:var(--text2)">${cfPct}%/yr</strong> (70% of ${returnSrc} ${fullPct}%) · `+
-    `Property: <strong style="color:var(--text2)">${propPct}%/yr</strong> (inflation&minus;1pp) · `+
+    `Property: <strong style="color:var(--text2)">${propGrowthPct}%/yr</strong> (inflation&minus;1pp) · `+
     `Deficits drain cash first, then investments`+
     `${rmdNote}</span>`
   );
+
+  // ── Show / populate comparison panel ────────────────────────────────────────
+  const cmpPanel=$("cfComparePanel");
+  if(cmpPanel){
+    cmpPanel.style.display=hasProposal?"":"none";
+    if(hasProposal&&propData)
+      renderCFComparison(curData,propData,cfMu,propCfMu,params,propParams,
+        retAge,penStart,retSeed,rmdStartAge,penSrc,cy,a1);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// PORTFOLIO vs PROPOSAL — CF COMPARISON
+// ═══════════════════════════════════════════════════════════
+function renderCFComparison(curData,propData,curMu,propMu,curParams,propParams,
+    retAge,penStart,retSeed,rmdStartAge,penSrc,cy,a1){
+
+  // ── Return parameters banner ─────────────────────────────────────────────────
+  const muDelta=(propMu-curMu)*100;
+  const grossCur=(curParams.mu*100).toFixed(2), grossProp=(propParams.mu*100).toFixed(2);
+  setH("cfcRetBanner",`
+    <div class="cfc-box">
+      <div class="cb-lbl">Current portfolio</div>
+      <div class="cb-val">${(curMu*100).toFixed(1)}%<span style="font-size:12px;font-family:var(--fb)">/yr</span></div>
+      <div class="cb-sub">CF rate · net return ${grossCur}%</div>
+    </div>
+    <div class="cfc-box">
+      <div class="cb-lbl">Investment proposal</div>
+      <div class="cb-val">${(propMu*100).toFixed(1)}%<span style="font-size:12px;font-family:var(--fb)">/yr</span></div>
+      <div class="cb-sub">CF rate · net return ${grossProp}%</div>
+    </div>
+    <div class="cfc-box">
+      <div class="cb-lbl">Annual return advantage</div>
+      <div class="cb-val" style="color:${muDelta>=0?'#1b6841':'#a83232'}">${muDelta>=0?'+':''}${muDelta.toFixed(2)}%<span style="font-size:12px;font-family:var(--fb)">/yr</span></div>
+      <div class="cb-sub">proposal vs current (CF rate)</div>
+    </div>
+  `);
+  setH("cfcHeader",
+    `<strong>Proposal vs Current Portfolio</strong> — same household profile; only investment return parameters differ.<br>`+
+    `<span style="font-size:11px;color:var(--text3)">Current uses <strong style="color:var(--text2)">${(curMu*100).toFixed(1)}%/yr</strong> conservative rate · `+
+    `Proposal uses <strong style="color:var(--gold)">${(propMu*100).toFixed(1)}%/yr</strong> conservative rate · `+
+    `Δ compounds over decades — small annual differences become large long-term gaps.</span>`
+  );
+
+  // ── Year-by-year comparison table ────────────────────────────────────────────
+  let html="";
+  curData.forEach((cur,i)=>{
+    const prop=propData[i];
+    const nwDelta=prop.nw-cur.nw;
+    const invDelta=prop.inv-cur.inv;
+    let cls="";
+    if(cur.y===0) cls="cf-now";
+    else if(cur.age===retAge) cls="cf-ret";
+    else if(cur.y>0&&cur.y%10===0) cls="cf-decade";
+    const deltaCls=d=>d>0?"td-delta-pos":d<0?"td-delta-neg":"td-delta-neu";
+    const sign=d=>d>=0?"+":"";
+    html+=`<tr class="${cls}">
+      <td class="cf-l">${cy+cur.y}</td>
+      <td class="cf-l">${cur.age}</td>
+      <td class="cf-l"><span class="cf-phase ${cur.retired?'ret':'work'}">${cur.phase}</span></td>
+      <td class="td-cur">${fmtMoney(cur.inv)}</td>
+      <td class="td-prop">${fmtMoney(prop.inv)}</td>
+      <td class="${deltaCls(invDelta)}">${sign(invDelta)}${fmtMoney(invDelta)}</td>
+      <td class="td-cur">${fmtMoney(cur.nw)}</td>
+      <td class="td-prop">${fmtMoney(prop.nw)}</td>
+      <td class="${deltaCls(nwDelta)}">${sign(nwDelta)}${fmtMoney(nwDelta)}</td>
+    </tr>`;
+  });
+  setH("cfcBody",html);
+
+  // ── Goal funding comparison ──────────────────────────────────────────────────
+  if(goals.length>0){
+    const goalRows=goals.map(g=>{
+      const totalAmt=g.amt*Math.max(1,g.endYear-g.startYear+1);
+      const relYr=Math.min(curData.length-1,Math.max(0,g.endYear-cy));
+      const curNW=curData[relYr]?.nw||0;
+      const propNW=propData[relYr]?.nw||0;
+      const curFunded=curNW>=totalAmt;
+      const propFunded=propNW>=totalAmt;
+      const nwDelta=propNW-curNW;
+      return `<div class="cfc-gr">
+        <div class="cfc-gn">${g.name}</div>
+        <div class="cfc-gy">${g.endYear}</div>
+        <div class="cfc-ga">${fmtMoney(totalAmt)}</div>
+        <div><span class="fund-tag ${curFunded?'fund-ok':'fund-bad'}">${curFunded?"✓ Funded":"✗ Short"}</span><div style="font-size:10px;color:var(--text3);margin-top:2px">NW: ${fmtMoney(curNW)}</div></div>
+        <div><span class="fund-tag ${propFunded?'fund-ok':'fund-bad'}">${propFunded?"✓ Funded":"✗ Short"}</span><div style="font-size:10px;color:var(--gold);margin-top:2px">NW: ${fmtMoney(propNW)}</div></div>
+        <div class="${nwDelta>=0?'td-delta-pos':'td-delta-neg'}" style="font-weight:600;font-variant-numeric:tabular-nums">${nwDelta>=0?"+":""}${fmtMoney(nwDelta)}</div>
+      </div>`;
+    }).join("");
+    setH("cfcGoals",`
+      <div class="slbl" style="margin-bottom:8px">Goal Funding at Target Year — deterministic conservative scenario</div>
+      <div class="cfc-gh-row">
+        <div>Goal</div><div>Target yr</div><div>Amount needed</div>
+        <div style="color:#5b9bd5">Current portfolio</div>
+        <div style="color:var(--gold)">Investment proposal</div>
+        <div>Δ Net worth at goal yr</div>
+      </div>
+      ${goalRows}
+    `);
+  } else {
+    setH("cfcGoals",`<div style="font-size:12px;color:var(--text3);padding:8px 0">No goals defined — add goals on the Goals tab to see funding comparison.</div>`);
+  }
 }
 
 // ═══════════════════════════════════════════════════════════
