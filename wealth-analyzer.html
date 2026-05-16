@@ -301,6 +301,18 @@ input[type=date]{color-scheme:light}
 .cf-tag-pen{background:rgba(76,175,125,.18);color:#1b6841}
 .cf-tag-goal{background:rgba(30,64,175,.15);color:#1e40af}
 .cf-tag-now{background:rgba(76,175,125,.18);color:#1b6841}
+/* ── Investment breakdown tooltip ───────────────────── */
+.inv-cell{cursor:help;position:relative}
+.inv-cell:hover{color:var(--gold)!important;text-decoration:underline dotted rgba(201,169,110,.5)}
+#inv-tip-box{position:fixed;z-index:9999;background:var(--bg2);border:1px solid var(--border2);border-radius:8px;padding:12px 15px;font-size:11.5px;font-family:var(--fb);color:var(--text);line-height:1.85;box-shadow:0 8px 28px rgba(0,0,0,.55);pointer-events:none;opacity:0;transition:opacity .12s;min-width:270px;max-width:320px}
+#inv-tip-box.vis{opacity:1}
+#inv-tip-box .itr{display:flex;justify-content:space-between;gap:16px}
+#inv-tip-box .itr.itotal{border-top:1px solid var(--border2);margin-top:4px;padding-top:4px;font-weight:600;color:var(--text)}
+#inv-tip-box .ilabel{color:var(--text3);font-size:10.5px;letter-spacing:.03em}
+#inv-tip-box .ipos{color:#1b6841;font-weight:500}
+#inv-tip-box .ineg{color:#a83232;font-weight:500}
+#inv-tip-box .ineu{color:var(--text2)}
+#inv-tip-box .ititle{font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--text3);margin-bottom:6px;border-bottom:1px solid var(--border);padding-bottom:4px}
 .cf-tag-end{background:rgba(106,106,106,.15);color:var(--text3)}
 .cf-phase{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.04em}
 .cf-phase.work{color:#1b6841}
@@ -360,6 +372,7 @@ input[type=date]{color-scheme:light}
 </style>
 </head>
 <body>
+<div id="inv-tip-box"></div>
 <div class="app-shell">
 
 <!-- Top bar -->
@@ -4696,6 +4709,8 @@ function renderCashFlow(){
     //   New contributions/withdrawals this year earn nothing until next year.
     //   This is the conservative convention vs end-of-period (which lets new money
     //   compound a full year immediately).
+    const invOpen=inv; // capture opening balance for breakdown tooltip
+    const invReturn=inv*cfMu;
     inv=inv*(1+cfMu);
 
     // Step 2 — savings contribution: capped at available surplus (can't invest money
@@ -4705,14 +4720,17 @@ function renderCashFlow(){
 
     // Step 3 — true net position after savings commitment
     const surpAfterSav=surp-actualSav;
+    let surpToInv=0, deficitDrain=0;
     if(surpAfterSav>0){
       // Positive residual: split between investments (30%) and cash buffer (70%)
-      inv+=surpAfterSav*0.30;
+      surpToInv=surpAfterSav*0.30;
+      inv+=surpToInv;
       cash+=surpAfterSav*0.70;
     } else {
       // Deficit: drain cash first, then liquidate investments if cash exhausted
       cash+=surpAfterSav; // may turn negative
       if(cash<0){
+        deficitDrain=cash; // negative — amount pulled from investments
         inv+=cash;   // transfer shortfall to investments (reduces inv)
         cash=0;
         if(inv<0) inv=0; // fully depleted — can't go below zero
@@ -4720,10 +4738,12 @@ function renderCashFlow(){
     }
 
     // Step 4 — goal outflows: drain cash first (most liquid), then investments
+    let goalDrain=0;
     if(goalOut>0){
       const fromCash=Math.min(cash,goalOut);
       cash-=fromCash;
       const fromInv=Math.min(inv,goalOut-fromCash);
+      goalDrain=fromInv; // amount pulled from investments for goals
       inv-=fromInv;
       // Any remaining gap means household is overcommitted; both pools clamped at 0
       cash=Math.max(0,cash);
@@ -4766,7 +4786,7 @@ function renderCashFlow(){
       <td class="${surpAfterSav>=0?'cf-pos':'cf-neg'}">${fmtMoney(surpAfterSav)}</td>
       <td>${goalOut>0?fmtMoney(goalOut):"—"}</td>
       <td>${fmtMoney(cash)}</td>
-      <td>${fmtMoney(inv)}</td>
+      <td class="inv-cell" data-inv='{"open":${Math.round(invOpen)},"ret":${Math.round(invReturn)},"sav":${Math.round(actualSav)},"surp":${Math.round(surpToInv)},"def":${Math.round(deficitDrain)},"goal":${Math.round(goalDrain)},"close":${Math.round(inv)},"mu":${(cfMu*100).toFixed(1)}}'>${fmtMoney(inv)}</td>
       <td>${retSeed>0?fmtMoney(retPot):"—"}</td>
       <td><strong class="${nw<0?'cf-neg':''}">${fmtMoney(nw)}</strong></td>
       <td class="cf-l">${tags}</td>
@@ -5471,6 +5491,68 @@ document.addEventListener("DOMContentLoaded",function(){
   setBand("standard");
   renderAssets(); renderLoans(); renderGoals(); renderChildren();
   renderInvestments(); renderProposals();
+
+  // ── Investment breakdown tooltip ────────────────────────────────────────────
+  // Reads data-inv JSON from .inv-cell <td> elements in the cash flow table.
+  // Uses a fixed-position div so it isn't clipped by the overflow:auto table wrapper.
+  (function initInvTooltip(){
+    const box=document.getElementById("inv-tip-box");
+    if(!box) return;
+    let active=false;
+
+    function fmt(n){
+      // Format with sign: +CHF 1,234 / −CHF 1,234
+      const sym=(CURRENCIES[CURRENT_CCY]||CURRENCIES.USD).sym.trim();
+      const abs=Math.abs(Math.round(n)).toLocaleString();
+      if(n===0) return '<span class="ineu">—</span>';
+      return n>0
+        ?'<span class="ipos">+'+sym+' '+abs+'</span>'
+        :'<span class="ineg">−'+sym+' '+abs+'</span>';
+    }
+    function fmtN(n){
+      // Plain format no sign (for open/close)
+      const sym=(CURRENCIES[CURRENT_CCY]||CURRENCIES.USD).sym.trim();
+      return '<span class="ineu">'+sym+' '+Math.round(n).toLocaleString()+'</span>';
+    }
+    function row(label,val){
+      return '<div class="itr"><span class="ilabel">'+label+'</span>'+val+'</div>';
+    }
+    function build(d){
+      let h='<div class="ititle">Investments — year breakdown</div>';
+      h+=row('Opening balance',fmtN(d.open));
+      h+=row('Return ('+d.mu+'%/yr)',fmt(d.ret));
+      if(d.sav) h+=row('Savings contribution',fmt(d.sav));
+      if(d.surp) h+=row('Surplus allocated (30%)',fmt(d.surp));
+      if(d.def) h+=row('Deficit drawdown',fmt(d.def));
+      if(d.goal) h+=row('Goal withdrawal',fmt(-d.goal));
+      h+='<div class="itr itotal"><span class="ilabel">Closing balance</span>'+fmtN(d.close)+'</div>';
+      return h;
+    }
+
+    document.addEventListener("mouseover",function(e){
+      const td=e.target.closest("td.inv-cell");
+      if(!td||!td.dataset.inv) return;
+      try{
+        const d=JSON.parse(td.dataset.inv);
+        box.innerHTML=build(d);
+        box.classList.add("vis");
+        active=true;
+      }catch(_){}
+    });
+    document.addEventListener("mousemove",function(e){
+      if(!active) return;
+      let x=e.clientX+18, y=e.clientY-10;
+      if(x+330>window.innerWidth) x=e.clientX-338;
+      if(y+200>window.innerHeight) y=e.clientY-210;
+      box.style.left=x+"px";
+      box.style.top=y+"px";
+    });
+    document.addEventListener("mouseout",function(e){
+      if(!e.target.closest("td.inv-cell")) return;
+      box.classList.remove("vis");
+      active=false;
+    });
+  })();
 });
 </script>
 </body>
