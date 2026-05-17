@@ -4585,11 +4585,11 @@ function runMC(years,sims,muOverride,sigOverride){
         cash-=fromCash; savDone+=fromCash;
       }
       inv+=savDone;
-      if(remaining>0){
-        inv+=remaining*0.30;
-        cash+=remaining*0.70;
-      } else {
+      // Positive residual surplus is discretionary spending — not additionally saved.
+      // Only deficits drain cash (then investments).
+      if(remaining<0){
         cash+=remaining;
+        if(cash<0){inv+=cash; cash=0; if(inv<0) inv=0;}
       }
       // Goal outflows: deduct goal spending from liquid wealth (cash first, then investments)
       const goalOut=goalOutMap[cy0+y]||0;
@@ -5077,14 +5077,11 @@ function renderCashFlow(){
       // Step 2 — savings capped at available surplus (can't invest money that doesn't exist)
       const actualSav=Math.min(effectiveSav,Math.max(0,surp));
       iv+=actualSav;
-      // Step 3 — residual surplus: 30% to investments, 70% to cash; deficit drains cash then inv
+      // Step 3 — residual surplus is discretionary spending, not additionally saved.
+      // Only a deficit drains cash first, then investments.
       const surpAfterSav=surp-actualSav;
       let surpToInv=0, deficitDrain=0;
-      if(surpAfterSav>0){
-        surpToInv=surpAfterSav*0.30;
-        iv+=surpToInv;
-        ca+=surpAfterSav*0.70;
-      } else {
+      if(surpAfterSav<0){
         ca+=surpAfterSav;
         if(ca<0){deficitDrain=ca; iv+=ca; ca=0; if(iv<0) iv=0;}
       }
@@ -5188,7 +5185,7 @@ function renderCashFlow(){
 
     const tipGoal=JSON.stringify({type:"goal",goals:(goalsFired||[]).map(g=>({name:g.name,amt:Math.round(g.amt)})),total:Math.round(goalOut)});
 
-    const surpPos=surpAfterSav>0?Math.round(surpAfterSav*0.70):0;
+    const surpPos=0; // positive residual is spent, not saved to cash
     const surpNeg=surpAfterSav<0?Math.round(surpAfterSav):0;
     const goalCashDrain=goalOut>0?Math.min(Math.round(caOpen),Math.round(goalOut)):0;
     const tipCash=JSON.stringify({type:"cash",open:Math.round(caOpen),surpPos,surpNeg,goalDrain:goalCashDrain,close:Math.round(cash)});
@@ -6281,6 +6278,7 @@ document.addEventListener("DOMContentLoaded",function(){
         if(d.sav) h+=row("Savings target deducted",fmtS(-d.sav));
         h+=total(isDeficit?"Net deficit":"Net surplus / deficit",Math.abs(d.net));
         if(isDeficit) h+=row("Deficit draws from cash, then investments","","ineu");
+        else if(d.net>0) h+=row("Residual spent (discretionary lifestyle)","","ineu");
         return h;
       }
       if(d.type==="goal"){
