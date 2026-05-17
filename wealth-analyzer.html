@@ -708,6 +708,12 @@ input[type=date]{color-scheme:light}
         <div style="font-size:18px;font-weight:500;color:#c0522a" id="tax-state-amt">—</div>
         <div style="font-size:11px;color:var(--text3);margin-top:4px" id="tax-state-rate-lbl">—</div>
       </div>
+      <div id="childTaxCard" style="display:none;padding:10px 12px;background:var(--bg3);border-radius:var(--rs);border:1px solid var(--border);margin-bottom:10px">
+        <div style="font-size:11px;color:var(--text3);margin-bottom:4px">Child / family tax benefit</div>
+        <div style="font-size:18px;font-weight:500;color:#1b6841" id="tax-child-saving">—</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:4px" id="tax-child-lbl">—</div>
+        <div style="font-size:10px;color:var(--text3);margin-top:3px;font-style:italic" id="tax-child-note"></div>
+      </div>
       <div style="padding:10px 12px;background:var(--bg3);border-radius:var(--rs);border:1px solid var(--border);margin-bottom:10px">
         <div style="font-size:11px;color:var(--text3);margin-bottom:4px">Net household income (after all taxes)</div>
         <div style="font-size:18px;font-weight:500;color:#1b6841" id="tax-net">—</div>
@@ -728,6 +734,10 @@ input[type=date]{color-scheme:light}
   <div class="sdiv" id="stateTaxInfoDiv">
     <div class="slbl">State / local tax — <span id="stateTaxInfoLabel">—</span></div>
     <div id="stateTaxInfo" style="font-size:12px;color:var(--text2);line-height:1.7"></div>
+  </div>
+  <div class="sdiv">
+    <div class="slbl">Child &amp; family tax benefit — <span id="childTaxRuleCountry">—</span></div>
+    <div id="childTaxRuleDesc" style="font-size:12px;color:var(--text2);line-height:1.7"></div>
   </div>
 </div>
 
@@ -2184,6 +2194,34 @@ const TAX_BRACKETS={
   OTHER:{name:"Other (flat 25%)",sym:"USD",bands:[[Infinity,25]]},
 };
 
+// ─── Child / family tax benefits by country ────────────────────────────────
+// type "credit"    → direct reduction of final tax (possibly income-tested)
+// type "deduction" → reduces taxable income; saving computed as bracket delta
+// type "mixed"     → South Korea: deduction + tiered credit per child
+// perChild amounts are in each country's local currency (same as TAX_BRACKETS sym).
+// phaseStart / phaseRate apply to "credit" countries that means-test the benefit.
+const CHILD_TAX_RULES={
+  US:{type:"credit",   label:"Child Tax Credit",                          perChild:2000,   maxAge:17, phaseStart:200000, phaseRate:0.05,  note:"$2,000 credit per child under 17. Phases out 5% per $1,000 above $200k."},
+  CA:{type:"credit",   label:"Canada Child Benefit (CCB)",                perChild:7437,   maxAge:18, phaseStart:34863,  phaseRate:0.132, note:"CCB: up to CAD 7,437/yr per child under 6 (CAD 6,275 age 6–17). Income-tested above CAD 34,863."},
+  GB:{type:"credit",   label:"Child Benefit",                             perChild:1332,   maxAge:16, phaseStart:60000,  phaseRate:0.01,  note:"£1,332/yr per child under 16. High-Income Charge claws back 1% per £100 above £60,000."},
+  AU:{type:"credit",   label:"Family Tax Benefit Part A",                 perChild:2063,   maxAge:13, phaseStart:55626,  phaseRate:0.20,  note:"FTB-A: ~A$2,063/yr per child under 13. Tapers by 20¢ per $1 above A$55,626."},
+  CH:{type:"deduction",label:"Kinderabzug (child deduction)",             perChild:6700,   maxAge:18, note:"CHF 6,700 deduction per child from federal taxable income. Cantons add further cantonal deductions."},
+  EU:{type:"deduction",label:"Kinderfreibetrag / child allowance",        perChild:6192,   maxAge:25, note:"€6,192 deduction per child (German proxy). Actual rules vary by EU member state — use flat override for precision."},
+  JP:{type:"deduction",label:"扶養控除 Dependent deduction",               perChild:380000, maxAge:19, note:"¥380,000 deduction per child (general dependent relief). Separate child-allowance payments apply outside income tax."},
+  SG:{type:"deduction",label:"Qualifying Child Relief (QCR)",             perChild:4000,   maxAge:16, note:"S$4,000 QCR per child. Working Mother's Child Relief adds a further income % per child for employed mothers."},
+  HK:{type:"deduction",label:"Child Allowance",                           perChild:130000, maxAge:18, note:"HK$130,000 allowance per child; doubled to HK$260,000 in the year of birth."},
+  CN:{type:"deduction",label:"子女教育扣除 Child education deduction",      perChild:12000,  maxAge:24, note:"RMB 12,000/yr (RMB 1,000/month) per child from age 3 through undergraduate study."},
+  TW:{type:"deduction",label:"扶養親屬免稅額 Dependent exemption",          perChild:92000,  maxAge:20, note:"NTD 92,000 dependent exemption per child."},
+  KR:{type:"mixed",    label:"부양가족공제 + 자녀세액공제",                    perChild:1500000,maxAge:20, note:"KRW 1.5M deduction per child + KRW 150,000 credit (1st), 200,000 (2nd), 300,000+ (3rd+)."},
+  IN:{type:"deduction",label:"Children's education allowance",            perChild:2400,   maxAge:18, maxChild:2, note:"INR 2,400/yr per child (INR 200/month, max 2 children). Very limited."},
+  ID:{type:"deduction",label:"PTKP tanggungan (Dependent allowance)",     perChild:4500000,maxAge:25, maxChild:3, note:"IDR 4,500,000 deduction per dependent child (maximum 3 children)."},
+  MX:{type:"credit",   label:"No child-specific tax deduction",           perChild:0,      maxAge:0,  note:"Mexico has no child income-tax credit. Medical expenses for children may be deductible."},
+  BR:{type:"deduction",label:"Dedução por dependente",                    perChild:2275,   maxAge:21, note:"BRL 2,275.08 deduction per dependent child (up to age 21, or 24 if in full-time education)."},
+  SA:{type:"credit",   label:"No personal income tax",                    perChild:0,      maxAge:0,  note:"Saudi Arabia levies no personal income tax — no child benefit applies."},
+  ZA:{type:"credit",   label:"No child tax credit",                       perChild:0,      maxAge:0,  note:"South Africa has no child income-tax credit. The Child Support Grant is a separate welfare payment."},
+  OTHER:{type:"credit",label:"Generic child benefit estimate",            perChild:500,    maxAge:18, note:"Generic 500-unit estimate. Override with the flat-rate field for your jurisdiction."},
+};
+
 // State / Province / Canton tax rates (approximate effective rate at ~$100k household income)
 // Added on top of federal brackets. rate=0 means no separate subnational income tax.
 const STATE_TAX={
@@ -2546,14 +2584,20 @@ function getReturnParams(){
 function addChild(){
   children.push({id:"ch"+(++childSeq),first:"",last:"",dob:""});
   renderChildren();
+  updateTaxPanel();
 }
 function delChild(id){
   children=children.filter(c=>c.id!==id);
   renderChildren();
+  updateTaxPanel();
 }
 function updChild(id,field,v){
   const c=children.find(x=>x.id===id); if(c){ c[field]=v;
-    if(field==="dob"){ const aSpan=document.querySelector('[data-childage="'+id+'"]'); if(aSpan){ const a=ageFromDOB(v); aSpan.textContent=a!=null?("age "+a):""; } }
+    if(field==="dob"){
+      const aSpan=document.querySelector('[data-childage="'+id+'"]');
+      if(aSpan){ const a=ageFromDOB(v); aSpan.textContent=a!=null?("age "+a):""; }
+      updateTaxPanel(); // DOB change may affect eligibility
+    }
   }
 }
 function renderChildren(){
@@ -3100,6 +3144,58 @@ function getCountryBrackets(){
   return TAX_BRACKETS[c]||TAX_BRACKETS.OTHER;
 }
 
+// Count children who are under maxAge (children with no DOB are assumed eligible)
+function getEligibleChildCount(maxAge){
+  if(maxAge<=0) return 0;
+  return children.filter(c=>{
+    if(!c.dob) return true;
+    const a=ageFromDOB(c.dob);
+    return a==null||a<maxAge;
+  }).length;
+}
+
+// Return total annual child-related tax saving for the given gross income
+function getChildTaxSaving(grossIncome){
+  if(!getApplyTax()||grossIncome<=0||children.length===0) return 0;
+  const country=$("c1co")?.value||"US";
+  const rule=CHILD_TAX_RULES[country]||CHILD_TAX_RULES.OTHER;
+  if(!rule||rule.perChild===0) return 0;
+  const n=getEligibleChildCount(rule.maxAge);
+  const effectiveN=rule.maxChild?Math.min(n,rule.maxChild):n;
+  if(effectiveN===0) return 0;
+
+  if(rule.type==="credit"){
+    let credit=rule.perChild*effectiveN;
+    if(rule.phaseStart&&grossIncome>rule.phaseStart){
+      const excess=grossIncome-rule.phaseStart;
+      credit=Math.max(0,credit-excess*rule.phaseRate);
+    }
+    return credit;
+  }
+  if(rule.type==="deduction"){
+    // Saving = reduction in federal tax from reducing taxable income by deduction
+    const deduction=rule.perChild*effectiveN;
+    const taxBefore=computeFederalTax(grossIncome);
+    const taxAfter=computeFederalTax(Math.max(0,grossIncome-deduction));
+    return taxBefore-taxAfter;
+  }
+  if(rule.type==="mixed"){
+    // South Korea: deduction part + tiered credit per child
+    const deduction=rule.perChild*effectiveN;
+    const taxBefore=computeFederalTax(grossIncome);
+    const taxAfter=computeFederalTax(Math.max(0,grossIncome-deduction));
+    const deductionSaving=taxBefore-taxAfter;
+    let credit=0;
+    for(let i=0;i<effectiveN;i++){
+      if(i===0) credit+=150000;
+      else if(i===1) credit+=200000;
+      else credit+=300000;
+    }
+    return deductionSaving+credit;
+  }
+  return 0;
+}
+
 // Populate c1st and taxState dropdowns for the given country code
 function refreshStateDropdown(country){
   const sd=STATE_TAX[country]||STATE_TAX.OTHER;
@@ -3178,7 +3274,8 @@ function computeStateTax(income){
 
 function computeIncomeTax(income){
   if(!getApplyTax()||income<=0) return 0;
-  return computeFederalTax(income)+computeStateTax(income);
+  const grossTax=computeFederalTax(income)+computeStateTax(income);
+  return Math.max(0,grossTax-getChildTaxSaving(income));
 }
 
 function onTaxModeChange(){updateTaxPanel();}
@@ -3187,9 +3284,28 @@ function updateTaxPanel(){
   const inc=getGrossIncome();
   const fed=getApplyTax()?computeFederalTax(inc):0;
   const stateAmt=getApplyTax()?computeStateTax(inc):0;
-  const totalTax=fed+stateAmt;
-  const net=inc-totalTax;
   const country=$("c1co")?.value||"US";
+
+  // Child / family tax benefit
+  const rule=CHILD_TAX_RULES[country]||CHILD_TAX_RULES.OTHER;
+  const childSaving=getApplyTax()?getChildTaxSaving(inc):0;
+  const childCard=$("childTaxCard");
+  if(childCard){
+    const hasKids=children.length>0;
+    childCard.style.display=hasKids?"":"none";
+    if(hasKids){
+      const eligN=rule?getEligibleChildCount(rule.maxAge):0;
+      const effectiveN=rule?.maxChild?Math.min(eligN,rule.maxChild):eligN;
+      const label=rule?.label||"Child benefit";
+      const benType=rule?.type==="deduction"?"deduction":"credit";
+      setT("tax-child-saving","− "+fmtMoneyFull(childSaving));
+      setT("tax-child-lbl",label+" — "+effectiveN+" of "+children.length+" child"+(children.length!==1?"ren":"")+" eligible ("+benType+")");
+      setT("tax-child-note",rule?.note||"");
+    }
+  }
+
+  const totalTax=Math.max(0,fed+stateAmt-childSaving);
+  const net=inc-totalTax;
   const sd=STATE_TAX[country]||STATE_TAX.OTHER;
   const stateRate=getStateTaxRate();
   const selectedState=$("taxState");
@@ -3202,7 +3318,7 @@ function updateTaxPanel(){
   setT("tax-state-amt",fmtMoneyFull(stateAmt));
   setT("tax-state-rate-lbl",stateRate>0?("Flat "+stateRate+"% on income"):"No state income tax");
   setT("tax-net",fmtMoneyFull(net));
-  setT("tax-total-rate-lbl","Combined effective rate: "+(inc>0?(totalTax/inc*100).toFixed(1):"0")+"%");
+  setT("tax-total-rate-lbl","Combined effective rate: "+(inc>0?(totalTax/inc*100).toFixed(1):"0")+"%"+(childSaving>0?" (after child benefit)":""));
 
   // CGT on returns
   const params=getReturnParams();
@@ -3235,6 +3351,34 @@ function updateTaxPanel(){
     setH("stateTaxInfo",`<div>Flat <strong>${stateRate}%</strong> on all taxable income — approximate effective rate at ~$100k household income.</div>`);
   } else {
     setH("stateTaxInfo",`<div style="color:var(--text3)">No state income tax.</div>`);
+  }
+
+  // Child benefit reference panel
+  setT("childTaxRuleCountry",rule?.label||"—");
+  if(rule&&rule.perChild>0){
+    const tb=getCountryBrackets();
+    const sym=tb.sym||"";
+    const typeLabel=rule.type==="deduction"?"deduction from taxable income":rule.type==="mixed"?"deduction + direct credit":"direct credit";
+    let ruleHtml=`<div><strong>${sym} ${rule.perChild.toLocaleString()}</strong> per child (${typeLabel}), eligible up to age ${rule.maxAge}</div>`;
+    if(rule.phaseStart) ruleHtml+=`<div style="color:var(--text3)">Phases out above ${sym} ${rule.phaseStart.toLocaleString()} — rate: ${(rule.phaseRate*100).toFixed(1)}%${rule.type==="credit"?" of credit lost per 1% income over threshold":""}</div>`;
+    if(rule.maxChild) ruleHtml+=`<div style="color:var(--text3)">Maximum ${rule.maxChild} eligible children</div>`;
+    ruleHtml+=`<div style="color:var(--text3);font-style:italic;margin-top:3px">${rule.note}</div>`;
+    if(children.length>0){
+      ruleHtml+=`<div style="margin-top:6px;padding:6px 8px;background:var(--bg3);border-radius:var(--rs);border:1px solid var(--border)">`;
+      ruleHtml+=`<strong>${children.length} child${children.length!==1?"ren":""} on file</strong> — `;
+      if(getApplyTax()&&childSaving>0){
+        ruleHtml+=`estimated saving <strong style="color:var(--green)">${fmtMoneyFull(childSaving)}/yr</strong>`;
+      } else if(!getApplyTax()){
+        ruleHtml+=`<span style="color:var(--text3)">tax not applied — enable above to see saving</span>`;
+      } else {
+        const eligN=getEligibleChildCount(rule.maxAge);
+        ruleHtml+=eligN===0?`<span style="color:var(--text3)">no children currently below age limit (${rule.maxAge})</span>`:`<span style="color:var(--text3)">income above phase-out threshold — benefit reduced to zero</span>`;
+      }
+      ruleHtml+=`</div>`;
+    }
+    setH("childTaxRuleDesc",ruleHtml);
+  } else {
+    setH("childTaxRuleDesc",`<div style="color:var(--text3);font-style:italic">${rule?.note||"No child tax benefit data for this country."}</div>`);
   }
 }
 
