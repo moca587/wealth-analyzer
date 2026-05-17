@@ -447,11 +447,11 @@ input[type=date]{color-scheme:light}
   <div class="nav-item" data-tab="proposal" onclick="showTab('proposal',this)">
     <svg viewBox="0 0 16 16" fill="currentColor"><path d="M3 1h7l3 3v11a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1zm6.5 1v3h3l-3-3zM4.5 7h7v1h-7V7zm0 2.5h7v1h-7v-1zm0 2.5h5v1h-5v-1z"/></svg>Investment Proposal
   </div>
-  <div class="nav-item" data-tab="simulation" onclick="showTab('simulation',this)">
-    <svg viewBox="0 0 16 16" fill="currentColor"><path d="M1 12l4-5 3 3 3-4 4 5H1z"/></svg>Simulation
-  </div>
   <div class="nav-item" data-tab="compare" onclick="showTab('compare',this);runComparison()">
     <svg viewBox="0 0 16 16" fill="currentColor"><path d="M2 2v12h5V2H2zm7 0v6h5V2H9zm0 7.5v4.5h5V9.5H9z"/></svg>Portfolio Comparison
+  </div>
+  <div class="nav-item" data-tab="simulation" onclick="showTab('simulation',this)">
+    <svg viewBox="0 0 16 16" fill="currentColor"><path d="M1 12l4-5 3 3 3-4 4 5H1z"/></svg>Simulation
   </div>
   <div class="nav-item" data-tab="report" onclick="showTab('report',this)">
     <svg viewBox="0 0 16 16" fill="currentColor"><path d="M3 1.5A1.5 1.5 0 0 1 4.5 0h5L13 3.5V14.5A1.5 1.5 0 0 1 11.5 16h-7A1.5 1.5 0 0 1 3 14.5v-13zM9 1v3h3L9 1zm-4 6.5h6v1H5v-1zM5 10h6v1H5v-1zm0 2.5h4v1H5v-1z"/></svg>PDF Report
@@ -975,6 +975,12 @@ input[type=date]{color-scheme:light}
 
 <!-- ═══ SIMULATION ═══ -->
 <div class="tab" id="tab-simulation">
+<div class="panel" id="simInputsPanel">
+  <div class="ptitle">Inputs feeding into this simulation</div>
+  <div id="simInputsSummary" style="font-size:12px;color:var(--text3);line-height:1.8">
+    Fill in the tabs above and click <strong style="color:var(--text2)">▶ Run Monte Carlo Simulation</strong> — the summary of what feeds in will appear here.
+  </div>
+</div>
 <div class="panel">
   <div class="ptitle">Simulation Settings</div>
   <div class="two-col">
@@ -2425,6 +2431,7 @@ function showTab(name,el){
   if(el) el.classList.add("active");
   if(name==="portfolio"){renderInvestments();renderPortfolioMetrics();renderPortfolioBars();drawPortfolioPie();}
   if(name==="proposal"){renderProposals();renderProposalMetrics();renderProposalBars();drawProposalPie();syncProposalClient();}
+  if(name==="simulation"){buildSimInputsSummary();}
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -4515,6 +4522,15 @@ function runMC(years,sims,muOverride,sigOverride){
   const c2Age0=ageFromDOB(val("c2d"))||c1Age0;
   const rebalFreq=val("rebalFreq")||"none";
   const tgtEq=num("tgtEquity",60)/100;
+  // Pre-build goal outflow map: calendar year → total annual outflow across all goals
+  const cy0=currentYear();
+  const goalOutMap={};
+  goals.forEach(g=>{
+    for(let yr=g.startYear;yr<=g.endYear;yr++){
+      goalOutMap[yr]=(goalOutMap[yr]||0)+g.amt;
+    }
+  });
+
   const paths=[];
   for(let s=0;s<sims;s++){
     let cash=cashSeed, inv=investSeed, prop=propVal;
@@ -4573,6 +4589,16 @@ function runMC(years,sims,muOverride,sigOverride){
       } else {
         cash+=remaining;
       }
+      // Goal outflows: deduct goal spending from liquid wealth (cash first, then investments)
+      const goalOut=goalOutMap[cy0+y]||0;
+      if(goalOut>0){
+        const fromCash=Math.min(Math.max(0,cash),goalOut);
+        cash-=fromCash;
+        const still=goalOut-fromCash;
+        const fromInv=Math.min(Math.max(0,inv),still);
+        inv-=fromInv;
+        cash=Math.max(0,cash); inv=Math.max(0,inv);
+      }
       // Portfolio rebalancing
       if(rebalFreq!=="none" && y>0){
         const totalPort=Math.max(0,cash)+Math.max(0,inv);
@@ -4604,8 +4630,104 @@ function percentileAt(paths,yearIdx,p){
   const i=Math.max(0,Math.min(arr.length-1,Math.floor(p/100*arr.length)));
   return arr[i];
 }
+function buildSimInputsSummary(){
+  // Snapshot all key inputs and render as a readable confirmation panel
+  const inc=getGrossIncome(), exp=getTotalExpenses();
+  const tax=getApplyTax()?computeIncomeTax(inc):0;
+  const childSaving=getApplyTax()?getChildTaxSaving(inc):0;
+  const surplus=getNetSurplus();
+  const sav=num("savAnnual",0);
+  const totalAcc=totalAccountValue();
+  const propV=num("aProp",0), otherV=num("aOther",0);
+  const retSeed=retirementAccountSeed();
+  const debt=loans.reduce((s,l)=>s+l.bal,0);
+  const nw=totalAcc+propV+otherV-debt;
+  const params=getEffectiveReturnParams();
+  const propParams=proposals.length>0?getProposalReturnParams():null;
+  const country=val("c1co")||"US";
+  const countryName=COUNTRY_ACCOUNTS[country]?.name||country;
+  const riskLabel=RISK_PROFILES[val("c1r")]?.label||val("c1r")||"—";
+  const horizLabel=HORIZON_PROFILES[val("c1h")]?.label||val("c1h")||"—";
+  const c1name=(val("c1f")||"Client 1")+(val("c1l")?" "+val("c1l"):"");
+  const c2shown=$("c2card")?.style.display!=="none";
+  const c2name=c2shown?(val("c2f")||"Client 2")+(val("c2l")?" "+val("c2l"):""):"";
+  const retAge=num("retAge",65);
+  const inf=num("inf",3.8);
+  const raise=num("raise",0);
+  const yrs=num("simYrs",20);
+  const sims=parseInt(val("simN")||"500",10);
+
+  const row=(label,value,note="")=>
+    `<div style="display:flex;gap:8px;border-bottom:1px solid var(--border);padding:4px 0;align-items:baseline">
+      <span style="min-width:200px;color:var(--text3);flex-shrink:0">${label}</span>
+      <span style="font-weight:500;color:var(--text)">${value}</span>
+      ${note?`<span style="font-size:10px;color:var(--text3);margin-left:auto">${note}</span>`:""}
+    </div>`;
+  const section=(title)=>
+    `<div style="font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);margin:10px 0 4px">${title}</div>`;
+
+  let html="";
+  // Household
+  html+=section("Household");
+  html+=row("Primary client",c1name,`Age ${ageFromDOB(val("c1d"))||"—"} · ${countryName}`);
+  if(c2shown) html+=row("Partner",c2name,`Age ${ageFromDOB(val("c2d"))||"—"}`);
+  if(children.length>0) html+=row("Children",children.length+" on file",children.map(c=>c.first||(c.dob?ageFromDOB(c.dob)+"yr":"")||"unnamed").filter(Boolean).join(", "));
+  html+=row("Risk profile",riskLabel,horizLabel+" horizon");
+
+  // Income & tax
+  html+=section("Income & Tax");
+  html+=row("Gross household income",fmtMoney(inc)+"/yr");
+  html+=row("Income tax",fmtMoney(tax)+"/yr",`Effective ${inc>0?(tax/inc*100).toFixed(1):"0"}%`+(getApplyTax()?"":"  (tax off)"));
+  if(childSaving>0) html+=row("Child tax benefit",`− ${fmtMoney(childSaving)}/yr`,`${children.length} child${children.length!==1?"ren":""}`);
+  html+=row("Expenses",fmtMoney(exp)+"/yr");
+  html+=row("Annual surplus",fmtMoney(surplus)+"/yr",surplus<0?"⚠ Deficit":"");
+  html+=row("Annual savings target",fmtMoney(sav)+"/yr");
+  if(raise>0) html+=row("Income growth",raise+"%/yr","applied to earned income");
+  html+=row("Inflation",inf+"%/yr");
+
+  // Assets & wealth
+  html+=section("Assets & Starting Wealth");
+  html+=row("Accounts (assets tab)",fmtMoney(totalAcc),`incl. ${fmtMoney(retSeed)} retirement pool`);
+  if(propV>0) html+=row("Property / real estate",fmtMoney(propV));
+  if(otherV>0) html+=row("Other assets",fmtMoney(otherV));
+  if(debt>0) html+=row("Total debt (loans)",`− ${fmtMoney(debt)}`,`${loans.length} loan${loans.length!==1?"s":""}`);
+  html+=row("Net worth",fmtMoney(nw));
+  if(investments.length>0) html+=row("Portfolio holdings",investments.length+" positions",`${fmtMoney(portfolioInvestmentSeed())} total`);
+
+  // Return assumptions
+  html+=section("Return Assumptions");
+  const returnSrc=investments.length>0?"holdings-weighted":"risk-profile";
+  html+=row("Expected return (gross)",`${(params.mu*100).toFixed(2)}%/yr`,returnSrc);
+  html+=row("Volatility",`${(params.sig*100).toFixed(2)}%/yr`);
+  if(propParams) html+=row("Proposal return",`${(propParams.mu*100).toFixed(2)}%/yr`,`${proposals.length} positions`);
+  html+=row("Retirement age",retAge+"",`pool rate → 3.5%/yr in retirement`);
+
+  // Goals & loans
+  if(goals.length>0){
+    html+=section("Goals (deducted from simulation paths)");
+    goals.forEach(g=>{
+      const yrsSpan=Math.max(1,g.endYear-g.startYear+1);
+      html+=row(g.name,`${fmtMoney(g.amt)}/yr`,`${g.startYear}–${g.endYear} · total ${fmtMoney(g.amt*yrsSpan)}`);
+    });
+  }
+  if(loans.length>0){
+    html+=section("Loans (amortised in simulation)");
+    loans.forEach(l=>{
+      html+=row(l.label,`${fmtMoney(l.bal)} bal.`,`${l.rate.toFixed(2)}% · ${l.yrs}yr remaining`);
+    });
+  }
+
+  // Simulation config
+  html+=section("Simulation Config");
+  html+=row("Projection",`${yrs} years · ${sims} paths`);
+
+  const el=$("simInputsSummary");
+  if(el) el.innerHTML=html;
+}
+
 function runSim(){
   const yrs=num("simYrs",20), sims=parseInt(val("simN")||"500",10);
+  buildSimInputsSummary();
   const paths=runMC(yrs,sims);
   lastSimPaths=paths; lastSimYrs=yrs;
   redrawChart(paths);
