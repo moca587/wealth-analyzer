@@ -1091,7 +1091,7 @@ input[type=date]{color-scheme:light}
     <span><span class="fund-tag fund-warn">Partly funded</span> 50–79%</span>
     <span><span class="fund-tag fund-warn">At risk</span> 25–49%</span>
     <span><span class="fund-tag fund-bad">Underfunded</span> &lt; 25%</span>
-    <span style="color:var(--text3)">"NW @ X% confidence" reads the X-th percentile of simulated net worth in the goal's calendar year (i.e. the value that X% of paths beat). Retirement uses a present-value corpus need: net retirement spending (after pension) discounted at the real return from the retirement year to age 90, then inflated to nominal $ at the retirement date.</span>
+    <span style="color:var(--text3)">"NW @ X% confidence" reads the X-th percentile of simulated net worth in the goal's calendar year (i.e. the value that X% of paths beat). Retirement uses a present-value corpus need: net retirement spending (after pension) discounted at the real return from the retirement year to age 90, then inflated to nominal $ at the retirement date. Note: "net worth" here includes all simulated wealth (investments, cash, property, retirement accounts minus debt). For goals needing liquid funds quickly, actual availability may be lower if a significant portion of wealth is in illiquid assets such as property or locked retirement accounts.</span>
   </div>
 </div>
 
@@ -4181,7 +4181,9 @@ function retirementAccountSeed(){
 const IRS_ULT={73:26.5,74:25.5,75:24.6,76:23.7,77:22.9,78:22.0,79:21.1,80:20.2,
   81:19.4,82:18.5,83:17.7,84:16.8,85:16.0,86:15.2,87:14.4,88:13.7,
   89:12.9,90:12.2,91:11.5,92:10.8,93:10.1,94:9.5,95:8.9,96:8.4,
-  97:7.8,98:7.3,99:6.8};
+  97:7.8,98:7.3,99:6.8,100:6.4,101:5.9,102:5.5,103:5.2,104:4.9,
+  105:4.6,106:4.3,107:4.1,108:3.9,109:3.7,110:3.5,111:3.4,112:3.3,
+  113:3.1,114:3.0,115:2.9,116:2.8,117:2.7,118:2.5,119:2.3,120:2.0};
 // CA: RRIF minimum rates (CRA table, %). Conversion required by age 71.
 const RRIF_RATES={71:5.28,72:5.40,73:5.53,74:5.67,75:5.82,76:5.98,77:6.17,
   78:6.36,79:6.58,80:6.82,81:7.08,82:7.38,83:7.71,84:8.08,85:8.51,
@@ -4197,7 +4199,7 @@ function calcRMD(balance, age, country){
   if(balance<=0) return 0;
   if(country==="US"){
     if(age<73) return 0;
-    const f=IRS_ULT[Math.min(age,99)]||6.4;
+    const f=IRS_ULT[Math.min(age,120)]||2.0;
     return balance/f;
   }
   if(country==="CA"){
@@ -4323,9 +4325,21 @@ function runMC(years,sims,muOverride,sigOverride){
   const retSeed=retirementAccountSeed();
   const country=val("c1co")||"US";
   const liquidAcc=Math.max(0, totalAcc-retSeed); // exclude retirement accounts from liquid pool
-  const totalSeed=liquidAcc+pfInvested;
-  const investSeed=Math.max(pfInvested, totalSeed*0.3);
-  const cashSeed=Math.max(0, totalSeed-investSeed)+pfCash; // pfCash always flat
+  const pfTotal=pfInvested+pfCash;
+  let investSeed, cashSeed;
+  if(investments.length>0 && !pfLinkedAccountId){
+    // Mode C — portfolio entered but not linked to an asset account.
+    // totalAcc already includes the same money tracked in the portfolio → double-count guard.
+    // Use portfolio as authoritative for the invested pool; only count asset-tab value ABOVE it.
+    const extraAcc=Math.max(0,liquidAcc-pfTotal);
+    investSeed=pfInvested;
+    cashSeed=pfCash+extraAcc;
+  } else {
+    // Mode A (no portfolio) or Mode B (linked — totalAcc excludes the linked account).
+    const totalSeed=liquidAcc+pfInvested;
+    investSeed=Math.max(pfInvested, totalSeed*0.3);
+    cashSeed=Math.max(0, totalSeed-investSeed)+pfCash;
+  }
   const savAnnual=num("savAnnual",0);
   const cgtDrag = getApplyTax()? (num("cgtRate",15)/100)*(num("cgtTurnover",10)/100) : 0;
   const muNet = mu*(1-cgtDrag);
@@ -4364,12 +4378,13 @@ function runMC(years,sims,muOverride,sigOverride){
       //    Voluntary 4% drawdown begins at retirement; mandatory rules apply from legal age.
       //    At 3.5% growth vs ≥4% withdrawal the pool naturally decreases each year. ──
       const retMu=retired?0.035:mu;
+      const retPotBefore=retPot; // prior year-end balance — IRS uses this as RMD base
       retPot=retPot*(1+retMu);
       let rmd=0;
-      if(retired && retPot>0){
-        const mandatoryRMD=calcRMD(retPot,age,country);
-        const voluntaryRMD=retPot*0.04;
-        rmd=Math.max(mandatoryRMD, voluntaryRMD); // pool decreases naturally: growth(3.5%) < withdrawal(≥4%)
+      if(retired && retPotBefore>0){
+        const mandatoryRMD=calcRMD(retPotBefore,age,country);
+        const voluntaryRMD=retPotBefore*0.04;
+        rmd=Math.max(mandatoryRMD, voluntaryRMD);
       }
       retPot=Math.max(0, retPot-rmd);
       const totalPen=pen1+pen2+rmd; // drawdown credited as income
@@ -4732,13 +4747,15 @@ function renderCashFlow(){
       const pen1=calcPension(penSrc,penAnn,penStart,penCola,age,inf);
       const c2AgeY=c2Age0+y;
       const pen2=showC2?calcPension(penSrc2,penAnn2,penStart2,penCola2,c2AgeY,inf):0;
-      // Retirement pool: grows at loopMu pre-retirement, 3.5% post-retirement
+      // Retirement pool: grows at loopMu pre-retirement, 3.5% post-retirement.
+      // RMD is computed from the prior year-end balance (before growth) per IRS rules.
       const retMu=retired?loopRetMuRetired:Math.max(0.025,loopMu);
+      const rpBefore=rp; // prior year-end balance — base for RMD calculation
       rp=rp*(1+retMu);
       let rmd=0;
-      if(retired&&rp>0){
-        const mandatoryRMD=calcRMD(rp,age,country);
-        const voluntaryRMD=rp*0.04;
+      if(retired&&rpBefore>0){
+        const mandatoryRMD=calcRMD(rpBefore,age,country);
+        const voluntaryRMD=rpBefore*0.04;
         rmd=Math.max(mandatoryRMD,voluntaryRMD);
       }
       rp=Math.max(0,rp-rmd);
@@ -5460,7 +5477,21 @@ function generatePDFReport(){
 // TOP-LEVEL METRICS
 // ═══════════════════════════════════════════════════════════
 function refreshTopMetrics(){
-  const totA=totalAccountValue()+num("aProp",0)+num("aOther",0)+portfolioInvestmentSeed();
+  const hasPortfolio=investments.length>0;
+  const acctVal=totalAccountValue(); // already excludes linked account when Mode B
+  let pfAdj=0;
+  if(hasPortfolio && pfLinkedAccountId){
+    // Mode B: totalAccountValue() excludes linked account; add full portfolio to replace it
+    pfAdj=portfolioInvestmentSeed();
+  } else if(hasPortfolio && !pfLinkedAccountId){
+    // Mode C: portfolio may overlap with asset accounts — only add value ABOVE what's already there
+    const retSeed=retirementAccountSeed();
+    const liquidAcc=Math.max(0,acctVal-retSeed);
+    const pfTotal=portfolioInvestmentSeed();
+    pfAdj=Math.max(0,pfTotal-liquidAcc);
+  }
+  // Mode A: pfAdj=0 — all value already in acctVal
+  const totA=acctVal+pfAdj+num("aProp",0)+num("aOther",0);
   const debt=loans.reduce((s,l)=>s+l.bal,0);
   setT("m-nw",fmtMoney(totA-debt));
   setT("m-assets",fmtMoney(totA));
@@ -5580,16 +5611,30 @@ function runSensitivity(){
   setT("sensYr",String(currentYear()+yrs));
 
   const tests=[
-    {label:"Gross income",      fmt:"±20%", ids:["inc1","inc2","inc1b","inc2b"], pct:0.20},
-    {label:"Annual expenses",   fmt:"±20%", ids:["expL","expI","expO"],          pct:0.20},
-    {label:"Investment return", fmt:"±2 pp",ids:["retM"],                        abs:2},
-    {label:"Return volatility", fmt:"±3 pp",ids:["retV"],                        abs:3},
-    {label:"Inflation rate",    fmt:"±1 pp",ids:["inf"],                         abs:1},
-    {label:"Annual savings",    fmt:"±20%", ids:["savAnnual"],                   pct:0.20},
-    {label:"Property value",    fmt:"±20%", ids:["aProp"],                       pct:0.20},
+    {label:"Gross income",    fmt:"±20%", ids:["inc1","inc2","inc1b","inc2b"], pct:0.20},
+    {label:"Annual expenses", fmt:"±20%", ids:["expL","expI","expO"],          pct:0.20},
+    {label:"Inflation rate",  fmt:"±1 pp",ids:["inf"],                         abs:1},
+    {label:"Annual savings",  fmt:"±20%", ids:["savAnnual"],                   pct:0.20},
+    {label:"Property value",  fmt:"±20%", ids:["aProp"],                       pct:0.20},
   ];
 
   const results=[];
+  // Investment return sensitivity: use muOverride so it works in both risk-profile
+  // mode (no portfolio) AND holdings-weighted mode (portfolio entered), bypassing
+  // the retM DOM field which has no effect when getEffectiveReturnParams() is active.
+  (()=>{
+    const base=getEffectiveReturnParams();
+    const mPlus=percentileAt(runMC(yrs,sims,base.mu+0.02,base.sig),yrs,50);
+    const mMinus=percentileAt(runMC(yrs,sims,Math.max(0.005,base.mu-0.02),base.sig),yrs,50);
+    results.push({label:"Investment return",fmt:"±2 pp",plus:mPlus-baseMedian,minus:mMinus-baseMedian});
+  })();
+  // Return volatility sensitivity: same approach with sigOverride
+  (()=>{
+    const base=getEffectiveReturnParams();
+    const mPlus=percentileAt(runMC(yrs,sims,base.mu,base.sig+0.03),yrs,50);
+    const mMinus=percentileAt(runMC(yrs,sims,base.mu,Math.max(0.005,base.sig-0.03)),yrs,50);
+    results.push({label:"Return volatility",fmt:"±3 pp",plus:mPlus-baseMedian,minus:mMinus-baseMedian});
+  })();
   tests.forEach(t=>{
     const overPlus={}, overMinus={};
     t.ids.forEach(id=>{
