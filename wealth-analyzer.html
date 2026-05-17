@@ -5195,6 +5195,8 @@ function renderCashFlow(){
 
     const tipRet=JSON.stringify({type:"ret",open:Math.round(rpBefore),rate:Math.round(retMu*1000)/10,growth:Math.round(rpGrowth),rmd:Math.round(rmd),close:Math.round(retPot),phase});
 
+    const tipSurp=JSON.stringify({type:"surp",earned:Math.round(earnedInc),pen:Math.round(pen),tax:Math.round(tax),exp:Math.round(livingExp),debt:Math.round(debt),gross:Math.round(d.surp),sav:Math.round(actualSav),net:Math.round(surpAfterSav)});
+
     html+=`<tr class="${cls}">
       <td class="cf-l">${yearLabel}</td>
       <td class="cf-l">${age}</td>
@@ -5205,7 +5207,7 @@ function renderCashFlow(){
       <td class="cf-tip-cell" data-cf-tip='${tipExp.replace(/'/g,"&#39;")}'>${fmtMoney(livingExp)}</td>
       <td class="cf-tip-cell" data-cf-tip='${tipDebt.replace(/'/g,"&#39;")}'>${debt>0?fmtMoney(debt):"—"}</td>
       <td class="cf-tip-cell" data-cf-tip='${tipSav.replace(/'/g,"&#39;")}'>${retired?"—":actualSav>0?fmtMoney(actualSav)+(actualSav<effectiveSav?' <span style="font-size:10px;color:#c98a3a;cursor:default" title="Savings target: '+fmtMoney(effectiveSav)+' — constrained by surplus">⚠</span>':""):"—"}</td>
-      <td class="${surpAfterSav>=0?'cf-pos':'cf-neg'}">${fmtMoney(surpAfterSav)}</td>
+      <td class="${surpAfterSav>=0?'cf-pos':'cf-neg'} cf-tip-cell" data-cf-tip='${tipSurp.replace(/'/g,"&#39;")}'>${fmtMoney(surpAfterSav)}</td>
       <td class="cf-tip-cell" data-cf-tip='${tipGoal.replace(/'/g,"&#39;")}'>${goalOut>0?fmtMoney(goalOut):"—"}</td>
       <td class="cf-tip-cell" data-cf-tip='${tipCash.replace(/'/g,"&#39;")}'>${fmtMoney(cash)}</td>
       <td class="inv-cell" data-inv='{"open":${Math.round(invOpen)},"ret":${Math.round(invReturn)},"sav":${Math.round(actualSav)},"surp":${Math.round(surpToInv)},"def":${Math.round(deficitDrain)},"goal":${Math.round(goalDrain)},"close":${Math.round(inv)},"mu":${(cfMu*100).toFixed(1)}}'>${fmtMoney(inv)}</td>
@@ -6265,6 +6267,20 @@ document.addEventListener("DOMContentLoaded",function(){
           if(d.fromCash>0) h+=row("Shortfall vs target",fmtNN(d.fromCash));
         }
         h+=total("Savings invested",d.actual);
+        return h;
+      }
+      if(d.type==="surp"){
+        const isDeficit=d.net<0;
+        let h=title(isDeficit?"Surplus / Deficit — deficit breakdown":"Surplus / Deficit — how it's built");
+        h+=row("Earned income",fmtS(d.earned));
+        if(d.pen) h+=row("Pension / SS / RMD",fmtS(d.pen));
+        h+=row("Income tax",fmtS(-d.tax));
+        h+=row("Expenses",fmtS(-d.exp));
+        if(d.debt) h+=row("Debt service",fmtS(-d.debt));
+        h+='<div class="itr" style="border-top:1px solid rgba(255,255,255,.08);margin-top:4px;padding-top:4px"><span class="ilabel">Gross surplus (before savings)</span>'+fmtS(d.gross)+'</div>';
+        if(d.sav) h+=row("Savings target deducted",fmtS(-d.sav));
+        h+=total(isDeficit?"Net deficit":"Net surplus / deficit",Math.abs(d.net));
+        if(isDeficit) h+=row("Deficit draws from cash, then investments","","ineu");
         return h;
       }
       if(d.type==="goal"){
