@@ -4553,10 +4553,18 @@ function runMC(years,sims,muOverride,sigOverride){
       const retPotBefore=retPot; // prior year-end balance — IRS uses this as RMD base
       retPot=retPot*(1+retMu);
       let rmd=0;
-      if(retired && retPotBefore>0){
-        const mandatoryRMD=calcRMD(retPotBefore,age,country);
-        const voluntaryRMD=retPotBefore*0.04;
-        rmd=Math.max(mandatoryRMD, voluntaryRMD);
+      if(retPotBefore>0){
+        if(showC2){
+          // Each client owns half the pool; draws independently from their own retirement age
+          const half=retPotBefore*0.5;
+          const c2Ret=c2AgeY>=retAge;
+          let rmd1=0,rmd2=0;
+          if(retired){rmd1=Math.max(calcRMD(half,age,country),half*0.04);}
+          if(c2Ret)  {rmd2=Math.max(calcRMD(half,c2AgeY,country),half*0.04);}
+          rmd=rmd1+rmd2;
+        } else {
+          if(retired){rmd=Math.max(calcRMD(retPotBefore,age,country),retPotBefore*0.04);}
+        }
       }
       retPot=Math.max(0, retPot-rmd);
       const totalPen=pen1+pen2+rmd; // drawdown credited as income
@@ -5037,11 +5045,18 @@ function renderCashFlow(){
       const rpBefore=rp; // prior year-end balance — base for RMD calculation
       rp=rp*(1+retMu);
       const rpGrowth=rp-rpBefore;
-      let rmd=0;
-      if(retired&&rpBefore>0){
-        const mandatoryRMD=calcRMD(rpBefore,age,country);
-        const voluntaryRMD=rpBefore*0.04;
-        rmd=Math.max(mandatoryRMD,voluntaryRMD);
+      let rmd=0, rmd1=0, rmd2=0;
+      if(rpBefore>0){
+        if(showC2){
+          // Each client owns half the pool; draws independently from their own retirement age
+          const half=rpBefore*0.5;
+          const c2Retired=c2AgeY>=retAge;
+          if(retired)  {rmd1=Math.max(calcRMD(half,age,country),half*0.04);}
+          if(c2Retired){rmd2=Math.max(calcRMD(half,c2AgeY,country),half*0.04);}
+          rmd=rmd1+rmd2;
+        } else {
+          if(retired){rmd=Math.max(calcRMD(rpBefore,age,country),rpBefore*0.04); rmd1=rmd;}
+        }
       }
       rp=Math.max(0,rp-rmd);
       const pen=pen1+pen2+rmd;
@@ -5101,7 +5116,7 @@ function renderCashFlow(){
       const debtTotal=lb.reduce((s,l)=>s+l.bal,0);
       const nw=ca+iv+pr+other+rp-debtTotal;
       if(nw<=0&&y>0) dep=true;
-      data.push({y,age,retired,phase,earnedInc,pen,pen1,pen2,rmd,tax,livingExp,debt,
+      data.push({y,age,retired,phase,earnedInc,pen,pen1,pen2,rmd,rmd1,rmd2,tax,livingExp,debt,
         surp,effectiveSav,actualSav,surpAfterSav,goalOut,
         invOpen,invReturn,surpToInv,deficitDrain,goalDrain,
         inv:iv,cash:ca,retPot:rp,nw,depleted:dep,
@@ -5140,7 +5155,7 @@ function renderCashFlow(){
   // ── Render main CF table (current-portfolio scenario) ───────────────────────
   let html="";
   curData.forEach(d=>{
-    const {y,age,retired,phase,earnedInc,pen,pen1,pen2,rmd,tax,livingExp,debt,
+    const {y,age,retired,phase,earnedInc,pen,pen1,pen2,rmd,rmd1,rmd2,tax,livingExp,debt,
       actualSav,effectiveSav,surpAfterSav,goalOut,
       invOpen,invReturn,surpToInv,deficitDrain,goalDrain,
       inv,cash,retPot,nw,depleted,
@@ -5162,7 +5177,7 @@ function renderCashFlow(){
     const c2BonY=Math.round(c2Bon*Math.pow(1+raise,y));
     const tipEarned=JSON.stringify({type:"earned",c1sal:c1SalY,c1bon:c1BonY,c2sal:c2SalY,c2bon:c2BonY,raise:Math.round(raise*1000)/10,y,total:Math.round(earnedInc)});
 
-    const tipPen=JSON.stringify({type:"pension",pen1:Math.round(pen1),pen2:Math.round(pen2),rmd:Math.round(rmd),total:Math.round(pen)});
+    const tipPen=JSON.stringify({type:"pension",pen1:Math.round(pen1),pen2:Math.round(pen2),rmd1:Math.round(rmd1),rmd2:Math.round(rmd2),rmd:Math.round(rmd),total:Math.round(pen)});
 
     const taxInc=Math.round(earnedInc+pen);
     const taxTotal=Math.round(tax);
@@ -6220,7 +6235,12 @@ document.addEventListener("DOMContentLoaded",function(){
         let h=title("Pension · Social Security · RMD");
         if(d.pen1) h+=row("Client 1 pension / SS",fmtNN(d.pen1));
         if(d.pen2) h+=row("Client 2 pension / SS",fmtNN(d.pen2));
-        if(d.rmd)  h+=row("Ret. pool drawdown (RMD)",fmtNN(d.rmd));
+        if(d.rmd1&&d.rmd2){
+          h+=row("Client 1 ret. pool drawdown",fmtNN(d.rmd1));
+          h+=row("Client 2 ret. pool drawdown",fmtNN(d.rmd2));
+        } else if(d.rmd){
+          h+=row("Ret. pool drawdown (RMD)",fmtNN(d.rmd));
+        }
         if(d.total===0) h+=row("Not yet in receipt","—","ineu");
         h+=total("Total pension income",d.total);
         return h;
