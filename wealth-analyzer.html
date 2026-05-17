@@ -4584,7 +4584,7 @@ function runMC(years,sims,muOverride,sigOverride){
         const fromCash=Math.min(need,cash);
         cash-=fromCash; savDone+=fromCash;
       }
-      inv+=savDone;
+      cash+=savDone;
       // Positive residual surplus is discretionary spending — not additionally saved.
       // Only deficits drain cash (then investments).
       if(remaining<0){
@@ -5074,9 +5074,9 @@ function renderCashFlow(){
       const invOpen=iv;
       const invReturn=iv*loopMu;
       iv=iv*(1+loopMu);
-      // Step 2 — savings capped at available surplus (can't invest money that doesn't exist)
+      // Step 2 — savings capped at available surplus; goes to cash (liquid savings buffer)
       const actualSav=Math.min(effectiveSav,Math.max(0,surp));
-      iv+=actualSav;
+      ca+=actualSav;
       // Step 3 — residual surplus is discretionary spending, not additionally saved.
       // Only a deficit drains cash first, then investments.
       const surpAfterSav=surp-actualSav;
@@ -5188,7 +5188,7 @@ function renderCashFlow(){
     const surpPos=0; // positive residual is spent, not saved to cash
     const surpNeg=surpAfterSav<0?Math.round(surpAfterSav):0;
     const goalCashDrain=goalOut>0?Math.min(Math.round(caOpen),Math.round(goalOut)):0;
-    const tipCash=JSON.stringify({type:"cash",open:Math.round(caOpen),surpPos,surpNeg,goalDrain:goalCashDrain,close:Math.round(cash)});
+    const tipCash=JSON.stringify({type:"cash",open:Math.round(caOpen),sav:Math.round(actualSav),surpNeg,goalDrain:goalCashDrain,close:Math.round(cash)});
 
     const tipRet=JSON.stringify({type:"ret",open:Math.round(rpBefore),rate:Math.round(retMu*1000)/10,growth:Math.round(rpGrowth),rmd:Math.round(rmd),close:Math.round(retPot),phase});
 
@@ -5207,7 +5207,7 @@ function renderCashFlow(){
       <td class="${surpAfterSav>=0?'cf-pos':'cf-neg'} cf-tip-cell" data-cf-tip='${tipSurp.replace(/'/g,"&#39;")}'>${fmtMoney(surpAfterSav)}</td>
       <td class="cf-tip-cell" data-cf-tip='${tipGoal.replace(/'/g,"&#39;")}'>${goalOut>0?fmtMoney(goalOut):"—"}</td>
       <td class="cf-tip-cell" data-cf-tip='${tipCash.replace(/'/g,"&#39;")}'>${fmtMoney(cash)}</td>
-      <td class="inv-cell" data-inv='{"open":${Math.round(invOpen)},"ret":${Math.round(invReturn)},"sav":${Math.round(actualSav)},"surp":${Math.round(surpToInv)},"def":${Math.round(deficitDrain)},"goal":${Math.round(goalDrain)},"close":${Math.round(inv)},"mu":${(cfMu*100).toFixed(1)}}'>${fmtMoney(inv)}</td>
+      <td class="inv-cell" data-inv='{"open":${Math.round(invOpen)},"ret":${Math.round(invReturn)},"sav":0,"surp":0,"def":${Math.round(deficitDrain)},"goal":${Math.round(goalDrain)},"close":${Math.round(inv)},"mu":${(cfMu*100).toFixed(1)}}'>${fmtMoney(inv)}</td>
       <td class="cf-tip-cell" data-cf-tip='${tipRet.replace(/'/g,"&#39;")}'>${retSeed>0?fmtMoney(retPot):"—"}</td>
       <td><strong class="${nw<0?'cf-neg':''}">${fmtMoney(nw)}</strong></td>
       <td class="cf-l">${tags}</td>
@@ -6292,7 +6292,7 @@ document.addEventListener("DOMContentLoaded",function(){
       if(d.type==="cash"){
         let h=title("Cash balance — year breakdown");
         h+=row("Opening balance",fmtNN(d.open));
-        if(d.surpPos) h+=row("Surplus to cash (70%)",fmtS(d.surpPos));
+        if(d.sav) h+=row("Savings deposited",fmtS(d.sav));
         if(d.surpNeg) h+=row("Deficit drained from cash",fmtS(d.surpNeg));
         if(d.goalDrain) h+=row("Goal payment from cash",fmtS(-d.goalDrain));
         h+='<div class="itr itotal"><span class="ilabel">Closing balance</span>'+fmtNN(d.close)+'</div>';
