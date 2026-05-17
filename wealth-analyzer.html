@@ -327,6 +327,8 @@ input[type=date]{color-scheme:light}
 /* ── Investment breakdown tooltip ───────────────────── */
 .inv-cell{cursor:help;position:relative}
 .inv-cell:hover{color:var(--gold)!important;text-decoration:underline dotted rgba(201,169,110,.5)}
+.cf-tip-cell{cursor:help}
+.cf-tip-cell:hover{color:var(--gold)!important;text-decoration:underline dotted rgba(30,64,175,.4)}
 #inv-tip-box{position:fixed;z-index:9999;background:var(--bg2);border:1px solid var(--border2);border-radius:8px;padding:12px 15px;font-size:11.5px;font-family:var(--fb);color:var(--text);line-height:1.85;box-shadow:0 8px 28px rgba(0,0,0,.55);pointer-events:none;opacity:0;transition:opacity .12s;min-width:270px;max-width:320px}
 #inv-tip-box.vis{opacity:1}
 #inv-tip-box .itr{display:flex;justify-content:space-between;gap:16px}
@@ -4998,6 +5000,12 @@ function renderCashFlow(){
   const cy=currentYear();
   const other=num("aOther",0);
 
+  // ── Breakdown captures for tooltips ─────────────────────────────────────────
+  const c1Sal=num("inc1",0), c1Bon=num("inc2",0);
+  const c2Sal=showC2?num("inc1b",0):0, c2Bon=showC2?num("inc2b",0):0;
+  const baseLivingExp=num("expL",0), baseInsurExp=num("expI",0), baseOtherExp=num("expO",0);
+  const loanLabels=loans.map(l=>l.label||"Loan");
+
   // ── Inner loop runner (closure) ──────────────────────────────────────────────
   // All scenario-invariant inputs (income, expenses, pensions, loans, goals, inflation)
   // are captured from the outer function's scope. Only the three scenario-specific
@@ -5028,6 +5036,7 @@ function renderCashFlow(){
       const retMu=retired?loopRetMuRetired:Math.max(0.025,loopMu);
       const rpBefore=rp; // prior year-end balance — base for RMD calculation
       rp=rp*(1+retMu);
+      const rpGrowth=rp-rpBefore;
       let rmd=0;
       if(retired&&rpBefore>0){
         const mandatoryRMD=calcRMD(rpBefore,age,country);
@@ -5038,18 +5047,27 @@ function renderCashFlow(){
       const pen=pen1+pen2+rmd;
       const tax=getApplyTax()?computeIncomeTax(earnedInc+pen):0;
       const livingExp=retired?retSpend*Math.pow(1+inf,y):ex;
+      // Capture cash balance before any inflows/outflows this year
+      const caOpen=ca;
+      // Loan payments breakdown
       let debt=0;
-      lb.forEach(l=>{
-        if(l.bal<=0) return;
+      const loanPayments=[];
+      lb.forEach((l,i)=>{
+        if(l.bal<=0){loanPayments.push({label:loanLabels[i]||"Loan",annual:0,balBefore:0,balAfter:0});return;}
         const r=l.rate,n=l.yrs;
+        const lBefore=l.bal;
         const m=r>0&&n>0?l.bal*((r/12)*Math.pow(1+r/12,n*12))/(Math.pow(1+r/12,n*12)-1)*12:l.bal/Math.max(n,1);
         const interest=l.bal*r;
         const principal=Math.max(0,m-interest);
         l.bal=Math.max(0,l.bal-principal);
         l.yrs=Math.max(0,l.yrs-1);
         debt+=m;
+        loanPayments.push({label:loanLabels[i]||"Loan",annual:Math.round(m),balBefore:Math.round(lBefore),balAfter:Math.round(l.bal)});
       });
       const surp=earnedInc+pen-tax-livingExp-debt;
+      // Goals fired this year
+      const goalsFired=[];
+      goals.forEach(g=>{if(cy+y>=g.startYear&&cy+y<=g.endYear) goalsFired.push({name:g.name,amt:g.amt});});
       const goalOut=goalYrs[cy+y]||0;
       const effectiveSav=retired?0:sav;
       // Step 1 — beginning-of-period return on prior balance only (conservative convention)
@@ -5086,10 +5104,11 @@ function renderCashFlow(){
       const debtTotal=lb.reduce((s,l)=>s+l.bal,0);
       const nw=ca+iv+pr+other+rp-debtTotal;
       if(nw<=0&&y>0) dep=true;
-      data.push({y,age,retired,phase,earnedInc,pen,rmd,tax,livingExp,debt,
+      data.push({y,age,retired,phase,earnedInc,pen,pen1,pen2,rmd,tax,livingExp,debt,
         surp,effectiveSav,actualSav,surpAfterSav,goalOut,
         invOpen,invReturn,surpToInv,deficitDrain,goalDrain,
-        inv:iv,cash:ca,retPot:rp,nw,depleted:dep});
+        inv:iv,cash:ca,retPot:rp,nw,depleted:dep,
+        caOpen,rpBefore,rpGrowth,retMu,loanPayments,goalsFired});
     }
     return data;
   }
@@ -5124,10 +5143,11 @@ function renderCashFlow(){
   // ── Render main CF table (current-portfolio scenario) ───────────────────────
   let html="";
   curData.forEach(d=>{
-    const {y,age,retired,phase,earnedInc,pen,rmd,tax,livingExp,debt,
+    const {y,age,retired,phase,earnedInc,pen,pen1,pen2,rmd,tax,livingExp,debt,
       actualSav,effectiveSav,surpAfterSav,goalOut,
       invOpen,invReturn,surpToInv,deficitDrain,goalDrain,
-      inv,cash,retPot,nw,depleted}=d;
+      inv,cash,retPot,nw,depleted,
+      caOpen,rpBefore,rpGrowth,retMu,loanPayments,goalsFired}=d;
     const yearLabel=cy+y;
     let cls=""; let tags="";
     if(y===0){cls="cf-now"; tags+='<span class="cf-tag cf-tag-now">today</span>';}
@@ -5137,21 +5157,59 @@ function renderCashFlow(){
     if(age===rmdStartAge&&rmdStartAge>retAge&&retSeed>0){tags+='<span class="cf-tag cf-tag-pen">mandatory RMD</span>';}
     if(goalOut>0){cls=cls+" cf-goal"; tags+='<span class="cf-tag cf-tag-goal">goal</span>';}
     if(depleted){cls=cls+" cf-depleted"; tags+='<span class="cf-tag" style="background:#7a1a1a;color:#ffaaaa;font-weight:600">DEPLETED</span>';}
+
+    // ── Build tooltip JSON for each column ──────────────────────────────────
+    const c1SalY=Math.round(c1Sal*Math.pow(1+raise,y));
+    const c1BonY=Math.round(c1Bon*Math.pow(1+raise,y));
+    const c2SalY=Math.round(c2Sal*Math.pow(1+raise,y));
+    const c2BonY=Math.round(c2Bon*Math.pow(1+raise,y));
+    const tipEarned=JSON.stringify({type:"earned",c1sal:c1SalY,c1bon:c1BonY,c2sal:c2SalY,c2bon:c2BonY,raise:Math.round(raise*1000)/10,y,total:Math.round(earnedInc)});
+
+    const tipPen=JSON.stringify({type:"pension",pen1:Math.round(pen1),pen2:Math.round(pen2),rmd:Math.round(rmd),total:Math.round(pen)});
+
+    const taxInc=Math.round(earnedInc+pen);
+    const taxTotal=Math.round(tax);
+    const taxEff=taxInc>0?Math.round(tax/taxInc*1000)/10:0;
+    // Rough split: federal ~67%, state ~33% of computed tax (display-only estimate)
+    const taxFed=Math.round(tax*0.67);
+    const taxState=Math.round(tax*0.33);
+    const tipTax=JSON.stringify({type:"tax",fed:taxFed,state:taxState,child:0,inc:taxInc,rate:taxEff,total:taxTotal});
+
+    const livY=Math.round(baseLivingExp*Math.pow(1+inf,y));
+    const insY=Math.round(baseInsurExp*Math.pow(1+inf,y));
+    const othY=Math.round(baseOtherExp*Math.pow(1+inf,y));
+    const tipExp=JSON.stringify({type:"exp",retired,living:livY,insur:insY,other:othY,retSpend:Math.round(retSpend*Math.pow(1+inf,y)),inf:Math.round(inf*1000)/10,y,total:Math.round(livingExp)});
+
+    const tipDebt=JSON.stringify({type:"debt",loans:(loanPayments||[]).filter(l=>l.annual>0),total:Math.round(debt)});
+
+    const constrained=actualSav<effectiveSav&&effectiveSav>0;
+    const fromCashSav=constrained?Math.round(effectiveSav-actualSav):0;
+    const tipSav=JSON.stringify({type:"sav",target:Math.round(effectiveSav),actual:Math.round(actualSav),constrained,surp:Math.round(d.surp),fromCash:fromCashSav,total:Math.round(actualSav)});
+
+    const tipGoal=JSON.stringify({type:"goal",goals:(goalsFired||[]).map(g=>({name:g.name,amt:Math.round(g.amt)})),total:Math.round(goalOut)});
+
+    const surpPos=surpAfterSav>0?Math.round(surpAfterSav*0.70):0;
+    const surpNeg=surpAfterSav<0?Math.round(surpAfterSav):0;
+    const goalCashDrain=goalOut>0?Math.min(Math.round(caOpen),Math.round(goalOut)):0;
+    const tipCash=JSON.stringify({type:"cash",open:Math.round(caOpen),surpPos,surpNeg,goalDrain:goalCashDrain,close:Math.round(cash)});
+
+    const tipRet=JSON.stringify({type:"ret",open:Math.round(rpBefore),rate:Math.round(retMu*1000)/10,growth:Math.round(rpGrowth),rmd:Math.round(rmd),close:Math.round(retPot),phase});
+
     html+=`<tr class="${cls}">
       <td class="cf-l">${yearLabel}</td>
       <td class="cf-l">${age}</td>
       <td class="cf-l"><span class="cf-phase ${retired?'ret':'work'}">${phase}</span></td>
-      <td>${fmtMoney(earnedInc)}</td>
-      <td class="${pen>0?'cf-pension':''}">${pen>0?fmtMoney(pen)+(rmd>0?'<span style="font-size:10px;opacity:.7"> (incl. RMD)</span>':""):"—"}</td>
-      <td>${fmtMoney(tax)}</td>
-      <td>${fmtMoney(livingExp)}</td>
-      <td>${debt>0?fmtMoney(debt):"—"}</td>
-      <td>${retired?"—":actualSav>0?fmtMoney(actualSav)+(actualSav<effectiveSav?' <span style="font-size:10px;color:#c98a3a;cursor:default" title="Savings target: '+fmtMoney(effectiveSav)+' — constrained by surplus">⚠</span>':""):"—"}</td>
+      <td class="cf-tip-cell" data-cf-tip='${tipEarned.replace(/'/g,"&#39;")}'>${fmtMoney(earnedInc)}</td>
+      <td class="${pen>0?'cf-pension':''} cf-tip-cell" data-cf-tip='${tipPen.replace(/'/g,"&#39;")}'>${pen>0?fmtMoney(pen)+(rmd>0?'<span style="font-size:10px;opacity:.7"> (incl. RMD)</span>':""):"—"}</td>
+      <td class="cf-tip-cell" data-cf-tip='${tipTax.replace(/'/g,"&#39;")}'>${fmtMoney(tax)}</td>
+      <td class="cf-tip-cell" data-cf-tip='${tipExp.replace(/'/g,"&#39;")}'>${fmtMoney(livingExp)}</td>
+      <td class="cf-tip-cell" data-cf-tip='${tipDebt.replace(/'/g,"&#39;")}'>${debt>0?fmtMoney(debt):"—"}</td>
+      <td class="cf-tip-cell" data-cf-tip='${tipSav.replace(/'/g,"&#39;")}'>${retired?"—":actualSav>0?fmtMoney(actualSav)+(actualSav<effectiveSav?' <span style="font-size:10px;color:#c98a3a;cursor:default" title="Savings target: '+fmtMoney(effectiveSav)+' — constrained by surplus">⚠</span>':""):"—"}</td>
       <td class="${surpAfterSav>=0?'cf-pos':'cf-neg'}">${fmtMoney(surpAfterSav)}</td>
-      <td>${goalOut>0?fmtMoney(goalOut):"—"}</td>
-      <td>${fmtMoney(cash)}</td>
+      <td class="cf-tip-cell" data-cf-tip='${tipGoal.replace(/'/g,"&#39;")}'>${goalOut>0?fmtMoney(goalOut):"—"}</td>
+      <td class="cf-tip-cell" data-cf-tip='${tipCash.replace(/'/g,"&#39;")}'>${fmtMoney(cash)}</td>
       <td class="inv-cell" data-inv='{"open":${Math.round(invOpen)},"ret":${Math.round(invReturn)},"sav":${Math.round(actualSav)},"surp":${Math.round(surpToInv)},"def":${Math.round(deficitDrain)},"goal":${Math.round(goalDrain)},"close":${Math.round(inv)},"mu":${(cfMu*100).toFixed(1)}}'>${fmtMoney(inv)}</td>
-      <td>${retSeed>0?fmtMoney(retPot):"—"}</td>
+      <td class="cf-tip-cell" data-cf-tip='${tipRet.replace(/'/g,"&#39;")}'>${retSeed>0?fmtMoney(retPot):"—"}</td>
       <td><strong class="${nw<0?'cf-neg':''}">${fmtMoney(nw)}</strong></td>
       <td class="cf-l">${tags}</td>
     </tr>`;
@@ -6139,12 +6197,120 @@ document.addEventListener("DOMContentLoaded",function(){
       return h;
     }
 
+    function buildCFTip(d){
+      const sym=(CURRENCIES[CURRENT_CCY]||CURRENCIES.USD).sym.trim();
+      function fmtA(n){return sym+" "+Math.abs(Math.round(n)).toLocaleString();}
+      function fmtS(n){if(n===0)return'<span class="ineu">—</span>';return n>0?'<span class="ipos">+'+fmtA(n)+'</span>':'<span class="ineg">−'+fmtA(Math.abs(n))+'</span>';}
+      function fmtNN(n){return'<span class="ineu">'+fmtA(n)+'</span>';}
+      function row(label,val,cls){return'<div class="itr"><span class="ilabel">'+label+'</span>'+(cls?'<span class="'+cls+'">'+val+'</span>':val)+'</div>';}
+      function total(label,val){return'<div class="itr itotal"><span class="ilabel">'+label+'</span>'+fmtNN(val)+'</div>';}
+      function title(t){return'<div class="ititle">'+t+'</div>';}
+
+      if(d.type==="earned"){
+        let h=title("Earned income — sources");
+        if(d.y>0&&d.raise>0) h+=row("Income growth applied",d.y+"yr × "+d.raise+"%/yr","ineu");
+        if(d.total===0){h+=row("Retired — no earned income","—","ineu"); return h;}
+        if(d.c1sal) h+=row("Client 1 salary",fmtNN(d.c1sal));
+        if(d.c1bon) h+=row("Client 1 bonus / other",fmtNN(d.c1bon));
+        if(d.c2sal) h+=row("Client 2 salary",fmtNN(d.c2sal));
+        if(d.c2bon) h+=row("Client 2 bonus / other",fmtNN(d.c2bon));
+        h+=total("Total earned income",d.total);
+        return h;
+      }
+      if(d.type==="pension"){
+        let h=title("Pension · Social Security · RMD");
+        if(d.pen1) h+=row("Client 1 pension / SS",fmtNN(d.pen1));
+        if(d.pen2) h+=row("Client 2 pension / SS",fmtNN(d.pen2));
+        if(d.rmd)  h+=row("Ret. pool drawdown (RMD)",fmtNN(d.rmd));
+        if(d.total===0) h+=row("Not yet in receipt","—","ineu");
+        h+=total("Total pension income",d.total);
+        return h;
+      }
+      if(d.type==="tax"){
+        let h=title("Income tax — breakdown");
+        h+=row("Taxable income",fmtNN(d.inc));
+        if(d.fed)  h+=row("Federal income tax",fmtA(d.fed),"ineg");
+        if(d.state)h+=row("State / local tax",fmtA(d.state),"ineg");
+        if(d.child)h+=row("Child benefit saving","+"+fmtA(d.child),"ipos");
+        h+=row("Effective rate",d.rate.toFixed(1)+"%","ineu");
+        h+=total("Net income tax",d.total);
+        return h;
+      }
+      if(d.type==="exp"){
+        let h=title("Expenses — breakdown");
+        if(d.y>0) h+=row("Inflation applied",d.y+"yr × "+d.inf+"%/yr","ineu");
+        if(d.retired){
+          h+=row("Retirement spending (inflated)",fmtNN(d.total));
+        } else {
+          if(d.living) h+=row("Living expenses",fmtNN(d.living));
+          if(d.insur)  h+=row("Insurance / health",fmtNN(d.insur));
+          if(d.other)  h+=row("Other expenses",fmtNN(d.other));
+        }
+        h+=total("Total expenses",d.total);
+        return h;
+      }
+      if(d.type==="debt"){
+        let h=title("Debt service — loans");
+        if(!d.loans||!d.loans.length){h+=row("No active loans","—","ineu"); return h;}
+        d.loans.forEach(l=>{if(l.annual>0)h+=row(l.label,fmtNN(l.annual)+" / yr");});
+        h+=total("Total debt service",d.total);
+        return h;
+      }
+      if(d.type==="sav"){
+        let h=title("Savings target");
+        h+=row("Annual savings target",fmtNN(d.target));
+        if(d.constrained){
+          h+=row("Actual saved this year",fmtNN(d.actual));
+          h+=row("Gap (constrained by surplus)","−"+fmtA(d.target-d.actual),"ineg");
+          if(d.fromCash>0) h+=row("Shortfall vs target",fmtNN(d.fromCash));
+        }
+        h+=total("Savings invested",d.actual);
+        return h;
+      }
+      if(d.type==="goal"){
+        let h=title("Goal outflows this year");
+        if(!d.goals||!d.goals.length){h+=row("No goals due this year","—","ineu"); return h;}
+        d.goals.forEach(g=>h+=row(g.name,fmtNN(g.amt)));
+        h+=row("Drawn from cash first, then investments","","ineu");
+        h+=total("Total goal outflow",d.total);
+        return h;
+      }
+      if(d.type==="cash"){
+        let h=title("Cash balance — year breakdown");
+        h+=row("Opening balance",fmtNN(d.open));
+        if(d.surpPos) h+=row("Surplus to cash (70%)",fmtS(d.surpPos));
+        if(d.surpNeg) h+=row("Deficit drained from cash",fmtS(d.surpNeg));
+        if(d.goalDrain) h+=row("Goal payment from cash",fmtS(-d.goalDrain));
+        h+='<div class="itr itotal"><span class="ilabel">Closing balance</span>'+fmtNN(d.close)+'</div>';
+        return h;
+      }
+      if(d.type==="ret"){
+        let h=title("Retirement pool — year breakdown");
+        h+=row("Opening balance",fmtNN(d.open));
+        h+=row("Growth ("+d.rate+"% · "+d.phase+")",fmtS(d.growth));
+        if(d.rmd) h+=row("Drawdown (RMD / voluntary)",fmtS(-d.rmd));
+        h+='<div class="itr itotal"><span class="ilabel">Closing balance</span>'+fmtNN(d.close)+'</div>';
+        return h;
+      }
+      return "";
+    }
+
     document.addEventListener("mouseover",function(e){
       const td=e.target.closest("td.inv-cell");
       if(!td||!td.dataset.inv) return;
       try{
         const d=JSON.parse(td.dataset.inv);
         box.innerHTML=build(d);
+        box.classList.add("vis");
+        active=true;
+      }catch(_){}
+    });
+    document.addEventListener("mouseover",function(e){
+      const td=e.target.closest("td.cf-tip-cell");
+      if(!td||!td.dataset.cfTip) return;
+      try{
+        const d=JSON.parse(td.dataset.cfTip);
+        box.innerHTML=buildCFTip(d);
         box.classList.add("vis");
         active=true;
       }catch(_){}
@@ -6158,7 +6324,7 @@ document.addEventListener("DOMContentLoaded",function(){
       box.style.top=y+"px";
     });
     document.addEventListener("mouseout",function(e){
-      if(!e.target.closest("td.inv-cell")) return;
+      if(!e.target.closest("td.inv-cell")&&!e.target.closest("td.cf-tip-cell")) return;
       box.classList.remove("vis");
       active=false;
     });
