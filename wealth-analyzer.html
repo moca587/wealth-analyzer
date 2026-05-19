@@ -1594,81 +1594,144 @@ input[type=date]{color-scheme:light}
 <!-- ═══ PDF REPORT ═══ -->
 <div class="tab" id="tab-report">
 
+<!-- ── Identity & Branding ───────────────────────────────────── -->
 <div class="panel">
-  <div class="ptitle">Client Wealth Report (PDF)</div>
-  <div style="font-size:13px;color:var(--text2);line-height:1.6;margin-bottom:14px">
-    Generate a professional multi-section PDF covering household profile, income &amp; tax, assets &amp; liabilities, goals &amp; retirement, Monte Carlo projection results, cash-flow analysis, funding status, and a full page of regulatory disclosures.
-    <strong style="color:var(--text)">Run the simulation at least once before generating the report</strong> so projection results and funding status appear in the PDF.
-  </div>
-
-  <div class="two-col">
+  <div class="ptitle">Identity &amp; Branding</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:0 28px">
     <div>
       <div class="frow"><label class="flbl">Report title</label><input type="text" id="rptTitle" value="Personal Wealth Analysis" class="w220"></div>
       <div class="frow"><label class="flbl">Prepared by</label><input type="text" id="rptPrepBy" value="Self-directed analysis" class="w220"></div>
       <div class="frow"><label class="flbl">Prepared for</label><input type="text" id="rptPrepFor" value="" placeholder="Auto-fills from Household" class="w220"></div>
-      <div class="frow"><label class="flbl">Firm / advisor name</label><input type="text" id="rptFirm" value="" placeholder="Optional" class="w220"></div>
-      <div class="frow"><label class="flbl">Reference / case #</label><input type="text" id="rptRef" value="" placeholder="Optional" class="w220"></div>
     </div>
     <div>
-      <div class="frow"><label class="flbl">Include Monte Carlo results</label>
-        <select id="rptIncSim" class="w180">
-          <option value="yes" selected>Yes</option>
-          <option value="no">No</option>
+      <div class="frow"><label class="flbl">Firm / advisor name</label><input type="text" id="rptFirm" value="" placeholder="Optional — appears on cover" class="w220"></div>
+      <div class="frow"><label class="flbl">Reference / case #</label><input type="text" id="rptRef" value="" placeholder="Optional" class="w220"></div>
+      <div class="frow"><label class="flbl">Cover subtitle line</label><input type="text" id="rptSubtitle" value="" placeholder="e.g. Retirement Readiness Review" class="w220"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Appearance ────────────────────────────────────────────── -->
+<div class="panel">
+  <div class="ptitle">Appearance</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:0 28px">
+    <div>
+      <div class="frow"><label class="flbl">Page size</label>
+        <select id="rptPageSize" class="w180">
+          <option value="a4" selected>A4 (210 × 297 mm)</option>
+          <option value="letter">US Letter (8.5 × 11 in)</option>
         </select>
       </div>
-      <div class="frow"><label class="flbl">Include cash-flow table</label>
+      <div class="frow"><label class="flbl">Accent colour</label>
+        <select id="rptTheme" class="w180">
+          <option value="blue" selected>Midnight blue</option>
+          <option value="navy">Navy</option>
+          <option value="forest">Forest green</option>
+          <option value="graphite">Graphite</option>
+          <option value="crimson">Crimson</option>
+          <option value="teal">Teal</option>
+        </select>
+      </div>
+      <div class="frow"><label class="flbl">Table font size</label>
+        <select id="rptFontSz" class="w180">
+          <option value="8" selected>Normal (8 pt)</option>
+          <option value="7">Compact (7 pt)</option>
+          <option value="9">Large (9 pt)</option>
+        </select>
+      </div>
+    </div>
+    <div>
+      <div class="frow"><label class="flbl">Header style</label>
+        <select id="rptHdrStyle" class="w180">
+          <option value="filled" selected>Solid colour header</option>
+          <option value="line">Underline only</option>
+          <option value="box">Boxed title block</option>
+        </select>
+      </div>
+      <div class="frow"><label class="flbl">Number format</label>
+        <select id="rptNumFmt" class="w180">
+          <option value="full" selected>Full (1,234,567)</option>
+          <option value="k">Thousands (1,235k)</option>
+          <option value="m">Millions (1.23M)</option>
+        </select>
+      </div>
+      <div class="frow"><label class="flbl">Confidentiality banner</label>
+        <select id="rptConfid" class="w180">
+          <option value="confidential" selected>Confidential</option>
+          <option value="restricted">Strictly Restricted</option>
+          <option value="internal">Internal Use Only</option>
+          <option value="none">None</option>
+        </select>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Section Toggles ───────────────────────────────────────── -->
+<div class="panel">
+  <div class="ptitle">Sections to Include</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:0 28px">
+    <div>
+      <div class="frow"><label class="flbl">Executive summary</label>
+        <select id="rptIncExec" class="w180"><option value="yes" selected>Yes</option><option value="no">No</option></select>
+      </div>
+      <div class="frow"><label class="flbl">Household profile</label>
+        <select id="rptIncHH" class="w180"><option value="yes" selected>Yes</option><option value="no">No</option></select>
+      </div>
+      <div class="frow"><label class="flbl">Income, expenses &amp; tax</label>
+        <select id="rptIncInc" class="w180"><option value="yes" selected>Yes</option><option value="no">No</option></select>
+      </div>
+      <div class="frow"><label class="flbl">Assets &amp; liabilities</label>
+        <select id="rptIncAssets" class="w180"><option value="yes" selected>Yes</option><option value="no">No</option></select>
+      </div>
+      <div class="frow"><label class="flbl">Goals &amp; retirement plan</label>
+        <select id="rptIncGoals" class="w180"><option value="yes" selected>Yes</option><option value="no">No</option></select>
+      </div>
+      <div class="frow"><label class="flbl">Portfolio detail</label>
+        <select id="rptIncPort" class="w180"><option value="yes" selected>Yes (if holdings added)</option><option value="no">No</option></select>
+      </div>
+    </div>
+    <div>
+      <div class="frow"><label class="flbl">Monte Carlo projection</label>
+        <select id="rptIncSim" class="w180"><option value="yes" selected>Yes</option><option value="no">No</option></select>
+      </div>
+      <div class="frow"><label class="flbl">Goal funding status</label>
+        <select id="rptIncFund" class="w180"><option value="yes" selected>Yes</option><option value="no">No</option></select>
+      </div>
+      <div class="frow"><label class="flbl">Cash-flow projection</label>
         <select id="rptIncCF" class="w180">
           <option value="summary" selected>Summary (every 5 yrs)</option>
           <option value="full">Full (every year)</option>
           <option value="no">Do not include</option>
         </select>
       </div>
-      <div class="frow"><label class="flbl">Include funding status</label>
-        <select id="rptIncFund" class="w180">
-          <option value="yes" selected>Yes</option>
-          <option value="no">No</option>
-        </select>
-      </div>
-      <div class="frow"><label class="flbl">Include portfolio detail</label>
-        <select id="rptIncPort" class="w180">
-          <option value="yes" selected>Yes (if holdings added)</option>
-          <option value="no">No</option>
-        </select>
+      <div class="frow"><label class="flbl">Methodology notes</label>
+        <select id="rptIncMethod" class="w180"><option value="yes" selected>Yes</option><option value="no">No</option></select>
       </div>
       <div class="frow"><label class="flbl">Disclosure profile</label>
         <select id="rptDiscLvl" class="w180">
           <option value="standard" selected>Standard (retail)</option>
           <option value="advisor">Advisor / professional</option>
           <option value="minimal">Minimal (educational)</option>
+          <option value="none">None</option>
         </select>
       </div>
     </div>
   </div>
-
-  <div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap">
-    <button class="btn-primary" onclick="generatePDFReport()">Generate &amp; download PDF</button>
-    <button class="btn-secondary" onclick="previewPDFReport()">Preview in new tab</button>
-  </div>
-
-  <div id="rptStatus" style="margin-top:12px;font-size:12px;color:var(--text3);min-height:18px"></div>
 </div>
 
+<!-- ── Generate ──────────────────────────────────────────────── -->
 <div class="panel">
-  <div class="ptitle">Report Contents</div>
-  <div style="font-size:12px;color:var(--text2);line-height:1.9">
-    <div><strong style="color:var(--text)">1. Cover page</strong> — title, prepared-for/by, date, confidentiality notice</div>
-    <div><strong style="color:var(--text)">2. Executive summary</strong> — net worth, monthly surplus, total assets, household risk, goal success rate</div>
-    <div><strong style="color:var(--text)">3. Household profile</strong> — primary and partner (if added), children, country, risk profile, time horizon</div>
-    <div><strong style="color:var(--text)">4. Income, expenses &amp; tax</strong> — gross income by client, household expenses, computed income tax and bracket details, after-tax net income</div>
-    <div><strong style="color:var(--text)">5. Assets &amp; liabilities</strong> — every account, property, other assets, each loan with amortization</div>
-    <div><strong style="color:var(--text)">6. Goals &amp; retirement plan</strong> — all goals with target year, retirement age/spend, pension source</div>
-    <div><strong style="color:var(--text)">7. Portfolio analysis</strong> — holdings, asset-class mix, diversification, weighted expected return</div>
-    <div><strong style="color:var(--text)">8. Monte Carlo projection</strong> — simulation parameters, median / 30-80 bands over horizon, final-year percentile table</div>
-    <div><strong style="color:var(--text)">9. Funding status</strong> — each goal and retirement at 30 / 50 / 80% confidence with probability-funded</div>
-    <div><strong style="color:var(--text)">10. Cash-flow projection</strong> — year-by-year to age 90 (or 5-yr summary), income / pension / tax / expenses / net worth</div>
-    <div><strong style="color:var(--text)">11. Methodology &amp; assumptions</strong> — Box-Muller log-normal engine, inflation model, tax drag on returns</div>
-    <div><strong style="color:var(--text)">12. Important disclosures</strong> — not advice, historical averages, no guarantees, sequence risk, tax caveats, conflicts, regulatory scope</div>
+  <div class="ptitle">Generate Report</div>
+  <div style="font-size:12px;color:var(--text3);margin-bottom:14px;line-height:1.7">
+    <strong style="color:var(--text)">Run the simulation first</strong> — projection results, goal success rates, and the cash-flow table are populated when the simulation runs.
+    The preview opens the same content as a styled HTML page; the PDF download renders it as a multi-page document.
   </div>
+  <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+    <button class="btn-primary" style="font-size:14px;padding:10px 24px" onclick="generatePDFReport()">⬇ Download PDF</button>
+    <button class="btn-secondary" onclick="previewPDFReport()">Preview in browser</button>
+  </div>
+  <div id="rptStatus" style="margin-top:12px;font-size:12px;color:var(--text3);min-height:18px"></div>
 </div>
 
 </div>
@@ -5872,37 +5935,414 @@ function generatePDFReport(){
   setT("rptStatus","Generating PDF…");
   try{
     const {jsPDF}=window.jspdf;
-    const doc=new jsPDF();
-    doc.setFontSize(18); doc.setTextColor(30,64,175);
-    doc.text(val("rptTitle")||"Personal Wealth Analysis",20,25);
-    doc.setFontSize(10); doc.setTextColor(60);
-    doc.text("Prepared for: "+(val("rptPrepFor")||(val("c1f")+" "+val("c1l"))),20,35);
-    doc.text("Date: "+new Date().toLocaleDateString(),20,42);
-    doc.setFontSize(12); doc.setTextColor(30,64,175);
-    doc.text("Executive summary",20,55);
-    doc.setFontSize(10); doc.setTextColor(40);
-    const inc=getGrossIncome(); const tax=computeIncomeTax(inc);
-    const totA=totalAccountValue()+num("aProp",0)+num("aOther",0);
-    const debt=loans.reduce((s,l)=>s+l.bal,0);
-    const rows=[
-      ["Net worth",fmtMoneyFull(totA-debt)],
-      ["Total assets",fmtMoneyFull(totA)],
-      ["Total debt",fmtMoneyFull(debt)],
-      ["Gross income (yr)",fmtMoneyFull(inc)],
-      ["Income tax (yr)",fmtMoneyFull(tax)],
-      ["Net income (yr)",fmtMoneyFull(inc-tax)],
-      ["Expenses (yr)",fmtMoneyFull(getTotalExpenses())],
-      ["Annual savings",fmtMoneyFull(num("savAnnual",0))],
-    ];
-    if(doc.autoTable){
-      doc.autoTable({startY:60,head:[["Metric","Value"]],body:rows,
-        styles:{fontSize:9},headStyles:{fillColor:[30,64,175]}});
-    } else {
-      let y=62; rows.forEach(r=>{doc.text(r[0]+": "+r[1],20,y); y+=6;});
+    if(!jsPDF) throw new Error("jsPDF not loaded");
+
+    // ── Settings ─────────────────────────────────────────────────────────────
+    const pageSize  = val("rptPageSize")||"a4";
+    const themeKey  = val("rptTheme")||"blue";
+    const fsz       = parseInt(val("rptFontSz")||"8",10);
+    const hdrStyle  = val("rptHdrStyle")||"filled";
+    const numFmt    = val("rptNumFmt")||"full";
+    const confidTxt = val("rptConfid")||"confidential";
+
+    const THEMES={
+      blue:[30,64,175], navy:[15,23,42], forest:[20,83,45],
+      graphite:[55,65,81], crimson:[153,27,27], teal:[15,118,110]
+    };
+    const ac=THEMES[themeKey]||THEMES.blue;   // accent RGB array
+    const acL=[Math.min(255,ac[0]+170),Math.min(255,ac[1]+170),Math.min(255,ac[2]+170)]; // light tint
+
+    const CONFID_LABELS={confidential:"CONFIDENTIAL",restricted:"STRICTLY RESTRICTED",internal:"INTERNAL USE ONLY",none:""};
+    const confidLabel=CONFID_LABELS[confidTxt]||"";
+
+    function fmt(n){
+      if(numFmt==="k") return fmtMoneyFull(n).replace(/,\d{3}(?=,|$)/g,'').replace(/(\d+)(\d{3})$/,'$1k').replace(/[^0-9k$€£¥]/,'');
+      if(numFmt==="m"&&Math.abs(n)>=1000000) return (CURRENCIES[CURRENT_CCY]||CURRENCIES.USD).sym.trim()+(n/1000000).toFixed(2)+"M";
+      return fmtMoneyFull(n);
     }
-    doc.save((val("rptTitle")||"wealth-report").replace(/\s+/g,"_")+".pdf");
-    setT("rptStatus","✓ Downloaded.");
+
+    const doc=new jsPDF({orientation:"portrait",unit:"mm",format:pageSize});
+    const pw=doc.internal.pageSize.getWidth();
+    const ph=doc.internal.pageSize.getHeight();
+    const M=18;                        // margin
+    const CW=pw-M*2;                   // content width
+    let y=M;
+
+    // ── Helpers ───────────────────────────────────────────────────────────────
+    function newPage(){
+      doc.addPage();
+      y=M;
+      // footer on every page
+      doc.setFontSize(7); doc.setTextColor(160);
+      doc.text(val("rptTitle")||"Wealth Report",M,ph-8);
+      doc.text("Page "+doc.internal.getNumberOfPages(),pw-M,ph-8,{align:"right"});
+      if(confidLabel){doc.text(confidLabel,pw/2,ph-8,{align:"center"});}
+      doc.setTextColor(40);
+    }
+    function checkY(need=20){if(y+need>ph-14) newPage();}
+
+    function sectionH2(title){
+      checkY(14);
+      if(hdrStyle==="filled"){
+        doc.setFillColor(...ac);
+        doc.rect(M,y-4,CW,9,"F");
+        doc.setFontSize(10); doc.setFont(undefined,"bold"); doc.setTextColor(255,255,255);
+        doc.text(title,M+3,y+2);
+        doc.setFont(undefined,"normal"); doc.setTextColor(40);
+        y+=10;
+      } else if(hdrStyle==="box"){
+        doc.setDrawColor(...ac); doc.setLineWidth(0.4);
+        doc.rect(M,y-4,CW,9);
+        doc.setFontSize(10); doc.setFont(undefined,"bold"); doc.setTextColor(...ac);
+        doc.text(title,M+3,y+2);
+        doc.setFont(undefined,"normal"); doc.setTextColor(40);
+        y+=10;
+      } else {
+        doc.setFontSize(11); doc.setFont(undefined,"bold"); doc.setTextColor(...ac);
+        doc.text(title,M,y);
+        y+=1;
+        doc.setDrawColor(...ac); doc.setLineWidth(0.4);
+        doc.line(M,y,pw-M,y);
+        doc.setFont(undefined,"normal"); doc.setTextColor(40);
+        y+=5;
+      }
+    }
+
+    function tbl(head,rows,opts={}){
+      checkY(24);
+      doc.autoTable({
+        startY:y, head:[head], body:rows,
+        margin:{left:M,right:M},
+        styles:{fontSize:fsz,cellPadding:2,overflow:"linebreak"},
+        headStyles:{fillColor:ac,textColor:[255,255,255],fontStyle:"bold",fontSize:fsz},
+        alternateRowStyles:{fillColor:[...acL.map(c=>Math.min(255,c+30)),255].slice(0,3)},
+        tableLineColor:ac, tableLineWidth:0.1,
+        ...opts
+      });
+      y=doc.lastAutoTable.finalY+5;
+    }
+
+    function kv(rows){
+      tbl(["Item","Value"],rows,{columnStyles:{0:{fontStyle:"bold",cellWidth:CW*0.45}}});
+    }
+
+    function para(txt,color=[80,80,80]){
+      checkY(8);
+      doc.setFontSize(8); doc.setTextColor(...color); doc.setFont(undefined,"normal");
+      const lines=doc.splitTextToSize(txt,CW);
+      lines.forEach(l=>{checkY(5); doc.text(l,M,y); y+=4.5;});
+      y+=2;
+      doc.setTextColor(40);
+    }
+
+    // ── Gather data ───────────────────────────────────────────────────────────
+    const rTitle    = val("rptTitle")||"Personal Wealth Analysis";
+    const rBy       = val("rptPrepBy")||"Self-directed analysis";
+    const rFirm     = val("rptFirm");
+    const rFor      = val("rptPrepFor")||((val("c1f")||"")+" "+(val("c1l")||"")).trim()||"—";
+    const rRef      = val("rptRef");
+    const rSub      = val("rptSubtitle");
+
+    const inc       = getGrossIncome();
+    const tax       = computeIncomeTax(inc);
+    const exp       = getTotalExpenses();
+    const totA      = totalAccountValue()+num("aProp",0)+num("aOther",0);
+    const debtTot   = loans.reduce((s,l)=>s+l.bal,0);
+    const nw        = totA-debtTot;
+    const sav       = num("savAnnual",0);
+    const surplus   = inc-tax-exp-sav;
+    const a1age     = ageFromDOB(val("c1d"))||35;
+    const showC2    = $("c2card").style.display!=="none";
+
+    // ── COVER PAGE ────────────────────────────────────────────────────────────
+    // Full-width colour header bar
+    doc.setFillColor(...ac);
+    doc.rect(0,0,pw,58,"F");
+    // Title
+    doc.setFontSize(22); doc.setFont(undefined,"bold"); doc.setTextColor(255,255,255);
+    const wrappedTitle=doc.splitTextToSize(rTitle,CW);
+    wrappedTitle.forEach((line,i)=>{doc.text(line,M,22+i*10);});
+    // Subtitle
+    if(rSub){
+      doc.setFontSize(11); doc.setFont(undefined,"normal");
+      doc.text(rSub,M,22+wrappedTitle.length*10+3);
+    }
+    // Confidentiality
+    if(confidLabel){
+      doc.setFontSize(8); doc.setTextColor(200,220,255);
+      doc.text("— "+confidLabel+" —",M,54);
+    }
+    // Cover info block
+    y=72;
+    doc.setFontSize(10); doc.setFont(undefined,"normal"); doc.setTextColor(40);
+    const infoRows=[
+      ["Prepared for",rFor],
+      ["Prepared by",rBy+(rFirm?" — "+rFirm:"")],
+      ["Date",new Date().toLocaleDateString(undefined,{year:"numeric",month:"long",day:"numeric"})],
+    ];
+    if(rRef) infoRows.push(["Reference",rRef]);
+    infoRows.forEach(r=>{
+      doc.setFont(undefined,"bold"); doc.setTextColor(...ac);
+      doc.text(r[0]+":",M,y);
+      doc.setFont(undefined,"normal"); doc.setTextColor(40);
+      doc.text(r[1],M+42,y);
+      y+=8;
+    });
+    // Horizontal rule
+    y+=4;
+    doc.setDrawColor(...ac); doc.setLineWidth(0.5); doc.line(M,y,pw-M,y); y+=6;
+    // Table of contents
+    doc.setFontSize(9); doc.setFont(undefined,"bold"); doc.setTextColor(...ac);
+    doc.text("Contents",M,y); y+=6;
+    const tocItems=[];
+    if(val("rptIncExec")!=="no")     tocItems.push("Executive Summary");
+    if(val("rptIncHH")!=="no")       tocItems.push("Household Profile");
+    if(val("rptIncInc")!=="no")      tocItems.push("Income, Expenses & Tax");
+    if(val("rptIncAssets")!=="no")   tocItems.push("Assets & Liabilities");
+    if(val("rptIncGoals")!=="no")    tocItems.push("Goals & Retirement Plan");
+    if(val("rptIncPort")!=="no"&&investments.length>0) tocItems.push("Portfolio Analysis");
+    if(val("rptIncSim")!=="no")      tocItems.push("Monte Carlo Projection");
+    if(val("rptIncFund")!=="no")     tocItems.push("Goal Funding Status");
+    if(val("rptIncCF")!=="no")       tocItems.push("Cash-Flow Projection");
+    if(val("rptIncMethod")!=="no")   tocItems.push("Methodology & Assumptions");
+    if(val("rptDiscLvl")!=="none")   tocItems.push("Disclosures");
+    doc.setFont(undefined,"normal"); doc.setTextColor(60);
+    tocItems.forEach((t,i)=>{
+      doc.setFillColor(...ac);
+      doc.rect(M,y-3,3,3,"F");
+      doc.text((i+1)+".  "+t,M+6,y);
+      y+=5.5;
+    });
+    // Footer on cover
+    doc.setFontSize(7); doc.setTextColor(160);
+    doc.text("Page 1",pw-M,ph-8,{align:"right"});
+    if(confidLabel) doc.text(confidLabel,pw/2,ph-8,{align:"center"});
+
+    // ── EXECUTIVE SUMMARY ─────────────────────────────────────────────────────
+    if(val("rptIncExec")!=="no"){
+      newPage();
+      sectionH2("Executive Summary");
+      kv([
+        ["Net worth",                fmt(nw)],
+        ["Total assets",             fmt(totA)],
+        ["Total liabilities",        fmt(debtTot)],
+        ["Gross household income",   fmt(inc)+" / yr"],
+        ["Income tax",               fmt(tax)+" ("+(inc>0?(tax/inc*100).toFixed(1):0)+"%)"],
+        ["Net after-tax income",     fmt(inc-tax)+" / yr"],
+        ["Annual expenses",          fmt(exp)+" / yr"],
+        ["Annual savings target",    fmt(sav)+" / yr"],
+        ["Annual surplus / deficit", fmt(surplus)+" / yr"],
+        ["Retirement account pool",  fmt(retirementAccountSeed())],
+      ]);
+    }
+
+    // ── HOUSEHOLD PROFILE ─────────────────────────────────────────────────────
+    if(val("rptIncHH")!=="no"){
+      checkY(30);
+      sectionH2("Household Profile");
+      const hhRows=[
+        ["Client 1 name",(val("c1f")||"—")+" "+(val("c1l")||"")],
+        ["Client 1 age",a1age+" years"],
+        ["Country / region",COUNTRY_ACCOUNTS[val("c1co")]?.name||val("c1co")||"—"],
+        ["Risk profile",RISK_PROFILES[val("c1r")]?.label||"—"],
+        ["Time horizon",HORIZON_PROFILES[val("c1h")]?.label||"—"],
+        ["Desired retirement age",num("retAge",65)+" years"],
+      ];
+      if(showC2){
+        hhRows.push(["Client 2 name",(val("c2f")||"—")+" "+(val("c2l")||"")]);
+        hhRows.push(["Client 2 age",(ageFromDOB(val("c2d"))||"—")+" years"]);
+        hhRows.push(["Client 2 risk",RISK_PROFILES[val("c2r")]?.label||"—"]);
+      }
+      if(children.length>0){
+        hhRows.push(["Children",children.map(c=>(c.first||"Child")+(c.dob?" (age "+ageFromDOB(c.dob)+")":"")).join(", ")]);
+      }
+      kv(hhRows);
+    }
+
+    // ── INCOME, EXPENSES & TAX ────────────────────────────────────────────────
+    if(val("rptIncInc")!=="no"){
+      checkY(30);
+      sectionH2("Income, Expenses & Tax");
+      const incRows=[
+        ["Client 1 salary",          fmt(num("inc1",0))],
+        ["Client 1 bonus / other",   fmt(num("inc2",0))],
+      ];
+      if(showC2){
+        incRows.push(["Client 2 salary",   fmt(num("inc1b",0))]);
+        incRows.push(["Client 2 bonus",    fmt(num("inc2b",0))]);
+      }
+      incRows.push(["Gross household income",  fmt(inc)]);
+      incRows.push(["Estimated income tax",    fmt(tax)+" ("+(inc>0?(tax/inc*100).toFixed(1):0)+"% effective)"]);
+      if(children.length>0) incRows.push(["Child / family benefit saving", fmt(getChildTaxSaving(inc))]);
+      incRows.push(["Net after-tax income",    fmt(inc-tax)]);
+      incRows.push(["",""]); // spacer
+      incRows.push(["Living expenses",         fmt(num("expL",0))]);
+      incRows.push(["Insurance / health",      fmt(num("expI",0))]);
+      incRows.push(["Other expenses",          fmt(num("expO",0))]);
+      incRows.push(["Total annual expenses",   fmt(exp)]);
+      incRows.push(["Annual savings target",   fmt(sav)]);
+      incRows.push(["Annual surplus / deficit",fmt(surplus)+(surplus<0?" ⚠":"")]);
+      kv(incRows);
+    }
+
+    // ── ASSETS & LIABILITIES ──────────────────────────────────────────────────
+    if(val("rptIncAssets")!=="no"){
+      checkY(30);
+      sectionH2("Assets");
+      if(assets.length>0){
+        const aRows=assets.map(a=>[a.label, a.baseLabel||a.type, fmt(a.value), a.liquid?"Liquid":"Locked"]);
+        if(num("aProp",0)>0) aRows.push(["Property / Real estate","Real estate",fmt(num("aProp",0)),"Illiquid"]);
+        if(num("aOther",0)>0) aRows.push(["Other assets","Misc.",fmt(num("aOther",0)),"Illiquid"]);
+        aRows.push(["TOTAL","",fmt(totA),""]);
+        tbl(["Account / Asset","Type","Value","Liquidity"],aRows);
+      } else { para("No assets entered."); }
+
+      checkY(24);
+      sectionH2("Liabilities");
+      if(loans.length>0){
+        tbl(["Loan","Balance","Rate","Remaining yrs","Monthly payment"],
+          loans.map(l=>[l.label,fmt(l.bal),(l.rate*100).toFixed(2)+"%",l.yrs,fmt(loanMonthly(l))]));
+      } else { para("No loans entered."); }
+    }
+
+    // ── GOALS & RETIREMENT ────────────────────────────────────────────────────
+    if(val("rptIncGoals")!=="no"){
+      checkY(30);
+      sectionH2("Goals & Retirement Plan");
+      if(goals.length>0){
+        tbl(["Goal","Annual amount","Year range","Duration","Category","Tier"],
+          goals.map(g=>[g.name, fmt(g.amt)+"/yr", g.startYear+"–"+g.endYear,
+            (g.endYear-g.startYear+1)+" yrs", g.cat||"—", g.tier||"—"]));
+      } else { para("No goals defined."); }
+      checkY(20);
+      const retRows=[
+        ["Desired retirement age",num("retAge",65)+" years"],
+        ["Retirement spend (today's $)",fmt(num("retSpend",0))+" / yr"],
+        ["Inflation rate assumption",num("inf",3.8).toFixed(1)+"% / yr"],
+        ["Retirement account pool (seed)",fmt(retirementAccountSeed())],
+        ["Pension / SS source",val("penSrc")||"—"],
+        ["Pension / SS start age",num("penStartAge",67)+" years"],
+        ["Annual pension / SS",fmt(num("penAnnual",0))+" / yr"],
+      ];
+      if(showC2){
+        retRows.push(["Client 2 pension source",val("penSrc2")||"—"]);
+        retRows.push(["Client 2 pension start",num("penStartAge2",67)+" years"]);
+        retRows.push(["Client 2 annual pension",fmt(num("penAnnual2",0))+" / yr"]);
+      }
+      checkY(30); sectionH2("Retirement Parameters"); kv(retRows);
+    }
+
+    // ── PORTFOLIO ─────────────────────────────────────────────────────────────
+    if(val("rptIncPort")!=="no"&&investments.length>0){
+      checkY(30);
+      sectionH2("Portfolio Analysis ("+investments.length+" holdings)");
+      const pfTot=portfolioInvestmentSeed();
+      tbl(["Position","Ticker","Asset class","Value","Weight"],
+        investments.map(i=>[i.name||"—", i.tkr||"—", INV_CLASS_LABELS[i.cls]||i.cls,
+          fmt(i.val), pfTot>0?(i.val/pfTot*100).toFixed(1)+"%":"—"]));
+      kv([["Total portfolio value",fmt(pfTot)]]);
+    }
+
+    // ── MONTE CARLO ───────────────────────────────────────────────────────────
+    if(val("rptIncSim")!=="no"){
+      checkY(30);
+      sectionH2("Monte Carlo Projection");
+      if(lastSimPaths&&lastSimPaths.length>0){
+        const yrs=lastSimYrs;
+        const inf=num("inf",3.8)/100;
+        const df=v=>v/Math.pow(1+inf,yrs);
+        const params=getReturnParams();
+        kv([
+          ["Simulation count",lastSimPaths.length.toLocaleString()],
+          ["Projection horizon",yrs+" years"],
+          ["Portfolio mean return",(params.mu*100).toFixed(1)+"% / yr"],
+          ["Volatility (σ)",(params.sig*100).toFixed(1)+"% / yr"],
+          ["Inflation assumption",num("inf",3.8).toFixed(1)+"% / yr"],
+        ]);
+        checkY(40);
+        tbl(["Percentile","Nominal wealth","Real (inflation-adj.)","vs Median"],
+          [10,25,50,75,90].map(p=>{
+            const v=percentileAt(lastSimPaths,yrs,p);
+            const med=percentileAt(lastSimPaths,yrs,50);
+            return [p+"th", fmt(v), fmt(df(v)), p===50?"—":(v>=med?"+":"")+((v/med-1)*100).toFixed(0)+"%"];
+          }));
+      } else {
+        para("Run the simulation to include Monte Carlo results.","#888888".split("").map((v,i)=>i%2?parseInt(v,16)*17:0).slice(0,3));
+      }
+    }
+
+    // ── FUNDING STATUS ────────────────────────────────────────────────────────
+    if(val("rptIncFund")!=="no"&&goals.length>0){
+      checkY(30);
+      sectionH2("Goal Funding Status");
+      if(lastSimPaths&&lastSimPaths.length>0){
+        const fundEl=$("goalResultList");
+        const rows=goals.map(g=>{
+          const el=fundEl?fundEl.querySelector("[data-gid='"+g.id+"']"):null;
+          const pct=el?el.querySelector(".grs-pct")?.textContent||"—":"—";
+          return [g.name, fmt(g.amt)+"/yr", g.startYear+"–"+g.endYear, pct];
+        });
+        tbl(["Goal","Annual amount","Years","Success probability"],rows);
+      } else {
+        para("Run the simulation to populate funding status.");
+      }
+    }
+
+    // ── CASH FLOW ─────────────────────────────────────────────────────────────
+    if(val("rptIncCF")!=="no"){
+      checkY(30);
+      const cfMode=val("rptIncCF");
+      sectionH2("Cash-Flow Projection"+(cfMode==="summary"?" (5-year intervals)":""));
+      const cfBody=$("cfBody");
+      if(cfBody&&cfBody.rows.length>1&&cfBody.rows[0].cells.length>3){
+        const step=cfMode==="summary"?5:1;
+        const filtered=Array.from(cfBody.rows).filter((_,i)=>i%step===0);
+        tbl(["Year","Age","Phase","Earned income","Pension/RMD","Tax","Expenses","Surplus","Net worth"],
+          filtered.map(r=>{
+            const c=r.cells;
+            if(c.length<14) return Array(9).fill("—");
+            return [c[0]?.textContent||"",c[1]?.textContent||"",c[2]?.textContent||"",
+              c[3]?.textContent||"",c[4]?.textContent||"",c[5]?.textContent||"",
+              c[6]?.textContent||"",c[9]?.textContent||"",c[14]?.textContent||""];
+          }));
+      } else {
+        para("Run the simulation to populate the cash-flow table.");
+      }
+    }
+
+    // ── METHODOLOGY ───────────────────────────────────────────────────────────
+    if(val("rptIncMethod")!=="no"){
+      checkY(30);
+      sectionH2("Methodology & Assumptions");
+      para("Return simulation: Log-normal returns sampled via Box-Muller transform. Each annual return is drawn as (μ − 0.5σ²) + σ×N(0,1), producing the full distribution of outcomes rather than a single deterministic path.");
+      para("Asset growth: Investment accounts grow at the sampled portfolio return. Property appreciates stochastically at 3% ± 2% per year. Retirement pool grows at the portfolio rate pre-retirement and 3.5% in retirement. Cash earns no explicit return.");
+      para("Savings & surplus: The annual savings target is deposited to cash each year if surplus allows. Positive residual surplus (above savings) is treated as discretionary spending. Deficits draw from cash first, then investments.");
+      para("Debt amortisation: Each loan amortises annually using standard mortgage math. Interest and principal separation is computed per loan at each simulation step.");
+      para("Tax: Income tax is estimated from configurable bracket tables for the selected country. Child/family benefit offsets are applied per country rules. Tax drag on investment returns is modelled through a CGT turnover drag.");
+      para("Retirement drawdown: Voluntary 4% drawdown begins at the configured retirement age. When two clients are present, the pool is split equally and each half draws independently based on each client's own retirement age. Mandatory drawdown rules (IRS RMD, RRIF, Australian Super) apply from the relevant statutory age.");
+      para("Inflation: All expenses, retirement spend, and pension COLA adjustments compound at the configured annual inflation rate.");
+    }
+
+    // ── DISCLOSURES ───────────────────────────────────────────────────────────
+    const discLvl=val("rptDiscLvl")||"standard";
+    if(discLvl!=="none"){
+      checkY(30);
+      sectionH2("Important Disclosures");
+      const DISC={
+        standard:"This report has been prepared for educational and planning purposes only. It does not constitute investment, tax, or legal advice. Monte Carlo projections rely on randomly sampled returns based on configurable assumptions and do not predict actual future market behaviour. Past performance is not a reliable indicator of future results. All projections are estimates and actual results will differ, potentially significantly. Inflation, tax, and regulatory changes are not modelled dynamically. Consult a licensed financial professional before making any financial decisions. This document is not a prospectus or offering document.",
+        advisor:"PROFESSIONAL USE NOTICE. This report has been prepared for advisor use and client presentation purposes only. It relies on client-supplied data and capital market assumptions that may differ materially from actual outcomes. Monte Carlo projections model stochastic return paths and carry inherent uncertainty — actual results will differ. Sequence-of-returns risk, behavioural factors, unexpected expenses, and changes in tax law are not fully captured in the model. This document does not constitute investment advice, a personal financial plan, or a prospectus. The advisor should review all assumptions, validate all data inputs, and disclose all material conflicts of interest to the client prior to use. Not for redistribution to third parties.",
+        minimal:"For educational purposes only. Not financial advice. Consult a licensed advisor before making financial decisions.",
+      };
+      para(DISC[discLvl]||DISC.standard,[80,80,80]);
+    }
+
+    // ── Footer on page 1 (cover) already done; add footer stub to any remaining pages
+    // ── SAVE ─────────────────────────────────────────────────────────────────
+    const fname=(rTitle||"wealth-report").replace(/[^a-zA-Z0-9_-]/g,"_").replace(/_+/g,"_")+"_"+new Date().toISOString().slice(0,10)+".pdf";
+    doc.save(fname);
+    setT("rptStatus","✓ Downloaded "+fname+" ("+doc.internal.getNumberOfPages()+" pages).");
   } catch(e){
+    console.error(e);
     setT("rptStatus","✗ Error: "+e.message);
   }
 }
