@@ -2157,9 +2157,9 @@ input[type=date]{color-scheme:light}
   </div>
 </div>
 
-<!-- Allocation summary -->
+<!-- Allocation summary + twin asset/vehicle pies -->
 <div class="panel">
-  <div class="ptitle">Allocation Summary</div>
+  <div class="ptitle">Allocation Summary &amp; Asset Class Breakdown</div>
 
   <!-- Proposal header — populated from Setup fields -->
   <div id="prSummaryHeader" style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--rs);padding:12px 16px;margin-bottom:14px;display:grid;grid-template-columns:1fr 1fr;gap:6px 20px;font-size:12px">
@@ -2182,8 +2182,23 @@ input[type=date]{color-scheme:light}
     <div class="pf-mc"><div class="pf-mc-lbl">Wtd yield</div><div class="pf-mc-val" id="pr-yld">—</div></div>
     <div class="pf-mc"><div class="pf-mc-lbl">Risk score</div><div class="pf-mc-val" id="pr-risk">—</div><div class="risk-bar"><div id="pr-risk-fill" style="flex:0 0 0%"></div></div></div>
   </div>
+
+  <!-- Twin pies row -->
+  <div class="alloc-pies" style="margin-top:8px">
+    <div class="alloc-pie-wrap">
+      <div class="alloc-pie-title">By Asset Class</div>
+      <div class="alloc-pie-canvas-wrap"><canvas id="prPieCanvas" role="img" aria-label="Proposal asset-class pie chart"></canvas></div>
+      <div id="prPieLegend" class="alloc-pie-legend"></div>
+    </div>
+    <div class="alloc-pie-wrap">
+      <div class="alloc-pie-title">By Vehicle Type</div>
+      <div class="alloc-pie-canvas-wrap"><canvas id="prPieVehicleCanvas" role="img" aria-label="Proposal vehicle-type pie chart"></canvas></div>
+      <div id="prPieVehicleLegend" class="alloc-pie-legend"></div>
+    </div>
+  </div>
+
   <div class="sdiv">
-    <div class="slbl">Vehicle mix</div>
+    <div class="slbl">Vehicle mix — bars</div>
     <div id="prBarsVehicle"><div class="pf-empty">No positions added yet.</div></div>
   </div>
 </div>
@@ -2484,7 +2499,7 @@ input[type=date]{color-scheme:light}
 // ═══════════════════════════════════════════════════════════
 // VERSION — updated by build-standalone.pl on each build
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260521-2332";
+const APP_VERSION = "20260521-2334";
 
 // ═══════════════════════════════════════════════════════════
 // DATA
@@ -5107,51 +5122,59 @@ function renderProposalBars(){
     </div>`;
   }).join(""));
 }
-function drawProposalPie(){
-  let canvas=$("prPieCanvas");
-  if(!canvas){
-    const allocPanel = document.querySelector('#tab-proposal .panel:nth-of-type(2)');
-    if(!allocPanel) return;
-    const wrap=document.createElement("div");
-    wrap.className="sdiv";
-    wrap.innerHTML=`<div class="slbl">Asset class breakdown (pie)</div>
-      <div style="display:grid;grid-template-columns:240px 1fr;gap:18px;align-items:center">
-        <div style="position:relative;width:240px;height:240px"><canvas id="prPieCanvas" role="img" aria-label="Proposal asset-class pie chart"></canvas></div>
-        <div id="prPieLegend" style="font-size:12px;display:flex;flex-direction:column;gap:6px"></div>
-      </div>`;
-    allocPanel.appendChild(wrap);
-    canvas=$("prPieCanvas");
+// Shared proposal-pie helper (proposals use `alloc` % instead of `val` $)
+let prVehicleChart = null;
+function drawProposalSinglePie(canvasId, legendId, classifyFn, labelMap, colorMap, existingChart){
+  const canvas = $(canvasId);
+  const legend = $(legendId);
+  if(!canvas) return existingChart;
+  const total = proposals.reduce((s,p)=>s+p.alloc, 0);
+  if(total <= 0){
+    if(existingChart){ existingChart.destroy(); }
+    if(legend) legend.innerHTML = '<div style="color:var(--text3);text-align:center;padding:14px 0">No positions to chart yet.</div>';
+    return null;
   }
-  const total=proposals.reduce((s,p)=>s+p.alloc,0);
-  const legend=$("prPieLegend");
-  if(total<=0){
-    if(prClassChart){prClassChart.destroy(); prClassChart=null;}
-    if(legend) legend.innerHTML='<div style="color:var(--text3)">No positions to chart yet.</div>';
-    return;
-  }
-  const agg={};
-  proposals.forEach(p=>{const k=effClass(p); agg[k]=(agg[k]||0)+p.alloc;});
-  const entries=Object.entries(agg).sort((a,b)=>b[1]-a[1]);
-  const labels=entries.map(([k])=>INV_CLASS_LABELS[k]||k);
-  const data=entries.map(([,v])=>v);
-  const colors=entries.map(([k])=>CLASS_COLORS[k]||"#8b6dce");
-  if(prClassChart) prClassChart.destroy();
-  prClassChart=new Chart(canvas,{
+  const agg = {};
+  proposals.forEach(p => { const k = classifyFn(p); agg[k] = (agg[k]||0) + p.alloc; });
+  const entries = Object.entries(agg).sort((a,b)=>b[1]-a[1]);
+  const labels  = entries.map(([k]) => labelMap[k] || k);
+  const data    = entries.map(([,v]) => v);
+  const colors  = entries.map(([k]) => colorMap[k] || "#64748b");
+  if(existingChart) existingChart.destroy();
+  const chart = new Chart(canvas, {
     type:"doughnut",
-    data:{labels,datasets:[{data,backgroundColor:colors,borderWidth:2,borderColor:"#fff"}]},
+    data:{labels, datasets:[{
+      data, backgroundColor:colors,
+      borderWidth:3, borderColor:"#ffffff",
+      hoverBorderColor:"#ffffff", hoverOffset:6, hoverBorderWidth:3
+    }]},
     options:{
-      responsive:true,maintainAspectRatio:false,cutout:"55%",
-      plugins:{legend:{display:false},tooltip:{callbacks:{label:(c)=>c.label+": "+c.raw.toFixed(1)+"% (of "+total.toFixed(1)+"%)"}}}
+      responsive:true, maintainAspectRatio:false, cutout:"58%",
+      animation:{animateRotate:true, duration:600},
+      plugins:{
+        legend:{display:false},
+        tooltip:{
+          backgroundColor:"#16213e", titleFont:{size:13,weight:"700"}, bodyFont:{size:12},
+          padding:12, cornerRadius:8, displayColors:true, boxPadding:4,
+          callbacks:{label:(c) => " " + c.label + ": " + c.raw.toFixed(1) + "% (of " + total.toFixed(1) + "%)"}
+        }
+      }
     }
   });
   if(legend){
-    legend.innerHTML=entries.map(([k,v],i)=>`
-      <div style="display:flex;align-items:center;gap:8px">
-        <span style="width:14px;height:14px;border-radius:3px;background:${colors[i]};display:inline-block;flex-shrink:0"></span>
-        <span style="flex:1;color:var(--text)">${labels[i]}</span>
-        <span style="color:var(--text2);font-variant-numeric:tabular-nums">${v.toFixed(1)}%</span>
+    legend.innerHTML = entries.map(([k,v],i) => `
+      <div class="alloc-pie-legend-item">
+        <span class="alloc-pie-dot" style="background:${colors[i]}"></span>
+        <span class="alloc-pie-name">${labels[i]}</span>
+        <span class="alloc-pie-pct">${v.toFixed(1)}%</span>
       </div>`).join("");
   }
+  return chart;
+}
+
+function drawProposalPie(){
+  prClassChart   = drawProposalSinglePie("prPieCanvas","prPieLegend",effClass,INV_CLASS_LABELS,CLASS_COLORS,prClassChart);
+  prVehicleChart = drawProposalSinglePie("prPieVehicleCanvas","prPieVehicleLegend",(p)=>p.vehicle||"other",PROP_VEHICLE_LABELS,TYPE_COLORS,prVehicleChart);
 }
 
 // ═══════════════════════════════════════════════════════════
