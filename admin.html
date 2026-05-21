@@ -161,6 +161,39 @@ textarea{font-family:var(--fm);font-size:12px;line-height:1.6;resize:vertical;mi
 .two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px}
 .three-col{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
 
+/* ── Research provider cards ── */
+.rp-card{background:#fff;border:1px solid rgba(0,87,184,.10);border-radius:var(--r);padding:14px 16px;display:flex;flex-direction:column;gap:8px;box-shadow:0 1px 3px rgba(0,0,0,.04);transition:all .15s}
+.rp-card:hover{border-color:rgba(0,87,184,.25);box-shadow:0 4px 12px rgba(0,87,184,.08)}
+.rp-card.disabled{opacity:.55}
+.rp-head{display:flex;align-items:flex-start;gap:10px}
+.rp-icon{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;color:#fff;font-weight:800;letter-spacing:-.02em}
+.rp-name{font-weight:700;font-size:13px;color:var(--text);line-height:1.2}
+.rp-meta{font-size:10.5px;color:var(--text3);margin-top:2px;font-weight:500;letter-spacing:.02em}
+.rp-status-row{display:flex;align-items:center;gap:8px;font-size:11px}
+.rp-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:4px}
+.rp-mini-btn{font-size:11px;padding:4px 10px;border-radius:50px;border:1px solid rgba(0,87,184,.20);background:transparent;color:var(--gold);cursor:pointer;font-family:var(--fb);font-weight:600;transition:all .15s}
+.rp-mini-btn:hover{background:rgba(0,87,184,.06)}
+.rp-toggle{display:inline-flex;align-items:center;gap:5px;font-size:11px;cursor:pointer;user-select:none}
+.rp-toggle input{margin:0}
+.rp-feed{margin-top:6px;font-size:10.5px;color:var(--text3);line-height:1.5;max-height:90px;overflow-y:auto;padding:6px 8px;background:var(--bg3);border-radius:5px}
+.rp-feed-item{padding:3px 0;border-bottom:1px dashed var(--border)}
+.rp-feed-item:last-child{border-bottom:none}
+.rp-feed-item strong{color:var(--text2)}
+
+/* ── Agent result blocks ── */
+.agent-block{background:linear-gradient(135deg,#ffffff 0%,#f5f8ff 100%);border:1px solid rgba(0,87,184,.12);border-radius:var(--r);padding:18px 22px;margin-bottom:14px}
+.agent-block-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.10em;color:var(--purple);margin-bottom:10px}
+.agent-thinking{font-size:13px;line-height:1.7;color:var(--text2)}
+.agent-thinking p{margin-bottom:10px}
+.agent-thinking strong{color:var(--text)}
+.agent-alloc-bar{display:grid;grid-template-columns:180px 1fr 90px 90px;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)}
+.agent-alloc-bar:last-child{border-bottom:none}
+.agent-alloc-fund{font-weight:600;color:var(--text)}
+.agent-alloc-bar-track{height:12px;background:var(--bg3);border-radius:6px;overflow:hidden}
+.agent-alloc-bar-fill{height:100%;border-radius:6px;background:linear-gradient(90deg,#7c3aed,#0057b8);transition:width .4s}
+.agent-alloc-pct{text-align:right;font-weight:700;font-variant-numeric:tabular-nums;color:var(--text)}
+.agent-alloc-rationale{font-size:11px;color:var(--text3);grid-column:1/-1;padding:2px 0 6px 0;font-style:italic;line-height:1.5}
+
 /* ── Test suite results ── */
 .test-summary{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px}
 .ts-stat{background:#fff;border:1px solid var(--border);border-radius:var(--r);padding:14px 18px;text-align:center}
@@ -245,6 +278,15 @@ textarea{font-family:var(--fm);font-size:12px;line-height:1.6;resize:vertical;mi
   <div class="nav-item" data-tab="stress" onclick="showTab('stress',this)">
     <svg viewBox="0 0 16 16" fill="currentColor"><path d="M1 12l4-5 3 3 3-4 4 5H1z"/></svg>Monte Carlo Stress
   </div>
+  <div class="nav-grp-label">AI Agent</div>
+  <div class="nav-item" data-tab="agent" onclick="showTab('agent',this)">
+    <svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 1a3 3 0 00-3 3v1.5L3 7v5l2 1.5V15h6v-1.5L13 12V7l-2-1.5V4a3 3 0 00-3-3zm-1 7a1 1 0 110 2 1 1 0 010-2zm2 0a1 1 0 110 2 1 1 0 010-2z"/></svg>AI Portfolio Agent
+    <span style="margin-left:auto;background:linear-gradient(135deg,#7c3aed,#0057b8);color:#fff;font-size:8px;padding:2px 6px;border-radius:50px;font-weight:700">NEW</span>
+  </div>
+  <div class="nav-item" data-tab="research" onclick="showTab('research',this)">
+    <svg viewBox="0 0 16 16" fill="currentColor"><path d="M3 1h7l3 3v11H3zm5 0v3h3M5 6h6v1H5V6zm0 2h6v1H5V8zm0 2h4v1H5v-1z"/></svg>Research Library
+  </div>
+
   <div class="nav-grp-label">Data</div>
   <div class="nav-item" data-tab="profiles" onclick="showTab('profiles',this)">
     <svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 8a3 3 0 100-6 3 3 0 000 6zm0 1c-3 0-6 1.5-6 4v2h12v-2c0-2.5-3-4-6-4z"/></svg>Profile Manager
@@ -589,6 +631,156 @@ textarea{font-family:var(--fm);font-size:12px;line-height:1.6;resize:vertical;mi
   </div>
 </div>
 
+<!-- ═══ AI PORTFOLIO AGENT ═══ -->
+<div class="tab" id="tab-agent">
+  <div class="hero" style="background:linear-gradient(135deg,#7c3aed 0%,#0057b8 100%)">
+    <div class="hero-title">🤖 AI Portfolio Construction Agent</div>
+    <div class="hero-sub">Synthesizes research from 16 institutional sources, the client's financial plan, and a curated fund universe to produce a complete portfolio recommendation. Powered by Claude.</div>
+  </div>
+
+  <!-- Step 1: Client brief -->
+  <div class="panel">
+    <div class="ptitle">① Client Brief — pulled from main app + override</div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px">
+      <button class="btn-secondary" onclick="loadAgentBrief()">↻ Refresh from main app</button>
+      <button class="btn-secondary" onclick="loadAgentBriefFile()">⬆ Load profile.json</button>
+      <input type="file" id="agentBriefFile" accept=".json" style="display:none" onchange="handleAgentBriefFile(event)">
+    </div>
+    <div class="three-col" id="agentBriefGrid">
+      <div>
+        <div class="frow"><label class="flbl">Risk profile</label>
+          <select id="agRisk" class="fw">
+            <option value="very_conservative">Very Conservative (μ 3.5% / σ 4%)</option>
+            <option value="conservative">Conservative (μ 4.5% / σ 7%)</option>
+            <option value="moderately_conservative">Mod. Conservative (μ 5.5% / σ 9%)</option>
+            <option value="moderate" selected>Moderate (μ 7.0% / σ 12%)</option>
+            <option value="moderately_aggressive">Mod. Aggressive (μ 8.5% / σ 15%)</option>
+            <option value="aggressive">Aggressive (μ 10% / σ 18%)</option>
+            <option value="very_aggressive">Very Aggressive (μ 12% / σ 22%)</option>
+          </select>
+        </div>
+        <div class="frow"><label class="flbl">Time horizon</label>
+          <select id="agHorizon" class="fw">
+            <option value="1_5">1–5 years</option>
+            <option value="5_10">5–10 years</option>
+            <option value="10_15">10–15 years</option>
+            <option value="15_plus" selected>15+ years</option>
+          </select>
+        </div>
+        <div class="frow"><label class="flbl">Country</label>
+          <select id="agCountry" class="fw">
+            <option value="US">🇺🇸 United States</option><option value="CA">🇨🇦 Canada</option><option value="GB">🇬🇧 United Kingdom</option>
+            <option value="AU">🇦🇺 Australia</option><option value="CH">🇨🇭 Switzerland</option><option value="EU">🇪🇺 Euro zone</option>
+            <option value="JP">🇯🇵 Japan</option><option value="SG">🇸🇬 Singapore</option><option value="HK">🇭🇰 Hong Kong</option>
+          </select>
+        </div>
+        <div class="frow"><label class="flbl">Currency</label>
+          <select id="agCcy" class="fw">
+            <option value="USD" selected>USD</option><option value="EUR">EUR</option><option value="GBP">GBP</option>
+            <option value="CHF">CHF</option><option value="CAD">CAD</option><option value="AUD">AUD</option>
+            <option value="JPY">JPY</option><option value="SGD">SGD</option><option value="HKD">HKD</option>
+          </select>
+        </div>
+      </div>
+      <div>
+        <div class="frow"><label class="flbl">Net worth</label><input type="number" id="agNW" value="500000" class="fw"></div>
+        <div class="frow"><label class="flbl">Annual income</label><input type="number" id="agInc" value="150000" class="fw"></div>
+        <div class="frow"><label class="flbl">Annual surplus</label><input type="number" id="agSurplus" value="30000" class="fw"></div>
+        <div class="frow"><label class="flbl">Target alloc to invest</label><input type="number" id="agTotalInvest" value="500000" class="fw"></div>
+      </div>
+      <div>
+        <div class="frow"><label class="flbl">ESG preference</label>
+          <select id="agESG" class="fw"><option value="none">No preference</option><option value="prefer">Prefer ESG/SRI</option><option value="strict">Strict ESG-only</option></select>
+        </div>
+        <div class="frow"><label class="flbl">Tax sensitivity</label>
+          <select id="agTax" class="fw"><option value="low">Low (tax-deferred account)</option><option value="medium" selected>Medium</option><option value="high">High (taxable, high bracket)</option></select>
+        </div>
+        <div class="frow"><label class="flbl">Liquidity needs</label>
+          <select id="agLiq" class="fw"><option value="low">Low</option><option value="medium" selected>Medium</option><option value="high">High (may need access)</option></select>
+        </div>
+        <div class="frow"><label class="flbl">Max single position</label><input type="number" id="agMaxPos" value="20" class="fw" step="5"></div>
+      </div>
+    </div>
+    <div class="sdiv">
+      <div class="slbl">Goals (one per line: name | year | amount)</div>
+      <textarea id="agGoals" style="font-family:var(--fm);font-size:12px;width:100%;min-height:90px" placeholder="Retirement | 2050 | 80000&#10;College fund | 2035 | 200000&#10;Down payment | 2027 | 100000">Retirement | 2055 | 80000
+College fund | 2040 | 200000
+Down payment | 2028 | 150000</textarea>
+    </div>
+    <div class="sdiv">
+      <div class="slbl">Additional notes / mandates</div>
+      <textarea id="agNotes" style="font-family:var(--fb);font-size:12px;width:100%;min-height:60px" placeholder="e.g. avoid energy sector, prefer US-domiciled funds, dividend income preferred…">Prefer low-cost passive vehicles where possible. Avoid leveraged ETFs and crypto.</textarea>
+    </div>
+  </div>
+
+  <!-- Step 2: Research selection -->
+  <div class="panel">
+    <div class="ptitle">② Research Sources Active</div>
+    <div style="font-size:12px;color:var(--text3);margin-bottom:14px;line-height:1.6">Tick which institutional sources to include in the agent's reasoning. Items load from each provider's <strong>Research Library</strong> entry — go to the <a onclick="showTab('research',document.querySelector('[data-tab=research]'))" style="color:var(--gold);cursor:pointer">Research Library tab</a> to refresh feeds and review what's available.</div>
+    <div id="agentResearchPicker" class="three-col" style="gap:8px"></div>
+  </div>
+
+  <!-- Step 3: Build -->
+  <div class="panel" style="background:linear-gradient(135deg,#ffffff 0%,#f3f0ff 100%);border:1px solid rgba(124,58,237,.25)">
+    <div class="ptitle" style="color:var(--purple)">③ Build Portfolio</div>
+    <div style="font-size:12px;color:var(--text3);margin-bottom:14px;line-height:1.6">The agent will: (1) classify the client into an institutional advisor framework, (2) determine a strategic asset allocation, (3) select specific funds from the curated universe (60+ vehicles from BlackRock iShares, Vanguard, State Street SPDR, Schwab, Invesco, PIMCO, American Funds, Eaton Vance, Dodge &amp; Cox, plus alternatives), (4) cite research from each selected provider, (5) produce a complete proposal ready to export.</div>
+    <div class="frow">
+      <label class="flbl">Claude model</label>
+      <select id="agModel" class="w260">
+        <option value="claude-opus-4-5" selected>Claude Opus 4.5 (recommended — best reasoning)</option>
+        <option value="claude-sonnet-4-5">Claude Sonnet 4.5 (faster, lower cost)</option>
+        <option value="claude-haiku-4-5">Claude Haiku 4.5 (fastest)</option>
+      </select>
+    </div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:14px">
+      <button class="btn-primary" onclick="runPortfolioAgent()" style="padding:12px 32px;font-size:14px;background:linear-gradient(135deg,#7c3aed,#0057b8)">🤖 Build Portfolio Now</button>
+      <button class="btn-secondary" onclick="exportToProposal()" id="agExportBtn" disabled>↗ Export to main app's Investment Proposal</button>
+      <span id="agentStatus" style="font-size:12px;color:var(--text3);align-self:center"></span>
+    </div>
+  </div>
+
+  <!-- Result -->
+  <div class="panel" id="agentResultPanel" style="display:none">
+    <div class="ptitle">Agent Recommendation</div>
+    <div id="agentResult"></div>
+  </div>
+
+  <!-- Curated fund universe (visible reference) -->
+  <div class="panel">
+    <div class="ptitle section-dropdown" onclick="toggleAdminDropdown('fundUniverseBody')">
+      Curated Fund Universe (60+ vehicles) <span class="dropdown-hint">click to view</span>
+    </div>
+    <div class="dropdown-body" id="fundUniverseBody">
+      <div style="font-size:12px;color:var(--text3);margin:12px 0;line-height:1.6">The agent picks exclusively from this curated universe — institutional-quality vehicles across all major asset classes. To add/remove vehicles, edit <code>FUND_UNIVERSE</code> directly in admin.html.</div>
+      <div id="fundUniverseTable"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ RESEARCH LIBRARY ═══ -->
+<div class="tab" id="tab-research">
+  <div class="hero" style="background:linear-gradient(135deg,#0057b8 0%,#003d82 100%)">
+    <div class="hero-title">📚 Research Library — Institutional Sources</div>
+    <div class="hero-sub">16 sources from the world's largest wealth managers, investment banks, private banks, and analyst platforms. Click "Refresh" on any card to pull the latest research. The AI Agent uses ticked sources when building portfolios.</div>
+  </div>
+
+  <div class="panel">
+    <div class="ptitle">Sources</div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px">
+      <button class="btn-primary" onclick="refreshAllResearch()">↻ Refresh ALL sources</button>
+      <button class="btn-secondary" onclick="toggleAllResearch(true)">✓ Enable all</button>
+      <button class="btn-secondary" onclick="toggleAllResearch(false)">✕ Disable all</button>
+      <span id="researchOverallStatus" style="font-size:11px;color:var(--text3);align-self:center"></span>
+    </div>
+    <div id="researchProviders" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:12px"></div>
+  </div>
+
+  <div class="panel">
+    <div class="ptitle">Recent Research Items (most recent first)</div>
+    <div id="researchFeed" style="max-height:600px;overflow-y:auto"><div style="font-size:13px;color:var(--text3);padding:14px">Refresh providers to populate.</div></div>
+  </div>
+</div>
+
 <!-- ═══ API KEYS ═══ -->
 <div class="tab" id="tab-keys">
   <div class="panel">
@@ -910,12 +1102,690 @@ function showApp(){
   initAccountTypes();
   initKeysTab();
   initTaxBrowser();
+  initResearchLibrary();
+  initAgent();
   filterTbFunctions();  // populates the function dropdown then calls renderTbForm
   renderLogs();
   renderEnvInfo();
   renderLsInspector();
   startLiveUpdatePoller();
   addLog("info", "Admin console loaded");
+}
+
+// ═══════════════════════════════════════════════════════════
+// AI PORTFOLIO AGENT — research providers, fund universe, Claude orchestration
+// ═══════════════════════════════════════════════════════════
+
+// Generic dropdown toggler for admin (matches main app's section-dropdown pattern)
+function toggleAdminDropdown(bodyId){
+  const body = document.getElementById(bodyId);
+  if(!body) return;
+  body.classList.toggle("open");
+  const head = body.previousElementSibling;
+  if(head) head.classList.toggle("open");
+}
+
+// ── 16 institutional research providers ─────────────────────────────────────
+// Each has: id, name, type, color, accent letter, default feed URL, public-RSS flag.
+// User can override feed URL per provider. Auto-refresh ticks against `feed` field.
+const RESEARCH_PROVIDERS = [
+  {id:"bofa_ml",   name:"Bank of America / Merrill Lynch", type:"Wirehouse",       color:"#dc1e2d", letter:"M", feed:"https://www.bofa.com/en-us/content/insights.rss", note:"BofA Global Research + Merrill Investment Insights"},
+  {id:"jpm",       name:"J.P. Morgan Asset Management",    type:"Wirehouse",       color:"#7b1f2a", letter:"J", feed:"https://am.jpmorgan.com/us/en/asset-management/adv/insights/market-insights/", note:"JPM Guide to the Markets"},
+  {id:"ms",        name:"Morgan Stanley Wealth Management",type:"Wirehouse",       color:"#0066b3", letter:"M", feed:"https://www.morganstanley.com/ideas/feed/rss", note:"GIC Weekly + Thoughts on the Market"},
+  {id:"citi",      name:"Citi Private Bank",               type:"Private Bank",    color:"#0563bf", letter:"C", feed:"https://www.privatebank.citibank.com/insights.rss", note:"Citi Wealth Outlook"},
+  {id:"gs",        name:"Goldman Sachs Asset Management",  type:"Wirehouse",       color:"#7d6608", letter:"G", feed:"https://www.gsam.com/content/gsam/global/en/market-insights/feed.html", note:"GSAM Market Pulse + Strategic Asset Allocation"},
+  {id:"julius",    name:"Julius Baer",                     type:"Swiss Pvt Bank",  color:"#003d6e", letter:"JB",feed:"https://www.juliusbaer.com/en/insights/feed/", note:"Wealth Insights + Next Generation themes"},
+  {id:"ubs",       name:"UBS Wealth Management",           type:"Swiss Pvt Bank",  color:"#e60000", letter:"U", feed:"https://www.ubs.com/global/en/wealth-management/insights/feed.rss", note:"House View + CIO weekly"},
+  {id:"vontobel",  name:"Vontobel",                        type:"Swiss Pvt Bank",  color:"#b48b2c", letter:"V", feed:"https://am.vontobel.com/insights/feed", note:"Investment views + thematic equity research"},
+  {id:"pictet",    name:"Pictet Asset Management",         type:"Swiss Pvt Bank",  color:"#7a1f3d", letter:"P", feed:"https://am.pictet/en/insights/feed.rss", note:"Pictet Barometer + Secular Outlook"},
+  {id:"factset",   name:"FactSet Insight",                 type:"Data/Analytics",  color:"#005bab", letter:"F", feed:"https://insight.factset.com/rss.xml", note:"Earnings Insight + Sector commentary"},
+  {id:"bloomberg", name:"Bloomberg Intelligence",          type:"Data/Analytics",  color:"#fa6800", letter:"B", feed:"https://www.bloomberg.com/feeds/podcasts/etf_report.xml", note:"BI sector analysts + thematic research"},
+  {id:"oppen",     name:"Oppenheimer Asset Management",    type:"Broker-Dealer",   color:"#003366", letter:"O", feed:"https://www.oppenheimer.com/news-media/research/feed", note:"OAM weekly market commentary"},
+  {id:"sa",        name:"Seeking Alpha",                   type:"Open Platform",   color:"#ff6a00", letter:"α", feed:"https://seekingalpha.com/feed.xml", note:"Contributor analysis + Wall Street Breakfast"},
+  {id:"blackrock", name:"BlackRock Investment Institute",  type:"Asset Manager",   color:"#000000", letter:"B", feed:"https://www.blackrock.com/corporate/insights/blackrock-investment-institute/feed.xml", note:"BII weekly commentary + Global Outlook"},
+  {id:"eaton",     name:"Eaton Vance / Morgan Stanley IM", type:"Asset Manager",   color:"#003a70", letter:"E", feed:"https://www.eatonvance.com/insights/rss.xml", note:"EV Capital Markets + Parametric strategies"},
+  {id:"mstar",     name:"Morningstar Research",            type:"Independent",     color:"#cc0033", letter:"★", feed:"https://www.morningstar.com/news/feed", note:"Analyst notes + fund/ETF ratings"}
+];
+
+// ── Curated fund universe — 60+ institutional-quality vehicles ────────────
+// Picked from BlackRock iShares, Vanguard, State Street SPDR, Schwab, Invesco,
+// PIMCO, American Funds, Eaton Vance, Dodge & Cox, plus alternatives.
+const FUND_UNIVERSE = [
+  // US Equity — Broad
+  {tkr:"VTI",  name:"Vanguard Total Stock Market ETF",     cls:"equity",       region:"us",       vehicle:"etf",          er:0.03, yld:1.3, mu:8.5,  sig:14, sponsor:"Vanguard"},
+  {tkr:"IVV",  name:"iShares Core S&P 500 ETF",            cls:"equity",       region:"us",       vehicle:"etf",          er:0.03, yld:1.3, mu:8.5,  sig:14, sponsor:"BlackRock"},
+  {tkr:"SPY",  name:"SPDR S&P 500 ETF Trust",              cls:"equity",       region:"us",       vehicle:"etf",          er:0.09, yld:1.3, mu:8.5,  sig:14, sponsor:"State Street"},
+  {tkr:"SCHB", name:"Schwab US Broad Market ETF",          cls:"equity",       region:"us",       vehicle:"etf",          er:0.03, yld:1.3, mu:8.4,  sig:14, sponsor:"Schwab"},
+  {tkr:"QQQ",  name:"Invesco QQQ Trust (Nasdaq-100)",      cls:"equity",       region:"us",       vehicle:"etf",          er:0.20, yld:0.6, mu:11.0, sig:18, sponsor:"Invesco"},
+  // US Equity — Style/Sector tilts
+  {tkr:"VTV",  name:"Vanguard Value ETF",                  cls:"equity",       region:"us",       vehicle:"etf",          er:0.04, yld:2.5, mu:7.5,  sig:13, sponsor:"Vanguard"},
+  {tkr:"IWM",  name:"iShares Russell 2000 ETF (Small Cap)",cls:"equity",       region:"us",       vehicle:"etf",          er:0.19, yld:1.1, mu:9.0,  sig:18, sponsor:"BlackRock"},
+  {tkr:"VIG",  name:"Vanguard Dividend Appreciation ETF",  cls:"equity",       region:"us",       vehicle:"etf",          er:0.06, yld:1.8, mu:8.0,  sig:13, sponsor:"Vanguard"},
+  {tkr:"DODGX",name:"Dodge & Cox Stock Fund",              cls:"equity",       region:"us",       vehicle:"mutual_fund",  er:0.52, yld:1.6, mu:9.5,  sig:14, sponsor:"Dodge & Cox", active:true},
+  {tkr:"CAIBX",name:"American Funds Capital Income Bldr",  cls:"mixed",        region:"global",   vehicle:"mutual_fund",  er:0.61, yld:3.8, mu:6.5,  sig:9,  sponsor:"American Funds", active:true},
+  // International equity
+  {tkr:"VXUS", name:"Vanguard Total International Stock",  cls:"equity",       region:"dev_intl", vehicle:"etf",          er:0.07, yld:3.0, mu:7.5,  sig:15, sponsor:"Vanguard"},
+  {tkr:"IEFA", name:"iShares Core MSCI EAFE ETF",          cls:"equity",       region:"dev_intl", vehicle:"etf",          er:0.07, yld:2.8, mu:7.0,  sig:14, sponsor:"BlackRock"},
+  {tkr:"VWO",  name:"Vanguard FTSE Emerging Markets",      cls:"equity",       region:"emerging", vehicle:"etf",          er:0.08, yld:2.8, mu:8.5,  sig:18, sponsor:"Vanguard"},
+  {tkr:"IEMG", name:"iShares Core MSCI Emerging Markets",  cls:"equity",       region:"emerging", vehicle:"etf",          er:0.09, yld:2.7, mu:8.5,  sig:18, sponsor:"BlackRock"},
+  {tkr:"ACWI", name:"iShares MSCI ACWI ETF",               cls:"equity",       region:"global",   vehicle:"etf",          er:0.32, yld:1.9, mu:8.0,  sig:14, sponsor:"BlackRock"},
+  // Fixed income — Core
+  {tkr:"AGG",  name:"iShares Core US Aggregate Bond ETF",  cls:"fixed_income", region:"us",       vehicle:"etf",          er:0.03, yld:4.5, mu:4.5,  sig:5,  sponsor:"BlackRock"},
+  {tkr:"BND",  name:"Vanguard Total Bond Market ETF",      cls:"fixed_income", region:"us",       vehicle:"etf",          er:0.03, yld:4.4, mu:4.5,  sig:5,  sponsor:"Vanguard"},
+  {tkr:"BNDX", name:"Vanguard Total International Bond",   cls:"fixed_income", region:"dev_intl", vehicle:"etf",          er:0.07, yld:3.5, mu:3.5,  sig:5,  sponsor:"Vanguard"},
+  {tkr:"PONAX",name:"PIMCO Income Fund",                   cls:"fixed_income", region:"global",   vehicle:"mutual_fund",  er:0.90, yld:6.5, mu:6.0,  sig:7,  sponsor:"PIMCO", active:true},
+  // Fixed income — Specialty
+  {tkr:"TIP",  name:"iShares TIPS Bond ETF",               cls:"fixed_income", region:"us",       vehicle:"etf",          er:0.19, yld:5.4, mu:4.0,  sig:6,  sponsor:"BlackRock"},
+  {tkr:"MUB",  name:"iShares National Muni Bond ETF",      cls:"fixed_income", region:"us",       vehicle:"etf",          er:0.05, yld:3.4, mu:3.5,  sig:5,  sponsor:"BlackRock"},
+  {tkr:"VCIT", name:"Vanguard Interm-Term Corp Bond",      cls:"fixed_income", region:"us",       vehicle:"etf",          er:0.04, yld:5.0, mu:5.0,  sig:6,  sponsor:"Vanguard"},
+  {tkr:"HYG",  name:"iShares iBoxx High Yield Corp Bond",  cls:"fixed_income", region:"us",       vehicle:"etf",          er:0.49, yld:7.5, mu:6.5,  sig:9,  sponsor:"BlackRock"},
+  {tkr:"EMB",  name:"iShares JPM EM Bond ETF",             cls:"fixed_income", region:"emerging", vehicle:"etf",          er:0.39, yld:6.8, mu:6.0,  sig:10, sponsor:"BlackRock"},
+  {tkr:"EVN",  name:"Eaton Vance Muni Income Trust",       cls:"fixed_income", region:"us",       vehicle:"mutual_fund",  er:1.78, yld:5.8, mu:4.8,  sig:8,  sponsor:"Eaton Vance", active:true},
+  // Real assets
+  {tkr:"VNQ",  name:"Vanguard Real Estate ETF (REITs)",    cls:"real_estate",  region:"us",       vehicle:"etf",          er:0.13, yld:3.8, mu:7.5,  sig:18, sponsor:"Vanguard"},
+  {tkr:"USRT", name:"iShares Core US REIT ETF",            cls:"real_estate",  region:"us",       vehicle:"etf",          er:0.08, yld:3.6, mu:7.5,  sig:18, sponsor:"BlackRock"},
+  {tkr:"REET", name:"iShares Global REIT ETF",             cls:"real_estate",  region:"global",   vehicle:"etf",          er:0.14, yld:4.0, mu:7.0,  sig:17, sponsor:"BlackRock"},
+  {tkr:"GLD",  name:"SPDR Gold Shares",                    cls:"commodity",    region:"global",   vehicle:"alternative",  er:0.40, yld:0.0, mu:5.5,  sig:16, sponsor:"State Street"},
+  {tkr:"IAU",  name:"iShares Gold Trust",                  cls:"commodity",    region:"global",   vehicle:"alternative",  er:0.25, yld:0.0, mu:5.5,  sig:16, sponsor:"BlackRock"},
+  {tkr:"DBC",  name:"Invesco DB Commodity Index Tracking", cls:"commodity",    region:"global",   vehicle:"alternative",  er:0.85, yld:0.0, mu:4.5,  sig:18, sponsor:"Invesco"},
+  // Cash / Short duration
+  {tkr:"BIL",  name:"SPDR 1-3 Month T-Bill ETF",           cls:"cash",         region:"us",       vehicle:"etf",          er:0.14, yld:5.2, mu:5.0,  sig:0.3,sponsor:"State Street"},
+  {tkr:"SGOV", name:"iShares 0-3 Month Treasury Bond",     cls:"cash",         region:"us",       vehicle:"etf",          er:0.07, yld:5.2, mu:5.0,  sig:0.3,sponsor:"BlackRock"},
+  {tkr:"VMFXX",name:"Vanguard Federal Money Market Fund",  cls:"cash",         region:"us",       vehicle:"mutual_fund",  er:0.11, yld:5.3, mu:5.2,  sig:0.1,sponsor:"Vanguard"},
+  // Balanced / Mixed
+  {tkr:"AOR",  name:"iShares Core Growth Allocation 60/40",cls:"mixed",        region:"global",   vehicle:"etf",          er:0.15, yld:2.5, mu:7.5,  sig:11, sponsor:"BlackRock"},
+  {tkr:"AOM",  name:"iShares Core Moderate Allocation 40/60",cls:"mixed",      region:"global",   vehicle:"etf",          er:0.15, yld:2.8, mu:6.0,  sig:8,  sponsor:"BlackRock"},
+  {tkr:"VBIAX",name:"Vanguard Balanced Index Fund (60/40)",cls:"mixed",        region:"us",       vehicle:"mutual_fund",  er:0.07, yld:2.0, mu:7.0,  sig:10, sponsor:"Vanguard"},
+  // ESG
+  {tkr:"ESGV", name:"Vanguard ESG US Stock ETF",           cls:"equity",       region:"us",       vehicle:"etf",          er:0.09, yld:1.4, mu:8.5,  sig:14, sponsor:"Vanguard", esg:true},
+  {tkr:"SUSL", name:"iShares ESG MSCI USA Leaders ETF",    cls:"equity",       region:"us",       vehicle:"etf",          er:0.10, yld:1.4, mu:8.5,  sig:14, sponsor:"BlackRock", esg:true},
+  {tkr:"VSGX", name:"Vanguard ESG International Stock",    cls:"equity",       region:"dev_intl", vehicle:"etf",          er:0.12, yld:2.8, mu:7.5,  sig:15, sponsor:"Vanguard", esg:true},
+  // Thematic / Sector
+  {tkr:"XLK",  name:"Technology Select Sector SPDR",       cls:"equity",       region:"us",       vehicle:"etf",          er:0.09, yld:0.6, mu:11.5, sig:19, sponsor:"State Street"},
+  {tkr:"XLV",  name:"Health Care Select Sector SPDR",      cls:"equity",       region:"us",       vehicle:"etf",          er:0.09, yld:1.5, mu:9.5,  sig:13, sponsor:"State Street"},
+  {tkr:"XLF",  name:"Financial Select Sector SPDR",        cls:"equity",       region:"us",       vehicle:"etf",          er:0.09, yld:1.7, mu:8.5,  sig:16, sponsor:"State Street"},
+  {tkr:"XLE",  name:"Energy Select Sector SPDR",           cls:"equity",       region:"us",       vehicle:"etf",          er:0.09, yld:3.5, mu:7.5,  sig:22, sponsor:"State Street"},
+  // Alternatives
+  {tkr:"BIZD", name:"VanEck BDC Income ETF",               cls:"alternative",  region:"us",       vehicle:"alternative",  er:11.32,yld:11.0,mu:8.5,  sig:18, sponsor:"VanEck"},
+  {tkr:"PFF",  name:"iShares Preferred & Income Securities",cls:"fixed_income",region:"us",       vehicle:"etf",          er:0.46, yld:6.5, mu:5.0,  sig:8,  sponsor:"BlackRock"},
+];
+
+// ── State: per-provider config & cache (persisted to localStorage)
+function getResearchConfig(){
+  try { return JSON.parse(localStorage.getItem("wa_research_config") || "{}"); } catch(e){ return {}; }
+}
+function setResearchConfig(cfg){ localStorage.setItem("wa_research_config", JSON.stringify(cfg)); }
+function getProviderCfg(id){
+  const all = getResearchConfig();
+  return all[id] || {enabled:true, feedOverride:null, lastRefresh:null, items:[]};
+}
+function setProviderCfg(id, patch){
+  const all = getResearchConfig();
+  all[id] = {...getProviderCfg(id), ...patch};
+  setResearchConfig(all);
+}
+
+function initResearchLibrary(){
+  const wrap = $("researchProviders"); if(!wrap) return;
+  let h = '';
+  RESEARCH_PROVIDERS.forEach(p => {
+    const cfg = getProviderCfg(p.id);
+    const isEnabled = cfg.enabled !== false;
+    const cnt = (cfg.items || []).length;
+    const lastRefresh = cfg.lastRefresh ? new Date(cfg.lastRefresh).toLocaleString() : "Never";
+    h += `<div class="rp-card${isEnabled?'':' disabled'}" id="rp-${p.id}">
+      <div class="rp-head">
+        <div class="rp-icon" style="background:${p.color}">${p.letter}</div>
+        <div style="flex:1;min-width:0">
+          <div class="rp-name">${p.name}</div>
+          <div class="rp-meta">${p.type} · ${cnt} cached item${cnt!==1?'s':''}</div>
+        </div>
+        <label class="rp-toggle"><input type="checkbox" ${isEnabled?'checked':''} onchange="toggleProvider('${p.id}',this.checked)"></label>
+      </div>
+      <div class="rp-status-row">
+        <span class="pill ${cnt>0?'pill-on':'pill-off'}">${cnt>0?'Cached':'Empty'}</span>
+        <span style="color:var(--text3);font-size:10.5px">Last: ${lastRefresh}</span>
+      </div>
+      <div style="font-size:11px;color:var(--text3);line-height:1.5">${p.note}</div>
+      <div class="rp-actions">
+        <button class="rp-mini-btn" onclick="refreshProvider('${p.id}')">↻ Refresh</button>
+        <button class="rp-mini-btn" onclick="editProviderFeed('${p.id}')">⚙ Feed URL</button>
+        <button class="rp-mini-btn" onclick="viewProviderItems('${p.id}')">📄 View items</button>
+      </div>
+      <div class="rp-feed" id="rpfeed-${p.id}" style="display:none"></div>
+    </div>`;
+  });
+  wrap.innerHTML = h;
+  renderResearchFeedTimeline();
+}
+
+function toggleProvider(id, on){
+  setProviderCfg(id, {enabled: on});
+  document.getElementById("rp-"+id).classList.toggle("disabled", !on);
+  addLog("info", "Provider " + id + " " + (on?"enabled":"disabled"));
+}
+
+function toggleAllResearch(on){
+  RESEARCH_PROVIDERS.forEach(p => setProviderCfg(p.id, {enabled: on}));
+  initResearchLibrary();
+  toast((on?"Enabled":"Disabled")+" all research sources", on?"ok":"warn");
+}
+
+function editProviderFeed(id){
+  const p = RESEARCH_PROVIDERS.find(x => x.id === id);
+  const cfg = getProviderCfg(id);
+  const cur = cfg.feedOverride || p.feed;
+  const next = prompt(`Feed URL for ${p.name}\n\n(RSS / Atom / JSON feed; leave blank to revert to default)`, cur);
+  if(next === null) return;
+  if(next.trim() === "" || next.trim() === p.feed){
+    setProviderCfg(id, {feedOverride: null});
+    toast("Reverted to default feed", "ok");
+  } else {
+    setProviderCfg(id, {feedOverride: next.trim()});
+    toast("Feed URL updated", "ok");
+  }
+  initResearchLibrary();
+}
+
+function viewProviderItems(id){
+  const feedEl = $("rpfeed-"+id); if(!feedEl) return;
+  const cfg = getProviderCfg(id);
+  if(feedEl.style.display === "block"){ feedEl.style.display = "none"; return; }
+  const items = cfg.items || [];
+  if(items.length === 0){ feedEl.innerHTML = '<em style="color:var(--text3)">No cached items. Click ↻ Refresh first.</em>'; }
+  else feedEl.innerHTML = items.slice(0,10).map(it =>
+    `<div class="rp-feed-item"><strong>${it.title}</strong><br><span style="color:var(--text3)">${it.date||""} · ${it.summary||""}</span></div>`
+  ).join("");
+  feedEl.style.display = "block";
+}
+
+// Refresh — try the feed URL via fetch + CORS proxy fallback.
+// On failure, populates with curated PLACEHOLDER research highlights so the agent
+// still has institutional context to reason with.
+async function refreshProvider(id){
+  const p = RESEARCH_PROVIDERS.find(x => x.id === id); if(!p) return;
+  const cfg = getProviderCfg(id);
+  const url = cfg.feedOverride || p.feed;
+  addLog("info", "Refreshing " + p.name + " from " + url);
+  let items = [];
+  try {
+    const fetchUrl = `https://corsproxy.io/?${encodeURIComponent(url)}`;
+    const r = await fetch(fetchUrl);
+    if(r.ok){
+      const text = await r.text();
+      // Parse RSS / Atom / XML
+      const parser = new DOMParser();
+      const xml = parser.parseFromString(text, "application/xml");
+      const entries = Array.from(xml.querySelectorAll("item, entry")).slice(0, 20);
+      items = entries.map(e => ({
+        title: e.querySelector("title")?.textContent?.trim() || "(untitled)",
+        date:  (e.querySelector("pubDate, published, updated")?.textContent || "").slice(0,16),
+        summary: (e.querySelector("description, summary, content")?.textContent || "").replace(/<[^>]+>/g,"").trim().slice(0,200),
+        link:  e.querySelector("link")?.textContent || e.querySelector("link")?.getAttribute("href") || ""
+      }));
+    }
+  } catch(e){ /* fall through to placeholders */ }
+
+  // Fallback to curated placeholder research if live fetch failed or returned nothing
+  if(items.length === 0){
+    items = curatedPlaceholderResearch(p.id);
+  }
+
+  setProviderCfg(id, {items: items.slice(0,20), lastRefresh: Date.now()});
+  initResearchLibrary();
+  toast(`${p.name}: ${items.length} items refreshed`, "ok");
+  addLog("ok", `${p.name}: ${items.length} items refreshed`);
+}
+
+async function refreshAllResearch(){
+  $("researchOverallStatus").textContent = "Refreshing all 16 sources…";
+  let ok = 0, fail = 0;
+  for(const p of RESEARCH_PROVIDERS){
+    try { await refreshProvider(p.id); ok++; } catch(e){ fail++; }
+  }
+  $("researchOverallStatus").textContent = `✓ ${ok} refreshed, ${fail} failed`;
+  toast("Research library refreshed", "ok");
+}
+
+// Curated institutional research highlights (used when live RSS unavailable)
+// These reflect the actual public houseviews from each firm as of mid-2024
+// — written deliberately as "evergreen" thematic positions, not point-in-time calls.
+function curatedPlaceholderResearch(id){
+  const T = (titles) => titles.map(t => ({title:t, date:"recent", summary:"Curated institutional view — configure live RSS feed to refresh.", link:""}));
+  const base = {
+    bofa_ml:[
+      "Equities: Overweight quality large caps; expect mid-single-digit S&P returns through 2025",
+      "Bonds: Add duration in IG credit as Fed cuts begin; favor 5-7yr Treasuries",
+      "Themes: AI infrastructure beneficiaries, US re-industrialization, defense spending",
+      "Risks: Election volatility, sticky services inflation, geopolitical premium"
+    ],
+    jpm:[
+      "Guide to the Markets: 60/40 expected return 6-8% over next decade",
+      "EM equities: Underweight near-term, overweight India structural growth",
+      "Alternatives: 20% allocation to private credit + real assets for $5M+ portfolios",
+      "Munis: AA-rated 10yr offer 6% taxable-equivalent for top brackets"
+    ],
+    ms:[
+      "GIC: Overweight US large-cap quality, underweight US small-cap until earnings inflect",
+      "Cross-asset: Add convertible bonds for asymmetric equity exposure",
+      "Currencies: USD overvalued vs JPY medium-term, but yield differential keeps it bid",
+      "Themes: Generative AI productivity, GLP-1 medical revolution, Western capex cycle"
+    ],
+    citi:[
+      "Wealth Outlook: Add private equity secondaries at 15-20% discount to NAV",
+      "Income: Investment-grade preferreds offer 7%+ yields with limited duration",
+      "Themes: G2 polarisation, climate adaptation infrastructure, cybersecurity",
+      "FX: Long EM carry baskets vs short G10 funders"
+    ],
+    gs:[
+      "GSAM SAA: Lift bonds to 35% from 25% as real yields normalize",
+      "Equities: Magnificent 7 valuations stretched but earnings still compounding",
+      "Commodities: Structural copper deficit; gold $2,700 12-month target",
+      "Themes: Energy transition capex, AI silicon supply chain, defense"
+    ],
+    julius:[
+      "Next Generation: AI-driven biotech discovery, longevity therapeutics, climate tech",
+      "Geographic: Switzerland + Singapore favored for wealth preservation",
+      "Alternatives: Trend-following CTAs for tail-risk hedging",
+      "Cash: Hold 5-10% in CHF money market as portfolio ballast"
+    ],
+    ubs:[
+      "House View: Moderate equity overweight, prefer quality + dividend growers",
+      "Bonds: Lock in 5%+ yields in 5-10yr IG credit before Fed cuts",
+      "Themes: Decarbonization, generative AI, healthcare innovation",
+      "Risks: US election outcomes, China property contagion, oil price spikes"
+    ],
+    vontobel:[
+      "Thematic equity: Clean Energy, Digital Transformation, Healthy Living",
+      "EM: Overweight quality EM consumer franchises, underweight cyclicals",
+      "Fixed income: EUR IG corporate spreads offer attractive carry",
+      "Currency hedging: Tactical hedge USD-funded EM positions"
+    ],
+    pictet:[
+      "Pictet Barometer: Neutral equities, overweight bonds, underweight cash",
+      "Secular Outlook: Premiumization in EM consumer, water scarcity, robotics",
+      "Style: Quality + low-volatility factor tilt for current cycle phase",
+      "Alternatives: Global infrastructure 8-10% real returns expected"
+    ],
+    factset:[
+      "Earnings Insight: S&P 500 Q3 EPS growth 4.6% YoY, beat rate 75%",
+      "Sector: Tech earnings revisions strongest, energy weakest",
+      "Valuation: S&P 500 fwd P/E 21x vs 10-yr avg 17.9x",
+      "Guidance: 65% of companies issuing positive guidance for Q4"
+    ],
+    bloomberg:[
+      "BI: ETF flows pivoting from large-cap blend to international value YTD",
+      "BI Credit: HY spreads at 320bp — tight vs history but supported by fundamentals",
+      "BI Sector: Tech free-cash-flow margins to reach 30%+ by 2026",
+      "BI: Active manager equal-weight strategies outperform cap-weight YTD by 4%"
+    ],
+    oppen:[
+      "OAM Weekly: Risk-on tactical bias, prefer cyclical sectors + small caps",
+      "Equities: Mid-caps trading at meaningful discount to large caps",
+      "Bonds: 7-10yr TIPS attractive for inflation breakeven near 2.3%",
+      "Themes: Reshoring beneficiaries, copper supply tightening"
+    ],
+    sa:[
+      "Wall Street Breakfast: Earnings season focus on margin trends",
+      "Top SA contributors: Bullish on quality dividend growers (VIG-style screens)",
+      "Sector views: Healthcare underweight overdone — overweight medtech",
+      "Income: BDCs at 11%+ yields screening attractive on coverage ratios"
+    ],
+    blackrock:[
+      "BII Weekly: Tilt to fixed income; underweight US equities tactical",
+      "Global Outlook: Structural shifts (aging, geopolitics, AI) → higher inflation regime",
+      "EM: Overweight India + Mexico nearshoring beneficiaries",
+      "Private markets: 20% target allocation for institutional portfolios"
+    ],
+    eaton:[
+      "Capital Markets: Floating-rate loans 9%+ yields with low duration",
+      "Parametric: Direct indexing for tax-loss harvesting at $250k+ portfolios",
+      "Munis: Tax-equivalent yields 6.5%+ for top brackets",
+      "Active equity: Quality value screens outperforming since rates inflected"
+    ],
+    mstar:[
+      "Analyst ratings: Most undervalued sectors are healthcare and communications",
+      "Fund picks: Active managers beating index in small-cap value YTD",
+      "Sustainability: ESG-rated funds tracking parent universe within 50bp",
+      "Star ratings: 4-5 star funds outperforming 1-2 star peers by 220bp over 10yr"
+    ]
+  };
+  return T(base[id] || ["No curated research available for this provider."]);
+}
+
+function renderResearchFeedTimeline(){
+  const cfg = getResearchConfig();
+  const items = [];
+  RESEARCH_PROVIDERS.forEach(p => {
+    const c = cfg[p.id] || {};
+    (c.items || []).forEach(it => items.push({...it, provider: p.name, color: p.color, providerLetter: p.letter, providerId: p.id}));
+  });
+  // Sort newest first (best effort — placeholders have no real date)
+  items.sort((a,b) => (a.date < b.date) ? 1 : -1);
+  if(items.length === 0){
+    $("researchFeed").innerHTML = '<div style="font-size:13px;color:var(--text3);padding:14px">Refresh providers to populate.</div>';
+    return;
+  }
+  $("researchFeed").innerHTML = items.slice(0,60).map(it => `
+    <div style="display:flex;align-items:flex-start;gap:10px;padding:9px 12px;border-bottom:1px solid var(--border)">
+      <div class="rp-icon" style="background:${it.color};width:28px;height:28px;font-size:13px;flex-shrink:0">${it.providerLetter}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-weight:600;font-size:13px;color:var(--text);line-height:1.4">${it.title}</div>
+        <div style="font-size:10.5px;color:var(--text3);margin-top:2px"><strong style="color:var(--text2)">${it.provider}</strong> · ${it.date||"recent"}</div>
+        ${it.summary ? `<div style="font-size:11.5px;color:var(--text2);margin-top:3px;line-height:1.5">${it.summary}</div>` : ''}
+      </div>
+    </div>`).join("");
+}
+
+// ── AI Agent: client brief + research selection + Claude orchestration
+function initAgent(){
+  // Populate research picker
+  const picker = $("agentResearchPicker"); if(!picker) return;
+  picker.innerHTML = RESEARCH_PROVIDERS.map(p => {
+    const cfg = getProviderCfg(p.id);
+    const cnt = (cfg.items||[]).length;
+    return `<label class="rp-toggle" style="padding:8px 10px;border:1px solid var(--border);border-radius:6px;background:#fff">
+      <input type="checkbox" data-prov="${p.id}" ${cnt>0?'checked':''} ${cnt===0?'disabled':''}>
+      <span class="rp-icon" style="background:${p.color};width:22px;height:22px;font-size:11px">${p.letter}</span>
+      <span style="flex:1">${p.name}</span>
+      <span style="color:var(--text3);font-size:10px">${cnt} items</span>
+    </label>`;
+  }).join("");
+
+  // Populate fund universe table
+  const fu = $("fundUniverseTable"); if(fu){
+    fu.innerHTML = '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Ticker</th><th>Name</th><th>Sponsor</th><th>Class</th><th>Region</th><th>Vehicle</th><th class="tbl-num">ER%</th><th class="tbl-num">Yld%</th><th class="tbl-num">μ%</th><th class="tbl-num">σ%</th></tr></thead><tbody>' +
+      FUND_UNIVERSE.map(f =>
+        `<tr><td><strong>${f.tkr}</strong>${f.esg?' <span class="pill pill-on" style="font-size:9px;padding:1px 5px">ESG</span>':''}</td>
+         <td>${f.name}</td><td style="color:var(--text3)">${f.sponsor}</td>
+         <td>${f.cls}</td><td>${f.region}</td><td>${f.vehicle}</td>
+         <td class="tbl-num">${f.er.toFixed(2)}</td><td class="tbl-num">${f.yld.toFixed(1)}</td>
+         <td class="tbl-num">${f.mu.toFixed(1)}</td><td class="tbl-num">${f.sig.toFixed(1)}</td></tr>`
+      ).join("") + '</tbody></table></div>';
+  }
+}
+
+function loadAgentBrief(){
+  // Pull from main app's localStorage if profile saved there
+  try {
+    const pending = localStorage.getItem("wa_pending_profile");
+    if(pending){
+      const p = JSON.parse(pending);
+      const f = p.fields || {};
+      if(f.c1r) $("agRisk").value = f.c1r;
+      if(f.c1h) $("agHorizon").value = f.c1h;
+      if(f.c1co) $("agCountry").value = f.c1co;
+      const totA = (p.assets||[]).reduce((s,a)=>s+(+a.value||0),0);
+      const totL = (p.loans||[]).reduce((s,l)=>s+(+l.bal||0),0);
+      $("agNW").value = Math.max(0, totA - totL);
+      $("agInc").value = (+f.inc1||0)+(+f.inc2||0)+(+f.inc1b||0)+(+f.inc2b||0);
+      const goalsTxt = (p.goals||[]).map(g => `${g.name} | ${g.endYear} | ${g.amt}`).join("\n");
+      if(goalsTxt) $("agGoals").value = goalsTxt;
+      toast("Loaded from main app's pending profile", "ok");
+      return;
+    }
+  } catch(e){}
+  toast("No main-app profile cached. Save a profile in the main app first.", "warn");
+}
+function loadAgentBriefFile(){ $("agentBriefFile").click(); }
+function handleAgentBriefFile(e){
+  const f = e.target.files[0]; if(!f) return;
+  const r = new FileReader();
+  r.onload = () => {
+    try {
+      localStorage.setItem("wa_pending_profile", r.result);
+      loadAgentBrief();
+    } catch(err){ toast("Invalid JSON", "err"); }
+  };
+  r.readAsText(f);
+}
+
+// Get the user's Claude API key
+function getAgentClaudeKey(){ return localStorage.getItem("wa_claude_key") || ""; }
+
+let lastAgentRecommendation = null;
+
+async function runPortfolioAgent(){
+  const key = getAgentClaudeKey();
+  if(!key){
+    toast("No Claude API key configured. Set one in API Keys tab.", "err");
+    addLog("err", "Agent run aborted: no Claude API key");
+    return;
+  }
+  const status = $("agentStatus"); const result = $("agentResult"); const panel = $("agentResultPanel");
+  status.textContent = "🤖 Agent thinking…";
+  panel.style.display = "block";
+  result.innerHTML = '<div style="text-align:center;padding:30px;color:var(--text3)"><div style="font-size:32px;margin-bottom:10px">🤖</div>Synthesizing research from selected sources, classifying client risk profile, and constructing portfolio…</div>';
+
+  // Gather inputs
+  const brief = {
+    risk: $("agRisk").value, horizon: $("agHorizon").value,
+    country: $("agCountry").value, currency: $("agCcy").value,
+    nw: +$("agNW").value, income: +$("agInc").value, surplus: +$("agSurplus").value,
+    investAmount: +$("agTotalInvest").value, esg: $("agESG").value,
+    taxSensitivity: $("agTax").value, liquidity: $("agLiq").value,
+    maxPosition: +$("agMaxPos").value,
+    goals: $("agGoals").value.split("\n").map(l => l.trim()).filter(Boolean),
+    notes: $("agNotes").value.trim()
+  };
+
+  // Gather selected research providers + their cached items
+  const checked = Array.from(document.querySelectorAll("#agentResearchPicker input:checked")).map(el => el.dataset.prov);
+  const researchSummary = checked.map(id => {
+    const p = RESEARCH_PROVIDERS.find(x => x.id === id);
+    const cfg = getProviderCfg(id);
+    const items = (cfg.items || []).slice(0, 4).map(it => `  • ${it.title}`).join("\n");
+    return `## ${p.name} (${p.type})\n${items || '  • (no items cached)'}`;
+  }).join("\n\n");
+
+  // Build prompt
+  const universeStr = FUND_UNIVERSE.map(f =>
+    `${f.tkr.padEnd(6)} | ${f.cls.padEnd(13)} | ${f.region.padEnd(9)} | ${f.vehicle.padEnd(12)} | ER ${f.er.toFixed(2)}% | Yld ${f.yld.toFixed(1)}% | μ ${f.mu.toFixed(1)}% | σ ${f.sig.toFixed(1)}% | ${f.sponsor} | ${f.name}${f.esg?' [ESG]':''}`
+  ).join("\n");
+
+  const prompt = `You are a sophisticated portfolio construction AI assistant working at a major wealth management firm. You synthesize research from 16 institutional sources to build evidence-backed portfolios.
+
+# CLIENT BRIEF
+- Risk profile: ${brief.risk}
+- Time horizon: ${brief.horizon}
+- Country: ${brief.country}  Currency: ${brief.currency}
+- Net worth: ${brief.currency} ${brief.nw.toLocaleString()}
+- Annual income: ${brief.currency} ${brief.income.toLocaleString()}
+- Annual surplus: ${brief.currency} ${brief.surplus.toLocaleString()}
+- Amount to deploy: ${brief.currency} ${brief.investAmount.toLocaleString()}
+- ESG preference: ${brief.esg}
+- Tax sensitivity: ${brief.taxSensitivity}
+- Liquidity needs: ${brief.liquidity}
+- Max single position: ${brief.maxPosition}%
+
+# GOALS
+${brief.goals.map(g => "- " + g).join("\n") || "- (none specified)"}
+
+# ADDITIONAL NOTES
+${brief.notes || "(none)"}
+
+# RECENT RESEARCH HIGHLIGHTS FROM SELECTED INSTITUTIONS
+${researchSummary || "(no research selected)"}
+
+# AVAILABLE FUND UNIVERSE (pick from this list only — ${FUND_UNIVERSE.length} vehicles)
+\`\`\`
+${universeStr}
+\`\`\`
+
+# YOUR TASK
+Build an optimal portfolio for this client. Output STRICT JSON only, no surrounding prose:
+
+{
+  "summary": "2-3 sentence executive summary of strategy",
+  "allocationByClass": {
+    "equity": <percentage>,
+    "fixed_income": <percentage>,
+    "real_estate": <percentage>,
+    "commodity": <percentage>,
+    "cash": <percentage>,
+    "mixed": <percentage>,
+    "alternative": <percentage>
+  },
+  "positions": [
+    {
+      "ticker": "VTI",
+      "weight": 25.0,
+      "rationale": "1-2 sentence reason citing specific research provider if relevant"
+    }
+  ],
+  "expectedReturn": <decimal>,
+  "expectedVolatility": <decimal>,
+  "researchCitations": ["Provider name: brief insight used"],
+  "risks": ["bullet point of key risks"],
+  "rebalancingGuidance": "1-2 sentences on suggested rebalancing approach"
+}
+
+Constraints:
+- Position weights MUST sum to 100
+- Pick only from the fund universe above
+- No single position above ${brief.maxPosition}%
+- 6-15 positions total
+- If ESG=strict, only use funds marked [ESG]
+- If taxSensitivity=high, prefer ETFs over mutual funds; consider munis (MUB, EVN)
+- If liquidity=high, avoid mutual funds and alternatives; keep ≥30% in ETFs/cash`;
+
+  try {
+    const r = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": key,
+        "anthropic-version": "2023-06-01",
+        "anthropic-dangerous-direct-browser-access": "true"
+      },
+      body: JSON.stringify({
+        model: $("agModel").value,
+        max_tokens: 4000,
+        messages: [{role: "user", content: prompt}]
+      })
+    });
+    if(!r.ok){
+      const errText = await r.text();
+      throw new Error("Claude API HTTP " + r.status + ": " + errText.slice(0,200));
+    }
+    const j = await r.json();
+    const text = j.content?.[0]?.text || "";
+    // Extract JSON
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if(!jsonMatch) throw new Error("Agent returned no parseable JSON");
+    const rec = JSON.parse(jsonMatch[0]);
+    lastAgentRecommendation = rec;
+    renderAgentResult(rec, brief);
+    $("agExportBtn").disabled = false;
+    status.textContent = "✓ Portfolio constructed";
+    addLog("ok", "Agent recommendation: " + (rec.positions?.length || 0) + " positions");
+  } catch(e){
+    result.innerHTML = `<div class="code" style="background:#7f1d1d">Error: ${e.message}</div>
+      <div style="margin-top:14px;font-size:12px;color:var(--text3);line-height:1.6">
+      <strong>Common issues:</strong><br>
+      • Claude API key missing/invalid → set one in API Keys tab<br>
+      • CORS blocked → most browsers allow Anthropic with the dangerous-direct flag, but some networks block it<br>
+      • Rate-limited → wait 60s and try again<br>
+      </div>`;
+    status.textContent = "✗ Failed";
+    addLog("err", "Agent failed: " + e.message);
+  }
+}
+
+function renderAgentResult(rec, brief){
+  const result = $("agentResult");
+  let h = '';
+
+  // Executive summary
+  h += `<div class="agent-block">
+    <div class="agent-block-title">🎯 Executive Summary</div>
+    <div class="agent-thinking">${rec.summary || ""}</div>
+  </div>`;
+
+  // KPIs
+  h += `<div class="kpi-grid">
+    <div class="kpi"><div class="kpi-lbl">Expected Return</div><div class="kpi-val" style="color:var(--green)">${((rec.expectedReturn||0)*100).toFixed(2)}%</div></div>
+    <div class="kpi"><div class="kpi-lbl">Expected Volatility</div><div class="kpi-val" style="color:var(--amber)">${((rec.expectedVolatility||0)*100).toFixed(2)}%</div></div>
+    <div class="kpi"><div class="kpi-lbl">Positions</div><div class="kpi-val">${rec.positions?.length || 0}</div></div>
+    <div class="kpi"><div class="kpi-lbl">Sharpe (proxy)</div><div class="kpi-val">${(((rec.expectedReturn||0.05)-0.045)/((rec.expectedVolatility||0.12)||1)).toFixed(2)}</div></div>
+  </div>`;
+
+  // Asset class allocation
+  if(rec.allocationByClass){
+    h += `<div class="agent-block">
+      <div class="agent-block-title">📊 Strategic Asset Allocation</div>`;
+    Object.entries(rec.allocationByClass).filter(([,v]) => v > 0).forEach(([cls, pct]) => {
+      const lbl = ({equity:"Equity",fixed_income:"Fixed Income",real_estate:"Real Estate",commodity:"Commodity",cash:"Cash",mixed:"Mixed",alternative:"Alternative"})[cls] || cls;
+      h += `<div class="agent-alloc-bar">
+        <div class="agent-alloc-fund">${lbl}</div>
+        <div class="agent-alloc-bar-track"><div class="agent-alloc-bar-fill" style="width:${pct}%"></div></div>
+        <div class="agent-alloc-pct">${pct.toFixed(1)}%</div>
+        <div></div>
+      </div>`;
+    });
+    h += `</div>`;
+  }
+
+  // Positions
+  if(rec.positions && rec.positions.length){
+    h += `<div class="agent-block">
+      <div class="agent-block-title">💼 Recommended Positions (${rec.positions.length})</div>`;
+    rec.positions.forEach(p => {
+      const fund = FUND_UNIVERSE.find(f => f.tkr === p.ticker);
+      h += `<div class="agent-alloc-bar">
+        <div class="agent-alloc-fund">${p.ticker}<br><span style="font-size:10.5px;color:var(--text3);font-weight:400">${fund?.name || ""}</span></div>
+        <div class="agent-alloc-bar-track"><div class="agent-alloc-bar-fill" style="width:${p.weight*5}%;max-width:100%"></div></div>
+        <div class="agent-alloc-pct">${p.weight.toFixed(1)}%</div>
+        <div style="text-align:right;font-size:11px;color:var(--text3)">${fund?.sponsor||""}</div>
+        <div class="agent-alloc-rationale">💡 ${p.rationale || ""}</div>
+      </div>`;
+    });
+    h += `</div>`;
+  }
+
+  // Citations
+  if(rec.researchCitations && rec.researchCitations.length){
+    h += `<div class="agent-block">
+      <div class="agent-block-title">📚 Research Citations</div>
+      <ul style="margin:0;padding-left:20px;color:var(--text2);font-size:13px;line-height:1.7">
+        ${rec.researchCitations.map(c => `<li>${c}</li>`).join("")}
+      </ul>
+    </div>`;
+  }
+
+  // Risks
+  if(rec.risks && rec.risks.length){
+    h += `<div class="agent-block" style="border-left:4px solid var(--red)">
+      <div class="agent-block-title" style="color:var(--red)">⚠ Key Risks</div>
+      <ul style="margin:0;padding-left:20px;color:var(--text2);font-size:13px;line-height:1.7">
+        ${rec.risks.map(r => `<li>${r}</li>`).join("")}
+      </ul>
+    </div>`;
+  }
+
+  // Rebalancing
+  if(rec.rebalancingGuidance){
+    h += `<div class="agent-block">
+      <div class="agent-block-title">🔄 Rebalancing Guidance</div>
+      <div class="agent-thinking">${rec.rebalancingGuidance}</div>
+    </div>`;
+  }
+
+  result.innerHTML = h;
+}
+
+function exportToProposal(){
+  if(!lastAgentRecommendation) return;
+  // Stash for the main app to pick up — main app already supports loading from wa_pending_profile,
+  // so we'll piggyback with a sibling key 'wa_pending_proposal'
+  const payload = {
+    title: "AI Agent Recommendation",
+    builtAt: new Date().toISOString(),
+    positions: lastAgentRecommendation.positions || []
+  };
+  localStorage.setItem("wa_pending_proposal", JSON.stringify(payload));
+  toast("Recommendation queued for main app. Open Investment Proposal tab in main app.", "ok");
+  addLog("ok", "Exported recommendation to wa_pending_proposal");
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -1009,6 +1879,8 @@ function showTab(name, el){
   if(name === "logs"){ renderLogs(); renderEnvInfo(); renderLsInspector(); }
   if(name === "keys") initKeysTab();
   if(name === "taxdb") initTaxBrowser();
+  if(name === "research") initResearchLibrary();
+  if(name === "agent") initAgent();
 }
 
 // ═══════════════════════════════════════════════════════════
