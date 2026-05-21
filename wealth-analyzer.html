@@ -1041,7 +1041,7 @@ input[type=date]{color-scheme:light}
   <!-- Probability values grid -->
   <div id="probGrid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:14px;text-align:center"></div>
   <div style="margin-top:10px;padding:8px 12px;background:var(--bg3);border-radius:var(--rs);font-size:11px;color:var(--text3);line-height:1.6">
-    <strong style="color:var(--text2)">How to read this:</strong> "80% probability" means 8 out of 10 simulation paths end with <em>at least</em> that much wealth — a conservative floor to plan around. "50%" is the median — half of futures land above, half below. "30%" is an optimistic outcome that only 3 in 10 paths reach. The dashed line is your wealth today. All figures in today's money (inflation-adjusted).
+    <strong style="color:var(--text2)">How to read this:</strong> "90% probability" means 9 out of 10 simulation paths end with <em>at least</em> that much wealth — the conservative floor advisors use for essential planning. "60%" is the likely outcome that most plans should target. "40%" is the optimistic scenario that only 4 in 10 paths reach. The dashed line is your wealth today. All figures in today's money (inflation-adjusted).
   </div>
 </div>
 
@@ -4810,13 +4810,13 @@ function redrawChart(paths){
   const deflate=(v)=>v/Math.pow(1+inf,yrs); // always inflation-adjusted
 
   // Three bars — each probability = share of paths that reach AT LEAST this level
-  // 80% prob → 20th percentile (80% of paths exceed it)
-  // 50% prob → 50th percentile (median)
-  // 30% prob → 70th percentile (only 30% of paths exceed it)
+  // 90% prob → 10th percentile (90% of paths exceed it)
+  // 60% prob → 40th percentile (60% of paths exceed it)
+  // 40% prob → 60th percentile (only 40% of paths exceed it)
   const SCENARIOS=[
-    {prob:"80%", label:["80%","probability"], sublabel:"Conservative floor", pct:20, color:"rgba(76,175,125,0.85)",  border:"#1b6841"},
-    {prob:"50%", label:["50%","probability"], sublabel:"Median outcome",     pct:50, color:"rgba(91,155,213,0.85)",  border:"#1e40af"},
-    {prob:"30%", label:["30%","probability"], sublabel:"Optimistic outcome",  pct:70, color:"rgba(212,149,106,0.85)", border:"#c06020"},
+    {prob:"90%", label:["90%","probability"], sublabel:"Conservative floor", pct:10, color:"rgba(76,175,125,0.85)",  border:"#1b6841"},
+    {prob:"60%", label:["60%","probability"], sublabel:"Likely outcome",     pct:40, color:"rgba(91,155,213,0.85)",  border:"#1e40af"},
+    {prob:"40%", label:["40%","probability"], sublabel:"Optimistic outcome", pct:60, color:"rgba(212,149,106,0.85)", border:"#c06020"},
   ];
 
   // Starting wealth = year-0 value. Already in today's dollars — do NOT deflate.
@@ -4916,7 +4916,7 @@ function redrawChart(paths){
     </div>`;
   }).join("");
   setH("probGrid",gridHtml);
-  setT("m-med",fmtMoney(endValues[1])); // median = index 1 (50th pct)
+  setT("m-med",fmtMoney(endValues[1])); // 60% probability bar (index 1)
 }
 function renderGoalAnalysis(paths,yrs){
   if(goals.length===0){show("goalResults",false); return;}
