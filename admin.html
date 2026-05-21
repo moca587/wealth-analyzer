@@ -50,7 +50,8 @@ body{font-family:var(--fb);background:var(--bg);color:var(--text);font-size:14px
 .nav-item{display:flex;align-items:center;gap:9px;padding:9px 18px;cursor:pointer;color:var(--text2);font-size:13px;font-weight:500;border-left:3px solid transparent;transition:all .12s;user-select:none}
 .nav-item:hover{color:var(--text);background:rgba(0,87,184,.03)}
 .nav-item.active{color:var(--gold);border-left-color:var(--gold);background:rgba(0,87,184,.06);font-weight:600}
-.nav-item svg{width:14px;height:14px;flex-shrink:0;opacity:.65}
+.nav-item svg{width:14px;height:14px;flex-shrink:0;opacity:.65;pointer-events:none}
+.nav-item *{pointer-events:none}  /* children of nav-item never intercept clicks */
 .main{flex:1;overflow-y:auto;padding:28px 32px;background:var(--bg)}
 
 /* ── Panels ── */
