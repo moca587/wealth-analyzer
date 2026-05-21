@@ -7535,33 +7535,63 @@ function renderEfficientFrontier(){
 // ═══════════════════════════════════════════════════════════
 // OVERVIEW DONUT CHART
 // ═══════════════════════════════════════════════════════════
+// Classify an individual asset into a wealth-overview category using its group + type
+function classifyAssetCategory(a){
+  const g = (a.group || "").toLowerCase();
+  const t = (a.type  || "").toLowerCase();
+  // Banking & cash — checking, savings, money market, CDs, current accounts
+  if(g.includes("bank") || g.includes("cash") || /(?:check|cheque|chequ|saving|deposit|money_market|cd|tabungan|deposito|futsu|teiki|demand|cuenta|conta|chequing|current|gic|fixed_bond|fixed_deposit|premium_bonds|cdb|poupanca|livret|tesouro|cetes)/.test(t)) return "banking";
+  // Retirement — 401k, IRA, pension, super, RRSP, CPF, MPF, etc.
+  if(g.includes("retir") || g.includes("pension") || g.includes("super") || g.includes("provid") || g.includes("regist") || g.includes("cpf") || g.includes("mpf") || g.includes("pillar") || /(?:401k|ira|sep_ira|roth|pension|social_security|rrsp|rrif|fhsa|resp|sipp|workplace_pension|db_pension|cpp|dbpp|dcpp|super|smsf|age_pension|ahv|avs|bvg|lpp|pillar_3a|pillar_3b|vested|kosei|kokumin|corporate_pension|nps|ideco|nisa|srs|cpf_|mpf|labour_pension|national_pension|irp|isa|tfsa|lifetime_isa|stocks_isa|cash_isa|retirement_annuity|provident_fund|pension_fund|living_annuity|annuity|afore|ppe|inss|pgbl|vgbl|gosi|ppa|sgb|epf|ppf|basic_pension|enterprise_annuity|personal_pension|bpjs)/.test(t)) return "retirement";
+  // Insurance — annuities (covered above mostly), insurance-type accounts
+  if(g.includes("insur") || /insurance/.test(t)) return "insurance";
+  // Crypto / digital — own bucket so it doesn't get lumped with brokerage
+  if(/(?:crypto|bitcoin|ethereum)/.test(t)) return "crypto";
+  // Investment accounts — brokerage, mutual funds, securities, unit trusts
+  if(g.includes("invest") || g.includes("brok") || g.includes("secur") || g.includes("share") || /(?:brokerage|529|hsa|gia|depot|non_reg|securities|fund_account|cdp|stocks|saham|reksa|managed_fund|unit_trust|a_shares|twse_brokerage|demat|mutual_fund|casa_bolsa|acoes|tadawul|sukuk|discretionary|lci_lca|obligasi|b3)/.test(t)) return "investment";
+  // Fallback bucket
+  return "other";
+}
+
 function drawOverviewDonut(){
   const canvas=document.getElementById("overview-donut");
   if(!canvas) return;
 
-  // Calculate asset categories
-  const hasPortfolio=investments.length>0;
-  const acctVal=totalAccountValue();
-  let pfAdj=0;
-  if(hasPortfolio && pfLinkedAccountId){
-    pfAdj=portfolioInvestmentSeed();
-  } else if(hasPortfolio && !pfLinkedAccountId){
-    const retSeed=retirementAccountSeed();
-    const liquidAcc=Math.max(0,acctVal-retSeed);
-    const pfTotal=portfolioInvestmentSeed();
-    pfAdj=Math.max(0,pfTotal-liquidAcc);
-  }
-  const retVal=retirementAccountSeed();
-  const liquidVal=Math.max(0,(acctVal-retVal)+pfAdj);
-  const propVal=num("aProp",0);
-  const otherVal=num("aOther",0);
+  // Bucket assets by category, excluding the linked portfolio account (avoid double counting)
+  const excludeLinked = pfLinkedAccountId && investments.length > 0;
+  const buckets = {banking:0, investment:0, retirement:0, insurance:0, crypto:0, other:0};
+  assets.forEach(a => {
+    if(excludeLinked && a.id === pfLinkedAccountId) return;
+    const cat = classifyAssetCategory(a);
+    buckets[cat] = (buckets[cat] || 0) + (+a.value || 0);
+  });
 
-  // Segments (only non-zero)
-  const ALL_SEGS=[
-    {label:"Investment Accounts", value:liquidVal, color:"#5ab8f5"},
-    {label:"Retirement Accounts", value:retVal,    color:"#0057b8"},
-    {label:"Real Estate",         value:propVal,   color:"#002776"},
-    {label:"Other Assets",        value:otherVal,  color:"#e31837"},
+  // Portfolio adjustment — add detailed holdings to investment bucket (or to whatever
+  // category the linked account belongs to). When no link → may overlap with brokerage.
+  const hasPortfolio = investments.length > 0;
+  let pfAdj = 0;
+  if(hasPortfolio && pfLinkedAccountId){
+    pfAdj = portfolioInvestmentSeed();
+  } else if(hasPortfolio && !pfLinkedAccountId){
+    const totalLiquidAcct = Object.values(buckets).reduce((s,v)=>s+v,0) - (buckets.retirement || 0);
+    const pfTotal = portfolioInvestmentSeed();
+    pfAdj = Math.max(0, pfTotal - totalLiquidAcct);
+  }
+  buckets.investment += pfAdj;
+
+  // Top-level inputs: property + other (text inputs from Assets tab)
+  const propVal = num("aProp", 0);
+  const otherVal = num("aOther", 0);
+
+  // Build the segment array with sensible colors and ordering
+  const ALL_SEGS = [
+    {label:"Banking & Cash",      value:buckets.banking,    color:"#06b6d4"},  // cyan
+    {label:"Investment Accounts", value:buckets.investment, color:"#5ab8f5"},  // light blue
+    {label:"Retirement Accounts", value:buckets.retirement, color:"#0057b8"},  // strong blue
+    {label:"Insurance / Annuity", value:buckets.insurance,  color:"#7c3aed"},  // purple
+    {label:"Crypto / Digital",    value:buckets.crypto,     color:"#f59e0b"},  // amber
+    {label:"Real Estate",         value:propVal,            color:"#002776"},  // dark navy
+    {label:"Other Assets",        value:(buckets.other + otherVal), color:"#e31837"}, // red
   ];
   const segs=ALL_SEGS.filter(s=>s.value>0);
   const total=segs.reduce((s,x)=>s+x.value,0);
@@ -7904,69 +7934,85 @@ document.addEventListener("DOMContentLoaded",function(){
     localStorage.setItem("wa_app_version", APP_VERSION);
   })();
 
-  // ── Live update poller: polls version.json every 60s + on tab focus ────────
-  // When server has a newer build than what's loaded in this tab, show a sticky
-  // banner offering one-click reload. Smart cache-busting prevents stale fetches.
+  // ── Live update poller: polls every 15s + on focus, AUTO-RELOADS on new version.
+  // 5-second countdown banner gives the user a chance to cancel if they're mid-edit.
   (function liveUpdatePoller(){
-    const POLL_INTERVAL_MS = 60 * 1000;
+    const POLL_INTERVAL_MS = 15 * 1000;        // 15s — fast enough to feel live
+    const AUTO_RELOAD_DELAY_MS = 5 * 1000;     // 5s countdown before auto-reload
     let updateAvailable = false;
     let polling = false;
+    let cancelled = false;
 
-    function showUpdateBanner(newVer){
+    function startAutoReload(newVer){
       if(document.getElementById("wa-live-update-banner")) return;
       const b = document.createElement("div");
       b.id = "wa-live-update-banner";
       b.style.cssText = [
         "position:fixed","bottom:24px","left:50%","transform:translateX(-50%)",
         "z-index:9998","background:linear-gradient(135deg,#0057b8 0%,#003d82 100%)",
-        "color:#fff","padding:13px 22px","border-radius:50px",
+        "color:#fff","padding:14px 24px","border-radius:50px",
         "font-size:13px","font-weight:600","display:flex","align-items:center","gap:14px",
         "box-shadow:0 12px 40px rgba(0,87,184,.35),0 2px 8px rgba(0,0,0,.15)",
         "animation:waSlideUp .35s ease-out","cursor:default"
       ].join(";");
-      b.innerHTML =
-        '<span style="font-size:16px">🚀</span>' +
-        '<span><strong>New version available</strong> <span style="opacity:.8;font-weight:400;margin-left:6px">v' + newVer + '</span></span>' +
-        '<button onclick="location.reload()" style="background:rgba(255,255,255,.95);border:none;color:#0057b8;padding:6px 16px;border-radius:50px;cursor:pointer;font-weight:700;font-size:12px;font-family:inherit">Reload now</button>' +
-        '<button onclick="this.parentElement.remove()" style="background:transparent;border:none;color:#fff;padding:4px 8px;cursor:pointer;font-size:14px;opacity:.7;font-family:inherit" title="Dismiss">✕</button>';
+      let secondsLeft = Math.ceil(AUTO_RELOAD_DELAY_MS / 1000);
+      function render(){
+        b.innerHTML =
+          '<span style="font-size:18px">🚀</span>' +
+          '<span><strong>New version v' + newVer + '</strong> <span style="opacity:.85;font-weight:400;margin-left:6px">— auto-reloading in <strong id="wa-countdown" style="font-weight:700">' + secondsLeft + '</strong>s</span></span>' +
+          '<button id="wa-reload-now" style="background:rgba(255,255,255,.95);border:none;color:#0057b8;padding:6px 16px;border-radius:50px;cursor:pointer;font-weight:700;font-size:12px;font-family:inherit">Reload now</button>' +
+          '<button id="wa-cancel-reload" style="background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.30);color:#fff;padding:6px 14px;border-radius:50px;cursor:pointer;font-weight:600;font-size:12px;font-family:inherit">Cancel</button>';
+      }
+      render();
       document.body.appendChild(b);
-      // Add the slideUp keyframe if not present
       if(!document.getElementById("wa-live-update-style")){
         const s = document.createElement("style"); s.id = "wa-live-update-style";
         s.textContent = "@keyframes waSlideUp{from{transform:translate(-50%,40px);opacity:0}to{transform:translate(-50%,0);opacity:1}}";
         document.head.appendChild(s);
       }
+      document.getElementById("wa-reload-now").onclick = () => location.reload();
+      document.getElementById("wa-cancel-reload").onclick = () => {
+        cancelled = true;
+        b.innerHTML =
+          '<span style="font-size:16px">⏸</span>' +
+          '<span><strong>Update v' + newVer + ' available</strong> <span style="opacity:.85;font-weight:400;margin-left:6px">— paused (you have unsaved work?)</span></span>' +
+          '<button onclick="location.reload()" style="background:rgba(255,255,255,.95);border:none;color:#0057b8;padding:6px 16px;border-radius:50px;cursor:pointer;font-weight:700;font-size:12px;font-family:inherit">Reload when ready</button>' +
+          '<button onclick="this.parentElement.remove()" style="background:transparent;border:none;color:#fff;padding:4px 8px;cursor:pointer;font-size:14px;opacity:.7;font-family:inherit">✕</button>';
+      };
+      // Countdown
+      const interval = setInterval(() => {
+        if(cancelled){ clearInterval(interval); return; }
+        secondsLeft--;
+        const cd = document.getElementById("wa-countdown");
+        if(cd) cd.textContent = secondsLeft;
+        if(secondsLeft <= 0){
+          clearInterval(interval);
+          if(!cancelled) location.reload();
+        }
+      }, 1000);
     }
 
     async function checkOnce(){
       if(polling || updateAvailable) return;
       polling = true;
       try {
-        // Cache-bust with timestamp + no-store hint
         const r = await fetch("version.json?t=" + Date.now(), {cache: "no-store"});
         if(!r.ok) return;
         const j = await r.json();
         if(j.version && j.version !== APP_VERSION){
           updateAvailable = true;
-          showUpdateBanner(j.version);
-          console.info("[live-update] New version available: " + j.version + " (loaded: " + APP_VERSION + ")");
+          startAutoReload(j.version);
+          console.info("[live-update] New version available: " + j.version + " (loaded: " + APP_VERSION + ") — auto-reloading");
         }
-      } catch(e){
-        // Network/parse error — silently ignore (could be offline, GitHub Pages 404 on first deploy, etc.)
-      } finally {
-        polling = false;
-      }
+      } catch(e){ /* offline / 404 — silent */ }
+      finally { polling = false; }
     }
 
-    // Initial check after 5s (give the page time to settle)
-    setTimeout(checkOnce, 5000);
-    // Periodic polling
-    setInterval(checkOnce, POLL_INTERVAL_MS);
-    // On tab becoming visible again (user switched back)
+    setTimeout(checkOnce, 3000);                 // First check 3s after load
+    setInterval(checkOnce, POLL_INTERVAL_MS);    // Every 15s
     document.addEventListener("visibilitychange", function(){
       if(document.visibilityState === "visible") checkOnce();
     });
-    // On window focus
     window.addEventListener("focus", checkOnce);
   })();
 

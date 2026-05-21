@@ -922,25 +922,46 @@ function showApp(){
 // LIVE UPDATE POLLER — same pattern as the main app
 // ═══════════════════════════════════════════════════════════
 function startLiveUpdatePoller(){
-  const POLL_INTERVAL_MS = 60 * 1000;
-  let updateAvailable = false, polling = false;
-  function showBanner(newVer){
+  const POLL_INTERVAL_MS = 15 * 1000;        // fast: 15s
+  const AUTO_RELOAD_DELAY_MS = 5 * 1000;     // 5s countdown
+  let updateAvailable = false, polling = false, cancelled = false;
+  function startAutoReload(newVer){
     if(document.getElementById("wa-live-update-banner")) return;
     const b = document.createElement("div");
     b.id = "wa-live-update-banner";
-    b.style.cssText = "position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:9998;background:linear-gradient(135deg,#0057b8 0%,#003d82 100%);color:#fff;padding:13px 22px;border-radius:50px;font-size:13px;font-weight:600;display:flex;align-items:center;gap:14px;box-shadow:0 12px 40px rgba(0,87,184,.35),0 2px 8px rgba(0,0,0,.15);animation:waSlideUp .35s ease-out";
-    b.innerHTML =
-      '<span style="font-size:16px">🚀</span>' +
-      '<span><strong>Admin updated</strong> <span style="opacity:.8;font-weight:400;margin-left:6px">v' + newVer + '</span></span>' +
-      '<button onclick="location.reload()" style="background:rgba(255,255,255,.95);border:none;color:#0057b8;padding:6px 16px;border-radius:50px;cursor:pointer;font-weight:700;font-size:12px;font-family:inherit">Reload now</button>' +
-      '<button onclick="this.parentElement.remove()" style="background:transparent;border:none;color:#fff;padding:4px 8px;cursor:pointer;font-size:14px;opacity:.7;font-family:inherit">✕</button>';
+    b.style.cssText = "position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:9998;background:linear-gradient(135deg,#0057b8 0%,#003d82 100%);color:#fff;padding:14px 24px;border-radius:50px;font-size:13px;font-weight:600;display:flex;align-items:center;gap:14px;box-shadow:0 12px 40px rgba(0,87,184,.35),0 2px 8px rgba(0,0,0,.15);animation:waSlideUp .35s ease-out";
+    let secondsLeft = Math.ceil(AUTO_RELOAD_DELAY_MS / 1000);
+    function render(){
+      b.innerHTML =
+        '<span style="font-size:18px">🚀</span>' +
+        '<span><strong>Admin v' + newVer + '</strong> <span style="opacity:.85;font-weight:400;margin-left:6px">— auto-reloading in <strong id="wa-countdown" style="font-weight:700">' + secondsLeft + '</strong>s</span></span>' +
+        '<button id="wa-reload-now" style="background:rgba(255,255,255,.95);border:none;color:#0057b8;padding:6px 16px;border-radius:50px;cursor:pointer;font-weight:700;font-size:12px;font-family:inherit">Reload now</button>' +
+        '<button id="wa-cancel-reload" style="background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.30);color:#fff;padding:6px 14px;border-radius:50px;cursor:pointer;font-weight:600;font-size:12px;font-family:inherit">Cancel</button>';
+    }
+    render();
     document.body.appendChild(b);
     if(!document.getElementById("wa-live-update-style")){
       const s = document.createElement("style"); s.id = "wa-live-update-style";
       s.textContent = "@keyframes waSlideUp{from{transform:translate(-50%,40px);opacity:0}to{transform:translate(-50%,0);opacity:1}}";
       document.head.appendChild(s);
     }
-    addLog("info", "New admin version detected: v" + newVer);
+    document.getElementById("wa-reload-now").onclick = () => location.reload();
+    document.getElementById("wa-cancel-reload").onclick = () => {
+      cancelled = true;
+      b.innerHTML =
+        '<span style="font-size:16px">⏸</span>' +
+        '<span><strong>Update v' + newVer + ' paused</strong></span>' +
+        '<button onclick="location.reload()" style="background:rgba(255,255,255,.95);border:none;color:#0057b8;padding:6px 16px;border-radius:50px;cursor:pointer;font-weight:700;font-size:12px;font-family:inherit">Reload when ready</button>' +
+        '<button onclick="this.parentElement.remove()" style="background:transparent;border:none;color:#fff;padding:4px 8px;cursor:pointer;font-size:14px;opacity:.7;font-family:inherit">✕</button>';
+    };
+    const interval = setInterval(() => {
+      if(cancelled){ clearInterval(interval); return; }
+      secondsLeft--;
+      const cd = document.getElementById("wa-countdown");
+      if(cd) cd.textContent = secondsLeft;
+      if(secondsLeft <= 0){ clearInterval(interval); if(!cancelled) location.reload(); }
+    }, 1000);
+    addLog("info", "New admin version detected: v" + newVer + " — auto-reloading in " + secondsLeft + "s");
   }
   async function check(){
     if(polling || updateAvailable) return;
@@ -951,11 +972,11 @@ function startLiveUpdatePoller(){
       const j = await r.json();
       if(j.version && j.version !== APP_VERSION){
         updateAvailable = true;
-        showBanner(j.version);
+        startAutoReload(j.version);
       }
     } catch(e){} finally { polling = false; }
   }
-  setTimeout(check, 5000);
+  setTimeout(check, 3000);
   setInterval(check, POLL_INTERVAL_MS);
   document.addEventListener("visibilitychange", function(){
     if(document.visibilityState === "visible") check();
