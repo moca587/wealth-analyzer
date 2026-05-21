@@ -712,6 +712,20 @@ input[type=date]{color-scheme:light}
 .tt-structured{background:rgba(139,109,206,.12);color:#5b4791;border:1px solid rgba(139,109,206,.3)}
 .tt-alternative{background:rgba(224,92,92,.12);color:#a83232;border:1px solid rgba(224,92,92,.3)}
 .pf-summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:14px}
+
+/* ── Twin pie charts ── */
+.alloc-pies{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:8px}
+.alloc-pie-wrap{display:flex;flex-direction:column;align-items:center;gap:14px;padding:18px;background:linear-gradient(135deg,#ffffff 0%,#f5f8ff 100%);border:1px solid rgba(0,87,184,.10);border-radius:var(--r);box-shadow:0 1px 4px rgba(0,87,184,.05)}
+.alloc-pie-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.10em;color:var(--gold);margin-bottom:0}
+.alloc-pie-canvas-wrap{position:relative;width:220px;height:220px;flex-shrink:0}
+.alloc-pie-legend{width:100%;display:flex;flex-direction:column;gap:6px;font-size:12px}
+.alloc-pie-legend-item{display:flex;align-items:center;gap:8px;padding:5px 8px;border-radius:6px;transition:background .15s}
+.alloc-pie-legend-item:hover{background:rgba(0,87,184,.04)}
+.alloc-pie-dot{width:12px;height:12px;border-radius:3px;flex-shrink:0;box-shadow:0 0 0 1px rgba(0,0,0,.05)}
+.alloc-pie-name{flex:1;color:var(--text);font-weight:500}
+.alloc-pie-amt{color:var(--text2);font-variant-numeric:tabular-nums;font-weight:600}
+.alloc-pie-pct{color:var(--text3);font-variant-numeric:tabular-nums;font-weight:600;min-width:44px;text-align:right}
+@media(max-width:900px){.alloc-pies{grid-template-columns:1fr}}
 .pf-mc{padding:10px 14px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--rs)}
 .pf-mc-lbl{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px}
 .pf-mc-val{font-family:var(--fd);font-size:18px;color:var(--text);font-weight:700}
@@ -1956,17 +1970,35 @@ input[type=date]{color-scheme:light}
   </div>
 </div>
 
-<!-- Allocation breakdowns -->
+<!-- Allocation & Asset Class Breakdown — unified panel with twin pie charts -->
 <div class="panel">
-  <div class="ptitle">Allocation</div>
-  <div class="two-col" style="grid-template-columns:1fr 1fr">
-    <div>
-      <div class="slbl">By instrument type</div>
-      <div id="pfBarsType"><div class="pf-empty">No holdings yet.</div></div>
+  <div class="ptitle">Portfolio Allocation &amp; Asset Class Breakdown</div>
+
+  <!-- Twin pie charts row -->
+  <div class="alloc-pies">
+    <div class="alloc-pie-wrap">
+      <div class="alloc-pie-title">By Asset Class</div>
+      <div class="alloc-pie-canvas-wrap"><canvas id="pfPieCanvas" role="img" aria-label="Portfolio asset-class pie chart"></canvas></div>
+      <div id="pfPieLegend" class="alloc-pie-legend"></div>
     </div>
-    <div>
-      <div class="slbl">By asset class</div>
-      <div id="pfBarsClass"><div class="pf-empty">No holdings yet.</div></div>
+    <div class="alloc-pie-wrap">
+      <div class="alloc-pie-title">By Instrument Type</div>
+      <div class="alloc-pie-canvas-wrap"><canvas id="pfPieTypeCanvas" role="img" aria-label="Portfolio instrument-type pie chart"></canvas></div>
+      <div id="pfPieTypeLegend" class="alloc-pie-legend"></div>
+    </div>
+  </div>
+
+  <!-- Bars below: region + class bars (kept for detail) -->
+  <div class="sdiv">
+    <div class="two-col" style="grid-template-columns:1fr 1fr">
+      <div>
+        <div class="slbl">By instrument type — bars</div>
+        <div id="pfBarsType"><div class="pf-empty">No holdings yet.</div></div>
+      </div>
+      <div>
+        <div class="slbl">By asset class — bars</div>
+        <div id="pfBarsClass"><div class="pf-empty">No holdings yet.</div></div>
+      </div>
     </div>
   </div>
   <div class="sdiv">
@@ -2449,7 +2481,7 @@ input[type=date]{color-scheme:light}
 // ═══════════════════════════════════════════════════════════
 // VERSION — updated by build-standalone.pl on each build
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260521-2321";
+const APP_VERSION = "20260521-2330";
 
 // ═══════════════════════════════════════════════════════════
 // DATA
@@ -2906,18 +2938,37 @@ const INV_REGION_LABELS={us:"US",dev_intl:"Dev Intl",emerging:"EM",global:"Globa
 const PROP_VEHICLE_LABELS={mutual_fund:"Mutual fund",etf:"ETF",stock:"Stock",bond:"Bond",alternative:"Alternative",precious:"Precious metals",sma:"SMA",futures:"Futures"};
 
 // Colour palette for asset-class pie chart
+// Bright, distinguishable palette for portfolio allocation pies
+// Designed for high visual contrast in adjacent segments + colorblind-friendly hues
 const CLASS_COLORS={
-  equity:"#1e40af",          // dark blue — equities
-  fixed_income:"#4caf7d",    // green — bonds
-  real_estate:"#d4956a",     // amber — real estate
-  commodity:"#c9a86e",       // gold — commodities
-  cash:"#5b9bd5",            // light blue — cash
-  mixed:"#8b6dce",           // purple — mixed/balanced
-  alternative:"#e05c5c",     // red — alternatives
+  equity:       "#0057b8",   // strong blue — equities
+  fixed_income: "#00875a",   // emerald green — bonds
+  real_estate:  "#f59e0b",   // bright amber — real estate
+  commodity:    "#d4af37",   // metallic gold — commodities
+  cash:         "#06b6d4",   // cyan — cash
+  mixed:        "#7c3aed",   // vivid purple — mixed
+  alternative:  "#e31837",   // bright red — alternatives
+  other:        "#64748b"    // slate — other
 };
 const TYPE_COLORS={
-  etf:"#4caf7d",mutual_fund:"#1e40af",stock:"#d4956a",bond:"#5b9bd5",
-  structured:"#8b6dce",alternative:"#e05c5c",precious:"#c9a86e",sma:"#8b6dce",futures:"#e863a8"
+  etf:          "#10b981",   // emerald — ETFs
+  mutual_fund:  "#0057b8",   // strong blue — mutual funds
+  stock:        "#f59e0b",   // amber — individual stocks
+  bond:         "#06b6d4",   // cyan — bonds
+  structured:   "#7c3aed",   // purple — structured
+  alternative:  "#e31837",   // red — alternatives
+  precious:     "#d4af37",   // gold — precious metals
+  sma:          "#a855f7",   // light purple — SMA
+  futures:      "#ec4899",   // pink — futures
+  other:        "#64748b"
+};
+// Region colors — kept consistent across class & region pies
+const REGION_COLORS={
+  us:           "#0057b8",
+  dev_intl:     "#00875a",
+  emerging:     "#f59e0b",
+  global:       "#06b6d4",
+  other:        "#64748b"
 };
 
 // Pension defaults by country (approximate annual benefit USD-equivalent + start age)
@@ -4859,7 +4910,7 @@ function renderPortfolioBars(){
   }
   setH("pfBarsType",bars("type",INV_TYPE_LABELS,TYPE_COLORS));
   setH("pfBarsClass",bars("cls",INV_CLASS_LABELS,CLASS_COLORS));
-  setH("pfBarsRegion",bars("region",INV_REGION_LABELS,{us:"#1e40af",dev_intl:"#4caf7d",emerging:"#d4956a",global:"#5b9bd5",other:"#8b6dce"}));
+  setH("pfBarsRegion",bars("region",INV_REGION_LABELS,REGION_COLORS));
 }
 
 
@@ -4870,54 +4921,64 @@ function effClass(item){
   return item.cls || "other";
 }
 
-// PIE CHART — Portfolio (asset class)
-function drawPortfolioPie(){
-  let canvas=$("pfPieCanvas");
-  if(!canvas){
-    // Inject canvas + legend container if missing
-    const allocPanel = document.querySelector('#tab-portfolio .panel:nth-of-type(2)');
-    if(!allocPanel) return;
-    const wrap=document.createElement("div");
-    wrap.className="sdiv";
-    wrap.innerHTML=`<div class="slbl">Asset class breakdown (pie)</div>
-      <div style="display:grid;grid-template-columns:240px 1fr;gap:18px;align-items:center">
-        <div style="position:relative;width:240px;height:240px"><canvas id="pfPieCanvas" role="img" aria-label="Portfolio asset-class pie chart"></canvas></div>
-        <div id="pfPieLegend" style="font-size:12px;display:flex;flex-direction:column;gap:6px"></div>
-      </div>`;
-    allocPanel.appendChild(wrap);
-    canvas=$("pfPieCanvas");
+// Shared helper: render a doughnut pie + legend for any grouping
+let pfTypeChart = null;
+function drawSinglePie(canvasId, legendId, items, labelMap, colorMap, classifyFn, existingChart){
+  const canvas = $(canvasId);
+  const legend = $(legendId);
+  if(!canvas) return existingChart;
+  const total = items.reduce((s,i)=>s+i.val, 0);
+  if(total <= 0){
+    if(existingChart){ existingChart.destroy(); }
+    if(legend) legend.innerHTML = '<div style="color:var(--text3);text-align:center;padding:14px 0">No holdings to chart yet.</div>';
+    return null;
   }
-  const total=investments.reduce((s,i)=>s+i.val,0);
-  const legend=$("pfPieLegend");
-  if(total<=0){
-    if(pfClassChart){pfClassChart.destroy(); pfClassChart=null;}
-    if(legend) legend.innerHTML='<div style="color:var(--text3)">No holdings to chart yet.</div>';
-    return;
-  }
-  const agg={};
-  investments.forEach(i=>{const k=effClass(i); agg[k]=(agg[k]||0)+i.val;});
-  const entries=Object.entries(agg).sort((a,b)=>b[1]-a[1]);
-  const labels=entries.map(([k])=>INV_CLASS_LABELS[k]||k);
-  const data=entries.map(([,v])=>v);
-  const colors=entries.map(([k])=>CLASS_COLORS[k]||"#8b6dce");
-  if(pfClassChart) pfClassChart.destroy();
-  pfClassChart=new Chart(canvas,{
+  const agg = {};
+  items.forEach(i => { const k = classifyFn(i); agg[k] = (agg[k]||0) + i.val; });
+  const entries = Object.entries(agg).sort((a,b)=>b[1]-a[1]);
+  const labels  = entries.map(([k]) => labelMap[k] || k);
+  const data    = entries.map(([,v]) => v);
+  const colors  = entries.map(([k]) => colorMap[k] || "#64748b");
+  if(existingChart) existingChart.destroy();
+  const chart = new Chart(canvas, {
     type:"doughnut",
-    data:{labels,datasets:[{data,backgroundColor:colors,borderWidth:2,borderColor:"#fff"}]},
+    data:{labels, datasets:[{
+      data, backgroundColor:colors,
+      borderWidth:3, borderColor:"#ffffff",
+      hoverBorderColor:"#ffffff", hoverOffset:6,
+      hoverBorderWidth:3
+    }]},
     options:{
-      responsive:true,maintainAspectRatio:false,cutout:"55%",
-      plugins:{legend:{display:false},tooltip:{callbacks:{label:(c)=>c.label+": "+fmtMoney(c.raw)+" ("+(c.raw/total*100).toFixed(1)+"%)"}}}
+      responsive:true, maintainAspectRatio:false, cutout:"58%",
+      animation:{animateRotate:true, animateScale:false, duration:600},
+      plugins:{
+        legend:{display:false},
+        tooltip:{
+          backgroundColor:"#16213e",
+          titleFont:{size:13,weight:"700"},
+          bodyFont:{size:12},
+          padding:12, cornerRadius:8, displayColors:true, boxPadding:4,
+          callbacks:{label:(c) => " " + c.label + ": " + fmtMoney(c.raw) + " (" + (c.raw/total*100).toFixed(1) + "%)"}
+        }
+      }
     }
   });
   if(legend){
-    legend.innerHTML=entries.map(([k,v],i)=>`
-      <div style="display:flex;align-items:center;gap:8px">
-        <span style="width:14px;height:14px;border-radius:3px;background:${colors[i]};display:inline-block;flex-shrink:0"></span>
-        <span style="flex:1;color:var(--text)">${labels[i]}</span>
-        <span style="color:var(--text2);font-variant-numeric:tabular-nums">${fmtMoney(v)}</span>
-        <span style="color:var(--text3);font-variant-numeric:tabular-nums;min-width:42px;text-align:right">${(v/total*100).toFixed(1)}%</span>
+    legend.innerHTML = entries.map(([k,v],i) => `
+      <div class="alloc-pie-legend-item">
+        <span class="alloc-pie-dot" style="background:${colors[i]}"></span>
+        <span class="alloc-pie-name">${labels[i]}</span>
+        <span class="alloc-pie-amt">${fmtMoney(v)}</span>
+        <span class="alloc-pie-pct">${(v/total*100).toFixed(1)}%</span>
       </div>`).join("");
   }
+  return chart;
+}
+
+// Render BOTH pies — Asset Class and Instrument Type — in the unified box
+function drawPortfolioPie(){
+  pfClassChart = drawSinglePie("pfPieCanvas","pfPieLegend",investments,INV_CLASS_LABELS,CLASS_COLORS,effClass,pfClassChart);
+  pfTypeChart  = drawSinglePie("pfPieTypeCanvas","pfPieTypeLegend",investments,INV_TYPE_LABELS,TYPE_COLORS,(i)=>i.type||"other",pfTypeChart);
 }
 
 // ═══════════════════════════════════════════════════════════
