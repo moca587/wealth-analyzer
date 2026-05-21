@@ -39,6 +39,7 @@ $html =~ s|<link href="https://fonts\.googleapis\.com[^"]*" rel="stylesheet">|<!
 # 2. Replace font-family values
 $html =~ s|'DM Serif Display',serif|Georgia,'Times New Roman',serif|g;
 $html =~ s|'DM Serif Display', serif|Georgia,'Times New Roman',serif|g;
+$html =~ s|'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif|-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,Arial,sans-serif|g;
 $html =~ s|'DM Sans',sans-serif|-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,Arial,sans-serif|g;
 $html =~ s|'DM Sans', sans-serif|-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,Arial,sans-serif|g;
 $html =~ s|'DM Sans',monospace|'Courier New',Courier,monospace|g;

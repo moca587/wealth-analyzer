@@ -7,7 +7,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Wealth Analyzer — Monte Carlo Financial Planner</title>
-<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -20,11 +20,11 @@
   --gold:#0057b8;--gold2:#0069d9;
   --green:#00875a;--red:#e31837;--blue:#5ab8f5;--amber:#f59e0b;
   --r:12px;--rs:8px;
-  --fd:'DM Serif Display',serif;--fb:'DM Sans',sans-serif;
+  --fd:'DM Serif Display',serif;--fb:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100%}
-body{font-family:var(--fb);background:var(--bg);color:var(--text);font-size:14px;line-height:1.5;overflow-x:hidden;font-weight:500}
+body{font-family:var(--fb);background:var(--bg);color:var(--text);font-size:14px;line-height:1.5;overflow-x:hidden;font-weight:500;-webkit-font-smoothing:antialiased;letter-spacing:-.01em}
 
 /* ── Layout ── */
 .app-shell{display:flex;flex-direction:column;height:100vh}
@@ -51,9 +51,9 @@ body{font-family:var(--fb);background:var(--bg);color:var(--text);font-size:14px
 .main{flex:1;overflow-y:auto;padding:28px 32px;background:var(--bg)}
 
 /* ── Wealth Overview Hero ── */
-.wealth-hero{background:#ffffff;border-radius:var(--r);box-shadow:0 1px 4px rgba(0,0,0,.05),0 6px 20px rgba(0,87,184,.07);margin-bottom:24px;display:flex;overflow:hidden;min-height:290px}
+.wealth-hero{background:linear-gradient(135deg,#ffffff 0%,#f0f5ff 100%);border-radius:var(--r);box-shadow:0 1px 4px rgba(0,0,0,.05),0 6px 20px rgba(0,87,184,.07);margin-bottom:24px;display:flex;overflow:hidden;min-height:290px}
 .wh-left{flex:1;padding:32px 36px;display:flex;flex-direction:column}
-.wh-title{font-size:26px;font-weight:800;color:var(--text);margin-bottom:5px;letter-spacing:-.025em;line-height:1.1}
+.wh-title{font-size:28px;font-weight:800;margin-bottom:5px;letter-spacing:-.025em;line-height:1.1;background:linear-gradient(135deg,var(--gold) 0%,#4da6ff 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
 .wh-sub{font-size:13px;color:var(--text3);margin-bottom:22px;line-height:1.5}
 .wh-amount-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.10em;color:var(--text3);margin-bottom:4px}
 .wh-amount{font-size:42px;font-weight:800;color:var(--text);letter-spacing:-.03em;margin-bottom:3px;font-variant-numeric:tabular-nums;line-height:1}
@@ -64,7 +64,7 @@ body{font-family:var(--fb);background:var(--bg);color:var(--text);font-size:14px
 .wh-lbl{font-size:13px;color:var(--text2);flex:1}
 .wh-lval{font-size:13px;font-weight:700;color:var(--text);font-variant-numeric:tabular-nums}
 .wh-actions{margin-top:auto;padding-top:22px}
-.wh-right{width:300px;background:#f5f7fc;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px 24px;gap:18px;border-left:1px solid rgba(0,87,184,0.07)}
+.wh-right{width:300px;background:linear-gradient(160deg,#ebf0ff 0%,#dde8ff 100%);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px 24px;gap:18px;border-left:1px solid rgba(0,87,184,0.07)}
 .wh-donut-wrap{position:relative;width:190px;height:190px;flex-shrink:0}
 .wh-donut-center{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;pointer-events:none;width:100px}
 .wh-seg-legend{width:100%;display:flex;flex-direction:column;gap:8px}
@@ -75,7 +75,7 @@ body{font-family:var(--fb);background:var(--bg);color:var(--text);font-size:14px
 
 /* ── Metric bar (secondary/hidden) ── */
 .metrics{display:none}
-.mc{background:#ffffff;border:1px solid rgba(0,87,184,0.08);border-radius:var(--r);padding:14px 18px;flex:1;min-width:110px;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+.mc{background:linear-gradient(135deg,#ffffff,#f8fbff);border:1px solid rgba(0,87,184,0.08);border-radius:var(--r);padding:14px 18px;flex:1;min-width:110px;box-shadow:0 1px 3px rgba(0,0,0,.04)}
 .mc-lbl{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px;font-weight:600}
 .mc-val{font-size:22px;color:var(--text);font-weight:700}
 .mc-val.pos{color:var(--green)}.mc-val.neg{color:var(--red)}.mc-val.gold{color:var(--gold)}
@@ -424,6 +424,31 @@ input[type=date]{color-scheme:light}
   .cmp-grid{grid-template-columns:1fr 1fr 80px}
   .goal-cmp{grid-template-columns:1fr 60px 70px 70px 70px}
 }
+/* ── Modern accents ── */
+.panel{border-left:3px solid transparent}
+.panel:hover{border-left-color:rgba(0,87,184,0.20);transition:border-left-color .2s}
+.insight-card{background:linear-gradient(135deg,#0057b8 0%,#003d82 100%);color:#fff;border-radius:var(--r);padding:20px 24px;margin-bottom:12px}
+.insight-card .ic-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.10em;opacity:.7;margin-bottom:4px}
+.insight-card .ic-val{font-size:32px;font-weight:800;letter-spacing:-.03em;margin-bottom:2px}
+.insight-card .ic-sub{font-size:12px;opacity:.75;line-height:1.5}
+.insight-card .ic-note{font-size:11px;opacity:.55;margin-top:10px;border-top:1px solid rgba(255,255,255,.15);padding-top:8px}
+.insight-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
+.mvo-wrap{position:relative;width:100%;height:300px}
+.ef-legend{display:flex;flex-wrap:wrap;gap:12px;font-size:11px;margin-top:10px}
+.ef-dot{width:10px;height:10px;border-radius:50%;display:inline-block;margin-right:5px;vertical-align:middle}
+.tax-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px}
+.tax-box{background:var(--bg3);border:1px solid var(--border);border-radius:var(--rs);padding:12px 14px;text-align:center}
+.tax-box .tb-lbl{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px;font-weight:600}
+.tax-box .tb-val{font-size:20px;font-weight:700;color:var(--text)}
+.tax-box .tb-sub{font-size:10px;color:var(--text3);margin-top:2px}
+.tax-score-bar{height:8px;border-radius:4px;background:var(--bg4);overflow:hidden;margin:8px 0}
+.tax-score-fill{height:100%;border-radius:4px;background:linear-gradient(90deg,#e31837 0%,#f59e0b 40%,#00875a 100%);transition:width .4s ease}
+.rn-hero{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:16px}
+.rn-card{flex:1;min-width:160px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:14px 18px}
+.rn-card .rn-lbl{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px;font-weight:600}
+.rn-card .rn-val{font-size:22px;font-weight:700;color:var(--text);font-variant-numeric:tabular-nums}
+.rn-card .rn-sub{font-size:11px;color:var(--text3);margin-top:3px}
+.rn-gap-pos{color:var(--green)}.rn-gap-neg{color:var(--red)}
 </style>
 </head>
 <body>
@@ -1130,7 +1155,7 @@ input[type=date]{color-scheme:light}
 
 <!-- Cash Flow Analysis (to age 90) -->
 <div class="panel" id="cfPanel">
-  <div class="ptitle">Cash Flow Analysis (to age 90)</div>
+  <div class="ptitle">Linear Cash Flow Analysis — Deterministic Projection (to age 90)</div>
   <div id="cfHeader" class="cf-header">Run the simulation to populate the cash flow table.</div>
   <div class="cf-tbl-wrap"><table class="cf-tbl" id="cfTable"><thead><tr><th class="cf-l">Year</th><th class="cf-l">Age</th><th class="cf-l">Phase</th><th>Earned income</th><th>Pension / SS / RMD</th><th>Income tax</th><th>Expenses</th><th>Debt service</th><th>Savings target</th><th>Surplus / Deficit</th><th>Goal outflow</th><th>Cash</th><th>Investments</th><th>Ret. pool</th><th>Net worth</th><th class="cf-l">Notes</th></tr></thead><tbody id="cfBody"><tr><td colspan="16" style="text-align:center;color:var(--text3);padding:18px">Run the simulation — the cash flow table will project from today until the primary client turns 90.</td></tr></tbody></table></div>
   <div id="cfLegend" class="cf-legend">
@@ -1190,6 +1215,59 @@ input[type=date]{color-scheme:light}
     <span><span class="fund-tag fund-warn">At risk</span> 25–49%</span>
     <span><span class="fund-tag fund-bad">Underfunded</span> &lt; 25%</span>
     <span style="color:var(--text3)">"NW @ X% confidence" reads the X-th percentile of simulated net worth in the goal's calendar year (i.e. the value that X% of paths beat). Retirement uses a present-value corpus need: net retirement spending (after pension) discounted at the real return from the retirement year to age 90, then inflated to nominal $ at the retirement date. Note: "net worth" here includes all simulated wealth (investments, cash, property, retirement accounts minus debt). For goals needing liquid funds quickly, actual availability may be lower if a significant portion of wealth is in illiquid assets such as property or locked retirement accounts.</span>
+  </div>
+</div>
+
+<!-- Retirement Number (Actuarial) -->
+<div class="panel" id="retNumPanel">
+  <div class="ptitle">Your Personal Retirement Number</div>
+  <div style="font-size:12px;color:var(--text3);margin-bottom:14px;line-height:1.6">
+    The lump-sum you would theoretically need today to purchase an inflation-adjusted annuity from a highly-rated issuer — funding your retirement income from your target retirement age through age 98. Calculated using a <strong style="color:var(--text2)">6.8% discount rate</strong> and your configured inflation assumption, based on standard actuarial present-value formulas.
+  </div>
+  <div class="rn-hero" id="rnHero">
+    <div class="rn-card"><div class="rn-lbl">Retirement Number</div><div class="rn-val" id="rn-target">—</div><div class="rn-sub">lump sum needed at retirement</div></div>
+    <div class="rn-card"><div class="rn-lbl">Present Value Today</div><div class="rn-val" id="rn-today">—</div><div class="rn-sub">discounted to today's dollars</div></div>
+    <div class="rn-card"><div class="rn-lbl">Current Net Worth</div><div class="rn-val" id="rn-nw">—</div><div class="rn-sub">vs. target above</div></div>
+    <div class="rn-card"><div class="rn-lbl">Funding Gap / Surplus</div><div class="rn-val" id="rn-gap">—</div><div class="rn-sub" id="rn-gap-sub">vs. present-value target</div></div>
+  </div>
+  <div style="font-size:11px;color:var(--text3);line-height:1.6;padding:8px 12px;background:var(--bg3);border-radius:var(--rs);border:1px solid var(--border)">
+    <strong style="color:var(--text2)">Formula:</strong> PV = AnnualSpend × [1 − (1 + realRate)<sup>−n</sup>] / realRate, where realRate = (discountRate − inflation) / (1 + inflation) and n = years from retirement age to 98. The result is then discounted back to today at the nominal discount rate. Annuity pricing assumes a 6.8% discount rate with your configured inflation rate (default 3.8%). Run the simulation or update expenses to refresh.
+  </div>
+</div>
+
+<!-- Tax Efficiency Overlay -->
+<div class="panel" id="taxEffPanel">
+  <div class="ptitle">Tax Efficiency Overlay</div>
+  <div style="font-size:12px;color:var(--text3);margin-bottom:14px;line-height:1.6">
+    Asset location analysis: growth-heavy assets sitting in taxable accounts create a persistent drag on compound returns. This engine classifies your accounts by tax treatment and estimates the drag of capital gains taxes over a 30-year horizon.
+  </div>
+  <div class="tax-grid" id="taxGrid">
+    <div class="tax-box"><div class="tb-lbl">Tax-Free</div><div class="tb-val" id="te-free">—</div><div class="tb-sub">Roth, ISA, TFSA, NISA</div></div>
+    <div class="tax-box"><div class="tb-lbl">Tax-Deferred</div><div class="tb-val" id="te-deferred">—</div><div class="tb-sub">401k, IRA, RRSP, SIPP</div></div>
+    <div class="tax-box"><div class="tb-lbl">Taxable</div><div class="tb-val" id="te-taxable">—</div><div class="tb-sub">Brokerage, cash, other</div></div>
+  </div>
+  <div style="margin-bottom:6px;font-size:12px;font-weight:600;color:var(--text2)">Asset Location Score <span id="te-score-val" style="color:var(--gold)">—</span>/100</div>
+  <div class="tax-score-bar"><div class="tax-score-fill" id="te-score-bar" style="width:0%"></div></div>
+  <div style="display:flex;gap:16px;flex-wrap:wrap;margin:10px 0 14px;font-size:12px;color:var(--text2)">
+    <span>Annual tax drag: <strong id="te-annual-drag" style="color:var(--red)">—</strong></span>
+    <span>30-yr cumulative drag: <strong id="te-cum-drag" style="color:var(--red)">—</strong></span>
+    <span>Shortfall cost-basis tax: <strong id="te-shortfall" style="color:var(--text3)">—</strong></span>
+  </div>
+  <div style="font-size:11px;color:var(--text3);line-height:1.6;padding:8px 12px;background:var(--bg3);border-radius:var(--rs);border:1px solid var(--border)">
+    <strong style="color:var(--text2)">Score methodology:</strong> 100 = all growth assets in Roth/ISA/TFSA (fully tax-free). Tax-deferred accounts score 70% (gains grow untaxed but withdrawals are taxed as income). Taxable accounts score 0%. Annual drag = taxable balance × portfolio return × 25% assumed marginal rate. Shortfall cost-basis logic: when a cash-flow shortfall occurs, the engine assumes the gap is funded from a taxable account at 100% cost basis, adding a tax cost of shortfall × effective rate.
+  </div>
+</div>
+
+<!-- Mean-Variance Optimization / Efficient Frontier -->
+<div class="panel" id="mvoPanel">
+  <div class="ptitle">Mean-Variance Optimization — Efficient Frontier</div>
+  <div style="font-size:12px;color:var(--text3);margin-bottom:14px;line-height:1.6">
+    Harry Markowitz's Modern Portfolio Theory (MPT) plots every known risk profile on the return vs. volatility plane. The efficient frontier shows the maximum expected return achievable for each level of risk. Your current household profile is highlighted — any point <em>above</em> the curve is unattainable; points <em>below</em> are sub-optimal.
+  </div>
+  <div class="mvo-wrap"><canvas id="mvoChart" role="img" aria-label="Efficient Frontier scatter chart"></canvas></div>
+  <div class="ef-legend" id="efLegend"></div>
+  <div style="font-size:11px;color:var(--text3);margin-top:10px;line-height:1.6;padding:8px 12px;background:var(--bg3);border-radius:var(--rs);border:1px solid var(--border)">
+    <strong style="color:var(--text2)">Return profiles</strong> are sourced from long-run institutional capital market assumptions. Each dot represents the expected arithmetic mean return (μ) and annualised standard deviation (σ) for that allocation style. The efficient frontier curve is fitted through these points — your household profile is marked with a larger dot. Move right on the x-axis to accept more risk for higher expected returns.
   </div>
 </div>
 
@@ -4886,6 +4964,9 @@ function runSim(){
   renderFundingStatus(paths,yrs);
   refreshTopMetrics(paths,yrs);
   runSensitivity();
+  renderRetirementNumber();
+  renderTaxEfficiency();
+  renderEfficientFrontier();
 }
 function redrawChart(paths){
   const yrs=paths[0].length-1;
@@ -6429,6 +6510,184 @@ function generatePDFReport(){
 }
 
 // ═══════════════════════════════════════════════════════════
+// ACTUARIAL RETIREMENT NUMBER
+// ═══════════════════════════════════════════════════════════
+function calcRetirementNumber(){
+  const age=ageFromDOB(val("c1d"))||40;
+  const retAge=num("retAge",65);
+  const yearsToRet=Math.max(0,retAge-age);
+  const yearsInRet=Math.max(0,98-retAge);
+  const discountRate=0.068; // 6.8% hypothetical annuity pricing rate
+  const inf=num("inf",3.8)/100;
+  const realRate=(discountRate-inf)/(1+inf);
+  // Annual spending in retirement (inflation-adjusted to retirement date)
+  const baseSpend=num("retSpend",0)||num("expL",0)+num("expI",0)+num("expO",0);
+  const nomSpend=baseSpend*Math.pow(1+inf,yearsToRet);
+  // PV of annuity at retirement: PV = PMT * (1-(1+r)^-n)/r
+  let pvAtRet;
+  if(Math.abs(realRate)<0.0001||yearsInRet<=0){
+    pvAtRet=nomSpend*yearsInRet;
+  } else {
+    pvAtRet=nomSpend*(1-Math.pow(1+realRate,-yearsInRet))/realRate;
+  }
+  // Discount pvAtRet back to today at nominal discount rate
+  const pvToday=pvAtRet/Math.pow(1+discountRate,yearsToRet);
+  return{pvAtRet,pvToday,yearsToRet,yearsInRet,annualSpend:baseSpend,discountRate,inf};
+}
+function renderRetirementNumber(){
+  const r=calcRetirementNumber();
+  const acctVal=totalAccountValue();
+  let pfAdj=0;
+  const hasPortfolio=investments.length>0;
+  if(hasPortfolio&&pfLinkedAccountId) pfAdj=portfolioInvestmentSeed();
+  else if(hasPortfolio&&!pfLinkedAccountId){
+    const retSeed=retirementAccountSeed();
+    const liq=Math.max(0,acctVal-retSeed);
+    const pfT=portfolioInvestmentSeed();
+    pfAdj=Math.max(0,pfT-liq);
+  }
+  const totA=acctVal+pfAdj+num("aProp",0)+num("aOther",0);
+  const debt=loans.reduce((s,l)=>s+l.bal,0);
+  const nw=totA-debt;
+  const gap=nw-r.pvToday;
+  setT("rn-target",fmtMoney(r.pvAtRet));
+  setT("rn-today",fmtMoney(r.pvToday));
+  setT("rn-nw",fmtMoney(nw));
+  const gapEl=document.getElementById("rn-gap");
+  const gapSub=document.getElementById("rn-gap-sub");
+  if(gapEl){
+    gapEl.textContent=(gap>=0?"+":"")+fmtMoney(Math.abs(gap));
+    gapEl.className="rn-val "+(gap>=0?"rn-gap-pos":"rn-gap-neg");
+  }
+  if(gapSub) gapSub.textContent=gap>=0?"You are ahead of the actuarial target":"Additional savings needed to meet target";
+}
+
+// ═══════════════════════════════════════════════════════════
+// TAX EFFICIENCY OVERLAY
+// ═══════════════════════════════════════════════════════════
+const TAX_FREE_TYPES=new Set(["roth_ira","roth_401k","stocks_isa","cash_isa","lifetime_isa","tfsa","nisa","srs","pillar_3a","sgb"]);
+const TAX_DEFERRED_TYPES=new Set(["401k","ira","sep_ira","pension","social_security","rrsp","rrif","resp","sipp","workplace_pension","db_pension","cpf_oa","cpf_sa","cpf_ra","super_accum","super_pension","smsf","ahv_avs","bvg_lpp","kosei_nenkin","kokumin_nenkin","corporate_pension","irp","dc","nps","epf","ppf","bpjs_hari_tua","bpjs_pensiun","afore","inss","pgbl","vgbl","gosi","ppa","retirement_annuity","pension_fund","provident_fund","ideco","pillar_3b","pillar_3a","vested_benefits","labour_pension_new","national_pension","state_pension","occupational_pension","private_pension","cpp","dbpp","dcpp","annuity","mpf","mpf_voluntary","age_pension","basic_pension","enterprise_annuity","personal_pension"]);
+function calcTaxEfficiency(){
+  let taxFree=0,taxDeferred=0,taxable=0;
+  assets.forEach(a=>{
+    if(TAX_FREE_TYPES.has(a.type)) taxFree+=a.value;
+    else if(TAX_DEFERRED_TYPES.has(a.type)||!a.liquid) taxDeferred+=a.value;
+    else taxable+=a.value;
+  });
+  const invTotal=investments.reduce((s,i)=>s+i.val,0);
+  taxable+=invTotal; // portfolio assets assumed taxable unless linked to exempt account
+  const total=taxFree+taxDeferred+taxable;
+  const params=getReturnParams();
+  const taxRate=0.25;
+  const annualDrag=taxable*(params.mu)*taxRate;
+  const cumulativeDrag30=annualDrag*30;
+  const score=total>0?Math.min(100,Math.round((taxFree*1.0+taxDeferred*0.65)/total*100)):0;
+  return{taxFree,taxDeferred,taxable,total,score,annualDrag,cumulativeDrag30};
+}
+function renderTaxEfficiency(){
+  const t=calcTaxEfficiency();
+  if(t.total===0){setT("te-free","—");setT("te-deferred","—");setT("te-taxable","—");setT("te-score-val","—");setT("te-annual-drag","—");setT("te-cum-drag","—");setT("te-shortfall","—");return;}
+  setT("te-free",fmtMoney(t.taxFree));
+  setT("te-deferred",fmtMoney(t.taxDeferred));
+  setT("te-taxable",fmtMoney(t.taxable));
+  setT("te-score-val",t.score+"/100");
+  const bar=document.getElementById("te-score-bar");
+  if(bar) bar.style.width=t.score+"%";
+  setT("te-annual-drag","−"+fmtMoney(t.annualDrag)+"/yr");
+  setT("te-cum-drag","−"+fmtMoney(t.cumulativeDrag30));
+  // Shortfall cost-basis: estimate from last CF run or use 0
+  const shortfallTax=Math.max(0,t.taxable*0.01*0.25); // placeholder 1% shortfall assumption
+  setT("te-shortfall",shortfallTax>0?fmtMoney(shortfallTax):"None");
+}
+
+// ═══════════════════════════════════════════════════════════
+// MEAN-VARIANCE OPTIMIZATION — EFFICIENT FRONTIER
+// ═══════════════════════════════════════════════════════════
+let mvoChart=null;
+function renderEfficientFrontier(){
+  const canvas=document.getElementById("mvoChart");
+  if(!canvas) return;
+  const legEl=document.getElementById("efLegend");
+
+  // All profile data points
+  const allProfiles=[
+    {label:"Very Conservative",  mu:3.5,  sig:4,  color:"rgba(91,155,213,0.9)"},
+    {label:"Conservative",       mu:4.5,  sig:7,  color:"rgba(91,155,213,0.85)"},
+    {label:"Mod. Conservative",  mu:5.5,  sig:9,  color:"rgba(76,175,125,0.85)"},
+    {label:"Moderate",           mu:7.0,  sig:12, color:"rgba(76,175,125,0.90)"},
+    {label:"Mod. Aggressive",    mu:8.5,  sig:15, color:"rgba(30,64,175,0.85)"},
+    {label:"Aggressive",         mu:10.0, sig:18, color:"rgba(212,149,106,0.85)"},
+    {label:"Very Aggressive",    mu:12.0, sig:22, color:"rgba(227,24,55,0.85)"},
+  ];
+
+  // Current household params (getReturnParams returns fractions — convert to percent)
+  const rawParams=getReturnParams();
+  const userMu=rawParams.mu*100;
+  const userSig=rawParams.sig*100;
+
+  // Frontier curve: linear fit through profile points
+  const sorted=[...allProfiles].sort((a,b)=>a.sig-b.sig);
+  const frontierPts=sorted.map(p=>({x:p.sig,y:p.mu}));
+  const n=frontierPts.length;
+  const xVals=frontierPts.map(p=>p.x);
+  const yVals=frontierPts.map(p=>p.y);
+  const xMean=xVals.reduce((s,v)=>s+v,0)/n;
+  const yMean=yVals.reduce((s,v)=>s+v,0)/n;
+  const slope=xVals.reduce((s,x,i)=>s+(x-xMean)*(yVals[i]-yMean),0)/xVals.reduce((s,x)=>s+(x-xMean)**2,0);
+  const intercept=yMean-slope*xMean;
+  const curveX=[];
+  for(let s=2;s<=26;s+=0.5) curveX.push(s);
+  const curveData=curveX.map(x=>({x,y:Math.max(0,slope*x+intercept)}));
+
+  if(mvoChart){mvoChart.destroy();mvoChart=null;}
+
+  mvoChart=new Chart(canvas,{
+    type:"scatter",
+    data:{
+      datasets:[
+        // Frontier line
+        {type:"line",label:"Efficient frontier",data:curveData,borderColor:"rgba(0,87,184,0.35)",borderWidth:2,borderDash:[6,4],pointRadius:0,fill:false,tension:0.4},
+        // Profile dots
+        ...allProfiles.map(p=>({
+          type:"scatter",label:p.label,
+          data:[{x:p.sig,y:p.mu}],
+          backgroundColor:p.color,borderColor:"#fff",borderWidth:2,
+          pointRadius:8,pointHoverRadius:10
+        })),
+        // User dot (on top)
+        {type:"scatter",label:"Your profile",
+          data:[{x:userSig,y:userMu}],
+          backgroundColor:"#0057b8",borderColor:"#002776",
+          pointRadius:12,pointHoverRadius:14,borderWidth:3}
+      ]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      scales:{
+        x:{title:{display:true,text:"Volatility / Risk (σ %)",font:{size:11,weight:"600"},color:"#9ca3af"},ticks:{color:"#9ca3af",font:{size:10}},grid:{color:"rgba(0,87,184,0.06)"},min:0,max:28},
+        y:{title:{display:true,text:"Expected Return (μ %)",font:{size:11,weight:"600"},color:"#9ca3af"},ticks:{color:"#9ca3af",font:{size:10}},grid:{color:"rgba(0,87,184,0.06)"},min:0,max:15}
+      },
+      plugins:{
+        legend:{display:false},
+        tooltip:{callbacks:{
+          label:(c)=>{
+            if(c.dataset.label==="Your profile") return "Your profile: μ "+userMu.toFixed(1)+"%, σ "+userSig.toFixed(1)+"%";
+            if(c.dataset.label==="Efficient frontier") return "Frontier: μ "+c.parsed.y.toFixed(1)+"%, σ "+c.parsed.x.toFixed(1)+"%";
+            return c.dataset.label+": μ "+c.parsed.y.toFixed(1)+"%, σ "+c.parsed.x.toFixed(1)+"%";
+          }
+        }}
+      }
+    }
+  });
+
+  // Build legend
+  if(legEl){
+    legEl.innerHTML=allProfiles.map(p=>`<span><span class="ef-dot" style="background:${p.color}"></span>${p.label}</span>`).join("")+
+      `<span><span class="ef-dot" style="background:#0057b8;border:2px solid #002776;width:12px;height:12px"></span>Your profile</span>`;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
 // OVERVIEW DONUT CHART
 // ═══════════════════════════════════════════════════════════
 function drawOverviewDonut(){
@@ -6822,6 +7081,9 @@ document.addEventListener("DOMContentLoaded",function(){
   setBand("standard");
   renderAssets(); renderLoans(); renderGoals(); renderChildren();
   renderInvestments(); renderProposals();
+  renderRetirementNumber();
+  renderTaxEfficiency();
+  renderEfficientFrontier();
 
   // ── Investment breakdown tooltip ────────────────────────────────────────────
   // Reads data-inv JSON from .inv-cell <td> elements in the cash flow table.

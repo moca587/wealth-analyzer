@@ -35,7 +35,7 @@ print(f"   Version: {version}")
 
 # ── 1. Remove Google Fonts link, replace with system fonts ───────────────────
 html = html.replace(
-    '<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet">',
+    '<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">',
     "<!-- Google Fonts removed — system fonts used instead (standalone mode) -->"
 )
 
@@ -43,6 +43,7 @@ html = html.replace(
 html = html.replace("'DM Serif Display',serif",   "Georgia,'Times New Roman',serif")
 html = html.replace("'DM Serif Display', serif",  "Georgia,'Times New Roman',serif")
 html = html.replace('"DM Serif Display",serif',   "Georgia,'Times New Roman',serif")
+html = html.replace("'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif", "-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,Arial,sans-serif")
 html = html.replace("'DM Sans',sans-serif",       "-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,Arial,sans-serif")
 html = html.replace("'DM Sans', sans-serif",      "-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,Arial,sans-serif")
 html = html.replace('"DM Sans",sans-serif',       "-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,Arial,sans-serif")
