@@ -149,6 +149,21 @@ input[type=date]{color-scheme:light}
 .coll-toggle:hover{color:var(--text2)}
 .coll-body{display:none}.coll-body.open{display:block}
 
+/* ── Section dropdown (click-to-expand section) ── */
+.section-dropdown{cursor:pointer;user-select:none;display:flex;align-items:center;gap:10px;transition:color .15s;padding-right:8px}
+.section-dropdown:hover{color:var(--gold)}
+/* Override ptitle's default ::after underline when it's also a section-dropdown */
+.ptitle.section-dropdown::after{content:"▶";display:inline-block;font-size:10px;color:var(--text3);transition:transform .25s ease;flex:0 0 auto;height:auto;background:none;margin-left:8px}
+/* Standalone (.slbl) section-dropdown */
+.section-dropdown:not(.ptitle)::after{content:"▶";display:inline-block;margin-left:auto;font-size:10px;color:var(--text3);transition:transform .25s ease;flex-shrink:0}
+.section-dropdown.open::after{transform:rotate(90deg);color:var(--gold)}
+.section-dropdown.open{color:var(--gold)}
+.dropdown-body{display:none}
+.dropdown-body.open{display:block;animation:dropDown .25s ease-out}
+@keyframes dropDown{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
+.section-dropdown .ptitle-line{flex:1;height:1px;background:var(--border);min-width:20px}
+.dropdown-hint{font-size:10px;color:var(--text3);font-weight:400;text-transform:none;letter-spacing:0;font-style:italic;margin-right:4px}
+
 /* ── Address grid ── */
 .ag{display:grid;gap:6px;margin-bottom:7px}
 .ag2{grid-template-columns:1fr 1fr}.ag3{grid-template-columns:1fr 1fr 1fr}
@@ -852,8 +867,12 @@ input[type=date]{color-scheme:light}
 
 <!-- ── Tax panel ── -->
 <div class="panel" id="taxPanel">
-  <div class="ptitle">Income &amp; Capital Gains Tax</div>
-  <div style="font-size:12px;color:var(--text3);margin-bottom:12px;line-height:1.5">Tax is computed from the country and state/province/canton selected on the primary client's address. Federal brackets are <strong style="color:var(--text2)">approximate USD equivalents</strong> of national rates (late-2024 FX, rounded). State/cantonal rates are approximate effective rates at ~$100k household income. Rates auto-sync from the Household address. Use manual overrides if your situation differs.</div>
+  <div class="ptitle section-dropdown" onclick="toggleDropdown('taxPanelBody')">
+    Income &amp; Capital Gains Tax <span class="dropdown-hint">click to expand</span>
+    <span class="ptitle-line"></span>
+  </div>
+  <div class="dropdown-body" id="taxPanelBody">
+  <div style="font-size:12px;color:var(--text3);margin:12px 0;line-height:1.5">Tax is computed from the country and state/province/canton selected on the primary client's address. Federal brackets are <strong style="color:var(--text2)">approximate USD equivalents</strong> of national rates (late-2024 FX, rounded). State/cantonal rates are approximate effective rates at ~$100k household income. Rates auto-sync from the Household address. Use manual overrides if your situation differs.</div>
 
   <div class="two-col">
     <div>
@@ -924,6 +943,7 @@ input[type=date]{color-scheme:light}
     <div class="slbl">Child &amp; family tax benefit — <span id="childTaxRuleCountry">—</span></div>
     <div id="childTaxRuleDesc" style="font-size:12px;color:var(--text2);line-height:1.7"></div>
   </div>
+  </div><!-- /taxPanelBody -->
 </div>
 
 </div>
@@ -961,8 +981,11 @@ input[type=date]{color-scheme:light}
   </div>
 
   <div class="sdiv">
-    <div class="slbl">Investment Parameters</div>
-    <div class="frow"><label class="flbl">Return mean %</label><input type="number" id="retM" value="7" step="0.5" class="w120"></div>
+    <div class="slbl section-dropdown" onclick="toggleDropdown('invParamsBody')">
+      Investment Parameters <span class="dropdown-hint">click to expand</span>
+    </div>
+    <div class="dropdown-body" id="invParamsBody">
+    <div class="frow" style="margin-top:10px"><label class="flbl">Return mean %</label><input type="number" id="retM" value="7" step="0.5" class="w120"></div>
     <div class="frow"><label class="flbl">Return volatility %</label><input type="number" id="retV" value="12" step="0.5" class="w120"></div>
     <div style="font-size:11px;color:var(--text3);margin-top:10px;margin-bottom:6px;font-style:italic">Reference assumptions — override above with your own capital market assumptions.</div>
 
@@ -1004,6 +1027,7 @@ input[type=date]{color-scheme:light}
       </tbody>
     </table>
     <div style="font-size:10px;color:var(--text3);margin-top:6px;font-style:italic">Long-run historical approximations. The portfolio tab auto-weights these by holding value when positions are entered. Override the fields above to use your own capital market assumptions.</div>
+    </div><!-- /invParamsBody -->
   </div>
 </div>
 </div>
@@ -2959,6 +2983,17 @@ function val(id){return ($(id)||{}).value||"";}
 function setT(id,t){const e=$(id); if(e) e.textContent=t;}
 function setH(id,h){const e=$(id); if(e) e.innerHTML=h;}
 function show(id,b){const e=$(id); if(e) e.style.display=b?"":"none";}
+
+// Generic toggle for any .section-dropdown click-to-expand pair
+function toggleDropdown(bodyId, ev){
+  if(ev && ev.preventDefault) ev.preventDefault();
+  const body = document.getElementById(bodyId);
+  if(!body) return;
+  const head = body.previousElementSibling;
+  const wasOpen = body.classList.contains("open");
+  body.classList.toggle("open");
+  if(head) head.classList.toggle("open");
+}
 
 function fmtMoney(n,sym){
   sym = sym || (CURRENCIES[CURRENT_CCY]||CURRENCIES.USD).sym;
