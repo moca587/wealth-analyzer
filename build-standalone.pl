@@ -90,3 +90,29 @@ printf "Done!  %s  —  %.0f KB (%.1f MB)\n", $DEST, $size_kb, $size_kb/1024;
 # Sanity check
 my $still_cdn = ($html =~ /cdnjs\.cloudflare\.com|fonts\.googleapis\.com/) ? "YES ⚠" : "none ✓";
 print "Remaining CDN references: $still_cdn\n";
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Build admin-standalone.html if admin.html exists
+# ─────────────────────────────────────────────────────────────────────────────
+if (-f "admin.html") {
+    print "\nBuilding admin-standalone.html...\n";
+    my $admin = slurp_text("admin.html");
+    # Stamp version
+    $admin =~ s/const APP_VERSION\s*=\s*"[^"]*"/const APP_VERSION = "$version"/;
+    # Remove Google Fonts link
+    $admin =~ s|<link href="https://fonts\.googleapis\.com[^"]*" rel="stylesheet">|<!-- Google Fonts removed — system fonts used (standalone mode) -->|;
+    # Font substitutions
+    $admin =~ s|'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif|-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,Arial,sans-serif|g;
+    $admin =~ s|'JetBrains Mono','SF Mono','Monaco','Consolas',monospace|'SF Mono','Monaco','Consolas','Courier New',monospace|g;
+    # Inline Chart.js
+    $admin =~ s|<script src="https://cdnjs\.cloudflare\.com/ajax/libs/Chart\.js/4\.4\.1/chart\.umd\.min\.js"></script>|$chart_block|;
+
+    my $admin_dest = "admin-standalone.html";
+    open my $aout, '>:encoding(UTF-8)', $admin_dest or die "Cannot write admin: $!";
+    print $aout $admin;
+    close $aout;
+    my $asize_kb = (stat($admin_dest))[7] / 1024;
+    printf "Done!  %s  —  %.0f KB\n", $admin_dest, $asize_kb;
+} else {
+    print "\n(admin.html not found — skipping admin standalone build)\n";
+}

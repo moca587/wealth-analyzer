@@ -1,0 +1,1908 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<title>Wealth Analyzer — Admin Console</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,200;0,300;0,400;0,500;0,600;0,700;0,800;1,300;1,400;1,500&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root{
+  --bg:#f4f6fb;--bg2:#ffffff;--bg3:#eef1f8;--bg4:#e2e8f2;
+  --border:rgba(0,87,184,0.10);--border2:rgba(0,87,184,0.22);
+  --text:#16213e;--text2:#374151;--text3:#9ca3af;
+  --gold:#0057b8;--gold2:#0069d9;
+  --green:#00875a;--red:#e31837;--blue:#5ab8f5;--amber:#f59e0b;--purple:#7c3aed;
+  --r:12px;--rs:8px;
+  --fb:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;
+  --fm:'JetBrains Mono','SF Mono','Monaco','Consolas',monospace;
+  --code-bg:#0f172a;--code-text:#e2e8f0;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{font-family:var(--fb);background:var(--bg);color:var(--text);font-size:14px;line-height:1.6;overflow-x:hidden;font-weight:400;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;letter-spacing:-.005em}
+
+/* ── Login screen ── */
+.login-wrap{display:flex;align-items:center;justify-content:center;min-height:100vh;background:linear-gradient(135deg,#0057b8 0%,#003d82 100%)}
+.login-card{background:#fff;border-radius:16px;padding:36px 40px;width:380px;box-shadow:0 30px 80px rgba(0,0,0,.25)}
+.login-logo{font-size:24px;font-weight:800;color:var(--gold);letter-spacing:-.04em;margin-bottom:4px}
+.login-logo .admin-badge{background:var(--red);color:#fff;font-size:10px;padding:2px 8px;border-radius:50px;margin-left:8px;vertical-align:middle;letter-spacing:.06em;font-weight:700}
+.login-sub{font-size:13px;color:var(--text3);margin-bottom:24px}
+.login-card input{width:100%;padding:11px 14px;border:1.5px solid var(--border);border-radius:8px;font-family:var(--fb);font-size:14px;margin-bottom:12px;outline:none;font-weight:500}
+.login-card input:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(0,87,184,.10)}
+.login-btn{width:100%;background:var(--gold);color:#fff;border:none;padding:12px;border-radius:50px;font-size:14px;font-weight:600;cursor:pointer;font-family:var(--fb);transition:background .15s}
+.login-btn:hover{background:var(--gold2)}
+.login-err{color:var(--red);font-size:12px;margin-top:10px;min-height:16px;font-weight:500}
+.login-foot{margin-top:18px;padding-top:14px;border-top:1px solid var(--border);font-size:11px;color:var(--text3);line-height:1.55}
+
+/* ── Layout ── */
+.app-shell{display:flex;flex-direction:column;height:100vh}
+.topbar{background:#fff;border-bottom:1px solid rgba(0,87,184,.09);padding:0 28px;height:64px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;position:sticky;top:0;z-index:200;box-shadow:0 2px 12px rgba(0,0,0,.05)}
+.logo{font-size:18px;font-weight:800;color:var(--gold);letter-spacing:-.04em}
+.logo .admin-badge{background:var(--red);color:#fff;font-size:9.5px;padding:2px 8px;border-radius:50px;margin-left:8px;vertical-align:middle;letter-spacing:.08em;font-weight:700}
+.logo small{font-size:11px;color:var(--text3);margin-left:10px;font-weight:400;letter-spacing:.02em}
+.body{display:flex;flex:1;overflow:hidden}
+.sidebar{width:220px;flex-shrink:0;background:#fff;border-right:1px solid rgba(0,87,184,.08);overflow-y:auto;padding:20px 0}
+.nav-grp-label{font-size:9.5px;font-weight:700;letter-spacing:.10em;text-transform:uppercase;color:var(--text3);padding:14px 18px 5px}
+.nav-item{display:flex;align-items:center;gap:9px;padding:9px 18px;cursor:pointer;color:var(--text2);font-size:13px;font-weight:500;border-left:3px solid transparent;transition:all .12s;user-select:none}
+.nav-item:hover{color:var(--text);background:rgba(0,87,184,.03)}
+.nav-item.active{color:var(--gold);border-left-color:var(--gold);background:rgba(0,87,184,.06);font-weight:600}
+.nav-item svg{width:14px;height:14px;flex-shrink:0;opacity:.65}
+.main{flex:1;overflow-y:auto;padding:28px 32px;background:var(--bg)}
+
+/* ── Panels ── */
+.panel{background:#fff;border:1px solid rgba(0,87,184,.08);border-radius:var(--r);padding:22px 26px;margin-bottom:16px;box-shadow:0 1px 4px rgba(0,0,0,.04)}
+.panel:hover{border-left:3px solid rgba(0,87,184,.20);transition:border-left-color .2s}
+.ptitle{font-size:10.5px;color:var(--text3);margin-bottom:18px;display:flex;align-items:center;gap:10px;font-weight:700;text-transform:uppercase;letter-spacing:.10em}
+.ptitle::after{content:'';flex:1;height:1px;background:var(--border)}
+.pdesc{font-size:13px;color:var(--text3);margin-bottom:16px;line-height:1.65}
+
+/* ── Form ── */
+.frow{display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap}
+.flbl{font-size:12px;color:var(--text2);min-width:140px;font-weight:500}
+input,select,textarea{background:#fff;border:1.5px solid rgba(0,87,184,.14);border-radius:var(--rs);color:var(--text);font-family:var(--fb);font-size:13px;font-weight:500;padding:7px 11px;outline:none;transition:border-color .15s}
+input:focus,select:focus,textarea:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(0,87,184,.08)}
+textarea{font-family:var(--fm);font-size:12px;line-height:1.6;resize:vertical;min-height:80px;width:100%}
+.w120{width:120px}.w160{width:160px}.w200{width:200px}.w260{width:260px}.fw{width:100%!important}
+
+/* ── Buttons ── */
+.btn-primary{background:var(--gold);color:#fff;border:none;padding:10px 22px;border-radius:50px;font-family:var(--fb);font-size:13px;font-weight:600;cursor:pointer;transition:background .15s;display:inline-flex;align-items:center;gap:7px}
+.btn-primary:hover{background:var(--gold2)}
+.btn-primary.full{width:100%;padding:11px;font-size:14px;justify-content:center}
+.btn-secondary{background:transparent;border:1.5px solid rgba(0,87,184,.25);color:var(--gold);padding:8px 18px;border-radius:50px;font-family:var(--fb);font-size:12px;font-weight:600;cursor:pointer;transition:all .15s}
+.btn-secondary:hover{background:rgba(0,87,184,.06);border-color:var(--gold)}
+.btn-danger{background:var(--red);color:#fff;border:none;padding:8px 18px;border-radius:50px;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--fb)}
+.btn-danger:hover{background:#b8132c}
+.btn-ghost{background:transparent;border:none;color:var(--text2);padding:6px 12px;border-radius:50px;font-size:12px;font-weight:500;cursor:pointer;font-family:var(--fb)}
+.btn-ghost:hover{background:rgba(0,87,184,.06);color:var(--gold)}
+
+/* ── Tabs ── */
+.tab{display:none}.tab.active{display:block}
+
+/* ── Dashboard ── */
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px;margin-bottom:18px}
+.kpi{background:#fff;border:1px solid rgba(0,87,184,.08);border-radius:var(--r);padding:18px 20px;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+.kpi-lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--text3);margin-bottom:6px}
+.kpi-val{font-size:22px;font-weight:700;color:var(--text);letter-spacing:-.03em;font-variant-numeric:tabular-nums}
+.kpi-sub{font-size:11px;color:var(--text3);margin-top:3px}
+.kpi.pos .kpi-val{color:var(--green)}
+.kpi.neg .kpi-val{color:var(--red)}
+
+/* ── Status pill ── */
+.pill{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:50px;font-size:11px;font-weight:600}
+.pill-on{background:rgba(0,135,90,.12);color:var(--green)}
+.pill-off{background:rgba(227,24,55,.10);color:var(--red)}
+.pill-warn{background:rgba(245,158,11,.12);color:var(--amber)}
+.pill-info{background:rgba(0,87,184,.10);color:var(--gold)}
+.dot{width:6px;height:6px;border-radius:50%;display:inline-block}
+.dot-on{background:var(--green)}
+.dot-off{background:var(--red)}
+.dot-warn{background:var(--amber)}
+
+/* ── Table ── */
+.tbl-wrap{overflow-x:auto;border:1px solid var(--border);border-radius:var(--rs)}
+.tbl{width:100%;border-collapse:collapse;font-size:13px}
+.tbl th{position:sticky;top:0;background:var(--bg3);color:var(--text2);font-weight:700;text-align:left;padding:10px 14px;border-bottom:2px solid var(--border);font-size:10.5px;text-transform:uppercase;letter-spacing:.08em;z-index:2}
+.tbl td{padding:9px 14px;border-bottom:1px solid var(--border);vertical-align:middle}
+.tbl tr:hover td{background:rgba(0,87,184,.03)}
+.tbl tr:last-child td{border-bottom:none}
+.tbl input,.tbl select{padding:5px 8px;font-size:12px;width:100%;max-width:140px}
+.tbl-num{text-align:right;font-variant-numeric:tabular-nums}
+
+/* ── Code blocks ── */
+.code{background:var(--code-bg);color:var(--code-text);font-family:var(--fm);font-size:12px;padding:14px 16px;border-radius:var(--rs);line-height:1.65;white-space:pre-wrap;word-break:break-word;overflow-x:auto;max-height:400px;overflow-y:auto}
+.code.small{font-size:11px;padding:10px 12px}
+.code .key{color:#7dd3fc}.code .str{color:#86efac}.code .num{color:#fbbf24}.code .com{color:#94a3b8;font-style:italic}
+
+/* ── Hero gradient ── */
+.hero{background:linear-gradient(135deg,#0057b8 0%,#003d82 100%);color:#fff;border-radius:var(--r);padding:24px 28px;margin-bottom:18px;box-shadow:0 8px 24px rgba(0,87,184,.25)}
+.hero-title{font-size:22px;font-weight:800;letter-spacing:-.03em;margin-bottom:4px}
+.hero-sub{font-size:13px;opacity:.85;line-height:1.6}
+
+/* ── Toast ── */
+#toast{position:fixed;bottom:24px;right:24px;background:#16213e;color:#fff;padding:12px 18px;border-radius:50px;font-size:13px;font-weight:600;box-shadow:0 12px 32px rgba(0,0,0,.25);transform:translateY(20px);opacity:0;transition:all .25s;z-index:9999;pointer-events:none}
+#toast.show{transform:translateY(0);opacity:1}
+#toast.ok{background:var(--green)}
+#toast.err{background:var(--red)}
+
+/* ── JSON tree ── */
+.jt{font-family:var(--fm);font-size:12px;color:var(--text);line-height:1.7}
+.jt-key{color:var(--gold);font-weight:600}
+.jt-str{color:var(--green)}
+.jt-num{color:var(--amber)}
+.jt-bool{color:var(--purple)}
+.jt-null{color:var(--text3);font-style:italic}
+.jt details{margin-left:14px}
+.jt summary{cursor:pointer;user-select:none;color:var(--text2);font-weight:600}
+.jt summary:hover{color:var(--gold)}
+
+/* ── Log entries ── */
+.log-entry{display:grid;grid-template-columns:140px 90px 1fr;gap:12px;padding:7px 12px;border-bottom:1px solid var(--border);font-size:12px;font-family:var(--fm)}
+.log-entry:last-child{border-bottom:none}
+.log-ts{color:var(--text3)}
+.log-lvl{font-weight:700;text-align:center;padding:1px 6px;border-radius:4px;font-size:10px;text-transform:uppercase}
+.log-lvl.info{background:rgba(0,87,184,.10);color:var(--gold)}
+.log-lvl.warn{background:rgba(245,158,11,.12);color:var(--amber)}
+.log-lvl.err{background:rgba(227,24,55,.10);color:var(--red)}
+.log-lvl.ok{background:rgba(0,135,90,.10);color:var(--green)}
+.log-msg{color:var(--text)}
+
+/* ── Charts ── */
+.chart-wrap{position:relative;width:100%;height:300px}
+
+/* ── Section divider ── */
+.sdiv{border-top:1px solid var(--border);margin:18px 0 14px;padding-top:14px}
+.slbl{font-size:10.5px;font-weight:700;letter-spacing:.10em;text-transform:uppercase;color:var(--text3);margin-bottom:10px}
+
+/* ── Two-col grid ── */
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.three-col{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+
+/* ── Markdown-like docs ── */
+.docs h2{font-size:18px;font-weight:800;letter-spacing:-.03em;margin:24px 0 10px;color:var(--text)}
+.docs h3{font-size:14px;font-weight:700;margin:18px 0 8px;color:var(--gold)}
+.docs p{margin-bottom:10px;color:var(--text2);line-height:1.7}
+.docs ul,.docs ol{margin:8px 0 14px 22px;color:var(--text2)}
+.docs li{margin-bottom:4px;line-height:1.6}
+.docs code{background:var(--bg3);padding:2px 7px;border-radius:4px;font-family:var(--fm);font-size:12px;color:var(--gold)}
+.docs pre{margin:10px 0}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-thumb{background:rgba(0,87,184,.20);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:rgba(0,87,184,.40)}
+
+/* ── Responsive ── */
+@media(max-width:900px){
+  .sidebar{display:none}
+  .main{padding:16px}
+  .two-col,.three-col{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════════
+     LOGIN GATE
+     ═══════════════════════════════════════════════════════════ -->
+<div id="loginScreen" class="login-wrap">
+  <div class="login-card">
+    <div class="login-logo">WealthAnalyzer<span class="admin-badge">ADMIN</span></div>
+    <div class="login-sub">Sign in to access the admin console</div>
+    <input type="password" id="loginPw" placeholder="Admin password" onkeydown="if(event.key==='Enter')doLogin()">
+    <button class="login-btn" onclick="doLogin()">Sign in</button>
+    <div class="login-err" id="loginErr"></div>
+    <div class="login-foot">
+      <strong>Default password:</strong> <code>admin123</code><br>
+      ⚠ Client-side auth only — for production, deploy with server-side authentication, HTTPS, and rate-limited brute-force protection.
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     APP SHELL (hidden until login)
+     ═══════════════════════════════════════════════════════════ -->
+<div id="appShell" class="app-shell" style="display:none">
+
+<!-- Top bar -->
+<div class="topbar">
+  <div style="display:flex;align-items:center;gap:18px">
+    <div class="logo">WealthAnalyzer<span class="admin-badge">ADMIN</span><small id="ver-disp">v—</small></div>
+  </div>
+  <div style="display:flex;align-items:center;gap:10px">
+    <a href="wealth-analyzer.html" target="_blank" class="btn-secondary" style="text-decoration:none;display:inline-flex;align-items:center;gap:6px">↗ Open Main App</a>
+    <button class="btn-ghost" onclick="doLogout()">Logout</button>
+  </div>
+</div>
+
+<div class="body">
+<!-- Sidebar -->
+<nav class="sidebar">
+  <div class="nav-grp-label">Overview</div>
+  <div class="nav-item active" data-tab="dashboard" onclick="showTab('dashboard',this)">
+    <svg viewBox="0 0 16 16" fill="currentColor"><path d="M2 2h5v5H2zm7 0h5v5H9zM2 9h5v5H2zm7 0h5v5H9z"/></svg>Dashboard
+  </div>
+  <div class="nav-grp-label">Engineering</div>
+  <div class="nav-item" data-tab="testbench" onclick="showTab('testbench',this)">
+    <svg viewBox="0 0 16 16" fill="currentColor"><path d="M4 1v6L1 14h14L12 7V1zm2 1h4v5l2 5H4l2-5z"/></svg>Calc Test Bench
+  </div>
+  <div class="nav-item" data-tab="constants" onclick="showTab('constants',this)">
+    <svg viewBox="0 0 16 16" fill="currentColor"><path d="M2 3h12v2H2zm0 4h12v2H2zm0 4h12v2H2z"/></svg>Constants Editor
+  </div>
+  <div class="nav-item" data-tab="accounts" onclick="showTab('accounts',this)">
+    <svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 1l6 4v6l-6 4-6-4V5z"/></svg>Account Types
+  </div>
+  <div class="nav-item" data-tab="stress" onclick="showTab('stress',this)">
+    <svg viewBox="0 0 16 16" fill="currentColor"><path d="M1 12l4-5 3 3 3-4 4 5H1z"/></svg>Monte Carlo Stress
+  </div>
+  <div class="nav-grp-label">Data</div>
+  <div class="nav-item" data-tab="profiles" onclick="showTab('profiles',this)">
+    <svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 8a3 3 0 100-6 3 3 0 000 6zm0 1c-3 0-6 1.5-6 4v2h12v-2c0-2.5-3-4-6-4z"/></svg>Profile Manager
+  </div>
+  <div class="nav-item" data-tab="market" onclick="showTab('market',this)">
+    <svg viewBox="0 0 16 16" fill="currentColor"><path d="M1 13l4-6 3 3 3-5 4 8z"/></svg>Market Data
+  </div>
+  <div class="nav-grp-label">System</div>
+  <div class="nav-item" data-tab="keys" onclick="showTab('keys',this)">
+    <svg viewBox="0 0 16 16" fill="currentColor"><path d="M10 2a4 4 0 100 8 4 4 0 000-8zM2 14l5-5 1 1-5 5z"/></svg>API Keys
+  </div>
+  <div class="nav-item" data-tab="logs" onclick="showTab('logs',this)">
+    <svg viewBox="0 0 16 16" fill="currentColor"><path d="M3 1h7l3 3v11H3zm6 0v3h3"/></svg>System Logs
+  </div>
+  <div class="nav-item" data-tab="docs" onclick="showTab('docs',this)">
+    <svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 1a7 7 0 100 14A7 7 0 008 1zm.75 11h-1.5v-1.5h1.5zm0-3h-1.5V5h1.5z"/></svg>Documentation
+  </div>
+</nav>
+
+<!-- Main content -->
+<main class="main">
+
+<!-- ═══ DASHBOARD ═══ -->
+<div class="tab active" id="tab-dashboard">
+  <div class="hero">
+    <div class="hero-title">Admin Console Overview</div>
+    <div class="hero-sub">System status, recent activity, and provider connections at a glance.</div>
+  </div>
+
+  <div class="kpi-grid" id="dashKpis"></div>
+
+  <div class="two-col">
+    <div class="panel">
+      <div class="ptitle">Market Data Provider Status</div>
+      <div id="providerStatus"></div>
+    </div>
+    <div class="panel">
+      <div class="ptitle">Recent Admin Activity</div>
+      <div id="recentActivity" style="max-height:340px;overflow-y:auto"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ CALC TEST BENCH ═══ -->
+<div class="tab" id="tab-testbench">
+  <div class="panel">
+    <div class="ptitle">Calculation Test Bench</div>
+    <div class="pdesc">Execute any internal financial calculation with custom inputs. Verify formulas, run bulk stress tests, and inspect outputs in detail. All math is ported directly from the main app for parity.</div>
+    <div class="frow">
+      <label class="flbl">Function</label>
+      <select id="tbFunc" class="w260" onchange="renderTbForm()">
+        <option value="calcRMD">calcRMD — Required Minimum Distribution</option>
+        <option value="calcMortgagePayment">calcMortgagePayment — Standard amortization</option>
+        <option value="presentValue">presentValue — PV = FV / (1+r)^n</option>
+        <option value="futureValue">futureValue — FV = PV × (1+r)^n</option>
+        <option value="annuityPV">annuityPV — Annuity present value</option>
+        <option value="geometricMean">geometricMean — μ − 0.5σ²</option>
+        <option value="boxMullerSample">boxMullerSample — N(0,1) random</option>
+        <option value="calcRetirementNumber">calcRetirementNumber — Actuarial target</option>
+        <option value="runMC">runMC — Monte Carlo simulation</option>
+        <option value="calcTaxEfficiency">calcTaxEfficiency — Asset location score</option>
+      </select>
+    </div>
+    <div id="tbFormula" style="font-family:var(--fm);font-size:12px;background:var(--bg3);padding:10px 14px;border-radius:var(--rs);color:var(--text2);margin:10px 0 16px"></div>
+    <div id="tbForm"></div>
+    <div style="display:flex;gap:10px;margin-top:14px">
+      <button class="btn-primary" onclick="runTbOnce()">▶ Run Once</button>
+      <button class="btn-secondary" onclick="runTbStress()">⚡ Run 1000× Stress Test</button>
+      <button class="btn-ghost" onclick="clearTbResults()">Clear</button>
+    </div>
+  </div>
+  <div class="panel">
+    <div class="ptitle">Results</div>
+    <div id="tbResults"><div style="font-size:13px;color:var(--text3)">Pick a function and click Run.</div></div>
+  </div>
+</div>
+
+<!-- ═══ CONSTANTS EDITOR ═══ -->
+<div class="tab" id="tab-constants">
+  <div class="panel">
+    <div class="ptitle">Constants Editor</div>
+    <div class="pdesc">Edit financial constants used throughout the main app. Changes can be exported as JSON for deployment. <strong>Reset</strong> reverts to in-built defaults.</div>
+    <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+      <button class="btn-secondary" onclick="downloadConstants()">⬇ Export JSON</button>
+      <button class="btn-secondary" onclick="loadConstantsFile()">⬆ Import JSON</button>
+      <button class="btn-danger" onclick="resetConstants()">↺ Reset to defaults</button>
+      <input type="file" id="constFileInput" accept=".json" style="display:none" onchange="handleConstFile(event)">
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="ptitle">Risk Profiles (μ / σ)</div>
+    <div class="tbl-wrap"><table class="tbl" id="riskTbl"></table></div>
+  </div>
+
+  <div class="panel">
+    <div class="ptitle">Inflation Regions (50-yr CPI averages)</div>
+    <div class="tbl-wrap"><table class="tbl" id="regionTbl"></table></div>
+  </div>
+
+  <div class="panel">
+    <div class="ptitle">Loan Defaults</div>
+    <div class="tbl-wrap"><table class="tbl" id="loanTbl"></table></div>
+  </div>
+
+  <div class="panel">
+    <div class="ptitle">Lifestyle Factors (Retirement spending multipliers)</div>
+    <div class="tbl-wrap"><table class="tbl" id="lifeTbl"></table></div>
+  </div>
+
+  <div class="panel">
+    <div class="ptitle">Cost-of-Living Country Factors</div>
+    <div class="tbl-wrap"><table class="tbl" id="colTbl"></table></div>
+  </div>
+</div>
+
+<!-- ═══ ACCOUNT TYPES ═══ -->
+<div class="tab" id="tab-accounts">
+  <div class="panel">
+    <div class="ptitle">Account Types Manager</div>
+    <div class="pdesc">Browse the country-specific account structures used by the main app. 19 countries × ~500 account types covering banking, retirement, investment, and other asset classifications.</div>
+    <div class="frow">
+      <label class="flbl">Country</label>
+      <select id="acCountry" class="w200" onchange="renderAccountsTable()"></select>
+      <span id="acStats" style="margin-left:14px;font-size:12px;color:var(--text3)"></span>
+    </div>
+  </div>
+  <div class="panel">
+    <div class="ptitle">Accounts for <span id="acCountryName" style="text-transform:none;letter-spacing:-.01em;color:var(--text)">—</span></div>
+    <div id="acAccountsView"></div>
+  </div>
+</div>
+
+<!-- ═══ MONTE CARLO STRESS ═══ -->
+<div class="tab" id="tab-stress">
+  <div class="panel">
+    <div class="ptitle">Monte Carlo Parameter Sweep</div>
+    <div class="pdesc">Run a parameter sweep across one variable while holding all others constant. Each step runs 500 simulations. Plots p10/p50/p90 across the sweep range to surface sensitivity.</div>
+    <div class="two-col">
+      <div>
+        <div class="frow"><label class="flbl">Sweep parameter</label>
+          <select id="swParam" class="w200">
+            <option value="mu">Mean return (μ)</option>
+            <option value="sigma">Volatility (σ)</option>
+            <option value="years">Projection years</option>
+            <option value="savings">Annual savings</option>
+            <option value="startNW">Starting net worth</option>
+          </select>
+        </div>
+        <div class="frow"><label class="flbl">Sweep from</label><input type="number" id="swFrom" value="4" class="w120" step="0.5"></div>
+        <div class="frow"><label class="flbl">Sweep to</label><input type="number" id="swTo" value="12" class="w120" step="0.5"></div>
+        <div class="frow"><label class="flbl">Step size</label><input type="number" id="swStep" value="0.5" class="w120" step="0.1"></div>
+        <div class="frow"><label class="flbl">Sims per step</label><input type="number" id="swSims" value="500" class="w120" step="50"></div>
+      </div>
+      <div>
+        <div class="frow"><label class="flbl">Starting NW</label><input type="number" id="swStartNW" value="500000" class="w160"></div>
+        <div class="frow"><label class="flbl">μ (mean)</label><input type="number" id="swMu" value="7" class="w120" step="0.5"></div>
+        <div class="frow"><label class="flbl">σ (vol)</label><input type="number" id="swSigma" value="12" class="w120" step="0.5"></div>
+        <div class="frow"><label class="flbl">Years</label><input type="number" id="swYears" value="20" class="w120" step="1"></div>
+        <div class="frow"><label class="flbl">Annual savings</label><input type="number" id="swSavings" value="30000" class="w160" step="1000"></div>
+      </div>
+    </div>
+    <button class="btn-primary full" onclick="runStressSweep()" style="margin-top:14px">▶ Run Parameter Sweep</button>
+  </div>
+  <div class="panel">
+    <div class="ptitle">Sweep Results</div>
+    <div class="chart-wrap"><canvas id="stressChart"></canvas></div>
+    <div id="stressTable" style="margin-top:14px"></div>
+  </div>
+</div>
+
+<!-- ═══ PROFILE MANAGER ═══ -->
+<div class="tab" id="tab-profiles">
+  <div class="panel">
+    <div class="ptitle">User Profile Manager</div>
+    <div class="pdesc">Load any <code>wealth-profile.json</code> exported from the main app for inspection. Edit and re-export, or push directly into the main app's localStorage.</div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px">
+      <button class="btn-secondary" onclick="loadProfileFile()">⬆ Load JSON Profile</button>
+      <button class="btn-secondary" onclick="downloadProfile()" id="dlProfile" disabled>⬇ Save JSON</button>
+      <button class="btn-primary" onclick="injectIntoApp()" id="injProfile" disabled>↻ Inject into Main App</button>
+      <input type="file" id="profileFileInput" accept=".json" style="display:none" onchange="handleProfileFile(event)">
+    </div>
+    <div id="profileStats" class="kpi-grid"></div>
+  </div>
+  <div class="panel">
+    <div class="ptitle">Profile JSON Tree</div>
+    <div id="profileTree" class="jt" style="max-height:500px;overflow-y:auto;padding:8px 0">
+      <div style="font-size:13px;color:var(--text3);padding:14px">No profile loaded.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MARKET DATA ═══ -->
+<div class="tab" id="tab-market">
+  <div class="panel">
+    <div class="ptitle">Live Market Data Console</div>
+    <div class="pdesc">Test live quote retrieval from multiple providers. Free providers (Alpha Vantage, Finnhub, Yahoo, Polygon) work directly. Enterprise providers (Bloomberg, FactSet) require a user-deployed backend proxy due to authentication and CORS requirements — see Documentation tab.</div>
+    <div class="frow">
+      <label class="flbl">Ticker</label>
+      <input id="mdTicker" placeholder="AAPL" class="w160" value="AAPL">
+      <label class="flbl" style="min-width:60px">Provider</label>
+      <select id="mdProvider" class="w200">
+        <option value="auto">Auto (try all in order)</option>
+        <option value="finnhub">Finnhub</option>
+        <option value="alphavantage">Alpha Vantage</option>
+        <option value="yahoo">Yahoo Finance</option>
+        <option value="polygon">Polygon.io</option>
+        <option value="bloomberg">Bloomberg (proxy)</option>
+        <option value="factset">FactSet (proxy)</option>
+      </select>
+      <button class="btn-primary" onclick="testFetchQuote()">▶ Fetch Quote</button>
+      <button class="btn-secondary" onclick="testAllProviders()">⚡ Test All Providers</button>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="ptitle">Quote Result</div>
+    <div id="mdResult"><div style="font-size:13px;color:var(--text3)">Enter a ticker and click Fetch Quote.</div></div>
+  </div>
+
+  <div class="panel">
+    <div class="ptitle">Provider Comparison</div>
+    <div id="mdComparison"><div style="font-size:13px;color:var(--text3)">Click "Test All Providers" to compare prices across all configured providers.</div></div>
+  </div>
+
+  <div class="panel">
+    <div class="ptitle">Recent Requests</div>
+    <div id="mdHistory" style="max-height:280px;overflow-y:auto">
+      <div style="font-size:13px;color:var(--text3);padding:8px 0">No requests yet.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ API KEYS ═══ -->
+<div class="tab" id="tab-keys">
+  <div class="panel">
+    <div class="ptitle">API Key & Endpoint Management</div>
+    <div class="pdesc">All credentials are stored in localStorage with the <code>wa_</code> prefix and shared with the main app. Keys never leave the browser. For production, deploy a server-side proxy that holds credentials securely.</div>
+  </div>
+
+  <div class="panel">
+    <div class="ptitle">Free Providers</div>
+    <table class="tbl">
+      <thead><tr><th>Provider</th><th>Key</th><th>Status</th><th>Action</th></tr></thead>
+      <tbody id="freeKeysTbl"></tbody>
+    </table>
+    <div style="font-size:11px;color:var(--text3);margin-top:10px;line-height:1.6">
+      <strong>Get free API keys:</strong> Alpha Vantage <a href="https://www.alphavantage.co/support/#api-key" target="_blank" style="color:var(--gold)">alphavantage.co</a> · Finnhub <a href="https://finnhub.io/register" target="_blank" style="color:var(--gold)">finnhub.io</a> · Polygon <a href="https://polygon.io/dashboard/api-keys" target="_blank" style="color:var(--gold)">polygon.io</a> · Claude API <a href="https://console.anthropic.com/" target="_blank" style="color:var(--gold)">console.anthropic.com</a>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="ptitle">Enterprise Providers (require backend proxy)</div>
+    <div class="three-col">
+      <div>
+        <div class="slbl">Bloomberg</div>
+        <div class="frow"><label class="flbl">Proxy URL</label><input id="kBloombergUrl" placeholder="https://my-proxy.example.com" class="fw"></div>
+        <div class="frow"><label class="flbl">Auth token</label><input id="kBloombergAuth" type="password" placeholder="Bearer token" class="fw"></div>
+        <button class="btn-secondary" onclick="saveBloomberg()">Save</button>
+        <button class="btn-ghost" onclick="testProvider('bloomberg')">Test</button>
+      </div>
+      <div>
+        <div class="slbl">FactSet</div>
+        <div class="frow"><label class="flbl">Proxy URL</label><input id="kFactsetUrl" placeholder="https://my-factset-proxy.example.com" class="fw"></div>
+        <div class="frow"><label class="flbl">Client ID</label><input id="kFactsetId" placeholder="OAuth client_id" class="fw"></div>
+        <div class="frow"><label class="flbl">Client secret</label><input id="kFactsetSecret" type="password" placeholder="OAuth client_secret" class="fw"></div>
+        <button class="btn-secondary" onclick="saveFactset()">Save</button>
+        <button class="btn-ghost" onclick="testProvider('factset')">Test</button>
+      </div>
+      <div>
+        <div class="slbl">Custom Provider</div>
+        <div class="frow"><label class="flbl">Endpoint</label><input id="kCustomUrl" placeholder="https://my-api.example.com/quote" class="fw"></div>
+        <div class="frow"><label class="flbl">API key</label><input id="kCustomKey" type="password" class="fw"></div>
+        <button class="btn-secondary" onclick="saveCustom()">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="ptitle">Admin Password</div>
+    <div class="frow">
+      <label class="flbl">New password</label><input type="password" id="newPw" class="w200">
+      <button class="btn-secondary" onclick="changePw()">Change password</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ LOGS ═══ -->
+<div class="tab" id="tab-logs">
+  <div class="panel">
+    <div class="ptitle">System Logs & Diagnostics</div>
+    <div class="pdesc">Action audit trail, browser environment, and full localStorage inspector. Useful for debugging production issues.</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn-secondary" onclick="downloadLogs()">⬇ Export logs</button>
+      <button class="btn-secondary" onclick="copyLogs()">📋 Copy logs</button>
+      <button class="btn-danger" onclick="clearLogs()">Clear logs</button>
+      <button class="btn-danger" onclick="confirmWipe()">⚠ Wipe ALL localStorage</button>
+    </div>
+  </div>
+  <div class="panel">
+    <div class="ptitle">Action Log (last 200 entries)</div>
+    <div id="logsView" style="max-height:400px;overflow-y:auto"></div>
+  </div>
+  <div class="two-col">
+    <div class="panel">
+      <div class="ptitle">Browser / Environment</div>
+      <div id="envInfo"></div>
+    </div>
+    <div class="panel">
+      <div class="ptitle">localStorage Inspector</div>
+      <div id="lsInspector" style="max-height:340px;overflow-y:auto"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ DOCS ═══ -->
+<div class="tab" id="tab-docs">
+  <div class="panel docs">
+    <div class="ptitle">Admin Documentation</div>
+
+    <h2>Overview</h2>
+    <p>This admin console is the operations interface for the WealthAnalyzer financial planning app. It is intentionally separated from the user-facing app so that financial advisors and developers can: test calculations in isolation, edit financial constants without redeploying code, inspect & repair user profiles, and configure live market data integrations.</p>
+
+    <h2>Architecture</h2>
+    <pre class="code small">┌─────────────────────────┐         ┌──────────────────────────┐
+│  wealth-analyzer.html   │ ◀────▶  │   admin.html             │
+│  (user-facing planner)  │  shared │   (this console)         │
+│                         │  local- │                          │
+│  • Monte Carlo engine   │  Storage│  • Calc test bench       │
+│  • Cash-flow ledger     │         │  • Constants editor      │
+│  • Portfolio holdings   │         │  • Profile manager       │
+│  • Live price widget    │         │  • Market data console   │
+└──────────┬──────────────┘         └──────────────┬───────────┘
+           │                                       │
+           │  HTTP fetch (browser)                 │  HTTP fetch
+           ▼                                       ▼
+    ┌──────────────────────────────────────────────────────┐
+    │            MarketData unified layer                  │
+    ├──────────────────────────────────────────────────────┤
+    │  Finnhub │ Alpha Vantage │ Yahoo │ Polygon │ Proxy   │
+    └──────────────────────────────────────────────────────┘
+                                                  │
+                                                  ▼
+                                ┌──────────────────────────┐
+                                │  User-deployed backend   │
+                                │  (Bloomberg / FactSet)   │
+                                └──────────────────────────┘</pre>
+
+    <h2>Tab Guide</h2>
+    <h3>Dashboard</h3>
+    <p>System overview, provider connection statuses, and the last 20 admin actions. Use as a starting point each session.</p>
+    <h3>Calc Test Bench</h3>
+    <p>Execute any internal calculation with custom inputs. The 1000× stress test runs the function 1000 times and reports the distribution of outputs — useful for validating Monte Carlo math.</p>
+    <h3>Constants Editor</h3>
+    <p>Live-edit risk profiles, regional inflation, loan defaults, lifestyle multipliers, and country cost-of-living factors. Export edited constants as JSON to roll into a deployment.</p>
+    <h3>Account Types</h3>
+    <p>Browse the 500+ country-specific account types (US 401k, UK ISA, Singapore CPF, etc.) the main app uses for asset classification.</p>
+    <h3>Monte Carlo Stress</h3>
+    <p>Parameter sweep tool. Vary one input (e.g. μ from 4% to 12%) across a range and plot the p10/p50/p90 of outcomes. Reveals where the projection is most sensitive.</p>
+    <h3>Profile Manager</h3>
+    <p>Load any exported user profile, inspect it as a tree, edit fields, and either re-save or inject into the main app's localStorage for the user's next session.</p>
+    <h3>Market Data</h3>
+    <p>Test live quote retrieval. Compare results across providers. Confirm API keys are working before letting users rely on the portfolio refresh feature.</p>
+
+    <h2>Deploying a Bloomberg Proxy</h2>
+    <p>Bloomberg's market data is not directly accessible from a browser. You need a Bloomberg Server API (BLPAPI) license (~$25k/yr) OR Bloomberg Data License Web Services. Then deploy a small proxy that bridges browser ↔ Bloomberg.</p>
+    <h3>Minimal Node.js proxy</h3>
+    <pre class="code small">// server.js — deploy on Render, Railway, Fly, or AWS
+const express = require('express');
+const cors = require('cors');
+const blpapi = require('blpapi');
+const app = express();
+app.use(cors({ origin: 'https://your-domain.com' }));
+app.use(express.json());
+
+const session = new blpapi.Session({
+  serverHost: process.env.BLP_HOST,  // your Bloomberg server
+  serverPort: 8194
+});
+
+app.post('/quote', async (req, res) => {
+  const { ticker } = req.body;
+  // Verify auth token
+  if (req.headers.authorization !== `Bearer ${process.env.AUTH_TOKEN}`)
+    return res.status(401).json({ error: 'Unauthorized' });
+  try {
+    await session.start();
+    await session.openService('//blp/refdata');
+    const result = await session.request('//blp/refdata', 'ReferenceDataRequest', {
+      securities: [`${ticker} US Equity`],
+      fields: ['PX_LAST', 'CHG_PCT_1D', 'VOLUME']
+    });
+    res.json({
+      price: result[0].PX_LAST,
+      changePct: result[0].CHG_PCT_1D,
+      volume: result[0].VOLUME,
+      asOf: new Date().toISOString()
+    });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.listen(process.env.PORT || 3000);</pre>
+    <p>Then in the API Keys tab, set <strong>Proxy URL</strong> to your deployed URL and <strong>Auth token</strong> to the secret token your proxy expects.</p>
+
+    <h2>Deploying a FactSet Proxy</h2>
+    <p>FactSet's WebServices use OAuth 2.0 client credentials. Similar architecture — deploy a Node.js proxy that holds your <code>client_id</code> and <code>client_secret</code>, exchanges them for a bearer token, and forwards quote requests.</p>
+    <pre class="code small">// FactSet proxy snippet
+const fetch = require('node-fetch');
+let token = null, tokenExp = 0;
+
+async function getToken() {
+  if (token && Date.now() < tokenExp) return token;
+  const r = await fetch('https://auth.factset.com/as/token.oauth2', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: `grant_type=client_credentials&client_id=${process.env.FS_ID}&client_secret=${process.env.FS_SECRET}`
+  });
+  const j = await r.json();
+  token = j.access_token;
+  tokenExp = Date.now() + (j.expires_in - 60) * 1000;
+  return token;
+}
+
+app.post('/quote', async (req, res) => {
+  const t = await getToken();
+  const { ticker } = req.body;
+  const r = await fetch(`https://api.factset.com/content/factset-prices/v1/quotes?ids=${ticker}`, {
+    headers: { Authorization: `Bearer ${t}` }
+  });
+  const j = await r.json();
+  res.json({ price: j.data[0].price, ... });
+});</pre>
+
+    <h2>Free Provider Setup</h2>
+    <h3>Alpha Vantage</h3>
+    <p>Sign up at <a href="https://www.alphavantage.co/support/#api-key" target="_blank" style="color:var(--gold)">alphavantage.co</a>. Free tier: 25 requests/day, 5 requests/min.</p>
+    <h3>Finnhub</h3>
+    <p>Sign up at <a href="https://finnhub.io/register" target="_blank" style="color:var(--gold)">finnhub.io</a>. Free tier: 60 calls/min.</p>
+    <h3>Polygon.io</h3>
+    <p>Sign up at <a href="https://polygon.io/dashboard/api-keys" target="_blank" style="color:var(--gold)">polygon.io</a>. Free tier: 5 requests/min.</p>
+    <h3>Yahoo Finance</h3>
+    <p>No API key needed. May fail due to CORS — the unified MarketData layer falls back to <code>corsproxy.io</code> when direct fetch is blocked.</p>
+
+    <h2>Going-to-Production Checklist</h2>
+    <ul>
+      <li>✅ Switch to a real server-side authentication (Auth0, Cognito, or custom JWT)</li>
+      <li>✅ Enable HTTPS — never run in production over HTTP</li>
+      <li>✅ Move API keys server-side — frontend should only hold short-lived session tokens</li>
+      <li>✅ Add rate limiting (express-rate-limit) to all proxy endpoints</li>
+      <li>✅ Log all admin actions to a persistent store (Postgres, Redis, S3)</li>
+      <li>✅ Add CSP headers to prevent XSS</li>
+      <li>✅ Implement Content Security Policy that disallows inline scripts (refactor to external JS)</li>
+      <li>✅ Enable browser caching for static assets, but never for the HTML itself</li>
+      <li>✅ Set up uptime monitoring (UptimeRobot, Datadog) on all backend proxies</li>
+      <li>✅ Backup user profiles regularly — they're currently stored only client-side</li>
+      <li>✅ Consider GDPR/CCPA compliance if storing user data server-side</li>
+    </ul>
+
+    <h2>Recommended Hosting</h2>
+    <p>The main app and admin can both be hosted on any static-file host: <strong>Vercel</strong>, <strong>Netlify</strong>, <strong>Cloudflare Pages</strong>, <strong>GitHub Pages</strong>, or <strong>AWS S3 + CloudFront</strong>. For backend proxies, use <strong>Render</strong>, <strong>Railway</strong>, <strong>Fly.io</strong>, or <strong>AWS Lambda</strong>.</p>
+  </div>
+</div>
+
+</main>
+</div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+// VERSION & UTILS
+// ═══════════════════════════════════════════════════════════
+const APP_VERSION = "20260521-2100";
+const $ = (id) => document.getElementById(id);
+const fmtMoney = (n) => { if(n==null||isNaN(n))return"—"; const a=Math.abs(n); const s=n<0?"−":""; if(a>=1e9) return s+"$"+(a/1e9).toFixed(2)+"B"; if(a>=1e6) return s+"$"+(a/1e6).toFixed(2)+"M"; if(a>=1e3) return s+"$"+Math.round(a).toLocaleString(); return s+"$"+a.toFixed(0); };
+const fmtNum = (n,d=2) => n==null||isNaN(n)?"—":Number(n).toFixed(d);
+const fmtBytes = (n) => { if(n<1024)return n+" B"; if(n<1024*1024)return (n/1024).toFixed(1)+" KB"; return (n/1024/1024).toFixed(2)+" MB"; };
+
+function toast(msg, type){
+  const t = $("toast"); t.textContent = msg; t.className = "show " + (type||"");
+  setTimeout(() => t.className = "", 2400);
+}
+
+// SHA-256 for password hashing
+async function sha256(text){
+  const buf = new TextEncoder().encode(text);
+  const h = await crypto.subtle.digest("SHA-256", buf);
+  return Array.from(new Uint8Array(h)).map(b=>b.toString(16).padStart(2,"0")).join("");
+}
+
+// Default admin pw hash for "admin123"
+const DEFAULT_PW_HASH = "240be518fabd2724ddb6f04eeb1da5967448d7e831c08c8fa822809f74c720a9";
+
+// ═══════════════════════════════════════════════════════════
+// LOGGING SYSTEM
+// ═══════════════════════════════════════════════════════════
+const LOG_KEY = "wa_admin_logs";
+function addLog(level, msg){
+  const logs = JSON.parse(localStorage.getItem(LOG_KEY) || "[]");
+  logs.unshift({ ts: new Date().toISOString(), level, msg });
+  if(logs.length > 200) logs.length = 200;
+  localStorage.setItem(LOG_KEY, JSON.stringify(logs));
+}
+function getLogs(){ return JSON.parse(localStorage.getItem(LOG_KEY) || "[]"); }
+
+// ═══════════════════════════════════════════════════════════
+// LOGIN
+// ═══════════════════════════════════════════════════════════
+async function doLogin(){
+  const pw = $("loginPw").value;
+  if(!pw){ $("loginErr").textContent = "Enter a password"; return; }
+  const hash = await sha256(pw);
+  const storedHash = localStorage.getItem("wa_admin_pw") || DEFAULT_PW_HASH;
+  if(hash === storedHash){
+    sessionStorage.setItem("wa_admin_session", "1");
+    $("loginErr").textContent = "";
+    addLog("ok", "Admin login");
+    showApp();
+  } else {
+    $("loginErr").textContent = "Invalid password";
+    addLog("err", "Failed login attempt");
+  }
+}
+function doLogout(){
+  sessionStorage.removeItem("wa_admin_session");
+  addLog("info", "Admin logout");
+  location.reload();
+}
+async function changePw(){
+  const newPw = $("newPw").value;
+  if(!newPw || newPw.length < 6){ toast("Password must be 6+ chars", "err"); return; }
+  const h = await sha256(newPw);
+  localStorage.setItem("wa_admin_pw", h);
+  $("newPw").value = "";
+  toast("Password updated", "ok");
+  addLog("ok", "Admin password changed");
+}
+
+function showApp(){
+  $("loginScreen").style.display = "none";
+  $("appShell").style.display = "flex";
+  $("ver-disp").textContent = "v" + APP_VERSION;
+  initDashboard();
+  initConstants();
+  initAccountTypes();
+  initKeysTab();
+  renderTbForm();
+  renderLogs();
+  renderEnvInfo();
+  renderLsInspector();
+}
+
+// Check session on load
+if(sessionStorage.getItem("wa_admin_session") === "1"){
+  setTimeout(showApp, 0);
+}
+
+// ═══════════════════════════════════════════════════════════
+// TAB SWITCHING
+// ═══════════════════════════════════════════════════════════
+function showTab(name, el){
+  document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+  document.querySelectorAll(".nav-item").forEach(n => n.classList.remove("active"));
+  $("tab-" + name).classList.add("active");
+  if(el) el.classList.add("active");
+  addLog("info", "Switched to " + name + " tab");
+
+  // Lazy refresh on tab open
+  if(name === "dashboard") initDashboard();
+  if(name === "logs"){ renderLogs(); renderEnvInfo(); renderLsInspector(); }
+  if(name === "keys") initKeysTab();
+}
+
+// ═══════════════════════════════════════════════════════════
+// DEFAULT CONSTANTS (synced with main app)
+// ═══════════════════════════════════════════════════════════
+const DEFAULT_RISK_PROFILES = {
+  very_conservative: {label:"Very Conservative", mu:3.5, sigma:4},
+  conservative: {label:"Conservative", mu:4.5, sigma:7},
+  moderately_conservative: {label:"Moderately Conservative", mu:5.5, sigma:9},
+  moderate: {label:"Moderate", mu:7.0, sigma:12},
+  moderately_aggressive: {label:"Moderately Aggressive", mu:8.5, sigma:15},
+  aggressive: {label:"Aggressive", mu:10.0, sigma:18},
+  very_aggressive: {label:"Very Aggressive", mu:12.0, sigma:22}
+};
+
+const DEFAULT_REGIONS = {
+  us:{name:"United States",rate:3.8},ca:{name:"Canada",rate:3.7},mx:{name:"Mexico",rate:15.2},
+  eu:{name:"Euro zone",rate:3.1},uk:{name:"United Kingdom",rate:4.8},ch:{name:"Switzerland",rate:2.1},
+  jp:{name:"Japan",rate:2.0},cn:{name:"China & Taiwan",rate:3.9},sg:{name:"Singapore",rate:2.8},
+  au:{name:"Australia",rate:4.4},hk:{name:"Hong Kong",rate:4.1},kr:{name:"South Korea",rate:5.2},
+  in:{name:"India",rate:7.4},id:{name:"Indonesia",rate:11.6},sa:{name:"Saudi Arabia",rate:2.5},
+  za:{name:"South Africa",rate:8.9},br:{name:"Brazil",rate:58.5}
+};
+
+const DEFAULT_LOAN_DEFAULTS = {
+  mortgage_primary:{label:"Primary mortgage",rate:6.5,yrs:25},
+  mortgage_secondary:{label:"Secondary mortgage",rate:7.5,yrs:15},
+  heloc:{label:"HELOC",rate:8.5,yrs:10},
+  auto:{label:"Auto loan",rate:7.0,yrs:5},
+  personal:{label:"Personal loan",rate:11.0,yrs:4},
+  student:{label:"Student loan",rate:5.5,yrs:10},
+  business:{label:"Business loan",rate:8.0,yrs:7},
+  cc:{label:"Credit card",rate:20.0,yrs:3},
+  payday:{label:"Payday loan",rate:36.0,yrs:0.5},
+  other:{label:"Other",rate:8.0,yrs:5}
+};
+
+const DEFAULT_LIFESTYLE = {frugal:0.50, modest:0.65, comfortable:0.80, upscale:1.20, luxury:1.60};
+
+const DEFAULT_COL_FACTORS = {
+  US:1.00,CA:0.95,GB:1.05,AU:1.05,CH:1.45,EU:0.85,JP:0.85,SG:1.10,HK:1.05,
+  CN:0.45,TW:0.55,KR:0.70,IN:0.30,ID:0.30,MX:0.55,BR:0.50,SA:0.65,ZA:0.50,OTHER:0.85
+};
+
+// Working copies (mutable)
+let RISK_PROFILES = JSON.parse(JSON.stringify(DEFAULT_RISK_PROFILES));
+let REGIONS = JSON.parse(JSON.stringify(DEFAULT_REGIONS));
+let LOAN_DEFAULTS = JSON.parse(JSON.stringify(DEFAULT_LOAN_DEFAULTS));
+let LIFESTYLE = JSON.parse(JSON.stringify(DEFAULT_LIFESTYLE));
+let COL_FACTORS = JSON.parse(JSON.stringify(DEFAULT_COL_FACTORS));
+
+// Load saved overrides from localStorage
+(function loadSavedConstants(){
+  const saved = localStorage.getItem("wa_admin_constants");
+  if(!saved) return;
+  try {
+    const c = JSON.parse(saved);
+    if(c.RISK_PROFILES) RISK_PROFILES = c.RISK_PROFILES;
+    if(c.REGIONS) REGIONS = c.REGIONS;
+    if(c.LOAN_DEFAULTS) LOAN_DEFAULTS = c.LOAN_DEFAULTS;
+    if(c.LIFESTYLE) LIFESTYLE = c.LIFESTYLE;
+    if(c.COL_FACTORS) COL_FACTORS = c.COL_FACTORS;
+  } catch(e){ console.warn("Failed to load saved constants:", e); }
+})();
+
+function persistConstants(){
+  localStorage.setItem("wa_admin_constants", JSON.stringify({
+    RISK_PROFILES, REGIONS, LOAN_DEFAULTS, LIFESTYLE, COL_FACTORS
+  }));
+}
+
+// ═══════════════════════════════════════════════════════════
+// FINANCIAL MATH FUNCTIONS (ported from main app)
+// ═══════════════════════════════════════════════════════════
+const IRS_ULT = {73:26.5,74:25.5,75:24.6,76:23.7,77:22.9,78:22.0,79:21.1,80:20.2,
+  81:19.4,82:18.5,83:17.7,84:16.8,85:16.0,86:15.2,87:14.4,88:13.7,89:12.9,
+  90:12.2,91:11.5,92:10.8,93:10.1,94:9.5,95:8.9,96:8.4,97:7.8,98:7.3,99:6.8,100:6.4};
+
+function calcRMD(balance, age, country){
+  if(balance <= 0 || age < 73) return 0;
+  if(country === "US"){
+    const f = IRS_ULT[Math.min(age,100)] || 6.4;
+    return balance / f;
+  }
+  return balance * 0.04;
+}
+
+function calcMortgagePayment(principal, annualRate, years){
+  const r = annualRate / 100 / 12, n = years * 12;
+  if(r === 0) return principal / n;
+  return principal * (r * Math.pow(1+r, n)) / (Math.pow(1+r, n) - 1);
+}
+
+function presentValue(fv, rate, periods){
+  return fv / Math.pow(1 + rate, periods);
+}
+
+function futureValue(pv, rate, periods){
+  return pv * Math.pow(1 + rate, periods);
+}
+
+function annuityPV(payment, rate, periods){
+  if(Math.abs(rate) < 1e-10) return payment * periods;
+  return payment * (1 - Math.pow(1 + rate, -periods)) / rate;
+}
+
+function geometricMean(mu, sigma){
+  return mu - 0.5 * sigma * sigma;
+}
+
+function boxMullerSample(){
+  const u1 = Math.random(), u2 = Math.random();
+  return Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
+}
+
+function calcRetirementNumber(currentAge, retAge, annualSpend, inflation, discountRate){
+  discountRate = discountRate || 0.068;
+  const yearsToRet = Math.max(0, retAge - currentAge);
+  const yearsInRet = Math.max(0, 98 - retAge);
+  const realRate = (discountRate - inflation) / (1 + inflation);
+  const nomSpend = annualSpend * Math.pow(1 + inflation, yearsToRet);
+  let pvAtRet;
+  if(Math.abs(realRate) < 1e-10 || yearsInRet <= 0){
+    pvAtRet = nomSpend * yearsInRet;
+  } else {
+    pvAtRet = nomSpend * (1 - Math.pow(1 + realRate, -yearsInRet)) / realRate;
+  }
+  const pvToday = pvAtRet / Math.pow(1 + discountRate, yearsToRet);
+  return { pvAtRet, pvToday, realRate, yearsToRet, yearsInRet, nomSpend };
+}
+
+function runMC(startNW, mu, sigma, years, sims, annualSavings){
+  const muF = mu / 100, sigF = sigma / 100;
+  const ends = [];
+  for(let s = 0; s < sims; s++){
+    let nw = startNW;
+    for(let y = 0; y < years; y++){
+      const ret = geometricMean(muF, sigF) + sigF * boxMullerSample();
+      nw = nw * (1 + ret) + annualSavings;
+    }
+    ends.push(nw);
+  }
+  ends.sort((a, b) => a - b);
+  return {
+    paths: sims,
+    p10: ends[Math.floor(sims * 0.1)],
+    p25: ends[Math.floor(sims * 0.25)],
+    p50: ends[Math.floor(sims * 0.5)],
+    p75: ends[Math.floor(sims * 0.75)],
+    p90: ends[Math.floor(sims * 0.9)],
+    mean: ends.reduce((s, v) => s + v, 0) / sims,
+    min: ends[0],
+    max: ends[sims - 1]
+  };
+}
+
+function calcTaxEfficiency(taxFree, taxDeferred, taxable, expectedReturn, taxRate){
+  taxRate = taxRate || 0.25;
+  const total = taxFree + taxDeferred + taxable;
+  if(total === 0) return { score: 0, annualDrag: 0, cumulativeDrag30: 0 };
+  const annualDrag = taxable * expectedReturn * taxRate;
+  const cumulativeDrag30 = annualDrag * 30;
+  const score = Math.round((taxFree * 1.0 + taxDeferred * 0.65) / total * 100);
+  return { score, annualDrag, cumulativeDrag30, total };
+}
+
+// ═══════════════════════════════════════════════════════════
+// TEST BENCH
+// ═══════════════════════════════════════════════════════════
+const TB_FUNCTIONS = {
+  calcRMD: {
+    formula: "RMD = balance / IRS_ULT[age]    (IRS Uniform Lifetime Table)",
+    inputs: [
+      {id:"balance", label:"Account balance ($)", type:"number", default:500000},
+      {id:"age", label:"Age (≥73 for US)", type:"number", default:75},
+      {id:"country", label:"Country", type:"text", default:"US"}
+    ],
+    run: (i) => calcRMD(+i.balance, +i.age, i.country)
+  },
+  calcMortgagePayment: {
+    formula: "P × [r(1+r)^n] / [(1+r)^n − 1]    monthly payment",
+    inputs: [
+      {id:"principal", label:"Loan principal ($)", type:"number", default:500000},
+      {id:"annualRate", label:"Annual rate (%)", type:"number", default:6.5},
+      {id:"years", label:"Term (years)", type:"number", default:30}
+    ],
+    run: (i) => calcMortgagePayment(+i.principal, +i.annualRate, +i.years)
+  },
+  presentValue: {
+    formula: "PV = FV / (1 + r)^n",
+    inputs: [
+      {id:"fv", label:"Future value ($)", type:"number", default:100000},
+      {id:"rate", label:"Discount rate (decimal)", type:"number", default:0.07},
+      {id:"periods", label:"Periods", type:"number", default:20}
+    ],
+    run: (i) => presentValue(+i.fv, +i.rate, +i.periods)
+  },
+  futureValue: {
+    formula: "FV = PV × (1 + r)^n",
+    inputs: [
+      {id:"pv", label:"Present value ($)", type:"number", default:10000},
+      {id:"rate", label:"Growth rate (decimal)", type:"number", default:0.07},
+      {id:"periods", label:"Periods", type:"number", default:20}
+    ],
+    run: (i) => futureValue(+i.pv, +i.rate, +i.periods)
+  },
+  annuityPV: {
+    formula: "PV = PMT × [1 − (1+r)^−n] / r",
+    inputs: [
+      {id:"payment", label:"Annual payment ($)", type:"number", default:50000},
+      {id:"rate", label:"Discount rate (decimal)", type:"number", default:0.04},
+      {id:"periods", label:"Periods (years)", type:"number", default:30}
+    ],
+    run: (i) => annuityPV(+i.payment, +i.rate, +i.periods)
+  },
+  geometricMean: {
+    formula: "Geometric mean ≈ μ − 0.5 × σ²    (log-normal expected compound return)",
+    inputs: [
+      {id:"mu", label:"Arithmetic mean (decimal)", type:"number", default:0.07},
+      {id:"sigma", label:"Volatility σ (decimal)", type:"number", default:0.12}
+    ],
+    run: (i) => geometricMean(+i.mu, +i.sigma)
+  },
+  boxMullerSample: {
+    formula: "z = √(−2 ln U₁) × cos(2π U₂)    (Box-Muller transform, N(0,1))",
+    inputs: [],
+    run: () => boxMullerSample()
+  },
+  calcRetirementNumber: {
+    formula: "Lump-sum to fund inflation-adjusted annuity to age 98, discounted to today at 6.8%",
+    inputs: [
+      {id:"currentAge", label:"Current age", type:"number", default:40},
+      {id:"retAge", label:"Retirement age", type:"number", default:65},
+      {id:"annualSpend", label:"Annual retirement spend ($)", type:"number", default:80000},
+      {id:"inflation", label:"Inflation (decimal)", type:"number", default:0.038},
+      {id:"discountRate", label:"Annuity discount rate (decimal)", type:"number", default:0.068}
+    ],
+    run: (i) => calcRetirementNumber(+i.currentAge, +i.retAge, +i.annualSpend, +i.inflation, +i.discountRate)
+  },
+  runMC: {
+    formula: "Log-normal MC: annRet = (μ − 0.5σ²) + σ × N(0,1)    sampled per year per path",
+    inputs: [
+      {id:"startNW", label:"Starting NW ($)", type:"number", default:500000},
+      {id:"mu", label:"Mean return (%)", type:"number", default:7},
+      {id:"sigma", label:"Volatility σ (%)", type:"number", default:12},
+      {id:"years", label:"Years", type:"number", default:20},
+      {id:"sims", label:"Simulations", type:"number", default:500},
+      {id:"annualSavings", label:"Annual savings ($)", type:"number", default:30000}
+    ],
+    run: (i) => runMC(+i.startNW, +i.mu, +i.sigma, +i.years, +i.sims, +i.annualSavings)
+  },
+  calcTaxEfficiency: {
+    formula: "Score = (taxFree×1.0 + taxDeferred×0.65) / total × 100,   Drag = taxable × return × taxRate",
+    inputs: [
+      {id:"taxFree", label:"Tax-free balance ($)", type:"number", default:100000},
+      {id:"taxDeferred", label:"Tax-deferred balance ($)", type:"number", default:300000},
+      {id:"taxable", label:"Taxable balance ($)", type:"number", default:200000},
+      {id:"expectedReturn", label:"Expected return (decimal)", type:"number", default:0.07},
+      {id:"taxRate", label:"Marginal tax rate (decimal)", type:"number", default:0.25}
+    ],
+    run: (i) => calcTaxEfficiency(+i.taxFree, +i.taxDeferred, +i.taxable, +i.expectedReturn, +i.taxRate)
+  }
+};
+
+function renderTbForm(){
+  const fnName = $("tbFunc").value;
+  const fn = TB_FUNCTIONS[fnName];
+  $("tbFormula").innerHTML = '<span style="color:var(--gold);font-weight:700">ƒ</span> &nbsp; ' + fn.formula;
+  const html = fn.inputs.map(i =>
+    `<div class="frow"><label class="flbl">${i.label}</label><input type="${i.type}" id="tb-${i.id}" value="${i.default}" class="w200" step="any"></div>`
+  ).join("") || '<div style="font-size:12px;color:var(--text3);padding:8px 0">No inputs required.</div>';
+  $("tbForm").innerHTML = html;
+}
+
+function gatherTbInputs(){
+  const fnName = $("tbFunc").value;
+  const fn = TB_FUNCTIONS[fnName];
+  const inputs = {};
+  fn.inputs.forEach(i => inputs[i.id] = $("tb-" + i.id).value);
+  return { fn, fnName, inputs };
+}
+
+function runTbOnce(){
+  const { fn, fnName, inputs } = gatherTbInputs();
+  const t0 = performance.now();
+  let result, err;
+  try { result = fn.run(inputs); } catch(e){ err = e.message; }
+  const dt = performance.now() - t0;
+  let html = `<div style="margin-bottom:10px;font-size:13px;color:var(--text2)"><strong>${fnName}</strong> executed in <strong style="color:var(--gold)">${dt.toFixed(2)} ms</strong></div>`;
+  html += '<div style="font-size:12px;color:var(--text3);margin-bottom:6px">Inputs:</div>';
+  html += '<div class="code">' + JSON.stringify(inputs, null, 2) + '</div>';
+  html += '<div style="font-size:12px;color:var(--text3);margin:14px 0 6px">Output:</div>';
+  if(err){
+    html += '<div class="code" style="background:#7f1d1d">' + err + '</div>';
+  } else if(typeof result === "object"){
+    html += '<div class="code">' + JSON.stringify(result, (k,v)=>typeof v==="number"?Number(v.toFixed(4)):v, 2) + '</div>';
+  } else {
+    html += '<div class="code">' + (typeof result === "number" ? result.toFixed(6) : result) + '</div>';
+    if(typeof result === "number" && Math.abs(result) >= 1000){
+      html += '<div style="font-size:12px;color:var(--text3);margin-top:6px">Formatted: <strong style="color:var(--gold)">' + fmtMoney(result) + '</strong></div>';
+    }
+  }
+  $("tbResults").innerHTML = html;
+  addLog("ok", "Ran " + fnName + " (single)");
+}
+
+function runTbStress(){
+  const { fn, fnName, inputs } = gatherTbInputs();
+  const N = 1000;
+  const results = [];
+  const t0 = performance.now();
+  let err;
+  try {
+    for(let i = 0; i < N; i++){
+      const r = fn.run(inputs);
+      const v = typeof r === "number" ? r : (r && typeof r.p50 === "number" ? r.p50 : (r && r.pvToday) || 0);
+      results.push(v);
+    }
+  } catch(e){ err = e.message; }
+  const dt = performance.now() - t0;
+  if(err){ $("tbResults").innerHTML = '<div class="code" style="background:#7f1d1d">' + err + '</div>'; return; }
+  results.sort((a, b) => a - b);
+  const mean = results.reduce((s, v) => s + v, 0) / N;
+  const variance = results.reduce((s, v) => s + (v - mean) ** 2, 0) / N;
+  const std = Math.sqrt(variance);
+  const stats = {
+    N, executionMs: dt.toFixed(1),
+    mean: Number(mean.toFixed(4)),
+    median: Number(results[Math.floor(N/2)].toFixed(4)),
+    stdDev: Number(std.toFixed(4)),
+    min: Number(results[0].toFixed(4)),
+    p10: Number(results[Math.floor(N*0.1)].toFixed(4)),
+    p25: Number(results[Math.floor(N*0.25)].toFixed(4)),
+    p75: Number(results[Math.floor(N*0.75)].toFixed(4)),
+    p90: Number(results[Math.floor(N*0.9)].toFixed(4)),
+    max: Number(results[N-1].toFixed(4))
+  };
+  let html = `<div style="margin-bottom:10px;font-size:13px;color:var(--text2)">⚡ <strong>${N}</strong> iterations of <strong>${fnName}</strong> in <strong style="color:var(--gold)">${dt.toFixed(1)} ms</strong> (${(dt/N*1000).toFixed(2)} µs each)</div>`;
+  html += '<div class="code">' + JSON.stringify(stats, null, 2) + '</div>';
+  $("tbResults").innerHTML = html;
+  addLog("ok", "Stress test " + fnName + " (1000×)");
+}
+
+function clearTbResults(){ $("tbResults").innerHTML = '<div style="font-size:13px;color:var(--text3)">Cleared.</div>'; }
+
+// ═══════════════════════════════════════════════════════════
+// CONSTANTS EDITOR
+// ═══════════════════════════════════════════════════════════
+function initConstants(){
+  // Risk profiles
+  let h = '<thead><tr><th>Key</th><th>Label</th><th class="tbl-num">μ (%)</th><th class="tbl-num">σ (%)</th></tr></thead><tbody>';
+  Object.entries(RISK_PROFILES).forEach(([k, v]) => {
+    h += `<tr><td><code>${k}</code></td><td><input value="${v.label}" oninput="RISK_PROFILES['${k}'].label=this.value;persistConstants()"></td>
+      <td class="tbl-num"><input type="number" step="0.1" value="${v.mu}" oninput="RISK_PROFILES['${k}'].mu=+this.value;persistConstants()"></td>
+      <td class="tbl-num"><input type="number" step="0.5" value="${v.sigma}" oninput="RISK_PROFILES['${k}'].sigma=+this.value;persistConstants()"></td></tr>`;
+  });
+  h += '</tbody>';
+  $("riskTbl").innerHTML = h;
+
+  // Regions
+  h = '<thead><tr><th>Code</th><th>Region</th><th class="tbl-num">CPI rate (%)</th></tr></thead><tbody>';
+  Object.entries(REGIONS).forEach(([k, v]) => {
+    h += `<tr><td><code>${k}</code></td><td>${v.name}</td>
+      <td class="tbl-num"><input type="number" step="0.1" value="${v.rate}" oninput="REGIONS['${k}'].rate=+this.value;persistConstants()"></td></tr>`;
+  });
+  h += '</tbody>';
+  $("regionTbl").innerHTML = h;
+
+  // Loans
+  h = '<thead><tr><th>Type</th><th>Label</th><th class="tbl-num">Rate (%)</th><th class="tbl-num">Years</th></tr></thead><tbody>';
+  Object.entries(LOAN_DEFAULTS).forEach(([k, v]) => {
+    h += `<tr><td><code>${k}</code></td><td>${v.label}</td>
+      <td class="tbl-num"><input type="number" step="0.1" value="${v.rate}" oninput="LOAN_DEFAULTS['${k}'].rate=+this.value;persistConstants()"></td>
+      <td class="tbl-num"><input type="number" step="1" value="${v.yrs}" oninput="LOAN_DEFAULTS['${k}'].yrs=+this.value;persistConstants()"></td></tr>`;
+  });
+  h += '</tbody>';
+  $("loanTbl").innerHTML = h;
+
+  // Lifestyle
+  h = '<thead><tr><th>Tier</th><th class="tbl-num">Multiplier</th></tr></thead><tbody>';
+  Object.entries(LIFESTYLE).forEach(([k, v]) => {
+    h += `<tr><td><code>${k}</code></td>
+      <td class="tbl-num"><input type="number" step="0.05" value="${v}" oninput="LIFESTYLE['${k}']=+this.value;persistConstants()"></td></tr>`;
+  });
+  h += '</tbody>';
+  $("lifeTbl").innerHTML = h;
+
+  // COL
+  h = '<thead><tr><th>Country</th><th class="tbl-num">COL factor (US=1.00)</th></tr></thead><tbody>';
+  Object.entries(COL_FACTORS).forEach(([k, v]) => {
+    h += `<tr><td><code>${k}</code></td>
+      <td class="tbl-num"><input type="number" step="0.05" value="${v}" oninput="COL_FACTORS['${k}']=+this.value;persistConstants()"></td></tr>`;
+  });
+  h += '</tbody>';
+  $("colTbl").innerHTML = h;
+}
+
+function downloadConstants(){
+  const data = { RISK_PROFILES, REGIONS, LOAN_DEFAULTS, LIFESTYLE, COL_FACTORS, exportedAt: new Date().toISOString(), version: APP_VERSION };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "wa-constants-" + new Date().toISOString().slice(0,10) + ".json";
+  a.click();
+  toast("Constants exported", "ok");
+  addLog("ok", "Exported constants JSON");
+}
+
+function loadConstantsFile(){ $("constFileInput").click(); }
+function handleConstFile(e){
+  const f = e.target.files[0]; if(!f) return;
+  const r = new FileReader();
+  r.onload = () => {
+    try {
+      const c = JSON.parse(r.result);
+      if(c.RISK_PROFILES) RISK_PROFILES = c.RISK_PROFILES;
+      if(c.REGIONS) REGIONS = c.REGIONS;
+      if(c.LOAN_DEFAULTS) LOAN_DEFAULTS = c.LOAN_DEFAULTS;
+      if(c.LIFESTYLE) LIFESTYLE = c.LIFESTYLE;
+      if(c.COL_FACTORS) COL_FACTORS = c.COL_FACTORS;
+      persistConstants();
+      initConstants();
+      toast("Constants imported", "ok");
+      addLog("ok", "Imported constants from " + f.name);
+    } catch(err){ toast("Invalid JSON", "err"); }
+  };
+  r.readAsText(f);
+}
+
+function resetConstants(){
+  if(!confirm("Reset all constants to defaults?")) return;
+  RISK_PROFILES = JSON.parse(JSON.stringify(DEFAULT_RISK_PROFILES));
+  REGIONS = JSON.parse(JSON.stringify(DEFAULT_REGIONS));
+  LOAN_DEFAULTS = JSON.parse(JSON.stringify(DEFAULT_LOAN_DEFAULTS));
+  LIFESTYLE = JSON.parse(JSON.stringify(DEFAULT_LIFESTYLE));
+  COL_FACTORS = JSON.parse(JSON.stringify(DEFAULT_COL_FACTORS));
+  persistConstants();
+  initConstants();
+  toast("Reset to defaults", "ok");
+  addLog("warn", "Constants reset to defaults");
+}
+
+// ═══════════════════════════════════════════════════════════
+// ACCOUNT TYPES (subset shown for browsing)
+// ═══════════════════════════════════════════════════════════
+const COUNTRY_NAMES = {
+  US:"🇺🇸 United States",CA:"🇨🇦 Canada",GB:"🇬🇧 United Kingdom",AU:"🇦🇺 Australia",
+  CH:"🇨🇭 Switzerland",EU:"🇪🇺 Euro zone",JP:"🇯🇵 Japan",SG:"🇸🇬 Singapore",
+  HK:"🇭🇰 Hong Kong",CN:"🇨🇳 China",TW:"🇹🇼 Taiwan",KR:"🇰🇷 South Korea",
+  IN:"🇮🇳 India",ID:"🇮🇩 Indonesia",MX:"🇲🇽 Mexico",BR:"🇧🇷 Brazil",
+  SA:"🇸🇦 Saudi Arabia",ZA:"🇿🇦 South Africa",OTHER:"🌍 Other"
+};
+
+// Pull account types from main app's COUNTRY_ACCOUNTS via shared localStorage cache,
+// or load a static subset for browsing-only purposes
+const SAMPLE_ACCOUNTS = {
+  US: [
+    {group:"Cash & banking", value:"checking", label:"Checking account", liquid:true, note:"FDIC insured to $250k"},
+    {group:"Cash & banking", value:"savings", label:"Savings account", liquid:true, note:"Interest-bearing"},
+    {group:"Investment", value:"brokerage", label:"Taxable brokerage", liquid:true, note:"Capital gains taxed"},
+    {group:"Investment", value:"529", label:"529 college plan", liquid:false, note:"Tax-free qualified withdrawals"},
+    {group:"Retirement", value:"401k", label:"401(k)", liquid:false, withdrawAge:59.5, note:"$23k limit 2024"},
+    {group:"Retirement", value:"roth_401k", label:"Roth 401(k)", liquid:false, withdrawAge:59.5, note:"Tax-free qualified withdrawals"},
+    {group:"Retirement", value:"ira", label:"Traditional IRA", liquid:false, withdrawAge:59.5, note:"$7k limit 2024"},
+    {group:"Retirement", value:"roth_ira", label:"Roth IRA", liquid:false, withdrawAge:59.5, note:"Income limits apply"}
+  ],
+  CA: [
+    {group:"Banking", value:"chequing", label:"Chequing account", liquid:true, note:"CDIC insured"},
+    {group:"Registered", value:"rrsp", label:"RRSP", liquid:false, withdrawAge:71, note:"18% of income, max $31,560"},
+    {group:"Registered", value:"tfsa", label:"TFSA", liquid:false, note:"$7k annual limit 2024"},
+    {group:"Registered", value:"fhsa", label:"FHSA", liquid:false, note:"$8k/yr first-home"}
+  ],
+  GB: [
+    {group:"Banking", value:"current", label:"Current account", liquid:true, note:"FSCS to £85k"},
+    {group:"ISA", value:"stocks_isa", label:"Stocks & Shares ISA", liquid:true, note:"£20k/yr tax-free"},
+    {group:"Pension", value:"sipp", label:"SIPP", liquid:false, withdrawAge:55, note:"25% tax-free lump sum"}
+  ]
+};
+
+function initAccountTypes(){
+  const sel = $("acCountry");
+  sel.innerHTML = Object.entries(COUNTRY_NAMES).map(([k,n]) => `<option value="${k}">${n}</option>`).join("");
+  sel.value = "US";
+  renderAccountsTable();
+}
+
+function renderAccountsTable(){
+  const c = $("acCountry").value;
+  $("acCountryName").textContent = COUNTRY_NAMES[c];
+  const accs = SAMPLE_ACCOUNTS[c] || [];
+  $("acStats").textContent = accs.length + " accounts on file (this is a browse-only subset; the main app holds ~500 across 19 countries).";
+  if(accs.length === 0){
+    $("acAccountsView").innerHTML = '<div style="font-size:13px;color:var(--text3);padding:14px">No accounts cached for ' + c + ' in admin view. Open the main app and select this country to populate the registry, or browse the full list in the main app.</div>';
+    return;
+  }
+  let h = '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Group</th><th>Value</th><th>Label</th><th>Liquid</th><th>Withdraw Age</th><th>Note</th></tr></thead><tbody>';
+  accs.forEach(a => {
+    h += `<tr><td><code>${a.group}</code></td><td><code>${a.value}</code></td><td>${a.label}</td>
+      <td>${a.liquid?'<span class="pill pill-on">Liquid</span>':'<span class="pill pill-warn">Locked</span>'}</td>
+      <td>${a.withdrawAge||"—"}</td>
+      <td style="font-size:11px;color:var(--text3);max-width:280px">${a.note||""}</td></tr>`;
+  });
+  h += '</tbody></table></div>';
+  $("acAccountsView").innerHTML = h;
+}
+
+// ═══════════════════════════════════════════════════════════
+// MONTE CARLO STRESS
+// ═══════════════════════════════════════════════════════════
+let stressChart = null;
+function runStressSweep(){
+  const param = $("swParam").value;
+  const from = +$("swFrom").value, to = +$("swTo").value, step = +$("swStep").value;
+  const sims = +$("swSims").value;
+  const baseStartNW = +$("swStartNW").value;
+  const baseMu = +$("swMu").value;
+  const baseSigma = +$("swSigma").value;
+  const baseYears = +$("swYears").value;
+  const baseSavings = +$("swSavings").value;
+
+  if(step <= 0 || (to - from) / step > 100){ toast("Too many steps — increase step size", "err"); return; }
+
+  const results = [];
+  const t0 = performance.now();
+  for(let v = from; v <= to + 1e-9; v += step){
+    let startNW = baseStartNW, mu = baseMu, sigma = baseSigma, years = baseYears, savings = baseSavings;
+    if(param === "mu") mu = v;
+    else if(param === "sigma") sigma = v;
+    else if(param === "years") years = Math.round(v);
+    else if(param === "savings") savings = v * 1000; // sweep in $k
+    else if(param === "startNW") startNW = v * 1000;
+    const r = runMC(startNW, mu, sigma, Math.round(years), sims, savings);
+    results.push({ x: v, p10: r.p10, p50: r.p50, p90: r.p90 });
+  }
+  const dt = performance.now() - t0;
+
+  // Chart
+  const ctx = $("stressChart");
+  if(stressChart) stressChart.destroy();
+  stressChart = new Chart(ctx, {
+    type: "line",
+    data: {
+      labels: results.map(r => r.x.toFixed(1)),
+      datasets: [
+        { label: "p10 (pessimistic)", data: results.map(r => r.p10), borderColor: "#e31837", backgroundColor: "rgba(227,24,55,.10)", fill: false, tension: 0.3 },
+        { label: "p50 (median)", data: results.map(r => r.p50), borderColor: "#0057b8", backgroundColor: "rgba(0,87,184,.12)", fill: true, tension: 0.3, borderWidth: 2.5 },
+        { label: "p90 (optimistic)", data: results.map(r => r.p90), borderColor: "#00875a", backgroundColor: "rgba(0,135,90,.10)", fill: false, tension: 0.3 }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      scales: {
+        x: { title: { display: true, text: param }, grid: { color: "rgba(0,87,184,.06)" } },
+        y: { title: { display: true, text: "End Net Worth ($)" }, ticks: { callback: v => fmtMoney(v) }, grid: { color: "rgba(0,87,184,.06)" } }
+      },
+      plugins: { legend: { position: "top" }, tooltip: { callbacks: { label: c => c.dataset.label + ": " + fmtMoney(c.parsed.y) } } }
+    }
+  });
+
+  // Table
+  let h = `<div style="margin-bottom:10px;font-size:12px;color:var(--text3)">Completed ${results.length} sweep steps × ${sims} sims in ${dt.toFixed(0)} ms (${(results.length*sims).toLocaleString()} total simulations)</div>`;
+  h += '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>' + param + '</th><th class="tbl-num">p10</th><th class="tbl-num">p50</th><th class="tbl-num">p90</th><th class="tbl-num">Range</th></tr></thead><tbody>';
+  results.forEach(r => {
+    h += `<tr><td>${r.x.toFixed(2)}</td><td class="tbl-num">${fmtMoney(r.p10)}</td><td class="tbl-num"><strong>${fmtMoney(r.p50)}</strong></td><td class="tbl-num">${fmtMoney(r.p90)}</td><td class="tbl-num" style="color:var(--text3)">${fmtMoney(r.p90-r.p10)}</td></tr>`;
+  });
+  h += '</tbody></table></div>';
+  $("stressTable").innerHTML = h;
+  addLog("ok", "Stress sweep " + param + " " + from + "→" + to + " (" + results.length + " steps)");
+}
+
+// ═══════════════════════════════════════════════════════════
+// PROFILE MANAGER
+// ═══════════════════════════════════════════════════════════
+let loadedProfile = null;
+function loadProfileFile(){ $("profileFileInput").click(); }
+function handleProfileFile(e){
+  const f = e.target.files[0]; if(!f) return;
+  const r = new FileReader();
+  r.onload = () => {
+    try {
+      loadedProfile = JSON.parse(r.result);
+      renderProfile();
+      $("dlProfile").disabled = false;
+      $("injProfile").disabled = false;
+      toast("Profile loaded: " + f.name, "ok");
+      addLog("ok", "Loaded profile " + f.name);
+    } catch(err){ toast("Invalid JSON", "err"); }
+  };
+  r.readAsText(f);
+}
+function downloadProfile(){
+  if(!loadedProfile) return;
+  const blob = new Blob([JSON.stringify(loadedProfile, null, 2)], { type: "application/json" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "wealth-profile-" + new Date().toISOString().slice(0,10) + ".json";
+  a.click();
+  addLog("ok", "Profile re-exported");
+}
+function injectIntoApp(){
+  if(!loadedProfile) return;
+  localStorage.setItem("wa_pending_profile", JSON.stringify(loadedProfile));
+  toast("Profile queued — reload main app to apply", "ok");
+  addLog("ok", "Injected profile into wa_pending_profile");
+}
+function renderProfile(){
+  if(!loadedProfile) return;
+  // Stats
+  const assets = loadedProfile.assets || [];
+  const loans = loadedProfile.loans || [];
+  const goals = loadedProfile.goals || [];
+  const children = loadedProfile.children || [];
+  const totA = assets.reduce((s,a)=>s+(+a.value||0),0);
+  const totL = loans.reduce((s,l)=>s+(+l.bal||0),0);
+  let kpi = '';
+  kpi += `<div class="kpi"><div class="kpi-lbl">Total Assets</div><div class="kpi-val">${fmtMoney(totA)}</div><div class="kpi-sub">${assets.length} on file</div></div>`;
+  kpi += `<div class="kpi"><div class="kpi-lbl">Total Liabilities</div><div class="kpi-val">${fmtMoney(totL)}</div><div class="kpi-sub">${loans.length} loans</div></div>`;
+  kpi += `<div class="kpi pos"><div class="kpi-lbl">Net Worth</div><div class="kpi-val">${fmtMoney(totA-totL)}</div></div>`;
+  kpi += `<div class="kpi"><div class="kpi-lbl">Goals</div><div class="kpi-val">${goals.length}</div></div>`;
+  kpi += `<div class="kpi"><div class="kpi-lbl">Children</div><div class="kpi-val">${children.length}</div></div>`;
+  if(loadedProfile.savedAt){
+    kpi += `<div class="kpi"><div class="kpi-lbl">Saved at</div><div class="kpi-val" style="font-size:13px">${new Date(loadedProfile.savedAt).toLocaleString()}</div></div>`;
+  }
+  $("profileStats").innerHTML = kpi;
+  $("profileTree").innerHTML = jsonTree(loadedProfile);
+}
+
+function jsonTree(obj, depth){
+  depth = depth || 0;
+  if(obj === null) return '<span class="jt-null">null</span>';
+  if(typeof obj === "string") return '<span class="jt-str">"' + obj.replace(/</g,"&lt;") + '"</span>';
+  if(typeof obj === "number") return '<span class="jt-num">' + obj + '</span>';
+  if(typeof obj === "boolean") return '<span class="jt-bool">' + obj + '</span>';
+  if(Array.isArray(obj)){
+    if(obj.length === 0) return '[]';
+    const opened = depth < 1 ? 'open' : '';
+    return `<details ${opened}><summary>[ ${obj.length} items ]</summary>` +
+      obj.map((v,i) => `<div><span class="jt-key">[${i}]</span>: ${jsonTree(v, depth+1)}</div>`).join("") +
+    `</details>`;
+  }
+  if(typeof obj === "object"){
+    const keys = Object.keys(obj);
+    if(keys.length === 0) return '{}';
+    const opened = depth < 1 ? 'open' : '';
+    return `<details ${opened}><summary>{ ${keys.length} fields }</summary>` +
+      keys.map(k => `<div><span class="jt-key">${k}</span>: ${jsonTree(obj[k], depth+1)}</div>`).join("") +
+    `</details>`;
+  }
+  return String(obj);
+}
+
+// ═══════════════════════════════════════════════════════════
+// MARKET DATA
+// ═══════════════════════════════════════════════════════════
+const MarketData = (function(){
+  const cache = new Map();
+  const CACHE_MS = 60000;
+
+  function getCfg(){
+    return {
+      fh: localStorage.getItem("fhKey") || "",
+      av: localStorage.getItem("avKey") || "",
+      polygon: localStorage.getItem("wa_polygon_key") || "",
+      bloombergProxy: localStorage.getItem("wa_bloomberg_proxy") || "",
+      bloombergAuth: localStorage.getItem("wa_bloomberg_auth") || "",
+      factsetProxy: localStorage.getItem("wa_factset_proxy") || "",
+      factsetId: localStorage.getItem("wa_factset_id") || "",
+      factsetSecret: localStorage.getItem("wa_factset_secret") || ""
+    };
+  }
+
+  async function tryFinnhub(ticker, cfg){
+    if(!cfg.fh) throw new Error("No Finnhub key configured");
+    const r = await fetch(`https://finnhub.io/api/v1/quote?symbol=${encodeURIComponent(ticker)}&token=${cfg.fh}`);
+    if(!r.ok) throw new Error("HTTP " + r.status);
+    const j = await r.json();
+    if(!j.c) throw new Error("No data returned");
+    return { price: j.c, change: j.d, changePct: j.dp, high: j.h, low: j.l, open: j.o, prevClose: j.pc, asOf: new Date((j.t||0)*1000).toISOString(), raw: j };
+  }
+
+  async function tryAlphaVantage(ticker, cfg){
+    if(!cfg.av) throw new Error("No Alpha Vantage key configured");
+    const r = await fetch(`https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=${encodeURIComponent(ticker)}&apikey=${cfg.av}`);
+    if(!r.ok) throw new Error("HTTP " + r.status);
+    const j = await r.json();
+    const q = j["Global Quote"];
+    if(!q || !q["05. price"]) throw new Error("No data — possibly rate-limited");
+    return {
+      price: +q["05. price"], change: +q["09. change"], changePct: parseFloat(q["10. change percent"]),
+      high: +q["03. high"], low: +q["04. low"], open: +q["02. open"], prevClose: +q["08. previous close"],
+      volume: +q["06. volume"], asOf: q["07. latest trading day"], raw: q
+    };
+  }
+
+  async function tryYahoo(ticker){
+    // Try direct first, fall back to CORS proxy
+    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}?interval=1d`;
+    let r;
+    try { r = await fetch(url); }
+    catch(e){ r = await fetch(`https://corsproxy.io/?${encodeURIComponent(url)}`); }
+    if(!r.ok) throw new Error("HTTP " + r.status);
+    const j = await r.json();
+    const m = j.chart && j.chart.result && j.chart.result[0] && j.chart.result[0].meta;
+    if(!m) throw new Error("No meta data");
+    return {
+      price: m.regularMarketPrice, prevClose: m.previousClose,
+      change: m.regularMarketPrice - m.previousClose,
+      changePct: (m.regularMarketPrice / m.previousClose - 1) * 100,
+      high: m.regularMarketDayHigh, low: m.regularMarketDayLow,
+      currency: m.currency, exchange: m.exchangeName,
+      asOf: new Date((m.regularMarketTime||0)*1000).toISOString(), raw: m
+    };
+  }
+
+  async function tryPolygon(ticker, cfg){
+    if(!cfg.polygon) throw new Error("No Polygon key configured");
+    const r = await fetch(`https://api.polygon.io/v2/aggs/ticker/${encodeURIComponent(ticker)}/prev?apiKey=${cfg.polygon}`);
+    if(!r.ok) throw new Error("HTTP " + r.status);
+    const j = await r.json();
+    const d = j.results && j.results[0];
+    if(!d) throw new Error("No data returned");
+    return {
+      price: d.c, open: d.o, high: d.h, low: d.l, volume: d.v,
+      change: d.c - d.o, changePct: (d.c/d.o - 1) * 100,
+      asOf: new Date(d.t).toISOString(), raw: d
+    };
+  }
+
+  async function tryBloomberg(ticker, cfg){
+    if(!cfg.bloombergProxy) throw new Error("No Bloomberg proxy URL configured — see Documentation");
+    const r = await fetch(`${cfg.bloombergProxy}/quote`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Authorization": "Bearer " + cfg.bloombergAuth },
+      body: JSON.stringify({ ticker })
+    });
+    if(!r.ok) throw new Error("Bloomberg proxy HTTP " + r.status);
+    return await r.json();
+  }
+
+  async function tryFactSet(ticker, cfg){
+    if(!cfg.factsetProxy) throw new Error("No FactSet proxy URL configured — see Documentation");
+    const r = await fetch(`${cfg.factsetProxy}/quote`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ticker, clientId: cfg.factsetId })
+    });
+    if(!r.ok) throw new Error("FactSet proxy HTTP " + r.status);
+    return await r.json();
+  }
+
+  const PROVIDERS = { finnhub: tryFinnhub, alphavantage: tryAlphaVantage, yahoo: tryYahoo, polygon: tryPolygon, bloomberg: tryBloomberg, factset: tryFactSet };
+
+  async function fetchOne(ticker, providerName){
+    const cfg = getCfg();
+    const fn = PROVIDERS[providerName];
+    if(!fn) throw new Error("Unknown provider " + providerName);
+    const data = await fn(ticker, cfg);
+    data.source = providerName;
+    return data;
+  }
+
+  async function fetchQuote(ticker, hint){
+    const cached = cache.get(ticker + ":" + (hint || "auto"));
+    if(cached && Date.now() - cached.ts < CACHE_MS) return cached.data;
+
+    const cfg = getCfg();
+    let order = ["finnhub", "alphavantage", "yahoo", "polygon", "bloomberg", "factset"];
+    if(hint && order.includes(hint)) order = [hint, ...order.filter(p => p !== hint)];
+
+    for(const name of order){
+      // Skip providers not configured
+      if(name === "finnhub" && !cfg.fh) continue;
+      if(name === "alphavantage" && !cfg.av) continue;
+      if(name === "polygon" && !cfg.polygon) continue;
+      if(name === "bloomberg" && !cfg.bloombergProxy) continue;
+      if(name === "factset" && !cfg.factsetProxy) continue;
+      try {
+        const d = await fetchOne(ticker, name);
+        if(d && d.price > 0){
+          cache.set(ticker + ":" + (hint || "auto"), { data: d, ts: Date.now() });
+          return d;
+        }
+      } catch(e){ addLog("warn", `${name} failed for ${ticker}: ${e.message}`); }
+    }
+    throw new Error("All providers failed for " + ticker);
+  }
+
+  return { fetchQuote, fetchOne, getCfg };
+})();
+
+const MD_HISTORY = [];
+async function testFetchQuote(){
+  const ticker = $("mdTicker").value.toUpperCase().trim();
+  const provider = $("mdProvider").value;
+  if(!ticker){ toast("Enter a ticker", "err"); return; }
+  $("mdResult").innerHTML = '<div style="font-size:13px;color:var(--text3)">Fetching ' + ticker + ' via ' + provider + '…</div>';
+  const t0 = performance.now();
+  try {
+    const data = provider === "auto" ? await MarketData.fetchQuote(ticker) : await MarketData.fetchOne(ticker, provider);
+    const dt = performance.now() - t0;
+    let h = `<div style="display:flex;align-items:baseline;gap:14px;margin-bottom:14px">
+      <div style="font-size:32px;font-weight:800;color:var(--text);letter-spacing:-.04em">$${fmtNum(data.price,2)}</div>
+      <div style="font-size:15px;font-weight:700;color:${data.change>=0?'var(--green)':'var(--red)'}">${data.change>=0?'+':''}${fmtNum(data.change,2)} (${data.changePct>=0?'+':''}${fmtNum(data.changePct,2)}%)</div>
+    </div>`;
+    h += `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-bottom:14px">`;
+    if(data.open) h += `<div class="kpi"><div class="kpi-lbl">Open</div><div class="kpi-val" style="font-size:16px">$${fmtNum(data.open,2)}</div></div>`;
+    if(data.high) h += `<div class="kpi"><div class="kpi-lbl">High</div><div class="kpi-val" style="font-size:16px">$${fmtNum(data.high,2)}</div></div>`;
+    if(data.low) h += `<div class="kpi"><div class="kpi-lbl">Low</div><div class="kpi-val" style="font-size:16px">$${fmtNum(data.low,2)}</div></div>`;
+    if(data.prevClose) h += `<div class="kpi"><div class="kpi-lbl">Prev Close</div><div class="kpi-val" style="font-size:16px">$${fmtNum(data.prevClose,2)}</div></div>`;
+    if(data.volume) h += `<div class="kpi"><div class="kpi-lbl">Volume</div><div class="kpi-val" style="font-size:16px">${(data.volume/1e6).toFixed(2)}M</div></div>`;
+    h += `</div>`;
+    h += `<div style="display:flex;gap:10px;align-items:center;margin-bottom:10px;font-size:12px;color:var(--text3)">
+      <span class="pill pill-on">via ${data.source}</span>
+      <span>fetched in ${dt.toFixed(0)} ms</span>
+      <span>asOf: ${data.asOf||"—"}</span>
+    </div>`;
+    h += '<div style="font-size:12px;color:var(--text3);margin-bottom:6px">Raw response:</div><div class="code small">' + JSON.stringify(data.raw||data, null, 2).slice(0, 1500) + '</div>';
+    $("mdResult").innerHTML = h;
+    MD_HISTORY.unshift({ ts: new Date().toISOString(), ticker, provider: data.source, price: data.price, ms: dt.toFixed(0), ok: true });
+    addLog("ok", `Quote ${ticker} via ${data.source}: $${data.price.toFixed(2)}`);
+  } catch(e){
+    $("mdResult").innerHTML = `<div class="code" style="background:#7f1d1d">Error: ${e.message}</div>`;
+    MD_HISTORY.unshift({ ts: new Date().toISOString(), ticker, provider, ok: false, err: e.message });
+    addLog("err", `Quote ${ticker} via ${provider} failed: ${e.message}`);
+  }
+  renderMdHistory();
+}
+
+async function testAllProviders(){
+  const ticker = $("mdTicker").value.toUpperCase().trim();
+  if(!ticker){ toast("Enter a ticker", "err"); return; }
+  $("mdComparison").innerHTML = '<div style="font-size:13px;color:var(--text3)">Testing all providers for ' + ticker + '…</div>';
+  const providers = ["finnhub", "alphavantage", "yahoo", "polygon", "bloomberg", "factset"];
+  const results = await Promise.all(providers.map(async p => {
+    const t0 = performance.now();
+    try {
+      const d = await MarketData.fetchOne(ticker, p);
+      return { provider: p, ok: true, price: d.price, ms: performance.now() - t0 };
+    } catch(e){ return { provider: p, ok: false, err: e.message, ms: performance.now() - t0 }; }
+  }));
+  let h = '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Provider</th><th>Status</th><th class="tbl-num">Price</th><th class="tbl-num">Latency</th><th>Notes</th></tr></thead><tbody>';
+  results.forEach(r => {
+    h += `<tr>
+      <td><strong>${r.provider}</strong></td>
+      <td>${r.ok?'<span class="pill pill-on">OK</span>':'<span class="pill pill-off">FAIL</span>'}</td>
+      <td class="tbl-num">${r.ok?'$'+fmtNum(r.price,2):'—'}</td>
+      <td class="tbl-num">${r.ms.toFixed(0)} ms</td>
+      <td style="font-size:11px;color:var(--text3)">${r.err||'—'}</td>
+    </tr>`;
+  });
+  h += '</tbody></table></div>';
+  $("mdComparison").innerHTML = h;
+  addLog("ok", `Tested all providers for ${ticker}`);
+}
+
+function renderMdHistory(){
+  const h = MD_HISTORY.slice(0, 20).map(r => {
+    return `<div class="log-entry">
+      <span class="log-ts">${new Date(r.ts).toLocaleTimeString()}</span>
+      <span class="log-lvl ${r.ok?'ok':'err'}">${r.ok?'OK':'ERR'}</span>
+      <span class="log-msg">${r.ticker} via ${r.provider} ${r.ok?'→ $'+fmtNum(r.price,2):'— '+r.err} <span style="color:var(--text3)">(${r.ms} ms)</span></span>
+    </div>`;
+  }).join("");
+  $("mdHistory").innerHTML = h || '<div style="font-size:13px;color:var(--text3);padding:8px 0">No requests yet.</div>';
+}
+
+// ═══════════════════════════════════════════════════════════
+// DASHBOARD
+// ═══════════════════════════════════════════════════════════
+function initDashboard(){
+  const cfg = MarketData.getCfg();
+  const lsKeys = Object.keys(localStorage);
+  const lsSize = lsKeys.reduce((s, k) => s + (k.length + (localStorage.getItem(k)||"").length), 0);
+  const appVer = localStorage.getItem("wa_app_version") || "not set";
+  const apiCount = [cfg.fh, cfg.av, cfg.polygon, cfg.bloombergProxy, cfg.factsetProxy].filter(Boolean).length;
+
+  let kpi = '';
+  kpi += `<div class="kpi"><div class="kpi-lbl">App Version</div><div class="kpi-val" style="font-size:15px">${appVer}</div><div class="kpi-sub">Main app version stamp</div></div>`;
+  kpi += `<div class="kpi"><div class="kpi-lbl">Admin Version</div><div class="kpi-val" style="font-size:15px">${APP_VERSION}</div></div>`;
+  kpi += `<div class="kpi"><div class="kpi-lbl">localStorage Items</div><div class="kpi-val">${lsKeys.length}</div><div class="kpi-sub">${fmtBytes(lsSize)} used</div></div>`;
+  kpi += `<div class="kpi"><div class="kpi-lbl">API Keys Configured</div><div class="kpi-val">${apiCount}/5</div><div class="kpi-sub">market data providers</div></div>`;
+  kpi += `<div class="kpi"><div class="kpi-lbl">Browser</div><div class="kpi-val" style="font-size:14px">${navigator.userAgent.match(/(Chrome|Firefox|Safari|Edge)\\/[\\d.]+/g)?.[0] || "Unknown"}</div></div>`;
+  kpi += `<div class="kpi"><div class="kpi-lbl">Screen</div><div class="kpi-val" style="font-size:14px">${screen.width}×${screen.height}</div></div>`;
+  $("dashKpis").innerHTML = kpi;
+
+  // Provider status
+  const providers = [
+    { name: "Alpha Vantage", k: cfg.av, type: "free" },
+    { name: "Finnhub", k: cfg.fh, type: "free" },
+    { name: "Yahoo Finance", k: "always", type: "free", note: "No key required" },
+    { name: "Polygon.io", k: cfg.polygon, type: "free" },
+    { name: "Bloomberg", k: cfg.bloombergProxy, type: "enterprise", note: "Requires backend proxy" },
+    { name: "FactSet", k: cfg.factsetProxy, type: "enterprise", note: "Requires backend proxy" }
+  ];
+  let ph = '<table class="tbl"><thead><tr><th>Provider</th><th>Tier</th><th>Status</th><th>Note</th></tr></thead><tbody>';
+  providers.forEach(p => {
+    const ok = !!p.k;
+    ph += `<tr><td><strong>${p.name}</strong></td>
+      <td>${p.type==='free'?'<span class="pill pill-info">Free</span>':'<span class="pill pill-warn">Enterprise</span>'}</td>
+      <td>${ok?'<span class="pill pill-on"><span class="dot dot-on"></span>Connected</span>':'<span class="pill pill-off"><span class="dot dot-off"></span>Not configured</span>'}</td>
+      <td style="font-size:11px;color:var(--text3)">${p.note||""}</td></tr>`;
+  });
+  ph += '</tbody></table>';
+  $("providerStatus").innerHTML = ph;
+
+  // Activity log
+  const logs = getLogs().slice(0, 20);
+  if(logs.length === 0){
+    $("recentActivity").innerHTML = '<div style="font-size:13px;color:var(--text3);padding:14px">No recent activity.</div>';
+  } else {
+    $("recentActivity").innerHTML = logs.map(l => `
+      <div class="log-entry">
+        <span class="log-ts">${new Date(l.ts).toLocaleString()}</span>
+        <span class="log-lvl ${l.level}">${l.level}</span>
+        <span class="log-msg">${l.msg}</span>
+      </div>`).join("");
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// API KEYS
+// ═══════════════════════════════════════════════════════════
+function initKeysTab(){
+  const keys = [
+    { id: "fhKey", name: "Finnhub", placeholder: "Bearer token" },
+    { id: "avKey", name: "Alpha Vantage", placeholder: "API key" },
+    { id: "wa_polygon_key", name: "Polygon.io", placeholder: "API key" },
+    { id: "wa_claude_key", name: "Claude API (for Q&A)", placeholder: "sk-ant-…" }
+  ];
+  let h = '';
+  keys.forEach(k => {
+    const v = localStorage.getItem(k.id) || "";
+    const masked = v ? v.slice(0,4) + "•".repeat(Math.max(0,v.length-8)) + v.slice(-4) : "";
+    h += `<tr>
+      <td><strong>${k.name}</strong> <span style="font-size:11px;color:var(--text3)">(${k.id})</span></td>
+      <td><input id="key-${k.id}" placeholder="${k.placeholder}" value="${v}" style="width:280px;font-family:var(--fm);font-size:11px"></td>
+      <td>${v?'<span class="pill pill-on">Set ('+v.length+' chars)</span>':'<span class="pill pill-off">Empty</span>'}</td>
+      <td><button class="btn-secondary" onclick="saveKey('${k.id}')">Save</button> <button class="btn-ghost" onclick="testKey('${k.id}')">Test</button></td>
+    </tr>`;
+  });
+  $("freeKeysTbl").innerHTML = h;
+
+  // Enterprise
+  $("kBloombergUrl").value = localStorage.getItem("wa_bloomberg_proxy") || "";
+  $("kBloombergAuth").value = localStorage.getItem("wa_bloomberg_auth") || "";
+  $("kFactsetUrl").value = localStorage.getItem("wa_factset_proxy") || "";
+  $("kFactsetId").value = localStorage.getItem("wa_factset_id") || "";
+  $("kFactsetSecret").value = localStorage.getItem("wa_factset_secret") || "";
+  $("kCustomUrl").value = localStorage.getItem("wa_custom_url") || "";
+  $("kCustomKey").value = localStorage.getItem("wa_custom_key") || "";
+}
+
+function saveKey(id){
+  const v = $("key-" + id).value.trim();
+  if(v) localStorage.setItem(id, v); else localStorage.removeItem(id);
+  toast("Saved " + id, "ok");
+  addLog("ok", "Saved key " + id);
+  initKeysTab();
+}
+
+async function testKey(id){
+  const map = { fhKey: "finnhub", avKey: "alphavantage", wa_polygon_key: "polygon" };
+  const provider = map[id];
+  if(!provider){ toast("No test for " + id, "warn"); return; }
+  try {
+    const d = await MarketData.fetchOne("AAPL", provider);
+    toast(`${provider} OK: AAPL = $${fmtNum(d.price, 2)}`, "ok");
+    addLog("ok", `Test ${provider}: AAPL = $${d.price.toFixed(2)}`);
+  } catch(e){
+    toast(`${provider} failed: ${e.message}`, "err");
+    addLog("err", `Test ${provider} failed: ${e.message}`);
+  }
+}
+
+function saveBloomberg(){
+  localStorage.setItem("wa_bloomberg_proxy", $("kBloombergUrl").value.trim());
+  localStorage.setItem("wa_bloomberg_auth", $("kBloombergAuth").value.trim());
+  toast("Bloomberg config saved", "ok");
+  addLog("ok", "Bloomberg proxy config saved");
+}
+function saveFactset(){
+  localStorage.setItem("wa_factset_proxy", $("kFactsetUrl").value.trim());
+  localStorage.setItem("wa_factset_id", $("kFactsetId").value.trim());
+  localStorage.setItem("wa_factset_secret", $("kFactsetSecret").value.trim());
+  toast("FactSet config saved", "ok");
+  addLog("ok", "FactSet config saved");
+}
+function saveCustom(){
+  localStorage.setItem("wa_custom_url", $("kCustomUrl").value.trim());
+  localStorage.setItem("wa_custom_key", $("kCustomKey").value.trim());
+  toast("Custom provider saved", "ok");
+}
+async function testProvider(name){
+  try {
+    const d = await MarketData.fetchOne("AAPL", name);
+    toast(`${name} OK: $${fmtNum(d.price, 2)}`, "ok");
+  } catch(e){ toast(`${name} failed: ${e.message}`, "err"); }
+}
+
+// ═══════════════════════════════════════════════════════════
+// LOGS & DIAGNOSTICS
+// ═══════════════════════════════════════════════════════════
+function renderLogs(){
+  const logs = getLogs();
+  if(logs.length === 0){
+    $("logsView").innerHTML = '<div style="font-size:13px;color:var(--text3);padding:14px">No log entries.</div>';
+    return;
+  }
+  $("logsView").innerHTML = logs.map(l => `
+    <div class="log-entry">
+      <span class="log-ts">${new Date(l.ts).toLocaleString()}</span>
+      <span class="log-lvl ${l.level}">${l.level}</span>
+      <span class="log-msg">${l.msg}</span>
+    </div>`).join("");
+}
+
+function renderEnvInfo(){
+  const env = [
+    ["User-Agent", navigator.userAgent],
+    ["Platform", navigator.platform],
+    ["Language", navigator.language],
+    ["Online", navigator.onLine ? "Yes" : "No"],
+    ["Cookies", navigator.cookieEnabled ? "Enabled" : "Disabled"],
+    ["DNT", navigator.doNotTrack || "—"],
+    ["Screen", screen.width + "×" + screen.height + " @ " + (window.devicePixelRatio || 1) + "x DPR"],
+    ["Viewport", window.innerWidth + "×" + window.innerHeight],
+    ["Timezone", Intl.DateTimeFormat().resolvedOptions().timeZone],
+    ["Memory (JS heap)", performance.memory ? fmtBytes(performance.memory.usedJSHeapSize) + " / " + fmtBytes(performance.memory.totalJSHeapSize) : "—"]
+  ];
+  let h = '<table class="tbl">';
+  env.forEach(([k, v]) => h += `<tr><td style="width:140px;font-weight:600;color:var(--text2)">${k}</td><td style="font-family:var(--fm);font-size:12px;color:var(--text3);word-break:break-all">${v}</td></tr>`);
+  h += '</table>';
+  $("envInfo").innerHTML = h;
+}
+
+function renderLsInspector(){
+  const keys = Object.keys(localStorage).sort();
+  if(keys.length === 0){
+    $("lsInspector").innerHTML = '<div style="font-size:13px;color:var(--text3);padding:14px">localStorage is empty.</div>';
+    return;
+  }
+  let h = '<table class="tbl"><thead><tr><th>Key</th><th class="tbl-num">Size</th><th>Action</th></tr></thead><tbody>';
+  keys.forEach(k => {
+    const v = localStorage.getItem(k) || "";
+    h += `<tr>
+      <td><code style="font-size:11px">${k}</code></td>
+      <td class="tbl-num">${fmtBytes(v.length)}</td>
+      <td><button class="btn-ghost" onclick="inspectKey('${k}')">View</button> <button class="btn-ghost" onclick="deleteKey('${k}')" style="color:var(--red)">Delete</button></td>
+    </tr>`;
+  });
+  h += '</tbody></table>';
+  $("lsInspector").innerHTML = h;
+}
+
+function inspectKey(k){
+  const v = localStorage.getItem(k);
+  try { alert(k + ":\n\n" + JSON.stringify(JSON.parse(v), null, 2)); }
+  catch(e){ alert(k + ":\n\n" + v); }
+}
+function deleteKey(k){
+  if(!confirm("Delete localStorage key: " + k + "?")) return;
+  localStorage.removeItem(k);
+  addLog("warn", "Deleted localStorage key: " + k);
+  renderLsInspector();
+  toast("Deleted " + k, "warn");
+}
+
+function downloadLogs(){
+  const blob = new Blob([JSON.stringify(getLogs(), null, 2)], { type: "application/json" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "wa-admin-logs-" + new Date().toISOString().slice(0,10) + ".json";
+  a.click();
+}
+async function copyLogs(){
+  await navigator.clipboard.writeText(JSON.stringify(getLogs(), null, 2));
+  toast("Logs copied to clipboard", "ok");
+}
+function clearLogs(){
+  if(!confirm("Clear all logs?")) return;
+  localStorage.removeItem(LOG_KEY);
+  renderLogs();
+  toast("Logs cleared", "ok");
+}
+function confirmWipe(){
+  if(!confirm("⚠ This deletes ALL localStorage data including user profiles, settings, and API keys. Type YES to confirm.")) return;
+  const ans = prompt("Type WIPE to confirm:");
+  if(ans !== "WIPE"){ toast("Cancelled", "warn"); return; }
+  localStorage.clear();
+  addLog("err", "ALL localStorage wiped");
+  toast("Wiped", "err");
+  setTimeout(() => location.reload(), 1200);
+}
+</script>
+</body>
+</html>

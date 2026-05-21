@@ -117,3 +117,28 @@ if missing:
     print(f"⚠  Still references CDN: {missing}")
 else:
     print("   No remaining CDN references — fully offline ✓")
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Build admin-standalone.html if admin.html exists
+# ─────────────────────────────────────────────────────────────────────────────
+if os.path.exists("admin.html"):
+    print("\nBuilding admin-standalone.html...")
+    with open("admin.html", "r", encoding="utf-8") as f:
+        admin = f.read()
+    admin = re.sub(r'const APP_VERSION\s*=\s*"[^"]*"', f'const APP_VERSION = "{version}"', admin)
+    admin = re.sub(r'<link href="https://fonts\.googleapis\.com[^"]*" rel="stylesheet">',
+                   '<!-- Google Fonts removed — system fonts used (standalone mode) -->', admin)
+    admin = admin.replace("'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif",
+                          "-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,Arial,sans-serif")
+    admin = admin.replace("'JetBrains Mono','SF Mono','Monaco','Consolas',monospace",
+                          "'SF Mono','Monaco','Consolas','Courier New',monospace")
+    admin = admin.replace(
+        '<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>',
+        f'<script>/* Chart.js 4.4.1 — inlined */\n{chart_js}\n</script>'
+    )
+    with open("admin-standalone.html", "w", encoding="utf-8") as f:
+        f.write(admin)
+    asize_kb = os.path.getsize("admin-standalone.html") / 1024
+    print(f"✓  admin-standalone.html — {asize_kb:,.0f} KB")
+else:
+    print("\n(admin.html not found — skipping admin standalone build)")
