@@ -3,7 +3,7 @@
 Build standalone single-file version of wealth-analyzer.html
 Inlines all CDN dependencies so the app works with no internet connection.
 """
-import re, base64, os
+import re, base64, os, datetime
 
 SRC  = "wealth-analyzer.html"
 DEST = "wealth-analyzer-standalone.html"
@@ -27,6 +27,11 @@ with open(os.path.join(V, "pdf.worker.min.js"), "rb") as f:
 
 # Worker encoded as base64 — safe to embed inside any <script> tag
 worker_b64 = base64.b64encode(worker_bytes).decode("ascii")
+
+# ── 0. Stamp APP_VERSION with current build timestamp ────────────────────────
+version = datetime.datetime.now().strftime("%Y%m%d-%H%M")
+html = re.sub(r'const APP_VERSION\s*=\s*"[^"]*"', f'const APP_VERSION = "{version}"', html)
+print(f"   Version: {version}")
 
 # ── 1. Remove Google Fonts link, replace with system fonts ───────────────────
 html = html.replace(

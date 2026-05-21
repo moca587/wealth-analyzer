@@ -1,5 +1,5 @@
 #!/usr/bin/perl
-use strict; use warnings; use MIME::Base64;
+use strict; use warnings; use MIME::Base64; use POSIX qw(strftime);
 
 # Check if File::Slurp is available, use fallback if not
 sub slurp {
@@ -27,6 +27,11 @@ my $worker_bytes = slurp("$V/pdf.worker.min.js");
 my $worker_b64   = encode_base64($worker_bytes, "");  # no line breaks
 
 print "Transforming...\n";
+
+# 0. Stamp APP_VERSION with current build timestamp (YYYYMMDD-HHMM)
+my $version = strftime("%Y%m%d-%H%M", localtime);
+$html =~ s/const APP_VERSION\s*=\s*"[^"]*"/const APP_VERSION = "$version"/;
+print "  Version: $version\n";
 
 # 1. Remove Google Fonts link
 $html =~ s|<link href="https://fonts\.googleapis\.com[^"]*" rel="stylesheet">|<!-- Google Fonts removed — system fonts used (standalone mode) -->|;

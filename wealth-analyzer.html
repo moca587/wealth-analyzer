@@ -3,6 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <title>Wealth Analyzer — Monte Carlo Financial Planner</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
@@ -1735,6 +1738,11 @@ input[type=date]{color-scheme:light}
 </div><!-- end .app-shell -->
 
 <script>
+// ═══════════════════════════════════════════════════════════
+// VERSION — updated by build-standalone.pl on each build
+// ═══════════════════════════════════════════════════════════
+const APP_VERSION = "20260521-1";
+
 // ═══════════════════════════════════════════════════════════
 // DATA
 // ═══════════════════════════════════════════════════════════
@@ -6575,6 +6583,35 @@ function renderTornado(results,base){
 // INIT
 // ═══════════════════════════════════════════════════════════
 document.addEventListener("DOMContentLoaded",function(){
+  // ── Version guard: clear stale localStorage on app update ──────────────────
+  (function checkVersion(){
+    const stored = localStorage.getItem("wa_app_version");
+    if(stored && stored !== APP_VERSION){
+      // New version deployed — wipe all app keys (API keys excluded)
+      Object.keys(localStorage)
+        .filter(k => k.startsWith("wa_") && k !== "wa_claude_key" && k !== "wa_av_key" && k !== "wa_fh_key")
+        .forEach(k => localStorage.removeItem(k));
+      // Brief update notification banner
+      const banner = document.createElement("div");
+      banner.id = "wa-update-banner";
+      banner.style.cssText = [
+        "position:fixed","top:52px","left:0","right:0","z-index:9999",
+        "background:var(--gold)","color:#fff","padding:8px 20px",
+        "font-size:13px","font-weight:600","display:flex",
+        "align-items:center","justify-content:space-between",
+        "box-shadow:0 2px 8px rgba(0,0,0,.25)"
+      ].join(";");
+      banner.innerHTML =
+        '<span>🔄 App updated — starting fresh</span>' +
+        '<button onclick="document.getElementById(\'wa-update-banner\').remove()" ' +
+        'style="background:rgba(255,255,255,.25);border:none;color:#fff;' +
+        'padding:3px 12px;border-radius:4px;cursor:pointer;font-weight:700;font-size:13px">✕</button>';
+      document.body.appendChild(banner);
+      setTimeout(function(){ const b=document.getElementById("wa-update-banner"); if(b) b.remove(); }, 6000);
+    }
+    localStorage.setItem("wa_app_version", APP_VERSION);
+  })();
+
   // Populate dropdowns
   popCountries("c1co","US");
   popCountries("c2co","US");

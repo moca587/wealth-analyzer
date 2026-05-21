@@ -3,6 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <title>Wealth Analyzer — Monte Carlo Financial Planner</title>
 <!-- Google Fonts removed â system fonts used (standalone mode) -->
 <script>/* Chart.js 4.4.1 â inlined */
@@ -1480,21 +1483,15 @@ input[type=date]{color-scheme:light}
 </div>
 
 <div class="panel">
-  <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px;flex-wrap:wrap;gap:10px">
-    <div>
-      <div class="ptitle" style="margin:0">What could your wealth look like?</div>
-      <div style="font-size:12px;color:var(--text3);margin-top:4px;margin-bottom:12px">Each bar shows where your wealth could land at the <strong style="color:var(--text2)">end of the projection</strong>, depending on how markets perform. Higher bars = more wealth in that scenario.</div>
-    </div>
-    <div class="band-btns" style="gap:4px;flex-shrink:0">
-      <button class="band-btn" id="cm-nominal" onclick="setChartMode('nominal')">Nominal</button>
-      <button class="band-btn active" id="cm-real" onclick="setChartMode('real')">Real (inflation-adj.)</button>
-    </div>
+  <div style="margin-bottom:4px">
+    <div class="ptitle" style="margin:0">What could your wealth look like?</div>
+    <div style="font-size:12px;color:var(--text3);margin-top:4px;margin-bottom:12px">Three scenarios showing the probability your wealth reaches <strong style="color:var(--text2)">at least that level</strong> by end of the projection. All figures in <strong style="color:var(--text2)">today's money</strong> (inflation-adjusted).</div>
   </div>
   <div class="chart-wrap"><canvas id="mcChart" role="img" aria-label="Monte Carlo wealth projection chart"></canvas></div>
   <!-- Probability values grid -->
-  <div id="probGrid" style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-top:14px;text-align:center"></div>
+  <div id="probGrid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:14px;text-align:center"></div>
   <div style="margin-top:10px;padding:8px 12px;background:var(--bg3);border-radius:var(--rs);font-size:11px;color:var(--text3);line-height:1.6">
-    <strong style="color:var(--text2)">How to read this:</strong> each bar shows your projected wealth in a different possible future. The left bars are conservative outcomes that happen most of the time; the right bars are optimistic outcomes that happen rarely. The dashed line is your wealth today. All figures in today's money (inflation-adjusted).
+    <strong style="color:var(--text2)">How to read this:</strong> "90% probability" means 9 out of 10 simulation paths end with <em>at least</em> that much wealth — the conservative floor advisors use for essential planning. "60%" is the likely outcome that most plans should target. "40%" is the optimistic scenario that only 4 in 10 paths reach. The dashed line is your wealth today. All figures in today's money (inflation-adjusted).
   </div>
 </div>
 
@@ -2188,6 +2185,11 @@ input[type=date]{color-scheme:light}
 </div><!-- end .app-shell -->
 
 <script>
+// ═══════════════════════════════════════════════════════════
+// VERSION — updated by build-standalone.pl on each build
+// ═══════════════════════════════════════════════════════════
+const APP_VERSION = "20260521-2004";
+
 // ═══════════════════════════════════════════════════════════
 // DATA
 // ═══════════════════════════════════════════════════════════
@@ -5259,16 +5261,17 @@ function runSim(){
 }
 function redrawChart(paths){
   const yrs=paths[0].length-1;
-  const inf=_chartReal?num("inf",3.8)/100:0;
-  const deflate=(v)=>_chartReal?v/Math.pow(1+inf,yrs):v;
+  const inf=num("inf",3.8)/100;
+  const deflate=(v)=>v/Math.pow(1+inf,yrs); // always inflation-adjusted
 
-  // Five probability scenarios — each says "in X out of 10 futures you'll have AT LEAST this much"
+  // Three bars — each probability = share of paths that reach AT LEAST this level
+  // 90% prob → 10th percentile (90% of paths exceed it)
+  // 60% prob → 40th percentile (60% of paths exceed it)
+  // 40% prob → 60th percentile (only 40% of paths exceed it)
   const SCENARIOS=[
-    {chanceTxt:"9 in 10 futures", label:["9 in 10","futures"], sublabel:"Near certain",  pct:10, color:"rgba(76,175,125,0.85)",  border:"#1b6841"},
-    {chanceTxt:"3 in 4 futures",  label:["3 in 4","futures"],  sublabel:"Very likely",   pct:25, color:"rgba(76,175,125,0.55)",  border:"#2d9e6b"},
-    {chanceTxt:"Coin flip",        label:["Coin flip","(median)"],sublabel:"Even odds",  pct:50, color:"rgba(91,155,213,0.80)",  border:"#1e40af"},
-    {chanceTxt:"1 in 4 futures",  label:["1 in 4","futures"],  sublabel:"Optimistic",   pct:75, color:"rgba(212,149,106,0.75)", border:"#c06020"},
-    {chanceTxt:"1 in 10 futures", label:["1 in 10","futures"], sublabel:"Best case",     pct:90, color:"rgba(139,109,206,0.75)", border:"#5b3fa8"},
+    {prob:"90%", label:["90%","probability"], sublabel:"Conservative floor", pct:10, color:"rgba(76,175,125,0.85)",  border:"#1b6841"},
+    {prob:"60%", label:["60%","probability"], sublabel:"Likely outcome",     pct:40, color:"rgba(91,155,213,0.85)",  border:"#1e40af"},
+    {prob:"40%", label:["40%","probability"], sublabel:"Optimistic outcome", pct:60, color:"rgba(212,149,106,0.85)", border:"#c06020"},
   ];
 
   // Starting wealth = year-0 value. Already in today's dollars — do NOT deflate.
@@ -5319,7 +5322,7 @@ function redrawChart(paths){
           callbacks:{
             title:(items)=>{
               const s=SCENARIOS[items[0].dataIndex];
-              return s.chanceTxt+" — "+s.sublabel;
+              return s.prob+" probability — "+s.sublabel;
             },
             label:(item)=>{
               if(item.datasetIndex===1) return "Today: "+fmtMoney(item.raw);
@@ -5335,7 +5338,7 @@ function redrawChart(paths){
             footer:(items)=>{
               const s=SCENARIOS[items[0].dataIndex];
               if(items[0].datasetIndex===1) return "";
-              return "In "+s.chanceTxt.toLowerCase()+", your wealth is at least this much.";
+              return s.prob+" of simulation paths reach at least this level.";
             }
           }
         }
@@ -5359,15 +5362,16 @@ function redrawChart(paths){
     const diff=v-startDeflated;
     const sign=diff>=0?"+":"";
     const isPos=diff>=0;
-    return `<div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--rs);padding:8px 6px">
-      <div style="font-size:10px;color:var(--text3);margin-bottom:3px;line-height:1.3">${s.label[0]}<br>${s.label[1]}</div>
-      <div style="font-family:var(--fd);font-size:15px;color:${isPos?"var(--green)":isPos===false?"var(--red)":"var(--text)"};font-weight:500">${fmtMoney(v)}</div>
-      <div style="font-size:10px;color:${isPos?"#1b6841":"#a83232"};margin-top:2px">${sign}${fmtMoney(diff)}</div>
-      <div style="font-size:10px;color:var(--text3);margin-top:1px">${s.sublabel}</div>
+    return `<div style="background:var(--bg3);border:2px solid ${s.border};border-radius:var(--r);padding:14px 10px">
+      <div style="font-size:22px;font-weight:700;color:${s.border};margin-bottom:2px">${s.prob}</div>
+      <div style="font-size:10px;color:var(--text3);margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em">probability</div>
+      <div style="font-family:var(--fd);font-size:20px;color:${isPos?"var(--green)":"var(--red)"};font-weight:700">${fmtMoney(v)}</div>
+      <div style="font-size:11px;color:${isPos?"#1b6841":"#a83232"};margin-top:3px;font-weight:600">${sign}${fmtMoney(diff)} from today</div>
+      <div style="font-size:10px;color:var(--text3);margin-top:4px">${s.sublabel}</div>
     </div>`;
   }).join("");
   setH("probGrid",gridHtml);
-  setT("m-med",fmtMoney(endValues[2])); // median = index 2 (50th pct)
+  setT("m-med",fmtMoney(endValues[1])); // 60% probability bar (index 1)
 }
 function renderGoalAnalysis(paths,yrs){
   if(goals.length===0){show("goalResults",false); return;}
@@ -5503,16 +5507,18 @@ function renderCashFlow(){
   }
 
   // ── Conservative return parameters ───────────────────────────────────────────
-  // Cash flow = deterministic conservative scenario (NOT the median/expected outcome).
-  // The Monte Carlo provides the full probability distribution.
-  // Here we use 70% of net expected return (min 2.5%) — roughly the 25–30th percentile
-  // of long-run outcomes, appropriate for prudent financial planning.
+  // Cash flow = deterministic projection at the log-normal geometric mean return.
+  // Geometric mean = mu − 0.5σ² matches the median (50th percentile) path of the
+  // Monte Carlo simulation, so the CF table and the "60% probability" bar tell a
+  // consistent story. (The MC samples (mu − 0.5σ²) + σ·N(0,1); expected compound
+  // return across all paths equals the geometric mean.)
   const params=getEffectiveReturnParams(); // risk-profile based (mode A) or holdings-weighted (B/C)
-  const cfMu=Math.max(0.025, params.mu*0.70);
-  // Property: conservative = inflation minus 1 pp real, floored at 1% nominal
+  const _geomMu=params.mu - 0.5*params.sig*params.sig; // log-normal geometric mean
+  const cfMu=Math.max(0.01, _geomMu);
+  // Property: inflation minus 1 pp real, floored at 1% nominal
   const propGrowth=Math.max(0.01, inf-0.01);
-  // Retirement pool pre-retirement: same conservative haircut; post-retirement: 3.5% (bond-heavy)
-  const retMuWork=Math.max(0.025, params.mu*0.70);
+  // Retirement pool pre-retirement: same geometric mean; post-retirement: 3.5% (bond-heavy)
+  const retMuWork=Math.max(0.01, _geomMu);
   const retMuRetired=0.035;
 
   const cy=currentYear();
@@ -5530,7 +5536,7 @@ function renderCashFlow(){
   // parameters differ between current-portfolio and investment-proposal runs:
   //   initInv  — starting invested balance
   //   initCash — starting cash balance
-  //   loopMu   — annual investment return (already the conservative 70%-haircut rate)
+  //   loopMu   — annual investment return (geometric mean = mu − 0.5σ², matching MC median)
   function runLoop(initInv, initCash, loopMu){
     let iv=initInv, ca=initCash, rp=retSeed;
     const loopRetMuRetired=0.035; // post-retirement pool: bond-heavy conservative mix
@@ -5648,7 +5654,7 @@ function renderCashFlow(){
   let propData=null, propCfMu=cfMu, propParams=params;
   if(hasProposal){
     propParams=getProposalReturnParams();
-    propCfMu=Math.max(0.025,propParams.mu*0.70);
+    propCfMu=Math.max(0.01, propParams.mu - 0.5*propParams.sig*propParams.sig);
     // Investment seed: use explicit target amount if set, otherwise mirror current portfolio total
     const prTarget=num("prAmount",0);
     const prTotalInv=prTarget>0?prTarget:(pfInvested+pfCash);
@@ -5748,11 +5754,11 @@ function renderCashFlow(){
     ?` · Ret. pool (${fmtMoney(retSeed)}): 3.5%/yr in retirement; 4% voluntary drawdown from age ${retAge}, mandatory rules from age ${rmdStartAge}.`
     :"";
   setH("cfHeader",
-    `<strong>Conservative cash flow projection — Current Portfolio</strong> — age ${a1} to 90 (${horizon+1} years) &nbsp;`+
+    `<strong>Median cash flow projection — Current Portfolio</strong> — age ${a1} to 90 (${horizon+1} years) &nbsp;`+
     `<span style="font-size:11px;background:var(--bg3);border:1px solid var(--border);border-radius:4px;padding:2px 8px;color:var(--text3)">Mode ${cfMode}</span><br>`+
     `<span style="font-size:12px;color:var(--text2)">${cfModeNote}</span><br>`+
     `<span style="font-size:11px;color:var(--text3)">`+
-    `Investment return: <strong style="color:var(--text2)">${cfPct}%/yr</strong> (70% of ${returnSrc} ${fullPct}%) · `+
+    `Investment return: <strong style="color:var(--text2)">${cfPct}%/yr</strong> (geometric mean of ${returnSrc} ${fullPct}% — matches chart 60% probability bar) · `+
     `Property: <strong style="color:var(--text2)">${propGrowthPct}%/yr</strong> (inflation&minus;1pp) · `+
     `Deficits drain cash first, then investments`+
     `${rmdNote}</span>`
@@ -7024,6 +7030,35 @@ function renderTornado(results,base){
 // INIT
 // ═══════════════════════════════════════════════════════════
 document.addEventListener("DOMContentLoaded",function(){
+  // ── Version guard: clear stale localStorage on app update ──────────────────
+  (function checkVersion(){
+    const stored = localStorage.getItem("wa_app_version");
+    if(stored && stored !== APP_VERSION){
+      // New version deployed — wipe all app keys (API keys excluded)
+      Object.keys(localStorage)
+        .filter(k => k.startsWith("wa_") && k !== "wa_claude_key" && k !== "wa_av_key" && k !== "wa_fh_key")
+        .forEach(k => localStorage.removeItem(k));
+      // Brief update notification banner
+      const banner = document.createElement("div");
+      banner.id = "wa-update-banner";
+      banner.style.cssText = [
+        "position:fixed","top:52px","left:0","right:0","z-index:9999",
+        "background:var(--gold)","color:#fff","padding:8px 20px",
+        "font-size:13px","font-weight:600","display:flex",
+        "align-items:center","justify-content:space-between",
+        "box-shadow:0 2px 8px rgba(0,0,0,.25)"
+      ].join(";");
+      banner.innerHTML =
+        '<span>🔄 App updated — starting fresh</span>' +
+        '<button onclick="document.getElementById(\'wa-update-banner\').remove()" ' +
+        'style="background:rgba(255,255,255,.25);border:none;color:#fff;' +
+        'padding:3px 12px;border-radius:4px;cursor:pointer;font-weight:700;font-size:13px">✕</button>';
+      document.body.appendChild(banner);
+      setTimeout(function(){ const b=document.getElementById("wa-update-banner"); if(b) b.remove(); }, 6000);
+    }
+    localStorage.setItem("wa_app_version", APP_VERSION);
+  })();
+
   // Populate dropdowns
   popCountries("c1co","US");
   popCountries("c2co","US");
