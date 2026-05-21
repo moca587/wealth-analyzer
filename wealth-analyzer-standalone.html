@@ -1845,16 +1845,25 @@ input[type=date]{color-scheme:light}
 
 <!-- Sensitivity Analysis -->
 <div class="panel" id="sensitivityPanel">
-  <div class="ptitle">Sensitivity Analysis</div>
-  <div style="font-size:12px;color:var(--text3);margin-bottom:12px;line-height:1.5">
-    Shows how ±20% changes in key inputs shift the <strong style="color:var(--text2)">median projected wealth</strong> at year <span id="sensYr" style="color:var(--gold);font-weight:600">—</span>. Wider bars = greater sensitivity. Run the simulation first.
+  <div class="ptitle section-dropdown" onclick="toggleDropdown('sensitivityBody')">
+    Sensitivity Analysis <span class="dropdown-hint">click to expand</span>
+    <span class="ptitle-line"></span>
   </div>
-  <div id="tornadoWrap"><div class="empty">Run the simulation to generate sensitivity analysis.</div></div>
+  <div class="dropdown-body" id="sensitivityBody">
+    <div style="font-size:12px;color:var(--text3);margin:12px 0;line-height:1.5">
+      Shows how ±20% changes in key inputs shift the <strong style="color:var(--text2)">median projected wealth</strong> at year <span id="sensYr" style="color:var(--gold);font-weight:600">—</span>. Wider bars = greater sensitivity. Run the simulation first.
+    </div>
+    <div id="tornadoWrap"><div class="empty">Run the simulation to generate sensitivity analysis.</div></div>
+  </div>
 </div>
 
 <!-- Methodology & disclaimer -->
 <div class="panel" id="mcDisclaimer">
-  <div class="ptitle">Methodology &amp; Disclaimer</div>
+  <div class="ptitle section-dropdown" onclick="toggleDropdown('mcDisclaimerBody')">
+    Methodology &amp; Disclaimer <span class="dropdown-hint">click to expand</span>
+    <span class="ptitle-line"></span>
+  </div>
+  <div class="dropdown-body" id="mcDisclaimerBody">
 
   <div class="slbl">Inputs the simulation reads</div>
   <div style="font-size:12px;color:var(--text2);line-height:1.65;margin-bottom:14px">
@@ -1902,6 +1911,7 @@ input[type=date]{color-scheme:light}
   <div style="font-size:11px;color:var(--text3);line-height:1.55;padding:10px 12px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--rs);margin-top:6px">
     <strong style="color:var(--text2)">Disclaimer.</strong> This tool is for educational and planning purposes only. It is <strong>not</strong> investment, tax, or legal advice. Historical averages and randomly sampled returns do not predict actual market behaviour; real outcomes can differ materially due to sequence-of-returns risk, tax drag, behavioural decisions, fees, and unmodeled life events. Consult a licensed financial professional before acting on any projection shown here.
   </div>
+  </div><!-- /mcDisclaimerBody -->
 </div>
 
 </div>
@@ -2310,17 +2320,19 @@ input[type=date]{color-scheme:light}
   </div>
 </div>
 
-<!-- Total return horizon comparison -->
+<!-- Total return horizon comparison — % only, with benchmark -->
 <div class="panel">
   <div class="ptitle">Total Return Comparison — 1Y / 3Y / 5Y / 10Y</div>
-  <div style="font-size:12px;color:var(--text3);margin-bottom:14px;line-height:1.6">Compounded total return at each horizon using the net (after-fee) expected return for each portfolio. Dollar growth is shown for a hypothetical <strong style="color:var(--text2)">$100,000 starting balance</strong>. Median Monte Carlo outcomes (500 paths) are shown for context — they capture sequence-of-returns risk that the deterministic projection misses.</div>
-  <div class="cmp-grid" id="cmpReturnHorizon" style="grid-template-columns:120px 1fr 1fr 110px">
+  <div style="font-size:12px;color:var(--text3);margin-bottom:14px;line-height:1.6">Compounded total return at each horizon using the net (after-fee) expected return. The <strong id="benchmarkLabel" style="color:var(--text2)">benchmark</strong> below reflects what an appropriate index would return over the same period — auto-selected based on the asset mix of your inputs.</div>
+  <div class="cmp-grid" id="cmpReturnHorizon" style="grid-template-columns:140px 1fr 1fr 1fr 110px">
     <div class="cmp-h">Horizon</div>
     <div class="cmp-h cur">Current Portfolio</div>
     <div class="cmp-h prop">Proposed Portfolio</div>
-    <div class="cmp-h delta">Δ</div>
+    <div class="cmp-h" id="benchmarkColHead" style="color:var(--amber)">Benchmark</div>
+    <div class="cmp-h delta">Δ (Prop vs Cur)</div>
     <div class="cmp-c" style="grid-column:1/-1;text-align:center;color:var(--text3);padding:18px">Run comparison to see return horizons.</div>
   </div>
+  <div id="benchmarkExplain" style="font-size:11px;color:var(--text3);margin-top:10px;padding:8px 12px;background:rgba(245,158,11,.07);border-left:3px solid var(--amber);border-radius:4px;line-height:1.6"></div>
 </div>
 
 <!-- Goal success comparison -->
@@ -2473,6 +2485,9 @@ input[type=date]{color-scheme:light}
       <div class="frow"><label class="flbl">Portfolio detail</label>
         <select id="rptIncPort" class="w180"><option value="yes" selected>Yes (if holdings added)</option><option value="no">No</option></select>
       </div>
+      <div class="frow"><label class="flbl">Morningstar fact sheets</label>
+        <select id="rptIncFactsheets" class="w180"><option value="yes" selected>Yes (1 per proposal position)</option><option value="no">No</option></select>
+      </div>
     </div>
     <div>
       <div class="frow"><label class="flbl">Monte Carlo projection</label>
@@ -2527,7 +2542,7 @@ input[type=date]{color-scheme:light}
 // ═══════════════════════════════════════════════════════════
 // VERSION — updated by build-standalone.pl on each build
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260521-2340";
+const APP_VERSION = "20260522-0013";
 
 // ═══════════════════════════════════════════════════════════
 // DATA
@@ -3290,6 +3305,72 @@ const LOCAL_TAX = {
       "DEN":{name:"Denver",state:"CO",type:"flat",topRate:0.56,brackets:[{t:0,r:0.56}],note:"Occupational privilege tax (flat $5.75/month)."},
       "DC":{name:"Washington D.C.",state:"DC",type:"progressive",topRate:10.75,note:"DC tax handled at state level (it is its own jurisdiction)."}
     }
+  },
+  CA: { // Canada — 2024 federal + provincial brackets in CAD
+    federal: {topRate:33, brackets:[{t:0,r:15},{t:55867,r:20.5},{t:111733,r:26},{t:173205,r:29},{t:246752,r:33}]},
+    states: {
+      AB:{name:"Alberta",          type:"progressive",topRate:15,   brackets:[{t:0,r:10},{t:148269,r:12},{t:177922,r:13},{t:237230,r:14},{t:355845,r:15}]},
+      BC:{name:"British Columbia", type:"progressive",topRate:20.5, brackets:[{t:0,r:5.06},{t:47937,r:7.7},{t:95875,r:10.5},{t:110076,r:12.29},{t:133664,r:14.7},{t:181232,r:16.8},{t:252752,r:20.5}]},
+      MB:{name:"Manitoba",         type:"progressive",topRate:17.4, brackets:[{t:0,r:10.8},{t:47000,r:12.75},{t:100000,r:17.4}]},
+      NB:{name:"New Brunswick",    type:"progressive",topRate:19.5, brackets:[{t:0,r:9.4},{t:49958,r:14},{t:99916,r:16},{t:185064,r:19.5}]},
+      NL:{name:"Newfoundland & Labrador",type:"progressive",topRate:21.8,brackets:[{t:0,r:8.7},{t:43198,r:14.5},{t:86395,r:15.8},{t:154244,r:17.8},{t:215943,r:19.8},{t:275870,r:20.8},{t:551739,r:21.3},{t:1103478,r:21.8}]},
+      NS:{name:"Nova Scotia",      type:"progressive",topRate:21,   brackets:[{t:0,r:8.79},{t:29590,r:14.95},{t:59180,r:16.67},{t:93000,r:17.5},{t:150000,r:21}]},
+      ON:{name:"Ontario",          type:"progressive",topRate:13.16,brackets:[{t:0,r:5.05},{t:51446,r:9.15},{t:102894,r:11.16},{t:150000,r:12.16},{t:220000,r:13.16}]},
+      PE:{name:"Prince Edward Island",type:"progressive",topRate:18.75,brackets:[{t:0,r:9.65},{t:32656,r:13.63},{t:64313,r:16.65},{t:105000,r:18},{t:140000,r:18.75}]},
+      QC:{name:"Québec",           type:"progressive",topRate:25.75,brackets:[{t:0,r:14},{t:51780,r:19},{t:103545,r:24},{t:126000,r:25.75}]},
+      SK:{name:"Saskatchewan",     type:"progressive",topRate:14.5, brackets:[{t:0,r:10.5},{t:52057,r:12.5},{t:148734,r:14.5}]},
+      NT:{name:"Northwest Territories",type:"progressive",topRate:14.05,brackets:[{t:0,r:5.9},{t:50597,r:8.6},{t:101198,r:12.2},{t:164525,r:14.05}]},
+      NU:{name:"Nunavut",          type:"progressive",topRate:11.5, brackets:[{t:0,r:4},{t:53268,r:7},{t:106537,r:9},{t:173205,r:11.5}]},
+      YT:{name:"Yukon",            type:"progressive",topRate:15,   brackets:[{t:0,r:6.4},{t:55867,r:9},{t:111733,r:10.9},{t:173205,r:12.8},{t:500000,r:15}]}
+    },
+    cities: {}
+  },
+  GB: { // United Kingdom — 2024/25 in GBP (rUK rates; Scotland has its own)
+    federal: {topRate:45, brackets:[{t:0,r:0},{t:12570,r:20},{t:50270,r:40},{t:125140,r:45}], stdDeduction:12570, note:"Personal allowance tapered above £100k."},
+    states: {
+      ENG:{name:"England",          type:"none",       topRate:0,    brackets:[], note:"Uses rUK bands."},
+      WAL:{name:"Wales",            type:"none",       topRate:0,    brackets:[], note:"Uses rUK bands."},
+      NIR:{name:"Northern Ireland", type:"none",       topRate:0,    brackets:[], note:"Uses rUK bands."},
+      SCT:{name:"Scotland",         type:"progressive",topRate:48,   brackets:[{t:0,r:0},{t:12570,r:19},{t:14876,r:20},{t:26561,r:21},{t:43662,r:42},{t:75000,r:45},{t:125140,r:48}], note:"Scottish-specific 7 bands incl. 2024 'advanced' rate."}
+    },
+    cities: {}
+  },
+  AU: { // Australia 2024-25 in AUD
+    federal: {topRate:45, brackets:[{t:0,r:0},{t:18200,r:16},{t:45000,r:30},{t:135000,r:37},{t:190000,r:45}], note:"Plus 2% Medicare levy on most income."},
+    states: { ALL:{name:"All states (no state income tax)",type:"none",topRate:0,brackets:[]} },
+    cities: {}
+  },
+  DE: { // Germany 2024 in EUR — simplified continuous formula approximated as 5 bands
+    federal: {topRate:45, brackets:[{t:0,r:0},{t:11604,r:14},{t:17005,r:24},{t:66760,r:42},{t:277826,r:45}], stdDeduction:11604, note:"Reichensteuer 45% above €277,826."},
+    states: { ALL:{name:"All Länder (no separate income tax)",type:"none",topRate:0,brackets:[],note:"Church tax 8-9% added in some Länder for members."} },
+    cities: {}
+  },
+  FR: { // France 2024 in EUR
+    federal: {topRate:45, brackets:[{t:0,r:0},{t:11294,r:11},{t:28797,r:30},{t:82341,r:41},{t:177106,r:45}], note:"Plus CSG/CRDS social charges ~9.7%."},
+    states: { ALL:{name:"All régions (no regional income tax)",type:"none",topRate:0,brackets:[]} },
+    cities: {}
+  },
+  CH: { // Switzerland — federal flat-ish + huge cantonal variation
+    federal: {topRate:11.5, brackets:[{t:0,r:0},{t:14500,r:0.77},{t:31600,r:0.88},{t:41400,r:2.64},{t:55200,r:2.97},{t:72500,r:5.94},{t:78100,r:6.6},{t:103600,r:8.8},{t:134600,r:11},{t:176000,r:13.2},{t:755200,r:11.5}]},
+    states: {
+      ZH:{name:"Zürich",  type:"progressive",topRate:13,brackets:[{t:0,r:2},{t:14000,r:3},{t:50000,r:6},{t:100000,r:9},{t:300000,r:13}]},
+      GE:{name:"Geneva",  type:"progressive",topRate:19,brackets:[{t:0,r:8},{t:50000,r:13},{t:100000,r:15},{t:200000,r:17.5},{t:500000,r:19}]},
+      ZG:{name:"Zug",     type:"progressive",topRate:8, brackets:[{t:0,r:1},{t:50000,r:3},{t:100000,r:5},{t:200000,r:8}]},
+      BS:{name:"Basel-Stadt",type:"progressive",topRate:14.5,brackets:[{t:0,r:5},{t:50000,r:9},{t:100000,r:12},{t:200000,r:14.5}]},
+      BE:{name:"Bern",    type:"progressive",topRate:14,brackets:[{t:0,r:1.5},{t:50000,r:6},{t:100000,r:10},{t:200000,r:14}]},
+      VD:{name:"Vaud",    type:"progressive",topRate:15,brackets:[{t:0,r:1},{t:50000,r:7},{t:100000,r:11},{t:200000,r:15}]}
+    },
+    cities: {}
+  },
+  JP: { // Japan 2024 in JPY
+    federal: {topRate:45, brackets:[{t:0,r:5},{t:1950000,r:10},{t:3300000,r:20},{t:6950000,r:23},{t:9000000,r:33},{t:18000000,r:40},{t:40000000,r:45}], note:"Plus 10% uniform local inhabitant tax + 2.1% reconstruction surtax on national tax."},
+    states: { ALL:{name:"All prefectures — 10% local inhabitant tax",type:"flat",topRate:10,brackets:[{t:0,r:10}]} },
+    cities: {}
+  },
+  SG: { // Singapore 2024 in SGD
+    federal: {topRate:24, brackets:[{t:0,r:0},{t:20000,r:2},{t:30000,r:3.5},{t:40000,r:7},{t:80000,r:11.5},{t:120000,r:15},{t:160000,r:18},{t:200000,r:19},{t:240000,r:19.5},{t:280000,r:20},{t:320000,r:22},{t:500000,r:23},{t:1000000,r:24}], note:"Residents only; non-residents 15% flat."},
+    states: { ALL:{name:"Singapore (single jurisdiction)",type:"none",topRate:0,brackets:[]} },
+    cities: {}
   }
 };
 
@@ -7034,57 +7115,73 @@ function drawComparisonPies(){
   renderLeg("cmpPiePropLegend", aggProp);
 }
 
-// Total return horizon table — compounded + MC median for Current vs Proposed
-function renderReturnHorizon(curMu, curSig, propMu, propSig){
-  const startBalance = 100000;
-  const horizons = [1, 3, 5, 10];
-  // For MC median: keep paths small for speed (250)
-  const simsHz = 250;
+// Benchmark catalogue — long-run annualised total returns (decimal)
+// Sources: S&P historical 1928-2024 (~10%), Bloomberg Agg ~5%, FTSE NAREIT ~9%
+const BENCHMARKS = {
+  sp500:       {label:"S&P 500 Index",                annRet:0.10,  note:"Large-cap US equities, ~10% long-run annualised total return (1928-2024)."},
+  acwi:        {label:"MSCI ACWI (Global Equities)",  annRet:0.085, note:"Global developed + emerging equities, ~8.5% long-run annualised total return."},
+  agg:         {label:"Bloomberg US Agg Bond Index",  annRet:0.05,  note:"Investment-grade US bonds, ~5% long-run annualised total return."},
+  reits:       {label:"FTSE NAREIT Equity REIT Index",annRet:0.09,  note:"US REITs, ~9% long-run annualised total return."},
+  balanced60:  {label:"Balanced 60/40 (S&P/Agg)",     annRet:0.080, note:"60% S&P 500 + 40% Bloomberg Agg blend, ~8% long-run annualised return."},
+  conservative:{label:"Conservative 30/70",           annRet:0.065, note:"30% equities + 70% bonds blend, ~6.5% long-run annualised return."},
+  commodities: {label:"Bloomberg Commodity Index",    annRet:0.04,  note:"Broad commodity basket, ~4% long-run annualised total return (highly variable)."},
+  cash:        {label:"3-mo US Treasury Bills",       annRet:0.035, note:"Cash-equivalent yield, ~3.5% long-run average."}
+};
 
-  // Returns deterministic FV after n years on $100k
-  const detFV = (mu, n) => startBalance * Math.pow(1 + mu, n);
-  // MC median FV — simple Box-Muller log-normal, no savings, n years
-  function mcMedian(mu, sig, years, sims){
-    const ends = [];
-    for(let s=0; s<sims; s++){
-      let nw = startBalance;
-      for(let y=0; y<years; y++){
-        const u1=Math.max(1e-12,Math.random()), u2=Math.random();
-        const z = Math.sqrt(-2*Math.log(u1)) * Math.cos(2*Math.PI*u2);
-        const r = (mu - 0.5*sig*sig) + sig*z;
-        nw *= (1 + r);
-      }
-      ends.push(nw);
-    }
-    ends.sort((a,b)=>a-b);
-    return ends[Math.floor(sims*0.5)];
-  }
+// Pick the most appropriate benchmark from the dominant asset class
+function pickBenchmark(){
+  // Aggregate by asset class across BOTH portfolios (current + proposed)
+  const agg = {};
+  const total1 = investments.reduce((s,i)=>s+i.val,0);
+  if(total1 > 0) investments.forEach(i => { const k = effClass(i); agg[k] = (agg[k]||0) + i.val/total1; });
+  const total2 = proposals.reduce((s,p)=>s+p.alloc,0);
+  if(total2 > 0) proposals.forEach(p => { const k = effClass(p); agg[k] = (agg[k]||0) + p.alloc/total2; });
+  // Normalize
+  const sumW = Object.values(agg).reduce((s,v)=>s+v,0);
+  if(sumW <= 0) return BENCHMARKS.balanced60;
+  Object.keys(agg).forEach(k => agg[k] /= sumW);
+  const eq = (agg.equity || 0), fi = (agg.fixed_income || 0), re = (agg.real_estate || 0);
+  const cm = (agg.commodity || 0), ca = (agg.cash || 0);
+  // Single-asset-class dominance check
+  if(eq >= 0.85) return BENCHMARKS.sp500;
+  if(fi >= 0.85) return BENCHMARKS.agg;
+  if(re >= 0.50) return BENCHMARKS.reits;
+  if(cm >= 0.50) return BENCHMARKS.commodities;
+  if(ca >= 0.70) return BENCHMARKS.cash;
+  // Mixed → choose blend based on equity weight
+  if(eq >= 0.55) return BENCHMARKS.balanced60;
+  if(eq >= 0.30) return BENCHMARKS.conservative;
+  return BENCHMARKS.agg;
+}
+
+// Total return horizon table — % only, no $ amounts, with benchmark column
+function renderReturnHorizon(curMu, curSig, propMu, propSig){
+  const horizons = [1, 3, 5, 10];
+  const bench = pickBenchmark();
+
+  // Update benchmark label + caption above the table
+  const benchLblEl = $("benchmarkLabel"); if(benchLblEl) benchLblEl.textContent = bench.label;
+  const benchExpEl = $("benchmarkExplain");
+  if(benchExpEl) benchExpEl.innerHTML = '<strong style="color:var(--amber)">Benchmark: ' + bench.label + '</strong> — ' + bench.note + ' Auto-selected based on the dominant asset class across your Current + Proposed allocations.';
 
   let html = '<div class="cmp-h">Horizon</div>';
   html += '<div class="cmp-h cur">Current Portfolio</div>';
   html += '<div class="cmp-h prop">Proposed Portfolio</div>';
-  html += '<div class="cmp-h delta">Δ</div>';
+  html += '<div class="cmp-h" style="color:var(--amber)">Benchmark</div>';
+  html += '<div class="cmp-h delta">Δ (Prop vs Cur)</div>';
 
   horizons.forEach(n => {
-    const curDet = detFV(curMu, n);
-    const propDet = detFV(propMu, n);
-    const curMC = mcMedian(curMu, curSig, n, simsHz);
-    const propMC = mcMedian(propMu, propSig, n, simsHz);
-    const curRetPct = (Math.pow(1+curMu, n) - 1) * 100;
+    const curRetPct  = (Math.pow(1+curMu,  n) - 1) * 100;
     const propRetPct = (Math.pow(1+propMu, n) - 1) * 100;
-    const deltaPct = propRetPct - curRetPct;
-    const deltaDollar = propDet - curDet;
-    const cls = deltaPct > 0.01 ? "delta-pos" : (deltaPct < -0.01 ? "delta-neg" : "delta-neu");
+    const benchPct   = (Math.pow(1+bench.annRet, n) - 1) * 100;
+    const delta      = propRetPct - curRetPct;
+    const dCls = delta > 0.01 ? "delta-pos" : (delta < -0.01 ? "delta-neg" : "delta-neu");
 
     html += `<div class="cmp-c cf-l" style="text-align:left;font-weight:700;color:var(--text)">${n} year${n>1?'s':''}</div>`;
-    html += `<div class="cmp-c"><span class="lbl">Total return</span>${curRetPct.toFixed(2)}%
-      <div style="font-size:11px;color:var(--text3);margin-top:4px">$100k → <strong style="color:var(--text2)">${fmtMoney(curDet)}</strong></div>
-      <div style="font-size:10px;color:var(--text3);margin-top:2px">MC median: ${fmtMoney(curMC)}</div></div>`;
-    html += `<div class="cmp-c"><span class="lbl">Total return</span><strong>${propRetPct.toFixed(2)}%</strong>
-      <div style="font-size:11px;color:var(--text3);margin-top:4px">$100k → <strong style="color:var(--text2)">${fmtMoney(propDet)}</strong></div>
-      <div style="font-size:10px;color:var(--text3);margin-top:2px">MC median: ${fmtMoney(propMC)}</div></div>`;
-    html += `<div class="cmp-c ${cls}" style="font-weight:700">${deltaPct>=0?'+':''}${deltaPct.toFixed(2)}%
-      <div style="font-size:11px;font-weight:500;margin-top:4px">${deltaDollar>=0?'+':''}${fmtMoney(deltaDollar)}</div></div>`;
+    html += `<div class="cmp-c" style="font-weight:600">${curRetPct.toFixed(2)}%</div>`;
+    html += `<div class="cmp-c" style="font-weight:700">${propRetPct.toFixed(2)}%</div>`;
+    html += `<div class="cmp-c" style="color:var(--amber);font-weight:600">${benchPct.toFixed(2)}%</div>`;
+    html += `<div class="cmp-c ${dCls}" style="font-weight:700">${delta>=0?'+':''}${delta.toFixed(2)}%</div>`;
   });
 
   $("cmpReturnHorizon").innerHTML = html;
@@ -7546,7 +7643,38 @@ function previewPDFReport(){
   if(w){w.document.write(html); w.document.close();}
   setT("rptStatus","✓ Preview opened in new tab.");
 }
-function generatePDFReport(){
+// ─── Morningstar fact-sheet helper ───────────────────────────────────────────
+// Tries the configured Morningstar Direct proxy via MarketData.fetchOne(ticker,"morningstar").
+// Returns null on any failure (proxy not configured, network error, malformed payload).
+// Normalised shape: {rating, risk, pe, ret1y, ret3y, ret5y, overview, analystOpinion}
+async function fetchMorningstarFactSheet(ticker){
+  if(!ticker) return null;
+  try{
+    const cfg = (typeof MarketData!=="undefined" && MarketData.getCfg) ? MarketData.getCfg() : {};
+    if(!cfg.morningstarProxy) return null;            // Direct subscription required
+    const d = await MarketData.fetchOne(ticker, "morningstar");
+    if(!d) return null;
+    // Defensive normalisation — proxy payload schemas vary
+    const clamp = (n,lo,hi) => Math.max(lo, Math.min(hi, n));
+    const num = v => (v==null||v==="")?null:(isFinite(+v)?+v:null);
+    return {
+      rating:          d.rating!=null ? clamp(Math.round(+d.rating),1,5) : null,
+      risk:            d.risk || d.riskRating || null,
+      pe:              num(d.pe ?? d.trailingPE ?? d.peRatio),
+      ret1y:           num(d.ret1y ?? d.return1y ?? d.totalReturn1Y),
+      ret3y:           num(d.ret3y ?? d.return3y ?? d.totalReturn3Y),
+      ret5y:           num(d.ret5y ?? d.return5y ?? d.totalReturn5Y),
+      overview:        d.overview || d.companyDescription || d.description || null,
+      analystOpinion:  d.analystOpinion || d.analystReport || d.opinion || null,
+      source:          d.source || "morningstar"
+    };
+  } catch(e){
+    console.warn("fetchMorningstarFactSheet failed for "+ticker+":", e.message);
+    return null;
+  }
+}
+
+async function generatePDFReport(){
   setT("rptStatus","Generating PDF…");
   try{
     const {jsPDF}=window.jspdf;
@@ -7669,6 +7797,24 @@ function generatePDFReport(){
     const a1age     = ageFromDOB(val("c1d"))||35;
     const showC2    = $("c2card").style.display!=="none";
 
+    // ── Pre-fetch Morningstar fact sheets (async, before PDF rendering starts) ──
+    // Only fetch for proposal positions with a ticker, if the user wants them.
+    const wantFactsheets = val("rptIncFactsheets")!=="no" && val("rptIncPort")!=="no";
+    const factSheets = {};  // ticker → normalised data (or null on failure)
+    const factPositions = wantFactsheets ? proposals.filter(p=>p.tkr && p.tkr.trim()) : [];
+    if(factPositions.length){
+      setT("rptStatus",`Fetching ${factPositions.length} Morningstar fact sheet(s)…`);
+      const results = await Promise.all(
+        factPositions.map(p =>
+          fetchMorningstarFactSheet(p.tkr.trim().toUpperCase())
+            .then(data => ({tkr: p.tkr.trim().toUpperCase(), data}))
+            .catch(_   => ({tkr: p.tkr.trim().toUpperCase(), data: null}))
+        )
+      );
+      results.forEach(r => { factSheets[r.tkr] = r.data; });
+      setT("rptStatus","Generating PDF…");
+    }
+
     // ── COVER PAGE ────────────────────────────────────────────────────────────
     // Full-width colour header bar
     doc.setFillColor(...ac);
@@ -7716,6 +7862,7 @@ function generatePDFReport(){
     if(val("rptIncAssets")!=="no")   tocItems.push("Assets & Liabilities");
     if(val("rptIncGoals")!=="no")    tocItems.push("Goals & Retirement Plan");
     if(val("rptIncPort")!=="no"&&investments.length>0) tocItems.push("Portfolio Analysis");
+    if(wantFactsheets && factPositions.length>0) tocItems.push("Investment Vehicle Fact Sheets");
     if(val("rptIncSim")!=="no")      tocItems.push("Monte Carlo Projection");
     if(val("rptIncFund")!=="no")     tocItems.push("Goal Funding Status");
     if(val("rptIncCF")!=="no")       tocItems.push("Cash-Flow Projection");
@@ -7856,6 +8003,94 @@ function generatePDFReport(){
         investments.map(i=>[i.name||"—", i.tkr||"—", INV_CLASS_LABELS[i.cls]||i.cls,
           fmt(i.val), pfTot>0?(i.val/pfTot*100).toFixed(1)+"%":"—"]));
       kv([["Total portfolio value",fmt(pfTot)]]);
+    }
+
+    // ── INVESTMENT VEHICLE FACT SHEETS (Morningstar) ─────────────────────────
+    if(wantFactsheets && factPositions.length>0){
+      newPage();
+      sectionH2("Investment Vehicle Fact Sheets");
+      // Lead-in paragraph
+      const anyLive = Object.values(factSheets).some(d => d !== null);
+      if(!anyLive){
+        para("Fact sheet data unavailable — configure Morningstar Direct proxy in admin → API Keys to enable live fact sheets. Falling back to ticker-only summary.",[120,90,30]);
+      } else {
+        para("Live Morningstar Direct data shown where available. Positions without live data fall back to the ticker-only summary.",[80,80,80]);
+      }
+      const propTotalAlloc = proposals.reduce((s,p)=>s+(p.alloc||0),0) || 100;
+      factPositions.forEach((p, idx)=>{
+        const tkr = p.tkr.trim().toUpperCase();
+        const data = factSheets[tkr] || null;
+        // Spacer + sub-heading for this position
+        checkY(40);
+        if(idx>0) y += 2;
+        // Position sub-header bar (lighter shade of the theme accent)
+        doc.setFillColor(...acL);
+        doc.rect(M, y-3, CW, 7, "F");
+        doc.setFontSize(10); doc.setFont(undefined,"bold"); doc.setTextColor(...ac);
+        doc.text(`${tkr} — ${p.name||"Unnamed"}`, M+2, y+2);
+        doc.setFont(undefined,"normal"); doc.setTextColor(40);
+        y += 9;
+
+        // Build the key/value table
+        const ratingStr = data && data.rating!=null
+          ? `${"★".repeat(data.rating)}${"☆".repeat(5-data.rating)} (${data.rating} stars)`
+          : "Not available";
+        const fmtPct = v => (v!=null) ? v.toFixed(1)+"%" : "—";
+        const fmtNum = v => (v!=null) ? v.toFixed(2) : "—";
+        const dollar = (num("prAmount",0) || 0) * (p.alloc||0) / 100;
+        const body = [
+          ["Ticker", tkr],
+          ["Name", p.name || "—"],
+          ["Vehicle", PROP_VEHICLE_LABELS[p.vehicle] || p.vehicle || "—"],
+          ["Asset class", INV_CLASS_LABELS[p.cls] || p.cls || "—"],
+          ["Region", p.region || "—"],
+          ["Allocation", (p.alloc||0).toFixed(1)+"%" + (dollar>0?"  ("+fmt(dollar)+")":"")],
+          ["Annual yield", p.yld!=null ? p.yld.toFixed(2)+"%" : "—"],
+          ["Expense ratio", p.er!=null ? p.er.toFixed(2)+"%" : "—"],
+          ["Morningstar rating", ratingStr],
+          ["Risk profile", (data && data.risk) || "Not available"],
+          ["Trailing P/E", fmtNum(data?.pe)],
+          ["1Y return", fmtPct(data?.ret1y)],
+          ["3Y return", fmtPct(data?.ret3y)],
+          ["5Y return", fmtPct(data?.ret5y)]
+        ];
+        doc.autoTable({
+          startY: y,
+          head: [["Field","Value"]],
+          body: body,
+          margin: {left:M, right:M},
+          theme: "grid",
+          styles: {fontSize: Math.max(7,fsz-1), cellPadding: 1.6, overflow:"linebreak"},
+          headStyles: {fillColor: ac, textColor:[255,255,255], fontStyle:"bold", fontSize: Math.max(7,fsz-1)},
+          columnStyles: {0:{fontStyle:"bold", cellWidth: CW*0.40}, 1:{cellWidth: CW*0.60}}
+        });
+        y = doc.lastAutoTable.finalY + 3;
+
+        // OVERVIEW block
+        checkY(20);
+        doc.setFontSize(8); doc.setFont(undefined,"bold"); doc.setTextColor(...ac);
+        doc.text("OVERVIEW (sourced from Morningstar):", M, y); y += 4;
+        doc.setFont(undefined,"normal"); doc.setTextColor(60);
+        const overviewText = (data && data.overview)
+          ? data.overview
+          : `No live overview available for ${tkr}. Configure the Morningstar Direct proxy in admin → API Keys to populate this section. Position data shown above is sourced from the proposal entry.`;
+        const ovLines = doc.splitTextToSize(overviewText, CW);
+        ovLines.forEach(l => { checkY(5); doc.text(l, M, y); y += 4; });
+        y += 2;
+
+        // ANALYST OPINION block
+        checkY(16);
+        doc.setFontSize(8); doc.setFont(undefined,"bold"); doc.setTextColor(...ac);
+        doc.text("ANALYST OPINION:", M, y); y += 4;
+        doc.setFont(undefined,"normal"); doc.setTextColor(60);
+        const opinionText = (data && data.analystOpinion)
+          ? data.analystOpinion
+          : `No live analyst opinion available for ${tkr}. Live Morningstar analyst commentary requires an active Direct subscription wired through the configured proxy endpoint.`;
+        const opLines = doc.splitTextToSize(opinionText, CW);
+        opLines.forEach(l => { checkY(5); doc.text(l, M, y); y += 4; });
+        y += 4;
+        doc.setTextColor(40);
+      });
     }
 
     // ── MONTE CARLO ───────────────────────────────────────────────────────────

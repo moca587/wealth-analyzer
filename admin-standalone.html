@@ -870,7 +870,7 @@ app.post('/quote', async (req, res) => {
 // ═══════════════════════════════════════════════════════════
 // VERSION & UTILS
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260521-2338";
+const APP_VERSION = "20260522-0013";
 const $ = (id) => document.getElementById(id);
 const fmtMoney = (n) => { if(n==null||isNaN(n))return"—"; const a=Math.abs(n); const s=n<0?"−":""; if(a>=1e9) return s+"$"+(a/1e9).toFixed(2)+"B"; if(a>=1e6) return s+"$"+(a/1e6).toFixed(2)+"M"; if(a>=1e3) return s+"$"+Math.round(a).toLocaleString(); return s+"$"+a.toFixed(0); };
 const fmtNum = (n,d=2) => n==null||isNaN(n)?"—":Number(n).toFixed(d);
@@ -986,11 +986,14 @@ function startLiveUpdatePoller(){
   window.addEventListener("focus", check);
 }
 
-// Auto-launch on DOM ready (no auth)
+// Auto-launch — defer with setTimeout so all const/let declarations below
+// (TB_FUNCTIONS, TEST_SUITE, LOCAL_TAX, etc.) are parsed before showApp runs.
+// (DOMContentLoaded would have already fired since this script is at the
+// bottom of <body>; only setTimeout guarantees deferral past current parse.)
 if(document.readyState === "loading"){
-  document.addEventListener("DOMContentLoaded", showApp);
+  document.addEventListener("DOMContentLoaded", () => setTimeout(showApp, 0));
 } else {
-  showApp();
+  setTimeout(showApp, 0);
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -1333,6 +1336,72 @@ const LOCAL_TAX = {
       "PDX":{name:"Portland Metro",state:"OR",topRate:1,brackets:[{t:200000,r:1}],note:"+ Multnomah Preschool tax up to 3%."},
       "BAL":{name:"Baltimore",state:"MD",topRate:3.2,brackets:[{t:0,r:3.2}]}
     }
+  },
+  CA: { // Canada — 2024 federal + provincial brackets in CAD
+    federal: {topRate:33, brackets:[{t:0,r:15},{t:55867,r:20.5},{t:111733,r:26},{t:173205,r:29},{t:246752,r:33}]},
+    states: {
+      AB:{name:"Alberta",          type:"progressive",topRate:15,   brackets:[{t:0,r:10},{t:148269,r:12},{t:177922,r:13},{t:237230,r:14},{t:355845,r:15}]},
+      BC:{name:"British Columbia", type:"progressive",topRate:20.5, brackets:[{t:0,r:5.06},{t:47937,r:7.7},{t:95875,r:10.5},{t:110076,r:12.29},{t:133664,r:14.7},{t:181232,r:16.8},{t:252752,r:20.5}]},
+      MB:{name:"Manitoba",         type:"progressive",topRate:17.4, brackets:[{t:0,r:10.8},{t:47000,r:12.75},{t:100000,r:17.4}]},
+      NB:{name:"New Brunswick",    type:"progressive",topRate:19.5, brackets:[{t:0,r:9.4},{t:49958,r:14},{t:99916,r:16},{t:185064,r:19.5}]},
+      NL:{name:"Newfoundland & Labrador",type:"progressive",topRate:21.8,brackets:[{t:0,r:8.7},{t:43198,r:14.5},{t:86395,r:15.8},{t:154244,r:17.8},{t:215943,r:19.8},{t:275870,r:20.8},{t:551739,r:21.3},{t:1103478,r:21.8}]},
+      NS:{name:"Nova Scotia",      type:"progressive",topRate:21,   brackets:[{t:0,r:8.79},{t:29590,r:14.95},{t:59180,r:16.67},{t:93000,r:17.5},{t:150000,r:21}]},
+      ON:{name:"Ontario",          type:"progressive",topRate:13.16,brackets:[{t:0,r:5.05},{t:51446,r:9.15},{t:102894,r:11.16},{t:150000,r:12.16},{t:220000,r:13.16}]},
+      PE:{name:"Prince Edward Island",type:"progressive",topRate:18.75,brackets:[{t:0,r:9.65},{t:32656,r:13.63},{t:64313,r:16.65},{t:105000,r:18},{t:140000,r:18.75}]},
+      QC:{name:"Québec",           type:"progressive",topRate:25.75,brackets:[{t:0,r:14},{t:51780,r:19},{t:103545,r:24},{t:126000,r:25.75}]},
+      SK:{name:"Saskatchewan",     type:"progressive",topRate:14.5, brackets:[{t:0,r:10.5},{t:52057,r:12.5},{t:148734,r:14.5}]},
+      NT:{name:"Northwest Territories",type:"progressive",topRate:14.05,brackets:[{t:0,r:5.9},{t:50597,r:8.6},{t:101198,r:12.2},{t:164525,r:14.05}]},
+      NU:{name:"Nunavut",          type:"progressive",topRate:11.5, brackets:[{t:0,r:4},{t:53268,r:7},{t:106537,r:9},{t:173205,r:11.5}]},
+      YT:{name:"Yukon",            type:"progressive",topRate:15,   brackets:[{t:0,r:6.4},{t:55867,r:9},{t:111733,r:10.9},{t:173205,r:12.8},{t:500000,r:15}]}
+    },
+    cities: {}
+  },
+  GB: { // United Kingdom — 2024/25 in GBP (rUK rates; Scotland has its own)
+    federal: {topRate:45, brackets:[{t:0,r:0},{t:12570,r:20},{t:50270,r:40},{t:125140,r:45}], stdDeduction:12570, note:"Personal allowance tapered above £100k."},
+    states: {
+      ENG:{name:"England",          type:"none",       topRate:0,    brackets:[], note:"Uses rUK bands."},
+      WAL:{name:"Wales",            type:"none",       topRate:0,    brackets:[], note:"Uses rUK bands."},
+      NIR:{name:"Northern Ireland", type:"none",       topRate:0,    brackets:[], note:"Uses rUK bands."},
+      SCT:{name:"Scotland",         type:"progressive",topRate:48,   brackets:[{t:0,r:0},{t:12570,r:19},{t:14876,r:20},{t:26561,r:21},{t:43662,r:42},{t:75000,r:45},{t:125140,r:48}], note:"Scottish-specific 7 bands incl. 2024 'advanced' rate."}
+    },
+    cities: {}
+  },
+  AU: { // Australia 2024-25 in AUD
+    federal: {topRate:45, brackets:[{t:0,r:0},{t:18200,r:16},{t:45000,r:30},{t:135000,r:37},{t:190000,r:45}], note:"Plus 2% Medicare levy on most income."},
+    states: { ALL:{name:"All states (no state income tax)",type:"none",topRate:0,brackets:[]} },
+    cities: {}
+  },
+  DE: { // Germany 2024 in EUR — simplified continuous formula approximated as 5 bands
+    federal: {topRate:45, brackets:[{t:0,r:0},{t:11604,r:14},{t:17005,r:24},{t:66760,r:42},{t:277826,r:45}], stdDeduction:11604, note:"Reichensteuer 45% above €277,826."},
+    states: { ALL:{name:"All Länder (no separate income tax)",type:"none",topRate:0,brackets:[],note:"Church tax 8-9% added in some Länder for members."} },
+    cities: {}
+  },
+  FR: { // France 2024 in EUR
+    federal: {topRate:45, brackets:[{t:0,r:0},{t:11294,r:11},{t:28797,r:30},{t:82341,r:41},{t:177106,r:45}], note:"Plus CSG/CRDS social charges ~9.7%."},
+    states: { ALL:{name:"All régions (no regional income tax)",type:"none",topRate:0,brackets:[]} },
+    cities: {}
+  },
+  CH: { // Switzerland — federal flat-ish + huge cantonal variation
+    federal: {topRate:11.5, brackets:[{t:0,r:0},{t:14500,r:0.77},{t:31600,r:0.88},{t:41400,r:2.64},{t:55200,r:2.97},{t:72500,r:5.94},{t:78100,r:6.6},{t:103600,r:8.8},{t:134600,r:11},{t:176000,r:13.2},{t:755200,r:11.5}]},
+    states: {
+      ZH:{name:"Zürich",  type:"progressive",topRate:13,brackets:[{t:0,r:2},{t:14000,r:3},{t:50000,r:6},{t:100000,r:9},{t:300000,r:13}]},
+      GE:{name:"Geneva",  type:"progressive",topRate:19,brackets:[{t:0,r:8},{t:50000,r:13},{t:100000,r:15},{t:200000,r:17.5},{t:500000,r:19}]},
+      ZG:{name:"Zug",     type:"progressive",topRate:8, brackets:[{t:0,r:1},{t:50000,r:3},{t:100000,r:5},{t:200000,r:8}]},
+      BS:{name:"Basel-Stadt",type:"progressive",topRate:14.5,brackets:[{t:0,r:5},{t:50000,r:9},{t:100000,r:12},{t:200000,r:14.5}]},
+      BE:{name:"Bern",    type:"progressive",topRate:14,brackets:[{t:0,r:1.5},{t:50000,r:6},{t:100000,r:10},{t:200000,r:14}]},
+      VD:{name:"Vaud",    type:"progressive",topRate:15,brackets:[{t:0,r:1},{t:50000,r:7},{t:100000,r:11},{t:200000,r:15}]}
+    },
+    cities: {}
+  },
+  JP: { // Japan 2024 in JPY
+    federal: {topRate:45, brackets:[{t:0,r:5},{t:1950000,r:10},{t:3300000,r:20},{t:6950000,r:23},{t:9000000,r:33},{t:18000000,r:40},{t:40000000,r:45}], note:"Plus 10% uniform local inhabitant tax + 2.1% reconstruction surtax on national tax."},
+    states: { ALL:{name:"All prefectures — 10% local inhabitant tax",type:"flat",topRate:10,brackets:[{t:0,r:10}]} },
+    cities: {}
+  },
+  SG: { // Singapore 2024 in SGD
+    federal: {topRate:24, brackets:[{t:0,r:0},{t:20000,r:2},{t:30000,r:3.5},{t:40000,r:7},{t:80000,r:11.5},{t:120000,r:15},{t:160000,r:18},{t:200000,r:19},{t:240000,r:19.5},{t:280000,r:20},{t:320000,r:22},{t:500000,r:23},{t:1000000,r:24}], note:"Residents only; non-residents 15% flat."},
+    states: { ALL:{name:"Singapore (single jurisdiction)",type:"none",topRate:0,brackets:[]} },
+    cities: {}
   }
 };
 
@@ -1378,30 +1447,66 @@ function calcEffectiveRate(country, stateCode, cityCode, income){
   return { federalTax: fed, stateTax: st, cityTax: ct, totalTax: total, effectiveRate: (total/income)*100 };
 }
 
+const COUNTRY_NAMES_FOR_TAX = {US:"🇺🇸 United States",CA:"🇨🇦 Canada",GB:"🇬🇧 United Kingdom",AU:"🇦🇺 Australia",DE:"🇩🇪 Germany",FR:"🇫🇷 France",CH:"🇨🇭 Switzerland",JP:"🇯🇵 Japan",SG:"🇸🇬 Singapore"};
+const COUNTRY_TAX_META = {
+  US:{label:"United States 2024",currency:"$",subdivision:"state",hasStdDed:true},
+  CA:{label:"Canada 2024",       currency:"C$",subdivision:"province",hasStdDed:false},
+  GB:{label:"United Kingdom 2024/25",currency:"£",subdivision:"region",hasStdDed:true},
+  AU:{label:"Australia 2024-25", currency:"A$",subdivision:"state",hasStdDed:false},
+  DE:{label:"Germany 2024",      currency:"€",subdivision:"Länder",hasStdDed:true},
+  FR:{label:"France 2024",       currency:"€",subdivision:"région",hasStdDed:false},
+  CH:{label:"Switzerland 2024",  currency:"CHF",subdivision:"canton",hasStdDed:false},
+  JP:{label:"Japan 2024",        currency:"¥",subdivision:"prefecture",hasStdDed:false},
+  SG:{label:"Singapore 2024",    currency:"S$",subdivision:"jurisdiction",hasStdDed:false}
+};
+
 function initTaxBrowser(){
+  const cc = $("taxBrowseCountry");
+  cc.innerHTML = Object.keys(LOCAL_TAX).map(k => `<option value="${k}">${COUNTRY_NAMES_FOR_TAX[k]||k}</option>`).join("");
+  populateTaxStateDropdown("US");
   const ss = $("taxBrowseState");
-  const states = LOCAL_TAX.US.states;
-  ss.innerHTML = '<option value="">— Select state —</option>' +
-    Object.entries(states).sort((a,b)=>a[1].name.localeCompare(b[1].name))
-      .map(([k,v]) => `<option value="${k}">${v.name} (${k})</option>`).join("");
   ss.value = "CA";
   renderTaxBrowser();
   renderTaxKpis();
 }
 
+function populateTaxStateDropdown(country){
+  const ss = $("taxBrowseState");
+  const cd = LOCAL_TAX[country];
+  if(!cd || !cd.states){ ss.innerHTML = '<option value="">— No subdivisions —</option>'; return; }
+  const meta = COUNTRY_TAX_META[country] || {subdivision:"region"};
+  const entries = Object.entries(cd.states).sort((a,b)=>a[1].name.localeCompare(b[1].name));
+  ss.innerHTML = `<option value="">— Select ${meta.subdivision} —</option>` +
+    entries.map(([k,v]) => `<option value="${k}">${v.name} (${k})</option>`).join("");
+}
+
 function renderTaxKpis(){
+  const numCountries = Object.keys(LOCAL_TAX).length;
   const numStates = Object.keys(LOCAL_TAX.US.states).length;
   const numCities = Object.keys(LOCAL_TAX.US.cities).length;
   const noTaxStates = Object.values(LOCAL_TAX.US.states).filter(s => s.type === "none").length;
   const flatStates = Object.values(LOCAL_TAX.US.states).filter(s => s.type === "flat").length;
   const progStates = Object.values(LOCAL_TAX.US.states).filter(s => s.type === "progressive").length;
-  const topRate = Math.max(...Object.values(LOCAL_TAX.US.states).map(s => s.topRate));
+  // Aggregate subdivisions across all countries
+  let totalSubs = 0;
+  Object.values(LOCAL_TAX).forEach(c => { totalSubs += Object.keys(c.states||{}).length; });
+  // Highest top federal rate across all countries
+  let maxFed = 0, maxFedCountry = "";
+  Object.entries(LOCAL_TAX).forEach(([k,c]) => { if(c.federal.topRate > maxFed){ maxFed = c.federal.topRate; maxFedCountry = COUNTRY_NAMES_FOR_TAX[k]||k; } });
+  // Highest subdivision rate globally
+  let maxSub = 0, maxSubLbl = "";
+  Object.entries(LOCAL_TAX).forEach(([ck,c]) => {
+    Object.entries(c.states||{}).forEach(([sk,s]) => {
+      if(s.topRate > maxSub){ maxSub = s.topRate; maxSubLbl = `${s.name} (${ck})`; }
+    });
+  });
   let h = '';
-  h += `<div class="kpi"><div class="kpi-lbl">Countries</div><div class="kpi-val">${Object.keys(LOCAL_TAX).length}</div></div>`;
+  h += `<div class="kpi"><div class="kpi-lbl">Countries</div><div class="kpi-val">${numCountries}</div><div class="kpi-sub">${Object.keys(LOCAL_TAX).join(" · ")}</div></div>`;
+  h += `<div class="kpi"><div class="kpi-lbl">Subdivisions Total</div><div class="kpi-val">${totalSubs}</div><div class="kpi-sub">states / provinces / cantons / etc.</div></div>`;
   h += `<div class="kpi"><div class="kpi-lbl">US States</div><div class="kpi-val">${numStates}</div><div class="kpi-sub">${noTaxStates} no tax · ${flatStates} flat · ${progStates} progressive</div></div>`;
   h += `<div class="kpi"><div class="kpi-lbl">US Cities with Local Tax</div><div class="kpi-val">${numCities}</div></div>`;
-  h += `<div class="kpi"><div class="kpi-lbl">Highest State Rate</div><div class="kpi-val">${topRate}%</div><div class="kpi-sub">California top bracket</div></div>`;
-  h += `<div class="kpi"><div class="kpi-lbl">Highest City Rate</div><div class="kpi-val">${Math.max(...Object.values(LOCAL_TAX.US.cities).map(c=>c.topRate)).toFixed(2)}%</div><div class="kpi-sub">NYC top bracket</div></div>`;
+  h += `<div class="kpi"><div class="kpi-lbl">Highest Federal Rate</div><div class="kpi-val">${maxFed}%</div><div class="kpi-sub">${maxFedCountry}</div></div>`;
+  h += `<div class="kpi"><div class="kpi-lbl">Highest Subdivision Rate</div><div class="kpi-val">${maxSub}%</div><div class="kpi-sub">${maxSubLbl}</div></div>`;
   $("taxKpis").innerHTML = h;
 }
 
@@ -1423,17 +1528,38 @@ function renderBracketTable(brackets, accent){
 
 function renderTaxBrowser(){
   const country = $("taxBrowseCountry").value;
+  // If country dropdown changed, ensure state dropdown matches that country
+  const ss = $("taxBrowseState");
+  const stateOptions = Array.from(ss.options);
+  const stateBelongsToCountry = stateOptions.length > 0 && (LOCAL_TAX[country]?.states?.[ss.value] !== undefined || ss.value === "");
+  if(!stateBelongsToCountry){
+    populateTaxStateDropdown(country);
+  }
   const stateCode = $("taxBrowseState").value;
   const cd = LOCAL_TAX[country]; if(!cd) return;
-  $("taxFedTitle").textContent = "United States 2024  ·  top rate " + cd.federal.topRate + "%  ·  standard deduction $" + cd.federal.stdDeduction.toLocaleString();
+  const meta = COUNTRY_TAX_META[country] || {label:country+" 2024",currency:"",subdivision:"region",hasStdDed:false};
+  let fedTitle = `${meta.label}  ·  top rate ${cd.federal.topRate}%`;
+  if(meta.hasStdDed && cd.federal.stdDeduction != null){
+    fedTitle += `  ·  standard deduction ${meta.currency}${cd.federal.stdDeduction.toLocaleString()}`;
+  }
+  if(cd.federal.note){
+    fedTitle += `  ·  ${cd.federal.note}`;
+  }
+  $("taxFedTitle").textContent = fedTitle;
   $("taxFedTable").innerHTML = renderBracketTable(cd.federal.brackets, "#0057b8");
   if(!stateCode){
-    $("taxStateTitle").textContent = "(Select a state)";
+    $("taxStateTitle").textContent = `(Select a ${meta.subdivision})`;
     $("taxStateTable").innerHTML = '';
     $("taxCityTable").innerHTML = '';
     return;
   }
   const st = cd.states[stateCode];
+  if(!st){
+    $("taxStateTitle").textContent = `(Subdivision not found)`;
+    $("taxStateTable").innerHTML = '';
+    $("taxCityTable").innerHTML = '';
+    return;
+  }
   let typeBadge = st.type === "none" ? '<span class="pill pill-off">No income tax</span>' :
                   st.type === "flat" ? '<span class="pill pill-info">Flat rate</span>' :
                   '<span class="pill pill-on">Progressive</span>';
@@ -1442,7 +1568,7 @@ function renderTaxBrowser(){
   if(st.note) stateHtml += `<div style="font-size:11px;color:var(--text3);margin-top:8px;padding:8px 12px;background:rgba(245,158,11,.07);border-left:3px solid var(--amber);border-radius:4px"><strong style="color:var(--amber)">Note:</strong> ${st.note}</div>`;
   $("taxStateTable").innerHTML = stateHtml;
   // Cities in this state
-  const cities = Object.entries(cd.cities).filter(([,c]) => c.state === stateCode);
+  const cities = Object.entries(cd.cities||{}).filter(([,c]) => c.state === stateCode);
   if(cities.length === 0){
     $("taxCityTable").innerHTML = `<div style="font-size:13px;color:var(--text3);padding:14px">No cities with local income tax in ${st.name}.</div>`;
   } else {
