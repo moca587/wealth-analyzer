@@ -33,6 +33,13 @@ my $version = strftime("%Y%m%d-%H%M", localtime);
 $html =~ s/const APP_VERSION\s*=\s*"[^"]*"/const APP_VERSION = "$version"/;
 print "  Version: $version\n";
 
+# 0b. Write version.json — polled by live clients to detect new deploys
+my $version_full = strftime("%Y-%m-%dT%H:%M:%S", localtime);
+open my $vf, '>:encoding(UTF-8)', "version.json" or die "Cannot write version.json: $!";
+print $vf qq({\n  "version": "$version",\n  "builtAt": "$version_full",\n  "channel": "production"\n}\n);
+close $vf;
+print "  Wrote version.json\n";
+
 # 1. Remove Google Fonts link
 $html =~ s|<link href="https://fonts\.googleapis\.com[^"]*" rel="stylesheet">|<!-- Google Fonts removed — system fonts used (standalone mode) -->|;
 

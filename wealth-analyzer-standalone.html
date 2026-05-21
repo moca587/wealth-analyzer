@@ -2425,7 +2425,7 @@ input[type=date]{color-scheme:light}
 // ═══════════════════════════════════════════════════════════
 // VERSION — updated by build-standalone.pl on each build
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260521-2303";
+const APP_VERSION = "20260521-2311";
 
 // ═══════════════════════════════════════════════════════════
 // DATA
@@ -8227,6 +8227,72 @@ document.addEventListener("DOMContentLoaded",function(){
       setTimeout(function(){ const b=document.getElementById("wa-update-banner"); if(b) b.remove(); }, 6000);
     }
     localStorage.setItem("wa_app_version", APP_VERSION);
+  })();
+
+  // ── Live update poller: polls version.json every 60s + on tab focus ────────
+  // When server has a newer build than what's loaded in this tab, show a sticky
+  // banner offering one-click reload. Smart cache-busting prevents stale fetches.
+  (function liveUpdatePoller(){
+    const POLL_INTERVAL_MS = 60 * 1000;
+    let updateAvailable = false;
+    let polling = false;
+
+    function showUpdateBanner(newVer){
+      if(document.getElementById("wa-live-update-banner")) return;
+      const b = document.createElement("div");
+      b.id = "wa-live-update-banner";
+      b.style.cssText = [
+        "position:fixed","bottom:24px","left:50%","transform:translateX(-50%)",
+        "z-index:9998","background:linear-gradient(135deg,#0057b8 0%,#003d82 100%)",
+        "color:#fff","padding:13px 22px","border-radius:50px",
+        "font-size:13px","font-weight:600","display:flex","align-items:center","gap:14px",
+        "box-shadow:0 12px 40px rgba(0,87,184,.35),0 2px 8px rgba(0,0,0,.15)",
+        "animation:waSlideUp .35s ease-out","cursor:default"
+      ].join(";");
+      b.innerHTML =
+        '<span style="font-size:16px">🚀</span>' +
+        '<span><strong>New version available</strong> <span style="opacity:.8;font-weight:400;margin-left:6px">v' + newVer + '</span></span>' +
+        '<button onclick="location.reload()" style="background:rgba(255,255,255,.95);border:none;color:#0057b8;padding:6px 16px;border-radius:50px;cursor:pointer;font-weight:700;font-size:12px;font-family:inherit">Reload now</button>' +
+        '<button onclick="this.parentElement.remove()" style="background:transparent;border:none;color:#fff;padding:4px 8px;cursor:pointer;font-size:14px;opacity:.7;font-family:inherit" title="Dismiss">✕</button>';
+      document.body.appendChild(b);
+      // Add the slideUp keyframe if not present
+      if(!document.getElementById("wa-live-update-style")){
+        const s = document.createElement("style"); s.id = "wa-live-update-style";
+        s.textContent = "@keyframes waSlideUp{from{transform:translate(-50%,40px);opacity:0}to{transform:translate(-50%,0);opacity:1}}";
+        document.head.appendChild(s);
+      }
+    }
+
+    async function checkOnce(){
+      if(polling || updateAvailable) return;
+      polling = true;
+      try {
+        // Cache-bust with timestamp + no-store hint
+        const r = await fetch("version.json?t=" + Date.now(), {cache: "no-store"});
+        if(!r.ok) return;
+        const j = await r.json();
+        if(j.version && j.version !== APP_VERSION){
+          updateAvailable = true;
+          showUpdateBanner(j.version);
+          console.info("[live-update] New version available: " + j.version + " (loaded: " + APP_VERSION + ")");
+        }
+      } catch(e){
+        // Network/parse error — silently ignore (could be offline, GitHub Pages 404 on first deploy, etc.)
+      } finally {
+        polling = false;
+      }
+    }
+
+    // Initial check after 5s (give the page time to settle)
+    setTimeout(checkOnce, 5000);
+    // Periodic polling
+    setInterval(checkOnce, POLL_INTERVAL_MS);
+    // On tab becoming visible again (user switched back)
+    document.addEventListener("visibilitychange", function(){
+      if(document.visibilityState === "visible") checkOnce();
+    });
+    // On window focus
+    window.addEventListener("focus", checkOnce);
   })();
 
   // Populate dropdowns

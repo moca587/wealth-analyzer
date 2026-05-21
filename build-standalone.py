@@ -30,8 +30,14 @@ worker_b64 = base64.b64encode(worker_bytes).decode("ascii")
 
 # ── 0. Stamp APP_VERSION with current build timestamp ────────────────────────
 version = datetime.datetime.now().strftime("%Y%m%d-%H%M")
+version_full = datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
 html = re.sub(r'const APP_VERSION\s*=\s*"[^"]*"', f'const APP_VERSION = "{version}"', html)
 print(f"   Version: {version}")
+
+# 0b. Write version.json — polled by live clients to detect new deploys
+with open("version.json", "w", encoding="utf-8") as vf:
+    vf.write(f'{{\n  "version": "{version}",\n  "builtAt": "{version_full}",\n  "channel": "production"\n}}\n')
+print("   Wrote version.json")
 
 # ── 1. Remove Google Fonts link, replace with system fonts ───────────────────
 html = html.replace(
