@@ -5052,16 +5052,18 @@ function renderCashFlow(){
   }
 
   // ── Conservative return parameters ───────────────────────────────────────────
-  // Cash flow = deterministic conservative scenario (NOT the median/expected outcome).
-  // The Monte Carlo provides the full probability distribution.
-  // Here we use 70% of net expected return (min 2.5%) — roughly the 25–30th percentile
-  // of long-run outcomes, appropriate for prudent financial planning.
+  // Cash flow = deterministic projection at the log-normal geometric mean return.
+  // Geometric mean = mu − 0.5σ² matches the median (50th percentile) path of the
+  // Monte Carlo simulation, so the CF table and the "60% probability" bar tell a
+  // consistent story. (The MC samples (mu − 0.5σ²) + σ·N(0,1); expected compound
+  // return across all paths equals the geometric mean.)
   const params=getEffectiveReturnParams(); // risk-profile based (mode A) or holdings-weighted (B/C)
-  const cfMu=Math.max(0.025, params.mu*0.70);
-  // Property: conservative = inflation minus 1 pp real, floored at 1% nominal
+  const _geomMu=params.mu - 0.5*params.sig*params.sig; // log-normal geometric mean
+  const cfMu=Math.max(0.01, _geomMu);
+  // Property: inflation minus 1 pp real, floored at 1% nominal
   const propGrowth=Math.max(0.01, inf-0.01);
-  // Retirement pool pre-retirement: same conservative haircut; post-retirement: 3.5% (bond-heavy)
-  const retMuWork=Math.max(0.025, params.mu*0.70);
+  // Retirement pool pre-retirement: same geometric mean; post-retirement: 3.5% (bond-heavy)
+  const retMuWork=Math.max(0.01, _geomMu);
   const retMuRetired=0.035;
 
   const cy=currentYear();
@@ -5079,7 +5081,7 @@ function renderCashFlow(){
   // parameters differ between current-portfolio and investment-proposal runs:
   //   initInv  — starting invested balance
   //   initCash — starting cash balance
-  //   loopMu   — annual investment return (already the conservative 70%-haircut rate)
+  //   loopMu   — annual investment return (geometric mean = mu − 0.5σ², matching MC median)
   function runLoop(initInv, initCash, loopMu){
     let iv=initInv, ca=initCash, rp=retSeed;
     const loopRetMuRetired=0.035; // post-retirement pool: bond-heavy conservative mix
@@ -5197,7 +5199,7 @@ function renderCashFlow(){
   let propData=null, propCfMu=cfMu, propParams=params;
   if(hasProposal){
     propParams=getProposalReturnParams();
-    propCfMu=Math.max(0.025,propParams.mu*0.70);
+    propCfMu=Math.max(0.01, propParams.mu - 0.5*propParams.sig*propParams.sig);
     // Investment seed: use explicit target amount if set, otherwise mirror current portfolio total
     const prTarget=num("prAmount",0);
     const prTotalInv=prTarget>0?prTarget:(pfInvested+pfCash);
@@ -5297,11 +5299,11 @@ function renderCashFlow(){
     ?` · Ret. pool (${fmtMoney(retSeed)}): 3.5%/yr in retirement; 4% voluntary drawdown from age ${retAge}, mandatory rules from age ${rmdStartAge}.`
     :"";
   setH("cfHeader",
-    `<strong>Conservative cash flow projection — Current Portfolio</strong> — age ${a1} to 90 (${horizon+1} years) &nbsp;`+
+    `<strong>Median cash flow projection — Current Portfolio</strong> — age ${a1} to 90 (${horizon+1} years) &nbsp;`+
     `<span style="font-size:11px;background:var(--bg3);border:1px solid var(--border);border-radius:4px;padding:2px 8px;color:var(--text3)">Mode ${cfMode}</span><br>`+
     `<span style="font-size:12px;color:var(--text2)">${cfModeNote}</span><br>`+
     `<span style="font-size:11px;color:var(--text3)">`+
-    `Investment return: <strong style="color:var(--text2)">${cfPct}%/yr</strong> (70% of ${returnSrc} ${fullPct}%) · `+
+    `Investment return: <strong style="color:var(--text2)">${cfPct}%/yr</strong> (geometric mean of ${returnSrc} ${fullPct}% — matches chart 60% probability bar) · `+
     `Property: <strong style="color:var(--text2)">${propGrowthPct}%/yr</strong> (inflation&minus;1pp) · `+
     `Deficits drain cash first, then investments`+
     `${rmdNote}</span>`
