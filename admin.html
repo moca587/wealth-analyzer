@@ -1095,21 +1095,60 @@ function getLogs(){ return JSON.parse(localStorage.getItem(LOG_KEY) || "[]"); }
 // ═══════════════════════════════════════════════════════════
 // INIT — open access, no login required
 // ═══════════════════════════════════════════════════════════
+// Visible top-of-page error banner — surfaces ANY JS error so the user can see them
+window.addEventListener("error", function(ev){
+  try {
+    console.error("[admin error]", ev.error || ev.message, ev.filename + ":" + ev.lineno);
+    if(typeof addLog === "function") addLog("err", "Uncaught: " + (ev.message||"unknown") + " (" + ev.filename + ":" + ev.lineno + ")");
+    let bar = document.getElementById("wa-error-banner");
+    if(!bar){
+      bar = document.createElement("div");
+      bar.id = "wa-error-banner";
+      bar.style.cssText = "position:fixed;top:0;left:0;right:0;z-index:99999;background:#e31837;color:#fff;padding:10px 20px;font:600 12px/1.5 monospace;box-shadow:0 4px 16px rgba(227,24,55,.4);max-height:200px;overflow-y:auto";
+      document.body.appendChild(bar);
+    }
+    const stack = (ev.error && ev.error.stack) ? ev.error.stack.split("\n").slice(0,3).join(" | ") : "";
+    bar.innerHTML += `<div>⚠ ${ev.message||"unknown"} <span style="opacity:.85">@ ${(ev.filename||"").split("/").pop()}:${ev.lineno}:${ev.colno||0}</span><br><span style="opacity:.7;font-size:11px">${stack}</span></div>`;
+  } catch(_){}
+});
+
 function showApp(){
-  $("ver-disp").textContent = "v" + APP_VERSION;
-  initDashboard();
-  initConstants();
-  initAccountTypes();
-  initKeysTab();
-  initTaxBrowser();
-  initResearchLibrary();
-  initAgent();
-  filterTbFunctions();  // populates the function dropdown then calls renderTbForm
-  renderLogs();
-  renderEnvInfo();
-  renderLsInspector();
-  startLiveUpdatePoller();
-  addLog("info", "Admin console loaded");
+  function safe(name, fn){
+    try { fn(); }
+    catch(e){
+      console.error("[admin init " + name + "]", e);
+      try { addLog && addLog("err", name + " init failed: " + e.message); } catch(_){}
+    }
+  }
+  const v = $("ver-disp"); if(v) v.textContent = "v" + APP_VERSION;
+  safe("initDashboard",      () => initDashboard());
+  safe("initConstants",      () => initConstants());
+  safe("initAccountTypes",   () => initAccountTypes());
+  safe("initKeysTab",        () => initKeysTab());
+  safe("initTaxBrowser",     () => initTaxBrowser());
+  safe("initResearchLibrary",() => initResearchLibrary());
+  safe("initAgent",          () => initAgent());
+  safe("filterTbFunctions",  () => filterTbFunctions());
+  safe("renderLogs",         () => renderLogs());
+  safe("renderEnvInfo",      () => renderEnvInfo());
+  safe("renderLsInspector",  () => renderLsInspector());
+  safe("startLiveUpdatePoller", () => startLiveUpdatePoller());
+  try { addLog("info", "Admin console loaded"); } catch(_){}
+  // Self-test: verify critical functions and elements exist
+  setTimeout(function(){
+    const requiredFns = ["showTab","initDashboard","initAgent","initResearchLibrary","initTaxBrowser","addLog","toggleAdminDropdown"];
+    const requiredEls = ["tab-dashboard","tab-agent","tab-research","tab-testbench","tab-keys"];
+    const missing = [];
+    requiredFns.forEach(n => { if(typeof window[n] !== "function") missing.push("fn:"+n); });
+    requiredEls.forEach(n => { if(!document.getElementById(n)) missing.push("el:"+n); });
+    if(missing.length){
+      console.error("[selfTest] MISSING:", missing);
+      try { addLog("err", "Self-test failed: " + missing.join(", ")); } catch(_){}
+    } else {
+      console.log("[selfTest] ✓ All critical refs present");
+      try { addLog("ok", "Self-test: all critical refs present"); } catch(_){}
+    }
+  }, 50);
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -1868,19 +1907,31 @@ if(document.readyState === "loading"){
 // TAB SWITCHING
 // ═══════════════════════════════════════════════════════════
 function showTab(name, el){
-  document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
-  document.querySelectorAll(".nav-item").forEach(n => n.classList.remove("active"));
-  $("tab-" + name).classList.add("active");
-  if(el) el.classList.add("active");
-  addLog("info", "Switched to " + name + " tab");
+  try {
+    document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+    document.querySelectorAll(".nav-item").forEach(n => n.classList.remove("active"));
+    const target = document.getElementById("tab-" + name);
+    if(!target){
+      console.error("[showTab] Tab not found: tab-" + name);
+      try { addLog("err", "Tab not found: tab-" + name); } catch(_){}
+      return;
+    }
+    target.classList.add("active");
+    if(el) el.classList.add("active");
+    try { addLog("info", "Switched to " + name + " tab"); } catch(_){}
 
-  // Lazy refresh on tab open
-  if(name === "dashboard") initDashboard();
-  if(name === "logs"){ renderLogs(); renderEnvInfo(); renderLsInspector(); }
-  if(name === "keys") initKeysTab();
-  if(name === "taxdb") initTaxBrowser();
-  if(name === "research") initResearchLibrary();
-  if(name === "agent") initAgent();
+    // Lazy refresh on tab open — each call individually safe
+    function safe(fn){ try { fn(); } catch(e){ console.error("[showTab] init for "+name+" failed:", e); } }
+    if(name === "dashboard") safe(() => initDashboard());
+    if(name === "logs"){ safe(() => renderLogs()); safe(() => renderEnvInfo()); safe(() => renderLsInspector()); }
+    if(name === "keys")     safe(() => initKeysTab());
+    if(name === "taxdb")    safe(() => initTaxBrowser());
+    if(name === "research") safe(() => initResearchLibrary());
+    if(name === "agent")    safe(() => initAgent());
+  } catch(e){
+    console.error("[showTab] CRITICAL", e);
+    alert("Tab switch failed: " + e.message + "\n\nCheck console (F12) for details.");
+  }
 }
 
 // ═══════════════════════════════════════════════════════════
