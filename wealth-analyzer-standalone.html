@@ -2289,10 +2289,38 @@ input[type=date]{color-scheme:light}
   </div>
 </div>
 
-<!-- Allocation diff -->
+<!-- Asset Class Allocation — twin pies + diff bars -->
 <div class="panel">
-  <div class="ptitle">Asset Class Allocation</div>
-  <div id="cmpAllocBars"><div class="cmp-empty">Run comparison to see allocations.</div></div>
+  <div class="ptitle">Asset Class Allocation — Side by Side</div>
+  <div class="alloc-pies">
+    <div class="alloc-pie-wrap">
+      <div class="alloc-pie-title" style="color:#5b9bd5">Current Portfolio</div>
+      <div class="alloc-pie-canvas-wrap"><canvas id="cmpPieCur" role="img" aria-label="Current portfolio asset class pie"></canvas></div>
+      <div id="cmpPieCurLegend" class="alloc-pie-legend"></div>
+    </div>
+    <div class="alloc-pie-wrap">
+      <div class="alloc-pie-title" style="color:#0057b8">Proposed Portfolio</div>
+      <div class="alloc-pie-canvas-wrap"><canvas id="cmpPieProp" role="img" aria-label="Proposed portfolio asset class pie"></canvas></div>
+      <div id="cmpPiePropLegend" class="alloc-pie-legend"></div>
+    </div>
+  </div>
+  <div class="sdiv">
+    <div class="slbl">Allocation Diff — Current vs Proposed</div>
+    <div id="cmpAllocBars"><div class="cmp-empty">Run comparison to see allocations.</div></div>
+  </div>
+</div>
+
+<!-- Total return horizon comparison -->
+<div class="panel">
+  <div class="ptitle">Total Return Comparison — 1Y / 3Y / 5Y / 10Y</div>
+  <div style="font-size:12px;color:var(--text3);margin-bottom:14px;line-height:1.6">Compounded total return at each horizon using the net (after-fee) expected return for each portfolio. Dollar growth is shown for a hypothetical <strong style="color:var(--text2)">$100,000 starting balance</strong>. Median Monte Carlo outcomes (500 paths) are shown for context — they capture sequence-of-returns risk that the deterministic projection misses.</div>
+  <div class="cmp-grid" id="cmpReturnHorizon" style="grid-template-columns:120px 1fr 1fr 110px">
+    <div class="cmp-h">Horizon</div>
+    <div class="cmp-h cur">Current Portfolio</div>
+    <div class="cmp-h prop">Proposed Portfolio</div>
+    <div class="cmp-h delta">Δ</div>
+    <div class="cmp-c" style="grid-column:1/-1;text-align:center;color:var(--text3);padding:18px">Run comparison to see return horizons.</div>
+  </div>
 </div>
 
 <!-- Goal success comparison -->
@@ -2499,7 +2527,7 @@ input[type=date]{color-scheme:light}
 // ═══════════════════════════════════════════════════════════
 // VERSION — updated by build-standalone.pl on each build
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260521-2338";
+const APP_VERSION = "20260521-2340";
 
 // ═══════════════════════════════════════════════════════════
 // DATA
@@ -6936,6 +6964,132 @@ function renderFundingStatus(paths,yrs){
 // ═══════════════════════════════════════════════════════════
 // COMPARISON
 // ═══════════════════════════════════════════════════════════
+let cmpPieCurChart = null, cmpPiePropChart = null;
+
+// Generic pie helper for comparison tab — accepts pre-aggregated {label: value%} object
+function drawCmpPie(canvasId, legendId, dataMap, existing){
+  const canvas = $(canvasId);
+  const legend = $(legendId);
+  if(!canvas) return existing;
+  const entries = Object.entries(dataMap).filter(([,v]) => v > 0).sort((a,b)=>b[1]-a[1]);
+  if(entries.length === 0){
+    if(existing){ existing.destroy(); }
+    if(legend) legend.innerHTML = '<div style="color:var(--text3);text-align:center;padding:14px 0;font-size:11px">No data yet.</div>';
+    return null;
+  }
+  const labels = entries.map(([k]) => INV_CLASS_LABELS[k] || k);
+  const data   = entries.map(([,v]) => v);
+  const colors = entries.map(([k]) => CLASS_COLORS[k] || "#64748b");
+  if(existing) existing.destroy();
+  return new Chart(canvas, {
+    type:"doughnut",
+    data:{labels, datasets:[{
+      data, backgroundColor:colors,
+      borderWidth:3, borderColor:"#ffffff",
+      hoverBorderColor:"#ffffff", hoverOffset:6, hoverBorderWidth:3
+    }]},
+    options:{
+      responsive:true, maintainAspectRatio:false, cutout:"58%",
+      animation:{animateRotate:true, duration:600},
+      plugins:{
+        legend:{display:false},
+        tooltip:{
+          backgroundColor:"#16213e", titleFont:{size:13,weight:"700"}, bodyFont:{size:12},
+          padding:12, cornerRadius:8, displayColors:true, boxPadding:4,
+          callbacks:{label:(c) => " " + c.label + ": " + c.raw.toFixed(1) + "%"}
+        }
+      }
+    }
+  });
+}
+
+function drawComparisonPies(){
+  // Aggregate current portfolio by class (%)
+  const aggCur = {};
+  const totalCur = investments.reduce((s,i)=>s+i.val,0);
+  if(totalCur > 0){
+    investments.forEach(i => { const k = effClass(i); aggCur[k] = (aggCur[k]||0) + (i.val/totalCur*100); });
+  }
+  // Aggregate proposed portfolio by class (%)
+  const aggProp = {};
+  const totalProp = proposals.reduce((s,p)=>s+p.alloc,0);
+  if(totalProp > 0){
+    proposals.forEach(p => { const k = effClass(p); aggProp[k] = (aggProp[k]||0) + (p.alloc/totalProp*100); });
+  }
+  // Render legends with class labels + colors
+  function renderLeg(id, agg){
+    const el = $(id); if(!el) return;
+    const entries = Object.entries(agg).filter(([,v]) => v > 0).sort((a,b)=>b[1]-a[1]);
+    if(entries.length === 0){ el.innerHTML = '<div style="color:var(--text3);text-align:center;padding:14px 0;font-size:11px">No data</div>'; return; }
+    el.innerHTML = entries.map(([k,v]) => `
+      <div class="alloc-pie-legend-item">
+        <span class="alloc-pie-dot" style="background:${CLASS_COLORS[k]||'#64748b'}"></span>
+        <span class="alloc-pie-name">${INV_CLASS_LABELS[k]||k}</span>
+        <span class="alloc-pie-pct">${v.toFixed(1)}%</span>
+      </div>`).join("");
+  }
+  cmpPieCurChart  = drawCmpPie("cmpPieCur", "cmpPieCurLegend", aggCur,  cmpPieCurChart);
+  cmpPiePropChart = drawCmpPie("cmpPieProp","cmpPiePropLegend",aggProp, cmpPiePropChart);
+  renderLeg("cmpPieCurLegend", aggCur);
+  renderLeg("cmpPiePropLegend", aggProp);
+}
+
+// Total return horizon table — compounded + MC median for Current vs Proposed
+function renderReturnHorizon(curMu, curSig, propMu, propSig){
+  const startBalance = 100000;
+  const horizons = [1, 3, 5, 10];
+  // For MC median: keep paths small for speed (250)
+  const simsHz = 250;
+
+  // Returns deterministic FV after n years on $100k
+  const detFV = (mu, n) => startBalance * Math.pow(1 + mu, n);
+  // MC median FV — simple Box-Muller log-normal, no savings, n years
+  function mcMedian(mu, sig, years, sims){
+    const ends = [];
+    for(let s=0; s<sims; s++){
+      let nw = startBalance;
+      for(let y=0; y<years; y++){
+        const u1=Math.max(1e-12,Math.random()), u2=Math.random();
+        const z = Math.sqrt(-2*Math.log(u1)) * Math.cos(2*Math.PI*u2);
+        const r = (mu - 0.5*sig*sig) + sig*z;
+        nw *= (1 + r);
+      }
+      ends.push(nw);
+    }
+    ends.sort((a,b)=>a-b);
+    return ends[Math.floor(sims*0.5)];
+  }
+
+  let html = '<div class="cmp-h">Horizon</div>';
+  html += '<div class="cmp-h cur">Current Portfolio</div>';
+  html += '<div class="cmp-h prop">Proposed Portfolio</div>';
+  html += '<div class="cmp-h delta">Δ</div>';
+
+  horizons.forEach(n => {
+    const curDet = detFV(curMu, n);
+    const propDet = detFV(propMu, n);
+    const curMC = mcMedian(curMu, curSig, n, simsHz);
+    const propMC = mcMedian(propMu, propSig, n, simsHz);
+    const curRetPct = (Math.pow(1+curMu, n) - 1) * 100;
+    const propRetPct = (Math.pow(1+propMu, n) - 1) * 100;
+    const deltaPct = propRetPct - curRetPct;
+    const deltaDollar = propDet - curDet;
+    const cls = deltaPct > 0.01 ? "delta-pos" : (deltaPct < -0.01 ? "delta-neg" : "delta-neu");
+
+    html += `<div class="cmp-c cf-l" style="text-align:left;font-weight:700;color:var(--text)">${n} year${n>1?'s':''}</div>`;
+    html += `<div class="cmp-c"><span class="lbl">Total return</span>${curRetPct.toFixed(2)}%
+      <div style="font-size:11px;color:var(--text3);margin-top:4px">$100k → <strong style="color:var(--text2)">${fmtMoney(curDet)}</strong></div>
+      <div style="font-size:10px;color:var(--text3);margin-top:2px">MC median: ${fmtMoney(curMC)}</div></div>`;
+    html += `<div class="cmp-c"><span class="lbl">Total return</span><strong>${propRetPct.toFixed(2)}%</strong>
+      <div style="font-size:11px;color:var(--text3);margin-top:4px">$100k → <strong style="color:var(--text2)">${fmtMoney(propDet)}</strong></div>
+      <div style="font-size:10px;color:var(--text3);margin-top:2px">MC median: ${fmtMoney(propMC)}</div></div>`;
+    html += `<div class="cmp-c ${cls}" style="font-weight:700">${deltaPct>=0?'+':''}${deltaPct.toFixed(2)}%
+      <div style="font-size:11px;font-weight:500;margin-top:4px">${deltaDollar>=0?'+':''}${fmtMoney(deltaDollar)}</div></div>`;
+  });
+
+  $("cmpReturnHorizon").innerHTML = html;
+}
+
 function runComparison(){
   if(investments.length===0 && proposals.length===0){
     setH("cmpStatus",'<span style="color:var(--text3)">Add holdings on the Portfolio tab and positions on the Investment Proposal tab, then click Refresh.</span>');
@@ -6997,6 +7151,13 @@ function runComparison(){
     </div>`;
   }).join("");
   setH("cmpAllocBars",allocHtml||'<div class="cmp-empty">No allocations to compare.</div>');
+
+  // ── Twin pie charts — Current vs Proposed asset class breakdown
+  drawComparisonPies();
+
+  // ── Total Return Comparison (1y / 3y / 5y / 10y) — deterministic + MC median
+  renderReturnHorizon(curParams.mu, curParams.sig, propMu, propSig);
+
   // Run goal MC under both
   const yrs=num("simYrs",20);
   const sims=parseInt(val("simN")||"500",10);
