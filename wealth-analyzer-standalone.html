@@ -646,6 +646,17 @@ input[type=date]{color-scheme:light}
 /* ── Region note ── */
 .rnote-box{font-size:11px;color:var(--text3);padding:5px 8px;background:var(--bg3);border-radius:var(--rs);border:1px solid var(--border);margin-top:5px}
 
+/* ── Tax preview banner (auto-fills from ZIP) ── */
+.tax-preview{margin-top:10px;padding:10px 12px;background:linear-gradient(135deg,rgba(0,87,184,.05) 0%,rgba(76,175,125,.04) 100%);border:1px solid rgba(0,87,184,.18);border-radius:var(--rs);font-size:12px}
+.tax-preview-head{display:flex;align-items:center;gap:8px;font-weight:700;color:var(--gold);font-size:11px;text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px}
+.tax-preview-loc{font-size:13px;font-weight:700;color:var(--text);margin-bottom:8px}
+.tax-preview-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:6px}
+.tax-pv-cell{padding:6px 8px;background:rgba(255,255,255,.6);border-radius:5px;text-align:center}
+.tax-pv-lbl{font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;font-weight:600;margin-bottom:2px}
+.tax-pv-val{font-size:14px;font-weight:700;color:var(--text);font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.tax-pv-val.total{color:var(--gold)}
+.tax-pv-note{font-size:10.5px;color:var(--text3);line-height:1.5;margin-top:4px}
+
 /* ── Scrollbar ── */
 ::-webkit-scrollbar{width:4px;height:4px}
 ::-webkit-scrollbar-thumb{background:rgba(0,0,0,.15);border-radius:2px}
@@ -1067,7 +1078,7 @@ input[type=date]{color-scheme:light}
         </div>
         <div class="ag ag3">
           <div><div class="albl">State / Province / Canton</div><select id="c1st" class="fw" onchange="syncTaxState()"></select></div>
-          <div><div class="albl">Postal code</div><input id="c1zp" placeholder="ZIP" class="fw"></div>
+          <div><div class="albl">Postal code</div><input id="c1zp" placeholder="ZIP" class="fw" oninput="onZipChange('c1')"></div>
           <div><div class="albl">Country</div><select id="c1co" class="fw" onchange="syncAssetCountry();onCurrencyCountryChange()"></select></div>
         </div>
       </div>
@@ -1077,6 +1088,8 @@ input[type=date]{color-scheme:light}
         <div id="c1rb" class="rbadge"></div><div id="c1rn" class="rnote"></div>
         <div class="frow" style="margin-top:10px"><label class="flbl">Time horizon</label><select id="c1h" class="w180" onchange="updateHorizon(1)"></select></div>
         <div id="c1hb" class="rbadge"></div><div id="c1hn" class="rnote"></div>
+        <!-- Tax location preview (auto-fills from ZIP) -->
+        <div id="c1taxPreview" class="tax-preview" style="display:none"></div>
       </div>
     </div>
 
@@ -1132,7 +1145,7 @@ input[type=date]{color-scheme:light}
           </div>
           <div class="ag ag3">
             <div><div class="albl">State / Province</div><input id="c2st" placeholder="State" class="fw"></div>
-            <div><div class="albl">Postal code</div><input id="c2zp" placeholder="ZIP" class="fw"></div>
+            <div><div class="albl">Postal code</div><input id="c2zp" placeholder="ZIP" class="fw" oninput="onZipChange('c2')"></div>
             <div><div class="albl">Country</div><select id="c2co" class="fw" onchange="syncC2Pension()"></select></div>
           </div>
         </div>
@@ -2359,7 +2372,7 @@ input[type=date]{color-scheme:light}
 // ═══════════════════════════════════════════════════════════
 // VERSION — updated by build-standalone.pl on each build
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260521-2246";
+const APP_VERSION = "20260521-2256";
 
 // ═══════════════════════════════════════════════════════════
 // DATA
@@ -3008,6 +3021,322 @@ const STATE_TAX={
   ]},
 };
 
+// ═══════════════════════════════════════════════════════════════════════════
+// LOCAL_TAX — comprehensive jurisdiction data with brackets + local rates
+// Sources: state DOR sites, IRS, Tax Foundation 2024 maps, KPMG/PwC tax summaries
+// Each state has: name, topRate, type ("flat"/"progressive"/"none"), brackets
+// brackets are [{threshold, rate}] in single-filer terms
+// ═══════════════════════════════════════════════════════════════════════════
+const LOCAL_TAX = {
+  US: {
+    federal: {topRate:37, brackets:[{t:0,r:10},{t:11600,r:12},{t:47150,r:22},{t:100525,r:24},{t:191950,r:32},{t:243725,r:35},{t:609350,r:37}], stdDeduction:14600, payrollFica:7.65, ficaSocialCap:168600},
+    states: {
+      AL:{name:"Alabama",type:"progressive",topRate:5,brackets:[{t:0,r:2},{t:500,r:4},{t:3000,r:5}]},
+      AK:{name:"Alaska",type:"none",topRate:0,brackets:[],note:"No state income tax."},
+      AZ:{name:"Arizona",type:"flat",topRate:2.5,brackets:[{t:0,r:2.5}]},
+      AR:{name:"Arkansas",type:"progressive",topRate:4.7,brackets:[{t:0,r:2},{t:4400,r:4},{t:8800,r:4.7}]},
+      CA:{name:"California",type:"progressive",topRate:13.3,brackets:[{t:0,r:1},{t:10412,r:2},{t:24684,r:4},{t:38959,r:6},{t:54081,r:8},{t:68350,r:9.3},{t:349137,r:10.3},{t:418961,r:11.3},{t:698271,r:12.3},{t:1000000,r:13.3}]},
+      CO:{name:"Colorado",type:"flat",topRate:4.4,brackets:[{t:0,r:4.4}]},
+      CT:{name:"Connecticut",type:"progressive",topRate:6.99,brackets:[{t:0,r:3},{t:10000,r:4.5},{t:50000,r:5.5},{t:100000,r:6},{t:200000,r:6.5},{t:250000,r:6.9},{t:500000,r:6.99}]},
+      DE:{name:"Delaware",type:"progressive",topRate:6.6,brackets:[{t:2000,r:2.2},{t:5000,r:3.9},{t:10000,r:4.8},{t:20000,r:5.2},{t:25000,r:5.55},{t:60000,r:6.6}]},
+      FL:{name:"Florida",type:"none",topRate:0,brackets:[],note:"No state income tax."},
+      GA:{name:"Georgia",type:"flat",topRate:5.39,brackets:[{t:0,r:5.39}],note:"Transitioning to 4.99% by 2029."},
+      HI:{name:"Hawaii",type:"progressive",topRate:11,brackets:[{t:0,r:1.4},{t:2400,r:3.2},{t:4800,r:5.5},{t:9600,r:6.4},{t:14400,r:6.8},{t:19200,r:7.2},{t:24000,r:7.6},{t:36000,r:7.9},{t:48000,r:8.25},{t:150000,r:9},{t:175000,r:10},{t:200000,r:11}]},
+      ID:{name:"Idaho",type:"flat",topRate:5.8,brackets:[{t:0,r:5.8}]},
+      IL:{name:"Illinois",type:"flat",topRate:4.95,brackets:[{t:0,r:4.95}]},
+      IN:{name:"Indiana",type:"flat",topRate:3.05,brackets:[{t:0,r:3.05}],note:"County tax adds 0.5–3.38% on top."},
+      IA:{name:"Iowa",type:"progressive",topRate:5.7,brackets:[{t:0,r:4.4},{t:6210,r:4.82},{t:31050,r:5.7}]},
+      KS:{name:"Kansas",type:"progressive",topRate:5.7,brackets:[{t:0,r:3.1},{t:15000,r:5.25},{t:30000,r:5.7}]},
+      KY:{name:"Kentucky",type:"flat",topRate:4,brackets:[{t:0,r:4}]},
+      LA:{name:"Louisiana",type:"progressive",topRate:4.25,brackets:[{t:0,r:1.85},{t:12500,r:3.5},{t:50000,r:4.25}]},
+      ME:{name:"Maine",type:"progressive",topRate:7.15,brackets:[{t:0,r:5.8},{t:26800,r:6.75},{t:63450,r:7.15}]},
+      MD:{name:"Maryland",type:"progressive",topRate:5.75,brackets:[{t:0,r:2},{t:1000,r:3},{t:2000,r:4},{t:3000,r:4.75},{t:100000,r:5},{t:125000,r:5.25},{t:150000,r:5.5},{t:250000,r:5.75}],note:"County tax 2.25–3.20% on top."},
+      MA:{name:"Massachusetts",type:"flat",topRate:9,brackets:[{t:0,r:5},{t:1000000,r:9}],note:"4% millionaires' surtax above $1M."},
+      MI:{name:"Michigan",type:"flat",topRate:4.05,brackets:[{t:0,r:4.05}],note:"22 cities have local income tax 1–2.4%."},
+      MN:{name:"Minnesota",type:"progressive",topRate:9.85,brackets:[{t:0,r:5.35},{t:31690,r:6.8},{t:104090,r:7.85},{t:193240,r:9.85}]},
+      MS:{name:"Mississippi",type:"flat",topRate:4.7,brackets:[{t:0,r:4.7}]},
+      MO:{name:"Missouri",type:"progressive",topRate:4.95,brackets:[{t:1273,r:2},{t:2546,r:2.5},{t:3819,r:3},{t:5092,r:3.5},{t:6365,r:4},{t:7638,r:4.5},{t:8911,r:4.95}]},
+      MT:{name:"Montana",type:"progressive",topRate:5.9,brackets:[{t:0,r:4.7},{t:20500,r:5.9}]},
+      NE:{name:"Nebraska",type:"progressive",topRate:5.84,brackets:[{t:0,r:2.46},{t:3700,r:3.51},{t:22170,r:5.01},{t:35730,r:5.84}]},
+      NV:{name:"Nevada",type:"none",topRate:0,brackets:[],note:"No state income tax."},
+      NH:{name:"New Hampshire",type:"none",topRate:0,brackets:[],note:"No wage tax. 5% on interest & dividends (sunset 2025)."},
+      NJ:{name:"New Jersey",type:"progressive",topRate:10.75,brackets:[{t:0,r:1.4},{t:20000,r:1.75},{t:35000,r:3.5},{t:40000,r:5.525},{t:75000,r:6.37},{t:500000,r:8.97},{t:1000000,r:10.75}]},
+      NM:{name:"New Mexico",type:"progressive",topRate:5.9,brackets:[{t:0,r:1.7},{t:5500,r:3.2},{t:16500,r:4.7},{t:33500,r:4.9},{t:210000,r:5.9}]},
+      NY:{name:"New York",type:"progressive",topRate:10.9,brackets:[{t:0,r:4},{t:8500,r:4.5},{t:11700,r:5.25},{t:13900,r:5.5},{t:80650,r:6},{t:215400,r:6.85},{t:1077550,r:9.65},{t:5000000,r:10.3},{t:25000000,r:10.9}]},
+      NC:{name:"North Carolina",type:"flat",topRate:4.5,brackets:[{t:0,r:4.5}]},
+      ND:{name:"North Dakota",type:"progressive",topRate:2.5,brackets:[{t:0,r:0},{t:44725,r:1.95},{t:225975,r:2.5}]},
+      OH:{name:"Ohio",type:"progressive",topRate:3.5,brackets:[{t:26050,r:2.75},{t:100000,r:3.5}],note:"21 cities have local income tax 1–3%."},
+      OK:{name:"Oklahoma",type:"progressive",topRate:4.75,brackets:[{t:0,r:0.25},{t:1000,r:0.75},{t:2500,r:1.75},{t:3750,r:2.75},{t:4900,r:3.75},{t:7200,r:4.75}]},
+      OR:{name:"Oregon",type:"progressive",topRate:9.9,brackets:[{t:0,r:4.75},{t:4300,r:6.75},{t:10750,r:8.75},{t:125000,r:9.9}],note:"Portland Metro adds 1% + Multnomah County 1.5–3%."},
+      PA:{name:"Pennsylvania",type:"flat",topRate:3.07,brackets:[{t:0,r:3.07}],note:"Many municipalities add 1–3.928% local EIT."},
+      RI:{name:"Rhode Island",type:"progressive",topRate:5.99,brackets:[{t:0,r:3.75},{t:77450,r:4.75},{t:176050,r:5.99}]},
+      SC:{name:"South Carolina",type:"progressive",topRate:6.4,brackets:[{t:0,r:0},{t:3460,r:3},{t:17330,r:6.4}]},
+      SD:{name:"South Dakota",type:"none",topRate:0,brackets:[],note:"No state income tax."},
+      TN:{name:"Tennessee",type:"none",topRate:0,brackets:[],note:"No state income tax (Hall tax repealed 2021)."},
+      TX:{name:"Texas",type:"none",topRate:0,brackets:[],note:"No state income tax."},
+      UT:{name:"Utah",type:"flat",topRate:4.65,brackets:[{t:0,r:4.65}]},
+      VT:{name:"Vermont",type:"progressive",topRate:8.75,brackets:[{t:0,r:3.35},{t:45400,r:6.6},{t:110050,r:7.6},{t:229550,r:8.75}]},
+      VA:{name:"Virginia",type:"progressive",topRate:5.75,brackets:[{t:0,r:2},{t:3000,r:3},{t:5000,r:5},{t:17000,r:5.75}]},
+      WA:{name:"Washington",type:"none",topRate:0,brackets:[],note:"No wage tax. 7% capital gains tax above $250k."},
+      WV:{name:"West Virginia",type:"progressive",topRate:5.12,brackets:[{t:0,r:2.36},{t:10000,r:3.15},{t:25000,r:3.54},{t:40000,r:4.72},{t:60000,r:5.12}]},
+      WI:{name:"Wisconsin",type:"progressive",topRate:7.65,brackets:[{t:0,r:3.5},{t:14320,r:4.4},{t:28640,r:5.3},{t:315310,r:7.65}]},
+      WY:{name:"Wyoming",type:"none",topRate:0,brackets:[],note:"No state income tax."},
+      DC:{name:"Washington D.C.",type:"progressive",topRate:10.75,brackets:[{t:0,r:4},{t:10000,r:6},{t:40000,r:6.5},{t:60000,r:8.5},{t:250000,r:9.25},{t:500000,r:9.75},{t:1000000,r:10.75}]}
+    },
+    cities: {
+      "NYC":{name:"New York City",state:"NY",type:"progressive",topRate:3.876,brackets:[{t:0,r:3.078},{t:12000,r:3.762},{t:25000,r:3.819},{t:50000,r:3.876}]},
+      "YON":{name:"Yonkers",state:"NY",type:"surcharge",topRate:1.69,note:"16.75% of NY State tax (≈1.69% effective)."},
+      "PHL":{name:"Philadelphia",state:"PA",type:"flat",topRate:3.75,brackets:[{t:0,r:3.75}],note:"Non-residents 3.44%."},
+      "PIT":{name:"Pittsburgh",state:"PA",type:"flat",topRate:3,brackets:[{t:0,r:3}]},
+      "DET":{name:"Detroit",state:"MI",type:"flat",topRate:2.4,brackets:[{t:0,r:2.4}],note:"Non-residents 1.2%."},
+      "GRP":{name:"Grand Rapids",state:"MI",type:"flat",topRate:1.5,brackets:[{t:0,r:1.5}]},
+      "FLI":{name:"Flint",state:"MI",type:"flat",topRate:1,brackets:[{t:0,r:1}]},
+      "CLE":{name:"Cleveland",state:"OH",type:"flat",topRate:2.5,brackets:[{t:0,r:2.5}]},
+      "CIN":{name:"Cincinnati",state:"OH",type:"flat",topRate:1.8,brackets:[{t:0,r:1.8}]},
+      "COL":{name:"Columbus",state:"OH",type:"flat",topRate:2.5,brackets:[{t:0,r:2.5}]},
+      "TOL":{name:"Toledo",state:"OH",type:"flat",topRate:2.5,brackets:[{t:0,r:2.5}]},
+      "AKR":{name:"Akron",state:"OH",type:"flat",topRate:2.5,brackets:[{t:0,r:2.5}]},
+      "DAY":{name:"Dayton",state:"OH",type:"flat",topRate:2.5,brackets:[{t:0,r:2.5}]},
+      "KCM":{name:"Kansas City",state:"MO",type:"flat",topRate:1,brackets:[{t:0,r:1}]},
+      "STL":{name:"St. Louis",state:"MO",type:"flat",topRate:1,brackets:[{t:0,r:1}]},
+      "BIR":{name:"Birmingham",state:"AL",type:"flat",topRate:1,brackets:[{t:0,r:1}],note:"Occupational tax."},
+      "WIL":{name:"Wilmington",state:"DE",type:"flat",topRate:1.25,brackets:[{t:0,r:1.25}]},
+      "PDX":{name:"Portland Metro",state:"OR",type:"flat",topRate:1,brackets:[{t:200000,r:1}],note:"Metro Supportive Housing tax + Multnomah Preschool tax up to 3% more."},
+      "NEW":{name:"Newark",state:"NJ",type:"flat",topRate:1,brackets:[{t:0,r:1}],note:"Payroll tax on certain industries."},
+      "BAL":{name:"Baltimore",state:"MD",type:"flat",topRate:3.2,brackets:[{t:0,r:3.2}],note:"Maryland local tax (county-equivalent)."},
+      "MIA":{name:"Miami",state:"FL",type:"none",topRate:0,brackets:[]},
+      "LAX":{name:"Los Angeles",state:"CA",type:"none",topRate:0,brackets:[]},
+      "SF":{name:"San Francisco",state:"CA",type:"none",topRate:0,brackets:[],note:"No personal income tax. Has 1.5% payroll tax on employers."},
+      "SEA":{name:"Seattle",state:"WA",type:"none",topRate:0,brackets:[]},
+      "BOS":{name:"Boston",state:"MA",type:"none",topRate:0,brackets:[]},
+      "ATL":{name:"Atlanta",state:"GA",type:"none",topRate:0,brackets:[]},
+      "CHI":{name:"Chicago",state:"IL",type:"none",topRate:0,brackets:[]},
+      "HOU":{name:"Houston",state:"TX",type:"none",topRate:0,brackets:[]},
+      "DAL":{name:"Dallas",state:"TX",type:"none",topRate:0,brackets:[]},
+      "DEN":{name:"Denver",state:"CO",type:"flat",topRate:0.56,brackets:[{t:0,r:0.56}],note:"Occupational privilege tax (flat $5.75/month)."},
+      "DC":{name:"Washington D.C.",state:"DC",type:"progressive",topRate:10.75,note:"DC tax handled at state level (it is its own jurisdiction)."}
+    }
+  }
+};
+
+// ZIP first-3-digit prefix → US state. Full coverage of all USPS ZCTA prefixes.
+const ZIP_PREFIX_STATE = {
+  "005":"NY","006":"PR","007":"PR","008":"VI","009":"PR",
+  "010":"MA","011":"MA","012":"MA","013":"MA","014":"MA","015":"MA","016":"MA","017":"MA","018":"MA","019":"MA",
+  "020":"MA","021":"MA","022":"MA","023":"MA","024":"MA","025":"MA","026":"MA","027":"MA","028":"RI","029":"RI",
+  "030":"NH","031":"NH","032":"NH","033":"NH","034":"NH","035":"VT","036":"VT","037":"VT","038":"NH","039":"ME",
+  "040":"ME","041":"ME","042":"ME","043":"ME","044":"ME","045":"ME","046":"ME","047":"ME","048":"ME","049":"ME",
+  "050":"VT","051":"VT","052":"VT","053":"VT","054":"VT","055":"MA","056":"VT","057":"VT","058":"VT","059":"VT",
+  "060":"CT","061":"CT","062":"CT","063":"CT","064":"CT","065":"CT","066":"CT","067":"CT","068":"CT","069":"CT",
+  "070":"NJ","071":"NJ","072":"NJ","073":"NJ","074":"NJ","075":"NJ","076":"NJ","077":"NJ","078":"NJ","079":"NJ",
+  "080":"NJ","081":"NJ","082":"NJ","083":"NJ","084":"NJ","085":"NJ","086":"NJ","087":"NJ","088":"NJ","089":"NJ",
+  "100":"NY","101":"NY","102":"NY","103":"NY","104":"NY","105":"NY","106":"NY","107":"NY","108":"NY","109":"NY",
+  "110":"NY","111":"NY","112":"NY","113":"NY","114":"NY","115":"NY","116":"NY","117":"NY","118":"NY","119":"NY",
+  "120":"NY","121":"NY","122":"NY","123":"NY","124":"NY","125":"NY","126":"NY","127":"NY","128":"NY","129":"NY",
+  "130":"NY","131":"NY","132":"NY","133":"NY","134":"NY","135":"NY","136":"NY","137":"NY","138":"NY","139":"NY",
+  "140":"NY","141":"NY","142":"NY","143":"NY","144":"NY","145":"NY","146":"NY","147":"NY","148":"NY","149":"NY",
+  "150":"PA","151":"PA","152":"PA","153":"PA","154":"PA","155":"PA","156":"PA","157":"PA","158":"PA","159":"PA",
+  "160":"PA","161":"PA","162":"PA","163":"PA","164":"PA","165":"PA","166":"PA","167":"PA","168":"PA","169":"PA",
+  "170":"PA","171":"PA","172":"PA","173":"PA","174":"PA","175":"PA","176":"PA","177":"PA","178":"PA","179":"PA",
+  "180":"PA","181":"PA","182":"PA","183":"PA","184":"PA","185":"PA","186":"PA","187":"PA","188":"PA","189":"PA",
+  "190":"PA","191":"PA","192":"PA","193":"PA","194":"PA","195":"PA","196":"PA","197":"DE","198":"DE","199":"DE",
+  "200":"DC","201":"VA","202":"DC","203":"DC","204":"DC","205":"DC",
+  "206":"MD","207":"MD","208":"MD","209":"MD","210":"MD","211":"MD","212":"MD","214":"MD","215":"MD","216":"MD","217":"MD","218":"MD","219":"MD",
+  "220":"VA","221":"VA","222":"VA","223":"VA","224":"VA","225":"VA","226":"VA","227":"VA","228":"VA","229":"VA",
+  "230":"VA","231":"VA","232":"VA","233":"VA","234":"VA","235":"VA","236":"VA","237":"VA","238":"VA","239":"VA",
+  "240":"VA","241":"VA","242":"VA","243":"VA","244":"VA","245":"VA","246":"VA",
+  "247":"WV","248":"WV","249":"WV","250":"WV","251":"WV","252":"WV","253":"WV","254":"WV","255":"WV","256":"WV","257":"WV","258":"WV","259":"WV","260":"WV","261":"WV","262":"WV","263":"WV","264":"WV","265":"WV","266":"WV","267":"WV","268":"WV",
+  "270":"NC","271":"NC","272":"NC","273":"NC","274":"NC","275":"NC","276":"NC","277":"NC","278":"NC","279":"NC",
+  "280":"NC","281":"NC","282":"NC","283":"NC","284":"NC","285":"NC","286":"NC","287":"NC","288":"NC","289":"NC",
+  "290":"SC","291":"SC","292":"SC","293":"SC","294":"SC","295":"SC","296":"SC","297":"SC","298":"SC","299":"SC",
+  "300":"GA","301":"GA","302":"GA","303":"GA","304":"GA","305":"GA","306":"GA","307":"GA","308":"GA","309":"GA",
+  "310":"GA","311":"GA","312":"GA","313":"GA","314":"GA","315":"GA","316":"GA","317":"GA","318":"GA","319":"GA",
+  "320":"FL","321":"FL","322":"FL","323":"FL","324":"FL","325":"FL","326":"FL","327":"FL","328":"FL","329":"FL",
+  "330":"FL","331":"FL","332":"FL","333":"FL","334":"FL","335":"FL","336":"FL","337":"FL","338":"FL","339":"FL",
+  "340":"AA","341":"FL","342":"FL","344":"FL","346":"FL","347":"FL","349":"FL",
+  "350":"AL","351":"AL","352":"AL","354":"AL","355":"AL","356":"AL","357":"AL","358":"AL","359":"AL",
+  "360":"AL","361":"AL","362":"AL","363":"AL","364":"AL","365":"AL","366":"AL","367":"AL","368":"AL","369":"AL",
+  "370":"TN","371":"TN","372":"TN","373":"TN","374":"TN","375":"TN","376":"TN","377":"TN","378":"TN","379":"TN",
+  "380":"TN","381":"TN","382":"TN","383":"TN","384":"TN","385":"TN",
+  "386":"MS","387":"MS","388":"MS","389":"MS","390":"MS","391":"MS","392":"MS","393":"MS","394":"MS","395":"MS","396":"MS","397":"MS",
+  "398":"GA","399":"GA",
+  "400":"KY","401":"KY","402":"KY","403":"KY","404":"KY","405":"KY","406":"KY","407":"KY","408":"KY","409":"KY",
+  "410":"KY","411":"KY","412":"KY","413":"KY","414":"KY","415":"KY","416":"KY","417":"KY","418":"KY",
+  "420":"KY","421":"KY","422":"KY","423":"KY","424":"KY","425":"KY","426":"KY","427":"KY",
+  "430":"OH","431":"OH","432":"OH","433":"OH","434":"OH","435":"OH","436":"OH","437":"OH","438":"OH","439":"OH",
+  "440":"OH","441":"OH","442":"OH","443":"OH","444":"OH","445":"OH","446":"OH","447":"OH","448":"OH","449":"OH",
+  "450":"OH","451":"OH","452":"OH","453":"OH","454":"OH","455":"OH","456":"OH","457":"OH","458":"OH","459":"OH",
+  "460":"IN","461":"IN","462":"IN","463":"IN","464":"IN","465":"IN","466":"IN","467":"IN","468":"IN","469":"IN",
+  "470":"IN","471":"IN","472":"IN","473":"IN","474":"IN","475":"IN","476":"IN","477":"IN","478":"IN","479":"IN",
+  "480":"MI","481":"MI","482":"MI","483":"MI","484":"MI","485":"MI","486":"MI","487":"MI","488":"MI","489":"MI",
+  "490":"MI","491":"MI","492":"MI","493":"MI","494":"MI","495":"MI","496":"MI","497":"MI","498":"MI","499":"MI",
+  "500":"IA","501":"IA","502":"IA","503":"IA","504":"IA","505":"IA","506":"IA","507":"IA","508":"IA",
+  "510":"IA","511":"IA","512":"IA","513":"IA","514":"IA","515":"IA","516":"IA","520":"IA","521":"IA","522":"IA",
+  "523":"IA","524":"IA","525":"IA","526":"IA","527":"IA","528":"IA",
+  "530":"WI","531":"WI","532":"WI","534":"WI","535":"WI","537":"WI","538":"WI","539":"WI",
+  "540":"WI","541":"WI","542":"WI","543":"WI","544":"WI","545":"WI","546":"WI","547":"WI","548":"WI","549":"WI",
+  "550":"MN","551":"MN","553":"MN","554":"MN","555":"MN","556":"MN","557":"MN","558":"MN","559":"MN",
+  "560":"MN","561":"MN","562":"MN","563":"MN","564":"MN","565":"MN","566":"MN","567":"MN",
+  "570":"SD","571":"SD","572":"SD","573":"SD","574":"SD","575":"SD","576":"SD","577":"SD",
+  "580":"ND","581":"ND","582":"ND","583":"ND","584":"ND","585":"ND","586":"ND","587":"ND","588":"ND",
+  "590":"MT","591":"MT","592":"MT","593":"MT","594":"MT","595":"MT","596":"MT","597":"MT","598":"MT","599":"MT",
+  "600":"IL","601":"IL","602":"IL","603":"IL","604":"IL","605":"IL","606":"IL","607":"IL","608":"IL","609":"IL",
+  "610":"IL","611":"IL","612":"IL","613":"IL","614":"IL","615":"IL","616":"IL","617":"IL","618":"IL","619":"IL",
+  "620":"IL","622":"IL","623":"IL","624":"IL","625":"IL","626":"IL","627":"IL","628":"IL","629":"IL",
+  "630":"MO","631":"MO","633":"MO","634":"MO","635":"MO","636":"MO","637":"MO","638":"MO","639":"MO",
+  "640":"MO","641":"MO","644":"MO","645":"MO","646":"MO","647":"MO","648":"MO","649":"MO",
+  "650":"MO","651":"MO","652":"MO","653":"MO","654":"MO","655":"MO","656":"MO","657":"MO","658":"MO",
+  "660":"KS","661":"KS","662":"KS","664":"KS","665":"KS","666":"KS","667":"KS","668":"KS","669":"KS",
+  "670":"KS","671":"KS","672":"KS","673":"KS","674":"KS","675":"KS","676":"KS","677":"KS","678":"KS","679":"KS",
+  "680":"NE","681":"NE","683":"NE","684":"NE","685":"NE","686":"NE","687":"NE","688":"NE","689":"NE",
+  "690":"NE","691":"NE","692":"NE","693":"NE",
+  "700":"LA","701":"LA","703":"LA","704":"LA","705":"LA","706":"LA","707":"LA","708":"LA",
+  "710":"LA","711":"LA","712":"LA","713":"LA","714":"LA",
+  "716":"AR","717":"AR","718":"AR","719":"AR","720":"AR","721":"AR","722":"AR","723":"AR","724":"AR","725":"AR","726":"AR","727":"AR","728":"AR","729":"AR",
+  "730":"OK","731":"OK","734":"OK","735":"OK","736":"OK","737":"OK","738":"OK","739":"OK",
+  "740":"OK","741":"OK","743":"OK","744":"OK","745":"OK","746":"OK","747":"OK","748":"OK","749":"OK",
+  "750":"TX","751":"TX","752":"TX","753":"TX","754":"TX","755":"TX","756":"TX","757":"TX","758":"TX","759":"TX",
+  "760":"TX","761":"TX","762":"TX","763":"TX","764":"TX","765":"TX","766":"TX","767":"TX","768":"TX","769":"TX",
+  "770":"TX","771":"TX","772":"TX","773":"TX","774":"TX","775":"TX","776":"TX","777":"TX","778":"TX","779":"TX",
+  "780":"TX","781":"TX","782":"TX","783":"TX","784":"TX","785":"TX","786":"TX","787":"TX","788":"TX","789":"TX",
+  "790":"TX","791":"TX","792":"TX","793":"TX","794":"TX","795":"TX","796":"TX","797":"TX","798":"TX","799":"TX",
+  "800":"CO","801":"CO","802":"CO","803":"CO","804":"CO","805":"CO","806":"CO","807":"CO","808":"CO","809":"CO",
+  "810":"CO","811":"CO","812":"CO","813":"CO","814":"CO","815":"CO","816":"CO",
+  "820":"WY","821":"WY","822":"WY","823":"WY","824":"WY","825":"WY","826":"WY","827":"WY","828":"WY","829":"WY","830":"WY","831":"WY",
+  "832":"ID","833":"ID","834":"ID","835":"ID","836":"ID","837":"ID","838":"ID",
+  "840":"UT","841":"UT","842":"UT","843":"UT","844":"UT","845":"UT","846":"UT","847":"UT",
+  "850":"AZ","852":"AZ","853":"AZ","855":"AZ","856":"AZ","857":"AZ","859":"AZ","860":"AZ","863":"AZ","864":"AZ","865":"AZ",
+  "870":"NM","871":"NM","873":"NM","874":"NM","875":"NM","877":"NM","878":"NM","879":"NM","880":"NM","881":"NM","882":"NM","883":"NM","884":"NM",
+  "889":"NV","890":"NV","891":"NV","893":"NV","894":"NV","895":"NV","897":"NV","898":"NV",
+  "900":"CA","901":"CA","902":"CA","903":"CA","904":"CA","905":"CA","906":"CA","907":"CA","908":"CA",
+  "910":"CA","911":"CA","912":"CA","913":"CA","914":"CA","915":"CA","916":"CA","917":"CA","918":"CA","919":"CA",
+  "920":"CA","921":"CA","922":"CA","923":"CA","924":"CA","925":"CA","926":"CA","927":"CA","928":"CA",
+  "930":"CA","931":"CA","932":"CA","933":"CA","934":"CA","935":"CA","936":"CA","937":"CA","938":"CA","939":"CA",
+  "940":"CA","941":"CA","942":"CA","943":"CA","944":"CA","945":"CA","946":"CA","947":"CA","948":"CA","949":"CA",
+  "950":"CA","951":"CA","952":"CA","953":"CA","954":"CA","955":"CA","956":"CA","957":"CA","958":"CA","959":"CA","960":"CA","961":"CA",
+  "967":"HI","968":"HI",
+  "970":"OR","971":"OR","972":"OR","973":"OR","974":"OR","975":"OR","976":"OR","977":"OR","978":"OR","979":"OR",
+  "980":"WA","981":"WA","982":"WA","983":"WA","984":"WA","985":"WA","986":"WA","988":"WA","989":"WA",
+  "990":"WA","991":"WA","992":"WA","993":"WA","994":"WA",
+  "995":"AK","996":"AK","997":"AK","998":"AK","999":"AK"
+};
+
+// Full-ZIP overrides for major cities with local income tax. Where a ZIP appears here,
+// it ALSO inherits the state from ZIP_PREFIX_STATE; the city code is what triggers local tax.
+// Coverage: NYC (Manhattan/Brooklyn/Queens/Bronx/SI), Philadelphia, Detroit, Cleveland,
+// Cincinnati, Columbus, Pittsburgh, Kansas City, St. Louis, Birmingham, Wilmington,
+// Portland Metro, Baltimore, San Francisco, Los Angeles, Chicago, Houston, Dallas.
+const ZIP_TO_CITY = (function(){
+  const map = {};
+  // NYC — Manhattan 100xx, Bronx 104xx, Brooklyn 112xx, Queens 113-116, Staten Island 103xx
+  for(let z=10001; z<=10292; z++) map[String(z).padStart(5,"0")] = "NYC";
+  for(let z=10301; z<=10314; z++) map[String(z)] = "NYC";       // Staten Island
+  for(let z=10451; z<=10475; z++) map[String(z)] = "NYC";       // Bronx
+  for(let z=11201; z<=11256; z++) map[String(z)] = "NYC";       // Brooklyn
+  for(let z=11351; z<=11697; z++) map[String(z)] = "NYC";       // Queens
+  // Yonkers
+  for(let z=10701; z<=10710; z++) map[String(z)] = "YON";
+  // Philadelphia
+  for(let z=19101; z<=19199; z++) map[String(z)] = "PHL";
+  // Pittsburgh
+  for(let z=15201; z<=15290; z++) map[String(z)] = "PIT";
+  // Detroit
+  for(let z=48201; z<=48244; z++) map[String(z)] = "DET";
+  // Grand Rapids
+  for(let z=49501; z<=49560; z++) map[String(z)] = "GRP";
+  // Flint
+  for(let z=48501; z<=48557; z++) map[String(z)] = "FLI";
+  // Cleveland
+  for(let z=44101; z<=44199; z++) map[String(z)] = "CLE";
+  // Cincinnati
+  for(let z=45201; z<=45299; z++) map[String(z)] = "CIN";
+  // Columbus
+  for(let z=43201; z<=43299; z++) map[String(z)] = "COL";
+  // Toledo
+  for(let z=43601; z<=43699; z++) map[String(z)] = "TOL";
+  // Akron
+  for(let z=44301; z<=44399; z++) map[String(z)] = "AKR";
+  // Dayton
+  for(let z=45401; z<=45499; z++) map[String(z)] = "DAY";
+  // Kansas City MO
+  for(let z=64101; z<=64199; z++) map[String(z)] = "KCM";
+  // St. Louis
+  for(let z=63101; z<=63199; z++) map[String(z)] = "STL";
+  // Birmingham
+  for(let z=35201; z<=35299; z++) map[String(z)] = "BIR";
+  // Wilmington
+  for(let z=19801; z<=19899; z++) map[String(z)] = "WIL";
+  // Portland OR Metro area
+  for(let z=97201; z<=97299; z++) map[String(z)] = "PDX";
+  // Newark
+  for(let z=7101; z<=7199; z++) map[String(z).padStart(5,"0")] = "NEW";
+  // Baltimore
+  for(let z=21201; z<=21299; z++) map[String(z)] = "BAL";
+  // Major no-local-tax cities (still useful for display)
+  for(let z=33101; z<=33199; z++) map[String(z)] = "MIA";
+  for(let z=90001; z<=90099; z++) map[String(z)] = "LAX";
+  for(let z=94102; z<=94188; z++) map[String(z)] = "SF";
+  for(let z=98101; z<=98199; z++) map[String(z)] = "SEA";
+  for(let z=2101; z<=2299; z++)  map[String(z).padStart(5,"0")] = "BOS";
+  for(let z=30301; z<=30399; z++) map[String(z)] = "ATL";
+  for(let z=60601; z<=60699; z++) map[String(z)] = "CHI";
+  for(let z=77001; z<=77099; z++) map[String(z)] = "HOU";
+  for(let z=75201; z<=75299; z++) map[String(z)] = "DAL";
+  for(let z=80201; z<=80299; z++) map[String(z)] = "DEN";
+  for(let z=20001; z<=20099; z++) map[String(z)] = "DC";
+  return map;
+})();
+
+// Lookup any 5-digit US ZIP → {state, city}. Returns null if unrecognised.
+function lookupZip(zipRaw){
+  if(!zipRaw) return null;
+  const zip = String(zipRaw).trim().replace(/\D/g,"").slice(0,5);
+  if(zip.length !== 5) return null;
+  const prefix = zip.slice(0,3);
+  const state = ZIP_PREFIX_STATE[prefix] || null;
+  const cityCode = ZIP_TO_CITY[zip] || null;
+  if(!state && !cityCode) return null;
+  return {zip, state, cityCode};
+}
+
+// Compute progressive marginal tax for given brackets + taxable income (in local ccy)
+function calcBracketTax(brackets, income){
+  if(!brackets || brackets.length === 0 || income <= 0) return 0;
+  let tax = 0;
+  for(let i=0; i<brackets.length; i++){
+    const cur = brackets[i], nxt = brackets[i+1];
+    const top = nxt ? nxt.t : Infinity;
+    const taxableInBand = Math.max(0, Math.min(income, top) - cur.t);
+    tax += taxableInBand * (cur.r/100);
+    if(income <= top) break;
+  }
+  return tax;
+}
+
+// Combined effective rate (%) at given income for country+state+city
+function calcEffectiveRate(country, stateCode, cityCode, income){
+  const cd = LOCAL_TAX[country];
+  if(!cd || income <= 0) return null;
+  let total = 0;
+  // Federal
+  if(cd.federal && cd.federal.brackets) total += calcBracketTax(cd.federal.brackets, income);
+  // State
+  if(stateCode && cd.states && cd.states[stateCode]){
+    total += calcBracketTax(cd.states[stateCode].brackets, income);
+  }
+  // City
+  if(cityCode && cd.cities && cd.cities[cityCode]){
+    total += calcBracketTax(cd.cities[cityCode].brackets, income);
+  }
+  return {
+    federalTax: cd.federal ? calcBracketTax(cd.federal.brackets, income) : 0,
+    stateTax: (stateCode && cd.states && cd.states[stateCode]) ? calcBracketTax(cd.states[stateCode].brackets, income) : 0,
+    cityTax: (cityCode && cd.cities && cd.cities[cityCode]) ? calcBracketTax(cd.cities[cityCode].brackets, income) : 0,
+    totalTax: total,
+    effectiveRate: (total / income) * 100
+  };
+}
+
 // Maps COUNTRY_ACCOUNTS codes → REGIONS keys for inflation auto-sync
 const COUNTRY_TO_REGION={US:"us",CA:"ca",GB:"uk",AU:"au",CH:"ch",EU:"eu",JP:"jp",SG:"sg",HK:"hk",CN:"cn",TW:"cn",KR:"kr",IN:"in",ID:"id",MX:"mx",BR:"br",SA:"sa",ZA:"za"};
 
@@ -3418,6 +3747,51 @@ function popCurrencyTag(){
 // ═══════════════════════════════════════════════════════════
 // ASSETS
 // ═══════════════════════════════════════════════════════════
+// ── ZIP code change handler — auto-detects state & city, shows tax preview ──
+function onZipChange(prefix){
+  const zip = val(prefix+"zp"); const country = val("c1co") || "US";
+  const target = prefix === "c1" ? "c1taxPreview" : "c1taxPreview"; // single shared preview for now
+  const el = $(target); if(!el) return;
+  const z = lookupZip(zip);
+  if(!z || !z.state){
+    if(zip && zip.length >= 5) {
+      el.style.display = "block";
+      el.innerHTML = `<div class="tax-preview-head">⚠ ZIP Not Recognised</div>
+        <div class="tax-pv-note">"${zip}" is not in the US ZIP database. Use the State dropdown manually below.</div>`;
+    } else { el.style.display = "none"; }
+    return;
+  }
+  // Auto-fill state in address + tax dropdowns
+  if($(prefix+"st") && z.state) $(prefix+"st").value = z.state;
+  if(prefix === "c1" && $("taxState")) {
+    // Ensure the option exists (refreshStateDropdown should have populated it)
+    if(Array.from($("taxState").options).some(o => o.value === z.state)){
+      $("taxState").value = z.state;
+      updateTaxPanel && updateTaxPanel();
+    }
+  }
+  // Show preview with computed effective rates at sample household income
+  const incomeNow = (num("inc1",0)+num("inc2",0)+num("inc1b",0)+num("inc2b",0)) || 100000;
+  const r = calcEffectiveRate(country, z.state, z.cityCode, incomeNow);
+  const stateData = LOCAL_TAX[country]?.states?.[z.state];
+  const cityData = z.cityCode ? LOCAL_TAX[country]?.cities?.[z.cityCode] : null;
+  const stateName = stateData?.name || z.state;
+  const cityName = cityData?.name || "—";
+  const cityLabel = cityData ? `${cityData.name}, ${z.state}` : `${stateName}`;
+  el.style.display = "block";
+  el.innerHTML = `
+    <div class="tax-preview-head">🏛 Detected Tax Jurisdiction</div>
+    <div class="tax-preview-loc">📍 ${cityLabel} — ZIP ${z.zip}</div>
+    <div class="tax-preview-grid">
+      <div class="tax-pv-cell"><div class="tax-pv-lbl">Federal</div><div class="tax-pv-val">${r ? fmtMoney(r.federalTax) : "—"}</div></div>
+      <div class="tax-pv-cell"><div class="tax-pv-lbl">State (${z.state})</div><div class="tax-pv-val">${r ? fmtMoney(r.stateTax) : "—"}</div></div>
+      <div class="tax-pv-cell"><div class="tax-pv-lbl">Local${cityData ? " ("+z.cityCode+")" : ""}</div><div class="tax-pv-val">${r ? fmtMoney(r.cityTax) : "$0"}</div></div>
+      <div class="tax-pv-cell"><div class="tax-pv-lbl">Effective</div><div class="tax-pv-val total">${r ? r.effectiveRate.toFixed(2)+"%" : "—"}</div></div>
+    </div>
+    <div class="tax-pv-note">Computed on household earned income of ${fmtMoney(incomeNow)}/yr. ${stateData?.note || ""} ${cityData?.note || ""} <strong style="color:var(--text2)">State tax bracket auto-filled in the Tax panel</strong> — adjust manually if needed.</div>
+  `;
+}
+
 function syncAssetCountry(){
   const c=$("c1co").value;
   if($("acountry").value!==c){ $("acountry").value=c; refreshAssetTypes(); }

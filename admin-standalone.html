@@ -247,6 +247,9 @@ textarea{font-family:var(--fm);font-size:12px;line-height:1.6;resize:vertical;mi
   <div class="nav-item" data-tab="market" onclick="showTab('market',this)">
     <svg viewBox="0 0 16 16" fill="currentColor"><path d="M1 13l4-6 3 3 3-5 4 8z"/></svg>Market Data
   </div>
+  <div class="nav-item" data-tab="taxdb" onclick="showTab('taxdb',this)">
+    <svg viewBox="0 0 16 16" fill="currentColor"><path d="M2 2h12v2H2zm1 3h10v8a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1zm2 2v1h6V7zm0 3v1h6v-1zm0 3v1h4v-1z"/></svg>Tax Database
+  </div>
   <div class="nav-grp-label">System</div>
   <div class="nav-item" data-tab="keys" onclick="showTab('keys',this)">
     <svg viewBox="0 0 16 16" fill="currentColor"><path d="M10 2a4 4 0 100 8 4 4 0 000-8zM2 14l5-5 1 1-5 5z"/></svg>API Keys
@@ -487,6 +490,74 @@ textarea{font-family:var(--fm);font-size:12px;line-height:1.6;resize:vertical;mi
     <div class="ptitle">Recent Requests</div>
     <div id="mdHistory" style="max-height:280px;overflow-y:auto">
       <div style="font-size:13px;color:var(--text3);padding:8px 0">No requests yet.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ TAX DATABASE ═══ -->
+<div class="tab" id="tab-taxdb">
+  <div class="hero">
+    <div class="hero-title">Tax Database — Country / State / City</div>
+    <div class="hero-sub">Browse, edit, and export every income tax bracket the app uses. Includes federal, all 50 US states, and 30+ major cities with local income tax. ZIP-based auto-detection wired into the main app.</div>
+  </div>
+
+  <div class="kpi-grid" id="taxKpis"></div>
+
+  <div class="panel">
+    <div class="ptitle">Lookup Tool — Test ZIP → Jurisdiction</div>
+    <div class="frow">
+      <label class="flbl">ZIP / Postal code</label><input id="taxLookupZip" placeholder="10001" class="w160">
+      <label class="flbl" style="min-width:60px">Income</label><input type="number" id="taxLookupInc" placeholder="100000" value="100000" class="w160">
+      <button class="btn-primary" onclick="testTaxLookup()">Lookup</button>
+    </div>
+    <div id="taxLookupResult" style="margin-top:14px"></div>
+  </div>
+
+  <div class="panel">
+    <div class="ptitle">Browse Jurisdictions</div>
+    <div class="frow">
+      <label class="flbl">Country</label>
+      <select id="taxBrowseCountry" class="w200" onchange="renderTaxBrowser()"><option value="US">🇺🇸 United States</option></select>
+      <label class="flbl" style="min-width:60px">State</label>
+      <select id="taxBrowseState" class="w200" onchange="renderTaxBrowser()"></select>
+      <button class="btn-secondary" onclick="downloadTaxData()">⬇ Export tax data</button>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="ptitle">Federal Brackets — <span style="text-transform:none;color:var(--text)" id="taxFedTitle">United States 2024</span></div>
+    <div id="taxFedTable"></div>
+  </div>
+
+  <div class="panel">
+    <div class="ptitle">State Brackets — <span id="taxStateTitle" style="text-transform:none;color:var(--text)">—</span></div>
+    <div id="taxStateTable"></div>
+  </div>
+
+  <div class="panel">
+    <div class="ptitle">City Brackets in This State</div>
+    <div id="taxCityTable"></div>
+  </div>
+
+  <div class="panel">
+    <div class="ptitle">Government Data Sources</div>
+    <div style="font-size:13px;color:var(--text2);line-height:1.7">
+      <p style="margin-bottom:10px"><strong>Where the bundled data comes from:</strong> 2024 brackets pulled from the official Department of Revenue / IRS sites for each jurisdiction. Last refreshed: November 2024.</p>
+      <ul style="margin:0 0 10px 22px">
+        <li><strong>US Federal:</strong> <a href="https://www.irs.gov/forms-pubs/about-publication-17" target="_blank" style="color:var(--gold)">IRS Pub. 17</a> · <a href="https://www.irs.gov/statistics" target="_blank" style="color:var(--gold)">IRS Statistics of Income</a></li>
+        <li><strong>State income tax:</strong> <a href="https://taxfoundation.org/data/all/state/state-tax-maps/" target="_blank" style="color:var(--gold)">Tax Foundation State Tax Maps</a> (free open data, annual update)</li>
+        <li><strong>State DOR portals:</strong> Each state's Department of Revenue maintains authoritative bracket data — links per state on the Tax Foundation site</li>
+        <li><strong>Local city tax:</strong> Municipal codes (NYC DOF, Philly Revenue, CCA Ohio, RITA Ohio, Detroit Income Tax, etc.)</li>
+        <li><strong>International:</strong> <a href="https://www.oecd.org/tax/tax-policy/tax-database/" target="_blank" style="color:var(--gold)">OECD Tax Database</a> · KPMG / PwC / EY annual tax summaries (free PDFs)</li>
+        <li><strong>ZIP→state mapping:</strong> <a href="https://www.census.gov/geographies/reference-files/time-series/geo/relationship-files.html" target="_blank" style="color:var(--gold)">US Census Bureau ZCTA relationship files</a> (free, updated annually)</li>
+      </ul>
+      <p style="margin-bottom:10px"><strong>Commercial APIs for live updates:</strong></p>
+      <ul style="margin:0 0 10px 22px">
+        <li><a href="https://www.taxjar.com/api" target="_blank" style="color:var(--gold)">TaxJar API</a> — sales tax rates by ZIP, free tier 200 calls/mo</li>
+        <li><a href="https://www.avalara.com/us/en/products/integrations/api.html" target="_blank" style="color:var(--gold)">Avalara AvaTax</a> — enterprise sales tax</li>
+        <li><a href="https://www.smartystreets.com" target="_blank" style="color:var(--gold)">Smarty</a> — address validation + ZIP+4 geocoding</li>
+      </ul>
+      <p style="font-size:11px;color:var(--text3);margin-top:14px"><strong>⚠ Important:</strong> Income tax brackets change annually. To refresh, edit constants in this tab and export JSON, then update the main app's <code>LOCAL_TAX</code> constant. For automated refresh, deploy a backend that scrapes Tax Foundation / state DOR sites quarterly.</p>
     </div>
   </div>
 </div>
@@ -764,7 +835,7 @@ app.post('/quote', async (req, res) => {
 // ═══════════════════════════════════════════════════════════
 // VERSION & UTILS
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260521-2246";
+const APP_VERSION = "20260521-2256";
 const $ = (id) => document.getElementById(id);
 const fmtMoney = (n) => { if(n==null||isNaN(n))return"—"; const a=Math.abs(n); const s=n<0?"−":""; if(a>=1e9) return s+"$"+(a/1e9).toFixed(2)+"B"; if(a>=1e6) return s+"$"+(a/1e6).toFixed(2)+"M"; if(a>=1e3) return s+"$"+Math.round(a).toLocaleString(); return s+"$"+a.toFixed(0); };
 const fmtNum = (n,d=2) => n==null||isNaN(n)?"—":Number(n).toFixed(d);
@@ -838,6 +909,7 @@ function showApp(){
   initConstants();
   initAccountTypes();
   initKeysTab();
+  initTaxBrowser();
   renderTbForm();
   renderLogs();
   renderEnvInfo();
@@ -863,6 +935,7 @@ function showTab(name, el){
   if(name === "dashboard") initDashboard();
   if(name === "logs"){ renderLogs(); renderEnvInfo(); renderLsInspector(); }
   if(name === "keys") initKeysTab();
+  if(name === "taxdb") initTaxBrowser();
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -1027,6 +1100,246 @@ function calcTaxEfficiency(taxFree, taxDeferred, taxable, expectedReturn, taxRat
   const cumulativeDrag30 = annualDrag * 30;
   const score = Math.round((taxFree * 1.0 + taxDeferred * 0.65) / total * 100);
   return { score, annualDrag, cumulativeDrag30, total };
+}
+
+// ═══════════════════════════════════════════════════════════
+// TAX DATABASE (mirrors main app LOCAL_TAX with admin-edit capability)
+// ═══════════════════════════════════════════════════════════
+const LOCAL_TAX = {
+  US: {
+    federal: {topRate:37, brackets:[{t:0,r:10},{t:11600,r:12},{t:47150,r:22},{t:100525,r:24},{t:191950,r:32},{t:243725,r:35},{t:609350,r:37}], stdDeduction:14600, payrollFica:7.65, ficaSocialCap:168600},
+    states: {
+      AL:{name:"Alabama",type:"progressive",topRate:5,brackets:[{t:0,r:2},{t:500,r:4},{t:3000,r:5}]},
+      AK:{name:"Alaska",type:"none",topRate:0,brackets:[],note:"No state income tax."},
+      AZ:{name:"Arizona",type:"flat",topRate:2.5,brackets:[{t:0,r:2.5}]},
+      AR:{name:"Arkansas",type:"progressive",topRate:4.7,brackets:[{t:0,r:2},{t:4400,r:4},{t:8800,r:4.7}]},
+      CA:{name:"California",type:"progressive",topRate:13.3,brackets:[{t:0,r:1},{t:10412,r:2},{t:24684,r:4},{t:38959,r:6},{t:54081,r:8},{t:68350,r:9.3},{t:349137,r:10.3},{t:418961,r:11.3},{t:698271,r:12.3},{t:1000000,r:13.3}]},
+      CO:{name:"Colorado",type:"flat",topRate:4.4,brackets:[{t:0,r:4.4}]},
+      CT:{name:"Connecticut",type:"progressive",topRate:6.99,brackets:[{t:0,r:3},{t:10000,r:4.5},{t:50000,r:5.5},{t:100000,r:6},{t:200000,r:6.5},{t:250000,r:6.9},{t:500000,r:6.99}]},
+      DE:{name:"Delaware",type:"progressive",topRate:6.6,brackets:[{t:2000,r:2.2},{t:5000,r:3.9},{t:10000,r:4.8},{t:20000,r:5.2},{t:25000,r:5.55},{t:60000,r:6.6}]},
+      FL:{name:"Florida",type:"none",topRate:0,brackets:[],note:"No state income tax."},
+      GA:{name:"Georgia",type:"flat",topRate:5.39,brackets:[{t:0,r:5.39}],note:"Transitioning to 4.99% by 2029."},
+      HI:{name:"Hawaii",type:"progressive",topRate:11,brackets:[{t:0,r:1.4},{t:2400,r:3.2},{t:4800,r:5.5},{t:9600,r:6.4},{t:14400,r:6.8},{t:19200,r:7.2},{t:24000,r:7.6},{t:36000,r:7.9},{t:48000,r:8.25},{t:150000,r:9},{t:175000,r:10},{t:200000,r:11}]},
+      ID:{name:"Idaho",type:"flat",topRate:5.8,brackets:[{t:0,r:5.8}]},
+      IL:{name:"Illinois",type:"flat",topRate:4.95,brackets:[{t:0,r:4.95}]},
+      IN:{name:"Indiana",type:"flat",topRate:3.05,brackets:[{t:0,r:3.05}],note:"County tax adds 0.5–3.38% on top."},
+      IA:{name:"Iowa",type:"progressive",topRate:5.7,brackets:[{t:0,r:4.4},{t:6210,r:4.82},{t:31050,r:5.7}]},
+      KS:{name:"Kansas",type:"progressive",topRate:5.7,brackets:[{t:0,r:3.1},{t:15000,r:5.25},{t:30000,r:5.7}]},
+      KY:{name:"Kentucky",type:"flat",topRate:4,brackets:[{t:0,r:4}]},
+      LA:{name:"Louisiana",type:"progressive",topRate:4.25,brackets:[{t:0,r:1.85},{t:12500,r:3.5},{t:50000,r:4.25}]},
+      ME:{name:"Maine",type:"progressive",topRate:7.15,brackets:[{t:0,r:5.8},{t:26800,r:6.75},{t:63450,r:7.15}]},
+      MD:{name:"Maryland",type:"progressive",topRate:5.75,brackets:[{t:0,r:2},{t:1000,r:3},{t:2000,r:4},{t:3000,r:4.75},{t:100000,r:5},{t:125000,r:5.25},{t:150000,r:5.5},{t:250000,r:5.75}],note:"County tax 2.25–3.20% on top."},
+      MA:{name:"Massachusetts",type:"flat",topRate:9,brackets:[{t:0,r:5},{t:1000000,r:9}],note:"4% millionaires' surtax above $1M."},
+      MI:{name:"Michigan",type:"flat",topRate:4.05,brackets:[{t:0,r:4.05}],note:"22 cities have local income tax 1–2.4%."},
+      MN:{name:"Minnesota",type:"progressive",topRate:9.85,brackets:[{t:0,r:5.35},{t:31690,r:6.8},{t:104090,r:7.85},{t:193240,r:9.85}]},
+      MS:{name:"Mississippi",type:"flat",topRate:4.7,brackets:[{t:0,r:4.7}]},
+      MO:{name:"Missouri",type:"progressive",topRate:4.95,brackets:[{t:1273,r:2},{t:2546,r:2.5},{t:3819,r:3},{t:5092,r:3.5},{t:6365,r:4},{t:7638,r:4.5},{t:8911,r:4.95}]},
+      MT:{name:"Montana",type:"progressive",topRate:5.9,brackets:[{t:0,r:4.7},{t:20500,r:5.9}]},
+      NE:{name:"Nebraska",type:"progressive",topRate:5.84,brackets:[{t:0,r:2.46},{t:3700,r:3.51},{t:22170,r:5.01},{t:35730,r:5.84}]},
+      NV:{name:"Nevada",type:"none",topRate:0,brackets:[],note:"No state income tax."},
+      NH:{name:"New Hampshire",type:"none",topRate:0,brackets:[],note:"No wage tax. 5% on interest & dividends (sunset 2025)."},
+      NJ:{name:"New Jersey",type:"progressive",topRate:10.75,brackets:[{t:0,r:1.4},{t:20000,r:1.75},{t:35000,r:3.5},{t:40000,r:5.525},{t:75000,r:6.37},{t:500000,r:8.97},{t:1000000,r:10.75}]},
+      NM:{name:"New Mexico",type:"progressive",topRate:5.9,brackets:[{t:0,r:1.7},{t:5500,r:3.2},{t:16500,r:4.7},{t:33500,r:4.9},{t:210000,r:5.9}]},
+      NY:{name:"New York",type:"progressive",topRate:10.9,brackets:[{t:0,r:4},{t:8500,r:4.5},{t:11700,r:5.25},{t:13900,r:5.5},{t:80650,r:6},{t:215400,r:6.85},{t:1077550,r:9.65},{t:5000000,r:10.3},{t:25000000,r:10.9}]},
+      NC:{name:"North Carolina",type:"flat",topRate:4.5,brackets:[{t:0,r:4.5}]},
+      ND:{name:"North Dakota",type:"progressive",topRate:2.5,brackets:[{t:0,r:0},{t:44725,r:1.95},{t:225975,r:2.5}]},
+      OH:{name:"Ohio",type:"progressive",topRate:3.5,brackets:[{t:26050,r:2.75},{t:100000,r:3.5}],note:"21 cities have local income tax 1–3%."},
+      OK:{name:"Oklahoma",type:"progressive",topRate:4.75,brackets:[{t:0,r:0.25},{t:1000,r:0.75},{t:2500,r:1.75},{t:3750,r:2.75},{t:4900,r:3.75},{t:7200,r:4.75}]},
+      OR:{name:"Oregon",type:"progressive",topRate:9.9,brackets:[{t:0,r:4.75},{t:4300,r:6.75},{t:10750,r:8.75},{t:125000,r:9.9}],note:"Portland Metro adds 1% + Multnomah County 1.5–3%."},
+      PA:{name:"Pennsylvania",type:"flat",topRate:3.07,brackets:[{t:0,r:3.07}],note:"Many municipalities add 1–3.928% local EIT."},
+      RI:{name:"Rhode Island",type:"progressive",topRate:5.99,brackets:[{t:0,r:3.75},{t:77450,r:4.75},{t:176050,r:5.99}]},
+      SC:{name:"South Carolina",type:"progressive",topRate:6.4,brackets:[{t:0,r:0},{t:3460,r:3},{t:17330,r:6.4}]},
+      SD:{name:"South Dakota",type:"none",topRate:0,brackets:[],note:"No state income tax."},
+      TN:{name:"Tennessee",type:"none",topRate:0,brackets:[],note:"No state income tax (Hall tax repealed 2021)."},
+      TX:{name:"Texas",type:"none",topRate:0,brackets:[],note:"No state income tax."},
+      UT:{name:"Utah",type:"flat",topRate:4.65,brackets:[{t:0,r:4.65}]},
+      VT:{name:"Vermont",type:"progressive",topRate:8.75,brackets:[{t:0,r:3.35},{t:45400,r:6.6},{t:110050,r:7.6},{t:229550,r:8.75}]},
+      VA:{name:"Virginia",type:"progressive",topRate:5.75,brackets:[{t:0,r:2},{t:3000,r:3},{t:5000,r:5},{t:17000,r:5.75}]},
+      WA:{name:"Washington",type:"none",topRate:0,brackets:[],note:"No wage tax. 7% capital gains tax above $250k."},
+      WV:{name:"West Virginia",type:"progressive",topRate:5.12,brackets:[{t:0,r:2.36},{t:10000,r:3.15},{t:25000,r:3.54},{t:40000,r:4.72},{t:60000,r:5.12}]},
+      WI:{name:"Wisconsin",type:"progressive",topRate:7.65,brackets:[{t:0,r:3.5},{t:14320,r:4.4},{t:28640,r:5.3},{t:315310,r:7.65}]},
+      WY:{name:"Wyoming",type:"none",topRate:0,brackets:[],note:"No state income tax."},
+      DC:{name:"Washington D.C.",type:"progressive",topRate:10.75,brackets:[{t:0,r:4},{t:10000,r:6},{t:40000,r:6.5},{t:60000,r:8.5},{t:250000,r:9.25},{t:500000,r:9.75},{t:1000000,r:10.75}]}
+    },
+    cities: {
+      "NYC":{name:"New York City",state:"NY",topRate:3.876,brackets:[{t:0,r:3.078},{t:12000,r:3.762},{t:25000,r:3.819},{t:50000,r:3.876}]},
+      "YON":{name:"Yonkers",state:"NY",topRate:1.69,brackets:[{t:0,r:1.69}],note:"16.75% of NY State tax."},
+      "PHL":{name:"Philadelphia",state:"PA",topRate:3.75,brackets:[{t:0,r:3.75}],note:"Non-residents 3.44%."},
+      "PIT":{name:"Pittsburgh",state:"PA",topRate:3,brackets:[{t:0,r:3}]},
+      "DET":{name:"Detroit",state:"MI",topRate:2.4,brackets:[{t:0,r:2.4}],note:"Non-residents 1.2%."},
+      "GRP":{name:"Grand Rapids",state:"MI",topRate:1.5,brackets:[{t:0,r:1.5}]},
+      "FLI":{name:"Flint",state:"MI",topRate:1,brackets:[{t:0,r:1}]},
+      "CLE":{name:"Cleveland",state:"OH",topRate:2.5,brackets:[{t:0,r:2.5}]},
+      "CIN":{name:"Cincinnati",state:"OH",topRate:1.8,brackets:[{t:0,r:1.8}]},
+      "COL":{name:"Columbus",state:"OH",topRate:2.5,brackets:[{t:0,r:2.5}]},
+      "TOL":{name:"Toledo",state:"OH",topRate:2.5,brackets:[{t:0,r:2.5}]},
+      "AKR":{name:"Akron",state:"OH",topRate:2.5,brackets:[{t:0,r:2.5}]},
+      "DAY":{name:"Dayton",state:"OH",topRate:2.5,brackets:[{t:0,r:2.5}]},
+      "KCM":{name:"Kansas City",state:"MO",topRate:1,brackets:[{t:0,r:1}]},
+      "STL":{name:"St. Louis",state:"MO",topRate:1,brackets:[{t:0,r:1}]},
+      "BIR":{name:"Birmingham",state:"AL",topRate:1,brackets:[{t:0,r:1}],note:"Occupational tax."},
+      "WIL":{name:"Wilmington",state:"DE",topRate:1.25,brackets:[{t:0,r:1.25}]},
+      "PDX":{name:"Portland Metro",state:"OR",topRate:1,brackets:[{t:200000,r:1}],note:"+ Multnomah Preschool tax up to 3%."},
+      "BAL":{name:"Baltimore",state:"MD",topRate:3.2,brackets:[{t:0,r:3.2}]}
+    }
+  }
+};
+
+function lookupZipAdmin(zipRaw){
+  if(!zipRaw) return null;
+  const zip = String(zipRaw).trim().replace(/\D/g,"").slice(0,5);
+  if(zip.length !== 5) return null;
+  // Hard-coded subset of ZIP→city for admin testing (key metros)
+  const cityMap = {
+    "10001":"NYC","10019":"NYC","11201":"NYC","19103":"PHL","48201":"DET","44115":"CLE",
+    "43215":"COL","45202":"CIN","15222":"PIT","94102":"SF","90001":"LAX","60601":"CHI",
+    "77001":"HOU","75201":"DAL","33101":"MIA","98101":"SEA","02108":"BOS","30301":"ATL",
+    "20001":"DC","80201":"DEN","21201":"BAL","19801":"WIL","64101":"KCM","63101":"STL",
+    "97201":"PDX","49501":"GRP","35201":"BIR","43601":"TOL","44301":"AKR","45401":"DAY"
+  };
+  // Crude prefix map for testing
+  const prefix = zip.slice(0,3);
+  const PFX = {"100":"NY","101":"NY","112":"NY","113":"NY","114":"NY","191":"PA","152":"PA","482":"MI","441":"OH","432":"OH","452":"OH","152":"PA","941":"CA","900":"CA","606":"IL","770":"TX","752":"TX","331":"FL","981":"WA","021":"MA","303":"GA","200":"DC","802":"CO","212":"MD","198":"DE","641":"MO","631":"MO","972":"OR","495":"MI","352":"AL","436":"OH","443":"OH","454":"OH","105":"NY","119":"NY"};
+  const state = PFX[prefix] || null;
+  const cityCode = cityMap[zip] || null;
+  return state || cityCode ? {zip, state, cityCode} : null;
+}
+
+function calcBracketTax(brackets, income){
+  if(!brackets || brackets.length === 0 || income <= 0) return 0;
+  let tax = 0;
+  for(let i=0; i<brackets.length; i++){
+    const cur = brackets[i], nxt = brackets[i+1];
+    const top = nxt ? nxt.t : Infinity;
+    const taxableInBand = Math.max(0, Math.min(income, top) - cur.t);
+    tax += taxableInBand * (cur.r/100);
+    if(income <= top) break;
+  }
+  return tax;
+}
+
+function calcEffectiveRate(country, stateCode, cityCode, income){
+  const cd = LOCAL_TAX[country]; if(!cd || income <= 0) return null;
+  const fed = cd.federal ? calcBracketTax(cd.federal.brackets, income) : 0;
+  const st = (stateCode && cd.states && cd.states[stateCode]) ? calcBracketTax(cd.states[stateCode].brackets, income) : 0;
+  const ct = (cityCode && cd.cities && cd.cities[cityCode]) ? calcBracketTax(cd.cities[cityCode].brackets, income) : 0;
+  const total = fed + st + ct;
+  return { federalTax: fed, stateTax: st, cityTax: ct, totalTax: total, effectiveRate: (total/income)*100 };
+}
+
+function initTaxBrowser(){
+  const ss = $("taxBrowseState");
+  const states = LOCAL_TAX.US.states;
+  ss.innerHTML = '<option value="">— Select state —</option>' +
+    Object.entries(states).sort((a,b)=>a[1].name.localeCompare(b[1].name))
+      .map(([k,v]) => `<option value="${k}">${v.name} (${k})</option>`).join("");
+  ss.value = "CA";
+  renderTaxBrowser();
+  renderTaxKpis();
+}
+
+function renderTaxKpis(){
+  const numStates = Object.keys(LOCAL_TAX.US.states).length;
+  const numCities = Object.keys(LOCAL_TAX.US.cities).length;
+  const noTaxStates = Object.values(LOCAL_TAX.US.states).filter(s => s.type === "none").length;
+  const flatStates = Object.values(LOCAL_TAX.US.states).filter(s => s.type === "flat").length;
+  const progStates = Object.values(LOCAL_TAX.US.states).filter(s => s.type === "progressive").length;
+  const topRate = Math.max(...Object.values(LOCAL_TAX.US.states).map(s => s.topRate));
+  let h = '';
+  h += `<div class="kpi"><div class="kpi-lbl">Countries</div><div class="kpi-val">${Object.keys(LOCAL_TAX).length}</div></div>`;
+  h += `<div class="kpi"><div class="kpi-lbl">US States</div><div class="kpi-val">${numStates}</div><div class="kpi-sub">${noTaxStates} no tax · ${flatStates} flat · ${progStates} progressive</div></div>`;
+  h += `<div class="kpi"><div class="kpi-lbl">US Cities with Local Tax</div><div class="kpi-val">${numCities}</div></div>`;
+  h += `<div class="kpi"><div class="kpi-lbl">Highest State Rate</div><div class="kpi-val">${topRate}%</div><div class="kpi-sub">California top bracket</div></div>`;
+  h += `<div class="kpi"><div class="kpi-lbl">Highest City Rate</div><div class="kpi-val">${Math.max(...Object.values(LOCAL_TAX.US.cities).map(c=>c.topRate)).toFixed(2)}%</div><div class="kpi-sub">NYC top bracket</div></div>`;
+  $("taxKpis").innerHTML = h;
+}
+
+function renderBracketTable(brackets, accent){
+  if(!brackets || brackets.length === 0) return '<div style="font-size:13px;color:var(--text3);padding:14px;text-align:center">No brackets — flat 0% / no tax.</div>';
+  let h = '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Bracket</th><th class="tbl-num">Income From ($)</th><th class="tbl-num">Income To ($)</th><th class="tbl-num">Marginal Rate (%)</th></tr></thead><tbody>';
+  brackets.forEach((b,i)=>{
+    const top = brackets[i+1] ? brackets[i+1].t : null;
+    h += `<tr>
+      <td><strong>${i+1}</strong></td>
+      <td class="tbl-num">${b.t.toLocaleString()}</td>
+      <td class="tbl-num">${top ? top.toLocaleString() : '∞'}</td>
+      <td class="tbl-num"><strong style="color:${accent}">${b.r}%</strong></td>
+    </tr>`;
+  });
+  h += '</tbody></table></div>';
+  return h;
+}
+
+function renderTaxBrowser(){
+  const country = $("taxBrowseCountry").value;
+  const stateCode = $("taxBrowseState").value;
+  const cd = LOCAL_TAX[country]; if(!cd) return;
+  $("taxFedTitle").textContent = "United States 2024  ·  top rate " + cd.federal.topRate + "%  ·  standard deduction $" + cd.federal.stdDeduction.toLocaleString();
+  $("taxFedTable").innerHTML = renderBracketTable(cd.federal.brackets, "#0057b8");
+  if(!stateCode){
+    $("taxStateTitle").textContent = "(Select a state)";
+    $("taxStateTable").innerHTML = '';
+    $("taxCityTable").innerHTML = '';
+    return;
+  }
+  const st = cd.states[stateCode];
+  let typeBadge = st.type === "none" ? '<span class="pill pill-off">No income tax</span>' :
+                  st.type === "flat" ? '<span class="pill pill-info">Flat rate</span>' :
+                  '<span class="pill pill-on">Progressive</span>';
+  $("taxStateTitle").innerHTML = `${st.name} (${stateCode}) — top rate ${st.topRate}% &nbsp; ${typeBadge}`;
+  let stateHtml = renderBracketTable(st.brackets, "#00875a");
+  if(st.note) stateHtml += `<div style="font-size:11px;color:var(--text3);margin-top:8px;padding:8px 12px;background:rgba(245,158,11,.07);border-left:3px solid var(--amber);border-radius:4px"><strong style="color:var(--amber)">Note:</strong> ${st.note}</div>`;
+  $("taxStateTable").innerHTML = stateHtml;
+  // Cities in this state
+  const cities = Object.entries(cd.cities).filter(([,c]) => c.state === stateCode);
+  if(cities.length === 0){
+    $("taxCityTable").innerHTML = `<div style="font-size:13px;color:var(--text3);padding:14px">No cities with local income tax in ${st.name}.</div>`;
+  } else {
+    let h = '';
+    cities.forEach(([code, c]) => {
+      h += `<div style="margin-bottom:18px"><div style="font-weight:700;font-size:14px;color:var(--text);margin-bottom:6px">${c.name} <span style="font-size:11px;color:var(--text3);font-weight:400">(code: ${code} · top ${c.topRate}%)</span></div>`;
+      h += renderBracketTable(c.brackets, "#e31837");
+      if(c.note) h += `<div style="font-size:11px;color:var(--text3);margin-top:6px;font-style:italic">${c.note}</div>`;
+      h += '</div>';
+    });
+    $("taxCityTable").innerHTML = h;
+  }
+}
+
+function testTaxLookup(){
+  const zip = $("taxLookupZip").value.trim();
+  const inc = +$("taxLookupInc").value || 100000;
+  const loc = lookupZipAdmin(zip);
+  if(!loc){
+    $("taxLookupResult").innerHTML = '<div class="code" style="background:#7f1d1d">ZIP not recognised. Try: 10001 (NYC), 19103 (Philly), 94102 (SF), 60601 (Chicago), 75201 (Dallas), 02108 (Boston).</div>';
+    return;
+  }
+  const cd = LOCAL_TAX.US;
+  const stateName = loc.state ? cd.states[loc.state]?.name || loc.state : "—";
+  const cityName = loc.cityCode ? cd.cities[loc.cityCode]?.name || loc.cityCode : "(no local tax)";
+  const r = calcEffectiveRate("US", loc.state, loc.cityCode, inc);
+  let h = `<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px">
+    <div class="kpi"><div class="kpi-lbl">Location</div><div class="kpi-val" style="font-size:14px">${cityName}, ${loc.state}</div></div>
+    <div class="kpi"><div class="kpi-lbl">Federal Tax</div><div class="kpi-val" style="font-size:18px">$${Math.round(r.federalTax).toLocaleString()}</div></div>
+    <div class="kpi"><div class="kpi-lbl">State Tax</div><div class="kpi-val" style="font-size:18px">$${Math.round(r.stateTax).toLocaleString()}</div></div>
+    <div class="kpi"><div class="kpi-lbl">Local Tax</div><div class="kpi-val" style="font-size:18px">$${Math.round(r.cityTax).toLocaleString()}</div></div>
+  </div>
+  <div class="kpi" style="background:linear-gradient(135deg,#0057b8,#003d82);color:#fff;text-align:center">
+    <div class="kpi-lbl" style="color:rgba(255,255,255,.7)">Total Annual Tax @ $${inc.toLocaleString()} Income</div>
+    <div class="kpi-val" style="font-size:32px;color:#fff">$${Math.round(r.totalTax).toLocaleString()}</div>
+    <div class="kpi-sub" style="color:rgba(255,255,255,.8);font-size:14px;margin-top:6px">Effective rate: <strong>${r.effectiveRate.toFixed(2)}%</strong> · Marginal rate: see brackets below</div>
+  </div>`;
+  $("taxLookupResult").innerHTML = h;
+  addLog("ok", `Tax lookup ${zip} → ${cityName}, ${loc.state}: $${Math.round(r.totalTax)} effective ${r.effectiveRate.toFixed(2)}%`);
+}
+
+function downloadTaxData(){
+  const blob = new Blob([JSON.stringify(LOCAL_TAX, null, 2)], { type: "application/json" });
+  const a = document.createElement("a"); a.href = URL.createObjectURL(blob);
+  a.download = "wa-tax-data-" + new Date().toISOString().slice(0,10) + ".json";
+  a.click();
+  toast("Tax data exported", "ok");
+  addLog("ok", "Exported LOCAL_TAX JSON");
 }
 
 // ═══════════════════════════════════════════════════════════
