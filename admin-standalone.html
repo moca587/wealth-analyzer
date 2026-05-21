@@ -188,26 +188,9 @@ textarea{font-family:var(--fm);font-size:12px;line-height:1.6;resize:vertical;mi
 <body>
 
 <!-- ═══════════════════════════════════════════════════════════
-     LOGIN GATE
+     APP SHELL — no auth gate (open access)
      ═══════════════════════════════════════════════════════════ -->
-<div id="loginScreen" class="login-wrap">
-  <div class="login-card">
-    <div class="login-logo">WealthAnalyzer<span class="admin-badge">ADMIN</span></div>
-    <div class="login-sub">Sign in to access the admin console</div>
-    <input type="password" id="loginPw" placeholder="Admin password" onkeydown="if(event.key==='Enter')doLogin()">
-    <button class="login-btn" onclick="doLogin()">Sign in</button>
-    <div class="login-err" id="loginErr"></div>
-    <div class="login-foot">
-      <strong>Default password:</strong> <code>admin123</code><br>
-      ⚠ Client-side auth only — for production, deploy with server-side authentication, HTTPS, and rate-limited brute-force protection.
-    </div>
-  </div>
-</div>
-
-<!-- ═══════════════════════════════════════════════════════════
-     APP SHELL (hidden until login)
-     ═══════════════════════════════════════════════════════════ -->
-<div id="appShell" class="app-shell" style="display:none">
+<div id="appShell" class="app-shell">
 
 <!-- Top bar -->
 <div class="topbar">
@@ -216,7 +199,6 @@ textarea{font-family:var(--fm);font-size:12px;line-height:1.6;resize:vertical;mi
   </div>
   <div style="display:flex;align-items:center;gap:10px">
     <a href="wealth-analyzer.html" target="_blank" class="btn-secondary" style="text-decoration:none;display:inline-flex;align-items:center;gap:6px">↗ Open Main App</a>
-    <button class="btn-ghost" onclick="doLogout()">Logout</button>
   </div>
 </div>
 
@@ -631,10 +613,16 @@ textarea{font-family:var(--fm);font-size:12px;line-height:1.6;resize:vertical;mi
   </div>
 
   <div class="panel">
-    <div class="ptitle">Admin Password</div>
-    <div class="frow">
-      <label class="flbl">New password</label><input type="password" id="newPw" class="w200">
-      <button class="btn-secondary" onclick="changePw()">Change password</button>
+    <div class="ptitle">Access Control</div>
+    <div style="font-size:13px;color:var(--text2);line-height:1.7">
+      <strong style="color:var(--text)">⚠ This admin console is currently open (no password).</strong>
+      <p style="margin-top:8px">For production deployment, restrict access using one or more of:</p>
+      <ul style="margin:8px 0 0 22px;color:var(--text3)">
+        <li>Server-side authentication (Auth0 / Cognito / custom JWT)</li>
+        <li>Cloudflare Access / Vercel password protection on the route</li>
+        <li>HTTP Basic auth at the reverse proxy (nginx / Caddy)</li>
+        <li>VPN / IP allow-list for internal-only access</li>
+      </ul>
     </div>
   </div>
 </div>
@@ -835,7 +823,7 @@ app.post('/quote', async (req, res) => {
 // ═══════════════════════════════════════════════════════════
 // VERSION & UTILS
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260521-2256";
+const APP_VERSION = "20260521-2303";
 const $ = (id) => document.getElementById(id);
 const fmtMoney = (n) => { if(n==null||isNaN(n))return"—"; const a=Math.abs(n); const s=n<0?"−":""; if(a>=1e9) return s+"$"+(a/1e9).toFixed(2)+"B"; if(a>=1e6) return s+"$"+(a/1e6).toFixed(2)+"M"; if(a>=1e3) return s+"$"+Math.round(a).toLocaleString(); return s+"$"+a.toFixed(0); };
 const fmtNum = (n,d=2) => n==null||isNaN(n)?"—":Number(n).toFixed(d);
@@ -853,8 +841,7 @@ async function sha256(text){
   return Array.from(new Uint8Array(h)).map(b=>b.toString(16).padStart(2,"0")).join("");
 }
 
-// Default admin pw hash for "admin123"
-const DEFAULT_PW_HASH = "240be518fabd2724ddb6f04eeb1da5967448d7e831c08c8fa822809f74c720a9";
+// (Admin password gate removed — open access)
 
 // ═══════════════════════════════════════════════════════════
 // LOGGING SYSTEM
@@ -869,41 +856,9 @@ function addLog(level, msg){
 function getLogs(){ return JSON.parse(localStorage.getItem(LOG_KEY) || "[]"); }
 
 // ═══════════════════════════════════════════════════════════
-// LOGIN
+// INIT — open access, no login required
 // ═══════════════════════════════════════════════════════════
-async function doLogin(){
-  const pw = $("loginPw").value;
-  if(!pw){ $("loginErr").textContent = "Enter a password"; return; }
-  const hash = await sha256(pw);
-  const storedHash = localStorage.getItem("wa_admin_pw") || DEFAULT_PW_HASH;
-  if(hash === storedHash){
-    sessionStorage.setItem("wa_admin_session", "1");
-    $("loginErr").textContent = "";
-    addLog("ok", "Admin login");
-    showApp();
-  } else {
-    $("loginErr").textContent = "Invalid password";
-    addLog("err", "Failed login attempt");
-  }
-}
-function doLogout(){
-  sessionStorage.removeItem("wa_admin_session");
-  addLog("info", "Admin logout");
-  location.reload();
-}
-async function changePw(){
-  const newPw = $("newPw").value;
-  if(!newPw || newPw.length < 6){ toast("Password must be 6+ chars", "err"); return; }
-  const h = await sha256(newPw);
-  localStorage.setItem("wa_admin_pw", h);
-  $("newPw").value = "";
-  toast("Password updated", "ok");
-  addLog("ok", "Admin password changed");
-}
-
 function showApp(){
-  $("loginScreen").style.display = "none";
-  $("appShell").style.display = "flex";
   $("ver-disp").textContent = "v" + APP_VERSION;
   initDashboard();
   initConstants();
@@ -914,11 +869,14 @@ function showApp(){
   renderLogs();
   renderEnvInfo();
   renderLsInspector();
+  addLog("info", "Admin console loaded");
 }
 
-// Check session on load
-if(sessionStorage.getItem("wa_admin_session") === "1"){
-  setTimeout(showApp, 0);
+// Auto-launch on DOM ready (no auth)
+if(document.readyState === "loading"){
+  document.addEventListener("DOMContentLoaded", showApp);
+} else {
+  showApp();
 }
 
 // ═══════════════════════════════════════════════════════════

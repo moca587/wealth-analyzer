@@ -511,7 +511,19 @@ body{font-family:var(--fb);background:var(--bg);color:var(--text);font-size:14px
 .wh-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
 .wh-lbl{font-size:13px;color:var(--text2);flex:1;font-weight:400}
 .wh-lval{font-size:13px;font-weight:700;color:var(--text);font-variant-numeric:tabular-nums;letter-spacing:-.02em}
-.wh-actions{margin-top:auto;padding-top:22px}
+.wh-actions{margin-top:auto;padding-top:22px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+/* New stat grid for redesigned Wealth Overview */
+.wh-stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:6px}
+.wh-stat{display:flex;align-items:center;gap:11px;padding:11px 12px;background:rgba(255,255,255,.65);border:1px solid rgba(0,87,184,.08);border-radius:10px;transition:all .15s;backdrop-filter:blur(8px)}
+.wh-stat:hover{background:#fff;border-color:rgba(0,87,184,.18);transform:translateY(-1px);box-shadow:0 2px 8px rgba(0,87,184,.06)}
+.wh-stat-icon{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.wh-stat-body{flex:1;min-width:0}
+.wh-stat-lbl{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--text3);margin-bottom:2px;line-height:1.2}
+.wh-stat-lbl small{text-transform:none;font-weight:400;letter-spacing:0}
+.wh-stat-val{font-size:15px;font-weight:700;color:var(--text);letter-spacing:-.025em;font-variant-numeric:tabular-nums;line-height:1.15;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wh-risk-chip{display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border-radius:50px;background:rgba(0,87,184,.08);color:var(--gold);font-size:11px;font-weight:600;letter-spacing:.01em}
+.wh-risk-chip:empty{display:none}
+.wh-right-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.10em;color:var(--text3);margin-bottom:-4px;align-self:flex-start;width:100%;text-align:center}
 .wh-right{width:300px;background:linear-gradient(160deg,#ebf0ff 0%,#dde8ff 100%);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px 24px;gap:18px;border-left:1px solid rgba(0,87,184,0.07)}
 .wh-donut-wrap{position:relative;width:190px;height:190px;flex-shrink:0}
 .wh-donut-center{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;pointer-events:none;width:100px}
@@ -627,7 +639,9 @@ input[type=date]{color-scheme:light}
 .ldot{width:8px;height:8px;border-radius:2px;display:inline-block;margin-right:4px;flex-shrink:0}
 
 /* ── Goals ── */
-.goal-item{display:flex;align-items:center;padding:7px 0;border-bottom:1px solid var(--border);font-size:13px;gap:8px;flex-wrap:wrap}
+.goal-item{display:flex;align-items:center;padding:11px 12px;border-bottom:1px solid var(--border);font-size:13px;gap:10px;flex-wrap:wrap;transition:background .15s;border-radius:8px}
+.goal-item:hover{background:rgba(0,87,184,.03)}
+.goal-icon{width:32px;height:32px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;border:1px solid currentColor;border-color:rgba(0,0,0,.05)}
 .goal-add{display:grid;grid-template-columns:1.4fr 110px 110px 140px 140px 170px auto;gap:8px;align-items:center;margin-top:10px}
 .goal-add input,.goal-add select{width:100%}
 @media(max-width:900px){.goal-add{grid-template-columns:1fr 1fr}}
@@ -997,63 +1011,98 @@ input[type=date]{color-scheme:light}
 <!-- Main content -->
 <main class="main">
 
-<!-- Wealth Overview Hero (ML-style) -->
+<!-- ═══ HOUSEHOLD ═══ -->
+<div class="tab active" id="tab-household">
+
+<!-- Wealth Overview Hero — household tab only -->
 <div class="wealth-hero">
   <div class="wh-left">
     <div class="wh-title">Your Wealth Overview</div>
-    <div class="wh-sub">Here's how the total assets in your accounts add up.</div>
+    <div class="wh-sub" id="wh-greeting">Here's a complete picture of your household's financial position right now.</div>
     <div class="wh-amount-label">Net Worth</div>
     <div class="wh-amount" id="m-nw">—</div>
     <div class="wh-asof" id="wh-asof-date"></div>
-    <div class="wh-legend">
-      <div class="wh-legend-item">
-        <span class="wh-dot" style="background:#5ab8f5"></span>
-        <span class="wh-lbl">Total Assets</span>
-        <span class="wh-lval" id="m-assets">—</span>
+
+    <!-- New compact stat grid (4 KPIs in 2×2) -->
+    <div class="wh-stat-grid">
+      <div class="wh-stat">
+        <div class="wh-stat-icon" style="background:rgba(91,184,245,.15);color:#0057b8">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 1l6 4v6l-6 4-6-4V5z"/></svg>
+        </div>
+        <div class="wh-stat-body">
+          <div class="wh-stat-lbl">Total Assets</div>
+          <div class="wh-stat-val" id="m-assets">—</div>
+        </div>
       </div>
-      <div class="wh-legend-item">
-        <span class="wh-dot" style="background:#0057b8"></span>
-        <span class="wh-lbl">Monthly Surplus / Deficit</span>
-        <span class="wh-lval" id="m-surplus">—</span>
+      <div class="wh-stat">
+        <div class="wh-stat-icon" style="background:rgba(227,24,55,.10);color:#e31837">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M14 3H2a1 1 0 00-1 1v8a1 1 0 001 1h12a1 1 0 001-1V4a1 1 0 00-1-1zM2 12V7h12v5z"/></svg>
+        </div>
+        <div class="wh-stat-body">
+          <div class="wh-stat-lbl">Total Debt</div>
+          <div class="wh-stat-val" id="m-debt">—</div>
+        </div>
       </div>
-      <div class="wh-legend-item">
-        <span class="wh-dot" style="background:#002776"></span>
-        <span class="wh-lbl">Projected Wealth <span style="font-size:10px;font-weight:400;color:var(--text3)">median after sim</span></span>
-        <span class="wh-lval" id="m-med">—</span>
+      <div class="wh-stat">
+        <div class="wh-stat-icon" style="background:rgba(0,135,90,.12);color:#00875a">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M2 12l4-5 3 3 3-4 4 5H2z"/></svg>
+        </div>
+        <div class="wh-stat-body">
+          <div class="wh-stat-lbl">Monthly Cashflow</div>
+          <div class="wh-stat-val" id="m-surplus">—</div>
+        </div>
       </div>
-      <div class="wh-legend-item">
-        <span class="wh-dot" style="background:#e31837"></span>
-        <span class="wh-lbl">Goal Success Rate</span>
-        <span class="wh-lval" id="m-prob">—</span>
+      <div class="wh-stat">
+        <div class="wh-stat-icon" style="background:rgba(124,58,237,.12);color:#7c3aed">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M3 13V3h2v10zm4 0V6h2v7zm4 0V8h2v5z"/></svg>
+        </div>
+        <div class="wh-stat-body">
+          <div class="wh-stat-lbl">Savings Rate</div>
+          <div class="wh-stat-val" id="m-savrate">—</div>
+        </div>
+      </div>
+      <div class="wh-stat">
+        <div class="wh-stat-icon" style="background:rgba(245,158,11,.12);color:#f59e0b">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 1a7 7 0 100 14A7 7 0 008 1zm.75 7.5V4h-1.5v5.5L10.5 11l.75-1.3z"/></svg>
+        </div>
+        <div class="wh-stat-body">
+          <div class="wh-stat-lbl">Debt-to-Asset</div>
+          <div class="wh-stat-val" id="m-debtratio">—</div>
+        </div>
+      </div>
+      <div class="wh-stat">
+        <div class="wh-stat-icon" style="background:rgba(0,87,184,.10);color:#002776">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M1 12l4-5 3 3 3-4 4 5z"/></svg>
+        </div>
+        <div class="wh-stat-body">
+          <div class="wh-stat-lbl">Projected Wealth <small style="opacity:.6">(median)</small></div>
+          <div class="wh-stat-val" id="m-med">—</div>
+        </div>
       </div>
     </div>
+
     <div class="wh-actions">
       <button class="btn-primary" onclick="runSim()">
         <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor"><path d="M4 2l10 6-10 6z"/></svg>
         Run Simulation
       </button>
-      <span style="margin-left:14px;font-size:11px;color:var(--text3);font-weight:600" id="m-risk"></span>
+      <span class="wh-risk-chip" id="m-risk"></span>
+      <span style="font-size:11px;color:var(--text3);font-weight:600;margin-left:auto" id="m-prob"></span>
     </div>
   </div>
   <div class="wh-right">
+    <div class="wh-right-title">Asset Allocation</div>
     <div class="wh-donut-wrap">
       <canvas id="overview-donut"></canvas>
       <div class="wh-donut-center">
         <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text3)">Assets</div>
-        <div style="font-size:15px;font-weight:800;color:var(--text);letter-spacing:-.02em;margin-top:3px" id="wh-donut-total">—</div>
+        <div style="font-size:16px;font-weight:800;color:var(--text);letter-spacing:-.03em;margin-top:3px" id="wh-donut-total">—</div>
       </div>
     </div>
     <div class="wh-seg-legend" id="overview-donut-legend"></div>
   </div>
 </div>
 
-<!-- Hidden metric spans kept for JS compatibility -->
-<div style="display:none" aria-hidden="true">
-  <span id="m-nw-dup"></span>
-</div>
-
-<!-- ═══ HOUSEHOLD ═══ -->
-<div class="tab active" id="tab-household">
 <div class="panel">
   <div class="ptitle">Household Profiles</div>
   <div class="clients-wrap" id="clients-wrap">
@@ -1533,13 +1582,17 @@ input[type=date]{color-scheme:light}
       <input type="number" id="gstart" placeholder="Start year" min="2024" max="2100">
       <input type="number" id="gend" placeholder="End year" min="2024" max="2100">
       <select id="gcat" onchange="onGoalCatChange()">
-        <option value="retirement">Retirement</option>
-        <option value="home">Home purchase</option>
-        <option value="education">Education</option>
-        <option value="travel">Travel</option>
-        <option value="emergency">Emergency fund</option>
-        <option value="business">Business</option>
-        <option value="other" selected>Other</option>
+        <option value="retirement">🏖 Retirement</option>
+        <option value="home">🏠 Home purchase</option>
+        <option value="education">🎓 Education</option>
+        <option value="travel">✈️ Travel</option>
+        <option value="emergency">🛡 Emergency fund</option>
+        <option value="business">💼 Business</option>
+        <option value="wedding">💍 Wedding</option>
+        <option value="car">🚗 Vehicle</option>
+        <option value="health">🏥 Healthcare</option>
+        <option value="legacy">🎁 Legacy / Inheritance</option>
+        <option value="other" selected>⭐ Other</option>
       </select>
       <select id="gtier">
         <option value="essential">Essential — must have</option>
@@ -2372,7 +2425,7 @@ input[type=date]{color-scheme:light}
 // ═══════════════════════════════════════════════════════════
 // VERSION — updated by build-standalone.pl on each build
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260521-2256";
+const APP_VERSION = "20260521-2303";
 
 // ═══════════════════════════════════════════════════════════
 // DATA
@@ -4135,12 +4188,28 @@ function delGoal(id){
   if(_editingGoalId===id) cancelEditGoal();
   goals=goals.filter(g=>g.id!==id); renderGoals();
 }
+// Goal category icons — SVG paths + colour for each category
+const GOAL_ICONS = {
+  retirement:  {emoji:"🏖", color:"#f59e0b", bg:"rgba(245,158,11,.12)",  label:"Retirement"},
+  home:        {emoji:"🏠", color:"#0057b8", bg:"rgba(0,87,184,.10)",    label:"Home"},
+  education:   {emoji:"🎓", color:"#7c3aed", bg:"rgba(124,58,237,.12)",  label:"Education"},
+  travel:      {emoji:"✈️", color:"#0891b2", bg:"rgba(8,145,178,.12)",   label:"Travel"},
+  emergency:   {emoji:"🛡", color:"#e31837", bg:"rgba(227,24,55,.10)",   label:"Emergency"},
+  business:    {emoji:"💼", color:"#16213e", bg:"rgba(22,33,62,.10)",    label:"Business"},
+  wedding:     {emoji:"💍", color:"#db2777", bg:"rgba(219,39,119,.12)",  label:"Wedding"},
+  car:         {emoji:"🚗", color:"#0d9488", bg:"rgba(13,148,136,.12)",  label:"Vehicle"},
+  health:      {emoji:"🏥", color:"#dc2626", bg:"rgba(220,38,38,.10)",   label:"Health"},
+  legacy:      {emoji:"🎁", color:"#5b21b6", bg:"rgba(91,33,182,.12)",   label:"Legacy"},
+  other:       {emoji:"⭐", color:"#6b7280", bg:"rgba(107,114,128,.10)", label:"Other"}
+};
+
 function renderGoals(){
   const list=$("goalList"); if(!list) return;
   if(goals.length===0){list.innerHTML='<div class="empty">No goals added.</div>'; return;}
   list.innerHTML=goals.map(g=>{
     const tierClass="ttier-"+g.tier;
     const years=Math.max(1,g.endYear-g.startYear+1);
+    const icon=GOAL_ICONS[g.cat]||GOAL_ICONS.other;
     let amtDisplay=`${fmtMoney(g.amt)}<span style="font-size:10px;color:var(--text3)">/yr</span>`;
     let extraNote="";
     if(g.cat==="home"&&g.homePrice!=null){
@@ -4149,10 +4218,11 @@ function renderGoals(){
       extraNote=`<span style="font-size:10px;color:var(--gold)"> → ${fmtMoney(g.amt)}/yr at ${rate}%</span>`;
     }
     return `<div class="goal-item">
-      <span class="gtag tcat">${g.cat||"other"}</span>
+      <span class="goal-icon" style="background:${icon.bg};color:${icon.color}" title="${icon.label}">${icon.emoji}</span>
+      <span class="gtag tcat" style="background:${icon.bg};color:${icon.color};border-color:${icon.bg}">${icon.label.toLowerCase()}</span>
       <span class="gtag ${tierClass}">${g.tier||"important"}</span>
-      <span style="flex:1;font-weight:500">${g.name}</span>
-      <span style="font-variant-numeric:tabular-nums">${amtDisplay}${extraNote}</span>
+      <span style="flex:1;font-weight:600;color:var(--text)">${g.name}</span>
+      <span style="font-variant-numeric:tabular-nums;font-weight:600">${amtDisplay}${extraNote}</span>
       <span style="font-size:11px;color:var(--text3)">${g.startYear}–${g.endYear} <span style="color:var(--text2)">(${fmtMoney(g.amt*years)} total)</span></span>
       <button class="btn-secondary" style="padding:2px 8px;font-size:11px" onclick="editGoal('${g.id}')">Edit</button>
       <button class="btn-x" onclick="delGoal('${g.id}')">✕</button>
@@ -6190,7 +6260,9 @@ function renderGoalAnalysis(paths,yrs){
     const ok=paths.filter(p=>p[relYr]>=totalAmt).length;
     const prob=ok/paths.length*100;
     const cls=prob>=80?"gp-hi":(prob>=50?"gp-md":"gp-lo");
-    return `<div class="goal-cmp">
+    const icon=(typeof GOAL_ICONS!=="undefined"&&GOAL_ICONS[g.cat])||{emoji:"⭐",color:"#6b7280",bg:"rgba(107,114,128,.10)"};
+    return `<div class="goal-cmp" style="grid-template-columns:36px 1.2fr 80px 90px 90px 90px">
+      <div class="goal-icon" style="background:${icon.bg};color:${icon.color};width:28px;height:28px;font-size:14px">${icon.emoji}</div>
       <div class="gnm">${g.name}</div>
       <div class="gyr">${g.endYear}</div>
       <div style="font-variant-numeric:tabular-nums">${fmtMoney(g.amt)}<span style="font-size:10px;color:var(--text3)">/yr</span></div>
@@ -7903,9 +7975,23 @@ function refreshTopMetrics(){
   // Mode A: pfAdj=0 — all value already in acctVal
   const totA=acctVal+pfAdj+num("aProp",0)+num("aOther",0);
   const debt=loans.reduce((s,l)=>s+l.bal,0);
-  setT("m-nw",fmtMoney(totA-debt));
+  const netW=totA-debt;
+  const annualSurplus=getNetSurplus();
+  const grossIncome=num("inc1",0)+num("inc2",0)+num("inc1b",0)+num("inc2b",0);
+  const savRate=grossIncome>0?(annualSurplus/grossIncome*100):0;
+  const debtRatio=totA>0?(debt/totA*100):0;
+  setT("m-nw",fmtMoney(netW));
   setT("m-assets",fmtMoney(totA));
-  setT("m-surplus",fmtMoney(getNetSurplus()/12)+"/mo");
+  setT("m-debt",debt>0?fmtMoney(debt):"$0");
+  setT("m-surplus",fmtMoney(annualSurplus/12)+"/mo");
+  setT("m-savrate",grossIncome>0?savRate.toFixed(1)+"%":"—");
+  setT("m-debtratio",totA>0?debtRatio.toFixed(1)+"%":"—");
+  // As-of date
+  const asOfEl=$("wh-asof-date");
+  if(asOfEl){
+    const now=new Date();
+    asOfEl.textContent="As of "+now.toLocaleDateString("en-US",{month:"long",day:"numeric",year:"numeric"});
+  }
   drawOverviewDonut();
 }
 
