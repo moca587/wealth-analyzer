@@ -357,6 +357,21 @@ input[type=date]{color-scheme:light}
 .cf-tip-cell:hover{color:var(--gold)!important;text-decoration:underline dotted rgba(30,64,175,.4)}
 #inv-tip-box{position:fixed;z-index:9999;background:var(--bg2);border:1px solid var(--border2);border-radius:8px;padding:12px 15px;font-size:11.5px;font-family:var(--fb);color:var(--text);line-height:1.85;box-shadow:0 8px 28px rgba(0,0,0,.55);pointer-events:none;opacity:0;transition:opacity .12s;min-width:270px;max-width:320px}
 #inv-tip-box.vis{opacity:1}
+/* ── Probability explanation tooltip ── */
+#prob-tip-box{position:fixed;z-index:10000;background:#ffffff;border:1px solid rgba(0,87,184,0.18);border-radius:12px;padding:0;font-family:var(--fb);color:var(--text);box-shadow:0 12px 40px rgba(0,0,0,.16),0 2px 8px rgba(0,0,0,.08);pointer-events:none;opacity:0;transition:opacity .15s;width:320px}
+#prob-tip-box.vis{opacity:1}
+.pt-header{padding:14px 16px 12px;border-radius:12px 12px 0 0;display:flex;align-items:center;gap:10px}
+.pt-icon{font-size:20px;line-height:1;flex-shrink:0}
+.pt-headline{font-size:13px;font-weight:700;color:#fff;line-height:1.3}
+.pt-body{padding:12px 16px;font-size:12px;color:var(--text2);line-height:1.7}
+.pt-body strong{color:var(--text)}
+.pt-stats{display:flex;gap:8px;margin-top:10px}
+.pt-stat{flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:8px 10px;text-align:center}
+.pt-stat .ps-val{font-size:16px;font-weight:800;color:var(--text);letter-spacing:-.02em}
+.pt-stat .ps-lbl{font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--text3);margin-top:2px}
+.pt-footer{padding:10px 16px;border-top:1px solid var(--border);font-size:11px;color:var(--text3);border-radius:0 0 12px 12px;background:var(--bg3);line-height:1.5}
+.prob-card-wrap{position:relative;cursor:help}
+.prob-info-btn{position:absolute;top:8px;right:8px;width:18px;height:18px;border-radius:50%;background:rgba(0,0,0,.08);border:none;font-size:10px;color:var(--text3);cursor:help;display:flex;align-items:center;justify-content:center;font-weight:700;line-height:1;font-family:var(--fb)}
 #inv-tip-box .itr{display:flex;justify-content:space-between;gap:16px}
 #inv-tip-box .itr.itotal{border-top:1px solid var(--border2);margin-top:4px;padding-top:4px;font-weight:600;color:var(--text)}
 #inv-tip-box .ilabel{color:var(--text3);font-size:10.5px;letter-spacing:.03em}
@@ -453,6 +468,7 @@ input[type=date]{color-scheme:light}
 </head>
 <body>
 <div id="inv-tip-box"></div>
+<div id="prob-tip-box"></div>
 <div class="app-shell">
 
 <!-- Top bar -->
@@ -5045,9 +5061,14 @@ function redrawChart(paths){
               ];
             },
             footer:(items)=>{
-              const s=SCENARIOS[items[0].dataIndex];
               if(items[0].datasetIndex===1) return "";
-              return s.prob+" of simulation paths reach at least this level.";
+              const s=SCENARIOS[items[0].dataIndex];
+              const EXPL={
+                "90%":"9 in 10 paths reach at least this — the conservative floor for essential planning.",
+                "60%":"6 in 10 paths reach at least this — the realistic, balanced target.",
+                "40%":"4 in 10 paths reach at least this — the optimistic upside scenario.",
+              };
+              return EXPL[s.prob]||s.prob+" of simulation paths reach at least this level.";
             }
           }
         }
@@ -5071,11 +5092,13 @@ function redrawChart(paths){
     const diff=v-startDeflated;
     const sign=diff>=0?"+":"";
     const isPos=diff>=0;
-    return `<div style="background:var(--bg3);border:2px solid ${s.border};border-radius:var(--r);padding:14px 10px">
-      <div style="font-size:22px;font-weight:700;color:${s.border};margin-bottom:2px">${s.prob}</div>
-      <div style="font-size:10px;color:var(--text3);margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em">probability</div>
-      <div style="font-family:var(--fd);font-size:20px;color:${isPos?"var(--green)":"var(--red)"};font-weight:700">${fmtMoney(v)}</div>
-      <div style="font-size:11px;color:${isPos?"#1b6841":"#a83232"};margin-top:3px;font-weight:600">${sign}${fmtMoney(diff)} from today</div>
+    const pctChg=startDeflated>0?((diff/startDeflated)*100).toFixed(0):0;
+    return `<div class="prob-card-wrap" data-prob="${s.prob}" style="background:var(--bg3);border:2px solid ${s.border};border-radius:var(--r);padding:14px 10px;position:relative">
+      <button class="prob-info-btn" data-prob="${s.prob}" tabindex="-1" aria-label="Explain ${s.prob} probability">ℹ</button>
+      <div style="font-size:22px;font-weight:800;color:${s.border};margin-bottom:2px;letter-spacing:-.02em">${s.prob}</div>
+      <div style="font-size:10px;color:var(--text3);margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em;font-weight:600">probability</div>
+      <div style="font-size:20px;color:${isPos?"var(--green)":"var(--red)"};font-weight:700;font-variant-numeric:tabular-nums">${fmtMoney(v)}</div>
+      <div style="font-size:11px;color:${isPos?"#1b6841":"#a83232"};margin-top:3px;font-weight:600">${sign}${fmtMoney(diff)} (${sign}${pctChg}%)</div>
       <div style="font-size:10px;color:var(--text3);margin-top:4px">${s.sublabel}</div>
     </div>`;
   }).join("");
@@ -7084,6 +7107,88 @@ document.addEventListener("DOMContentLoaded",function(){
   renderRetirementNumber();
   renderTaxEfficiency();
   renderEfficientFrontier();
+
+  // ── Probability card explanation tooltip ───────────────────────────────────
+  (function initProbTooltip(){
+    const box=document.getElementById("prob-tip-box");
+    if(!box) return;
+
+    const DATA={
+      "90%":{
+        icon:"🛡️",
+        headline:"90% Probability — Conservative Floor",
+        color:"#1b6841",
+        body:"<strong>9 out of every 10</strong> simulated futures end with at least this much wealth. Markets went through recessions, crashes, and long flat periods in those simulations — and you still came out here.",
+        what:"This is the number advisors use for <strong>essential planning</strong>: commitments that cannot fail — housing, healthcare, basic living costs. If your retirement spending fits inside this bar, your plan is highly resilient.",
+        paths:"9 in 10 paths",
+        label:"Conservative floor",
+        use:"Essential spending target"
+      },
+      "60%":{
+        icon:"🎯",
+        headline:"60% Probability — Likely Outcome",
+        color:"#1e40af",
+        body:"<strong>6 out of every 10</strong> simulated futures end with at least this much wealth. This is the balanced, realistic scenario — neither the best nor worst case, but the outcome you can reasonably expect over time.",
+        what:"This is the <strong>central target</strong> most financial plans are built around. It gives you enough upside to grow your lifestyle while still accounting for realistic market variability.",
+        paths:"6 in 10 paths",
+        label:"Likely outcome",
+        use:"Balanced planning target"
+      },
+      "40%":{
+        icon:"🚀",
+        headline:"40% Probability — Optimistic Scenario",
+        color:"#c06020",
+        body:"Only <strong>4 out of every 10</strong> simulated futures reach this level. This requires markets to perform well above average for most of your projection window — possible, but far from guaranteed.",
+        what:"Use this to understand your <strong>upside potential</strong> — what happens if things go well. Never plan essential spending around it. It is useful for goal-setting and aspirational targets.",
+        paths:"4 in 10 paths",
+        label:"Optimistic scenario",
+        use:"Aspirational / upside target"
+      },
+    };
+
+    let hideTimer=null;
+    function show(prob,x,y){
+      const d=DATA[prob]; if(!d) return;
+      box.innerHTML=`
+        <div class="pt-header" style="background:${d.color}">
+          <span class="pt-icon">${d.icon}</span>
+          <div class="pt-headline">${d.headline}</div>
+        </div>
+        <div class="pt-body">
+          <p style="margin:0 0 8px">${d.body}</p>
+          <p style="margin:0;font-size:11px;color:var(--text3)">${d.what}</p>
+          <div class="pt-stats">
+            <div class="pt-stat"><div class="ps-val" style="color:${d.color}">${d.paths}</div><div class="ps-lbl">Reach this level</div></div>
+            <div class="pt-stat"><div class="ps-val" style="font-size:12px">${d.label}</div><div class="ps-lbl">Scenario type</div></div>
+            <div class="pt-stat"><div class="ps-val" style="font-size:11px">${d.use}</div><div class="ps-lbl">Best used for</div></div>
+          </div>
+        </div>
+        <div class="pt-footer">💡 Hover the chart bar above to see projected wealth at this confidence level.</div>`;
+      // Position: prefer right of cursor, flip left if near edge
+      const W=320, H=280;
+      let lx=x+16, ly=y-H/2;
+      if(lx+W>window.innerWidth-10) lx=x-W-10;
+      if(ly<8) ly=8;
+      if(ly+H>window.innerHeight-8) ly=window.innerHeight-H-8;
+      box.style.left=lx+"px";
+      box.style.top=ly+"px";
+      box.classList.add("vis");
+    }
+    function hide(){ box.classList.remove("vis"); }
+
+    // Event delegation on the probGrid div (cards are re-rendered after each sim)
+    const grid=document.getElementById("probGrid");
+    if(!grid) return;
+    grid.addEventListener("mousemove",function(e){
+      const card=e.target.closest("[data-prob]");
+      if(!card){ hide(); return; }
+      clearTimeout(hideTimer);
+      show(card.dataset.prob, e.clientX, e.clientY);
+    });
+    grid.addEventListener("mouseleave",function(){
+      hideTimer=setTimeout(hide,120);
+    });
+  })();
 
   // ── Investment breakdown tooltip ────────────────────────────────────────────
   // Reads data-inv JSON from .inv-cell <td> elements in the cash flow table.
