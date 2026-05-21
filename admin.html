@@ -161,6 +161,31 @@ textarea{font-family:var(--fm);font-size:12px;line-height:1.6;resize:vertical;mi
 .two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px}
 .three-col{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
 
+/* ── Test suite results ── */
+.test-summary{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px}
+.ts-stat{background:#fff;border:1px solid var(--border);border-radius:var(--r);padding:14px 18px;text-align:center}
+.ts-stat.pass{border-left:4px solid var(--green)}
+.ts-stat.fail{border-left:4px solid var(--red)}
+.ts-stat.info{border-left:4px solid var(--gold)}
+.ts-stat.time{border-left:4px solid var(--amber)}
+.ts-stat-val{font-size:26px;font-weight:800;letter-spacing:-.03em;font-variant-numeric:tabular-nums}
+.ts-stat-lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.10em;color:var(--text3);margin-top:2px}
+.test-card{background:#fff;border:1px solid var(--border);border-radius:var(--rs);padding:12px 14px;margin-bottom:8px;display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;transition:all .15s}
+.test-card.pass{border-left:3px solid var(--green)}
+.test-card.fail{border-left:3px solid var(--red);background:rgba(227,24,55,.03)}
+.test-card:hover{box-shadow:0 2px 8px rgba(0,0,0,.05)}
+.test-badge{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;color:#fff;flex-shrink:0}
+.test-badge.pass{background:var(--green)}
+.test-badge.fail{background:var(--red)}
+.test-name{font-weight:700;font-size:13px;color:var(--text);margin-bottom:2px}
+.test-fn{font-family:var(--fm);font-size:11px;color:var(--gold);margin-bottom:3px}
+.test-detail{font-size:11px;color:var(--text3);font-family:var(--fm);line-height:1.5}
+.test-detail strong{color:var(--text2)}
+.test-actual{font-weight:700}
+.test-actual.pass{color:var(--green)}
+.test-actual.fail{color:var(--red)}
+.test-time{font-size:10px;color:var(--text3);font-variant-numeric:tabular-nums}
+
 /* ── Markdown-like docs ── */
 .docs h2{font-size:18px;font-weight:800;letter-spacing:-.03em;margin:24px 0 10px;color:var(--text)}
 .docs h3{font-size:14px;font-weight:700;margin:18px 0 8px;color:var(--gold)}
@@ -268,23 +293,45 @@ textarea{font-family:var(--fm);font-size:12px;line-height:1.6;resize:vertical;mi
 
 <!-- ═══ CALC TEST BENCH ═══ -->
 <div class="tab" id="tab-testbench">
+
+  <!-- ── Automated Test Suite (above manual test bench) ── -->
+  <div class="hero">
+    <div class="hero-title">Automated Test Suite</div>
+    <div class="hero-sub">Click "Run All Tests" to verify every financial calculation against known correct outputs. Tests cover time-value-of-money, mortgages, retirement, tax, statistical, and Monte Carlo math. Each test has a tolerance for floating-point comparison.</div>
+  </div>
+
   <div class="panel">
-    <div class="ptitle">Calculation Test Bench</div>
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px">
+      <button class="btn-primary" onclick="runTestSuite()" style="padding:11px 26px">▶ Run All Tests</button>
+      <button class="btn-secondary" onclick="runTestSuite('failed')">↻ Re-run failed only</button>
+      <div style="margin-left:auto;display:flex;gap:6px">
+        <button class="btn-ghost" id="filterAll" onclick="filterTests('all')" style="background:rgba(0,87,184,.08);color:var(--gold)">All</button>
+        <button class="btn-ghost" id="filterPass" onclick="filterTests('pass')">Passed</button>
+        <button class="btn-ghost" id="filterFail" onclick="filterTests('fail')">Failed</button>
+      </div>
+    </div>
+    <div id="testSummary"></div>
+    <div id="testResults"><div style="font-size:13px;color:var(--text3);padding:14px;text-align:center">Click "Run All Tests" to begin.</div></div>
+  </div>
+
+  <!-- ── Manual Test Bench ── -->
+  <div class="panel">
+    <div class="ptitle">Manual Function Test Bench</div>
     <div class="pdesc">Execute any internal financial calculation with custom inputs. Verify formulas, run bulk stress tests, and inspect outputs in detail. All math is ported directly from the main app for parity.</div>
     <div class="frow">
-      <label class="flbl">Function</label>
-      <select id="tbFunc" class="w260" onchange="renderTbForm()">
-        <option value="calcRMD">calcRMD — Required Minimum Distribution</option>
-        <option value="calcMortgagePayment">calcMortgagePayment — Standard amortization</option>
-        <option value="presentValue">presentValue — PV = FV / (1+r)^n</option>
-        <option value="futureValue">futureValue — FV = PV × (1+r)^n</option>
-        <option value="annuityPV">annuityPV — Annuity present value</option>
-        <option value="geometricMean">geometricMean — μ − 0.5σ²</option>
-        <option value="boxMullerSample">boxMullerSample — N(0,1) random</option>
-        <option value="calcRetirementNumber">calcRetirementNumber — Actuarial target</option>
-        <option value="runMC">runMC — Monte Carlo simulation</option>
-        <option value="calcTaxEfficiency">calcTaxEfficiency — Asset location score</option>
+      <label class="flbl">Category</label>
+      <select id="tbCategory" class="w200" onchange="filterTbFunctions()">
+        <option value="all">All categories</option>
+        <option value="tvm">Time Value of Money</option>
+        <option value="mortgage">Mortgages & Loans</option>
+        <option value="tax">Tax Calculations</option>
+        <option value="retirement">Retirement Math</option>
+        <option value="stats">Statistical</option>
+        <option value="portfolio">Portfolio & Allocation</option>
+        <option value="util">Utilities</option>
       </select>
+      <label class="flbl" style="min-width:60px">Function</label>
+      <select id="tbFunc" class="w260" onchange="renderTbForm()"></select>
     </div>
     <div id="tbFormula" style="font-family:var(--fm);font-size:12px;background:var(--bg3);padding:10px 14px;border-radius:var(--rs);color:var(--text2);margin:10px 0 16px"></div>
     <div id="tbForm"></div>
@@ -863,7 +910,7 @@ function showApp(){
   initAccountTypes();
   initKeysTab();
   initTaxBrowser();
-  renderTbForm();
+  filterTbFunctions();  // populates the function dropdown then calls renderTbForm
   renderLogs();
   renderEnvInfo();
   renderLsInspector();
@@ -1102,6 +1149,85 @@ function calcTaxEfficiency(taxFree, taxDeferred, taxable, expectedReturn, taxRat
   const cumulativeDrag30 = annualDrag * 30;
   const score = Math.round((taxFree * 1.0 + taxDeferred * 0.65) / total * 100);
   return { score, annualDrag, cumulativeDrag30, total };
+}
+
+// ─── 14 ADDITIONAL FINANCIAL FUNCTIONS ─────────────────────────────────────
+function compoundInterest(pv, rate, periods, compoundsPerYear){
+  compoundsPerYear = compoundsPerYear || 12;
+  return pv * Math.pow(1 + rate/compoundsPerYear, compoundsPerYear * periods);
+}
+function effectiveAnnualRate(nominalRate, compoundsPerYear){
+  return Math.pow(1 + nominalRate/compoundsPerYear, compoundsPerYear) - 1;
+}
+function payoffYears(balance, annualRate, monthlyPayment){
+  if(monthlyPayment <= 0) return Infinity;
+  const r = annualRate / 100 / 12;
+  if(r === 0) return balance / monthlyPayment / 12;
+  if(monthlyPayment <= balance * r) return Infinity; // payment doesn't cover interest
+  const months = -Math.log(1 - balance * r / monthlyPayment) / Math.log(1 + r);
+  return months / 12;
+}
+function realRate(nominalRate, inflation){
+  // Fisher equation: (1+real) = (1+nominal) / (1+inflation)
+  return (1 + nominalRate) / (1 + inflation) - 1;
+}
+function inflationAdjust(nominalValue, inflation, years){
+  // Convert a future nominal value to today's purchasing power
+  return nominalValue / Math.pow(1 + inflation, years);
+}
+function swrCalc(portfolio, withdrawalRate){
+  // Safe Withdrawal Rate — annual income from a portfolio
+  return portfolio * withdrawalRate;
+}
+function swrPortfolioNeeded(annualSpend, withdrawalRate){
+  // How big does my portfolio need to be to fund this spending at SWR?
+  return annualSpend / withdrawalRate;
+}
+function standardDev(returns){
+  if(!returns || returns.length === 0) return 0;
+  const mean = returns.reduce((s,v)=>s+v,0) / returns.length;
+  const variance = returns.reduce((s,v)=>s+(v-mean)**2,0) / returns.length;
+  return Math.sqrt(variance);
+}
+function sharpeRatio(returnRate, riskFreeRate, stdDev){
+  if(stdDev === 0) return 0;
+  return (returnRate - riskFreeRate) / stdDev;
+}
+function capm(riskFreeRate, beta, marketReturn){
+  // E[R] = Rf + β × (Rm - Rf)
+  return riskFreeRate + beta * (marketReturn - riskFreeRate);
+}
+function weightedReturn(weights, returns){
+  if(weights.length !== returns.length) throw new Error("weights/returns length mismatch");
+  return weights.reduce((s,w,i)=>s + w * returns[i], 0);
+}
+function percentileAt(sortedArray, pct){
+  if(!sortedArray || sortedArray.length === 0) return null;
+  const idx = Math.min(sortedArray.length - 1, Math.max(0, Math.floor(sortedArray.length * pct / 100)));
+  return sortedArray[idx];
+}
+function calcBracketTax(brackets, income){
+  if(!brackets || brackets.length === 0 || income <= 0) return 0;
+  let tax = 0;
+  for(let i=0; i<brackets.length; i++){
+    const cur = brackets[i], nxt = brackets[i+1];
+    const top = nxt ? nxt.t : Infinity;
+    const taxableInBand = Math.max(0, Math.min(income, top) - cur.t);
+    tax += taxableInBand * (cur.r/100);
+    if(income <= top) break;
+  }
+  return tax;
+}
+function couponBondPrice(face, couponRate, ytm, years, paymentsPerYear){
+  // Standard bond pricing: PV of coupons + PV of face
+  paymentsPerYear = paymentsPerYear || 2; // semiannual default
+  const coupon = face * couponRate / paymentsPerYear;
+  const n = years * paymentsPerYear;
+  const r = ytm / paymentsPerYear;
+  if(r === 0) return coupon * n + face;
+  const pvCoupons = coupon * (1 - Math.pow(1+r, -n)) / r;
+  const pvFace = face / Math.pow(1+r, n);
+  return pvCoupons + pvFace;
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -1348,99 +1474,326 @@ function downloadTaxData(){
 // TEST BENCH
 // ═══════════════════════════════════════════════════════════
 const TB_FUNCTIONS = {
-  calcRMD: {
-    formula: "RMD = balance / IRS_ULT[age]    (IRS Uniform Lifetime Table)",
-    inputs: [
-      {id:"balance", label:"Account balance ($)", type:"number", default:500000},
-      {id:"age", label:"Age (≥73 for US)", type:"number", default:75},
-      {id:"country", label:"Country", type:"text", default:"US"}
-    ],
-    run: (i) => calcRMD(+i.balance, +i.age, i.country)
-  },
-  calcMortgagePayment: {
-    formula: "P × [r(1+r)^n] / [(1+r)^n − 1]    monthly payment",
-    inputs: [
-      {id:"principal", label:"Loan principal ($)", type:"number", default:500000},
-      {id:"annualRate", label:"Annual rate (%)", type:"number", default:6.5},
-      {id:"years", label:"Term (years)", type:"number", default:30}
-    ],
-    run: (i) => calcMortgagePayment(+i.principal, +i.annualRate, +i.years)
-  },
+  // ── TIME VALUE OF MONEY ──
   presentValue: {
-    formula: "PV = FV / (1 + r)^n",
-    inputs: [
-      {id:"fv", label:"Future value ($)", type:"number", default:100000},
-      {id:"rate", label:"Discount rate (decimal)", type:"number", default:0.07},
-      {id:"periods", label:"Periods", type:"number", default:20}
-    ],
-    run: (i) => presentValue(+i.fv, +i.rate, +i.periods)
+    cat:"tvm", formula:"PV = FV / (1 + r)^n",
+    inputs:[{id:"fv",label:"Future value ($)",type:"number",default:100000},{id:"rate",label:"Discount rate (decimal)",type:"number",default:0.07},{id:"periods",label:"Periods",type:"number",default:20}],
+    run:(i)=>presentValue(+i.fv,+i.rate,+i.periods)
   },
   futureValue: {
-    formula: "FV = PV × (1 + r)^n",
-    inputs: [
-      {id:"pv", label:"Present value ($)", type:"number", default:10000},
-      {id:"rate", label:"Growth rate (decimal)", type:"number", default:0.07},
-      {id:"periods", label:"Periods", type:"number", default:20}
-    ],
-    run: (i) => futureValue(+i.pv, +i.rate, +i.periods)
+    cat:"tvm", formula:"FV = PV × (1 + r)^n",
+    inputs:[{id:"pv",label:"Present value ($)",type:"number",default:10000},{id:"rate",label:"Growth rate (decimal)",type:"number",default:0.07},{id:"periods",label:"Periods",type:"number",default:20}],
+    run:(i)=>futureValue(+i.pv,+i.rate,+i.periods)
   },
   annuityPV: {
-    formula: "PV = PMT × [1 − (1+r)^−n] / r",
-    inputs: [
-      {id:"payment", label:"Annual payment ($)", type:"number", default:50000},
-      {id:"rate", label:"Discount rate (decimal)", type:"number", default:0.04},
-      {id:"periods", label:"Periods (years)", type:"number", default:30}
-    ],
-    run: (i) => annuityPV(+i.payment, +i.rate, +i.periods)
+    cat:"tvm", formula:"PV = PMT × [1 − (1+r)^−n] / r",
+    inputs:[{id:"payment",label:"Annual payment ($)",type:"number",default:50000},{id:"rate",label:"Discount rate (decimal)",type:"number",default:0.04},{id:"periods",label:"Periods (years)",type:"number",default:30}],
+    run:(i)=>annuityPV(+i.payment,+i.rate,+i.periods)
   },
-  geometricMean: {
-    formula: "Geometric mean ≈ μ − 0.5 × σ²    (log-normal expected compound return)",
-    inputs: [
-      {id:"mu", label:"Arithmetic mean (decimal)", type:"number", default:0.07},
-      {id:"sigma", label:"Volatility σ (decimal)", type:"number", default:0.12}
-    ],
-    run: (i) => geometricMean(+i.mu, +i.sigma)
+  compoundInterest: {
+    cat:"tvm", formula:"FV = PV × (1 + r/m)^(m×n)    [m = compounds/yr]",
+    inputs:[{id:"pv",label:"Present value ($)",type:"number",default:10000},{id:"rate",label:"Annual rate (decimal)",type:"number",default:0.05},{id:"periods",label:"Years",type:"number",default:10},{id:"compoundsPerYear",label:"Compounds/yr",type:"number",default:12}],
+    run:(i)=>compoundInterest(+i.pv,+i.rate,+i.periods,+i.compoundsPerYear)
   },
-  boxMullerSample: {
-    formula: "z = √(−2 ln U₁) × cos(2π U₂)    (Box-Muller transform, N(0,1))",
-    inputs: [],
-    run: () => boxMullerSample()
+  effectiveAnnualRate: {
+    cat:"tvm", formula:"EAR = (1 + nominal/m)^m − 1    [m = compounds/yr]",
+    inputs:[{id:"nominalRate",label:"Nominal rate (decimal)",type:"number",default:0.06},{id:"compoundsPerYear",label:"Compounds/yr",type:"number",default:12}],
+    run:(i)=>effectiveAnnualRate(+i.nominalRate,+i.compoundsPerYear)
   },
-  calcRetirementNumber: {
-    formula: "Lump-sum to fund inflation-adjusted annuity to age 98, discounted to today at 6.8%",
-    inputs: [
-      {id:"currentAge", label:"Current age", type:"number", default:40},
-      {id:"retAge", label:"Retirement age", type:"number", default:65},
-      {id:"annualSpend", label:"Annual retirement spend ($)", type:"number", default:80000},
-      {id:"inflation", label:"Inflation (decimal)", type:"number", default:0.038},
-      {id:"discountRate", label:"Annuity discount rate (decimal)", type:"number", default:0.068}
-    ],
-    run: (i) => calcRetirementNumber(+i.currentAge, +i.retAge, +i.annualSpend, +i.inflation, +i.discountRate)
+  realRate: {
+    cat:"tvm", formula:"Real = (1 + nominal) / (1 + inflation) − 1    [Fisher equation]",
+    inputs:[{id:"nominalRate",label:"Nominal rate (decimal)",type:"number",default:0.07},{id:"inflation",label:"Inflation (decimal)",type:"number",default:0.038}],
+    run:(i)=>realRate(+i.nominalRate,+i.inflation)
   },
-  runMC: {
-    formula: "Log-normal MC: annRet = (μ − 0.5σ²) + σ × N(0,1)    sampled per year per path",
-    inputs: [
-      {id:"startNW", label:"Starting NW ($)", type:"number", default:500000},
-      {id:"mu", label:"Mean return (%)", type:"number", default:7},
-      {id:"sigma", label:"Volatility σ (%)", type:"number", default:12},
-      {id:"years", label:"Years", type:"number", default:20},
-      {id:"sims", label:"Simulations", type:"number", default:500},
-      {id:"annualSavings", label:"Annual savings ($)", type:"number", default:30000}
-    ],
-    run: (i) => runMC(+i.startNW, +i.mu, +i.sigma, +i.years, +i.sims, +i.annualSavings)
+  inflationAdjust: {
+    cat:"tvm", formula:"Real = Nominal / (1 + inflation)^years",
+    inputs:[{id:"nominalValue",label:"Future nominal value ($)",type:"number",default:1000000},{id:"inflation",label:"Inflation (decimal)",type:"number",default:0.038},{id:"years",label:"Years",type:"number",default:30}],
+    run:(i)=>inflationAdjust(+i.nominalValue,+i.inflation,+i.years)
+  },
+
+  // ── MORTGAGES & LOANS ──
+  calcMortgagePayment: {
+    cat:"mortgage", formula:"P × [r(1+r)^n] / [(1+r)^n − 1]    monthly payment",
+    inputs:[{id:"principal",label:"Loan principal ($)",type:"number",default:500000},{id:"annualRate",label:"Annual rate (%)",type:"number",default:6.5},{id:"years",label:"Term (years)",type:"number",default:30}],
+    run:(i)=>calcMortgagePayment(+i.principal,+i.annualRate,+i.years)
+  },
+  payoffYears: {
+    cat:"mortgage", formula:"n = −ln(1 − B×r/P) / ln(1+r) / 12    [B=balance, P=monthly pmt]",
+    inputs:[{id:"balance",label:"Loan balance ($)",type:"number",default:200000},{id:"annualRate",label:"Annual rate (%)",type:"number",default:6.5},{id:"monthlyPayment",label:"Monthly payment ($)",type:"number",default:2000}],
+    run:(i)=>payoffYears(+i.balance,+i.annualRate,+i.monthlyPayment)
+  },
+
+  // ── TAX ──
+  calcBracketTax: {
+    cat:"tax", formula:"Σ (income_in_band × rate_for_band)    progressive marginal tax",
+    inputs:[{id:"income",label:"Taxable income ($)",type:"number",default:100000},{id:"jurisdiction",label:"Jurisdiction (e.g. US, CA, NY, NYC)",type:"text",default:"federal"}],
+    run:(i)=>{
+      let brackets;
+      const j = i.jurisdiction;
+      if(j==="federal" || j==="US") brackets = LOCAL_TAX.US.federal.brackets;
+      else if(LOCAL_TAX.US.states[j]) brackets = LOCAL_TAX.US.states[j].brackets;
+      else if(LOCAL_TAX.US.cities[j]) brackets = LOCAL_TAX.US.cities[j].brackets;
+      else throw new Error("Unknown jurisdiction: "+j+" (try: federal, CA, NY, NYC, PHL, DET)");
+      return calcBracketTax(brackets, +i.income);
+    }
+  },
+  calcEffectiveRate: {
+    cat:"tax", formula:"(federalTax + stateTax + cityTax) / income × 100",
+    inputs:[{id:"country",label:"Country",type:"text",default:"US"},{id:"stateCode",label:"State code",type:"text",default:"NY"},{id:"cityCode",label:"City code (or blank)",type:"text",default:"NYC"},{id:"income",label:"Income ($)",type:"number",default:150000}],
+    run:(i)=>calcEffectiveRate(i.country, i.stateCode, i.cityCode||null, +i.income)
   },
   calcTaxEfficiency: {
-    formula: "Score = (taxFree×1.0 + taxDeferred×0.65) / total × 100,   Drag = taxable × return × taxRate",
-    inputs: [
-      {id:"taxFree", label:"Tax-free balance ($)", type:"number", default:100000},
-      {id:"taxDeferred", label:"Tax-deferred balance ($)", type:"number", default:300000},
-      {id:"taxable", label:"Taxable balance ($)", type:"number", default:200000},
-      {id:"expectedReturn", label:"Expected return (decimal)", type:"number", default:0.07},
-      {id:"taxRate", label:"Marginal tax rate (decimal)", type:"number", default:0.25}
-    ],
-    run: (i) => calcTaxEfficiency(+i.taxFree, +i.taxDeferred, +i.taxable, +i.expectedReturn, +i.taxRate)
+    cat:"tax", formula:"Score = (taxFree×1.0 + taxDeferred×0.65)/total × 100,  Drag = taxable × return × taxRate",
+    inputs:[{id:"taxFree",label:"Tax-free balance ($)",type:"number",default:100000},{id:"taxDeferred",label:"Tax-deferred balance ($)",type:"number",default:300000},{id:"taxable",label:"Taxable balance ($)",type:"number",default:200000},{id:"expectedReturn",label:"Expected return (decimal)",type:"number",default:0.07},{id:"taxRate",label:"Marginal tax rate (decimal)",type:"number",default:0.25}],
+    run:(i)=>calcTaxEfficiency(+i.taxFree,+i.taxDeferred,+i.taxable,+i.expectedReturn,+i.taxRate)
+  },
+
+  // ── RETIREMENT ──
+  calcRMD: {
+    cat:"retirement", formula:"RMD = balance / IRS_ULT[age]    (IRS Uniform Lifetime Table)",
+    inputs:[{id:"balance",label:"Account balance ($)",type:"number",default:500000},{id:"age",label:"Age (≥73 for US)",type:"number",default:75},{id:"country",label:"Country",type:"text",default:"US"}],
+    run:(i)=>calcRMD(+i.balance,+i.age,i.country)
+  },
+  calcRetirementNumber: {
+    cat:"retirement", formula:"Lump-sum to fund inflation-adjusted annuity to age 98, discounted to today at 6.8%",
+    inputs:[{id:"currentAge",label:"Current age",type:"number",default:40},{id:"retAge",label:"Retirement age",type:"number",default:65},{id:"annualSpend",label:"Annual retirement spend ($)",type:"number",default:80000},{id:"inflation",label:"Inflation (decimal)",type:"number",default:0.038},{id:"discountRate",label:"Annuity discount rate (decimal)",type:"number",default:0.068}],
+    run:(i)=>calcRetirementNumber(+i.currentAge,+i.retAge,+i.annualSpend,+i.inflation,+i.discountRate)
+  },
+  swrCalc: {
+    cat:"retirement", formula:"Annual income = portfolio × withdrawalRate    [Trinity Study 4% rule]",
+    inputs:[{id:"portfolio",label:"Portfolio balance ($)",type:"number",default:2000000},{id:"withdrawalRate",label:"SWR (decimal, e.g. 0.04)",type:"number",default:0.04}],
+    run:(i)=>swrCalc(+i.portfolio,+i.withdrawalRate)
+  },
+  swrPortfolioNeeded: {
+    cat:"retirement", formula:"Portfolio = annualSpend / withdrawalRate    [4% rule reversed]",
+    inputs:[{id:"annualSpend",label:"Desired annual spend ($)",type:"number",default:80000},{id:"withdrawalRate",label:"SWR (decimal)",type:"number",default:0.04}],
+    run:(i)=>swrPortfolioNeeded(+i.annualSpend,+i.withdrawalRate)
+  },
+
+  // ── STATISTICAL ──
+  geometricMean: {
+    cat:"stats", formula:"Geometric mean ≈ μ − 0.5 × σ²    (log-normal expected compound return)",
+    inputs:[{id:"mu",label:"Arithmetic mean (decimal)",type:"number",default:0.07},{id:"sigma",label:"Volatility σ (decimal)",type:"number",default:0.12}],
+    run:(i)=>geometricMean(+i.mu,+i.sigma)
+  },
+  boxMullerSample: {
+    cat:"stats", formula:"z = √(−2 ln U₁) × cos(2π U₂)    (Box-Muller, N(0,1))",
+    inputs:[],
+    run:()=>boxMullerSample()
+  },
+  standardDev: {
+    cat:"stats", formula:"σ = √( Σ(xᵢ−μ)² / N )    sample standard deviation",
+    inputs:[{id:"returns",label:"Returns (comma-separated)",type:"text",default:"0.08,0.12,-0.04,0.15,0.06,-0.02,0.10,0.18,-0.08,0.11"}],
+    run:(i)=>standardDev(i.returns.split(",").map(Number))
+  },
+  sharpeRatio: {
+    cat:"stats", formula:"Sharpe = (R − Rf) / σ    excess return per unit of risk",
+    inputs:[{id:"returnRate",label:"Portfolio return (decimal)",type:"number",default:0.08},{id:"riskFreeRate",label:"Risk-free rate (decimal)",type:"number",default:0.045},{id:"stdDev",label:"Std dev (decimal)",type:"number",default:0.12}],
+    run:(i)=>sharpeRatio(+i.returnRate,+i.riskFreeRate,+i.stdDev)
+  },
+  runMC: {
+    cat:"stats", formula:"Log-normal MC: annRet = (μ − 0.5σ²) + σ × N(0,1)    sampled per year per path",
+    inputs:[{id:"startNW",label:"Starting NW ($)",type:"number",default:500000},{id:"mu",label:"Mean return (%)",type:"number",default:7},{id:"sigma",label:"Volatility σ (%)",type:"number",default:12},{id:"years",label:"Years",type:"number",default:20},{id:"sims",label:"Simulations",type:"number",default:500},{id:"annualSavings",label:"Annual savings ($)",type:"number",default:30000}],
+    run:(i)=>runMC(+i.startNW,+i.mu,+i.sigma,+i.years,+i.sims,+i.annualSavings)
+  },
+  percentileAt: {
+    cat:"stats", formula:"sorted[ floor(N × pct / 100) ]    nearest-rank percentile",
+    inputs:[{id:"values",label:"Values (comma-sep)",type:"text",default:"100,200,300,400,500,600,700,800,900,1000"},{id:"pct",label:"Percentile (0–100)",type:"number",default:50}],
+    run:(i)=>percentileAt(i.values.split(",").map(Number).sort((a,b)=>a-b),+i.pct)
+  },
+
+  // ── PORTFOLIO ──
+  capm: {
+    cat:"portfolio", formula:"E[R] = Rf + β × (Rm − Rf)    Capital Asset Pricing Model",
+    inputs:[{id:"riskFreeRate",label:"Risk-free rate (decimal)",type:"number",default:0.045},{id:"beta",label:"Asset beta",type:"number",default:1.2},{id:"marketReturn",label:"Market return (decimal)",type:"number",default:0.10}],
+    run:(i)=>capm(+i.riskFreeRate,+i.beta,+i.marketReturn)
+  },
+  weightedReturn: {
+    cat:"portfolio", formula:"E[R_p] = Σ (wᵢ × Rᵢ)    portfolio expected return",
+    inputs:[{id:"weights",label:"Weights (comma-sep, sum=1)",type:"text",default:"0.6,0.3,0.1"},{id:"returns",label:"Returns (comma-sep, decimal)",type:"text",default:"0.10,0.04,0.02"}],
+    run:(i)=>weightedReturn(i.weights.split(",").map(Number), i.returns.split(",").map(Number))
+  },
+  couponBondPrice: {
+    cat:"portfolio", formula:"P = Σ C/(1+y)^t + F/(1+y)^n    standard bond pricing",
+    inputs:[{id:"face",label:"Face value ($)",type:"number",default:1000},{id:"couponRate",label:"Coupon rate (decimal)",type:"number",default:0.05},{id:"ytm",label:"Yield to maturity (decimal)",type:"number",default:0.06},{id:"years",label:"Years to maturity",type:"number",default:10},{id:"paymentsPerYear",label:"Payments/yr",type:"number",default:2}],
+    run:(i)=>couponBondPrice(+i.face,+i.couponRate,+i.ytm,+i.years,+i.paymentsPerYear)
+  },
+
+  // ── UTILITIES ──
+  lookupZip: {
+    cat:"util", formula:"ZIP first-3-digit prefix → state, full ZIP → city override",
+    inputs:[{id:"zip",label:"US ZIP code",type:"text",default:"10001"}],
+    run:(i)=>lookupZipAdmin(i.zip)
   }
 };
+
+// ─── TEST SUITE: known input/expected pairs with tolerance ──────────────
+const TEST_SUITE = [
+  // Time Value of Money
+  {name:"PV of $100k in 20yr @ 7%", fn:"presentValue", inputs:{fv:100000,rate:0.07,periods:20}, expected:25841.90, tol:1, cat:"tvm"},
+  {name:"FV of $10k for 20yr @ 7%", fn:"futureValue", inputs:{pv:10000,rate:0.07,periods:20}, expected:38696.84, tol:1, cat:"tvm"},
+  {name:"FV with zero growth", fn:"futureValue", inputs:{pv:5000,rate:0,periods:10}, expected:5000, tol:0.01, cat:"tvm"},
+  {name:"Annuity PV $50k/yr 30yr @ 4%", fn:"annuityPV", inputs:{payment:50000,rate:0.04,periods:30}, expected:864601.93, tol:5, cat:"tvm"},
+  {name:"Annuity PV @ zero rate", fn:"annuityPV", inputs:{payment:1000,rate:0,periods:10}, expected:10000, tol:0.01, cat:"tvm"},
+  {name:"Compound interest $10k 10yr @ 5% monthly", fn:"compoundInterest", inputs:{pv:10000,rate:0.05,periods:10,compoundsPerYear:12}, expected:16470.09, tol:1, cat:"tvm"},
+  {name:"EAR 6% nominal monthly", fn:"effectiveAnnualRate", inputs:{nominalRate:0.06,compoundsPerYear:12}, expected:0.06168, tol:0.0001, cat:"tvm"},
+  {name:"Fisher real rate 7% nom, 3.8% inf", fn:"realRate", inputs:{nominalRate:0.07,inflation:0.038}, expected:0.03083, tol:0.0001, cat:"tvm"},
+  {name:"Inflation adjust $1M in 30yr @ 3.8%", fn:"inflationAdjust", inputs:{nominalValue:1000000,inflation:0.038,years:30}, expected:326050, tol:200, cat:"tvm"},
+
+  // Mortgages
+  {name:"$500k mortgage 30yr @ 6.5%", fn:"calcMortgagePayment", inputs:{principal:500000,annualRate:6.5,years:30}, expected:3160.34, tol:1, cat:"mortgage"},
+  {name:"$300k mortgage 15yr @ 5.0%", fn:"calcMortgagePayment", inputs:{principal:300000,annualRate:5.0,years:15}, expected:2372.38, tol:1, cat:"mortgage"},
+  {name:"Mortgage zero-interest", fn:"calcMortgagePayment", inputs:{principal:120000,annualRate:0,years:10}, expected:1000, tol:0.01, cat:"mortgage"},
+  {name:"Payoff $200k @6.5% $2k/mo", fn:"payoffYears", inputs:{balance:200000,annualRate:6.5,monthlyPayment:2000}, expected:13.86, tol:0.1, cat:"mortgage"},
+
+  // Tax
+  {name:"Federal tax @ $50k (single 2024)", fn:"calcBracketTax", inputs:{income:50000,jurisdiction:"federal"}, expected:5894, tol:5, cat:"tax"},
+  {name:"Federal tax @ $200k (single 2024)", fn:"calcBracketTax", inputs:{income:200000,jurisdiction:"federal"}, expected:40150, tol:50, cat:"tax"},
+  {name:"CA state tax @ $100k", fn:"calcBracketTax", inputs:{income:100000,jurisdiction:"CA"}, expected:6189, tol:50, cat:"tax"},
+  {name:"NY state tax @ $150k", fn:"calcBracketTax", inputs:{income:150000,jurisdiction:"NY"}, expected:8513, tol:50, cat:"tax"},
+  {name:"NYC tax @ $100k", fn:"calcBracketTax", inputs:{income:100000,jurisdiction:"NYC"}, expected:3812, tol:50, cat:"tax"},
+  {name:"TX state tax @ $200k (no tax)", fn:"calcBracketTax", inputs:{income:200000,jurisdiction:"TX"}, expected:0, tol:0.01, cat:"tax"},
+  {name:"Combined NY+NYC effective rate @ $150k", fn:"calcEffectiveRate", inputs:{country:"US",stateCode:"NY",cityCode:"NYC",income:150000}, validator:(r)=>r && r.effectiveRate > 25 && r.effectiveRate < 35, description:"25% < effective < 35%", cat:"tax"},
+
+  // Retirement
+  {name:"RMD age 75 $500k", fn:"calcRMD", inputs:{balance:500000,age:75,country:"US"}, expected:20325.20, tol:1, cat:"retirement"},
+  {name:"RMD age 65 (below 73)", fn:"calcRMD", inputs:{balance:500000,age:65,country:"US"}, expected:0, tol:0.01, cat:"retirement"},
+  {name:"RMD age 100 $1M", fn:"calcRMD", inputs:{balance:1000000,age:100,country:"US"}, expected:156250, tol:200, cat:"retirement"},
+  {name:"SWR 4% on $2M portfolio", fn:"swrCalc", inputs:{portfolio:2000000,withdrawalRate:0.04}, expected:80000, tol:0.01, cat:"retirement"},
+  {name:"Portfolio for $100k/yr @ 4% SWR", fn:"swrPortfolioNeeded", inputs:{annualSpend:100000,withdrawalRate:0.04}, expected:2500000, tol:0.01, cat:"retirement"},
+  {name:"Retirement number age 40→65 $80k/yr", fn:"calcRetirementNumber", inputs:{currentAge:40,retAge:65,annualSpend:80000,inflation:0.038,discountRate:0.068}, validator:(r)=>r && r.pvToday > 500000 && r.pvToday < 3000000, description:"PV today between $0.5M and $3M", cat:"retirement"},
+
+  // Statistical
+  {name:"Geometric mean 7%/12%", fn:"geometricMean", inputs:{mu:0.07,sigma:0.12}, expected:0.0628, tol:0.0001, cat:"stats"},
+  {name:"Geometric mean 10%/18%", fn:"geometricMean", inputs:{mu:0.10,sigma:0.18}, expected:0.0838, tol:0.0001, cat:"stats"},
+  {name:"Box-Muller returns finite number", fn:"boxMullerSample", inputs:{}, validator:(r)=>typeof r === "number" && isFinite(r) && Math.abs(r) < 6, description:"Finite, |z| < 6σ", cat:"stats"},
+  {name:"Std dev of 10 known returns", fn:"standardDev", inputs:{returns:"0.08,0.12,-0.04,0.15,0.06,-0.02,0.10,0.18,-0.08,0.11"}, expected:0.0837, tol:0.001, cat:"stats"},
+  {name:"Sharpe ratio 8%/4.5%/12%", fn:"sharpeRatio", inputs:{returnRate:0.08,riskFreeRate:0.045,stdDev:0.12}, expected:0.2917, tol:0.001, cat:"stats"},
+  {name:"50th percentile of 1-1000", fn:"percentileAt", inputs:{values:"100,200,300,400,500,600,700,800,900,1000",pct:50}, expected:600, tol:0.01, cat:"stats"},
+  {name:"90th percentile", fn:"percentileAt", inputs:{values:"100,200,300,400,500,600,700,800,900,1000",pct:90}, expected:1000, tol:0.01, cat:"stats"},
+  {name:"MC: p10 < p50 < p90 (sorted ordering)", fn:"runMC", inputs:{startNW:100000,mu:7,sigma:12,years:10,sims:500,annualSavings:10000}, validator:(r)=>r.p10 < r.p50 && r.p50 < r.p90, description:"Percentile ordering preserved", cat:"stats"},
+  {name:"MC: median > start (positive μ)", fn:"runMC", inputs:{startNW:100000,mu:8,sigma:10,years:15,sims:500,annualSavings:20000}, validator:(r)=>r.p50 > 100000, description:"Median exceeds starting NW", cat:"stats"},
+
+  // Portfolio
+  {name:"CAPM 4.5%/β1.2/10%", fn:"capm", inputs:{riskFreeRate:0.045,beta:1.2,marketReturn:0.10}, expected:0.111, tol:0.001, cat:"portfolio"},
+  {name:"Weighted return 60/30/10", fn:"weightedReturn", inputs:{weights:"0.6,0.3,0.1",returns:"0.10,0.04,0.02"}, expected:0.074, tol:0.0001, cat:"portfolio"},
+  {name:"Bond $1000 5% coupon 6% YTM 10yr", fn:"couponBondPrice", inputs:{face:1000,couponRate:0.05,ytm:0.06,years:10,paymentsPerYear:2}, expected:925.61, tol:2, cat:"portfolio"},
+  {name:"Bond at par (coupon = YTM)", fn:"couponBondPrice", inputs:{face:1000,couponRate:0.05,ytm:0.05,years:10,paymentsPerYear:2}, expected:1000, tol:0.01, cat:"portfolio"},
+  {name:"Bond zero YTM (no discount)", fn:"couponBondPrice", inputs:{face:1000,couponRate:0.05,ytm:0,years:10,paymentsPerYear:2}, expected:1500, tol:0.01, cat:"portfolio"},
+
+  // Utility
+  {name:"ZIP 10001 → NY, NYC", fn:"lookupZip", inputs:{zip:"10001"}, validator:(r)=>r && r.state==="NY" && r.cityCode==="NYC", description:"Manhattan ZIP → NY state + NYC city", cat:"util"},
+  {name:"ZIP 94102 → CA, SF", fn:"lookupZip", inputs:{zip:"94102"}, validator:(r)=>r && r.state==="CA", description:"SF ZIP → CA state", cat:"util"},
+  {name:"ZIP 99999 → null/unknown", fn:"lookupZip", inputs:{zip:"99999"}, validator:(r)=>!r || !r.state || r.state==="AK", description:"Unrecognized ZIP returns null or AK", cat:"util"}
+];
+
+// ── TEST SUITE RUNNER ──
+let _testResults = [];
+async function runTestSuite(filter){
+  const startTime = performance.now();
+  const tests = (filter === "failed") ? _testResults.filter(r=>!r.passed).map(r=>TEST_SUITE.find(t=>t.name===r.name)) : TEST_SUITE;
+  _testResults = [];
+  let passed = 0, failed = 0;
+
+  for(const test of tests){
+    const fn = TB_FUNCTIONS[test.fn];
+    if(!fn){ _testResults.push({name:test.name,fn:test.fn,passed:false,error:"Function not found",cat:test.cat}); failed++; continue; }
+    const t0 = performance.now();
+    let actual, err;
+    try { actual = fn.run(test.inputs); } catch(e){ err = e.message; }
+    const dt = performance.now() - t0;
+    let passedTest = false, detail = "";
+    if(err){
+      detail = "Error: " + err;
+    } else if(test.validator){
+      passedTest = test.validator(actual);
+      detail = test.description + " → " + (passedTest ? "✓" : "✗ got " + JSON.stringify(actual).slice(0,80));
+    } else if(typeof test.expected === "number"){
+      const numActual = typeof actual === "number" ? actual : (actual && (actual.p50 || actual.pvToday || actual.effectiveRate || 0));
+      passedTest = Math.abs(numActual - test.expected) <= test.tol;
+      detail = `expected ${test.expected.toFixed(4)} ± ${test.tol}, got <strong class="test-actual ${passedTest?'pass':'fail'}">${numActual.toFixed(4)}</strong>  (Δ=${(numActual-test.expected).toFixed(4)})`;
+    }
+    _testResults.push({name:test.name, fn:test.fn, inputs:test.inputs, passed:passedTest, error:err, detail, dt:dt.toFixed(2), cat:test.cat});
+    if(passedTest) passed++; else failed++;
+  }
+
+  const totalDt = performance.now() - startTime;
+  renderTestSummary(passed, failed, tests.length, totalDt);
+  renderTestResults(_testResults);
+  addLog(failed === 0 ? "ok" : "warn", `Test suite: ${passed}/${tests.length} passed (${totalDt.toFixed(0)}ms)`);
+}
+
+function renderTestSummary(passed, failed, total, dt){
+  const pct = total > 0 ? Math.round(passed/total*100) : 0;
+  const statusColor = failed === 0 ? "var(--green)" : (passed > failed ? "var(--amber)" : "var(--red)");
+  $("testSummary").innerHTML = `
+    <div class="test-summary">
+      <div class="ts-stat pass"><div class="ts-stat-val" style="color:var(--green)">${passed}</div><div class="ts-stat-lbl">Passed</div></div>
+      <div class="ts-stat fail"><div class="ts-stat-val" style="color:${failed>0?'var(--red)':'var(--text3)'}">${failed}</div><div class="ts-stat-lbl">Failed</div></div>
+      <div class="ts-stat info"><div class="ts-stat-val" style="color:${statusColor}">${pct}%</div><div class="ts-stat-lbl">Pass Rate</div></div>
+      <div class="ts-stat time"><div class="ts-stat-val" style="color:var(--amber)">${dt.toFixed(0)}<small style="font-size:14px"> ms</small></div><div class="ts-stat-lbl">Total Time</div></div>
+    </div>`;
+}
+
+function renderTestResults(results){
+  if(!results.length){ $("testResults").innerHTML = ''; return; }
+  // Group by category
+  const cats = {};
+  results.forEach(r => { (cats[r.cat] = cats[r.cat] || []).push(r); });
+  const CAT_LABELS = {tvm:"📐 Time Value of Money", mortgage:"🏠 Mortgages & Loans", tax:"💰 Tax Calculations", retirement:"🏖 Retirement Math", stats:"📊 Statistical", portfolio:"💼 Portfolio", util:"🔧 Utilities"};
+  let h = '';
+  Object.entries(cats).forEach(([cat, items]) => {
+    const passedCount = items.filter(r=>r.passed).length;
+    h += `<div style="margin-top:14px;margin-bottom:8px;display:flex;align-items:center;gap:10px"><div style="font-weight:700;font-size:13px;color:var(--text)">${CAT_LABELS[cat]||cat}</div><div style="font-size:11px;color:var(--text3)">${passedCount}/${items.length} passed</div></div>`;
+    items.forEach(r => {
+      h += `<div class="test-card ${r.passed?'pass':'fail'}" data-passed="${r.passed}">
+        <div class="test-badge ${r.passed?'pass':'fail'}">${r.passed?'✓':'✗'}</div>
+        <div>
+          <div class="test-name">${r.name}</div>
+          <div class="test-fn">${r.fn}(${Object.entries(r.inputs||{}).map(([k,v])=>k+":"+JSON.stringify(v)).join(", ")})</div>
+          <div class="test-detail">${r.detail || r.error || ''}</div>
+        </div>
+        <div class="test-time">${r.dt} ms</div>
+      </div>`;
+    });
+  });
+  $("testResults").innerHTML = h;
+  $("filterAll").style.background = "rgba(0,87,184,.08)";
+  $("filterAll").style.color = "var(--gold)";
+  $("filterPass").style.background = "";
+  $("filterFail").style.background = "";
+}
+
+function filterTests(mode){
+  ["filterAll","filterPass","filterFail"].forEach(id => {
+    $(id).style.background = "";
+    $(id).style.color = "var(--text2)";
+  });
+  const active = mode==="all"?"filterAll":(mode==="pass"?"filterPass":"filterFail");
+  $(active).style.background = "rgba(0,87,184,.08)";
+  $(active).style.color = "var(--gold)";
+  document.querySelectorAll(".test-card").forEach(c => {
+    const passed = c.dataset.passed === "true";
+    if(mode === "all") c.style.display = "";
+    else if(mode === "pass") c.style.display = passed ? "" : "none";
+    else c.style.display = !passed ? "" : "none";
+  });
+}
+
+function filterTbFunctions(){
+  const cat = $("tbCategory").value;
+  const sel = $("tbFunc");
+  const current = sel.value;
+  let html = '';
+  Object.entries(TB_FUNCTIONS).forEach(([name, fn]) => {
+    if(cat === "all" || fn.cat === cat){
+      html += `<option value="${name}">${name}</option>`;
+    }
+  });
+  sel.innerHTML = html;
+  if(Array.from(sel.options).some(o => o.value === current)) sel.value = current;
+  renderTbForm();
+}
 
 function renderTbForm(){
   const fnName = $("tbFunc").value;
