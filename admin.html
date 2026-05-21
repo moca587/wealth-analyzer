@@ -439,14 +439,32 @@ textarea{font-family:var(--fm);font-size:12px;line-height:1.6;resize:vertical;mi
       <label class="flbl">Ticker</label>
       <input id="mdTicker" placeholder="AAPL" class="w160" value="AAPL">
       <label class="flbl" style="min-width:60px">Provider</label>
-      <select id="mdProvider" class="w200">
+      <select id="mdProvider" class="w260">
         <option value="auto">Auto (try all in order)</option>
-        <option value="finnhub">Finnhub</option>
-        <option value="alphavantage">Alpha Vantage</option>
-        <option value="yahoo">Yahoo Finance</option>
-        <option value="polygon">Polygon.io</option>
-        <option value="bloomberg">Bloomberg (proxy)</option>
-        <option value="factset">FactSet (proxy)</option>
+        <optgroup label="── Free (API key) ──">
+          <option value="finnhub">Finnhub</option>
+          <option value="alphavantage">Alpha Vantage</option>
+          <option value="polygon">Polygon.io</option>
+          <option value="twelvedata">Twelve Data</option>
+          <option value="fmp">Financial Modeling Prep</option>
+          <option value="tiingo">Tiingo</option>
+          <option value="eodhd">EOD Historical Data</option>
+          <option value="alpaca">Alpaca Markets</option>
+        </optgroup>
+        <optgroup label="── Free (no key) ──">
+          <option value="yahoo">Yahoo Finance</option>
+          <option value="stooq">Stooq</option>
+          <option value="coingecko">CoinGecko (crypto)</option>
+          <option value="frankfurter">Frankfurter (FX)</option>
+        </optgroup>
+        <optgroup label="── Enterprise (proxy) ──">
+          <option value="bloomberg">Bloomberg</option>
+          <option value="refinitiv">Refinitiv / LSEG</option>
+          <option value="factset">FactSet</option>
+          <option value="capiq">S&P Capital IQ</option>
+          <option value="morningstar">Morningstar Direct</option>
+          <option value="ibkr">Interactive Brokers</option>
+        </optgroup>
       </select>
       <button class="btn-primary" onclick="testFetchQuote()">▶ Fetch Quote</button>
       <button class="btn-secondary" onclick="testAllProviders()">⚡ Test All Providers</button>
@@ -489,29 +507,52 @@ textarea{font-family:var(--fm);font-size:12px;line-height:1.6;resize:vertical;mi
     </div>
   </div>
 
-  <div class="panel">
-    <div class="ptitle">Enterprise Providers (require backend proxy)</div>
+<div class="panel">
+    <div class="ptitle">Enterprise Providers (require user-deployed backend proxy)</div>
+    <div style="font-size:12px;color:var(--text3);margin-bottom:14px;line-height:1.6">All 6 enterprise providers require a backend proxy you deploy (browser ↔ your proxy ↔ provider API). Authentication and CORS prevent direct browser calls. See <strong style="color:var(--text2)">Documentation</strong> tab for Node.js reference implementations.</div>
     <div class="three-col">
       <div>
-        <div class="slbl">Bloomberg</div>
-        <div class="frow"><label class="flbl">Proxy URL</label><input id="kBloombergUrl" placeholder="https://my-proxy.example.com" class="fw"></div>
+        <div class="slbl">Bloomberg <span style="font-weight:400;color:var(--text3)">(BLPAPI ~$25k/yr)</span></div>
+        <div class="frow"><label class="flbl">Proxy URL</label><input id="kBloombergUrl" placeholder="https://blp-proxy.example.com" class="fw"></div>
         <div class="frow"><label class="flbl">Auth token</label><input id="kBloombergAuth" type="password" placeholder="Bearer token" class="fw"></div>
         <button class="btn-secondary" onclick="saveBloomberg()">Save</button>
         <button class="btn-ghost" onclick="testProvider('bloomberg')">Test</button>
       </div>
       <div>
-        <div class="slbl">FactSet</div>
-        <div class="frow"><label class="flbl">Proxy URL</label><input id="kFactsetUrl" placeholder="https://my-factset-proxy.example.com" class="fw"></div>
+        <div class="slbl">Refinitiv / LSEG <span style="font-weight:400;color:var(--text3)">(Workspace)</span></div>
+        <div class="frow"><label class="flbl">Proxy URL</label><input id="kRefinitivUrl" placeholder="https://refinitiv-proxy.example.com" class="fw"></div>
+        <div class="frow"><label class="flbl">Auth token</label><input id="kRefinitivAuth" type="password" placeholder="Bearer token" class="fw"></div>
+        <button class="btn-secondary" onclick="saveRefinitiv()">Save</button>
+        <button class="btn-ghost" onclick="testProvider('refinitiv')">Test</button>
+      </div>
+      <div>
+        <div class="slbl">FactSet <span style="font-weight:400;color:var(--text3)">(WebServices)</span></div>
+        <div class="frow"><label class="flbl">Proxy URL</label><input id="kFactsetUrl" placeholder="https://fs-proxy.example.com" class="fw"></div>
         <div class="frow"><label class="flbl">Client ID</label><input id="kFactsetId" placeholder="OAuth client_id" class="fw"></div>
         <div class="frow"><label class="flbl">Client secret</label><input id="kFactsetSecret" type="password" placeholder="OAuth client_secret" class="fw"></div>
         <button class="btn-secondary" onclick="saveFactset()">Save</button>
         <button class="btn-ghost" onclick="testProvider('factset')">Test</button>
       </div>
       <div>
-        <div class="slbl">Custom Provider</div>
-        <div class="frow"><label class="flbl">Endpoint</label><input id="kCustomUrl" placeholder="https://my-api.example.com/quote" class="fw"></div>
-        <div class="frow"><label class="flbl">API key</label><input id="kCustomKey" type="password" class="fw"></div>
-        <button class="btn-secondary" onclick="saveCustom()">Save</button>
+        <div class="slbl">S&P Capital IQ <span style="font-weight:400;color:var(--text3)">(Kensho/Pro)</span></div>
+        <div class="frow"><label class="flbl">Proxy URL</label><input id="kCapiqUrl" placeholder="https://capiq-proxy.example.com" class="fw"></div>
+        <div class="frow"><label class="flbl">Auth token</label><input id="kCapiqAuth" type="password" placeholder="Bearer token" class="fw"></div>
+        <button class="btn-secondary" onclick="saveCapiq()">Save</button>
+        <button class="btn-ghost" onclick="testProvider('capiq')">Test</button>
+      </div>
+      <div>
+        <div class="slbl">Morningstar Direct</div>
+        <div class="frow"><label class="flbl">Proxy URL</label><input id="kMorningstarUrl" placeholder="https://ms-proxy.example.com" class="fw"></div>
+        <div class="frow"><label class="flbl">Auth token</label><input id="kMorningstarAuth" type="password" placeholder="Bearer token" class="fw"></div>
+        <button class="btn-secondary" onclick="saveMorningstar()">Save</button>
+        <button class="btn-ghost" onclick="testProvider('morningstar')">Test</button>
+      </div>
+      <div>
+        <div class="slbl">Interactive Brokers <span style="font-weight:400;color:var(--text3)">(TWS/Gateway)</span></div>
+        <div class="frow"><label class="flbl">Proxy URL</label><input id="kIbkrUrl" placeholder="https://ibkr-bridge.example.com" class="fw"></div>
+        <div class="frow"><label class="flbl">Auth token</label><input id="kIbkrAuth" type="password" placeholder="Bearer token" class="fw"></div>
+        <button class="btn-secondary" onclick="saveIbkr()">Save</button>
+        <button class="btn-ghost" onclick="testProvider('ibkr')">Test</button>
       </div>
     </div>
   </div>
@@ -671,15 +712,25 @@ app.post('/quote', async (req, res) => {
   res.json({ price: j.data[0].price, ... });
 });</pre>
 
-    <h2>Free Provider Setup</h2>
-    <h3>Alpha Vantage</h3>
-    <p>Sign up at <a href="https://www.alphavantage.co/support/#api-key" target="_blank" style="color:var(--gold)">alphavantage.co</a>. Free tier: 25 requests/day, 5 requests/min.</p>
-    <h3>Finnhub</h3>
-    <p>Sign up at <a href="https://finnhub.io/register" target="_blank" style="color:var(--gold)">finnhub.io</a>. Free tier: 60 calls/min.</p>
-    <h3>Polygon.io</h3>
-    <p>Sign up at <a href="https://polygon.io/dashboard/api-keys" target="_blank" style="color:var(--gold)">polygon.io</a>. Free tier: 5 requests/min.</p>
-    <h3>Yahoo Finance</h3>
-    <p>No API key needed. May fail due to CORS — the unified MarketData layer falls back to <code>corsproxy.io</code> when direct fetch is blocked.</p>
+    <h2>Free Provider Setup (12 providers)</h2>
+    <h3>With API key</h3>
+    <ul>
+      <li><strong>Finnhub</strong> — <a href="https://finnhub.io/register" target="_blank" style="color:var(--gold)">finnhub.io</a>, 60 calls/min free, stocks/forex/crypto, fast.</li>
+      <li><strong>Alpha Vantage</strong> — <a href="https://www.alphavantage.co/support/#api-key" target="_blank" style="color:var(--gold)">alphavantage.co</a>, 25 req/day + 5/min, broadly accepted standard.</li>
+      <li><strong>Polygon.io</strong> — <a href="https://polygon.io/dashboard/api-keys" target="_blank" style="color:var(--gold)">polygon.io</a>, 5 req/min free, US equities + options + forex + crypto.</li>
+      <li><strong>Twelve Data</strong> — <a href="https://twelvedata.com/pricing" target="_blank" style="color:var(--gold)">twelvedata.com</a>, 800 req/day free, 70+ exchanges, also FX/crypto.</li>
+      <li><strong>Financial Modeling Prep (FMP)</strong> — <a href="https://site.financialmodelingprep.com/developer" target="_blank" style="color:var(--gold)">financialmodelingprep.com</a>, 250 req/day free, includes fundamentals (P/E, EPS, market cap).</li>
+      <li><strong>Tiingo</strong> — <a href="https://tiingo.com/account/api/token" target="_blank" style="color:var(--gold)">tiingo.com</a>, IEX real-time + news, well-regarded.</li>
+      <li><strong>EOD Historical Data</strong> — <a href="https://eodhistoricaldata.com/register" target="_blank" style="color:var(--gold)">eodhistoricaldata.com</a>, 20 req/day free, 60+ exchanges globally.</li>
+      <li><strong>Alpaca Markets</strong> — <a href="https://alpaca.markets" target="_blank" style="color:var(--gold)">alpaca.markets</a>, free with a (paper or live) Alpaca trading account. Requires both Key ID and Secret.</li>
+    </ul>
+    <h3>No API key needed</h3>
+    <ul>
+      <li><strong>Yahoo Finance</strong> — public chart endpoint. May fail due to CORS — the unified MarketData layer falls back to <code>corsproxy.io</code>.</li>
+      <li><strong>Stooq</strong> — Polish stocks portal that provides global CSV quotes. Useful as backup.</li>
+      <li><strong>CoinGecko</strong> — crypto-only. Hint <code>coingecko</code> for tickers like BTC, ETH, SOL. Generous public rate limits.</li>
+      <li><strong>Frankfurter</strong> — ECB FX reference rates. Hint <code>frankfurter</code> for 6-char pairs like EURUSD, GBPJPY. Unlimited & free.</li>
+    </ul>
 
     <h2>Going-to-Production Checklist</h2>
     <ul>
@@ -1467,100 +1518,183 @@ function jsonTree(obj, depth){
 const MarketData = (function(){
   const cache = new Map();
   const CACHE_MS = 60000;
+  const CRYPTO_MAP = {BTC:"bitcoin",ETH:"ethereum",SOL:"solana",ADA:"cardano",DOT:"polkadot",DOGE:"dogecoin",MATIC:"matic-network",AVAX:"avalanche-2",LINK:"chainlink",UNI:"uniswap",ATOM:"cosmos",LTC:"litecoin",XRP:"ripple",BNB:"binancecoin",USDT:"tether",USDC:"usd-coin",NEAR:"near",ARB:"arbitrum",OP:"optimism",APT:"aptos"};
 
   function getCfg(){
     return {
       fh: localStorage.getItem("fhKey") || "",
       av: localStorage.getItem("avKey") || "",
       polygon: localStorage.getItem("wa_polygon_key") || "",
+      twelvedata: localStorage.getItem("wa_twelvedata_key") || "",
+      fmp: localStorage.getItem("wa_fmp_key") || "",
+      tiingo: localStorage.getItem("wa_tiingo_key") || "",
+      eodhd: localStorage.getItem("wa_eodhd_key") || "",
+      alpacaKey: localStorage.getItem("wa_alpaca_key") || "",
+      alpacaSecret: localStorage.getItem("wa_alpaca_secret") || "",
       bloombergProxy: localStorage.getItem("wa_bloomberg_proxy") || "",
       bloombergAuth: localStorage.getItem("wa_bloomberg_auth") || "",
       factsetProxy: localStorage.getItem("wa_factset_proxy") || "",
       factsetId: localStorage.getItem("wa_factset_id") || "",
-      factsetSecret: localStorage.getItem("wa_factset_secret") || ""
+      factsetSecret: localStorage.getItem("wa_factset_secret") || "",
+      refinitivProxy: localStorage.getItem("wa_refinitiv_proxy") || "",
+      refinitivAuth: localStorage.getItem("wa_refinitiv_auth") || "",
+      capiqProxy: localStorage.getItem("wa_capiq_proxy") || "",
+      capiqAuth: localStorage.getItem("wa_capiq_auth") || "",
+      morningstarProxy: localStorage.getItem("wa_morningstar_proxy") || "",
+      morningstarAuth: localStorage.getItem("wa_morningstar_auth") || "",
+      ibkrProxy: localStorage.getItem("wa_ibkr_proxy") || "",
+      ibkrAuth: localStorage.getItem("wa_ibkr_auth") || ""
     };
   }
 
-  async function tryFinnhub(ticker, cfg){
-    if(!cfg.fh) throw new Error("No Finnhub key configured");
-    const r = await fetch(`https://finnhub.io/api/v1/quote?symbol=${encodeURIComponent(ticker)}&token=${cfg.fh}`);
-    if(!r.ok) throw new Error("HTTP " + r.status);
-    const j = await r.json();
-    if(!j.c) throw new Error("No data returned");
-    return { price: j.c, change: j.d, changePct: j.dp, high: j.h, low: j.l, open: j.o, prevClose: j.pc, asOf: new Date((j.t||0)*1000).toISOString(), raw: j };
+  // ── FREE w/key
+  async function tryFinnhub(t, cfg){
+    if(!cfg.fh) throw new Error("No Finnhub key");
+    const r = await fetch(`https://finnhub.io/api/v1/quote?symbol=${encodeURIComponent(t)}&token=${cfg.fh}`);
+    if(!r.ok) throw new Error("HTTP "+r.status);
+    const j = await r.json(); if(!j.c) throw new Error("No data");
+    return {price:j.c,change:j.d,changePct:j.dp,high:j.h,low:j.l,open:j.o,prevClose:j.pc,asOf:new Date((j.t||0)*1000).toISOString(),raw:j};
   }
-
-  async function tryAlphaVantage(ticker, cfg){
-    if(!cfg.av) throw new Error("No Alpha Vantage key configured");
-    const r = await fetch(`https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=${encodeURIComponent(ticker)}&apikey=${cfg.av}`);
-    if(!r.ok) throw new Error("HTTP " + r.status);
-    const j = await r.json();
-    const q = j["Global Quote"];
+  async function tryAlphaVantage(t, cfg){
+    if(!cfg.av) throw new Error("No AV key");
+    const r = await fetch(`https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=${encodeURIComponent(t)}&apikey=${cfg.av}`);
+    const j = await r.json(); const q = j["Global Quote"];
     if(!q || !q["05. price"]) throw new Error("No data — possibly rate-limited");
-    return {
-      price: +q["05. price"], change: +q["09. change"], changePct: parseFloat(q["10. change percent"]),
-      high: +q["03. high"], low: +q["04. low"], open: +q["02. open"], prevClose: +q["08. previous close"],
-      volume: +q["06. volume"], asOf: q["07. latest trading day"], raw: q
-    };
+    return {price:+q["05. price"],change:+q["09. change"],changePct:parseFloat(q["10. change percent"]),high:+q["03. high"],low:+q["04. low"],open:+q["02. open"],prevClose:+q["08. previous close"],volume:+q["06. volume"],asOf:q["07. latest trading day"],raw:q};
+  }
+  async function tryPolygon(t, cfg){
+    if(!cfg.polygon) throw new Error("No Polygon key");
+    const r = await fetch(`https://api.polygon.io/v2/aggs/ticker/${encodeURIComponent(t)}/prev?apiKey=${cfg.polygon}`);
+    if(!r.ok) throw new Error("HTTP "+r.status);
+    const j = await r.json(); const d = j.results && j.results[0]; if(!d) throw new Error("No data");
+    return {price:d.c,open:d.o,high:d.h,low:d.l,volume:d.v,change:d.c-d.o,changePct:(d.c/d.o-1)*100,asOf:new Date(d.t).toISOString(),raw:d};
+  }
+  async function tryTwelveData(t, cfg){
+    if(!cfg.twelvedata) throw new Error("No Twelve Data key");
+    const r = await fetch(`https://api.twelvedata.com/quote?symbol=${encodeURIComponent(t)}&apikey=${cfg.twelvedata}`);
+    if(!r.ok) throw new Error("HTTP "+r.status);
+    const j = await r.json(); if(j.status==="error" || !j.close) throw new Error(j.message||"No data");
+    return {price:+j.close,change:+j.change,changePct:+j.percent_change,volume:+j.volume,currency:j.currency,exchange:j.exchange,open:+j.open,high:+j.high,low:+j.low,prevClose:+j.previous_close,raw:j};
+  }
+  async function tryFMP(t, cfg){
+    if(!cfg.fmp) throw new Error("No FMP key");
+    const r = await fetch(`https://financialmodelingprep.com/api/v3/quote/${encodeURIComponent(t)}?apikey=${cfg.fmp}`);
+    if(!r.ok) throw new Error("HTTP "+r.status);
+    const j = await r.json(); const d = Array.isArray(j) && j[0]; if(!d) throw new Error("No data");
+    return {price:d.price,change:d.change,changePct:d.changesPercentage,volume:d.volume,marketCap:d.marketCap,pe:d.pe,eps:d.eps,dayHigh:d.dayHigh,dayLow:d.dayLow,yearHigh:d.yearHigh,yearLow:d.yearLow,prevClose:d.previousClose,open:d.open,raw:d};
+  }
+  async function tryTiingo(t, cfg){
+    if(!cfg.tiingo) throw new Error("No Tiingo key");
+    const r = await fetch(`https://api.tiingo.com/iex/?tickers=${encodeURIComponent(t)}&token=${cfg.tiingo}`);
+    if(!r.ok) throw new Error("HTTP "+r.status);
+    const j = await r.json(); const d = Array.isArray(j) && j[0]; if(!d || !d.last) throw new Error("No data");
+    return {price:d.last,prevClose:d.prevClose,change:d.last-d.prevClose,changePct:(d.last/d.prevClose-1)*100,volume:d.volume,high:d.high,low:d.low,open:d.open,asOf:d.timestamp,raw:d};
+  }
+  async function tryEODHD(t, cfg){
+    if(!cfg.eodhd) throw new Error("No EOD HD key");
+    const sym = t.includes(".") ? t : t + ".US";
+    const r = await fetch(`https://eodhistoricaldata.com/api/real-time/${encodeURIComponent(sym)}?api_token=${cfg.eodhd}&fmt=json`);
+    if(!r.ok) throw new Error("HTTP "+r.status);
+    const j = await r.json(); if(!j.close && !j.previousClose) throw new Error("No data");
+    return {price:+j.close||+j.previousClose,prevClose:+j.previousClose,change:+j.change,changePct:+j.change_p,volume:+j.volume,high:+j.high,low:+j.low,open:+j.open,asOf:j.timestamp,raw:j};
+  }
+  async function tryAlpaca(t, cfg){
+    if(!cfg.alpacaKey || !cfg.alpacaSecret) throw new Error("No Alpaca key/secret");
+    const r = await fetch(`https://data.alpaca.markets/v2/stocks/${encodeURIComponent(t)}/quotes/latest`,{
+      headers:{"APCA-API-KEY-ID":cfg.alpacaKey,"APCA-API-SECRET-KEY":cfg.alpacaSecret}
+    });
+    if(!r.ok) throw new Error("HTTP "+r.status);
+    const j = await r.json(); const q = j.quote; if(!q) throw new Error("No quote data");
+    const mid = (q.ap + q.bp) / 2;
+    return {price:mid,ask:q.ap,bid:q.bp,askSize:q.as,bidSize:q.bs,asOf:q.t,raw:j};
   }
 
-  async function tryYahoo(ticker){
-    // Try direct first, fall back to CORS proxy
-    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}?interval=1d`;
+  // ── FREE no-key
+  async function tryYahoo(t){
+    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(t)}?interval=1d`;
     let r;
-    try { r = await fetch(url); }
-    catch(e){ r = await fetch(`https://corsproxy.io/?${encodeURIComponent(url)}`); }
-    if(!r.ok) throw new Error("HTTP " + r.status);
-    const j = await r.json();
-    const m = j.chart && j.chart.result && j.chart.result[0] && j.chart.result[0].meta;
-    if(!m) throw new Error("No meta data");
-    return {
-      price: m.regularMarketPrice, prevClose: m.previousClose,
-      change: m.regularMarketPrice - m.previousClose,
-      changePct: (m.regularMarketPrice / m.previousClose - 1) * 100,
-      high: m.regularMarketDayHigh, low: m.regularMarketDayLow,
-      currency: m.currency, exchange: m.exchangeName,
-      asOf: new Date((m.regularMarketTime||0)*1000).toISOString(), raw: m
-    };
+    try { r = await fetch(url); } catch(e){ r = await fetch(`https://corsproxy.io/?${encodeURIComponent(url)}`); }
+    if(!r.ok) throw new Error("HTTP "+r.status);
+    const j = await r.json(); const m = j.chart && j.chart.result && j.chart.result[0] && j.chart.result[0].meta;
+    if(!m) throw new Error("No meta");
+    return {price:m.regularMarketPrice,prevClose:m.previousClose,change:m.regularMarketPrice-m.previousClose,changePct:(m.regularMarketPrice/m.previousClose-1)*100,high:m.regularMarketDayHigh,low:m.regularMarketDayLow,currency:m.currency,exchange:m.exchangeName,asOf:new Date((m.regularMarketTime||0)*1000).toISOString(),raw:m};
+  }
+  async function tryCoinGecko(t){
+    const id = CRYPTO_MAP[t.toUpperCase()] || t.toLowerCase();
+    const r = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${encodeURIComponent(id)}&vs_currencies=usd&include_24hr_change=true&include_24hr_vol=true&include_market_cap=true`);
+    if(!r.ok) throw new Error("HTTP "+r.status);
+    const j = await r.json(); const d = j[id];
+    if(!d || !d.usd) throw new Error("No CoinGecko data for "+id+" (try the full coin id, e.g. 'bitcoin' for BTC)");
+    return {price:d.usd,changePct:d.usd_24h_change,volume:d.usd_24h_vol,marketCap:d.usd_market_cap,currency:"USD",raw:d};
+  }
+  async function tryFrankfurter(t){
+    if(t.length !== 6) throw new Error("Frankfurter expects 6-char FX pair (e.g. EURUSD)");
+    const base = t.slice(0,3), quote = t.slice(3,6);
+    const r = await fetch(`https://api.frankfurter.app/latest?from=${base}&to=${quote}`);
+    if(!r.ok) throw new Error("HTTP "+r.status);
+    const j = await r.json(); const rate = j.rates && j.rates[quote];
+    if(!rate) throw new Error("No FX rate returned");
+    return {price:rate,currency:quote,base:base,asOf:j.date,raw:j};
+  }
+  async function tryStooq(t){
+    const sym = t.includes(".") ? t.toLowerCase() : t.toLowerCase() + ".us";
+    const url = `https://stooq.com/q/l/?s=${encodeURIComponent(sym)}&f=sd2t2ohlcv&h&e=csv`;
+    let r;
+    try { r = await fetch(url); } catch(e){ r = await fetch(`https://corsproxy.io/?${encodeURIComponent(url)}`); }
+    if(!r.ok) throw new Error("HTTP "+r.status);
+    const txt = await r.text();
+    const lines = txt.trim().split("\n"); if(lines.length < 2) throw new Error("No data");
+    const cols = lines[1].split(",");
+    if(cols[6]==="N/D" || !cols[6]) throw new Error("No price data");
+    const close = +cols[6], open = +cols[3];
+    return {price:close,open:open,high:+cols[4],low:+cols[5],change:close-open,changePct:(close/open-1)*100,volume:+cols[7],raw:lines[1]};
   }
 
-  async function tryPolygon(ticker, cfg){
-    if(!cfg.polygon) throw new Error("No Polygon key configured");
-    const r = await fetch(`https://api.polygon.io/v2/aggs/ticker/${encodeURIComponent(ticker)}/prev?apiKey=${cfg.polygon}`);
-    if(!r.ok) throw new Error("HTTP " + r.status);
-    const j = await r.json();
-    const d = j.results && j.results[0];
-    if(!d) throw new Error("No data returned");
-    return {
-      price: d.c, open: d.o, high: d.h, low: d.l, volume: d.v,
-      change: d.c - d.o, changePct: (d.c/d.o - 1) * 100,
-      asOf: new Date(d.t).toISOString(), raw: d
-    };
+  // ── ENTERPRISE proxies
+  async function tryBloomberg(t, cfg){
+    if(!cfg.bloombergProxy) throw new Error("No Bloomberg proxy URL configured");
+    const r = await fetch(`${cfg.bloombergProxy}/quote`,{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+cfg.bloombergAuth},body:JSON.stringify({ticker:t})});
+    if(!r.ok) throw new Error("Bloomberg proxy HTTP "+r.status);
+    return await r.json();
   }
-
-  async function tryBloomberg(ticker, cfg){
-    if(!cfg.bloombergProxy) throw new Error("No Bloomberg proxy URL configured — see Documentation");
-    const r = await fetch(`${cfg.bloombergProxy}/quote`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "Authorization": "Bearer " + cfg.bloombergAuth },
-      body: JSON.stringify({ ticker })
-    });
-    if(!r.ok) throw new Error("Bloomberg proxy HTTP " + r.status);
+  async function tryFactSet(t, cfg){
+    if(!cfg.factsetProxy) throw new Error("No FactSet proxy URL configured");
+    const r = await fetch(`${cfg.factsetProxy}/quote`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({ticker:t,clientId:cfg.factsetId})});
+    if(!r.ok) throw new Error("FactSet proxy HTTP "+r.status);
+    return await r.json();
+  }
+  async function tryRefinitiv(t, cfg){
+    if(!cfg.refinitivProxy) throw new Error("Refinitiv/LSEG proxy not configured (requires Workspace/Eikon + backend)");
+    const r = await fetch(`${cfg.refinitivProxy}/quote`,{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+cfg.refinitivAuth},body:JSON.stringify({ric:t})});
+    if(!r.ok) throw new Error("Refinitiv proxy HTTP "+r.status);
+    return await r.json();
+  }
+  async function tryCapIQ(t, cfg){
+    if(!cfg.capiqProxy) throw new Error("S&P Capital IQ proxy not configured");
+    const r = await fetch(`${cfg.capiqProxy}/quote`,{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+cfg.capiqAuth},body:JSON.stringify({ticker:t})});
+    if(!r.ok) throw new Error("Capital IQ proxy HTTP "+r.status);
+    return await r.json();
+  }
+  async function tryMorningstar(t, cfg){
+    if(!cfg.morningstarProxy) throw new Error("Morningstar proxy not configured (requires Direct subscription)");
+    const r = await fetch(`${cfg.morningstarProxy}/quote`,{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+cfg.morningstarAuth},body:JSON.stringify({ticker:t})});
+    if(!r.ok) throw new Error("Morningstar proxy HTTP "+r.status);
+    return await r.json();
+  }
+  async function tryIBKR(t, cfg){
+    if(!cfg.ibkrProxy) throw new Error("IBKR proxy not configured (requires TWS/Gateway + bridge)");
+    const r = await fetch(`${cfg.ibkrProxy}/quote`,{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+cfg.ibkrAuth},body:JSON.stringify({symbol:t})});
+    if(!r.ok) throw new Error("IBKR proxy HTTP "+r.status);
     return await r.json();
   }
 
-  async function tryFactSet(ticker, cfg){
-    if(!cfg.factsetProxy) throw new Error("No FactSet proxy URL configured — see Documentation");
-    const r = await fetch(`${cfg.factsetProxy}/quote`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ticker, clientId: cfg.factsetId })
-    });
-    if(!r.ok) throw new Error("FactSet proxy HTTP " + r.status);
-    return await r.json();
-  }
-
-  const PROVIDERS = { finnhub: tryFinnhub, alphavantage: tryAlphaVantage, yahoo: tryYahoo, polygon: tryPolygon, bloomberg: tryBloomberg, factset: tryFactSet };
+  const PROVIDERS = {
+    finnhub:tryFinnhub, alphavantage:tryAlphaVantage, yahoo:tryYahoo, polygon:tryPolygon,
+    twelvedata:tryTwelveData, fmp:tryFMP, tiingo:tryTiingo, eodhd:tryEODHD, alpaca:tryAlpaca,
+    coingecko:tryCoinGecko, frankfurter:tryFrankfurter, stooq:tryStooq,
+    bloomberg:tryBloomberg, factset:tryFactSet, refinitiv:tryRefinitiv,
+    capiq:tryCapIQ, morningstar:tryMorningstar, ibkr:tryIBKR
+  };
 
   async function fetchOne(ticker, providerName){
     const cfg = getCfg();
@@ -1574,18 +1708,25 @@ const MarketData = (function(){
   async function fetchQuote(ticker, hint){
     const cached = cache.get(ticker + ":" + (hint || "auto"));
     if(cached && Date.now() - cached.ts < CACHE_MS) return cached.data;
-
     const cfg = getCfg();
-    let order = ["finnhub", "alphavantage", "yahoo", "polygon", "bloomberg", "factset"];
+    let order = ["finnhub","twelvedata","fmp","tiingo","alphavantage","polygon","yahoo","stooq","eodhd","alpaca","coingecko","frankfurter","bloomberg","refinitiv","factset","capiq","morningstar","ibkr"];
     if(hint && order.includes(hint)) order = [hint, ...order.filter(p => p !== hint)];
-
     for(const name of order){
-      // Skip providers not configured
-      if(name === "finnhub" && !cfg.fh) continue;
-      if(name === "alphavantage" && !cfg.av) continue;
-      if(name === "polygon" && !cfg.polygon) continue;
-      if(name === "bloomberg" && !cfg.bloombergProxy) continue;
-      if(name === "factset" && !cfg.factsetProxy) continue;
+      if(name==="finnhub" && !cfg.fh) continue;
+      if(name==="alphavantage" && !cfg.av) continue;
+      if(name==="polygon" && !cfg.polygon) continue;
+      if(name==="twelvedata" && !cfg.twelvedata) continue;
+      if(name==="fmp" && !cfg.fmp) continue;
+      if(name==="tiingo" && !cfg.tiingo) continue;
+      if(name==="eodhd" && !cfg.eodhd) continue;
+      if(name==="alpaca" && (!cfg.alpacaKey || !cfg.alpacaSecret)) continue;
+      if(name==="bloomberg" && !cfg.bloombergProxy) continue;
+      if(name==="factset" && !cfg.factsetProxy) continue;
+      if(name==="refinitiv" && !cfg.refinitivProxy) continue;
+      if(name==="capiq" && !cfg.capiqProxy) continue;
+      if(name==="morningstar" && !cfg.morningstarProxy) continue;
+      if(name==="ibkr" && !cfg.ibkrProxy) continue;
+      if(!hint && (name==="coingecko" || name==="frankfurter")) continue;
       try {
         const d = await fetchOne(ticker, name);
         if(d && d.price > 0){
@@ -1597,7 +1738,7 @@ const MarketData = (function(){
     throw new Error("All providers failed for " + ticker);
   }
 
-  return { fetchQuote, fetchOne, getCfg };
+  return { fetchQuote, fetchOne, getCfg, PROVIDERS };
 })();
 
 const MD_HISTORY = [];
@@ -1642,7 +1783,7 @@ async function testAllProviders(){
   const ticker = $("mdTicker").value.toUpperCase().trim();
   if(!ticker){ toast("Enter a ticker", "err"); return; }
   $("mdComparison").innerHTML = '<div style="font-size:13px;color:var(--text3)">Testing all providers for ' + ticker + '…</div>';
-  const providers = ["finnhub", "alphavantage", "yahoo", "polygon", "bloomberg", "factset"];
+  const providers = ["finnhub","alphavantage","yahoo","polygon","twelvedata","fmp","tiingo","eodhd","alpaca","stooq","coingecko","frankfurter","bloomberg","refinitiv","factset","capiq","morningstar","ibkr"];
   const results = await Promise.all(providers.map(async p => {
     const t0 = performance.now();
     try {
@@ -1684,25 +1825,37 @@ function initDashboard(){
   const lsKeys = Object.keys(localStorage);
   const lsSize = lsKeys.reduce((s, k) => s + (k.length + (localStorage.getItem(k)||"").length), 0);
   const appVer = localStorage.getItem("wa_app_version") || "not set";
-  const apiCount = [cfg.fh, cfg.av, cfg.polygon, cfg.bloombergProxy, cfg.factsetProxy].filter(Boolean).length;
+  const apiCount = [cfg.fh, cfg.av, cfg.polygon, cfg.twelvedata, cfg.fmp, cfg.tiingo, cfg.eodhd, (cfg.alpacaKey && cfg.alpacaSecret), cfg.bloombergProxy, cfg.refinitivProxy, cfg.factsetProxy, cfg.capiqProxy, cfg.morningstarProxy, cfg.ibkrProxy].filter(Boolean).length;
 
   let kpi = '';
   kpi += `<div class="kpi"><div class="kpi-lbl">App Version</div><div class="kpi-val" style="font-size:15px">${appVer}</div><div class="kpi-sub">Main app version stamp</div></div>`;
   kpi += `<div class="kpi"><div class="kpi-lbl">Admin Version</div><div class="kpi-val" style="font-size:15px">${APP_VERSION}</div></div>`;
   kpi += `<div class="kpi"><div class="kpi-lbl">localStorage Items</div><div class="kpi-val">${lsKeys.length}</div><div class="kpi-sub">${fmtBytes(lsSize)} used</div></div>`;
-  kpi += `<div class="kpi"><div class="kpi-lbl">API Keys Configured</div><div class="kpi-val">${apiCount}/5</div><div class="kpi-sub">market data providers</div></div>`;
+  kpi += `<div class="kpi"><div class="kpi-lbl">API Keys Configured</div><div class="kpi-val">${apiCount}/14</div><div class="kpi-sub">market data providers</div></div>`;
   kpi += `<div class="kpi"><div class="kpi-lbl">Browser</div><div class="kpi-val" style="font-size:14px">${navigator.userAgent.match(/(Chrome|Firefox|Safari|Edge)\\/[\\d.]+/g)?.[0] || "Unknown"}</div></div>`;
   kpi += `<div class="kpi"><div class="kpi-lbl">Screen</div><div class="kpi-val" style="font-size:14px">${screen.width}×${screen.height}</div></div>`;
   $("dashKpis").innerHTML = kpi;
 
-  // Provider status
+  // Provider status — all 18 supported providers
   const providers = [
-    { name: "Alpha Vantage", k: cfg.av, type: "free" },
-    { name: "Finnhub", k: cfg.fh, type: "free" },
-    { name: "Yahoo Finance", k: "always", type: "free", note: "No key required" },
-    { name: "Polygon.io", k: cfg.polygon, type: "free" },
-    { name: "Bloomberg", k: cfg.bloombergProxy, type: "enterprise", note: "Requires backend proxy" },
-    { name: "FactSet", k: cfg.factsetProxy, type: "enterprise", note: "Requires backend proxy" }
+    { name: "Finnhub", k: cfg.fh, type: "free", note: "60 req/min" },
+    { name: "Alpha Vantage", k: cfg.av, type: "free", note: "25 req/day" },
+    { name: "Polygon.io", k: cfg.polygon, type: "free", note: "5 req/min" },
+    { name: "Twelve Data", k: cfg.twelvedata, type: "free", note: "800 req/day — stocks/FX/crypto" },
+    { name: "Financial Modeling Prep", k: cfg.fmp, type: "free", note: "250 req/day — fundamentals included" },
+    { name: "Tiingo", k: cfg.tiingo, type: "free", note: "IEX feed + news" },
+    { name: "EOD Historical Data", k: cfg.eodhd, type: "free", note: "20 req/day free, 60+ exchanges" },
+    { name: "Alpaca Markets", k: cfg.alpacaKey && cfg.alpacaSecret, type: "free", note: "Free w/ Alpaca account" },
+    { name: "Yahoo Finance", k: "always", type: "free", note: "No key — CORS proxy fallback" },
+    { name: "Stooq", k: "always", type: "free", note: "No key — global stocks CSV" },
+    { name: "CoinGecko", k: "always", type: "free", note: "No key — crypto only (hint required)" },
+    { name: "Frankfurter", k: "always", type: "free", note: "No key — ECB FX rates (hint required)" },
+    { name: "Bloomberg", k: cfg.bloombergProxy, type: "enterprise", note: "Backend proxy + BLPAPI license (~$25k/yr)" },
+    { name: "Refinitiv / LSEG", k: cfg.refinitivProxy, type: "enterprise", note: "Backend proxy + Workspace license" },
+    { name: "FactSet", k: cfg.factsetProxy, type: "enterprise", note: "Backend proxy + OAuth2" },
+    { name: "S&P Capital IQ", k: cfg.capiqProxy, type: "enterprise", note: "Backend proxy + license" },
+    { name: "Morningstar Direct", k: cfg.morningstarProxy, type: "enterprise", note: "Backend proxy + subscription" },
+    { name: "Interactive Brokers", k: cfg.ibkrProxy, type: "enterprise", note: "TWS/Gateway + bridge backend" }
   ];
   let ph = '<table class="tbl"><thead><tr><th>Provider</th><th>Tier</th><th>Status</th><th>Note</th></tr></thead><tbody>';
   providers.forEach(p => {
@@ -1734,18 +1887,23 @@ function initDashboard(){
 // ═══════════════════════════════════════════════════════════
 function initKeysTab(){
   const keys = [
-    { id: "fhKey", name: "Finnhub", placeholder: "Bearer token" },
-    { id: "avKey", name: "Alpha Vantage", placeholder: "API key" },
-    { id: "wa_polygon_key", name: "Polygon.io", placeholder: "API key" },
-    { id: "wa_claude_key", name: "Claude API (for Q&A)", placeholder: "sk-ant-…" }
+    { id: "fhKey", name: "Finnhub", placeholder: "API token", signup: "finnhub.io/register" },
+    { id: "avKey", name: "Alpha Vantage", placeholder: "API key", signup: "alphavantage.co/support/#api-key" },
+    { id: "wa_polygon_key", name: "Polygon.io", placeholder: "API key", signup: "polygon.io/dashboard/api-keys" },
+    { id: "wa_twelvedata_key", name: "Twelve Data", placeholder: "API key", signup: "twelvedata.com/pricing" },
+    { id: "wa_fmp_key", name: "Financial Modeling Prep", placeholder: "API key", signup: "site.financialmodelingprep.com/developer" },
+    { id: "wa_tiingo_key", name: "Tiingo", placeholder: "API token", signup: "tiingo.com/account/api/token" },
+    { id: "wa_eodhd_key", name: "EOD Historical Data", placeholder: "API token", signup: "eodhistoricaldata.com/register" },
+    { id: "wa_alpaca_key", name: "Alpaca — Key ID", placeholder: "PKxxxxx", signup: "alpaca.markets" },
+    { id: "wa_alpaca_secret", name: "Alpaca — Secret", placeholder: "Secret key", signup: "alpaca.markets" },
+    { id: "wa_claude_key", name: "Claude API (for Q&A)", placeholder: "sk-ant-…", signup: "console.anthropic.com" }
   ];
   let h = '';
   keys.forEach(k => {
     const v = localStorage.getItem(k.id) || "";
-    const masked = v ? v.slice(0,4) + "•".repeat(Math.max(0,v.length-8)) + v.slice(-4) : "";
     h += `<tr>
-      <td><strong>${k.name}</strong> <span style="font-size:11px;color:var(--text3)">(${k.id})</span></td>
-      <td><input id="key-${k.id}" placeholder="${k.placeholder}" value="${v}" style="width:280px;font-family:var(--fm);font-size:11px"></td>
+      <td><strong>${k.name}</strong><br><span style="font-size:10px;color:var(--text3)">${k.signup ? '<a href="https://' + k.signup + '" target="_blank" style="color:var(--gold)">↗ Sign up: ' + k.signup + '</a>' : ''}</span></td>
+      <td><input id="key-${k.id}" placeholder="${k.placeholder}" value="${v}" type="password" style="width:280px;font-family:var(--fm);font-size:11px"></td>
       <td>${v?'<span class="pill pill-on">Set ('+v.length+' chars)</span>':'<span class="pill pill-off">Empty</span>'}</td>
       <td><button class="btn-secondary" onclick="saveKey('${k.id}')">Save</button> <button class="btn-ghost" onclick="testKey('${k.id}')">Test</button></td>
     </tr>`;
@@ -1753,13 +1911,15 @@ function initKeysTab(){
   $("freeKeysTbl").innerHTML = h;
 
   // Enterprise
-  $("kBloombergUrl").value = localStorage.getItem("wa_bloomberg_proxy") || "";
-  $("kBloombergAuth").value = localStorage.getItem("wa_bloomberg_auth") || "";
-  $("kFactsetUrl").value = localStorage.getItem("wa_factset_proxy") || "";
-  $("kFactsetId").value = localStorage.getItem("wa_factset_id") || "";
-  $("kFactsetSecret").value = localStorage.getItem("wa_factset_secret") || "";
-  $("kCustomUrl").value = localStorage.getItem("wa_custom_url") || "";
-  $("kCustomKey").value = localStorage.getItem("wa_custom_key") || "";
+  const ent = [
+    ["kBloombergUrl","wa_bloomberg_proxy"], ["kBloombergAuth","wa_bloomberg_auth"],
+    ["kRefinitivUrl","wa_refinitiv_proxy"], ["kRefinitivAuth","wa_refinitiv_auth"],
+    ["kFactsetUrl","wa_factset_proxy"], ["kFactsetId","wa_factset_id"], ["kFactsetSecret","wa_factset_secret"],
+    ["kCapiqUrl","wa_capiq_proxy"], ["kCapiqAuth","wa_capiq_auth"],
+    ["kMorningstarUrl","wa_morningstar_proxy"], ["kMorningstarAuth","wa_morningstar_auth"],
+    ["kIbkrUrl","wa_ibkr_proxy"], ["kIbkrAuth","wa_ibkr_auth"]
+  ];
+  ent.forEach(([id, key]) => { const el = $(id); if(el) el.value = localStorage.getItem(key) || ""; });
 }
 
 function saveKey(id){
@@ -1771,7 +1931,11 @@ function saveKey(id){
 }
 
 async function testKey(id){
-  const map = { fhKey: "finnhub", avKey: "alphavantage", wa_polygon_key: "polygon" };
+  const map = {
+    fhKey:"finnhub", avKey:"alphavantage", wa_polygon_key:"polygon",
+    wa_twelvedata_key:"twelvedata", wa_fmp_key:"fmp", wa_tiingo_key:"tiingo",
+    wa_eodhd_key:"eodhd", wa_alpaca_key:"alpaca", wa_alpaca_secret:"alpaca"
+  };
   const provider = map[id];
   if(!provider){ toast("No test for " + id, "warn"); return; }
   try {
@@ -1797,10 +1961,25 @@ function saveFactset(){
   toast("FactSet config saved", "ok");
   addLog("ok", "FactSet config saved");
 }
-function saveCustom(){
-  localStorage.setItem("wa_custom_url", $("kCustomUrl").value.trim());
-  localStorage.setItem("wa_custom_key", $("kCustomKey").value.trim());
-  toast("Custom provider saved", "ok");
+function saveRefinitiv(){
+  localStorage.setItem("wa_refinitiv_proxy", $("kRefinitivUrl").value.trim());
+  localStorage.setItem("wa_refinitiv_auth", $("kRefinitivAuth").value.trim());
+  toast("Refinitiv config saved", "ok"); addLog("ok", "Refinitiv proxy config saved");
+}
+function saveCapiq(){
+  localStorage.setItem("wa_capiq_proxy", $("kCapiqUrl").value.trim());
+  localStorage.setItem("wa_capiq_auth", $("kCapiqAuth").value.trim());
+  toast("Capital IQ config saved", "ok"); addLog("ok", "Capital IQ proxy config saved");
+}
+function saveMorningstar(){
+  localStorage.setItem("wa_morningstar_proxy", $("kMorningstarUrl").value.trim());
+  localStorage.setItem("wa_morningstar_auth", $("kMorningstarAuth").value.trim());
+  toast("Morningstar config saved", "ok"); addLog("ok", "Morningstar proxy config saved");
+}
+function saveIbkr(){
+  localStorage.setItem("wa_ibkr_proxy", $("kIbkrUrl").value.trim());
+  localStorage.setItem("wa_ibkr_auth", $("kIbkrAuth").value.trim());
+  toast("IBKR config saved", "ok"); addLog("ok", "IBKR bridge config saved");
 }
 async function testProvider(name){
   try {
