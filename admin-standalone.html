@@ -281,9 +281,9 @@ textarea{font-family:var(--fm);font-size:12px;line-height:1.6;resize:vertical;mi
     <svg viewBox="0 0 16 16" fill="currentColor"><path d="M1 12l4-5 3 3 3-4 4 5H1z"/></svg>Monte Carlo Stress
   </div>
   <div class="nav-grp-label">AI Agent</div>
-  <div class="nav-item" data-tab="agent" onclick="showTab('agent',this)">
+  <div class="nav-item" data-tab="agent" onclick="console.log('[click] agent nav'); showTab('agent',this)">
     <svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 1a3 3 0 00-3 3v1.5L3 7v5l2 1.5V15h6v-1.5L13 12V7l-2-1.5V4a3 3 0 00-3-3zm-1 7a1 1 0 110 2 1 1 0 010-2zm2 0a1 1 0 110 2 1 1 0 010-2z"/></svg>AI Portfolio Agent
-    <span style="margin-left:auto;background:linear-gradient(135deg,#7c3aed,#0057b8);color:#fff;font-size:8px;padding:2px 6px;border-radius:50px;font-weight:700">NEW</span>
+    <span style="margin-left:auto;background:linear-gradient(135deg,#7c3aed,#0057b8);color:#fff;font-size:8px;padding:2px 6px;border-radius:50px;font-weight:700;pointer-events:none">NEW</span>
   </div>
   <div class="nav-item" data-tab="research" onclick="showTab('research',this)">
     <svg viewBox="0 0 16 16" fill="currentColor"><path d="M3 1h7l3 3v11H3zm5 0v3h3M5 6h6v1H5V6zm0 2h6v1H5V8zm0 2h4v1H5v-1z"/></svg>Research Library
@@ -635,6 +635,10 @@ textarea{font-family:var(--fm);font-size:12px;line-height:1.6;resize:vertical;mi
 
 <!-- ═══ AI PORTFOLIO AGENT ═══ -->
 <div class="tab" id="tab-agent">
+  <!-- Debug strip: if you can see this green bar, the tab IS rendering — issue is in a panel below -->
+  <div style="background:#00875a;color:#fff;padding:8px 14px;border-radius:6px;font-size:12px;font-weight:600;margin-bottom:12px">
+    ✓ Agent tab rendered. If panels below appear empty, an init function failed — open F12 → Console.
+  </div>
   <div class="hero" style="background:linear-gradient(135deg,#7c3aed 0%,#0057b8 100%)">
     <div class="hero-title">🤖 AI Portfolio Construction Agent</div>
     <div class="hero-sub">Synthesizes research from 16 institutional sources, the client's financial plan, and a curated fund universe to produce a complete portfolio recommendation. Powered by Claude.</div>
@@ -1062,7 +1066,7 @@ app.post('/quote', async (req, res) => {
 // ═══════════════════════════════════════════════════════════
 // VERSION & UTILS
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260522-0043";
+const APP_VERSION = "20260522-0048";
 const $ = (id) => document.getElementById(id);
 const fmtMoney = (n) => { if(n==null||isNaN(n))return"—"; const a=Math.abs(n); const s=n<0?"−":""; if(a>=1e9) return s+"$"+(a/1e9).toFixed(2)+"B"; if(a>=1e6) return s+"$"+(a/1e6).toFixed(2)+"M"; if(a>=1e3) return s+"$"+Math.round(a).toLocaleString(); return s+"$"+a.toFixed(0); };
 const fmtNum = (n,d=2) => n==null||isNaN(n)?"—":Number(n).toFixed(d);
