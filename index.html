@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Wealth Analyzer — Institutional Portfolio Intelligence for Every Client</title>
+<meta name="description" content="The wealth platform that thinks like a private banker. Build evidence-backed portfolios with research from 16 institutions, 792 funds, Monte Carlo simulation, and country-aware compliance — all in one browser tab.">
+<meta property="og:title" content="Wealth Analyzer — Institutional-Grade Portfolio Intelligence">
+<meta property="og:description" content="Research-driven AI builds your client's portfolio in 30 seconds. 16 institutional sources. 792 funds. UCITS-aware. Monte Carlo simulated.">
+<meta property="og:type" content="website">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=DM+Serif+Display&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#0a1628;
+  --ink2:#3a4659;
+  --ink3:#6c7689;
+  --line:#e8ecf2;
+  --bg:#fafbfc;
+  --card:#fff;
+  --accent:#0057b8;
+  --accent2:#0069d9;
+  --accent3:#4da6ff;
+  --gold:#c9a96e;
+  --green:#00875a;
+  --purple:#7c3aed;
+  --amber:#f59e0b;
+  --red:#e31837;
+  --shadow-sm:0 1px 2px rgba(10,22,40,.04),0 1px 3px rgba(10,22,40,.06);
+  --shadow:0 4px 12px rgba(10,22,40,.06),0 1px 3px rgba(10,22,40,.04);
+  --shadow-lg:0 20px 48px rgba(10,22,40,.1),0 4px 12px rgba(10,22,40,.06);
+  --rad:14px;
+  --rad-sm:8px;
+  --rad-lg:20px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,sans-serif;
+  color:var(--ink);
+  background:var(--bg);
+  line-height:1.55;
+  font-feature-settings:"ss01","cv11";
+  -webkit-font-smoothing:antialiased;
+  overflow-x:hidden;
+}
+.container{max-width:1240px;margin:0 auto;padding:0 28px}
+.serif{font-family:'DM Serif Display',Georgia,serif;letter-spacing:-.01em}
+
+/* ─── NAV ─── */
+nav{
+  position:fixed;top:0;left:0;right:0;z-index:100;
+  background:rgba(255,255,255,.85);
+  backdrop-filter:saturate(1.6) blur(14px);
+  -webkit-backdrop-filter:saturate(1.6) blur(14px);
+  border-bottom:1px solid rgba(0,87,184,.08);
+}
+.nav-inner{display:flex;align-items:center;justify-content:space-between;padding:16px 28px;max-width:1240px;margin:0 auto}
+.logo{
+  font-weight:800;font-size:21px;letter-spacing:-.04em;color:var(--accent);
+  display:flex;align-items:center;gap:9px;text-decoration:none;
+}
+.logo-mark{
+  width:32px;height:32px;border-radius:9px;
+  background:linear-gradient(135deg,var(--accent) 0%,var(--accent3) 100%);
+  display:flex;align-items:center;justify-content:center;color:#fff;font-size:15px;font-weight:800;
+  box-shadow:0 4px 12px rgba(0,87,184,.25)
+}
+.nav-links{display:flex;gap:32px;align-items:center}
+.nav-links a{color:var(--ink2);text-decoration:none;font-size:14px;font-weight:500;transition:color .15s}
+.nav-links a:hover{color:var(--accent)}
+@media(max-width:760px){.nav-links a:not(.btn){display:none}}
+.btn{display:inline-flex;align-items:center;gap:7px;padding:11px 22px;border-radius:50px;font-weight:600;font-size:14px;text-decoration:none;transition:all .2s;cursor:pointer;border:none;font-family:inherit}
+.btn-primary{background:linear-gradient(135deg,var(--accent) 0%,var(--accent2) 100%);color:#fff;box-shadow:0 4px 14px rgba(0,87,184,.3)}
+.btn-primary:hover{transform:translateY(-1px);box-shadow:0 8px 20px rgba(0,87,184,.4)}
+.btn-secondary{background:#fff;color:var(--ink);border:1px solid var(--line)}
+.btn-secondary:hover{border-color:var(--accent);color:var(--accent)}
+.btn-lg{padding:14px 28px;font-size:15px}
+.btn-xl{padding:17px 36px;font-size:16px;border-radius:60px}
+
+/* ─── HERO ─── */
+.hero{
+  position:relative;padding:160px 0 100px;overflow:hidden;
+  background:
+    radial-gradient(ellipse at top right, rgba(124,58,237,.08) 0%, transparent 50%),
+    radial-gradient(ellipse at bottom left, rgba(0,87,184,.08) 0%, transparent 50%),
+    linear-gradient(180deg, #fff 0%, var(--bg) 100%);
+}
+.hero-grid{display:grid;grid-template-columns:1.15fr 1fr;gap:64px;align-items:center}
+@media(max-width:980px){.hero-grid{grid-template-columns:1fr;gap:48px}.hero{padding:130px 0 80px}}
+.hero-tag{
+  display:inline-flex;align-items:center;gap:7px;
+  padding:7px 14px;background:rgba(0,87,184,.08);color:var(--accent);
+  border-radius:50px;font-size:12px;font-weight:600;margin-bottom:24px;
+  border:1px solid rgba(0,87,184,.15)
+}
+.hero-tag .dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 0 3px rgba(0,135,90,.2)}
+.hero h1{
+  font-family:'DM Serif Display',Georgia,serif;
+  font-size:clamp(42px,5.5vw,68px);
+  line-height:1.05;letter-spacing:-.025em;font-weight:400;margin-bottom:22px;
+}
+.hero h1 .grad{
+  background:linear-gradient(135deg, var(--accent) 0%, var(--purple) 100%);
+  -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
+}
+.hero p.lead{font-size:18px;color:var(--ink2);line-height:1.65;margin-bottom:32px;max-width:560px}
+.hero-cta{display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+.hero-trust{margin-top:36px;padding-top:24px;border-top:1px solid var(--line);display:flex;align-items:center;gap:24px;flex-wrap:wrap}
+.hero-trust-label{font-size:11px;text-transform:uppercase;letter-spacing:.12em;color:var(--ink3);font-weight:600}
+.hero-trust-logos{display:flex;gap:18px;flex-wrap:wrap;font-size:13px;color:var(--ink3);font-weight:600;letter-spacing:-.01em}
+.hero-trust-logos span{position:relative}
+.hero-trust-logos span:not(:last-child)::after{content:"·";position:absolute;right:-12px;color:var(--line)}
+
+/* ─── HERO MOCKUP ─── */
+.mockup{
+  position:relative;
+  background:#fff;
+  border-radius:var(--rad-lg);
+  box-shadow:var(--shadow-lg);
+  overflow:hidden;
+  transform:perspective(1500px) rotateY(-3deg) rotateX(2deg);
+  transform-style:preserve-3d;
+}
+.mockup::before{
+  content:"";position:absolute;top:-2px;left:-2px;right:-2px;bottom:-2px;
+  background:linear-gradient(135deg, var(--accent), var(--purple), var(--gold));
+  border-radius:var(--rad-lg);z-index:-1;opacity:.4;filter:blur(20px)
+}
+.mockup-header{
+  background:#fafbfc;border-bottom:1px solid var(--line);padding:14px 18px;display:flex;align-items:center;gap:8px
+}
+.mockup-dot{width:11px;height:11px;border-radius:50%}
+.mockup-dot.r{background:#ff5f57}.mockup-dot.y{background:#febc2e}.mockup-dot.g{background:#28c840}
+.mockup-url{flex:1;background:#fff;border-radius:6px;padding:5px 12px;font-size:11px;color:var(--ink3);text-align:center;margin-left:8px}
+.mockup-body{padding:22px}
+.m-kpi{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px}
+.m-kpi-card{background:#fafbfc;border-radius:10px;padding:12px 14px;border:1px solid var(--line)}
+.m-kpi-lbl{font-size:9px;text-transform:uppercase;letter-spacing:.08em;color:var(--ink3);font-weight:700;margin-bottom:4px}
+.m-kpi-val{font-size:18px;font-weight:800;letter-spacing:-.02em;color:var(--ink)}
+.m-kpi-val.g{color:var(--green)}.m-kpi-val.b{color:var(--accent)}.m-kpi-val.p{color:var(--purple)}
+.m-pos{padding:10px 12px;background:#fafbfc;border-left:3px solid var(--accent);border-radius:0 8px 8px 0;margin-bottom:8px}
+.m-pos-row{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px}
+.m-pos-tkr{font-weight:700;font-size:13px}
+.m-pos-pct{font-weight:700;font-size:13px;color:var(--accent)}
+.m-pos-name{font-size:10.5px;color:var(--ink3)}
+.m-pos-metric{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-top:6px;font-size:9.5px}
+.m-pos-metric > div{background:#fff;padding:3px 5px;border-radius:3px;text-align:center}
+.m-pos-metric span{display:block;color:var(--ink3);font-size:8px;text-transform:uppercase;letter-spacing:.05em}
+.m-pos-metric strong{font-size:10px;color:var(--ink)}
+
+/* ─── STATS STRIP ─── */
+.stats{padding:60px 0;background:#fff;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:48px;text-align:center}
+@media(max-width:760px){.stats-grid{grid-template-columns:repeat(2,1fr);gap:32px}}
+.stat-v{font-family:'DM Serif Display',Georgia,serif;font-size:48px;line-height:1;color:var(--accent);margin-bottom:8px;letter-spacing:-.02em}
+.stat-l{font-size:13px;color:var(--ink3);font-weight:500}
+
+/* ─── SECTION ─── */
+section{padding:100px 0}
+.section-tag{display:inline-block;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.14em;color:var(--accent);margin-bottom:16px}
+.section-h{font-family:'DM Serif Display',Georgia,serif;font-size:clamp(34px,4vw,48px);line-height:1.1;letter-spacing:-.02em;font-weight:400;margin-bottom:18px;max-width:740px}
+.section-p{font-size:17px;color:var(--ink2);line-height:1.7;max-width:680px;margin-bottom:50px}
+
+/* ─── INSTITUTIONAL TRUST ─── */
+.institutions{padding:70px 0;background:linear-gradient(180deg, var(--bg) 0%, #fff 100%);text-align:center}
+.inst-label{font-size:12px;text-transform:uppercase;letter-spacing:.14em;color:var(--ink3);font-weight:700;margin-bottom:26px}
+.inst-grid{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:42px 56px}
+.inst-name{font-weight:600;font-size:16px;color:var(--ink2);opacity:.85;letter-spacing:-.01em;transition:opacity .2s,color .2s}
+.inst-name:hover{opacity:1;color:var(--accent)}
+
+/* ─── FEATURE CARDS ─── */
+.features{background:#fff}
+.feature-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px}
+@media(max-width:980px){.feature-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:640px){.feature-grid{grid-template-columns:1fr}}
+.feature{
+  padding:32px 28px;background:#fff;border:1px solid var(--line);
+  border-radius:var(--rad);transition:all .25s;position:relative;overflow:hidden;
+}
+.feature:hover{transform:translateY(-4px);box-shadow:var(--shadow-lg);border-color:transparent}
+.feature::before{
+  content:"";position:absolute;top:0;left:0;right:0;height:3px;
+  background:linear-gradient(90deg, var(--accent), var(--purple));
+  transform:scaleX(0);transform-origin:left;transition:transform .3s
+}
+.feature:hover::before{transform:scaleX(1)}
+.feature-icon{
+  width:48px;height:48px;border-radius:12px;display:flex;align-items:center;justify-content:center;
+  background:rgba(0,87,184,.08);color:var(--accent);font-size:22px;margin-bottom:18px;
+}
+.feature h3{font-size:19px;font-weight:700;margin-bottom:10px;letter-spacing:-.01em}
+.feature p{font-size:14px;color:var(--ink2);line-height:1.65}
+.feature ul{font-size:13px;color:var(--ink2);line-height:1.85;margin-top:12px;padding-left:18px}
+.feature ul li{margin-bottom:3px}
+
+/* ─── HOW IT WORKS ─── */
+.steps{padding:100px 0;background:linear-gradient(180deg, #fff 0%, var(--bg) 100%)}
+.step-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:32px;margin-top:50px}
+@media(max-width:860px){.step-grid{grid-template-columns:1fr;gap:24px}}
+.step{position:relative;padding:32px 28px;background:#fff;border-radius:var(--rad);box-shadow:var(--shadow)}
+.step-num{
+  position:absolute;top:-20px;left:28px;
+  width:42px;height:42px;border-radius:50%;
+  background:linear-gradient(135deg, var(--accent), var(--purple));
+  color:#fff;display:flex;align-items:center;justify-content:center;
+  font-family:'DM Serif Display',Georgia,serif;font-size:20px;font-weight:600;
+  box-shadow:0 6px 16px rgba(124,58,237,.35)
+}
+.step h3{font-size:20px;font-weight:700;margin:18px 0 10px;letter-spacing:-.01em}
+.step p{font-size:14px;color:var(--ink2);line-height:1.65}
+
+/* ─── COMPLIANCE ─── */
+.compliance{padding:100px 0}
+.compliance-card{
+  background:linear-gradient(135deg, rgba(0,87,184,.04) 0%, rgba(124,58,237,.04) 100%);
+  border:1px solid rgba(0,87,184,.12);border-radius:var(--rad-lg);
+  padding:54px 56px;display:grid;grid-template-columns:1.2fr 1fr;gap:48px;align-items:center
+}
+@media(max-width:860px){.compliance-card{grid-template-columns:1fr;padding:36px 28px}}
+.compliance h2{font-family:'DM Serif Display',Georgia,serif;font-size:36px;letter-spacing:-.02em;font-weight:400;line-height:1.15;margin-bottom:16px}
+.compliance p{color:var(--ink2);line-height:1.7;margin-bottom:14px;font-size:15px}
+.compliance ul{margin:14px 0;padding-left:20px;color:var(--ink2);line-height:1.85;font-size:14.5px}
+.country-flags{display:flex;flex-wrap:wrap;gap:10px;margin-top:20px}
+.country-pill{
+  background:#fff;padding:7px 14px;border-radius:50px;
+  font-size:12.5px;font-weight:600;color:var(--ink2);
+  border:1px solid var(--line);display:inline-flex;align-items:center;gap:6px
+}
+.compliance-visual{
+  background:#fff;border-radius:var(--rad);padding:24px;box-shadow:var(--shadow);
+}
+.cv-row{display:flex;justify-content:space-between;align-items:center;padding:14px 0;border-bottom:1px solid var(--line)}
+.cv-row:last-child{border-bottom:none}
+.cv-flag{font-size:22px;width:36px}
+.cv-info{flex:1;margin-left:8px}
+.cv-country{font-weight:600;font-size:13.5px;color:var(--ink)}
+.cv-rule{font-size:11.5px;color:var(--ink3)}
+.cv-badge{font-size:11px;font-weight:700;padding:4px 10px;border-radius:50px}
+.cv-ucits{background:rgba(245,158,11,.15);color:#92400e}
+.cv-us{background:rgba(0,135,90,.15);color:#065f46}
+
+/* ─── METRICS SHOWCASE ─── */
+.showcase{padding:100px 0;background:#fff;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.showcase-grid{display:grid;grid-template-columns:1fr 1fr;gap:64px;align-items:center}
+@media(max-width:980px){.showcase-grid{grid-template-columns:1fr}}
+.metric-card{
+  background:linear-gradient(135deg, #fafbfc 0%, #fff 100%);
+  border:1px solid var(--line);border-radius:var(--rad);padding:24px;box-shadow:var(--shadow)
+}
+.mc-name{display:flex;align-items:baseline;gap:10px;margin-bottom:12px;flex-wrap:wrap}
+.mc-name strong{font-size:18px;font-weight:800;letter-spacing:-.02em}
+.mc-name span{font-size:12.5px;color:var(--ink3)}
+.mc-name .pill{
+  background:rgba(124,58,237,.1);color:var(--purple);
+  padding:3px 9px;border-radius:4px;font-size:10px;font-weight:700;letter-spacing:.04em
+}
+.mc-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin:14px 0;padding:12px;background:#fff;border-radius:10px;border:1px solid var(--line)}
+.mc-grid > div{text-align:center}
+.mc-grid label{display:block;font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink3);font-weight:700;margin-bottom:3px}
+.mc-grid b{font-size:13px;font-weight:700;color:var(--ink)}
+.mc-grid b.g{color:var(--green)}.mc-grid b.r{color:var(--red)}
+.mc-why{font-size:13px;color:var(--ink2);line-height:1.65;background:#fff;padding:14px;border-radius:10px;border-left:3px solid var(--purple)}
+.mc-why strong{color:var(--ink);font-weight:700}
+
+/* ─── CTA STRIP ─── */
+.cta-strip{
+  padding:80px 0;
+  background:linear-gradient(135deg, var(--accent) 0%, var(--purple) 100%);
+  color:#fff;text-align:center;position:relative;overflow:hidden
+}
+.cta-strip::before{
+  content:"";position:absolute;inset:0;
+  background-image:radial-gradient(circle at 20% 50%, rgba(255,255,255,.08) 0%, transparent 50%),
+                  radial-gradient(circle at 80% 30%, rgba(255,255,255,.08) 0%, transparent 50%);
+}
+.cta-strip > div{position:relative;z-index:1}
+.cta-strip h2{font-family:'DM Serif Display',Georgia,serif;font-size:clamp(34px,4vw,52px);line-height:1.1;letter-spacing:-.02em;font-weight:400;margin-bottom:18px}
+.cta-strip p{font-size:17px;opacity:.92;max-width:580px;margin:0 auto 32px;line-height:1.65}
+.cta-strip .btn-primary{background:#fff;color:var(--accent);box-shadow:0 6px 20px rgba(0,0,0,.2)}
+.cta-strip .btn-primary:hover{background:#fff;color:var(--purple)}
+.cta-strip .btn-secondary{background:rgba(255,255,255,.1);color:#fff;border:1px solid rgba(255,255,255,.3);backdrop-filter:blur(10px)}
+.cta-strip .btn-secondary:hover{background:rgba(255,255,255,.18);color:#fff}
+
+/* ─── FOOTER ─── */
+footer{background:var(--ink);color:rgba(255,255,255,.7);padding:64px 0 32px;font-size:13.5px}
+.footer-grid{display:grid;grid-template-columns:1.5fr 1fr 1fr 1fr;gap:48px;margin-bottom:48px}
+@media(max-width:760px){.footer-grid{grid-template-columns:1fr 1fr;gap:32px}}
+.footer-brand h4{color:#fff;font-size:21px;font-weight:800;letter-spacing:-.03em;margin-bottom:12px}
+.footer-brand p{font-size:13px;line-height:1.7;max-width:280px}
+footer h5{color:#fff;font-size:13px;text-transform:uppercase;letter-spacing:.1em;margin-bottom:14px;font-weight:700}
+footer ul{list-style:none;padding:0}
+footer ul li{margin-bottom:9px}
+footer ul li a{color:rgba(255,255,255,.65);text-decoration:none;font-size:13.5px;transition:color .15s}
+footer ul li a:hover{color:#fff}
+.footer-bottom{padding-top:32px;border-top:1px solid rgba(255,255,255,.1);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:14px;font-size:12px;color:rgba(255,255,255,.5)}
+.footer-bottom a{color:rgba(255,255,255,.55);text-decoration:none;margin-left:18px}
+
+@keyframes slideIn{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+.fade-in{animation:slideIn .8s ease-out both}
+.delay-1{animation-delay:.1s}.delay-2{animation-delay:.2s}.delay-3{animation-delay:.3s}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-inner">
+    <a href="#" class="logo">
+      <span class="logo-mark">W</span>
+      Wealth Analyzer
+    </a>
+    <div class="nav-links">
+      <a href="#features">Features</a>
+      <a href="#how">How it works</a>
+      <a href="#compliance">Compliance</a>
+      <a href="#sources">Research</a>
+      <a class="btn btn-primary" href="wealth-analyzer.html">Launch app &rarr;</a>
+    </div>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="container">
+    <div class="hero-grid">
+      <div class="fade-in">
+        <div class="hero-tag">
+          <span class="dot"></span>
+          16 institutional research sources &middot; live consensus engine
+        </div>
+        <h1>The portfolio that thinks like <span class="grad">a private banker.</span></h1>
+        <p class="lead">
+          Build evidence-backed portfolios in seconds. The AI synthesizes research from BlackRock, JPMorgan, Goldman, Morgan Stanley, UBS and 11 more &mdash; then constructs your client's allocation from 792 institutionally-vetted funds. Country-aware. UCITS-compliant. Fully transparent.
+        </p>
+        <div class="hero-cta">
+          <a href="wealth-analyzer.html" class="btn btn-primary btn-xl">Open the app &mdash; it's free &rarr;</a>
+          <a href="#how" class="btn btn-secondary btn-lg">See how it works</a>
+        </div>
+        <div class="hero-trust">
+          <span class="hero-trust-label">Powered by research from</span>
+          <div class="hero-trust-logos">
+            <span>BlackRock</span><span>JPMorgan</span><span>Goldman Sachs</span><span>Morgan Stanley</span><span>Citi</span><span>UBS</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="mockup fade-in delay-2">
+        <div class="mockup-header">
+          <span class="mockup-dot r"></span>
+          <span class="mockup-dot y"></span>
+          <span class="mockup-dot g"></span>
+          <div class="mockup-url">wealth-analyzer.html &mdash; AI Portfolio Builder</div>
+        </div>
+        <div class="mockup-body">
+          <div style="font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--ink3);font-weight:700;margin-bottom:10px">AI-Generated Portfolio &middot; Switzerland Client</div>
+          <div class="m-kpi">
+            <div class="m-kpi-card">
+              <div class="m-kpi-lbl">Expected &mu;</div>
+              <div class="m-kpi-val g">9.8%</div>
+            </div>
+            <div class="m-kpi-card">
+              <div class="m-kpi-lbl">Sharpe</div>
+              <div class="m-kpi-val b">0.47</div>
+            </div>
+            <div class="m-kpi-card">
+              <div class="m-kpi-lbl">10y CAGR</div>
+              <div class="m-kpi-val p">11.2%</div>
+            </div>
+          </div>
+          <div class="m-pos">
+            <div class="m-pos-row">
+              <span class="m-pos-tkr">CSPX</span>
+              <span class="m-pos-pct">28.0%</span>
+            </div>
+            <div class="m-pos-name">iShares Core S&amp;P 500 UCITS &middot; Ireland</div>
+            <div class="m-pos-metric">
+              <div><span>Sharpe</span><strong>0.40</strong></div>
+              <div><span>5y</span><strong>14.7%</strong></div>
+              <div><span>ER</span><strong>0.07%</strong></div>
+              <div><span>AUM</span><strong>$90B</strong></div>
+            </div>
+          </div>
+          <div class="m-pos">
+            <div class="m-pos-row">
+              <span class="m-pos-tkr">IWDA</span>
+              <span class="m-pos-pct">22.0%</span>
+            </div>
+            <div class="m-pos-name">iShares Core MSCI World UCITS &middot; Ireland</div>
+            <div class="m-pos-metric">
+              <div><span>Sharpe</span><strong>0.42</strong></div>
+              <div><span>5y</span><strong>13.0%</strong></div>
+              <div><span>ER</span><strong>0.20%</strong></div>
+              <div><span>AUM</span><strong>$80B</strong></div>
+            </div>
+          </div>
+          <div class="m-pos">
+            <div class="m-pos-row">
+              <span class="m-pos-tkr">SGLN</span>
+              <span class="m-pos-pct">8.0%</span>
+            </div>
+            <div class="m-pos-name">iShares Physical Gold ETC &middot; Jersey</div>
+            <div class="m-pos-metric">
+              <div><span>Sharpe</span><strong>0.14</strong></div>
+              <div><span>5y</span><strong>11.0%</strong></div>
+              <div><span>ER</span><strong>0.12%</strong></div>
+              <div><span>AUM</span><strong>$15B</strong></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<section class="stats">
+  <div class="container">
+    <div class="stats-grid">
+      <div>
+        <div class="stat-v">792</div>
+        <div class="stat-l">Institutional funds &middot; ETFs &amp; SICAVs</div>
+      </div>
+      <div>
+        <div class="stat-v">16</div>
+        <div class="stat-l">Research sources &middot; auto-synthesized</div>
+      </div>
+      <div>
+        <div class="stat-v">19</div>
+        <div class="stat-l">Countries &middot; UCITS-compliant by default</div>
+      </div>
+      <div>
+        <div class="stat-v">1,000+</div>
+        <div class="stat-l">Monte Carlo paths &middot; per simulation</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="institutions" id="sources">
+  <div class="container">
+    <div class="inst-label">Research synthesized live from</div>
+    <div class="inst-grid">
+      <span class="inst-name">BofA / Merrill Lynch</span>
+      <span class="inst-name">JPMorgan</span>
+      <span class="inst-name">Morgan Stanley</span>
+      <span class="inst-name">Citi</span>
+      <span class="inst-name">Goldman Sachs</span>
+      <span class="inst-name">Julius Baer</span>
+      <span class="inst-name">UBS</span>
+      <span class="inst-name">Vontobel</span>
+      <span class="inst-name">Pictet</span>
+      <span class="inst-name">FactSet</span>
+      <span class="inst-name">Bloomberg</span>
+      <span class="inst-name">Oppenheimer</span>
+      <span class="inst-name">Seeking Alpha</span>
+      <span class="inst-name">BlackRock</span>
+      <span class="inst-name">Eaton Vance</span>
+      <span class="inst-name">Morningstar</span>
+    </div>
+  </div>
+</section>
+
+<section class="features" id="features">
+  <div class="container">
+    <div style="text-align:center;max-width:760px;margin:0 auto 60px">
+      <div class="section-tag">Capabilities</div>
+      <h2 class="section-h" style="margin:0 auto 18px">Built for advisors. Engineered like Bloomberg.</h2>
+      <p class="section-p" style="margin:0 auto">Every feature you'd expect from an institutional desk &mdash; without the platform fees, the consultants, or the procurement cycle.</p>
+    </div>
+    <div class="feature-grid">
+      <div class="feature">
+        <div class="feature-icon">&#129302;</div>
+        <h3>AI Portfolio Agent</h3>
+        <p>Reads research from 16 institutions, extracts asset-class consensus, picks funds with full quantitative rationale. Powered by Claude or our deterministic engine &mdash; your choice.</p>
+        <ul>
+          <li>Sharpe-weighted selection</li>
+          <li>Auto-tilts on net votes</li>
+          <li>Cites every research source</li>
+        </ul>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">&#127757;</div>
+        <h3>Country-aware compliance</h3>
+        <p>Swiss client gets UCITS funds. US client gets 40-Act funds. Singapore client gets local + UCITS. The wrapper rules are built in &mdash; your AI agent can't recommend funds the client can't legally buy.</p>
+        <ul>
+          <li>PRIIPs / KID enforcement</li>
+          <li>Ireland + Luxembourg domicile</li>
+          <li>271 UCITS &middot; 521 US 40-Act</li>
+        </ul>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">&#128202;</div>
+        <h3>Full fund metrics</h3>
+        <p>Every fund carries Sharpe, &beta;, &mu;, &sigma;, max drawdown, 1y/3y/5y/10y returns, holdings count, AUM, inception, tracking error. The AI uses all 14 metrics &mdash; and so does the position card.</p>
+        <ul>
+          <li>80+ flagships with real 2024 data</li>
+          <li>Class-typical defaults for the rest</li>
+          <li>Risk-adjusted scoring</li>
+        </ul>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">&#127922;</div>
+        <h3>Monte Carlo simulation</h3>
+        <p>1,000 paths per scenario with Box-Muller log-normal returns, real amortization on loans, configurable percentile bands. Goal probability calculated as calendar-year targets, not "years from now."</p>
+        <ul>
+          <li>7 risk profiles &middot; 4 time horizons</li>
+          <li>Country-aware inflation (19 regions)</li>
+          <li>P10 / P50 / P90 bands</li>
+        </ul>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">&#127963;</div>
+        <h3>Tax-aware modeling</h3>
+        <p>Federal + state/canton brackets for US (12 states), Canada (3 provinces), UK, Australia, Germany, Switzerland (3 cantons), Japan, Singapore. ETF preference for high tax-sensitivity flags.</p>
+        <ul>
+          <li>Per-bracket marginal rates</li>
+          <li>Per-state / canton overrides</li>
+          <li>ETF wrapper preference logic</li>
+        </ul>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">&#128200;</div>
+        <h3>Live market data</h3>
+        <p>36 market data providers across equities, news, crypto, FX, and macro. Auto-failover chain 18-deep &mdash; if one provider rate-limits, the next 17 kick in. All keys health-checked every 2 minutes.</p>
+        <ul>
+          <li>Equities: Finnhub, Polygon, Tiingo, FMP</li>
+          <li>FX: Frankfurter, OXR, CurrencyAPI</li>
+          <li>Macro: FRED, Treasury, NewsAPI</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="steps" id="how">
+  <div class="container">
+    <div style="text-align:center;max-width:740px;margin:0 auto">
+      <div class="section-tag">How it works</div>
+      <h2 class="section-h" style="margin:0 auto 18px">From client meeting to portfolio in 90 seconds.</h2>
+      <p class="section-p" style="margin:0 auto">No build step. No backend. Open the file, fill the form, get a portfolio with citations.</p>
+    </div>
+    <div class="step-grid">
+      <div class="step">
+        <div class="step-num">1</div>
+        <h3>Capture the client</h3>
+        <p>Household profile, income, expenses, assets, liabilities, goals &mdash; plus address country so we know what wrapper applies. Two-client households fully supported.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <h3>AI reads the research</h3>
+        <p>The agent extracts asset-class consensus across all 16 institutional sources &mdash; overweight equities, underweight EM debt, gold tailwinds &mdash; and tilts allocation accordingly.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <h3>Get a portfolio with citations</h3>
+        <p>6&ndash;12 positions, each with Sharpe / 5y return / max DD / AUM cited, plus the research source that drove the call. Apply to Investment Proposal in one click.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="compliance" id="compliance">
+  <div class="container">
+    <div class="compliance-card">
+      <div>
+        <div class="section-tag">Regulatory wrapper</div>
+        <h2>Built for cross-border wealth.</h2>
+        <p>The platform encodes the regulatory wrapper rules so you don't have to remember them. When you set a Swiss client's address, the universe drops from 792 funds to 271 UCITS-passportable funds &mdash; automatically.</p>
+        <p>The AI agent literally cannot recommend US 40-Act funds to European retail clients. PRIIPs requires a KID. UCITS funds have one. US funds don't. Done.</p>
+        <ul>
+          <li><strong>US / Canada:</strong> US 40-Act ETFs and mutual funds (521 funds)</li>
+          <li><strong>UK / EU / CH:</strong> Ireland + Luxembourg UCITS (253 funds)</li>
+          <li><strong>HK / SG:</strong> UCITS + local listings (271 funds)</li>
+          <li><strong>Asia / MENA / LatAm:</strong> UCITS via offshore wrappers</li>
+        </ul>
+        <div class="country-flags">
+          <span class="country-pill">&#127482;&#127480; US</span>
+          <span class="country-pill">&#127464;&#127462; Canada</span>
+          <span class="country-pill">&#127468;&#127463; UK</span>
+          <span class="country-pill">&#127464;&#127469; Switzerland</span>
+          <span class="country-pill">&#127465;&#127466; Germany</span>
+          <span class="country-pill">&#127467;&#127479; France</span>
+          <span class="country-pill">&#127470;&#127481; Italy</span>
+          <span class="country-pill">&#127466;&#127480; Spain</span>
+          <span class="country-pill">&#127475;&#127473; NL</span>
+          <span class="country-pill">&#127480;&#127468; Singapore</span>
+          <span class="country-pill">&#127469;&#127472; Hong Kong</span>
+          <span class="country-pill">&#127471;&#127477; Japan</span>
+          <span class="country-pill">&#127462;&#127482; Australia</span>
+          <span class="country-pill">&#127470;&#127475; India</span>
+          <span class="country-pill">&#127463;&#127479; Brazil</span>
+          <span class="country-pill">&#127480;&#127462; Saudi</span>
+          <span class="country-pill">&#127487;&#127462; SA</span>
+          <span class="country-pill">+3 more</span>
+        </div>
+      </div>
+      <div class="compliance-visual">
+        <div style="font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--ink3);font-weight:700;margin-bottom:14px">Wrapper applied per country</div>
+        <div class="cv-row">
+          <div class="cv-flag">&#127464;&#127469;</div>
+          <div class="cv-info">
+            <div class="cv-country">Switzerland</div>
+            <div class="cv-rule">PRIIPs &middot; UCITS required</div>
+          </div>
+          <div class="cv-badge cv-ucits">UCITS</div>
+        </div>
+        <div class="cv-row">
+          <div class="cv-flag">&#127482;&#127480;</div>
+          <div class="cv-info">
+            <div class="cv-country">United States</div>
+            <div class="cv-rule">SEC &middot; 40-Act registered</div>
+          </div>
+          <div class="cv-badge cv-us">40-Act</div>
+        </div>
+        <div class="cv-row">
+          <div class="cv-flag">&#127468;&#127463;</div>
+          <div class="cv-info">
+            <div class="cv-country">United Kingdom</div>
+            <div class="cv-rule">FCA &middot; UCITS or NURS</div>
+          </div>
+          <div class="cv-badge cv-ucits">UCITS</div>
+        </div>
+        <div class="cv-row">
+          <div class="cv-flag">&#127480;&#127468;</div>
+          <div class="cv-info">
+            <div class="cv-country">Singapore</div>
+            <div class="cv-rule">MAS &middot; UCITS + SGX local</div>
+          </div>
+          <div class="cv-badge cv-ucits">UCITS+SG</div>
+        </div>
+        <div class="cv-row">
+          <div class="cv-flag">&#127465;&#127466;</div>
+          <div class="cv-info">
+            <div class="cv-country">Germany</div>
+            <div class="cv-rule">BaFin &middot; UCITS / XETRA</div>
+          </div>
+          <div class="cv-badge cv-ucits">UCITS</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="showcase">
+  <div class="container">
+    <div class="showcase-grid">
+      <div>
+        <div class="section-tag">Per-fund metrics</div>
+        <h2 class="section-h">Every position. Twelve metrics. One rationale.</h2>
+        <p class="section-p">The AI agent doesn't just pick tickers &mdash; it picks them for reasons, and shows you all of them. Sharpe ratio. Five-year return. Max drawdown. AUM. Holdings count. The research source that drove the call.</p>
+        <p style="font-size:14px;color:var(--ink3);line-height:1.7;max-width:540px">Every rationale cites at least one quantitative metric and at least one research source. Fully deterministic &mdash; the same inputs always produce the same output. No black boxes.</p>
+      </div>
+      <div class="metric-card">
+        <div class="mc-name">
+          <strong>CSPX</strong>
+          <span>iShares Core S&amp;P 500 UCITS Acc</span>
+          <span class="pill">UCITS &middot; IE</span>
+        </div>
+        <div class="mc-grid">
+          <div><label>ER</label><b>0.07%</b></div>
+          <div><label>Yield</label><b>0.0%</b></div>
+          <div><label>Sharpe</label><b>0.40</b></div>
+          <div><label>&mu;</label><b>10.5%</b></div>
+          <div><label>&sigma;</label><b>15.0%</b></div>
+          <div><label>&beta;</label><b>1.00</b></div>
+          <div><label>Max DD</label><b class="r">-24%</b></div>
+          <div><label>5y</label><b class="g">14.7%</b></div>
+          <div><label>10y</label><b class="g">12.4%</b></div>
+          <div><label>Holdings</label><b>503</b></div>
+          <div><label>AUM</label><b>$90B</b></div>
+          <div><label>Inception</label><b>2010</b></div>
+        </div>
+        <div class="mc-why">
+          <strong>&#128161; Why selected:</strong> 14/16 providers overweight US large-cap equity &middot; CSPX cited by BlackRock, Morgan Stanley &middot; Sharpe 0.40 &middot; 10y 12.4% &middot; ER 0.07% &middot; &sigma; 15.0% &middot; 503 holdings &middot; AUM $90B &middot; UCITS-passportable (IE-domiciled) &mdash; eligible for CH resident under PRIIPs
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="cta-strip">
+  <div class="container">
+    <div>
+      <h2>Stop building portfolios in Excel.</h2>
+      <p>Open the app. Capture a client. Get an evidence-backed portfolio in 90 seconds. No signup. No backend. No procurement cycle.</p>
+      <div style="display:flex;gap:14px;justify-content:center;flex-wrap:wrap">
+        <a href="wealth-analyzer.html" class="btn btn-primary btn-xl">Launch the app &rarr;</a>
+        <a href="admin.html" class="btn btn-secondary btn-xl">Open admin console</a>
+      </div>
+      <div style="margin-top:24px;font-size:12.5px;opacity:.75">100% browser-based &middot; works offline &middot; zero data leaves your machine</div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="container">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <h4>Wealth Analyzer</h4>
+        <p>Institutional-grade portfolio intelligence in a single browser tab. Built for advisors who want Bloomberg-quality output without the Bloomberg invoice.</p>
+      </div>
+      <div>
+        <h5>Product</h5>
+        <ul>
+          <li><a href="wealth-analyzer.html">Main app</a></li>
+          <li><a href="admin.html">Admin console</a></li>
+          <li><a href="#features">Features</a></li>
+          <li><a href="#compliance">Compliance</a></li>
+        </ul>
+      </div>
+      <div>
+        <h5>Universe</h5>
+        <ul>
+          <li>521 US 40-Act funds</li>
+          <li>253 UCITS funds</li>
+          <li>18 local listings</li>
+          <li>12 crypto ETPs</li>
+        </ul>
+      </div>
+      <div>
+        <h5>Coverage</h5>
+        <ul>
+          <li>19 client countries</li>
+          <li>16 research sources</li>
+          <li>36 market data feeds</li>
+          <li>7 risk profiles</li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <div>&copy; 2026 Wealth Analyzer &middot; Single-file portfolio intelligence</div>
+      <div>
+        <a href="wealth-analyzer.html">Launch app</a>
+        <a href="admin.html">Admin</a>
+      </div>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

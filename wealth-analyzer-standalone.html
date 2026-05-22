@@ -2674,7 +2674,7 @@ input[type=date]{color-scheme:light}
 // ═══════════════════════════════════════════════════════════
 // VERSION — updated by build-standalone.pl on each build
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260522-1328";
+const APP_VERSION = "20260522-1339";
 
 // ═══════════════════════════════════════════════════════════
 // DATA
@@ -7146,6 +7146,96 @@ function renderAIGenResult(rec, brief){
 }
 
 // ── Apply the AI recommendation as actual proposal positions ───
+// ─── Import AI portfolio recommendation from admin console ─────────────
+// Admin's exportToProposal() writes `wa_pending_proposal` with shape:
+// {title, builtAt, positions:[{ticker, weight, rationale, ...}]}
+// We poll on load + every 30s for new exports.
+function checkForAdminProposal(){
+  try {
+    const raw = localStorage.getItem("wa_pending_proposal");
+    if(!raw) return;
+    const data = JSON.parse(raw);
+    if(!data || !Array.isArray(data.positions) || data.positions.length === 0) return;
+    // Don't re-prompt for already-seen exports
+    const seenKey = "wa_pending_proposal_seen";
+    const seenAt = localStorage.getItem(seenKey);
+    if(seenAt && seenAt === data.builtAt) return;
+    // Show banner
+    showAdminProposalBanner(data);
+  } catch(e){ console.warn("checkForAdminProposal:", e); }
+}
+
+function showAdminProposalBanner(data){
+  let banner = $("adminProposalBanner");
+  if(!banner){
+    banner = document.createElement("div");
+    banner.id = "adminProposalBanner";
+    banner.style.cssText = "position:fixed;top:14px;right:14px;max-width:380px;background:linear-gradient(135deg,#7c3aed,#0057b8);color:#fff;padding:14px 18px;border-radius:12px;box-shadow:0 10px 30px rgba(124,58,237,.35);z-index:9999;font-family:inherit;animation:slideIn .3s ease-out";
+    document.body.appendChild(banner);
+  }
+  const builtDate = new Date(data.builtAt).toLocaleString();
+  banner.innerHTML = `
+    <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;opacity:.85;margin-bottom:4px">🤖 New AI Portfolio from Admin</div>
+    <div style="font-size:13.5px;font-weight:600;margin-bottom:4px">${data.positions.length} positions · ${escapeForHTML(data.title||"Portfolio recommendation")}</div>
+    <div style="font-size:10.5px;opacity:.8;margin-bottom:10px">Generated ${builtDate}</div>
+    <div style="display:flex;gap:8px">
+      <button onclick="importAdminProposal()" style="background:#fff;color:#7c3aed;border:none;padding:7px 14px;border-radius:6px;font-weight:700;cursor:pointer;font-size:12px">↓ Import to Proposal</button>
+      <button onclick="dismissAdminProposal()" style="background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.3);padding:7px 14px;border-radius:6px;font-weight:600;cursor:pointer;font-size:12px">Dismiss</button>
+    </div>
+  `;
+}
+
+function importAdminProposal(){
+  try {
+    const raw = localStorage.getItem("wa_pending_proposal");
+    if(!raw) return;
+    const data = JSON.parse(raw);
+    if(!data || !Array.isArray(data.positions)) return;
+    // Reuse the existing apply path by stashing into lastAIGenResult
+    window.lastAIGenResult = {
+      summary: data.title || "AI Portfolio from admin console",
+      positions: data.positions.map(p => ({
+        ticker: p.ticker || p.tkr,
+        weight: +(p.weight ?? p.alloc ?? 0),
+        rationale: p.rationale || ""
+      })),
+      allocationByClass: data.allocationByClass || {},
+      expectedReturn: data.expectedReturn || 0.07,
+      expectedVolatility: data.expectedVolatility || 0.12
+    };
+    if(typeof applyAIRecommendationToProposal === "function"){
+      applyAIRecommendationToProposal();
+    }
+    localStorage.setItem("wa_pending_proposal_seen", data.builtAt);
+    dismissAdminProposal();
+    // Switch user to Investment Proposal tab
+    const propTab = document.querySelector('[data-tab="proposal"], [onclick*="\'proposal\'"]');
+    if(propTab) propTab.click();
+  } catch(e){ console.error("importAdminProposal:", e); alert("Could not import: " + e.message); }
+}
+
+function dismissAdminProposal(){
+  try {
+    const raw = localStorage.getItem("wa_pending_proposal");
+    if(raw){
+      const data = JSON.parse(raw);
+      if(data && data.builtAt) localStorage.setItem("wa_pending_proposal_seen", data.builtAt);
+    }
+  } catch(_){}
+  const banner = document.getElementById("adminProposalBanner");
+  if(banner) banner.remove();
+}
+
+window.importAdminProposal = importAdminProposal;
+window.dismissAdminProposal = dismissAdminProposal;
+window.checkForAdminProposal = checkForAdminProposal;
+
+// Poll on load + every 30s
+window.addEventListener("load", () => {
+  setTimeout(checkForAdminProposal, 1500);
+  setInterval(checkForAdminProposal, 30000);
+});
+
 function applyAIRecommendationToProposal(){
   if(!lastAIGenResult || !lastAIGenResult.positions) return;
   const target = num("prAmount", 100000);

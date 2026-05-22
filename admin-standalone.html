@@ -1030,7 +1030,7 @@ Citations:<br>
 // ═══════════════════════════════════════════════════════════
 // VERSION + UTILS
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260522-1328";
+const APP_VERSION = "20260522-1339";
 const $ = (id) => document.getElementById(id);
 const $$ = (sel, ctx) => Array.from((ctx||document).querySelectorAll(sel));
 
@@ -3197,9 +3197,23 @@ function renderAgentResult(rec){
 
 function exportToProposal(){
   if(!lastAgentRec) return;
-  localStorage.setItem("wa_pending_proposal", JSON.stringify({title:"AI Agent Recommendation",builtAt:new Date().toISOString(),positions:lastAgentRec.positions||[]}));
-  toast("Exported to main app's wa_pending_proposal","ok");
-  addLog("ok","Exported recommendation to main app");
+  // Export full payload — main app's banner imports it via wa_pending_proposal
+  const payload = {
+    title: lastAgentRec.summary ? lastAgentRec.summary.slice(0,90) : "AI Agent Recommendation",
+    builtAt: new Date().toISOString(),
+    positions: lastAgentRec.positions || [],
+    allocationByClass: lastAgentRec.allocation || lastAgentRec.allocationByClass || {},
+    expectedReturn: lastAgentRec.expectedReturn,
+    expectedVolatility: lastAgentRec.expectedVolatility,
+    portfolioMetrics: lastAgentRec.portfolioMetrics,
+    domicilePolicy: lastAgentRec.domicilePolicy,
+    universeFiltered: lastAgentRec.universeFiltered,
+    risks: lastAgentRec.risks,
+    summary: lastAgentRec.summary
+  };
+  localStorage.setItem("wa_pending_proposal", JSON.stringify(payload));
+  toast("✓ Exported — open main app to see the import banner","ok");
+  addLog("ok","Exported recommendation to main app (wa_pending_proposal)");
 }
 
 function manualResearchRefresh(){
