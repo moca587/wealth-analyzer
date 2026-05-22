@@ -309,8 +309,13 @@ Down payment | 2028 | 150000</textarea>
   </div>
 
   <div class="panel">
-    <div class="ptitle">② Research Sources Active</div>
-    <div class="pdesc">Tick which institutional sources to include in the agent's reasoning. Refresh sources in the <strong>Research Library</strong> tab first.</div>
+    <div class="ptitle">② Research Sources <span style="color:var(--green);font-weight:600">— all 16 enabled by default</span></div>
+    <div class="pdesc">All institutional sources are automatically pulled when you open this tab. Background refresh runs every 30 minutes. Uncheck any you want to exclude from the agent's reasoning.</div>
+    <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+      <button class="btn-ghost" data-action="manualResearchRefresh">↻ Pull latest now</button>
+      <button class="btn-ghost" data-action="tickAllResearch">✓ Tick all</button>
+      <button class="btn-ghost" data-action="untickAllResearch">✕ Untick all</button>
+    </div>
     <div id="agResearch" class="grid3" style="gap:8px"></div>
   </div>
 
@@ -1024,22 +1029,63 @@ function kpiCard(label, value, sub, tone){
 // ═══════════════════════════════════════════════════════════
 // RENDER: AGENT
 // ═══════════════════════════════════════════════════════════
-function renderAgent(){
-  // Populate research source picker
+// Renders the research source picker. All sources are TICKED BY DEFAULT;
+// any without cached items show a loading spinner that resolves as the
+// background refresh completes.
+function renderAgentPicker(){
   const picker = $("agResearch");
-  if(picker){
-    picker.innerHTML = RESEARCH_PROVIDERS.map(p => {
-      const cfg = getProviderCfg(p.id);
-      const cnt = (cfg.items||[]).length;
-      return `<label style="display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:#fff;font-size:11.5px;cursor:pointer">
-        <input type="checkbox" data-prov="${p.id}" ${cnt>0?'checked':''} ${cnt===0?'disabled':''}>
-        <span class="rp-icon" style="background:${p.color};width:22px;height:22px;font-size:11px">${p.letter}</span>
-        <span style="flex:1">${p.name}</span>
-        <span style="color:var(--ink3);font-size:10px">${cnt}</span>
-      </label>`;
-    }).join("");
-  }
-  // Populate fund universe table
+  if(!picker) return;
+  picker.innerHTML = RESEARCH_PROVIDERS.map(p => {
+    const cfg = getProviderCfg(p.id);
+    const cnt = (cfg.items||[]).length;
+    // ✓ all sources checked by default (regardless of cache state)
+    return `<label style="display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:#fff;font-size:11.5px;cursor:pointer" id="agPick-${p.id}">
+      <input type="checkbox" data-prov="${p.id}" checked>
+      <span class="rp-icon" style="background:${p.color};width:22px;height:22px;font-size:11px">${p.letter}</span>
+      <span style="flex:1">${escapeHtml(p.name)}</span>
+      <span style="color:${cnt>0?'var(--green)':'var(--ink3)'};font-size:10px;font-weight:600" id="agPickCnt-${p.id}">${cnt>0?cnt+' items':'⏳ loading…'}</span>
+    </label>`;
+  }).join("");
+}
+
+// Background-refresh ALL research providers in parallel, updating each card's
+// item count as it completes. Runs on agent-tab open AND on a 30-minute interval.
+let _agentRefreshInProgress = false;
+async function autoRefreshAllResearch(silent){
+  if(_agentRefreshInProgress) return;
+  _agentRefreshInProgress = true;
+  if(!silent) toast("Pulling research from 16 sources…","ok");
+  const status = $("agStatus");
+  if(status && !silent) status.textContent = "📡 Refreshing 16 institutional sources…";
+  let done = 0, ok = 0;
+  // Parallel refresh with cap of 4 concurrent (be polite to corsproxy)
+  const queue = RESEARCH_PROVIDERS.slice();
+  const workers = Array(4).fill(0).map(async () => {
+    while(queue.length){
+      const p = queue.shift(); if(!p) continue;
+      try {
+        const cnt = await refreshProvider(p.id);
+        if(cnt > 0) ok++;
+        // Live-update this card's count
+        const el = $("agPickCnt-"+p.id);
+        if(el){ el.textContent = cnt + ' items'; el.style.color = cnt > 0 ? 'var(--green)' : 'var(--amber)'; }
+      } catch(_){}
+      done++;
+      if(status && !silent) status.textContent = `📡 Refreshed ${done}/16 sources (${ok} with data)…`;
+    }
+  });
+  await Promise.all(workers);
+  _agentRefreshInProgress = false;
+  if(status && !silent) status.textContent = `✓ ${ok}/16 sources ready — click 🤖 Build Portfolio Now`;
+  addLog("ok", `Auto-refreshed research: ${ok}/16 sources have items`);
+}
+
+function renderAgent(){
+  // 1. Render the picker with all 16 sources TICKED
+  renderAgentPicker();
+  // 2. Trigger background auto-refresh (non-blocking)
+  setTimeout(() => autoRefreshAllResearch(false), 100);
+  // 3. Populate fund universe table
   const ft = $("fundTable");
   if(ft){
     ft.innerHTML = '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Ticker</th><th>Name</th><th>Sponsor</th><th>Class</th><th>Vehicle</th><th class="num">ER%</th><th class="num">Yld%</th></tr></thead><tbody>' +
@@ -1222,6 +1268,29 @@ function exportToProposal(){
   toast("Exported to main app's wa_pending_proposal","ok");
   addLog("ok","Exported recommendation to main app");
 }
+
+function manualResearchRefresh(){
+  autoRefreshAllResearch(false);
+}
+function tickAllResearch(){
+  $$("#agResearch input[type=checkbox]").forEach(cb => cb.checked = true);
+  toast("All 16 sources ticked","ok");
+}
+function untickAllResearch(){
+  $$("#agResearch input[type=checkbox]").forEach(cb => cb.checked = false);
+  toast("All sources unticked","warn");
+}
+
+// Auto-refresh research every 30 minutes (when admin is open)
+setInterval(() => {
+  // Only refresh if any provider has stale (>30min) or no data
+  const cfg = getResearchCfg();
+  const stale = RESEARCH_PROVIDERS.some(p => {
+    const c = cfg[p.id] || {};
+    return !c.lastRefresh || (Date.now() - c.lastRefresh) > 30 * 60 * 1000;
+  });
+  if(stale) autoRefreshAllResearch(true);
+}, 30 * 60 * 1000);
 
 // ═══════════════════════════════════════════════════════════
 // RENDER: RESEARCH
@@ -1806,6 +1875,24 @@ function init(){
     addLog("ok","Self-test ✓ — "+requiredEls.length+" tabs verified");
   }
   addLog("info","Admin console loaded v"+APP_VERSION);
+
+  // Kick off background research refresh on every page load (so by the time
+  // the user opens the AI Agent tab, every source is already populated)
+  setTimeout(() => {
+    try {
+      const cfg = getResearchCfg();
+      const stale = RESEARCH_PROVIDERS.some(p => {
+        const c = cfg[p.id] || {};
+        return !c.lastRefresh || (Date.now() - c.lastRefresh) > 30 * 60 * 1000;
+      });
+      if(stale){
+        addLog("info","Background research pull starting…");
+        autoRefreshAllResearch(true);
+      } else {
+        addLog("ok","Research cache fresh (<30min) — skipping initial pull");
+      }
+    } catch(e){ console.error("[init research]",e); }
+  }, 2000);
 }
 
 // Defer init to AFTER all top-level declarations parse
@@ -1820,6 +1907,9 @@ window.loadProfile = loadProfile;
 window.loadProfileFile = loadProfileFile;
 window.runAgent = runAgent;
 window.exportToProposal = exportToProposal;
+window.manualResearchRefresh = manualResearchRefresh;
+window.tickAllResearch = tickAllResearch;
+window.untickAllResearch = untickAllResearch;
 window.refreshAll = refreshAll;
 window.enableAll = enableAll;
 window.disableAll = disableAll;
