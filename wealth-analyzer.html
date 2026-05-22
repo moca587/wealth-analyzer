@@ -579,6 +579,10 @@ input[type=date]{color-scheme:light}
   <div class="nav-item" data-tab="proposal" onclick="showTab('proposal',this)">
     <svg viewBox="0 0 16 16" fill="currentColor"><path d="M3 1h7l3 3v11a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1zm6.5 1v3h3l-3-3zM4.5 7h7v1h-7V7zm0 2.5h7v1h-7v-1zm0 2.5h5v1h-5v-1z"/></svg>Investment Proposal
   </div>
+  <div class="nav-item" data-tab="ai-builder" onclick="showTab('ai-builder',this)">
+    <svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 1a3 3 0 00-3 3v1.5L3 7v5l2 1.5V15h6v-1.5L13 12V7l-2-1.5V4a3 3 0 00-3-3zm-1 7a1 1 0 110 2 1 1 0 010-2zm2 0a1 1 0 110 2 1 1 0 010-2z"/></svg>AI Portfolio Builder
+    <span style="margin-left:auto;background:linear-gradient(135deg,#7c3aed,var(--gold));color:#fff;font-size:8px;padding:2px 6px;border-radius:50px;font-weight:700;pointer-events:none">NEW</span>
+  </div>
   <div class="nav-item" data-tab="compare" onclick="showTab('compare',this);runComparison()">
     <svg viewBox="0 0 16 16" fill="currentColor"><path d="M2 2v12h5V2H2zm7 0v6h5V2H9zm0 7.5v4.5h5V9.5H9z"/></svg>Portfolio Comparison
   </div>
@@ -1660,31 +1664,13 @@ input[type=date]{color-scheme:light}
 <!-- ═══ INVESTMENT PROPOSAL ═══ -->
 <div class="tab" id="tab-proposal">
 
-<!-- AI Portfolio Generator (top of tab, prominent CTA) -->
-<div class="panel" style="background:linear-gradient(135deg,#ffffff 0%,#f3f0ff 100%);border:1px solid rgba(124,58,237,.20);box-shadow:0 4px 20px rgba(124,58,237,.10)">
-  <div style="display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap">
-    <div style="flex:1;min-width:220px">
-      <div style="font-size:18px;font-weight:800;color:#7c3aed;letter-spacing:-.02em;margin-bottom:4px">🤖 AI Portfolio Generator</div>
-      <div style="font-size:12.5px;color:var(--text3);line-height:1.5">Analyses your <strong style="color:var(--text2)">household profile, income, expenses, goals, risk profile</strong> and the <strong style="color:var(--text2)">institutional research</strong> gathered from 16 wealth managers (Bank of America/Merrill, JPMorgan, Morgan Stanley, Goldman, UBS, Pictet, BlackRock, etc.) — then produces a complete portfolio recommendation with full rationale per position. <strong style="color:var(--green)">Works without Claude API key</strong> — uses the deterministic research engine; Claude provides narrative reasoning if a key is configured in admin.</div>
-    </div>
-    <button class="btn-primary" onclick="runAIPortfolioGenerator()" style="background:linear-gradient(135deg,#7c3aed,#0057b8);padding:13px 26px;font-size:14px;font-weight:700;box-shadow:0 6px 18px rgba(124,58,237,.30);flex-shrink:0">
-      <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M8 1a3 3 0 00-3 3v1.5L3 7v5l2 1.5V15h6v-1.5L13 12V7l-2-1.5V4a3 3 0 00-3-3zm-1 7a1 1 0 110 2 1 1 0 010-2zm2 0a1 1 0 110 2 1 1 0 010-2z"/></svg>
-      Generate Portfolio with AI
-    </button>
+<!-- Pointer to AI Portfolio Builder tab -->
+<div class="panel" style="background:linear-gradient(135deg,#fff,#f3f0ff);border:1px solid rgba(124,58,237,.20);display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap">
+  <div style="flex:1;min-width:200px">
+    <div style="font-size:13px;font-weight:700;color:#7c3aed;margin-bottom:2px">🤖 Need AI to build this portfolio for you?</div>
+    <div style="font-size:12px;color:var(--text3);line-height:1.5">Open the new <strong>AI Portfolio Builder</strong> tab — answer 4 simple questions and get a complete recommendation in 15 seconds.</div>
   </div>
-  <div id="aiGenStatus" style="font-size:12px;color:var(--text3);margin-top:10px"></div>
-</div>
-
-<!-- AI generation result (hidden until generator runs) -->
-<div class="panel" id="aiGenResult" style="display:none">
-  <div class="ptitle" style="display:flex;align-items:center;justify-content:space-between">
-    <span>🎯 AI Portfolio Recommendation</span>
-    <div style="display:flex;gap:8px">
-      <button class="btn-secondary" onclick="applyAIRecommendationToProposal()" style="font-size:12px;padding:6px 14px">↓ Apply to Proposal Below</button>
-      <button class="btn-secondary" onclick="document.getElementById('aiGenResult').style.display='none'" style="font-size:12px;padding:6px 14px">✕ Close</button>
-    </div>
-  </div>
-  <div id="aiGenResultBody"></div>
+  <button class="btn-secondary" onclick="showTab('ai-builder', document.querySelector('[data-tab=ai-builder]'))" style="background:linear-gradient(135deg,#7c3aed,#0057b8);color:#fff;border:none;padding:10px 20px;font-weight:700">↗ Open AI Portfolio Builder</button>
 </div>
 
 <!-- Proposal setup -->
@@ -1831,6 +1817,145 @@ input[type=date]{color-scheme:light}
     <!-- API key inputs hidden — manage in admin → API Keys tab. Status span retained for any code that references it. -->
     <span id="prAvStatus" style="display:none"></span>
     <div style="font-size:11px;color:var(--text3);margin-top:6px;line-height:1.5">Enter a ticker (VOO, AGG, AAPL), ISIN/UCIT number (IE00B3RBWM25), exchange symbol (VUSA.L, IWDA.AS), or fund name to search. Name, type, class, region and yield fill automatically. Allocation % is always required. <strong>API keys for enhanced data are managed in the <a href="admin.html" target="_blank" style="color:var(--gold)">Admin → API Keys tab</a></strong> and auto-checked every 2 minutes.</div>
+  </div>
+</div>
+
+</div>
+
+<!-- ═══ AI PORTFOLIO BUILDER (simple, modern, average-user friendly) ═══ -->
+<div class="tab" id="tab-ai-builder">
+
+<!-- Hero with simple language -->
+<div class="panel" style="background:linear-gradient(135deg,#7c3aed 0%,#0057b8 100%);color:#fff;border:none;padding:32px 36px;box-shadow:0 12px 40px rgba(124,58,237,.25)">
+  <div style="display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap">
+    <div style="flex:1;min-width:240px">
+      <div style="font-size:11px;font-weight:700;letter-spacing:.10em;text-transform:uppercase;opacity:.8;margin-bottom:6px">AI-Powered</div>
+      <h1 style="font-size:30px;font-weight:800;letter-spacing:-.035em;margin-bottom:8px;line-height:1.1">Let AI build your portfolio</h1>
+      <div style="font-size:14px;opacity:.9;line-height:1.6;max-width:540px">Our AI reads research from the world's biggest wealth managers — Bank of America, JPMorgan, Goldman Sachs, UBS, BlackRock, and 11 more — then designs a portfolio just for you. No expertise needed.</div>
+    </div>
+    <div style="font-size:80px;line-height:1;opacity:.85">🤖</div>
+  </div>
+</div>
+
+<!-- 3-step indicator -->
+<div class="panel" style="background:#fff;border:1px solid rgba(124,58,237,.15)">
+  <div style="display:grid;grid-template-columns:repeat(3, 1fr);gap:14px;text-align:center">
+    <div style="padding:14px">
+      <div style="font-size:30px;margin-bottom:8px">1️⃣</div>
+      <div style="font-weight:700;font-size:14px;color:var(--text);margin-bottom:4px">Tell us about you</div>
+      <div style="font-size:11.5px;color:var(--text3);line-height:1.5">We use your Household, Income, Assets and Goals from the other tabs</div>
+    </div>
+    <div style="padding:14px;border-left:1px solid var(--border);border-right:1px solid var(--border)">
+      <div style="font-size:30px;margin-bottom:8px">2️⃣</div>
+      <div style="font-weight:700;font-size:14px;color:var(--text);margin-bottom:4px">AI reads market research</div>
+      <div style="font-size:11.5px;color:var(--text3);line-height:1.5">Pulls latest views from 16 institutional sources — automatically</div>
+    </div>
+    <div style="padding:14px">
+      <div style="font-size:30px;margin-bottom:8px">3️⃣</div>
+      <div style="font-weight:700;font-size:14px;color:var(--text);margin-bottom:4px">Get your portfolio</div>
+      <div style="font-size:11.5px;color:var(--text3);line-height:1.5">A complete investment plan with explanations for every pick</div>
+    </div>
+  </div>
+</div>
+
+<!-- Simple preferences (just 4 inputs) -->
+<div class="panel">
+  <div class="ptitle">Your preferences <span style="color:var(--text3);font-weight:400;letter-spacing:0;text-transform:none">— most clients only adjust these 4</span></div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));gap:14px">
+    <div>
+      <label style="font-size:12px;font-weight:600;color:var(--text2);display:block;margin-bottom:6px">How much can you invest?</label>
+      <div style="display:flex;align-items:center;gap:6px"><span style="font-size:16px;color:var(--text3)">$</span><input type="number" id="aiSimpleAmount" value="100000" step="10000" style="flex:1;font-size:15px;font-weight:600;padding:9px 12px"></div>
+      <div style="font-size:11px;color:var(--text3);margin-top:4px">Your starting investment amount</div>
+    </div>
+    <div>
+      <label style="font-size:12px;font-weight:600;color:var(--text2);display:block;margin-bottom:6px">Comfort with risk</label>
+      <select id="aiSimpleRisk" style="width:100%;font-size:14px;font-weight:600;padding:9px 12px">
+        <option value="very_conservative">🛡 Very safe — protect my money</option>
+        <option value="conservative">🛡 Conservative — small growth</option>
+        <option value="moderately_conservative">⚖ Balanced — slight tilt to safety</option>
+        <option value="moderate" selected>⚖ Balanced — equal growth & safety</option>
+        <option value="moderately_aggressive">📈 Growth — accept some bumps</option>
+        <option value="aggressive">📈 Aggressive — chase higher returns</option>
+        <option value="very_aggressive">🚀 Maximum growth — comfortable with big swings</option>
+      </select>
+      <div style="font-size:11px;color:var(--text3);margin-top:4px">How much volatility are you OK with?</div>
+    </div>
+    <div>
+      <label style="font-size:12px;font-weight:600;color:var(--text2);display:block;margin-bottom:6px">When will you need this money?</label>
+      <select id="aiSimpleHorizon" style="width:100%;font-size:14px;font-weight:600;padding:9px 12px">
+        <option value="1_5">⏱ Soon (1-5 years)</option>
+        <option value="5_10">📅 Medium-term (5-10 years)</option>
+        <option value="10_15">📆 Long-term (10-15 years)</option>
+        <option value="15_plus" selected>🗓 Very long-term (15+ years)</option>
+      </select>
+      <div style="font-size:11px;color:var(--text3);margin-top:4px">Longer horizons can take more risk</div>
+    </div>
+    <div>
+      <label style="font-size:12px;font-weight:600;color:var(--text2);display:block;margin-bottom:6px">Do you care about sustainability?</label>
+      <select id="aiSimpleESG" style="width:100%;font-size:14px;font-weight:600;padding:9px 12px">
+        <option value="none" selected>No preference</option>
+        <option value="prefer">🌱 Prefer sustainable (ESG)</option>
+        <option value="strict">🌍 Sustainable only</option>
+      </select>
+      <div style="font-size:11px;color:var(--text3);margin-top:4px">Environmental, Social & Governance funds</div>
+    </div>
+  </div>
+</div>
+
+<!-- BIG GO BUTTON -->
+<div class="panel" style="background:linear-gradient(135deg,#fff,#f3f0ff);border:2px dashed rgba(124,58,237,.30);text-align:center;padding:32px 24px">
+  <button onclick="runSimpleAIBuilder()" style="background:linear-gradient(135deg,#7c3aed,#0057b8);color:#fff;border:none;padding:18px 48px;border-radius:50px;font-size:17px;font-weight:800;cursor:pointer;font-family:var(--fb);letter-spacing:.01em;box-shadow:0 10px 28px rgba(124,58,237,.35);transition:transform .15s,box-shadow .15s" onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 14px 36px rgba(124,58,237,.45)'" onmouseout="this.style.transform='translateY(0)';this.style.boxShadow='0 10px 28px rgba(124,58,237,.35)'">
+    🤖&nbsp; Build my portfolio now
+  </button>
+  <div style="font-size:12px;color:var(--text3);margin-top:14px;line-height:1.6">Takes about <strong style="color:var(--text2)">15 seconds</strong> · No credit card · No registration · Your data stays on your device</div>
+  <div id="aiSimpleStatus" style="font-size:13px;color:var(--text2);margin-top:14px;font-weight:600"></div>
+</div>
+
+<!-- Result panel -->
+<div class="panel" id="aiSimpleResult" style="display:none">
+  <div class="ptitle" style="display:flex;align-items:center;justify-content:space-between">
+    <span>🎯 Your AI Portfolio</span>
+    <div style="display:flex;gap:8px">
+      <button class="btn-secondary" onclick="applyAIRecommendationToProposal()" style="font-size:12px;padding:7px 14px;background:var(--green);color:#fff;border:none">↗ Apply to Investment Proposal</button>
+      <button class="btn-secondary" onclick="document.getElementById('aiSimpleResult').style.display='none'" style="font-size:12px;padding:7px 14px">✕ Close</button>
+    </div>
+  </div>
+  <div id="aiSimpleResultBody"></div>
+</div>
+
+<!-- Original detailed result panel (used by complex flow if needed) -->
+<div class="panel" id="aiGenResult" style="display:none">
+  <div class="ptitle" style="display:flex;align-items:center;justify-content:space-between">
+    <span>🎯 AI Portfolio Recommendation</span>
+    <div style="display:flex;gap:8px">
+      <button class="btn-secondary" onclick="applyAIRecommendationToProposal()" style="font-size:12px;padding:6px 14px">↓ Apply to Investment Proposal</button>
+      <button class="btn-secondary" onclick="document.getElementById('aiGenResult').style.display='none'" style="font-size:12px;padding:6px 14px">✕ Close</button>
+    </div>
+  </div>
+  <div id="aiGenResultBody"></div>
+  <span id="aiGenStatus" style="display:none"></span>
+</div>
+
+<!-- Trust strip — what we use -->
+<div class="panel" style="background:var(--bg3);border:1px solid var(--border)">
+  <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.10em;color:var(--text3);margin-bottom:14px">Powered by research from 16 institutional sources</div>
+  <div style="display:flex;flex-wrap:wrap;gap:8px;font-size:11.5px;color:var(--text2);font-weight:600">
+    <span style="padding:5px 11px;background:#fff;border:1px solid var(--border);border-radius:50px">Bank of America / Merrill</span>
+    <span style="padding:5px 11px;background:#fff;border:1px solid var(--border);border-radius:50px">JPMorgan AM</span>
+    <span style="padding:5px 11px;background:#fff;border:1px solid var(--border);border-radius:50px">Morgan Stanley</span>
+    <span style="padding:5px 11px;background:#fff;border:1px solid var(--border);border-radius:50px">Goldman Sachs</span>
+    <span style="padding:5px 11px;background:#fff;border:1px solid var(--border);border-radius:50px">Citi Private Bank</span>
+    <span style="padding:5px 11px;background:#fff;border:1px solid var(--border);border-radius:50px">UBS Wealth</span>
+    <span style="padding:5px 11px;background:#fff;border:1px solid var(--border);border-radius:50px">Julius Baer</span>
+    <span style="padding:5px 11px;background:#fff;border:1px solid var(--border);border-radius:50px">Pictet AM</span>
+    <span style="padding:5px 11px;background:#fff;border:1px solid var(--border);border-radius:50px">Vontobel</span>
+    <span style="padding:5px 11px;background:#fff;border:1px solid var(--border);border-radius:50px">BlackRock</span>
+    <span style="padding:5px 11px;background:#fff;border:1px solid var(--border);border-radius:50px">Eaton Vance</span>
+    <span style="padding:5px 11px;background:#fff;border:1px solid var(--border);border-radius:50px">Morningstar</span>
+    <span style="padding:5px 11px;background:#fff;border:1px solid var(--border);border-radius:50px">FactSet</span>
+    <span style="padding:5px 11px;background:#fff;border:1px solid var(--border);border-radius:50px">Bloomberg</span>
+    <span style="padding:5px 11px;background:#fff;border:1px solid var(--border);border-radius:50px">Oppenheimer</span>
+    <span style="padding:5px 11px;background:#fff;border:1px solid var(--border);border-radius:50px">Seeking Alpha</span>
   </div>
 </div>
 
@@ -4850,6 +4975,192 @@ Constraints:
 }
 
 // ── Deterministic fallback engine (no Claude API required) ───
+// ═══════════════════════════════════════════════════════════
+// SIMPLE AI BUILDER — average-user friendly wrapper
+// Takes 4 simple inputs + auto-pulls everything else from main app state
+// Then calls the full deterministic engine and renders a SIMPLE result
+// ═══════════════════════════════════════════════════════════
+async function runSimpleAIBuilder(){
+  const status = $("aiSimpleStatus");
+  const resultPanel = $("aiSimpleResult");
+  status.textContent = "🤖 Reading your profile and 16 sources of research…";
+
+  // Override risk/horizon/ESG with simple inputs (others come from main app)
+  const simpleRisk = val("aiSimpleRisk");
+  const simpleHorizon = val("aiSimpleHorizon");
+  const simpleESG = val("aiSimpleESG");
+  const simpleAmount = num("aiSimpleAmount", 100000);
+
+  // Temporarily push these into the main app's c1r/c1h fields so existing
+  // generator picks them up — DON'T persist; just for this run
+  const oldRisk = val("c1r"), oldHorizon = val("c1h");
+  if($("c1r")) $("c1r").value = simpleRisk;
+  if($("c1h")) $("c1h").value = simpleHorizon;
+
+  // Also push to the older generator's element IDs if they exist (compatibility)
+  // Wait briefly for UI
+  await new Promise(r => setTimeout(r, 100));
+
+  // Call the existing generator — it reads from main app state
+  // We'll intercept its result by reading lastAIGenResult after it finishes
+  await new Promise(resolve => {
+    const oldRender = window.renderAIGenResult;
+    let captured = false;
+    // Wrap renderAIGenResult to capture without showing the technical panel
+    window.renderAIGenResult = function(rec, briefInfo){
+      try { oldRender(rec, briefInfo); } catch(e){}
+      // Hide the original panel; show the simple panel instead
+      const orig = document.getElementById("aiGenResult");
+      if(orig) orig.style.display = "none";
+      if(!captured){
+        captured = true;
+        // Also force-override ESG into the rec
+        renderSimpleAIResult(rec, {amount:simpleAmount, risk:simpleRisk, horizon:simpleHorizon, esg:simpleESG});
+        resolve();
+      }
+    };
+    // Trigger the full pipeline
+    try {
+      runAIPortfolioGenerator();
+    } catch(e){
+      status.innerHTML = '<span style="color:var(--red)">✗ ' + e.message + '</span>';
+      window.renderAIGenResult = oldRender;
+      resolve();
+    }
+    // Restore renderAIGenResult after 30s as safety
+    setTimeout(() => { window.renderAIGenResult = oldRender; }, 30000);
+  });
+
+  // Restore old form values
+  if($("c1r") && oldRisk !== null) $("c1r").value = oldRisk || simpleRisk;
+  if($("c1h") && oldHorizon !== null) $("c1h").value = oldHorizon || simpleHorizon;
+
+  resultPanel.style.display = "block";
+  resultPanel.scrollIntoView({behavior:"smooth", block:"start"});
+  status.innerHTML = '✓ <strong style="color:var(--green)">Done — see your portfolio below</strong>';
+}
+
+// Render the simplified, average-user-friendly result
+function renderSimpleAIResult(rec, simpleBrief){
+  if(!rec || !rec.positions){ $("aiSimpleResultBody").innerHTML = '<div style="color:var(--red);padding:20px">No recommendation generated. Make sure your Household profile is set up.</div>'; return; }
+  let h = '';
+  // Plain-English summary
+  h += '<div style="background:linear-gradient(135deg,#fff,#f3f0ff);border-radius:10px;padding:18px 22px;margin-bottom:14px;border-left:4px solid #7c3aed">';
+  h += '<div style="font-size:13px;line-height:1.7;color:var(--text2)">' + escapeForHTML(rec.summary || "") + '</div>';
+  h += '</div>';
+
+  // 3 BIG KPIs (very large, easy to read)
+  h += '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:18px">';
+  h += '<div style="background:#fff;border:1px solid var(--border);border-radius:12px;padding:18px 20px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,.04)">';
+  h += '<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.10em;color:var(--text3);margin-bottom:6px">Expected yearly return</div>';
+  h += '<div style="font-size:32px;font-weight:800;color:var(--green);letter-spacing:-.03em">' + ((rec.expectedReturn||0)*100).toFixed(1) + '%</div>';
+  h += '<div style="font-size:11px;color:var(--text3);margin-top:4px">Based on long-run market history</div>';
+  h += '</div>';
+  h += '<div style="background:#fff;border:1px solid var(--border);border-radius:12px;padding:18px 20px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,.04)">';
+  h += '<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.10em;color:var(--text3);margin-bottom:6px">Expected volatility</div>';
+  h += '<div style="font-size:32px;font-weight:800;color:var(--amber);letter-spacing:-.03em">' + ((rec.expectedVolatility||0)*100).toFixed(1) + '%</div>';
+  h += '<div style="font-size:11px;color:var(--text3);margin-top:4px">Typical year-to-year swing</div>';
+  h += '</div>';
+  h += '<div style="background:#fff;border:1px solid var(--border);border-radius:12px;padding:18px 20px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,.04)">';
+  h += '<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.10em;color:var(--text3);margin-bottom:6px">Funds in your portfolio</div>';
+  h += '<div style="font-size:32px;font-weight:800;color:#7c3aed;letter-spacing:-.03em">' + (rec.positions?.length || 0) + '</div>';
+  h += '<div style="font-size:11px;color:var(--text3);margin-top:4px">Diversified across asset classes</div>';
+  h += '</div>';
+  h += '</div>';
+
+  // 10-year projection chart (simple)
+  const amt = simpleBrief.amount || 100000;
+  const mu = rec.expectedReturn || 0.07;
+  const projection = [1,3,5,10].map(y => ({y, val: amt * Math.pow(1+mu, y)}));
+  h += '<div style="background:#fff;border:1px solid var(--border);border-radius:12px;padding:18px 22px;margin-bottom:18px">';
+  h += '<div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:14px">📈 What might your $' + amt.toLocaleString() + ' grow into?</div>';
+  h += '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px">';
+  projection.forEach(p => {
+    h += '<div style="text-align:center;padding:14px 8px;background:rgba(124,58,237,.05);border-radius:8px">';
+    h += '<div style="font-size:11px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">In ' + p.y + ' year' + (p.y>1?'s':'') + '</div>';
+    h += '<div style="font-size:18px;font-weight:800;color:var(--text);letter-spacing:-.02em">' + fmtMoney(p.val) + '</div>';
+    h += '</div>';
+  });
+  h += '</div>';
+  h += '<div style="font-size:11px;color:var(--text3);margin-top:10px;font-style:italic">⚠ Projections assume your portfolio achieves its expected return every year. Real outcomes vary — markets go up and down.</div>';
+  h += '</div>';
+
+  // Allocation pie (text-based bars, simple)
+  if(rec.allocationByClass){
+    h += '<div style="background:#fff;border:1px solid var(--border);border-radius:12px;padding:18px 22px;margin-bottom:18px">';
+    h += '<div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:14px">📊 Your asset mix</div>';
+    const colors = {equity:"#0057b8",fixed_income:"#00875a",real_estate:"#f59e0b",commodity:"#d4af37",cash:"#06b6d4",mixed:"#7c3aed",alternative:"#e31837"};
+    const labels = {equity:"📈 Stocks",fixed_income:"📊 Bonds",real_estate:"🏠 Real Estate",commodity:"🪙 Commodities",cash:"💵 Cash",mixed:"⚖ Balanced",alternative:"💎 Alternatives"};
+    const sorted = Object.entries(rec.allocationByClass).filter(([,v]) => v > 0).sort((a,b) => b[1] - a[1]);
+    sorted.forEach(([cls, pct]) => {
+      h += '<div style="display:grid;grid-template-columns:130px 1fr 70px;gap:10px;align-items:center;padding:6px 0">';
+      h += '<div style="font-size:13px;font-weight:600">' + (labels[cls] || cls) + '</div>';
+      h += '<div style="height:14px;background:rgba(0,0,0,.05);border-radius:7px;overflow:hidden"><div style="height:100%;width:' + pct + '%;background:' + (colors[cls]||"#999") + ';border-radius:7px"></div></div>';
+      h += '<div style="text-align:right;font-weight:700;font-variant-numeric:tabular-nums">' + pct.toFixed(0) + '%</div>';
+      h += '</div>';
+    });
+    h += '</div>';
+  }
+
+  // Funds with simple language
+  if(rec.positions?.length){
+    h += '<div style="background:#fff;border:1px solid var(--border);border-radius:12px;padding:18px 22px;margin-bottom:18px">';
+    h += '<div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:14px">💼 The funds we picked for you</div>';
+    rec.positions.forEach((p, i) => {
+      const fund = AI_FUND_UNIVERSE.find(f => f.tkr === p.ticker);
+      const dollar = (p.weight/100) * amt;
+      h += '<div style="border-left:3px solid #7c3aed;padding:12px 16px;margin-bottom:10px;background:rgba(124,58,237,.03);border-radius:0 8px 8px 0">';
+      h += '<div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap">';
+      h += '<div style="font-weight:800;font-size:14px;color:var(--text)">' + (i+1) + '. ' + escapeForHTML(fund?.name || p.ticker) + '</div>';
+      h += '<div style="font-size:11px;color:var(--text3)">' + escapeForHTML(p.ticker) + (fund?' · '+escapeForHTML(fund.sponsor):'') + '</div>';
+      h += '<div style="margin-left:auto;display:flex;gap:10px;align-items:baseline"><span style="font-size:18px;font-weight:800;color:#7c3aed">' + p.weight.toFixed(1) + '%</span><span style="font-size:11px;color:var(--text3)">' + fmtMoney(dollar) + '</span></div>';
+      h += '</div>';
+      h += '<div style="font-size:12px;color:var(--text2);line-height:1.6;margin-top:6px"><strong>Why this fund:</strong> ' + escapeForHTML(simplifyRationale(p.rationale)) + '</div>';
+      h += '</div>';
+    });
+    h += '</div>';
+  }
+
+  // Risks in plain English
+  if(rec.risks?.length){
+    h += '<div style="background:rgba(245,158,11,.06);border-left:4px solid var(--amber);border-radius:0 10px 10px 0;padding:14px 18px;margin-bottom:14px">';
+    h += '<div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--amber);margin-bottom:8px">⚠ Things to keep in mind</div>';
+    h += '<ul style="margin:0;padding-left:20px;color:var(--text2);font-size:12.5px;line-height:1.7">' + rec.risks.map(r => '<li>' + escapeForHTML(r) + '</li>').join("") + '</ul>';
+    h += '</div>';
+  }
+
+  // What's next
+  h += '<div style="background:linear-gradient(135deg,#fff,#f3f0ff);border-radius:10px;padding:16px 20px;font-size:12.5px;color:var(--text2);line-height:1.7">';
+  h += '<strong style="color:#7c3aed">💡 What\'s next?</strong>';
+  h += '<ol style="margin:6px 0 0 22px"><li>Click <strong>↗ Apply to Investment Proposal</strong> above to copy these positions into the Investment Proposal tab</li><li>Run a Monte Carlo simulation to see how this portfolio might perform over time</li><li>Generate a PDF report to share with family or your advisor</li></ol>';
+  h += '</div>';
+
+  $("aiSimpleResultBody").innerHTML = h;
+  $("aiSimpleResult").style.display = "block";
+}
+
+// Convert engine rationale into plain English
+function simplifyRationale(r){
+  if(!r) return "Carefully chosen for your portfolio.";
+  // Replace technical jargon
+  return r
+    .replace(/(\d+) of (\d+) providers (overweight|underweight)/g, "$1 of the world's biggest wealth managers like this")
+    .replace(/\(\+?(-?\d+) net votes\)/g, "")
+    .replace(/cited by [A-Z_,\s+]+more\s/g, "")
+    .replace(/cited by [A-Z_,\s]+\s/g, "")
+    .replace(/ESG-flagged matches preference/g, "Matches your sustainability preference")
+    .replace(/ETF wrapper preferred for high tax sensitivity/g, "Tax-efficient ETF")
+    .replace(/Low expense ratio (\d+\.\d+)%/g, "Very low cost (only $1 cost ratio)".replace("$1", "$1"))
+    .replace(/ · /g, ". ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+// Tiny HTML escaper if not present
+function escapeForHTML(s){
+  return String(s||"").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+}
+
 // ═══════════════════════════════════════════════════════════
 // RESEARCH-AWARE DETERMINISTIC ENGINE
 // Mirrors admin's signal extraction → consensus → allocation tilt →

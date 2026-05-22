@@ -909,7 +909,13 @@ Citations:<br>
     <p>All credentials stored in browser localStorage and shared with the main app. <strong>Keys are auto-tested every 2 minutes</strong> to ensure they're working — see the Health column.</p>
   </div>
   <div class="panel">
-    <div class="ptitle">Free Providers <span style="color:var(--green);font-weight:600">— health-checked every 2 minutes</span></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:10px">
+      <div class="ptitle" style="margin:0">Free Providers <span style="color:var(--green);font-weight:600">— health-checked every 2 minutes</span></div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <span id="keyHealthSummary" style="font-size:11px;color:var(--ink3)"></span>
+        <button class="btn-primary" data-action="testAllKeysNow" style="font-size:12px;padding:8px 14px">⚡ Test All Configured Keys Now</button>
+      </div>
+    </div>
     <table class="tbl"><thead><tr><th>Provider</th><th>Key</th><th>Status</th><th>Health</th><th>Action</th></tr></thead><tbody id="keysTbl"></tbody></table>
     <div style="font-size:11px;color:var(--ink3);margin-top:10px;line-height:1.7">
       <strong>Equity quote APIs (free tier):</strong>
@@ -1024,7 +1030,7 @@ Citations:<br>
 // ═══════════════════════════════════════════════════════════
 // VERSION + UTILS
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260522-1049";
+const APP_VERSION = "20260522-1057";
 const $ = (id) => document.getElementById(id);
 const $$ = (sel, ctx) => Array.from((ctx||document).querySelectorAll(sel));
 
@@ -3000,6 +3006,21 @@ function setKeyHealth(h){ localStorage.setItem("wa_key_health", JSON.stringify(h
 
 function renderKeys(){
   const health = getKeyHealth();
+  // Update header summary with current health counts
+  const summary = document.getElementById("keyHealthSummary");
+  if(summary){
+    let cfg = 0, ok = 0, fail = 0, pending = 0;
+    API_KEY_DEFS.forEach(k => {
+      if(!localStorage.getItem(k.id)) return;
+      cfg++;
+      const hh = health[k.id];
+      if(!hh || !hh.lastCheck) pending++;
+      else if(hh.ok) ok++;
+      else fail++;
+    });
+    if(cfg === 0) summary.textContent = "No keys configured yet";
+    else summary.innerHTML = `<span style="color:var(--green);font-weight:600">${ok} working</span> · <span style="color:${fail>0?'var(--red)':'var(--ink3)'};font-weight:600">${fail} failing</span>${pending?` · <span style="color:var(--ink3)">${pending} pending</span>`:''}`;
+  }
   let h = '';
   // Header row gains a Health column
   $("keysTbl").parentElement.querySelector("thead tr").innerHTML = '<th>Provider</th><th>Key</th><th>Status</th><th>Health</th><th>Action</th>';
@@ -3238,6 +3259,35 @@ async function testKeyHealthNow(el){
   renderKeys();
   toast(r.ok ? `✓ ${id} working (${r.latencyMs}ms)` : `✗ ${id} failed: ${r.error}`, r.ok ? "ok" : "err");
   addLog(r.ok ? "ok" : "err", `Key check ${id}: ${r.ok ? `OK ${r.latencyMs}ms` : "FAILED — "+r.error}`);
+}
+
+// Manually test ALL configured keys right now
+async function testAllKeysNow(el){
+  const configured = API_KEY_DEFS.filter(k => !!localStorage.getItem(k.id));
+  if(configured.length === 0){
+    toast("No keys configured yet — add some keys first","warn");
+    return;
+  }
+  if(el){ el.disabled = true; el.textContent = `Testing 0/${configured.length}…`; }
+  const summary = document.getElementById("keyHealthSummary");
+  let ok = 0, fail = 0, idx = 0;
+  addLog("info", `Manual test of ${configured.length} configured key(s) started`);
+  for(const k of configured){
+    idx++;
+    if(el) el.textContent = `Testing ${idx}/${configured.length}: ${k.n}…`;
+    if(summary) summary.textContent = `Testing ${idx}/${configured.length} · ${ok} ok · ${fail} failing`;
+    const r = await testKeyHealth(k.id);
+    if(r.ok) ok++; else fail++;
+    // Live-update the table as we go
+    if(document.getElementById("tab-keys")?.classList.contains("active")) renderKeys();
+    await new Promise(r => setTimeout(r, 500));
+  }
+  if(el){ el.disabled = false; el.textContent = "⚡ Test All Configured Keys Now"; }
+  if(summary) summary.innerHTML = `<span style="color:var(--green);font-weight:600">${ok} working</span> · <span style="color:${fail>0?'var(--red)':'var(--ink3)'};font-weight:600">${fail} failing</span> · Tested ${new Date().toLocaleTimeString()}`;
+  toast(`Tested ${configured.length} keys — ${ok} working, ${fail} failing`, fail>0?"warn":"ok");
+  addLog(fail>0?"warn":"ok", `Manual key test complete: ${ok} working, ${fail} failing`);
+  renderKeys();
+  if(document.getElementById("tab-dashboard")?.classList.contains("active")) renderDashboard();
 }
 
 // Auto-check all configured keys every 2 minutes
@@ -4604,6 +4654,7 @@ window.changeTxCountry = changeTxCountry;
 window.renderTaxBracket = renderTaxBracket;
 window.saveKey = saveKey;
 window.testKeyHealthNow = testKeyHealthNow;
+window.testAllKeysNow = testAllKeysNow;
 window.copyLogs = copyLogs;
 window.downloadLogs = downloadLogs;
 window.clearLogs = clearLogs;
