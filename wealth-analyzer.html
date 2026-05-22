@@ -1670,6 +1670,33 @@ input[type=date]{color-scheme:light}
 <!-- ═══ INVESTMENT PROPOSAL ═══ -->
 <div class="tab" id="tab-proposal">
 
+<!-- AI Portfolio Generator (top of tab, prominent CTA) -->
+<div class="panel" style="background:linear-gradient(135deg,#ffffff 0%,#f3f0ff 100%);border:1px solid rgba(124,58,237,.20);box-shadow:0 4px 20px rgba(124,58,237,.10)">
+  <div style="display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap">
+    <div style="flex:1;min-width:220px">
+      <div style="font-size:18px;font-weight:800;color:#7c3aed;letter-spacing:-.02em;margin-bottom:4px">🤖 AI Portfolio Generator</div>
+      <div style="font-size:12.5px;color:var(--text3);line-height:1.5">Analyses your <strong style="color:var(--text2)">household profile, income, expenses, goals, risk profile</strong> and the <strong style="color:var(--text2)">institutional research</strong> gathered from 16 wealth managers — then produces a complete portfolio recommendation with full rationale per position.</div>
+    </div>
+    <button class="btn-primary" onclick="runAIPortfolioGenerator()" style="background:linear-gradient(135deg,#7c3aed,#0057b8);padding:13px 26px;font-size:14px;font-weight:700;box-shadow:0 6px 18px rgba(124,58,237,.30);flex-shrink:0">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M8 1a3 3 0 00-3 3v1.5L3 7v5l2 1.5V15h6v-1.5L13 12V7l-2-1.5V4a3 3 0 00-3-3zm-1 7a1 1 0 110 2 1 1 0 010-2zm2 0a1 1 0 110 2 1 1 0 010-2z"/></svg>
+      Generate Portfolio with AI
+    </button>
+  </div>
+  <div id="aiGenStatus" style="font-size:12px;color:var(--text3);margin-top:10px"></div>
+</div>
+
+<!-- AI generation result (hidden until generator runs) -->
+<div class="panel" id="aiGenResult" style="display:none">
+  <div class="ptitle" style="display:flex;align-items:center;justify-content:space-between">
+    <span>🎯 AI Portfolio Recommendation</span>
+    <div style="display:flex;gap:8px">
+      <button class="btn-secondary" onclick="applyAIRecommendationToProposal()" style="font-size:12px;padding:6px 14px">↓ Apply to Proposal Below</button>
+      <button class="btn-secondary" onclick="document.getElementById('aiGenResult').style.display='none'" style="font-size:12px;padding:6px 14px">✕ Close</button>
+    </div>
+  </div>
+  <div id="aiGenResultBody"></div>
+</div>
+
 <!-- Proposal setup -->
 <div class="panel">
   <div class="ptitle">Proposal Setup</div>
@@ -4664,6 +4691,343 @@ function drawPortfolioPie(){
 // ═══════════════════════════════════════════════════════════
 // INVESTMENT PROPOSAL
 // ═══════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════
+// AI PORTFOLIO GENERATOR — uses Claude API + shared research from admin
+// ═══════════════════════════════════════════════════════════
+let lastAIGenResult = null;
+
+// Curated fund universe (mirrors admin) — used by the agent prompt
+const AI_FUND_UNIVERSE = [
+  {tkr:"VTI",name:"Vanguard Total Stock Market ETF",cls:"equity",vehicle:"etf",er:0.03,yld:1.3,sponsor:"Vanguard"},
+  {tkr:"IVV",name:"iShares Core S&P 500 ETF",cls:"equity",vehicle:"etf",er:0.03,yld:1.3,sponsor:"BlackRock"},
+  {tkr:"QQQ",name:"Invesco QQQ Trust (Nasdaq-100)",cls:"equity",vehicle:"etf",er:0.20,yld:0.6,sponsor:"Invesco"},
+  {tkr:"VTV",name:"Vanguard Value ETF",cls:"equity",vehicle:"etf",er:0.04,yld:2.5,sponsor:"Vanguard"},
+  {tkr:"VIG",name:"Vanguard Dividend Appreciation ETF",cls:"equity",vehicle:"etf",er:0.06,yld:1.8,sponsor:"Vanguard"},
+  {tkr:"IWM",name:"iShares Russell 2000 (Small Cap)",cls:"equity",vehicle:"etf",er:0.19,yld:1.1,sponsor:"BlackRock"},
+  {tkr:"VXUS",name:"Vanguard Total International Stock",cls:"equity",vehicle:"etf",er:0.07,yld:3.0,sponsor:"Vanguard"},
+  {tkr:"IEFA",name:"iShares Core MSCI EAFE",cls:"equity",vehicle:"etf",er:0.07,yld:2.8,sponsor:"BlackRock"},
+  {tkr:"VWO",name:"Vanguard FTSE Emerging Markets",cls:"equity",vehicle:"etf",er:0.08,yld:2.8,sponsor:"Vanguard"},
+  {tkr:"AGG",name:"iShares Core US Aggregate Bond",cls:"fixed_income",vehicle:"etf",er:0.03,yld:4.5,sponsor:"BlackRock"},
+  {tkr:"BND",name:"Vanguard Total Bond Market",cls:"fixed_income",vehicle:"etf",er:0.03,yld:4.4,sponsor:"Vanguard"},
+  {tkr:"BNDX",name:"Vanguard Total International Bond",cls:"fixed_income",vehicle:"etf",er:0.07,yld:3.5,sponsor:"Vanguard"},
+  {tkr:"TIP",name:"iShares TIPS Bond ETF",cls:"fixed_income",vehicle:"etf",er:0.19,yld:5.4,sponsor:"BlackRock"},
+  {tkr:"MUB",name:"iShares National Muni Bond",cls:"fixed_income",vehicle:"etf",er:0.05,yld:3.4,sponsor:"BlackRock"},
+  {tkr:"HYG",name:"iShares iBoxx High Yield Corp",cls:"fixed_income",vehicle:"etf",er:0.49,yld:7.5,sponsor:"BlackRock"},
+  {tkr:"VNQ",name:"Vanguard Real Estate ETF (REITs)",cls:"real_estate",vehicle:"etf",er:0.13,yld:3.8,sponsor:"Vanguard"},
+  {tkr:"GLD",name:"SPDR Gold Shares",cls:"commodity",vehicle:"alternative",er:0.40,yld:0,sponsor:"State Street"},
+  {tkr:"BIL",name:"SPDR 1-3 Month T-Bill",cls:"cash",vehicle:"etf",er:0.14,yld:5.2,sponsor:"State Street"},
+  {tkr:"AOR",name:"iShares Growth Allocation 60/40",cls:"mixed",vehicle:"etf",er:0.15,yld:2.5,sponsor:"BlackRock"},
+  {tkr:"ESGV",name:"Vanguard ESG US Stock ETF",cls:"equity",vehicle:"etf",er:0.09,yld:1.4,sponsor:"Vanguard",esg:true}
+];
+
+async function runAIPortfolioGenerator(){
+  const status = $("aiGenStatus");
+  const resultPanel = $("aiGenResult");
+  const claudeKey = (function(){try{return localStorage.getItem("wa_claude_key")||"";}catch(e){return "";}})();
+
+  // ─── 1. Gather client data from the main app's current state ───
+  const inc1 = num("inc1", 0) + num("inc1b", 0);
+  const inc2 = num("inc2", 0) + num("inc2b", 0);
+  const grossIncome = inc1 + inc2;
+  const surplus = getNetSurplus();
+  const showC2 = $("c2card") && $("c2card").style.display !== "none";
+
+  const totalAssets = assets.reduce((s,a)=>s+(+a.value||0),0) + num("aProp",0) + num("aOther",0);
+  const totalDebt = loans.reduce((s,l)=>s+(+l.bal||0),0);
+  const netWorth = totalAssets - totalDebt;
+
+  const risk = val("c1r") || "moderate";
+  const horizon = val("c1h") || "15_plus";
+  const country = val("c1co") || "US";
+
+  // Goals
+  const goalLines = goals.map(g => {
+    const years = Math.max(1, g.endYear - g.startYear + 1);
+    return `${g.name} (${g.cat}, ${g.tier}) | target ${g.endYear} | $${g.amt.toLocaleString()}/yr × ${years}yr = $${(g.amt*years).toLocaleString()} total`;
+  });
+
+  // Children info (affects time-horizon decisions)
+  const childInfo = children.length > 0 ? `${children.length} child${children.length>1?"ren":""} on file` : "no children";
+
+  // Existing portfolio holdings (if any)
+  const holdingsLines = investments.length > 0 ?
+    investments.map(i => `${i.tkr||"?"} ${i.name||""} — ${(i.val/totalAssets*100).toFixed(1)}% of NW`).slice(0,15) : ["(no existing holdings)"];
+
+  // ─── 2. Pull research from admin's localStorage cache ───
+  let researchSnippets = "(no research cache — open admin → Research Library and pull sources)";
+  let researchProviderCount = 0;
+  try {
+    const cfg = JSON.parse(localStorage.getItem("wa_research_config") || "{}");
+    const blocks = [];
+    Object.entries(cfg).forEach(([providerId, c]) => {
+      if(c.enabled === false) return;
+      const items = (c.items || []).slice(0, 6);
+      if(items.length === 0) return;
+      researchProviderCount++;
+      blocks.push(`## ${providerId.toUpperCase()}\n${items.map(it => "  • " + (it.title||"")).join("\n")}`);
+    });
+    if(blocks.length > 0) researchSnippets = blocks.join("\n\n");
+  } catch(_){}
+
+  // ─── 3. UI: show loading state ───
+  resultPanel.style.display = "block";
+  resultPanel.scrollIntoView({behavior:"smooth", block:"start"});
+  status.innerHTML = '🤖 <strong style="color:#7c3aed">Analyzing your profile + ' + researchProviderCount + ' research sources…</strong>';
+  $("aiGenResultBody").innerHTML = '<div style="text-align:center;padding:40px 20px;color:var(--text3)"><div style="font-size:36px;margin-bottom:14px">🤖</div><div style="font-size:14px">Synthesizing institutional research…<br>Classifying client risk profile…<br>Constructing portfolio…</div></div>';
+
+  // ─── 4. If no Claude key, run deterministic engine fallback ───
+  if(!claudeKey){
+    return runDeterministicEngine({risk, horizon, country, netWorth, grossIncome, surplus, totalAssets, totalDebt, goals, investments});
+  }
+
+  // ─── 5. Build prompt and call Claude API ───
+  const universeStr = AI_FUND_UNIVERSE.map(f => `${f.tkr.padEnd(6)} | ${f.cls.padEnd(13)} | ${f.vehicle.padEnd(12)} | ER ${f.er.toFixed(2)}% | Yld ${f.yld.toFixed(1)}% | ${f.sponsor} | ${f.name}${f.esg?' [ESG]':''}`).join("\n");
+
+  const prompt = `You are a sophisticated portfolio construction AI at a major wealth management firm. Analyze the client's complete financial plan + institutional research to construct an optimal portfolio.
+
+# CLIENT FINANCIAL PLAN
+
+## Household
+- Risk profile: ${risk}
+- Time horizon: ${horizon}
+- Country: ${country}
+- Family: ${showC2 ? "Two clients (household)" : "Single client"}, ${childInfo}
+
+## Financial Position
+- Net worth: ${fmtMoney(netWorth)}
+- Total assets: ${fmtMoney(totalAssets)}
+- Total debt: ${fmtMoney(totalDebt)}
+- Gross household income: ${fmtMoney(grossIncome)}/yr
+- Annual surplus available for investment: ${fmtMoney(surplus)}/yr
+
+## Existing Holdings
+${holdingsLines.join("\n")}
+
+## Goals
+${goalLines.length > 0 ? goalLines.join("\n") : "(no goals specified)"}
+
+# INSTITUTIONAL RESEARCH (from ${researchProviderCount} sources)
+${researchSnippets}
+
+# AVAILABLE FUND UNIVERSE (pick only from this — ${AI_FUND_UNIVERSE.length} vehicles)
+${universeStr}
+
+# YOUR TASK
+Construct an optimal portfolio matching the client's risk profile + horizon + goals.
+
+Output STRICT JSON only, no surrounding prose:
+{
+  "summary": "2-3 sentence executive summary referencing the client's specific situation and key research findings",
+  "allocationByClass": {"equity":0,"fixed_income":0,"real_estate":0,"commodity":0,"cash":0,"mixed":0,"alternative":0},
+  "positions": [
+    {"ticker":"VTI","weight":25.0,"rationale":"1-2 sentences citing specific research source"}
+  ],
+  "expectedReturn": 0.07,
+  "expectedVolatility": 0.12,
+  "researchCitations": ["Source: insight"],
+  "risks": ["risk 1","risk 2"],
+  "rebalancingGuidance": "1-2 sentences"
+}
+
+Constraints:
+- Position weights MUST sum to 100
+- Pick only from the fund universe above
+- No single position above 25%
+- 6-12 positions total
+- Cite specific research sources in each position's rationale where relevant`;
+
+  try {
+    const r = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": claudeKey,
+        "anthropic-version": "2023-06-01",
+        "anthropic-dangerous-direct-browser-access": "true"
+      },
+      body: JSON.stringify({
+        model: "claude-opus-4-7",
+        max_tokens: 4000,
+        messages: [{role: "user", content: prompt}]
+      })
+    });
+    if(!r.ok){
+      const errText = await r.text();
+      throw new Error("Claude API " + r.status + ": " + errText.slice(0,200));
+    }
+    const j = await r.json();
+    const text = j.content?.[0]?.text || "";
+    const m = text.match(/\{[\s\S]*\}/);
+    if(!m) throw new Error("Agent returned no parseable JSON");
+    const rec = JSON.parse(m[0]);
+    lastAIGenResult = rec;
+    renderAIGenResult(rec, {risk, horizon, country, netWorth, grossIncome, surplus, researchProviderCount});
+    status.innerHTML = '✓ <strong style="color:#1b6841">Portfolio recommendation ready</strong> — review below, then click <strong>↓ Apply to Proposal Below</strong>';
+  } catch(e){
+    $("aiGenResultBody").innerHTML = '<div style="padding:14px;background:rgba(227,24,55,.05);border-left:3px solid var(--red);border-radius:6px"><strong style="color:var(--red)">Error:</strong> ' + e.message + '<div style="font-size:12px;color:var(--text3);margin-top:10px;line-height:1.6"><strong>Common issues:</strong><br>• Claude API key missing — set one in admin → API Keys tab<br>• Network/CORS error — check connection<br>• Rate-limited — wait 60s and retry</div></div>';
+    status.textContent = "✗ Generation failed";
+  }
+}
+
+// ── Deterministic fallback engine (no Claude API required) ───
+function runDeterministicEngine(brief){
+  const RISK_TO_ALLOC = {
+    very_conservative:        {equity:20, fixed_income:60, real_estate:5, commodity:5, cash:10, alternative:0},
+    conservative:             {equity:30, fixed_income:55, real_estate:5, commodity:3, cash:5,  alternative:2},
+    moderately_conservative:  {equity:40, fixed_income:45, real_estate:5, commodity:3, cash:3,  alternative:4},
+    moderate:                 {equity:55, fixed_income:30, real_estate:7, commodity:3, cash:0,  alternative:5},
+    moderately_aggressive:    {equity:65, fixed_income:20, real_estate:7, commodity:3, cash:0,  alternative:5},
+    aggressive:               {equity:75, fixed_income:10, real_estate:8, commodity:2, cash:0,  alternative:5},
+    very_aggressive:          {equity:85, fixed_income:5,  real_estate:5, commodity:0, cash:0,  alternative:5}
+  };
+  const alloc = RISK_TO_ALLOC[brief.risk] || RISK_TO_ALLOC.moderate;
+  const positions = [];
+  Object.entries(alloc).forEach(([cls, weight]) => {
+    if(weight < 2) return;
+    const candidates = AI_FUND_UNIVERSE.filter(f => f.cls === cls).sort((a,b) => a.er - b.er);
+    if(candidates.length === 0) return;
+    const n = weight >= 25 ? 2 : 1;
+    const each = weight / n;
+    candidates.slice(0,n).forEach(f => {
+      positions.push({
+        ticker: f.tkr, weight: +each.toFixed(1),
+        rationale: `Selected for ${cls.replace(/_/g," ")} exposure based on your ${brief.risk.replace(/_/g," ")} risk profile (baseline ${weight}%). Lowest expense ratio (${f.er}%) in class.`
+      });
+    });
+  });
+  const expectedReturn = positions.reduce((s,p) => {
+    const muMap = {equity:8.5, fixed_income:4.5, real_estate:7.5, commodity:5.5, cash:5, mixed:7, alternative:8.5};
+    const f = AI_FUND_UNIVERSE.find(x => x.tkr === p.ticker);
+    return s + ((muMap[f.cls] || 7) * p.weight / 100);
+  }, 0) / 100;
+  const expectedVolatility = positions.reduce((s,p) => {
+    const sigMap = {equity:14, fixed_income:5, real_estate:18, commodity:16, cash:0.3, mixed:10, alternative:18};
+    const f = AI_FUND_UNIVERSE.find(x => x.tkr === p.ticker);
+    return s + ((sigMap[f.cls] || 12) * p.weight / 100);
+  }, 0) / 100;
+  const rec = {
+    summary: `Deterministic engine recommendation matched to your ${brief.risk.replace(/_/g," ")} risk profile, ${brief.horizon.replace(/_/g,"-")} horizon, and ${fmtMoney(brief.netWorth)} net worth. Allocation tilts can be enhanced by enabling Claude API in admin → API Keys.`,
+    allocationByClass: alloc,
+    positions,
+    expectedReturn,
+    expectedVolatility,
+    researchCitations: ["Engine — risk profile baseline allocation", "Curated fund universe — institutional-quality vehicles only"],
+    risks: ["Generic risk profile — no institutional research consensus applied (set Claude API key to enable)"],
+    rebalancingGuidance: "Annual rebalance back to target weights, or 5% threshold drift."
+  };
+  lastAIGenResult = rec;
+  renderAIGenResult(rec, brief);
+  $("aiGenStatus").innerHTML = '✓ <strong style="color:#1b6841">Deterministic recommendation ready</strong> (set Claude API key in admin for research-enhanced suggestions)';
+}
+
+function renderAIGenResult(rec, brief){
+  let h = '';
+  // Executive summary
+  h += `<div style="background:linear-gradient(135deg,#f8f7ff,#fff);border-left:4px solid #7c3aed;border-radius:6px;padding:14px 18px;margin-bottom:14px">
+    <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.10em;color:#7c3aed;margin-bottom:6px">🎯 Executive Summary</div>
+    <div style="font-size:13.5px;line-height:1.65;color:var(--text)">${rec.summary || ""}</div>
+  </div>`;
+  // KPIs
+  h += `<div class="metrics" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:14px">
+    <div class="mc"><div class="mc-lbl">Expected Return</div><div class="mc-val" style="color:var(--green)">${((rec.expectedReturn||0)*100).toFixed(2)}%</div></div>
+    <div class="mc"><div class="mc-lbl">Volatility</div><div class="mc-val" style="color:var(--amber)">${((rec.expectedVolatility||0)*100).toFixed(2)}%</div></div>
+    <div class="mc"><div class="mc-lbl">Positions</div><div class="mc-val">${rec.positions?.length || 0}</div></div>
+    <div class="mc"><div class="mc-lbl">Sharpe (proxy)</div><div class="mc-val">${(((rec.expectedReturn||0.05)-0.045)/((rec.expectedVolatility||0.12)||1)).toFixed(2)}</div></div>
+    ${brief.researchProviderCount!=null?'<div class="mc"><div class="mc-lbl">Research Sources</div><div class="mc-val">'+brief.researchProviderCount+'</div></div>':''}
+  </div>`;
+  // Allocation bars
+  if(rec.allocationByClass){
+    h += `<div style="background:#fff;border:1px solid var(--border);border-radius:8px;padding:14px 18px;margin-bottom:14px">
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin-bottom:10px">Strategic Allocation</div>`;
+    Object.entries(rec.allocationByClass).filter(([,v]) => v > 0).forEach(([cls, pct]) => {
+      const lbl = ({equity:"Equity",fixed_income:"Fixed Income",real_estate:"Real Estate",commodity:"Commodity",cash:"Cash",mixed:"Mixed",alternative:"Alternative"})[cls] || cls;
+      h += `<div style="display:grid;grid-template-columns:140px 1fr 60px;gap:10px;align-items:center;padding:5px 0">
+        <div style="font-weight:600;font-size:12.5px">${lbl}</div>
+        <div style="height:10px;background:rgba(0,87,184,.06);border-radius:5px;overflow:hidden"><div style="width:${pct}%;height:100%;background:linear-gradient(90deg,#7c3aed,#0057b8);border-radius:5px"></div></div>
+        <div style="text-align:right;font-weight:700;font-variant-numeric:tabular-nums">${pct.toFixed(1)}%</div>
+      </div>`;
+    });
+    h += `</div>`;
+  }
+  // Positions with rationale
+  if(rec.positions?.length){
+    h += `<div style="background:#fff;border:1px solid var(--border);border-radius:8px;padding:14px 18px;margin-bottom:14px">
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin-bottom:10px">💼 Recommended Positions (${rec.positions.length})</div>`;
+    rec.positions.forEach(p => {
+      const fund = AI_FUND_UNIVERSE.find(f => f.tkr === p.ticker);
+      h += `<div style="border-left:3px solid #7c3aed;padding:10px 14px;margin-bottom:8px;background:rgba(124,58,237,.03);border-radius:0 6px 6px 0">
+        <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:4px">
+          <strong style="font-size:14px">${p.ticker}</strong>
+          <span style="color:var(--text3);font-size:11.5px">${fund?.name||""}${fund?` · ${fund.sponsor}`:""}</span>
+          <span style="margin-left:auto;font-size:13px;font-weight:700;color:#7c3aed">${p.weight.toFixed(1)}%</span>
+        </div>
+        <div style="font-size:11.5px;color:var(--text2);line-height:1.55"><strong>💡 Why:</strong> ${p.rationale || ""}</div>
+      </div>`;
+    });
+    h += `</div>`;
+  }
+  // Citations
+  if(rec.researchCitations?.length){
+    h += `<div style="background:rgba(0,87,184,.04);border-radius:6px;padding:12px 16px;margin-bottom:10px">
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--gold);margin-bottom:6px">📚 Research Citations</div>
+      <ul style="margin:0;padding-left:18px;font-size:12px;color:var(--text2);line-height:1.7">${rec.researchCitations.map(c => `<li>${c}</li>`).join("")}</ul>
+    </div>`;
+  }
+  // Risks
+  if(rec.risks?.length){
+    h += `<div style="background:rgba(227,24,55,.04);border-left:3px solid var(--red);border-radius:0 6px 6px 0;padding:12px 16px;margin-bottom:10px">
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--red);margin-bottom:6px">⚠ Key Risks</div>
+      <ul style="margin:0;padding-left:18px;font-size:12px;color:var(--text2);line-height:1.7">${rec.risks.map(r => `<li>${r}</li>`).join("")}</ul>
+    </div>`;
+  }
+  // Rebalancing
+  if(rec.rebalancingGuidance){
+    h += `<div style="font-size:12px;color:var(--text2);padding:10px 14px;background:var(--bg3);border-radius:6px;line-height:1.6"><strong style="color:var(--text)">🔄 Rebalancing:</strong> ${rec.rebalancingGuidance}</div>`;
+  }
+  $("aiGenResultBody").innerHTML = h;
+}
+
+// ── Apply the AI recommendation as actual proposal positions ───
+function applyAIRecommendationToProposal(){
+  if(!lastAIGenResult || !lastAIGenResult.positions) return;
+  const target = num("prAmount", 100000);
+  if(!confirm(`Replace current proposal positions with ${lastAIGenResult.positions.length} AI-recommended positions?\n\nThis will clear any positions you've added manually.`)) return;
+  // Clear existing
+  proposals = [];
+  // Convert weights → allocation %
+  lastAIGenResult.positions.forEach(p => {
+    const fund = AI_FUND_UNIVERSE.find(f => f.tkr === p.ticker);
+    proposals.push({
+      id: "pr_"+Date.now()+Math.random().toString(36).slice(2,6),
+      name: fund?.name || p.ticker,
+      tkr: p.tkr,
+      vehicle: fund?.vehicle || "etf",
+      cls: fund?.cls || "mixed",
+      alloc: p.weight,
+      exp: null,
+      er: fund?.er ?? null,
+      yld: fund?.yld ?? null,
+      note: "AI-generated · " + (p.rationale || "").slice(0,200)
+    });
+  });
+  // Optionally populate rationale field
+  if($("prRationale") && !val("prRationale").trim()){
+    $("prRationale").value = lastAIGenResult.summary || "";
+  }
+  // Re-render proposal UI
+  if(typeof renderProposals === "function") renderProposals();
+  if(typeof renderProposalMetrics === "function") renderProposalMetrics();
+  if(typeof renderProposalBars === "function") renderProposalBars();
+  if(typeof drawProposalPie === "function") drawProposalPie();
+  toastTopbar("Applied "+lastAIGenResult.positions.length+" AI positions to proposal");
+  document.getElementById("aiGenResult").scrollIntoView({behavior:"smooth"});
+}
+
+function toastTopbar(msg){
+  setT("topbarStatus", msg);
+  setTimeout(() => setT("topbarStatus",""), 3500);
+}
+
 function syncProposalClient(){
   const el=$("prClient"); if(!el) return;
   if(el.dataset.userEdited==="1") return;
