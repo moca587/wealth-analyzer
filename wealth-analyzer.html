@@ -1212,9 +1212,14 @@ input[type=date]{color-scheme:light}
 <!-- Simulation source banner — populated by renderProposalSourceBanner() -->
 <div id="simSourceBanner" style="display:none"></div>
 <div class="panel" id="simInputsPanel">
-  <div class="ptitle">Inputs feeding into this simulation</div>
-  <div id="simInputsSummary" style="font-size:12px;color:var(--text3);line-height:1.8">
-    Fill in the tabs above and click <strong style="color:var(--text2)">▶ Run Monte Carlo Simulation</strong> — the summary of what feeds in will appear here.
+  <div class="ptitle" style="cursor:pointer;user-select:none;display:flex;align-items:center;justify-content:space-between" onclick="toggleSimInputs()">
+    <span>Inputs feeding into this simulation</span>
+    <span id="simInputsCaret" style="font-size:13px;color:var(--text3);transition:transform .2s">▼</span>
+  </div>
+  <div id="simInputsBody" style="display:none">
+    <div id="simInputsSummary" style="font-size:12px;color:var(--text3);line-height:1.8;padding-top:6px">
+      Fill in the tabs above and click <strong style="color:var(--text2)">▶ Run Monte Carlo Simulation</strong> — the summary of what feeds in will appear here.
+    </div>
   </div>
 </div>
 <div class="panel">
@@ -1560,19 +1565,8 @@ input[type=date]{color-scheme:light}
     </div>
   </div>
 
-  <!-- Bars below: region + class bars (kept for detail) -->
-  <div class="sdiv">
-    <div class="two-col" style="grid-template-columns:1fr 1fr">
-      <div>
-        <div class="slbl">By instrument type — bars</div>
-        <div id="pfBarsType"><div class="pf-empty">No holdings yet.</div></div>
-      </div>
-      <div>
-        <div class="slbl">By asset class — bars</div>
-        <div id="pfBarsClass"><div class="pf-empty">No holdings yet.</div></div>
-      </div>
-    </div>
-  </div>
+  <!-- Region bars retained (instrument-type and asset-class bars removed —
+       the pie charts above already show those breakdowns) -->
   <div class="sdiv">
     <div class="slbl">By region</div>
     <div id="pfBarsRegion"><div class="pf-empty">No holdings yet.</div></div>
@@ -1765,10 +1759,7 @@ input[type=date]{color-scheme:light}
     </div>
   </div>
 
-  <div class="sdiv">
-    <div class="slbl">Vehicle mix — bars</div>
-    <div id="prBarsVehicle"><div class="pf-empty">No positions added yet.</div></div>
-  </div>
+  <!-- Vehicle-mix bars removed — the pie chart above already shows the breakdown -->
 </div>
 
 <!-- Positions -->
@@ -3403,8 +3394,25 @@ function showTab(name,el){
     // Refresh the proposal-source banner so it shows the right state
     // when the user navigates back to the Simulation tab.
     try { if(typeof renderProposalSourceBanner === "function") renderProposalSourceBanner(); } catch(_){}
+    // Restore the collapsed/expanded state of the Inputs panel
+    try { applySimInputsState(); } catch(_){}
   }
 }
+
+// ─── Inputs-feeding panel collapse/expand (state persisted) ─────────────
+function applySimInputsState(){
+  const open = (function(){ try { return localStorage.getItem("wa_sim_inputs_open") === "1"; } catch(_) { return false; } })();
+  const body = document.getElementById("simInputsBody");
+  const caret = document.getElementById("simInputsCaret");
+  if(body) body.style.display = open ? "block" : "none";
+  if(caret) caret.style.transform = open ? "rotate(0deg)" : "rotate(-90deg)";
+}
+function toggleSimInputs(){
+  const open = (function(){ try { return localStorage.getItem("wa_sim_inputs_open") === "1"; } catch(_) { return false; } })();
+  try { localStorage.setItem("wa_sim_inputs_open", open ? "0" : "1"); } catch(_){}
+  applySimInputsState();
+}
+window.toggleSimInputs = toggleSimInputs;
 
 // ═══════════════════════════════════════════════════════════
 // POPULATION (dropdowns)
@@ -4707,9 +4715,9 @@ function renderPortfolioMetrics(){
   const fill=$("pf-risk-fill"); if(fill) fill.style.flex="0 0 "+(wRisk/10*100)+"%";
 }
 function renderPortfolioBars(){
+  // Only the region bars remain — instrument-type and asset-class bars
+  // were removed because the pie charts above already show those breakdowns.
   if(investments.length===0){
-    setH("pfBarsType",'<div class="pf-empty">No holdings yet.</div>');
-    setH("pfBarsClass",'<div class="pf-empty">No holdings yet.</div>');
     setH("pfBarsRegion",'<div class="pf-empty">No holdings yet.</div>');
     return;
   }
@@ -4727,8 +4735,6 @@ function renderPortfolioBars(){
       </div>`;
     }).join("");
   }
-  setH("pfBarsType",bars("type",INV_TYPE_LABELS,TYPE_COLORS));
-  setH("pfBarsClass",bars("cls",INV_CLASS_LABELS,CLASS_COLORS));
   setH("pfBarsRegion",bars("region",INV_REGION_LABELS,REGION_COLORS));
 }
 
@@ -7059,22 +7065,9 @@ function renderProposalMetrics(){
   const fill=$("pr-risk-fill"); if(fill) fill.style.flex="0 0 "+(wRisk/10*100)+"%";
 }
 function renderProposalBars(){
-  if(proposals.length===0){
-    setH("prBarsVehicle",'<div class="pf-empty">No positions added yet.</div>');
-    return;
-  }
-  const total=proposals.reduce((s,p)=>s+p.alloc,0);
-  const agg={};
-  proposals.forEach(p=>{const k=p.vehicle||"other"; agg[k]=(agg[k]||0)+p.alloc;});
-  setH("prBarsVehicle",Object.entries(agg).sort((a,b)=>b[1]-a[1]).map(([k,v])=>{
-    const pct=total>0?v/total*100:0;
-    return `<div class="pf-bar-row">
-      <div class="pf-bar-label">${PROP_VEHICLE_LABELS[k]||k}</div>
-      <div class="pf-bar-track"><div class="pf-bar-fill" style="width:${pct}%;background:${TYPE_COLORS[k]||'#1e40af'}"></div></div>
-      <div class="pf-bar-amt">${v.toFixed(1)}%</div>
-      <div class="pf-bar-pct">${pct.toFixed(1)}%</div>
-    </div>`;
-  }).join(""));
+  // Vehicle-mix bars were removed — the pie chart in the same section
+  // already shows the vehicle breakdown. Keeping this no-op so existing
+  // call sites (renderProposalBars()) don't error.
 }
 // Shared proposal-pie helper (proposals use `alloc` % instead of `val` $)
 let prVehicleChart = null;
