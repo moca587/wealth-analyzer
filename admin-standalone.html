@@ -809,32 +809,54 @@ Citations:<br>
       <label class="lbl" style="min-width:60px">Provider</label>
       <select id="mdProvider" class="w260">
         <option value="auto">Auto (try all in failover order)</option>
-        <optgroup label="── Equities (with API key) ──">
+        <optgroup label="── Equities — Premium ──">
           <option value="finnhub">Finnhub</option>
-          <option value="alphavantage">Alpha Vantage</option>
           <option value="polygon">Polygon.io</option>
+          <option value="intrinio">Intrinio</option>
+        </optgroup>
+        <optgroup label="── Equities — Generous free tier ──">
           <option value="twelvedata">Twelve Data</option>
           <option value="fmp">Financial Modeling Prep</option>
           <option value="tiingo">Tiingo</option>
+          <option value="alphavantage">Alpha Vantage</option>
+          <option value="nasdaq">Nasdaq Data Link / Quandl</option>
+        </optgroup>
+        <optgroup label="── Equities — Account-based ──">
+          <option value="tradier">Tradier (free w/ account)</option>
+          <option value="alpaca">Alpaca Markets (Key + Secret)</option>
+          <option value="rapidapi_yahoo">RapidAPI · Yahoo Finance</option>
+        </optgroup>
+        <optgroup label="── Equities — Specialty ──">
           <option value="eodhd">EOD Historical Data</option>
           <option value="marketstack">Marketstack</option>
           <option value="stockdata">Stockdata.org</option>
           <option value="finazon">Finazon (SIP)</option>
         </optgroup>
-        <optgroup label="── Equities (no API key) ──">
-          <option value="yahoo">Yahoo Finance</option>
+        <optgroup label="── Equities — No key ──">
+          <option value="yahoo">Yahoo Finance (direct)</option>
           <option value="stooq">Stooq (global CSV)</option>
+        </optgroup>
+        <optgroup label="── News ──">
+          <option value="newsapi">NewsAPI.org</option>
+          <option value="marketaux">Marketaux (+ sentiment)</option>
+          <option value="benzinga">Benzinga</option>
         </optgroup>
         <optgroup label="── Crypto ──">
           <option value="coingecko">CoinGecko (no key)</option>
           <option value="cryptocompare">CryptoCompare (no key)</option>
           <option value="coinbase">Coinbase Spot (no key)</option>
           <option value="coinmarketcap">CoinMarketCap (key)</option>
+          <option value="messari">Messari (key)</option>
         </optgroup>
-        <optgroup label="── FX ──">
-          <option value="frankfurter">Frankfurter / ECB (no key)</option>
-          <option value="exchangerate_host">ExchangeRate.host (no key)</option>
-          <option value="open_er_api">Open ER API (no key)</option>
+        <optgroup label="── FX — No key ──">
+          <option value="frankfurter">Frankfurter / ECB</option>
+          <option value="exchangerate_host">ExchangeRate.host</option>
+          <option value="open_er_api">Open ER API</option>
+        </optgroup>
+        <optgroup label="── FX — Keyed ──">
+          <option value="oxr">Open Exchange Rates</option>
+          <option value="currencyapi">CurrencyAPI.com</option>
+          <option value="currencylayer">CurrencyLayer</option>
         </optgroup>
         <optgroup label="── Macro / Rates ──">
           <option value="fred">FRED — St Louis Fed (key)</option>
@@ -890,23 +912,45 @@ Citations:<br>
     <div class="ptitle">Free Providers <span style="color:var(--green);font-weight:600">— health-checked every 2 minutes</span></div>
     <table class="tbl"><thead><tr><th>Provider</th><th>Key</th><th>Status</th><th>Health</th><th>Action</th></tr></thead><tbody id="keysTbl"></tbody></table>
     <div style="font-size:11px;color:var(--ink3);margin-top:10px;line-height:1.7">
-      <strong>Get free keys:</strong>
-      <a href="https://finnhub.io/register" target="_blank" style="color:var(--blue)">finnhub.io</a> ·
-      <a href="https://www.alphavantage.co/support/#api-key" target="_blank" style="color:var(--blue)">alphavantage.co</a> ·
-      <a href="https://twelvedata.com/pricing" target="_blank" style="color:var(--blue)">twelvedata.com</a> ·
+      <strong>Equity quote APIs (free tier):</strong>
+      <a href="https://finnhub.io/register" target="_blank" style="color:var(--blue)">finnhub</a> ·
+      <a href="https://www.alphavantage.co/support/#api-key" target="_blank" style="color:var(--blue)">alphavantage</a> ·
+      <a href="https://twelvedata.com/pricing" target="_blank" style="color:var(--blue)">twelvedata</a> ·
       <a href="https://site.financialmodelingprep.com/developer" target="_blank" style="color:var(--blue)">FMP</a> ·
-      <a href="https://tiingo.com/account/api/token" target="_blank" style="color:var(--blue)">tiingo.com</a> ·
-      <a href="https://polygon.io/dashboard/api-keys" target="_blank" style="color:var(--blue)">polygon.io</a> ·
-      <a href="https://eodhistoricaldata.com/register" target="_blank" style="color:var(--blue)">eodhistoricaldata.com</a> ·
-      <a href="https://marketstack.com/signup/free" target="_blank" style="color:var(--blue)">marketstack.com</a> ·
-      <a href="https://stockdata.org/register" target="_blank" style="color:var(--blue)">stockdata.org</a> ·
-      <a href="https://finazon.io/register" target="_blank" style="color:var(--blue)">finazon.io</a> ·
-      <a href="https://coinmarketcap.com/api/" target="_blank" style="color:var(--blue)">coinmarketcap.com</a> ·
-      <a href="https://fred.stlouisfed.org/docs/api/api_key.html" target="_blank" style="color:var(--blue)">FRED (St Louis Fed)</a> ·
-      <a href="https://console.anthropic.com/" target="_blank" style="color:var(--blue)">Claude</a>
+      <a href="https://tiingo.com/account/api/token" target="_blank" style="color:var(--blue)">tiingo</a> ·
+      <a href="https://polygon.io/dashboard/api-keys" target="_blank" style="color:var(--blue)">polygon</a> ·
+      <a href="https://intrinio.com/signup" target="_blank" style="color:var(--blue)">intrinio</a> ·
+      <a href="https://data.nasdaq.com/sign-up" target="_blank" style="color:var(--blue)">Nasdaq Data Link</a> ·
+      <a href="https://eodhistoricaldata.com/register" target="_blank" style="color:var(--blue)">EOD HD</a> ·
+      <a href="https://marketstack.com/signup/free" target="_blank" style="color:var(--blue)">marketstack</a> ·
+      <a href="https://stockdata.org/register" target="_blank" style="color:var(--blue)">stockdata</a> ·
+      <a href="https://finazon.io/register" target="_blank" style="color:var(--blue)">finazon</a><br>
+
+      <strong>Account-based:</strong>
+      <a href="https://tradier.com/products/marketdata" target="_blank" style="color:var(--blue)">tradier</a> ·
+      <a href="https://alpaca.markets/learn/api-keys" target="_blank" style="color:var(--blue)">alpaca</a> ·
+      <a href="https://rapidapi.com/apidojo/api/yh-finance" target="_blank" style="color:var(--blue)">RapidAPI Yahoo</a><br>
+
+      <strong>News:</strong>
+      <a href="https://newsapi.org/register" target="_blank" style="color:var(--blue)">NewsAPI</a> ·
+      <a href="https://marketaux.com/account/dashboard" target="_blank" style="color:var(--blue)">marketaux</a> ·
+      <a href="https://benzinga.com/apis/cloud-api" target="_blank" style="color:var(--blue)">benzinga</a><br>
+
+      <strong>Crypto:</strong>
+      <a href="https://coinmarketcap.com/api/" target="_blank" style="color:var(--blue)">CoinMarketCap</a> ·
+      <a href="https://messari.io/api" target="_blank" style="color:var(--blue)">messari</a><br>
+
+      <strong>FX:</strong>
+      <a href="https://openexchangerates.org/signup/free" target="_blank" style="color:var(--blue)">Open Exchange Rates</a> ·
+      <a href="https://currencyapi.com/register" target="_blank" style="color:var(--blue)">CurrencyAPI.com</a> ·
+      <a href="https://currencylayer.com/product" target="_blank" style="color:var(--blue)">CurrencyLayer</a><br>
+
+      <strong>Macro + AI:</strong>
+      <a href="https://fred.stlouisfed.org/docs/api/api_key.html" target="_blank" style="color:var(--blue)">FRED</a> ·
+      <a href="https://console.anthropic.com/" target="_blank" style="color:var(--blue)">Claude API</a>
       <br><br>
-      <strong style="color:var(--green)">No key needed:</strong>
-      Yahoo Finance · Stooq · CoinGecko · CryptoCompare · Coinbase Spot · Frankfurter (ECB FX) · ExchangeRate.host · OpenFIGI (ISIN/CUSIP) · SEC EDGAR (filings) · Treasury.gov (yields)
+      <strong style="color:var(--green)">No key needed (always work):</strong>
+      Yahoo Finance · Stooq · CoinGecko · CryptoCompare · Coinbase Spot · Frankfurter · ExchangeRate.host · Open ER API · OpenFIGI (ISIN/CUSIP) · SEC EDGAR · Treasury.gov
     </div>
   </div>
 </div>
@@ -980,7 +1024,7 @@ Citations:<br>
 // ═══════════════════════════════════════════════════════════
 // VERSION + UTILS
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260522-1042";
+const APP_VERSION = "20260522-1049";
 const $ = (id) => document.getElementById(id);
 const $$ = (sel, ctx) => Array.from((ctx||document).querySelectorAll(sel));
 
@@ -1751,41 +1795,63 @@ function renderDashboard(){
 
   // Provider status — grouped by data class
   const groups = [
-    {label:"Equities (keyed)", items:[
+    {label:"Equities — Premium", items:[
       {n:"Finnhub",  k:localStorage.getItem("fhKey")},
-      {n:"Alpha Vantage",  k:localStorage.getItem("avKey")},
       {n:"Polygon",  k:localStorage.getItem("wa_polygon_key")},
-      {n:"Twelve Data",  k:localStorage.getItem("wa_twelvedata_key")},
-      {n:"FMP",      k:localStorage.getItem("wa_fmp_key")},
-      {n:"Tiingo",   k:localStorage.getItem("wa_tiingo_key")},
-      {n:"EOD HD",   k:localStorage.getItem("wa_eodhd_key")},
-      {n:"Marketstack",  k:localStorage.getItem("wa_marketstack_key")},
-      {n:"Stockdata",k:localStorage.getItem("wa_stockdata_key")},
-      {n:"Finazon",  k:localStorage.getItem("wa_finazon_key")}
+      {n:"Intrinio", k:localStorage.getItem("wa_intrinio_key")}
     ]},
-    {label:"Equities (no key)", items:[
-      {n:"Yahoo Finance",     k:"always"},
-      {n:"Stooq (CSV)",       k:"always"},
-      {n:"OpenFIGI (ref)",    k:"always"},
-      {n:"SEC EDGAR (ref)",   k:"always"}
+    {label:"Equities — Generous free tier", items:[
+      {n:"Twelve Data",  k:localStorage.getItem("wa_twelvedata_key")},
+      {n:"FMP",          k:localStorage.getItem("wa_fmp_key")},
+      {n:"Tiingo",       k:localStorage.getItem("wa_tiingo_key")},
+      {n:"Alpha Vantage",k:localStorage.getItem("avKey")},
+      {n:"Nasdaq Data Link", k:localStorage.getItem("wa_nasdaq_key")}
+    ]},
+    {label:"Equities — Account-based", items:[
+      {n:"Tradier",      k:localStorage.getItem("wa_tradier_key")},
+      {n:"Alpaca",       k:(localStorage.getItem("wa_alpaca_key") && localStorage.getItem("wa_alpaca_secret"))?"set":""},
+      {n:"RapidAPI Yahoo", k:localStorage.getItem("wa_rapidapi_key")}
+    ]},
+    {label:"Equities — Specialty", items:[
+      {n:"EOD HD",      k:localStorage.getItem("wa_eodhd_key")},
+      {n:"Marketstack", k:localStorage.getItem("wa_marketstack_key")},
+      {n:"Stockdata",   k:localStorage.getItem("wa_stockdata_key")},
+      {n:"Finazon",     k:localStorage.getItem("wa_finazon_key")}
+    ]},
+    {label:"Equities — No key", items:[
+      {n:"Yahoo Finance",   k:"always"},
+      {n:"Stooq (CSV)",     k:"always"},
+      {n:"OpenFIGI (ref)",  k:"always"},
+      {n:"SEC EDGAR (ref)", k:"always"}
+    ]},
+    {label:"News", items:[
+      {n:"NewsAPI.org",   k:localStorage.getItem("wa_newsapi_key")},
+      {n:"Marketaux",     k:localStorage.getItem("wa_marketaux_key")},
+      {n:"Benzinga",      k:localStorage.getItem("wa_benzinga_key")}
     ]},
     {label:"Crypto", items:[
-      {n:"CoinGecko",      k:"always"},
-      {n:"CryptoCompare",  k:"always"},
-      {n:"Coinbase Spot",  k:"always"},
-      {n:"CoinMarketCap",  k:localStorage.getItem("wa_cmc_key")}
+      {n:"CoinGecko",     k:"always"},
+      {n:"CryptoCompare", k:"always"},
+      {n:"Coinbase Spot", k:"always"},
+      {n:"CoinMarketCap", k:localStorage.getItem("wa_cmc_key")},
+      {n:"Messari",       k:localStorage.getItem("wa_messari_key")}
     ]},
-    {label:"FX (no key)", items:[
-      {n:"Frankfurter (ECB)",  k:"always"},
-      {n:"ExchangeRate.host",  k:"always"},
-      {n:"Open ER API",        k:"always"}
+    {label:"FX — No key", items:[
+      {n:"Frankfurter (ECB)", k:"always"},
+      {n:"ExchangeRate.host", k:"always"},
+      {n:"Open ER API",       k:"always"}
+    ]},
+    {label:"FX — Keyed", items:[
+      {n:"Open Exchange Rates", k:localStorage.getItem("wa_oxr_key")},
+      {n:"CurrencyAPI.com",     k:localStorage.getItem("wa_currencyapi_key")},
+      {n:"CurrencyLayer",       k:localStorage.getItem("wa_currencylayer_key")}
     ]},
     {label:"Macro / Rates", items:[
-      {n:"FRED (St Louis Fed)",  k:localStorage.getItem("wa_fred_key")},
-      {n:"Treasury.gov",         k:"always"}
+      {n:"FRED (St Louis Fed)", k:localStorage.getItem("wa_fred_key")},
+      {n:"Treasury.gov",        k:"always"}
     ]},
     {label:"AI / LLM", items:[
-      {n:"Claude API",   k:claudeKey}
+      {n:"Claude API", k:claudeKey}
     ]}
   ];
   let ph = '';
@@ -2459,7 +2525,21 @@ async function fetchQuote(ticker, provider){
     fmp:localStorage.getItem("wa_fmp_key")||"", tiingo:localStorage.getItem("wa_tiingo_key")||"",
     eodhd:localStorage.getItem("wa_eodhd_key")||"", marketstack:localStorage.getItem("wa_marketstack_key")||"",
     stockdata:localStorage.getItem("wa_stockdata_key")||"", finazon:localStorage.getItem("wa_finazon_key")||"",
-    cmc:localStorage.getItem("wa_cmc_key")||"", fred:localStorage.getItem("wa_fred_key")||""
+    cmc:localStorage.getItem("wa_cmc_key")||"", fred:localStorage.getItem("wa_fred_key")||"",
+    // New keyed providers
+    nasdaq:localStorage.getItem("wa_nasdaq_key")||"",        // Nasdaq Data Link (Quandl)
+    intrinio:localStorage.getItem("wa_intrinio_key")||"",    // Intrinio
+    tradier:localStorage.getItem("wa_tradier_key")||"",      // Tradier
+    alpacaKey:localStorage.getItem("wa_alpaca_key")||"",     // Alpaca key ID
+    alpacaSec:localStorage.getItem("wa_alpaca_secret")||"",  // Alpaca secret
+    rapidapi:localStorage.getItem("wa_rapidapi_key")||"",    // RapidAPI (Yahoo)
+    newsapi:localStorage.getItem("wa_newsapi_key")||"",      // NewsAPI.org
+    marketaux:localStorage.getItem("wa_marketaux_key")||"",  // Marketaux news + sentiment
+    benzinga:localStorage.getItem("wa_benzinga_key")||"",    // Benzinga news + ratings
+    oxr:localStorage.getItem("wa_oxr_key")||"",              // Open Exchange Rates
+    currencyapi:localStorage.getItem("wa_currencyapi_key")||"",  // CurrencyAPI.com
+    currencylayer:localStorage.getItem("wa_currencylayer_key")||"",  // CurrencyLayer
+    messari:localStorage.getItem("wa_messari_key")||""       // Messari crypto research
   };
   async function tryFn(p){
     switch(p){
@@ -2655,12 +2735,119 @@ async function fetchQuote(ticker, provider){
         if(isNaN(cur)) throw new Error("No data for "+t);
         return {price:cur,asOf:last[0],source:"treasury"};
       }
+      // ─── EQUITIES — Additional keyed providers ─────────────────
+      case "nasdaq": {
+        if(!cfg.nasdaq) throw new Error("No Nasdaq Data Link key");
+        // Use the EOD/SHARADAR dataset for quick price lookup
+        const r=await fetch(`https://data.nasdaq.com/api/v3/datasets/WIKI/${ticker}.json?api_key=${cfg.nasdaq}&rows=2`);
+        if(!r.ok) throw new Error("HTTP "+r.status);
+        const j=await r.json();
+        const data=j.dataset?.data; if(!data||!data[0]) throw new Error("No data — WIKI dataset deprecated, try EOD dataset");
+        // WIKI columns: Date, Open, High, Low, Close, Volume, Ex-Dividend, Split Ratio, Adj. Open, Adj. High, Adj. Low, Adj. Close, Adj. Volume
+        const today=data[0], prev=data[1]||today;
+        return {price:today[4],open:today[1],high:today[2],low:today[3],volume:today[5],prevClose:prev[4],change:today[4]-prev[4],changePct:(today[4]/prev[4]-1)*100,asOf:today[0],source:"nasdaq"};
+      }
+      case "intrinio": {
+        if(!cfg.intrinio) throw new Error("No Intrinio key");
+        const r=await fetch(`https://api-v2.intrinio.com/securities/${ticker}/prices?page_size=2&api_key=${cfg.intrinio}`);
+        if(!r.ok){ const t=await r.text(); throw new Error(t.slice(0,80)); }
+        const j=await r.json(); const prices=j.stock_prices;
+        if(!prices||!prices[0]) throw new Error("No price data");
+        const today=prices[0], prev=prices[1]||today;
+        return {price:today.close,open:today.open,high:today.high,low:today.low,volume:today.volume,prevClose:prev.close,change:today.close-prev.close,changePct:(today.close/prev.close-1)*100,asOf:today.date,source:"intrinio"};
+      }
+      case "tradier": {
+        if(!cfg.tradier) throw new Error("No Tradier key");
+        const r=await fetch(`https://api.tradier.com/v1/markets/quotes?symbols=${ticker}`, {headers:{Authorization:`Bearer ${cfg.tradier}`,Accept:"application/json"}});
+        if(!r.ok) throw new Error("HTTP "+r.status);
+        const j=await r.json(); const q=j.quotes?.quote;
+        if(!q) throw new Error("No quote");
+        return {price:q.last,change:q.change,changePct:q.change_percentage,open:q.open,high:q.high,low:q.low,volume:q.volume,prevClose:q.prevclose,source:"tradier"};
+      }
+      case "alpaca": {
+        if(!cfg.alpacaKey || !cfg.alpacaSec) throw new Error("Alpaca needs both Key ID and Secret");
+        const r=await fetch(`https://data.alpaca.markets/v2/stocks/${ticker}/quotes/latest`, {headers:{"APCA-API-KEY-ID":cfg.alpacaKey,"APCA-API-SECRET-KEY":cfg.alpacaSec}});
+        if(!r.ok) throw new Error("HTTP "+r.status);
+        const j=await r.json(); const q=j.quote;
+        if(!q) throw new Error("No quote");
+        const mid=(q.ap+q.bp)/2;
+        return {price:mid,ask:q.ap,bid:q.bp,askSize:q.as,bidSize:q.bs,asOf:q.t,source:"alpaca"};
+      }
+      case "rapidapi_yahoo": {
+        if(!cfg.rapidapi) throw new Error("No RapidAPI key");
+        const r=await fetch(`https://yh-finance.p.rapidapi.com/stock/v2/get-summary?symbol=${ticker}`, {headers:{"X-RapidAPI-Key":cfg.rapidapi,"X-RapidAPI-Host":"yh-finance.p.rapidapi.com"}});
+        if(!r.ok) throw new Error("HTTP "+r.status);
+        const j=await r.json(); const p=j.price;
+        if(!p?.regularMarketPrice) throw new Error("No data");
+        return {price:p.regularMarketPrice?.raw,change:p.regularMarketChange?.raw,changePct:p.regularMarketChangePercent?.raw*100,marketCap:p.marketCap?.raw,source:"rapidapi_yahoo"};
+      }
+      // ─── NEWS APIs ──────────────────────────────────────────────
+      case "newsapi": {
+        if(!cfg.newsapi) throw new Error("No NewsAPI key");
+        const r=await fetch(`https://newsapi.org/v2/everything?q=${ticker}&pageSize=5&sortBy=publishedAt&apiKey=${cfg.newsapi}`);
+        const j=await r.json(); if(j.status==="error") throw new Error(j.message);
+        if(!j.articles?.length) throw new Error("No articles");
+        return {price:0,headlines:j.articles.slice(0,5).map(a=>({title:a.title,source:a.source.name,publishedAt:a.publishedAt,url:a.url})),source:"newsapi",isNews:true};
+      }
+      case "marketaux": {
+        if(!cfg.marketaux) throw new Error("No Marketaux key");
+        const r=await fetch(`https://api.marketaux.com/v1/news/all?symbols=${ticker}&limit=5&api_token=${cfg.marketaux}`);
+        const j=await r.json(); if(j.error) throw new Error(j.error.message);
+        if(!j.data?.length) throw new Error("No articles");
+        return {price:0,headlines:j.data.slice(0,5).map(a=>({title:a.title,source:a.source,publishedAt:a.published_at,url:a.url,sentiment:a.entities?.[0]?.sentiment_score})),source:"marketaux",isNews:true};
+      }
+      case "benzinga": {
+        if(!cfg.benzinga) throw new Error("No Benzinga key");
+        const r=await fetch(`https://api.benzinga.com/api/v2/news?tickers=${ticker}&pageSize=5&token=${cfg.benzinga}&displayOutput=full`);
+        if(!r.ok) throw new Error("HTTP "+r.status);
+        const j=await r.json(); if(!Array.isArray(j)||j.length===0) throw new Error("No articles");
+        return {price:0,headlines:j.slice(0,5).map(a=>({title:a.title,source:"Benzinga",publishedAt:a.created,url:a.url})),source:"benzinga",isNews:true};
+      }
+      // ─── FX — Additional keyed providers ────────────────────────
+      case "oxr": {
+        if(!cfg.oxr) throw new Error("No OpenExchangeRates key");
+        if(ticker.length!==6) throw new Error("FX expects 6-char pair");
+        const r=await fetch(`https://openexchangerates.org/api/latest.json?app_id=${cfg.oxr}&base=USD&symbols=${ticker.slice(0,3)},${ticker.slice(3,6)}`);
+        const j=await r.json(); if(j.error) throw new Error(j.message);
+        // Free tier is USD-based; cross-rate calculation
+        const from=j.rates?.[ticker.slice(0,3)], to=j.rates?.[ticker.slice(3,6)];
+        if(!from || !to) throw new Error("No rates");
+        return {price:to/from,base:ticker.slice(0,3),source:"oxr"};
+      }
+      case "currencyapi": {
+        if(!cfg.currencyapi) throw new Error("No CurrencyAPI key");
+        if(ticker.length!==6) throw new Error("FX expects 6-char pair");
+        const r=await fetch(`https://api.currencyapi.com/v3/latest?apikey=${cfg.currencyapi}&base_currency=${ticker.slice(0,3)}&currencies=${ticker.slice(3,6)}`);
+        const j=await r.json(); if(j.errors) throw new Error(JSON.stringify(j.errors));
+        const rate=j.data?.[ticker.slice(3,6)]?.value;
+        if(!rate) throw new Error("No rate");
+        return {price:rate,source:"currencyapi"};
+      }
+      case "currencylayer": {
+        if(!cfg.currencylayer) throw new Error("No CurrencyLayer key");
+        if(ticker.length!==6) throw new Error("FX expects 6-char pair");
+        const r=await fetch(`https://api.currencylayer.com/live?access_key=${cfg.currencylayer}&currencies=${ticker.slice(0,3)},${ticker.slice(3,6)}`);
+        const j=await r.json(); if(!j.success) throw new Error(j.error?.info||"Error");
+        // Free tier USD-based — calculate cross rate
+        const fromUSD=j.quotes?.["USD"+ticker.slice(0,3)], toUSD=j.quotes?.["USD"+ticker.slice(3,6)];
+        if(!fromUSD || !toUSD) throw new Error("Free tier USD-only; install paid for cross-rates");
+        return {price:toUSD/fromUSD,source:"currencylayer"};
+      }
+      // ─── CRYPTO — Additional keyed ──────────────────────────────
+      case "messari": {
+        if(!cfg.messari) throw new Error("No Messari key");
+        const r=await fetch(`https://data.messari.io/api/v1/assets/${ticker.toLowerCase()}/metrics`, {headers:{"x-messari-api-key":cfg.messari}});
+        if(!r.ok) throw new Error("HTTP "+r.status);
+        const j=await r.json(); const m=j.data?.market_data;
+        if(!m) throw new Error("No market data");
+        return {price:m.price_usd,changePct:m.percent_change_usd_last_24_hours,volume:m.volume_last_24_hours,marketCap:j.data.marketcap?.current_marketcap_usd,source:"messari"};
+      }
       default: throw new Error("Unknown provider "+p);
     }
   }
   if(provider !== "auto") return await tryFn(provider);
   // Auto-failover order: fast paid → free with key → free → reference data
-  const order = ["finnhub","twelvedata","fmp","tiingo","alphavantage","polygon","stockdata","finazon","yahoo","stooq","eodhd","marketstack","cryptocompare"];
+  const order = ["finnhub","twelvedata","fmp","tiingo","alphavantage","polygon","tradier","alpaca","intrinio","stockdata","finazon","rapidapi_yahoo","yahoo","stooq","eodhd","marketstack","nasdaq","cryptocompare"];
   for(const p of order){
     try { const d = await tryFn(p); if(d?.price>0) return d; } catch(_){}
   }
@@ -2691,7 +2878,7 @@ async function testAllProviders(){
   const ticker = $("mdTicker").value.trim().toUpperCase();
   if(!ticker) return toast("Enter a ticker","err");
   $("mdResult").innerHTML = "Testing all providers for "+ticker+"…";
-  const providers = ["finnhub","alphavantage","polygon","twelvedata","fmp","tiingo","eodhd","marketstack","stockdata","finazon","yahoo","stooq","cryptocompare","coinbase"];
+  const providers = ["finnhub","alphavantage","polygon","twelvedata","fmp","tiingo","intrinio","nasdaq","tradier","alpaca","rapidapi_yahoo","eodhd","marketstack","stockdata","finazon","yahoo","stooq","cryptocompare","coinbase"];
   const results = await Promise.all(providers.map(async p => {
     const t0 = performance.now();
     try { const d = await fetchQuote(ticker, p); return {p, ok:true, price:d.price, ms:performance.now()-t0}; }
@@ -2771,19 +2958,37 @@ function testZip(){
 // KEYS
 // ═══════════════════════════════════════════════════════════
 const API_KEY_DEFS = [
-  // ── Equity quotes ──
-  {id:"fhKey", n:"Finnhub", url:"finnhub.io/register", note:"60 calls/min · stocks/FX/crypto"},
+  // ── Equity quotes — Premium tier (paid, fastest) ──
+  {id:"fhKey", n:"Finnhub", url:"finnhub.io/register", note:"60 calls/min · stocks/FX/crypto/news"},
+  {id:"wa_polygon_key", n:"Polygon.io", url:"polygon.io/dashboard/api-keys", note:"5/min · US stocks/options"},
+  {id:"wa_intrinio_key", n:"Intrinio", url:"intrinio.com/signup", note:"Dev tier · stocks + fundamentals"},
+  // ── Equity quotes — Generous free tier ──
   {id:"avKey", n:"Alpha Vantage", url:"alphavantage.co/support/#api-key", note:"25/day · 5/min · stocks"},
-  {id:"wa_polygon_key", n:"Polygon.io", url:"polygon.io/dashboard/api-keys", note:"5/min · US stocks"},
   {id:"wa_twelvedata_key", n:"Twelve Data", url:"twelvedata.com/pricing", note:"800/day · stocks/FX/crypto"},
   {id:"wa_fmp_key", n:"Financial Modeling Prep", url:"site.financialmodelingprep.com", note:"250/day · stocks + fundamentals"},
   {id:"wa_tiingo_key", n:"Tiingo", url:"tiingo.com/account/api/token", note:"IEX feed + news"},
+  {id:"wa_nasdaq_key", n:"Nasdaq Data Link (Quandl)", url:"data.nasdaq.com/sign-up", note:"50/day · WIKI, SHARADAR datasets"},
+  // ── Equity quotes — Account-based ──
+  {id:"wa_tradier_key", n:"Tradier", url:"tradier.com/products/marketdata", note:"Real-time delayed · free w/ Tradier account"},
+  {id:"wa_alpaca_key", n:"Alpaca — Key ID", url:"alpaca.markets/learn/api-keys", note:"Paper or live account · Key ID"},
+  {id:"wa_alpaca_secret", n:"Alpaca — Secret", url:"alpaca.markets/learn/api-keys", note:"Paper or live account · Secret key"},
+  {id:"wa_rapidapi_key", n:"RapidAPI (Yahoo Finance)", url:"rapidapi.com/apidojo/api/yh-finance", note:"500/month · YH-Finance via RapidAPI"},
+  // ── Equity quotes — Specialty ──
   {id:"wa_eodhd_key", n:"EOD Historical Data", url:"eodhistoricaldata.com/register", note:"20/day · 60+ exchanges global"},
   {id:"wa_marketstack_key", n:"Marketstack", url:"marketstack.com/signup/free", note:"100/month · global stocks"},
   {id:"wa_stockdata_key", n:"Stockdata.org", url:"stockdata.org/register", note:"100/day · real-time stocks"},
   {id:"wa_finazon_key", n:"Finazon", url:"finazon.io/register", note:"Free tier · institutional SIP feed"},
+  // ── News ──
+  {id:"wa_newsapi_key", n:"NewsAPI.org", url:"newsapi.org/register", note:"100/day · general + financial news"},
+  {id:"wa_marketaux_key", n:"Marketaux", url:"marketaux.com/account/dashboard", note:"100/day · financial news + sentiment"},
+  {id:"wa_benzinga_key", n:"Benzinga", url:"benzinga.com/apis/cloud-api", note:"News + analyst ratings + calendar"},
   // ── Crypto ──
-  {id:"wa_cmc_key", n:"CoinMarketCap", url:"coinmarketcap.com/api/", note:"333/day · crypto"},
+  {id:"wa_cmc_key", n:"CoinMarketCap", url:"coinmarketcap.com/api/", note:"333/day · crypto + market cap"},
+  {id:"wa_messari_key", n:"Messari", url:"messari.io/api", note:"Crypto research + metrics"},
+  // ── FX ──
+  {id:"wa_oxr_key", n:"Open Exchange Rates", url:"openexchangerates.org/signup/free", note:"1000/month · 170 currencies"},
+  {id:"wa_currencyapi_key", n:"CurrencyAPI.com", url:"currencyapi.com/register", note:"300/month · 170 currencies"},
+  {id:"wa_currencylayer_key", n:"CurrencyLayer", url:"currencylayer.com/product", note:"250/month · 168 currencies"},
   // ── Macro ──
   {id:"wa_fred_key", n:"FRED (St Louis Fed)", url:"fred.stlouisfed.org/docs/api/api_key.html", note:"Free unlimited · US economic data"},
   // ── AI / LLM ──
@@ -2916,6 +3121,82 @@ async function testKeyHealth(keyId){
       const j = await r.json();
       if(j.status?.error_code) throw new Error(j.status.error_message);
       if(!j.data?.BTC) throw new Error("No data");
+      ok = true;
+    } else if(keyId === "wa_nasdaq_key"){
+      const r = await fetch(`https://data.nasdaq.com/api/v3/datasets/WIKI/AAPL.json?api_key=${v}&rows=1`);
+      if(!r.ok){ const t=await r.text(); throw new Error("HTTP "+r.status+": "+t.slice(0,80)); }
+      const j = await r.json();
+      if(j.quandl_error) throw new Error(j.quandl_error.message);
+      if(!j.dataset?.data?.[0]) throw new Error("No data");
+      ok = true;
+    } else if(keyId === "wa_intrinio_key"){
+      const r = await fetch(`https://api-v2.intrinio.com/securities/AAPL/prices?page_size=1&api_key=${v}`);
+      if(!r.ok){ const t=await r.text(); throw new Error("HTTP "+r.status+": "+t.slice(0,80)); }
+      const j = await r.json();
+      if(!j.stock_prices?.[0]) throw new Error("No data");
+      ok = true;
+    } else if(keyId === "wa_tradier_key"){
+      const r = await fetch("https://api.tradier.com/v1/markets/quotes?symbols=AAPL", {headers:{Authorization:`Bearer ${v}`,Accept:"application/json"}});
+      if(!r.ok) throw new Error("HTTP "+r.status);
+      const j = await r.json();
+      if(!j.quotes?.quote) throw new Error("No quote");
+      ok = true;
+    } else if(keyId === "wa_alpaca_key" || keyId === "wa_alpaca_secret"){
+      const keyId_ = localStorage.getItem("wa_alpaca_key");
+      const sec_ = localStorage.getItem("wa_alpaca_secret");
+      if(!keyId_ || !sec_) throw new Error("Alpaca needs BOTH Key ID and Secret");
+      const r = await fetch("https://data.alpaca.markets/v2/stocks/AAPL/quotes/latest", {headers:{"APCA-API-KEY-ID":keyId_,"APCA-API-SECRET-KEY":sec_}});
+      if(!r.ok){ const t=await r.text(); throw new Error("HTTP "+r.status+": "+t.slice(0,80)); }
+      const j = await r.json();
+      if(!j.quote) throw new Error("No quote");
+      ok = true;
+    } else if(keyId === "wa_rapidapi_key"){
+      const r = await fetch("https://yh-finance.p.rapidapi.com/stock/v2/get-summary?symbol=AAPL", {headers:{"X-RapidAPI-Key":v,"X-RapidAPI-Host":"yh-finance.p.rapidapi.com"}});
+      if(!r.ok) throw new Error("HTTP "+r.status);
+      const j = await r.json();
+      if(!j.price?.regularMarketPrice) throw new Error("No data");
+      ok = true;
+    } else if(keyId === "wa_newsapi_key"){
+      const r = await fetch(`https://newsapi.org/v2/everything?q=Apple&pageSize=1&apiKey=${v}`);
+      const j = await r.json();
+      if(j.status === "error") throw new Error(j.message);
+      if(!j.articles?.length) throw new Error("No articles");
+      ok = true;
+    } else if(keyId === "wa_marketaux_key"){
+      const r = await fetch(`https://api.marketaux.com/v1/news/all?symbols=AAPL&limit=1&api_token=${v}`);
+      const j = await r.json();
+      if(j.error) throw new Error(j.error.message);
+      if(!j.data) throw new Error("No data");
+      ok = true;
+    } else if(keyId === "wa_benzinga_key"){
+      const r = await fetch(`https://api.benzinga.com/api/v2/news?tickers=AAPL&pageSize=1&token=${v}`);
+      if(!r.ok) throw new Error("HTTP "+r.status);
+      const j = await r.json();
+      if(!Array.isArray(j)) throw new Error("Unexpected response");
+      ok = true;
+    } else if(keyId === "wa_oxr_key"){
+      const r = await fetch(`https://openexchangerates.org/api/latest.json?app_id=${v}&symbols=EUR`);
+      const j = await r.json();
+      if(j.error) throw new Error(j.message);
+      if(!j.rates?.EUR) throw new Error("No rate");
+      ok = true;
+    } else if(keyId === "wa_currencyapi_key"){
+      const r = await fetch(`https://api.currencyapi.com/v3/latest?apikey=${v}&currencies=EUR`);
+      const j = await r.json();
+      if(j.errors) throw new Error(JSON.stringify(j.errors).slice(0,80));
+      if(!j.data?.EUR) throw new Error("No data");
+      ok = true;
+    } else if(keyId === "wa_currencylayer_key"){
+      const r = await fetch(`https://api.currencylayer.com/live?access_key=${v}&currencies=EUR`);
+      const j = await r.json();
+      if(!j.success) throw new Error(j.error?.info||"Error");
+      if(!j.quotes?.USDEUR) throw new Error("No data");
+      ok = true;
+    } else if(keyId === "wa_messari_key"){
+      const r = await fetch("https://data.messari.io/api/v1/assets/bitcoin/metrics", {headers:{"x-messari-api-key":v}});
+      if(!r.ok) throw new Error("HTTP "+r.status);
+      const j = await r.json();
+      if(!j.data?.market_data) throw new Error("No data");
       ok = true;
     } else if(keyId === "wa_fred_key"){
       const r = await fetch(`https://api.stlouisfed.org/fred/series/observations?series_id=DGS10&api_key=${v}&file_type=json&sort_order=desc&limit=1`);
