@@ -2674,7 +2674,7 @@ input[type=date]{color-scheme:light}
 // ═══════════════════════════════════════════════════════════
 // VERSION — updated by build-standalone.pl on each build
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260522-1339";
+const APP_VERSION = "20260522-1425";
 
 // ═══════════════════════════════════════════════════════════
 // DATA
@@ -7786,17 +7786,40 @@ const MarketData = (function(){
 
   function getCfg(){
     return {
-      // Free providers (with API key)
+      // Equity quotes — premium / paid
       fh: localStorage.getItem("fhKey") || "",
-      av: localStorage.getItem("avKey") || "",
       polygon: localStorage.getItem("wa_polygon_key") || "",
+      intrinio: localStorage.getItem("wa_intrinio_key") || "",
+      // Equity quotes — generous free
+      av: localStorage.getItem("avKey") || "",
       twelvedata: localStorage.getItem("wa_twelvedata_key") || "",
       fmp: localStorage.getItem("wa_fmp_key") || "",
       tiingo: localStorage.getItem("wa_tiingo_key") || "",
-      eodhd: localStorage.getItem("wa_eodhd_key") || "",
+      nasdaq: localStorage.getItem("wa_nasdaq_key") || "",
+      // Equity quotes — account-based
+      tradier: localStorage.getItem("wa_tradier_key") || "",
       alpacaKey: localStorage.getItem("wa_alpaca_key") || "",
       alpacaSecret: localStorage.getItem("wa_alpaca_secret") || "",
-      // Enterprise providers (require user-deployed backend proxy)
+      rapidapi: localStorage.getItem("wa_rapidapi_key") || "",
+      // Equity quotes — specialty
+      eodhd: localStorage.getItem("wa_eodhd_key") || "",
+      marketstack: localStorage.getItem("wa_marketstack_key") || "",
+      stockdata: localStorage.getItem("wa_stockdata_key") || "",
+      finazon: localStorage.getItem("wa_finazon_key") || "",
+      // News
+      newsapi: localStorage.getItem("wa_newsapi_key") || "",
+      marketaux: localStorage.getItem("wa_marketaux_key") || "",
+      benzinga: localStorage.getItem("wa_benzinga_key") || "",
+      // Crypto
+      cmc: localStorage.getItem("wa_cmc_key") || "",
+      messari: localStorage.getItem("wa_messari_key") || "",
+      // FX
+      oxr: localStorage.getItem("wa_oxr_key") || "",
+      currencyapi: localStorage.getItem("wa_currencyapi_key") || "",
+      currencylayer: localStorage.getItem("wa_currencylayer_key") || "",
+      // Macro
+      fred: localStorage.getItem("wa_fred_key") || "",
+      // Enterprise (user-deployed proxy)
       bloombergProxy: localStorage.getItem("wa_bloomberg_proxy") || "",
       bloombergAuth: localStorage.getItem("wa_bloomberg_auth") || "",
       factsetProxy: localStorage.getItem("wa_factset_proxy") || "",
@@ -7873,6 +7896,70 @@ const MarketData = (function(){
     const mid = (q.ap + q.bp) / 2;
     return {price:mid, ask:q.ap, bid:q.bp, askSize:q.as, bidSize:q.bs, asOf:q.t};
   }
+  async function tryIntrinio(t, cfg){
+    if(!cfg.intrinio) throw new Error("No Intrinio key");
+    const r = await fetch(`https://api-v2.intrinio.com/securities/${encodeURIComponent(t)}/prices/realtime?api_key=${cfg.intrinio}`);
+    if(!r.ok) throw new Error("HTTP "+r.status);
+    const j = await r.json(); if(!j.last_price && !j.close_price) throw new Error("No data");
+    const p = j.last_price || j.close_price;
+    return {price:+p, bid:+j.bid_price, ask:+j.ask_price, prevClose:+j.close_price, volume:+j.last_size, asOf:j.last_time};
+  }
+  async function tryNasdaq(t, cfg){
+    // Nasdaq Data Link (Quandl) — WIKI dataset deprecated, use EOD via SHARADAR/SEP if subscribed
+    if(!cfg.nasdaq) throw new Error("No Nasdaq Data Link key");
+    const r = await fetch(`https://data.nasdaq.com/api/v3/datasets/EOD/${encodeURIComponent(t.toUpperCase())}.json?rows=2&api_key=${cfg.nasdaq}`);
+    if(!r.ok) throw new Error("HTTP "+r.status);
+    const j = await r.json(); const rows = j.dataset && j.dataset.data;
+    if(!rows || !rows.length) throw new Error("No data — EOD/SHARADAR subscription required");
+    const [today, prev] = rows;
+    return {price:+today[4], prevClose:prev?+prev[4]:+today[4], change:+today[4]-(prev?+prev[4]:+today[4]), changePct:prev?((+today[4]/+prev[4])-1)*100:0, volume:+today[5]};
+  }
+  async function tryTradier(t, cfg){
+    if(!cfg.tradier) throw new Error("No Tradier key");
+    const r = await fetch(`https://api.tradier.com/v1/markets/quotes?symbols=${encodeURIComponent(t)}`,{
+      headers:{"Authorization":"Bearer "+cfg.tradier,"Accept":"application/json"}
+    });
+    if(!r.ok) throw new Error("HTTP "+r.status);
+    const j = await r.json(); const q = j.quotes && (Array.isArray(j.quotes.quote) ? j.quotes.quote[0] : j.quotes.quote);
+    if(!q || !q.last) throw new Error("No data");
+    return {price:+q.last, bid:+q.bid, ask:+q.ask, change:+q.change, changePct:+q.change_percentage, volume:+q.volume, prevClose:+q.prevclose, high:+q.high, low:+q.low};
+  }
+  async function tryRapidAPI(t, cfg){
+    if(!cfg.rapidapi) throw new Error("No RapidAPI key");
+    const r = await fetch(`https://yh-finance.p.rapidapi.com/stock/v2/get-summary?symbol=${encodeURIComponent(t)}`,{
+      headers:{"X-RapidAPI-Key":cfg.rapidapi,"X-RapidAPI-Host":"yh-finance.p.rapidapi.com"}
+    });
+    if(!r.ok) throw new Error("HTTP "+r.status);
+    const j = await r.json(); const p = j.price;
+    if(!p || !p.regularMarketPrice) throw new Error("No data");
+    return {price:p.regularMarketPrice.raw, change:p.regularMarketChange?.raw, changePct:p.regularMarketChangePercent?.raw*100, volume:p.regularMarketVolume?.raw, marketCap:p.marketCap?.raw, currency:p.currency, exchange:p.exchangeName};
+  }
+  async function tryMarketstack(t, cfg){
+    if(!cfg.marketstack) throw new Error("No Marketstack key");
+    const r = await fetch(`https://api.marketstack.com/v1/eod/latest?access_key=${cfg.marketstack}&symbols=${encodeURIComponent(t)}`);
+    if(!r.ok) throw new Error("HTTP "+r.status);
+    const j = await r.json(); const d = j.data && j.data[0];
+    if(!d || !d.close) throw new Error("No data");
+    return {price:+d.close, open:+d.open, high:+d.high, low:+d.low, volume:+d.volume, change:+d.close-+d.open, changePct:((+d.close/+d.open)-1)*100, asOf:d.date};
+  }
+  async function tryStockdata(t, cfg){
+    if(!cfg.stockdata) throw new Error("No Stockdata key");
+    const r = await fetch(`https://api.stockdata.org/v1/data/quote?symbols=${encodeURIComponent(t)}&api_token=${cfg.stockdata}`);
+    if(!r.ok) throw new Error("HTTP "+r.status);
+    const j = await r.json(); const d = j.data && j.data[0];
+    if(!d || !d.price) throw new Error("No data");
+    return {price:+d.price, change:+d.day_change, changePct:+d.day_change_pct, prevClose:+d.previous_close_price, volume:+d.volume, marketCap:+d.market_cap};
+  }
+  async function tryFinazon(t, cfg){
+    if(!cfg.finazon) throw new Error("No Finazon key");
+    const r = await fetch(`https://api.finazon.io/latest/time_series?dataset=us_stocks_essential&ticker=${encodeURIComponent(t)}&interval=1d&page=0&page_size=1&apikey=${cfg.finazon}`,{
+      headers:{"Authorization":"apikey "+cfg.finazon}
+    });
+    if(!r.ok) throw new Error("HTTP "+r.status);
+    const j = await r.json(); const d = j.data && j.data[0];
+    if(!d || !d.c) throw new Error("No data");
+    return {price:+d.c, open:+d.o, high:+d.h, low:+d.l, volume:+d.v, change:+d.c-+d.o, changePct:((+d.c/+d.o)-1)*100, asOf:new Date(d.t*1000).toISOString()};
+  }
 
   // ─── FREE: no API key needed ───────────────────────────────────────────
   async function tryYahoo(t){
@@ -7918,6 +8005,115 @@ const MarketData = (function(){
     return {price:close, open:open, high:+cols[4], low:+cols[5], change:close-open, changePct:(close/open-1)*100, volume:+cols[7]};
   }
 
+  // ─── CRYPTO (keyed providers) ──────────────────────────────────────────
+  async function tryCMC(t, cfg){
+    if(!cfg.cmc) throw new Error("No CoinMarketCap key");
+    const r = await fetch(`https://pro-api.coinmarketcap.com/v2/cryptocurrency/quotes/latest?symbol=${encodeURIComponent(t.toUpperCase())}&convert=USD`,{
+      headers:{"X-CMC_PRO_API_KEY":cfg.cmc}
+    });
+    if(!r.ok) throw new Error("HTTP "+r.status);
+    const j = await r.json(); const d = j.data && j.data[t.toUpperCase()];
+    const c = d && d[0] && d[0].quote && d[0].quote.USD;
+    if(!c || !c.price) throw new Error("No data");
+    return {price:c.price, change:c.price - c.price/(1+c.percent_change_24h/100), changePct:c.percent_change_24h, volume:c.volume_24h, marketCap:c.market_cap, currency:"USD"};
+  }
+  async function tryMessari(t, cfg){
+    if(!cfg.messari) throw new Error("No Messari key");
+    const r = await fetch(`https://data.messari.io/api/v1/assets/${encodeURIComponent(t.toLowerCase())}/metrics/market-data`,{
+      headers:{"x-messari-api-key":cfg.messari}
+    });
+    if(!r.ok) throw new Error("HTTP "+r.status);
+    const j = await r.json(); const d = j.data && j.data.market_data;
+    if(!d || !d.price_usd) throw new Error("No data");
+    return {price:d.price_usd, changePct:d.percent_change_usd_last_24_hours, volume:d.volume_last_24_hours, marketCap:j.data.marketcap?.current_marketcap_usd, currency:"USD"};
+  }
+
+  // ─── FX (keyed providers) ──────────────────────────────────────────────
+  async function tryOXR(t, cfg){
+    if(!cfg.oxr) throw new Error("No OpenExchangeRates key");
+    if(t.length !== 6) throw new Error("OXR expects FX pair (e.g. EURUSD)");
+    const base = t.slice(0,3), quote = t.slice(3,6);
+    const r = await fetch(`https://openexchangerates.org/api/latest.json?app_id=${cfg.oxr}&base=USD&symbols=${base},${quote}`);
+    if(!r.ok) throw new Error("HTTP "+r.status);
+    const j = await r.json(); const usdBase = j.rates && j.rates[base], usdQuote = j.rates && j.rates[quote];
+    if(!usdBase || !usdQuote) throw new Error("No FX rate returned");
+    const rate = usdQuote / usdBase;
+    return {price:rate, currency:quote, base:base, asOf:new Date(j.timestamp*1000).toISOString(), source_label:"Open Exchange Rates"};
+  }
+  async function tryCurrencyAPI(t, cfg){
+    if(!cfg.currencyapi) throw new Error("No CurrencyAPI key");
+    if(t.length !== 6) throw new Error("CurrencyAPI expects FX pair (e.g. EURUSD)");
+    const base = t.slice(0,3), quote = t.slice(3,6);
+    const r = await fetch(`https://api.currencyapi.com/v3/latest?apikey=${cfg.currencyapi}&base_currency=${base}&currencies=${quote}`);
+    if(!r.ok) throw new Error("HTTP "+r.status);
+    const j = await r.json(); const c = j.data && j.data[quote];
+    if(!c || !c.value) throw new Error("No FX rate");
+    return {price:c.value, currency:quote, base:base, source_label:"CurrencyAPI.com"};
+  }
+  async function tryCurrencyLayer(t, cfg){
+    if(!cfg.currencylayer) throw new Error("No CurrencyLayer key");
+    if(t.length !== 6) throw new Error("CurrencyLayer expects FX pair (e.g. EURUSD)");
+    const base = t.slice(0,3), quote = t.slice(3,6);
+    // Free plan: base USD only — compute cross-rate via USD
+    const r = await fetch(`https://api.currencylayer.com/live?access_key=${cfg.currencylayer}&currencies=${base},${quote}`);
+    if(!r.ok) throw new Error("HTTP "+r.status);
+    const j = await r.json(); const ub = j.quotes && j.quotes["USD"+base], uq = j.quotes && j.quotes["USD"+quote];
+    if(!ub || !uq) throw new Error("No FX rate");
+    return {price:uq / ub, currency:quote, base:base, asOf:new Date(j.timestamp*1000).toISOString(), source_label:"CurrencyLayer"};
+  }
+
+  // ─── MACRO (FRED) — series ID, not ticker ─────────────────────────────
+  async function getFREDSeries(seriesId){
+    const cfg = getCfg();
+    if(!cfg.fred) throw new Error("No FRED key");
+    const r = await fetch(`https://api.stlouisfed.org/fred/series/observations?series_id=${encodeURIComponent(seriesId)}&api_key=${cfg.fred}&file_type=json&sort_order=desc&limit=2`);
+    if(!r.ok) throw new Error("HTTP "+r.status);
+    const j = await r.json(); const obs = j.observations;
+    if(!obs || obs.length === 0) throw new Error("No data for "+seriesId);
+    const latest = obs[0], prev = obs[1];
+    return {seriesId, value:+latest.value, prevValue:prev?+prev.value:null, change:prev?(+latest.value-+prev.value):0, asOf:latest.date};
+  }
+
+  // ─── NEWS — headlines for a ticker or topic ───────────────────────────
+  async function getNewsForTicker(ticker, opts){
+    opts = opts || {};
+    const cfg = getCfg();
+    const limit = opts.limit || 10;
+    const out = [];
+    // Try Marketaux first (best financial sentiment)
+    if(cfg.marketaux){
+      try {
+        const r = await fetch(`https://api.marketaux.com/v1/news/all?symbols=${encodeURIComponent(ticker)}&filter_entities=true&language=en&api_token=${cfg.marketaux}&limit=${limit}`);
+        if(r.ok){
+          const j = await r.json();
+          (j.data||[]).forEach(it => out.push({title:it.title, url:it.url, source:it.source, publishedAt:it.published_at, sentiment:it.entities?.[0]?.sentiment_score, provider:"marketaux"}));
+          if(out.length) return out;
+        }
+      } catch(_){}
+    }
+    if(cfg.benzinga){
+      try {
+        const r = await fetch(`https://api.benzinga.com/api/v2/news?token=${cfg.benzinga}&tickers=${encodeURIComponent(ticker)}&pageSize=${limit}&displayOutput=full`);
+        if(r.ok){
+          const j = await r.json();
+          (Array.isArray(j)?j:[]).forEach(it => out.push({title:it.title, url:it.url, source:"Benzinga", publishedAt:it.created, summary:it.teaser, provider:"benzinga"}));
+          if(out.length) return out;
+        }
+      } catch(_){}
+    }
+    if(cfg.newsapi){
+      try {
+        const r = await fetch(`https://newsapi.org/v2/everything?q=${encodeURIComponent(ticker)}&sortBy=publishedAt&pageSize=${limit}&apiKey=${cfg.newsapi}`);
+        if(r.ok){
+          const j = await r.json();
+          (j.articles||[]).forEach(it => out.push({title:it.title, url:it.url, source:it.source?.name, publishedAt:it.publishedAt, summary:it.description, provider:"newsapi"}));
+          if(out.length) return out;
+        }
+      } catch(_){}
+    }
+    return out;
+  }
+
   // ─── ENTERPRISE: require user-deployed proxy ───────────────────────────
   async function tryBloomberg(t, cfg){
     if(!cfg.bloombergProxy) throw new Error("Bloomberg proxy not configured (requires enterprise license + backend)");
@@ -7957,9 +8153,18 @@ const MarketData = (function(){
   }
 
   const PROVIDERS = {
-    finnhub:tryFinnhub, alphavantage:tryAlphaVantage, yahoo:tryYahoo, polygon:tryPolygon,
+    // Equities — keyed
+    finnhub:tryFinnhub, alphavantage:tryAlphaVantage, polygon:tryPolygon,
     twelvedata:tryTwelveData, fmp:tryFMP, tiingo:tryTiingo, eodhd:tryEODHD, alpaca:tryAlpaca,
-    coingecko:tryCoinGecko, frankfurter:tryFrankfurter, stooq:tryStooq,
+    intrinio:tryIntrinio, nasdaq:tryNasdaq, tradier:tryTradier, rapidapi:tryRapidAPI,
+    marketstack:tryMarketstack, stockdata:tryStockdata, finazon:tryFinazon,
+    // Equities — free, no key
+    yahoo:tryYahoo, stooq:tryStooq,
+    // Crypto
+    coingecko:tryCoinGecko, cmc:tryCMC, messari:tryMessari,
+    // FX
+    frankfurter:tryFrankfurter, oxr:tryOXR, currencyapi:tryCurrencyAPI, currencylayer:tryCurrencyLayer,
+    // Enterprise proxy
     bloomberg:tryBloomberg, factset:tryFactSet, refinitiv:tryRefinitiv,
     capiq:tryCapIQ, morningstar:tryMorningstar, ibkr:tryIBKR
   };
@@ -7973,27 +8178,48 @@ const MarketData = (function(){
     const k = t + ":" + (hint||"auto");
     const c = cache.get(k); if(c && Date.now()-c.ts<CACHE_MS) return c.data;
     const cfg = getCfg();
-    // Auto failover order: fast paid providers → free with key → free → enterprise
-    let order = ["finnhub","twelvedata","fmp","tiingo","alphavantage","polygon","yahoo","stooq","eodhd","alpaca","coingecko","frankfurter","bloomberg","refinitiv","factset","capiq","morningstar","ibkr"];
+    // Detect asset class from input for smart routing
+    const isFX = !hint && t.length === 6 && /^[A-Z]{6}$/.test(t);
+    const isCrypto = !hint && (t.length <= 5 && /^(BTC|ETH|SOL|ADA|DOT|DOGE|MATIC|AVAX|LINK|UNI|ATOM|LTC|XRP|BNB|USDT|USDC|NEAR|ARB|OP|APT|TON|TRX|SHIB)$/.test(t.toUpperCase()));
+
+    // Build failover order intelligently by asset class
+    let order;
+    if(isCrypto){
+      // Crypto: CMC → Messari → CoinGecko → equity fallback (some tickers double-listed)
+      order = ["cmc","messari","coingecko","finnhub","twelvedata","fmp"];
+    } else if(isFX){
+      // FX: Frankfurter (free, ECB) → OXR → CurrencyAPI → CurrencyLayer → AV/TwelveData
+      order = ["frankfurter","oxr","currencyapi","currencylayer","alphavantage","twelvedata","finnhub","fmp"];
+    } else {
+      // Equity / ETF: 18-deep auto-failover, fastest paid first then free with key, then free, then enterprise
+      order = [
+        "finnhub","polygon","intrinio","twelvedata","fmp","tiingo","alphavantage",
+        "tradier","alpaca","rapidapi",
+        "eodhd","marketstack","stockdata","finazon","nasdaq",
+        "yahoo","stooq",
+        "bloomberg","refinitiv","factset","capiq","morningstar","ibkr"
+      ];
+    }
     if(hint && order.includes(hint)) order = [hint, ...order.filter(p=>p!==hint)];
+    else if(hint && !order.includes(hint)) order = [hint, ...order];
+
+    // Skip-if-not-configured map (centralised so adding providers is one place)
+    const needsKey = {
+      finnhub:()=>cfg.fh, alphavantage:()=>cfg.av, polygon:()=>cfg.polygon,
+      twelvedata:()=>cfg.twelvedata, fmp:()=>cfg.fmp, tiingo:()=>cfg.tiingo,
+      eodhd:()=>cfg.eodhd, intrinio:()=>cfg.intrinio, nasdaq:()=>cfg.nasdaq,
+      tradier:()=>cfg.tradier, alpaca:()=>(cfg.alpacaKey && cfg.alpacaSecret),
+      rapidapi:()=>cfg.rapidapi, marketstack:()=>cfg.marketstack,
+      stockdata:()=>cfg.stockdata, finazon:()=>cfg.finazon,
+      cmc:()=>cfg.cmc, messari:()=>cfg.messari,
+      oxr:()=>cfg.oxr, currencyapi:()=>cfg.currencyapi, currencylayer:()=>cfg.currencylayer,
+      bloomberg:()=>cfg.bloombergProxy, factset:()=>cfg.factsetProxy,
+      refinitiv:()=>cfg.refinitivProxy, capiq:()=>cfg.capiqProxy,
+      morningstar:()=>cfg.morningstarProxy, ibkr:()=>cfg.ibkrProxy
+    };
     for(const n of order){
-      // Skip providers not configured
-      if(n==="finnhub" && !cfg.fh) continue;
-      if(n==="alphavantage" && !cfg.av) continue;
-      if(n==="polygon" && !cfg.polygon) continue;
-      if(n==="twelvedata" && !cfg.twelvedata) continue;
-      if(n==="fmp" && !cfg.fmp) continue;
-      if(n==="tiingo" && !cfg.tiingo) continue;
-      if(n==="eodhd" && !cfg.eodhd) continue;
-      if(n==="alpaca" && (!cfg.alpacaKey || !cfg.alpacaSecret)) continue;
-      if(n==="bloomberg" && !cfg.bloombergProxy) continue;
-      if(n==="factset" && !cfg.factsetProxy) continue;
-      if(n==="refinitiv" && !cfg.refinitivProxy) continue;
-      if(n==="capiq" && !cfg.capiqProxy) continue;
-      if(n==="morningstar" && !cfg.morningstarProxy) continue;
-      if(n==="ibkr" && !cfg.ibkrProxy) continue;
-      // CoinGecko / Frankfurter only useful for specific asset classes — skip in auto unless hinted
-      if(!hint && (n==="coingecko" || n==="frankfurter")) continue;
+      // Skip if requires key and not configured
+      if(needsKey[n] && !needsKey[n]()) continue;
       try {
         const d = await fetchOne(t, n);
         if(d && d.price>0){ cache.set(k,{data:d,ts:Date.now()}); return d; }
@@ -8002,7 +8228,7 @@ const MarketData = (function(){
     throw new Error("All providers failed for "+t);
   }
 
-  return {fetchQuote, fetchOne, getCfg, PROVIDERS};
+  return {fetchQuote, fetchOne, getCfg, PROVIDERS, getFREDSeries, getNewsForTicker};
 })();
 
 // Refresh all portfolio holdings via MarketData
