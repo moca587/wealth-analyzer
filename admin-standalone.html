@@ -862,11 +862,11 @@ Citations:<br>
 <div class="tab" id="tab-keys">
   <div class="hero">
     <h1>🔑 API Keys & Endpoints</h1>
-    <p>All credentials stored in browser localStorage and shared with the main app. For production, deploy a server-side proxy.</p>
+    <p>All credentials stored in browser localStorage and shared with the main app. <strong>Keys are auto-tested every 2 minutes</strong> to ensure they're working — see the Health column.</p>
   </div>
   <div class="panel">
-    <div class="ptitle">Free Providers</div>
-    <table class="tbl"><thead><tr><th>Provider</th><th>Key</th><th>Status</th><th>Action</th></tr></thead><tbody id="keysTbl"></tbody></table>
+    <div class="ptitle">Free Providers <span style="color:var(--green);font-weight:600">— health-checked every 2 minutes</span></div>
+    <table class="tbl"><thead><tr><th>Provider</th><th>Key</th><th>Status</th><th>Health</th><th>Action</th></tr></thead><tbody id="keysTbl"></tbody></table>
     <div style="font-size:11px;color:var(--ink3);margin-top:10px;line-height:1.6">
       <strong>Get free keys:</strong>
       <a href="https://finnhub.io/register" target="_blank" style="color:var(--blue)">finnhub.io</a> ·
@@ -949,7 +949,7 @@ Citations:<br>
 // ═══════════════════════════════════════════════════════════
 // VERSION + UTILS
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260522-0942";
+const APP_VERSION = "20260522-0945";
 const $ = (id) => document.getElementById(id);
 const $$ = (sel, ctx) => Array.from((ctx||document).querySelectorAll(sel));
 
@@ -2528,26 +2528,164 @@ const API_KEY_DEFS = [
   {id:"wa_tiingo_key", n:"Tiingo", url:"tiingo.com/account/api/token"},
   {id:"wa_claude_key", n:"Claude API (Anthropic)", url:"console.anthropic.com"}
 ];
+// Health status persisted per-key — updated by the 2-minute auto-check loop
+function getKeyHealth(){ try { return JSON.parse(localStorage.getItem("wa_key_health")||"{}"); } catch(_){return {};} }
+function setKeyHealth(h){ localStorage.setItem("wa_key_health", JSON.stringify(h)); }
+
 function renderKeys(){
+  const health = getKeyHealth();
   let h = '';
+  // Header row gains a Health column
+  $("keysTbl").parentElement.querySelector("thead tr").innerHTML = '<th>Provider</th><th>Key</th><th>Status</th><th>Health</th><th>Action</th>';
   API_KEY_DEFS.forEach(k => {
     const v = localStorage.getItem(k.id) || "";
+    const hh = health[k.id] || {};
+    let healthPill = '<span class="pill" style="background:rgba(156,163,175,.15);color:var(--ink3)">Not checked</span>';
+    if(v){
+      if(hh.lastCheck){
+        const age = Date.now() - hh.lastCheck;
+        const ago = age < 60000 ? Math.floor(age/1000)+'s' : Math.floor(age/60000)+'m';
+        if(hh.ok) healthPill = `<span class="pill pill-on" title="Last check: ${ago} ago">✓ Working (${hh.latencyMs||"—"} ms · ${ago} ago)</span>`;
+        else healthPill = `<span class="pill pill-off" title="${escapeHtml(hh.error||"")}">✗ Failing (${ago} ago)</span>`;
+      } else {
+        healthPill = '<span class="pill pill-warn">Pending check…</span>';
+      }
+    }
     h += `<tr>
       <td><strong>${k.n}</strong><br><a href="https://${k.url}" target="_blank" style="font-size:10.5px;color:var(--blue)">↗ ${k.url}</a></td>
-      <td><input type="password" id="key-${k.id}" value="${escapeHtml(v)}" placeholder="API key" style="width:260px;font-family:var(--fm);font-size:11px"></td>
+      <td><input type="password" id="key-${k.id}" value="${escapeHtml(v)}" placeholder="API key" style="width:240px;font-family:var(--fm);font-size:11px"></td>
       <td>${v?'<span class="pill pill-on">Set ('+v.length+' chars)</span>':'<span class="pill pill-off">Empty</span>'}</td>
-      <td><button class="btn-ghost" data-action="saveKey" data-key="${k.id}">Save</button></td>
+      <td>${healthPill}</td>
+      <td><button class="btn-ghost" data-action="saveKey" data-key="${k.id}">Save</button> ${v?'<button class="btn-ghost" data-action="testKeyHealthNow" data-key="'+k.id+'" style="font-size:10px;padding:3px 8px">Test now</button>':''}</td>
     </tr>`;
   });
   $("keysTbl").innerHTML = h;
 }
+
 function saveKey(el){
   const id = el.dataset.key;
   const v = $("key-"+id).value.trim();
-  if(v) localStorage.setItem(id, v); else localStorage.removeItem(id);
+  if(v) localStorage.setItem(id, v); else {
+    localStorage.removeItem(id);
+    // Clear health record too
+    const hh = getKeyHealth();
+    delete hh[id];
+    setKeyHealth(hh);
+  }
   toast("Saved "+id,"ok");
   addLog("ok","Saved key "+id);
   renderKeys();
+  // Immediately health-check the new key
+  if(v) testKeyHealth(id);
+}
+
+// Individual key health test — tries a real API call and stores result
+async function testKeyHealth(keyId){
+  const v = localStorage.getItem(keyId);
+  if(!v) return;
+  const t0 = performance.now();
+  let ok = false, error = null;
+  try {
+    if(keyId === "fhKey"){
+      const r = await fetch(`https://finnhub.io/api/v1/quote?symbol=AAPL&token=${v}`);
+      if(!r.ok) throw new Error("HTTP "+r.status);
+      const j = await r.json();
+      if(!j.c || j.c <= 0) throw new Error("Invalid response (no price)");
+      ok = true;
+    } else if(keyId === "avKey"){
+      const r = await fetch(`https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=AAPL&apikey=${v}`);
+      const j = await r.json();
+      if(j["Error Message"]) throw new Error(j["Error Message"]);
+      if(j["Note"]) throw new Error("Rate limited: "+j["Note"].slice(0,80));
+      const q = j["Global Quote"];
+      if(!q || !q["05. price"]) throw new Error("No data returned");
+      ok = true;
+    } else if(keyId === "wa_polygon_key"){
+      const r = await fetch(`https://api.polygon.io/v2/aggs/ticker/AAPL/prev?apiKey=${v}`);
+      if(!r.ok) throw new Error("HTTP "+r.status);
+      const j = await r.json();
+      if(j.status === "ERROR") throw new Error(j.error || "ERROR status");
+      if(!j.results || !j.results[0]) throw new Error("No results");
+      ok = true;
+    } else if(keyId === "wa_twelvedata_key"){
+      const r = await fetch(`https://api.twelvedata.com/quote?symbol=AAPL&apikey=${v}`);
+      const j = await r.json();
+      if(j.status === "error") throw new Error(j.message || "error");
+      if(!j.close) throw new Error("No close price");
+      ok = true;
+    } else if(keyId === "wa_fmp_key"){
+      const r = await fetch(`https://financialmodelingprep.com/api/v3/quote/AAPL?apikey=${v}`);
+      if(!r.ok) throw new Error("HTTP "+r.status);
+      const j = await r.json();
+      if(!Array.isArray(j) || !j[0]) throw new Error("No data");
+      ok = true;
+    } else if(keyId === "wa_tiingo_key"){
+      const r = await fetch(`https://api.tiingo.com/iex/?tickers=AAPL&token=${v}`);
+      if(!r.ok) throw new Error("HTTP "+r.status);
+      const j = await r.json();
+      if(!Array.isArray(j) || !j[0]) throw new Error("No data");
+      ok = true;
+    } else if(keyId === "wa_claude_key"){
+      // Light-touch validity check — just a ping that requires valid key
+      const r = await fetch("https://api.anthropic.com/v1/messages", {
+        method:"POST",
+        headers:{"Content-Type":"application/json","x-api-key":v,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
+        body: JSON.stringify({model:"claude-haiku-4-5",max_tokens:10,messages:[{role:"user",content:"ping"}]})
+      });
+      if(r.status === 401) throw new Error("Invalid API key");
+      if(r.status === 403) throw new Error("Forbidden");
+      if(!r.ok && r.status !== 429) throw new Error("HTTP "+r.status);
+      // 429 (rate-limited) still means the key is valid
+      ok = true;
+    }
+  } catch(e){
+    error = e.message;
+  }
+  const latencyMs = Math.round(performance.now() - t0);
+  const health = getKeyHealth();
+  health[keyId] = {ok, error, latencyMs, lastCheck: Date.now()};
+  setKeyHealth(health);
+  return {ok, error, latencyMs};
+}
+
+async function testKeyHealthNow(el){
+  const id = el.dataset.key;
+  el.disabled = true;
+  el.textContent = "Testing…";
+  const r = await testKeyHealth(id);
+  el.disabled = false;
+  el.textContent = "Test now";
+  renderKeys();
+  toast(r.ok ? `✓ ${id} working (${r.latencyMs}ms)` : `✗ ${id} failed: ${r.error}`, r.ok ? "ok" : "err");
+  addLog(r.ok ? "ok" : "err", `Key check ${id}: ${r.ok ? `OK ${r.latencyMs}ms` : "FAILED — "+r.error}`);
+}
+
+// Auto-check all configured keys every 2 minutes
+const KEY_CHECK_INTERVAL_MS = 2 * 60 * 1000; // 2 minutes
+let _keyCheckTimer = null;
+function startKeyHealthAutoCheck(){
+  if(_keyCheckTimer) clearInterval(_keyCheckTimer);
+  async function runOnce(){
+    const configured = API_KEY_DEFS.filter(k => !!localStorage.getItem(k.id));
+    if(configured.length === 0) return;
+    addLog("info", `Auto-checking ${configured.length} API key(s)…`);
+    let ok = 0, fail = 0;
+    for(const k of configured){
+      const r = await testKeyHealth(k.id);
+      if(r.ok) ok++; else fail++;
+      await new Promise(r => setTimeout(r, 800)); // throttle to be polite
+    }
+    addLog(fail > 0 ? "warn" : "ok", `Key check: ${ok} working, ${fail} failing`);
+    // Re-render keys tab if it's currently active
+    if(document.getElementById("tab-keys")?.classList.contains("active")) renderKeys();
+    // Update dashboard provider status if active
+    if(document.getElementById("tab-dashboard")?.classList.contains("active")) renderDashboard();
+  }
+  // First check 5 seconds after init
+  setTimeout(runOnce, 5000);
+  // Then every 2 minutes
+  _keyCheckTimer = setInterval(runOnce, KEY_CHECK_INTERVAL_MS);
+  addLog("ok","Key auto-check started — 2-minute interval");
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -3813,6 +3951,9 @@ function init(){
   // Start auto-watching wa_pending_profile so we capture user changes from main app
   safe("startUserAutoWatch", startUserAutoWatch);
 
+  // Start API key health auto-check (every 2 minutes)
+  safe("startKeyHealthAutoCheck", startKeyHealthAutoCheck);
+
   // Start the 5-minute auto-refresh loop (runs continuously while admin is open)
   safe("startResearchAutoRefresh", startResearchAutoRefresh);
 
@@ -3882,6 +4023,7 @@ window.testZip = testZip;
 window.changeTxCountry = changeTxCountry;
 window.renderTaxBracket = renderTaxBracket;
 window.saveKey = saveKey;
+window.testKeyHealthNow = testKeyHealthNow;
 window.copyLogs = copyLogs;
 window.downloadLogs = downloadLogs;
 window.clearLogs = clearLogs;

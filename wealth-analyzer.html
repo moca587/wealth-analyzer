@@ -1649,19 +1649,9 @@ input[type=date]{color-scheme:light}
       </div>
     </div>
     <div id="pfTkrHint" style="font-size:11px;color:var(--text3);margin-top:6px;min-height:14px"></div>
-    <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--rs);padding:8px 12px;margin-top:8px">
-      <div style="font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);margin-bottom:6px">API Keys (optional — improves data quality)</div>
-      <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:4px">
-        <label style="font-size:11px;color:var(--text2);white-space:nowrap;min-width:90px">Finnhub key</label>
-        <input id="pfFhKey" type="text" placeholder="free at finnhub.io — adds expense ratio" oninput="saveFinnhubKey(this.value)" style="flex:1;min-width:160px;padding:4px 6px;font-size:11px;font-family:monospace;background:var(--bg2);border:1px solid var(--border);border-radius:4px;color:var(--text)">
-      </div>
-      <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
-        <label style="font-size:11px;color:var(--text2);white-space:nowrap;min-width:90px">Alpha Vantage</label>
-        <input id="pfAvKey" type="text" placeholder="free at alphavantage.co — adds dividend yield" oninput="avSaveKey(this.value)" style="flex:1;min-width:160px;padding:4px 6px;font-size:11px;font-family:monospace;background:var(--bg2);border:1px solid var(--border);border-radius:4px;color:var(--text)">
-      </div>
-      <span id="pfAvStatus" style="font-size:11px;color:var(--text3);display:block;margin-top:6px"></span>
-    </div>
-    <div style="font-size:11px;color:var(--text3);margin-top:6px;line-height:1.5">Enter a ticker (VOO, AAPL), ISIN/UCIT number (IE00B3RBWM25), exchange symbol (VUSA.L, IWDA.AS), or fund name to search. Data fills automatically from Yahoo Finance &amp; OpenFIGI — no key needed. Add a Finnhub key for expense ratios.</div>
+    <!-- API key inputs hidden — manage in admin → API Keys tab. Status span retained for any code that references it. -->
+    <span id="pfAvStatus" style="display:none"></span>
+    <div style="font-size:11px;color:var(--text3);margin-top:6px;line-height:1.5">Enter a ticker (VOO, AAPL), ISIN/UCIT number (IE00B3RBWM25), exchange symbol (VUSA.L, IWDA.AS), or fund name to search. Data fills automatically from Yahoo Finance &amp; OpenFIGI — no key needed. <strong>API keys for enhanced data are managed in the <a href="admin.html" target="_blank" style="color:var(--gold)">Admin → API Keys tab</a></strong> and auto-checked every 2 minutes.</div>
   </div>
 </div>
 
@@ -1838,19 +1828,9 @@ input[type=date]{color-scheme:light}
       <button class="btn-secondary" onclick="addProposal()">Add</button>
     </div>
     <div id="prTkrHint" style="font-size:11px;color:var(--text3);margin-top:6px;min-height:14px"></div>
-    <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--rs);padding:8px 12px;margin-top:8px">
-      <div style="font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);margin-bottom:6px">API Keys (optional — improves data quality)</div>
-      <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:4px">
-        <label style="font-size:11px;color:var(--text2);white-space:nowrap;min-width:90px">Finnhub key</label>
-        <input id="prFhKey" type="text" placeholder="free at finnhub.io — adds expense ratio" oninput="saveFinnhubKey(this.value)" style="flex:1;min-width:160px;padding:4px 6px;font-size:11px;font-family:monospace;background:var(--bg2);border:1px solid var(--border);border-radius:4px;color:var(--text)">
-      </div>
-      <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
-        <label style="font-size:11px;color:var(--text2);white-space:nowrap;min-width:90px">Alpha Vantage</label>
-        <input id="prAvKey" type="text" placeholder="free at alphavantage.co — adds dividend yield" oninput="avSaveKey(this.value)" style="flex:1;min-width:160px;padding:4px 6px;font-size:11px;font-family:monospace;background:var(--bg2);border:1px solid var(--border);border-radius:4px;color:var(--text)">
-      </div>
-      <span id="prAvStatus" style="font-size:11px;color:var(--text3);display:block;margin-top:6px"></span>
-    </div>
-    <div style="font-size:11px;color:var(--text3);margin-top:6px;line-height:1.5">Enter a ticker (VOO, AGG, AAPL), ISIN/UCIT number (IE00B3RBWM25), exchange symbol (VUSA.L, IWDA.AS), or fund name to search. Name, type, class, region and yield fill automatically. Allocation % is always required.</div>
+    <!-- API key inputs hidden — manage in admin → API Keys tab. Status span retained for any code that references it. -->
+    <span id="prAvStatus" style="display:none"></span>
+    <div style="font-size:11px;color:var(--text3);margin-top:6px;line-height:1.5">Enter a ticker (VOO, AGG, AAPL), ISIN/UCIT number (IE00B3RBWM25), exchange symbol (VUSA.L, IWDA.AS), or fund name to search. Name, type, class, region and yield fill automatically. Allocation % is always required. <strong>API keys for enhanced data are managed in the <a href="admin.html" target="_blank" style="color:var(--gold)">Admin → API Keys tab</a></strong> and auto-checked every 2 minutes.</div>
   </div>
 </div>
 
