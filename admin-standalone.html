@@ -345,11 +345,12 @@ Down payment | 2028 | 150000</textarea>
 
   <div class="panel">
     <div class="ptitle">② Research Sources <span style="color:var(--green);font-weight:600">— all 16 enabled by default</span></div>
-    <div class="pdesc">All institutional sources are automatically pulled when you open this tab. Background refresh runs every 30 minutes. Uncheck any you want to exclude from the agent's reasoning.</div>
-    <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+    <div class="pdesc">All institutional sources are automatically pulled when you open this tab. <strong style="color:var(--green)">Auto-refresh runs every 5 minutes</strong>. Uncheck any you want to exclude from the agent's reasoning.</div>
+    <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center">
       <button class="btn-ghost" data-action="manualResearchRefresh">↻ Pull latest now</button>
       <button class="btn-ghost" data-action="tickAllResearch">✓ Tick all</button>
       <button class="btn-ghost" data-action="untickAllResearch">✕ Untick all</button>
+      <span id="autoRefreshCountdown" style="margin-left:auto;font-size:11px;color:var(--green);font-weight:600;font-family:var(--fm)"></span>
     </div>
     <div id="agResearch" class="grid3" style="gap:8px"></div>
   </div>
@@ -390,12 +391,13 @@ Down payment | 2028 | 150000</textarea>
     <p>16 institutional sources from the world's largest wealth managers, investment banks, private banks, and analyst platforms. Refresh feeds and the AI Agent uses them when building portfolios.</p>
   </div>
   <div class="panel">
-    <div class="ptitle">Sources</div>
-    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px">
+    <div class="ptitle">Sources <span style="color:var(--green);font-weight:600">— auto-refresh every 5 minutes</span></div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;align-items:center">
       <button class="btn" data-action="refreshAll">↻ Refresh ALL</button>
       <button class="btn-ghost" data-action="enableAll">✓ Enable all</button>
       <button class="btn-ghost" data-action="disableAll">✕ Disable all</button>
       <span id="refreshStatus" style="font-size:11px;color:var(--ink3);align-self:center"></span>
+      <span id="autoRefreshCountdown2" style="margin-left:auto;font-size:11px;color:var(--green);font-weight:600;font-family:var(--fm);background:rgba(0,135,90,.08);padding:5px 12px;border-radius:50px"></span>
     </div>
     <div class="rp" id="rpList"></div>
   </div>
@@ -664,7 +666,7 @@ Down payment | 2028 | 150000</textarea>
 // ═══════════════════════════════════════════════════════════
 // VERSION + UTILS
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260522-0915";
+const APP_VERSION = "20260522-0920";
 const $ = (id) => document.getElementById(id);
 const $$ = (sel, ctx) => Array.from((ctx||document).querySelectorAll(sel));
 
@@ -1512,6 +1514,14 @@ async function autoRefreshAllResearch(silent){
   _agentRefreshInProgress = false;
   if(status && !silent) status.textContent = `✓ ${ok}/16 sources ready — click 🤖 Build Portfolio Now`;
   addLog("ok", `Auto-refreshed research: ${ok}/16 sources have items`);
+  // If the Research Library tab is currently active, re-render it live
+  if(document.getElementById("tab-research")?.classList.contains("active")){
+    try { renderResearch(); } catch(_){}
+  }
+  // If the AI Agent tab is active, refresh its picker counts
+  if(document.getElementById("tab-agent")?.classList.contains("active")){
+    try { renderAgentPicker(); } catch(_){}
+  }
 }
 
 function renderAgent(){
@@ -1719,16 +1729,48 @@ function untickAllResearch(){
   toast("All sources unticked","warn");
 }
 
-// Auto-refresh research every 30 minutes (when admin is open)
-setInterval(() => {
-  // Only refresh if any provider has stale (>30min) or no data
-  const cfg = getResearchCfg();
-  const stale = RESEARCH_PROVIDERS.some(p => {
-    const c = cfg[p.id] || {};
-    return !c.lastRefresh || (Date.now() - c.lastRefresh) > 30 * 60 * 1000;
-  });
-  if(stale) autoRefreshAllResearch(true);
-}, 30 * 60 * 1000);
+// ═══════════════════════════════════════════════════════════
+// RESEARCH LIBRARY AUTO-REFRESH — every 5 minutes
+// ═══════════════════════════════════════════════════════════
+const RESEARCH_REFRESH_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
+const RESEARCH_STALE_THRESHOLD_MS = 5 * 60 * 1000;  // consider stale if >5min old
+let _researchAutoTimer = null;
+let _researchNextRefresh = null;
+
+function startResearchAutoRefresh(){
+  if(_researchAutoTimer){ clearInterval(_researchAutoTimer); }
+  _researchNextRefresh = Date.now() + RESEARCH_REFRESH_INTERVAL_MS;
+  _researchAutoTimer = setInterval(() => {
+    const cfg = getResearchCfg();
+    const stale = RESEARCH_PROVIDERS.some(p => {
+      const c = cfg[p.id] || {};
+      return !c.lastRefresh || (Date.now() - c.lastRefresh) > RESEARCH_STALE_THRESHOLD_MS;
+    });
+    if(stale){
+      addLog("info","Auto-refresh research library (5-min interval)");
+      autoRefreshAllResearch(true);
+    }
+    _researchNextRefresh = Date.now() + RESEARCH_REFRESH_INTERVAL_MS;
+    updateAutoRefreshIndicator();
+  }, RESEARCH_REFRESH_INTERVAL_MS);
+  addLog("ok","Research auto-refresh started — 5 minute interval");
+  updateAutoRefreshIndicator();
+}
+
+// Visual countdown indicator showing seconds until next auto-refresh.
+// Writes to BOTH the AI Agent tab and the Research Library tab.
+function updateAutoRefreshIndicator(){
+  if(!_researchNextRefresh) return;
+  const secs = Math.max(0, Math.floor((_researchNextRefresh - Date.now()) / 1000));
+  const mm = Math.floor(secs/60), ss = secs % 60;
+  const text = `⏱ Next auto-refresh in ${mm}:${ss.toString().padStart(2,"0")}`;
+  const el1 = document.getElementById("autoRefreshCountdown");
+  const el2 = document.getElementById("autoRefreshCountdown2");
+  if(el1) el1.textContent = text;
+  if(el2) el2.textContent = text;
+}
+// Tick the indicator every second
+setInterval(updateAutoRefreshIndicator, 1000);
 
 // ═══════════════════════════════════════════════════════════
 // RENDER: RESEARCH
@@ -2591,6 +2633,9 @@ function init(){
   // Start auto-watching wa_pending_profile so we capture user changes from main app
   safe("startUserAutoWatch", startUserAutoWatch);
 
+  // Start the 5-minute auto-refresh loop (runs continuously while admin is open)
+  safe("startResearchAutoRefresh", startResearchAutoRefresh);
+
   // Kick off background research refresh on every page load (so by the time
   // the user opens the AI Agent tab, every source is already populated)
   setTimeout(() => {
@@ -2598,13 +2643,13 @@ function init(){
       const cfg = getResearchCfg();
       const stale = RESEARCH_PROVIDERS.some(p => {
         const c = cfg[p.id] || {};
-        return !c.lastRefresh || (Date.now() - c.lastRefresh) > 30 * 60 * 1000;
+        return !c.lastRefresh || (Date.now() - c.lastRefresh) > RESEARCH_STALE_THRESHOLD_MS;
       });
       if(stale){
         addLog("info","Background research pull starting…");
         autoRefreshAllResearch(true);
       } else {
-        addLog("ok","Research cache fresh (<30min) — skipping initial pull");
+        addLog("ok","Research cache fresh (<5min) — skipping initial pull");
       }
     } catch(e){ console.error("[init research]",e); }
   }, 2000);
