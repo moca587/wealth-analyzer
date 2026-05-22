@@ -5940,6 +5940,21 @@ async function runSimpleAIBuilder(){
 function renderSimpleAIResult(rec, simpleBrief){
   if(!rec || !rec.positions){ $("aiSimpleResultBody").innerHTML = '<div style="color:var(--red);padding:20px">No recommendation generated. Make sure your Household profile is set up.</div>'; return; }
   let h = '';
+  // ─── Regulatory wrapper banner (UCITS for non-US, 40-Act for US) ───
+  if(rec.domicilePolicy){
+    const isUcits = rec.domicilePolicy.type === "UCITS";
+    const cc = rec.universeFiltered?.country || "US";
+    const flagMap = {US:"🇺🇸",GB:"🇬🇧",CH:"🇨🇭",DE:"🇩🇪",FR:"🇫🇷",IT:"🇮🇹",ES:"🇪🇸",NL:"🇳🇱",SE:"🇸🇪",AU:"🇦🇺",JP:"🇯🇵",SG:"🇸🇬",HK:"🇭🇰",CN:"🇨🇳",IN:"🇮🇳",CA:"🇨🇦",EU:"🇪🇺",MX:"🇲🇽",BR:"🇧🇷",ZA:"🇿🇦",SA:"🇸🇦",ID:"🇮🇩",KR:"🇰🇷",TW:"🇹🇼"};
+    const flag = flagMap[cc] || "🌐";
+    h += '<div style="background:' + (isUcits?'linear-gradient(135deg,#fff7ed,#fef3c7)':'linear-gradient(135deg,#ecfdf5,#d1fae5)') + ';border-left:4px solid ' + (isUcits?'#f59e0b':'#10b981') + ';border-radius:10px;padding:14px 18px;margin-bottom:14px;display:flex;gap:14px;align-items:flex-start">';
+    h += '<div style="font-size:28px;flex-shrink:0">' + flag + '</div>';
+    h += '<div style="flex:1">';
+    h += '<div style="font-size:12px;font-weight:700;color:' + (isUcits?'#92400e':'#065f46') + ';margin-bottom:4px">' + (isUcits?'✓ UCITS funds only':'✓ US-listed funds only') + ' — picked for your country (' + escapeForHTML(cc) + ')</div>';
+    h += '<div style="font-size:12px;line-height:1.55;color:var(--text2)">' + escapeForHTML(rec.domicilePolicy.note) + '</div>';
+    h += '<div style="font-size:10.5px;color:var(--text3);margin-top:5px">Filtered to <strong>' + (rec.universeFiltered?.eligible||0) + '</strong> eligible funds out of <strong>' + (rec.universeFiltered?.total||0) + '</strong> in our universe</div>';
+    h += '</div>';
+    h += '</div>';
+  }
   // Plain-English summary
   h += '<div style="background:linear-gradient(135deg,#fff,#f3f0ff);border-radius:10px;padding:18px 22px;margin-bottom:14px;border-left:4px solid #7c3aed">';
   h += '<div style="font-size:13px;line-height:1.7;color:var(--text2)">' + escapeForHTML(rec.summary || "") + '</div>';
@@ -6163,6 +6178,37 @@ function engAggregateSignals(){
   return agg;
 }
 
+// ─── Domicile / regulatory eligibility by client country ─────────────
+// US clients: US 40-Act funds only (UCITS not SEC-registered)
+// Canada: US-listed (interlisted on TSX where available)
+// All other countries: UCITS-passportable only (PRIIPs requires KID)
+function getDomicilePolicy(country){
+  const c = (country || "US").toUpperCase();
+  if(c === "US") return {
+    type: "US_LISTED",
+    label: "US 40-Act registered funds",
+    note: "US retail clients cannot purchase UCITS funds — they aren't SEC-registered. Universe limited to ETFs and mutual funds on US exchanges."
+  };
+  if(c === "CA") return {
+    type: "US_LISTED",
+    label: "US-listed (interlisted on TSX where available)",
+    note: "Canadian retail typically buys US-listed ETFs (often interlisted on TSX). UCITS funds are rarely distributed to Canadian investors."
+  };
+  return {
+    type: "UCITS",
+    label: `UCITS-passportable funds for ${c} resident`,
+    note: `${c} retail investors fall under PRIIPs — only UCITS (Ireland/Luxembourg-domiciled) and local-listed funds are eligible. US 40-Act ETFs cannot be sold to retail.`
+  };
+}
+
+function isFundEligibleForCountry(fund, country){
+  const policy = getDomicilePolicy(country);
+  if(policy.type === "US_LISTED"){
+    return !fund.ucits && (!fund.dom || fund.dom === "US");
+  }
+  return fund.ucits === true || (fund.dom && fund.dom !== "US");
+}
+
 function runDeterministicEngine(brief){
   const RISK_TO_ALLOC = {
     very_conservative:        {equity:20, fixed_income:60, real_estate:5, commodity:5, cash:10, alternative:0},
@@ -6196,11 +6242,15 @@ function runDeterministicEngine(brief){
   Object.keys(alloc).forEach(k => { alloc[k] = Math.round(alloc[k] * 10) / 10; });
 
   // ── Step 3: pick funds for each class with research-aware scoring ──
+  // Apply domicile/regulatory filter based on client country (HARD CONSTRAINT)
+  const domicilePolicy = getDomicilePolicy(brief.country);
+  const totalUniverse = AI_FUND_UNIVERSE.length;
+  const eligibleUniverse = AI_FUND_UNIVERSE.filter(f => isFundEligibleForCountry(f, brief.country));
   const used = {sponsors: new Set()};
   const positions = [];
   Object.entries(alloc).forEach(([cls, weight]) => {
     if(weight < 2) return;
-    let candidates = AI_FUND_UNIVERSE.filter(f => f.cls === cls);
+    let candidates = eligibleUniverse.filter(f => f.cls === cls);
     if(candidates.length === 0) return;
     // Score each: (1-ER) + ticker conviction bonus - sponsor concentration penalty
     candidates.forEach(f => {
@@ -6233,6 +6283,9 @@ function runDeterministicEngine(brief){
       }
       rationaleParts.push(`Low expense ratio ${f.er.toFixed(2)}%`);
       if(f.esg && brief.esg !== "none") rationaleParts.push("ESG-flagged matches preference");
+      // Domicile / regulatory rationale
+      if(f.ucits) rationaleParts.push(`UCITS-passportable (${f.dom}-domiciled) — eligible for ${brief.country||"non-US"} resident under PRIIPs`);
+      else if(f.dom && f.dom !== "US") rationaleParts.push(`${f.dom}-listed — locally accessible for ${brief.country} resident`);
 
       positions.push({
         ticker: f.tkr,
@@ -6262,6 +6315,10 @@ function runDeterministicEngine(brief){
 
   // ── Step 5: build real risks from negative consensus ──
   const risks = [];
+  // Domicile / regulatory note (always first)
+  if(domicilePolicy.type === "UCITS"){
+    risks.unshift(`Universe restricted to ${eligibleUniverse.length} UCITS-passportable funds (of ${totalUniverse}) — required for ${brief.country} resident under PRIIPs`);
+  }
   if(hasResearch){
     const negClasses = Object.entries(signals.classes).filter(([,d]) => d.votes < -5).sort((a,b) => a[1].votes - b[1].votes).slice(0,3);
     negClasses.forEach(([cls,d]) => risks.push(`${ENG_PRETTY_CLASS[cls]} under pressure — ${d.providerCount} providers underweight (${d.votes} net votes)`));
@@ -6301,6 +6358,8 @@ function runDeterministicEngine(brief){
     expectedVolatility,
     researchCitations,
     risks,
+    domicilePolicy,
+    universeFiltered: {total: totalUniverse, eligible: eligibleUniverse.length, country: brief.country},
     rebalancingGuidance: hasResearch
       ? "Re-run quarterly or whenever institutional consensus shifts materially. The engine automatically re-tilts allocation based on the latest research votes."
       : "Annual rebalance back to target weights, or 5% threshold drift. Enable research cache (admin → Research Library) for dynamic re-tilting."
@@ -6317,6 +6376,18 @@ function runDeterministicEngine(brief){
 
 function renderAIGenResult(rec, brief){
   let h = '';
+  // ─── Regulatory / domicile banner ───
+  if(rec.domicilePolicy){
+    const isUcits = rec.domicilePolicy.type === "UCITS";
+    h += `<div style="background:${isUcits?'linear-gradient(135deg,#fff7ed,#fef3c7)':'linear-gradient(135deg,#ecfdf5,#d1fae5)'};border-left:4px solid ${isUcits?'#f59e0b':'#10b981'};border-radius:6px;padding:12px 16px;margin-bottom:14px;display:flex;gap:12px;align-items:flex-start">
+      <div style="font-size:22px;flex-shrink:0">${isUcits?'🇪🇺':'🇺🇸'}</div>
+      <div style="flex:1">
+        <div style="font-size:12px;font-weight:700;color:${isUcits?'#92400e':'#065f46'};margin-bottom:3px">Regulatory wrapper: ${rec.domicilePolicy.label}</div>
+        <div style="font-size:11.5px;line-height:1.55;color:var(--text2)">${rec.domicilePolicy.note}</div>
+        <div style="font-size:10.5px;color:var(--text3);margin-top:5px">Client country: <strong>${(rec.universeFiltered?.country||"US")}</strong> · Eligible universe: <strong>${rec.universeFiltered?.eligible||0}</strong> of <strong>${rec.universeFiltered?.total||0}</strong> funds</div>
+      </div>
+    </div>`;
+  }
   // Executive summary
   h += `<div style="background:linear-gradient(135deg,#f8f7ff,#fff);border-left:4px solid #7c3aed;border-radius:6px;padding:14px 18px;margin-bottom:14px">
     <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.10em;color:#7c3aed;margin-bottom:6px">🎯 Executive Summary</div>
