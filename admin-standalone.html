@@ -355,9 +355,20 @@ Down payment | 2028 | 150000</textarea>
     <div id="agResearch" class="grid3" style="gap:8px"></div>
   </div>
 
+  <div class="panel" style="background:linear-gradient(135deg,#fff,#f0fdf4);border-color:rgba(0,135,90,.25)">
+    <div class="ptitle" style="color:var(--green)">③ Build Portfolio — Deterministic Research Engine</div>
+    <div class="pdesc">
+      The <strong>Research Engine</strong> scans every cached research item across all 16 institutions, extracts <strong>asset-class signals</strong>, <strong>theme votes</strong>, <strong>sector calls</strong>, and <strong>regional positioning</strong> via keyword matching. It then picks funds from the universe based on consensus strength and your constraints. <strong>Every decision is explained with full citations to the underlying research.</strong> No LLM call required — runs instantly and is fully deterministic + auditable.
+    </div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+      <button class="btn" data-action="runResearchEngine" style="background:var(--green);font-size:14px;padding:11px 24px">🔬 Build with Research Engine</button>
+      <span id="engineStatus" style="font-size:12px;color:var(--ink3)"></span>
+    </div>
+  </div>
+
   <div class="panel" style="background:linear-gradient(135deg,#fff,#f3f0ff);border-color:rgba(124,58,237,.25)">
-    <div class="ptitle" style="color:var(--purple)">③ Build Portfolio</div>
-    <div class="pdesc">The agent will classify the client, set strategic allocation, pick from the 60-fund curated universe, cite research, and produce a complete proposal.</div>
+    <div class="ptitle" style="color:var(--purple)">③b Build Portfolio — AI Agent (Claude)</div>
+    <div class="pdesc">Alternative: send the full client brief + research excerpts to Claude for an LLM-augmented recommendation. Use this when you want narrative reasoning beyond signal counts.</div>
     <div class="row">
       <label class="lbl">Claude model</label>
       <select id="agModel" class="w260">
@@ -367,7 +378,7 @@ Down payment | 2028 | 150000</textarea>
       </select>
     </div>
     <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:14px;align-items:center">
-      <button class="btn-purple" data-action="runAgent">🤖 Build Portfolio Now</button>
+      <button class="btn-purple" data-action="runAgent">🤖 Build with Claude API</button>
       <button class="btn-ghost" data-action="exportToProposal" disabled id="agExportBtn">↗ Export to Main App's Investment Proposal</button>
       <span id="agStatus" style="font-size:12px;color:var(--ink3)"></span>
     </div>
@@ -666,7 +677,7 @@ Down payment | 2028 | 150000</textarea>
 // ═══════════════════════════════════════════════════════════
 // VERSION + UTILS
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260522-0920";
+const APP_VERSION = "20260522-0924";
 const $ = (id) => document.getElementById(id);
 const $$ = (sel, ctx) => Array.from((ctx||document).querySelectorAll(sel));
 
@@ -2310,6 +2321,510 @@ function clearLogs(){
 }
 
 // ═══════════════════════════════════════════════════════════
+// RESEARCH SIGNAL EXTRACTION ENGINE
+// Deterministically extracts buy/sell signals from all research items,
+// aggregates votes across providers, decides allocation + funds, and
+// generates rationale with full provider citations.
+// ═══════════════════════════════════════════════════════════
+
+// ── Keyword lexicons ─────────────────────────────────────────
+// Each lexicon: {sentiment_word: weight, ...}
+const POS_WORDS = {
+  "overweight":3, "overweigh":3, "long":2, "bullish":3, "favor":2, "prefer":2, "outperform":2,
+  "buy":2, "attractive":2, "compelling":2, "upside":2, "tailwind":2, "constructive":2,
+  "high conviction":3, "structural growth":3, "tactical overweight":3, "strategic overweight":3,
+  "best ideas":2, "top pick":3, "recommend":2, "accumulate":2, "add":1
+};
+const NEG_WORDS = {
+  "underweight":3, "underweigh":3, "short":2, "bearish":3, "avoid":2, "cautious":2, "underperform":2,
+  "sell":2, "expensive":1, "stretched":2, "headwind":2, "downside":2, "negative":1,
+  "high conviction underweight":4, "tactical underweight":3, "structural underweight":3,
+  "underperforming":2, "reduce":1, "trim":1, "exit":2
+};
+
+// Asset class keywords — each item maps phrases to a class
+const CLASS_KEYWORDS = {
+  equity: ["equit","stocks","stock market","S&P","S&P 500","SPY","russell","Magnificent 7","large-cap","small-cap","mid-cap","value stocks","growth stocks","dividend grow","dividend payer"],
+  fixed_income: ["bond","treasur","credit","yield","duration","IG corporate","HY","high yield","muni","municipal","fixed income","corporate bond","sovereign bond","convertible","preferred"],
+  real_estate: ["REIT","real estate","property","data center","industrial property","logistics"],
+  commodity: ["gold","silver","commodit","oil","copper","uranium","platinum","precious metal","CRB"],
+  cash: ["money market","T-bill","cash","short duration treasury","SGOV","BIL"],
+  alternative: ["private equity","private credit","alternative","hedge fund","direct lending","CTA","trend follow","BDC","preferred stock"]
+};
+
+const SECTOR_KEYWORDS = {
+  technology: ["technology","tech","software","semiconductor","AI","artificial intelligence","NVDA","MSFT","GOOGL","META","TSM","cybersecurity","XLK","QQQ"],
+  healthcare: ["health","pharma","biotech","medical device","GLP-1","longevity","gene therapy","LLY","NOVO","XLV"],
+  financials: ["financial","bank","insurance","fintech","JPM","BAC","XLF"],
+  energy: ["energy","oil","gas","E&P","XOM","CVX","XLE"],
+  industrials: ["industrial","aerospace","defense","LMT","RTX","BA","NOC","reshoring"],
+  consumer_discretionary: ["consumer discretionary","retail","auto","AMZN","TSLA"],
+  consumer_staples: ["consumer staples","staples","KO","PG","XLP"],
+  utilities: ["utilities","power","grid","XLU"],
+  real_estate_sector: ["REIT","real estate","SPG"],
+  comm_services: ["communications","comm services","telco","XLC"],
+  materials: ["materials","metals","mining","XLB"]
+};
+
+const REGION_KEYWORDS = {
+  us: ["US ","U.S.","United States","America","S&P","Russell","domestic"],
+  europe: ["europe","EU","euro","ECB","EUR","DAX","CAC","FTSE","Stoxx"],
+  japan: ["Japan","Nikkei","TOPIX","JPY","yen"],
+  china: ["China","Shanghai","Shenzhen","CSI","CNY","yuan","Hong Kong","HSI"],
+  india: ["India","Sensex","Nifty","INR","rupee"],
+  emerging: ["emerging market","EM ","EM equit","EM debt","EM credit","ASEAN","LatAm","Latin America","Brazil","Mexico"],
+  developed_intl: ["developed international","international developed","ex-US","MSCI EAFE","developed market"]
+};
+
+const THEME_KEYWORDS = {
+  ai: ["AI","artificial intelligence","generative AI","ML","machine learning","LLM","NVIDIA","semiconductor","data center"],
+  decarbonization: ["climate","clean energy","renewable","ESG","sustainab","decarbon","energy transition","solar","wind"],
+  healthcare_innovation: ["GLP-1","longevity","gene therapy","biotech","medical device","mRNA","obesity"],
+  defense: ["defense","military","aerospace","LMT","RTX","NOC"],
+  reshoring: ["reshoring","onshore","re-industrial","domestic manufacturing","US capex","supply chain"],
+  cybersecurity: ["cybersecurity","cyber","CRWD","PANW","ZS"],
+  demographics: ["aging","demographics","retirement","longevity"],
+  water_infrastructure: ["water","infrastructure","grid"],
+  cryptocurrency: ["bitcoin","BTC","crypto","cryptocurrency","ETH","ethereum","digital asset"],
+  dividend_growth: ["dividend grow","dividend payer","VIG","yield+","income"],
+  quality_factor: ["quality factor","quality bias","quality growth","high ROE","margin stability"]
+};
+
+// Ticker mention extractor — looks for explicit $TICK or TICK in caps
+function extractTickerMentions(text){
+  const matches = text.match(/\b[A-Z]{2,5}\b/g) || [];
+  // Filter against the fund universe + common stock tickers
+  const known = new Set([...FUND_UNIVERSE.map(f => f.tkr), "NVDA","MSFT","GOOGL","GOOG","META","AAPL","TSLA","AMZN","JPM","BAC","XOM","CVX","LLY","NOVO","LMT","RTX","CRWD","PANW","ZS","V","MA","UNH","JNJ","PFE","TSM","ASML","NESN","ROG","NOVN","BTC","ETH","SPY","QQQ","VTI","VOO","BND","AGG","GLD","IAU"]);
+  return matches.filter(t => known.has(t));
+}
+
+// Given an item title+summary, extract signal(s) for each lexicon
+function extractItemSignals(item, providerName){
+  const text = ((item.title||"") + " " + (item.summary||"")).toLowerCase();
+  const rawText = (item.title||"") + " " + (item.summary||"");
+
+  // Detect sentiment direction
+  let posWeight = 0, negWeight = 0;
+  for(const [w, wt] of Object.entries(POS_WORDS)){ if(text.includes(w.toLowerCase())) posWeight += wt; }
+  for(const [w, wt] of Object.entries(NEG_WORDS)){ if(text.includes(w.toLowerCase())) negWeight += wt; }
+  const sentiment = posWeight - negWeight;
+
+  // Classify by topic
+  const signals = {
+    classes: {},   // {equity: +3, fixed_income: -1, ...}
+    sectors: {},   // {technology: +2, ...}
+    regions: {},   // {japan: +3, china: -2, ...}
+    themes: {},    // {ai: 1, decarbonization: 1, ...}
+    tickers: extractTickerMentions(rawText),
+    sentiment: sentiment,
+    providerName: providerName,
+    item: item
+  };
+
+  function detect(map, container){
+    for(const [key, phrases] of Object.entries(map)){
+      const matched = phrases.some(ph => text.includes(ph.toLowerCase()));
+      if(matched){
+        container[key] = (container[key] || 0) + (sentiment !== 0 ? sentiment : 1);
+      }
+    }
+  }
+  detect(CLASS_KEYWORDS, signals.classes);
+  detect(SECTOR_KEYWORDS, signals.sectors);
+  detect(REGION_KEYWORDS, signals.regions);
+  // Themes — count mentions even without explicit sentiment
+  for(const [key, phrases] of Object.entries(THEME_KEYWORDS)){
+    const matched = phrases.some(ph => text.includes(ph.toLowerCase()));
+    if(matched) signals.themes[key] = (signals.themes[key] || 0) + 1;
+  }
+  return signals;
+}
+
+// Aggregate signals across ALL providers for selected research
+function aggregateAllSignals(selectedProviderIds){
+  const aggregate = {
+    classes: {},     // {equity: {votes:+24, providers:["bofa","jpm",...]}}
+    sectors: {},
+    regions: {},
+    themes: {},
+    tickers: {},
+    citationsByClass: {},
+    citationsBySector: {},
+    citationsByTheme: {},
+    citationsByRegion: {},
+    totalItems: 0,
+    providerCount: 0
+  };
+
+  function bump(container, key, vote, providerName, item){
+    if(!container[key]) container[key] = {votes:0, providers:new Set(), items:[]};
+    container[key].votes += vote;
+    container[key].providers.add(providerName);
+    if(container[key].items.length < 8) container[key].items.push({title: item.title.slice(0,120), provider: providerName});
+  }
+
+  selectedProviderIds.forEach(pid => {
+    const p = RESEARCH_PROVIDERS.find(x => x.id === pid);
+    if(!p) return;
+    aggregate.providerCount++;
+    const cfg = getProviderCfg(pid);
+    const items = (cfg.items || []).slice(0, 30); // Scan top 30 per provider
+    aggregate.totalItems += items.length;
+    items.forEach(item => {
+      const sig = extractItemSignals(item, p.name);
+      Object.entries(sig.classes).forEach(([k,v]) => bump(aggregate.classes, k, v, p.name, item));
+      Object.entries(sig.sectors).forEach(([k,v]) => bump(aggregate.sectors, k, v, p.name, item));
+      Object.entries(sig.regions).forEach(([k,v]) => bump(aggregate.regions, k, v, p.name, item));
+      Object.entries(sig.themes).forEach(([k,v]) => bump(aggregate.themes, k, v, p.name, item));
+      sig.tickers.forEach(t => {
+        if(!aggregate.tickers[t]) aggregate.tickers[t] = {count:0, providers:new Set()};
+        aggregate.tickers[t].count++;
+        aggregate.tickers[t].providers.add(p.name);
+      });
+    });
+  });
+
+  // Convert provider Sets to arrays for serialization
+  function normalize(container){
+    Object.values(container).forEach(c => {
+      c.providers = Array.from(c.providers);
+      c.providerCount = c.providers.length;
+    });
+  }
+  normalize(aggregate.classes);
+  normalize(aggregate.sectors);
+  normalize(aggregate.regions);
+  normalize(aggregate.themes);
+  Object.values(aggregate.tickers).forEach(c => {
+    c.providers = Array.from(c.providers);
+    c.providerCount = c.providers.length;
+  });
+
+  return aggregate;
+}
+
+// Risk profile → strategic asset allocation baseline (in %)
+const RISK_TO_ALLOCATION = {
+  very_conservative:        {equity:20, fixed_income:60, real_estate:5,  commodity:5,  cash:10, alternative:0},
+  conservative:             {equity:30, fixed_income:55, real_estate:5,  commodity:3,  cash:5,  alternative:2},
+  moderately_conservative:  {equity:40, fixed_income:45, real_estate:5,  commodity:3,  cash:3,  alternative:4},
+  moderate:                 {equity:55, fixed_income:30, real_estate:7,  commodity:3,  cash:0,  alternative:5},
+  moderately_aggressive:    {equity:65, fixed_income:20, real_estate:7,  commodity:3,  cash:0,  alternative:5},
+  aggressive:               {equity:75, fixed_income:10, real_estate:8,  commodity:2,  cash:0,  alternative:5},
+  very_aggressive:          {equity:85, fixed_income:5,  real_estate:5,  commodity:0,  cash:0,  alternative:5}
+};
+
+// Apply research consensus to tilt baseline allocation
+function tiltAllocation(baseline, signals){
+  const tilted = {...baseline};
+  const maxTilt = 8; // max % move per asset class from research signal
+  // Total signal strength per class
+  for(const [cls, data] of Object.entries(signals.classes)){
+    if(!(cls in tilted)) continue;
+    const vote = data.votes;
+    const tilt = Math.max(-maxTilt, Math.min(maxTilt, vote / 4)); // 1 vote unit = 0.25% tilt
+    tilted[cls] += tilt;
+  }
+  // Normalize to sum to 100
+  const total = Object.values(tilted).reduce((s,v)=>s+v, 0);
+  if(total > 0){
+    Object.keys(tilted).forEach(k => { tilted[k] = Math.max(0, tilted[k] * 100 / total); });
+  }
+  // Round
+  Object.keys(tilted).forEach(k => { tilted[k] = Math.round(tilted[k] * 10) / 10; });
+  return tilted;
+}
+
+// Pick specific funds for each asset class given the universe + signals + constraints
+function pickFundsForClass(targetClass, targetWeight, brief, signals, used){
+  // Candidate funds in this class
+  let candidates = FUND_UNIVERSE.filter(f => f.cls === targetClass);
+  // Apply ESG filter
+  if(brief.esg === "strict"){
+    candidates = candidates.filter(f => f.esg);
+  }
+  // Apply tax sensitivity → prefer ETFs over mutual funds for taxable
+  if(brief.taxSensitivity === "high"){
+    candidates.sort((a,b) => (a.vehicle === "etf" ? -1 : 1) - (b.vehicle === "etf" ? -1 : 1));
+  }
+  // Apply liquidity → ETFs first
+  if(brief.liquidity === "high"){
+    candidates = candidates.filter(f => f.vehicle === "etf" || f.vehicle === "cash");
+  }
+  // Score candidates by: lower ER + matched ticker mentions + sponsor diversity
+  candidates.forEach(f => {
+    let score = (1 - Math.min(f.er, 1)); // low expense ratio bonus
+    // Bonus if specifically mentioned in research
+    if(signals.tickers[f.tkr]) score += 2 + (signals.tickers[f.tkr].count * 0.3);
+    // Penalty if sponsor already used
+    if(used.sponsors.has(f.sponsor)) score -= 0.2;
+    f._score = score;
+  });
+  candidates.sort((a,b) => b._score - a._score);
+  return candidates;
+}
+
+// Main decision function — takes brief + signals → returns full portfolio with rationale
+function buildPortfolioFromEngine(brief, signals){
+  // 1. Baseline allocation from risk profile
+  const baseline = RISK_TO_ALLOCATION[brief.risk] || RISK_TO_ALLOCATION.moderate;
+  // 2. Tilt based on research signals
+  const allocation = tiltAllocation(baseline, signals);
+  // 3. For each asset class with weight > 2%, pick funds
+  const used = {sponsors: new Set()};
+  const positions = [];
+  const maxPos = brief.maxPosition || 20;
+
+  for(const [cls, weight] of Object.entries(allocation)){
+    if(weight < 2) continue;
+    const candidates = pickFundsForClass(cls, weight, brief, signals, used);
+    if(candidates.length === 0) continue;
+    // How many funds in this class?
+    let n = 1;
+    if(weight >= 25) n = 3; else if(weight >= 12) n = 2;
+    const picks = candidates.slice(0, n);
+    const eachWeight = Math.min(maxPos, weight / n);
+    picks.forEach(fund => {
+      // Generate rationale citing research
+      const rationaleParts = [];
+      // Asset class consensus
+      const clsData = signals.classes[cls];
+      if(clsData){
+        const v = clsData.votes > 0 ? "overweight" : (clsData.votes < 0 ? "underweight" : "neutral on");
+        rationaleParts.push(`${clsData.providerCount}/16 providers ${v} ${prettyClass(cls)} (${clsData.votes > 0 ? '+' : ''}${clsData.votes} net votes)`);
+      }
+      // Specific ticker mentions
+      if(signals.tickers[fund.tkr]){
+        const tData = signals.tickers[fund.tkr];
+        rationaleParts.push(`${fund.tkr} explicitly mentioned by ${tData.providers.slice(0,3).join(", ")}${tData.providers.length>3?" + "+(tData.providers.length-3)+" more":""}`);
+      }
+      // Sponsor strength
+      rationaleParts.push(`Low expense ratio (${fund.er}%)`);
+      // ESG / tax / liquidity matches
+      if(fund.esg && brief.esg !== "none") rationaleParts.push("ESG-flagged matches preference");
+      if(brief.taxSensitivity === "high" && fund.vehicle === "etf") rationaleParts.push("ETF wrapper preferred for high tax sensitivity");
+
+      positions.push({
+        ticker: fund.tkr,
+        name: fund.name,
+        sponsor: fund.sponsor,
+        cls: cls,
+        vehicle: fund.vehicle,
+        weight: +eachWeight.toFixed(1),
+        rationale: rationaleParts.join(" · "),
+        citations: (clsData?.items || []).slice(0,3).map(i => `[${i.provider}] ${i.title}`)
+      });
+      used.sponsors.add(fund.sponsor);
+    });
+  }
+
+  // Renormalize weights to sum to 100
+  const totalW = positions.reduce((s,p) => s + p.weight, 0);
+  if(totalW > 0){
+    positions.forEach(p => { p.weight = +(p.weight * 100 / totalW).toFixed(1); });
+  }
+
+  // Expected return / vol — weighted average of fund mu/sig (approx)
+  const expectedReturn = positions.reduce((s,p) => {
+    const f = FUND_UNIVERSE.find(x => x.tkr === p.ticker);
+    return s + ((f?.mu || 7) * p.weight / 100);
+  }, 0) / 100;
+  // Approximate vol — equity-weighted
+  const expectedVolatility = positions.reduce((s,p) => {
+    const sig = ({equity:14, fixed_income:5, real_estate:18, commodity:16, cash:0.3, mixed:10, alternative:18})[p.cls] || 12;
+    return s + (sig * p.weight / 100);
+  }, 0) / 100;
+
+  // Risks — derive from signals (underweight votes = warning sign)
+  const risks = [];
+  const negClasses = Object.entries(signals.classes).filter(([,d]) => d.votes < -5).slice(0,3);
+  negClasses.forEach(([cls, d]) => risks.push(`${prettyClass(cls)} under pressure — ${d.providerCount}/16 providers underweight`));
+  const negRegions = Object.entries(signals.regions).filter(([,d]) => d.votes < -5).slice(0,2);
+  negRegions.forEach(([r, d]) => risks.push(`${prettyRegion(r)} regional risk flagged by ${d.providerCount} providers`));
+  if(brief.maxPosition < 20) risks.push("Position size constraint may limit conviction expression");
+
+  // Top themes (for the summary)
+  const topThemes = Object.entries(signals.themes).sort((a,b) => b[1].votes - a[1].votes).slice(0, 5).map(([t,d]) => prettyTheme(t) + " ("+d.providerCount+" providers)");
+
+  return {
+    allocation,
+    positions,
+    expectedReturn,
+    expectedVolatility,
+    signals,
+    risks,
+    topThemes,
+    summary: buildSummaryNarrative(brief, allocation, signals)
+  };
+}
+
+function prettyClass(c){ return ({equity:"Equity",fixed_income:"Fixed Income",real_estate:"Real Estate",commodity:"Commodity",cash:"Cash",mixed:"Mixed",alternative:"Alternative"})[c] || c; }
+function prettySector(s){ return s.replace(/_/g," ").replace(/\b\w/g, l => l.toUpperCase()); }
+function prettyRegion(r){ return ({us:"US",europe:"Europe",japan:"Japan",china:"China",india:"India",emerging:"Emerging Markets",developed_intl:"Developed Intl"})[r] || r; }
+function prettyTheme(t){ return ({ai:"Artificial Intelligence",decarbonization:"Decarbonization",healthcare_innovation:"Healthcare Innovation",defense:"Defense",reshoring:"US Reshoring",cybersecurity:"Cybersecurity",demographics:"Demographics",water_infrastructure:"Water/Infrastructure",cryptocurrency:"Cryptocurrency",dividend_growth:"Dividend Growth",quality_factor:"Quality Factor"})[t] || t; }
+
+function buildSummaryNarrative(brief, allocation, signals){
+  const topClass = Object.entries(allocation).sort((a,b) => b[1] - a[1])[0];
+  const topTheme = Object.entries(signals.themes).sort((a,b) => b[1].votes - a[1].votes)[0];
+  const providerCount = signals.providerCount;
+  const totalItems = signals.totalItems;
+  return `Based on ${totalItems} research items across ${providerCount} institutional sources, the engine recommends a ${brief.risk.replace(/_/g," ")} portfolio with ${topClass[1].toFixed(0)}% in ${prettyClass(topClass[0])}. ${topTheme ? "Dominant theme: " + prettyTheme(topTheme[0]) + " cited by " + topTheme[1].providerCount + " providers." : ""} All positions chosen from a 38-fund curated universe matching your ${brief.esg} ESG preference, ${brief.taxSensitivity} tax sensitivity, and ${brief.liquidity} liquidity needs.`;
+}
+
+// ── ENGINE BUTTON HANDLER ─────────────────────────────────────
+async function runResearchEngine(){
+  $("engineStatus").textContent = "🔬 Extracting signals from all research…";
+  $("agResultPanel").style.display = "block";
+  $("agResult").innerHTML = '<div style="text-align:center;padding:30px;color:var(--ink3)"><div style="font-size:32px">🔬</div>Scanning all research items, extracting signals, computing consensus…</div>';
+
+  // Gather brief
+  const brief = {
+    risk:$("agRisk").value, horizon:$("agHorizon").value,
+    country:$("agCountry").value, currency:$("agCcy").value,
+    nw:+$("agNW").value, income:+$("agInc").value, surplus:+$("agSurplus").value,
+    deploy:+$("agDeploy").value, esg:$("agESG").value,
+    taxSensitivity:$("agTax").value, liquidity:$("agLiq").value,
+    maxPosition:+$("agMaxPos").value,
+    goals:$("agGoals").value.split("\n").map(s=>s.trim()).filter(Boolean),
+    notes:$("agNotes").value.trim()
+  };
+
+  // Get selected providers
+  const checked = $$("#agResearch input:checked").map(el => el.dataset.prov);
+  if(checked.length === 0){
+    $("engineStatus").textContent = "✗ No sources selected";
+    $("agResult").innerHTML = '<div class="code" style="background:#7f1d1d">Tick at least one research source.</div>';
+    return;
+  }
+
+  // Allow UI to update
+  await new Promise(r => setTimeout(r, 50));
+
+  // Aggregate signals
+  const signals = aggregateAllSignals(checked);
+  // Build portfolio
+  const result = buildPortfolioFromEngine(brief, signals);
+
+  // Save as lastAgentRec (so Export to Proposal works)
+  lastAgentRec = {
+    summary: result.summary,
+    allocationByClass: result.allocation,
+    positions: result.positions,
+    expectedReturn: result.expectedReturn,
+    expectedVolatility: result.expectedVolatility,
+    researchCitations: Object.values(signals.classes).slice(0,5).flatMap(d => d.items.slice(0,2).map(i => `${i.provider}: ${i.title}`)),
+    risks: result.risks,
+    rebalancingGuidance: "Re-run engine quarterly or whenever institutional consensus shifts materially. Engine auto-adjusts allocation tilts based on net research votes."
+  };
+
+  renderEngineResult(result);
+  $("agExportBtn").disabled = false;
+  $("engineStatus").textContent = `✓ Engine analyzed ${signals.totalItems} items across ${signals.providerCount} sources — ${result.positions.length} positions`;
+  addLog("ok", `Engine built portfolio: ${result.positions.length} positions from ${signals.totalItems} research items`);
+}
+
+function renderEngineResult(r){
+  let h = '';
+  // Executive
+  h += `<div class="ablock"><h3>🎯 Engine Decision Summary</h3><div style="line-height:1.7">${escapeHtml(r.summary)}</div></div>`;
+
+  // KPIs
+  h += `<div class="kpi-grid">
+    <div class="kpi tone-green"><div class="kpi-l">Expected Return</div><div class="kpi-v">${(r.expectedReturn*100).toFixed(2)}%</div></div>
+    <div class="kpi tone-amber"><div class="kpi-l">Volatility</div><div class="kpi-v">${(r.expectedVolatility*100).toFixed(2)}%</div></div>
+    <div class="kpi tone-blue"><div class="kpi-l">Positions</div><div class="kpi-v">${r.positions.length}</div></div>
+    <div class="kpi"><div class="kpi-l">Research Items</div><div class="kpi-v">${r.signals.totalItems}</div></div>
+    <div class="kpi"><div class="kpi-l">Sources</div><div class="kpi-v">${r.signals.providerCount}</div></div>
+    <div class="kpi"><div class="kpi-l">Sharpe (proxy)</div><div class="kpi-v">${((r.expectedReturn-0.045)/r.expectedVolatility).toFixed(2)}</div></div>
+  </div>`;
+
+  // SIGNAL EXTRACTION HEATMAP
+  h += `<div class="ablock"><h3 style="color:var(--green)">📊 Asset Class Consensus (Net Votes Across 16 Providers)</h3>`;
+  const sortedClasses = Object.entries(r.signals.classes).sort((a,b) => b[1].votes - a[1].votes);
+  sortedClasses.forEach(([cls, d]) => {
+    const vote = d.votes;
+    const color = vote > 5 ? "var(--green)" : (vote < -5 ? "var(--red)" : "var(--ink3)");
+    const direction = vote > 0 ? "OW" : (vote < 0 ? "UW" : "Neutral");
+    const width = Math.min(100, Math.abs(vote) * 4);
+    h += `<div style="margin-bottom:10px">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:3px">
+        <strong style="width:130px;font-size:13px">${prettyClass(cls)}</strong>
+        <span style="font-size:11px;font-weight:700;color:${color};width:90px">${direction} ${vote>0?'+':''}${vote}</span>
+        <span style="font-size:11px;color:var(--ink3)">${d.providerCount} of 16 providers</span>
+      </div>
+      <div style="height:8px;background:rgba(0,0,0,.05);border-radius:4px;position:relative;margin-left:130px">
+        <div style="position:absolute;${vote>=0?'left:50%':'right:50%'};width:${width/2}%;height:100%;background:${color};border-radius:4px;${vote>=0?'':'transform:scaleX(-1);transform-origin:right'}"></div>
+        <div style="position:absolute;left:50%;top:-2px;width:1px;height:12px;background:rgba(0,0,0,.2)"></div>
+      </div>
+    </div>`;
+  });
+  h += `</div>`;
+
+  // TOP THEMES
+  h += `<div class="ablock"><h3 style="color:var(--purple)">🌐 Dominant Themes</h3>`;
+  const sortedThemes = Object.entries(r.signals.themes).sort((a,b) => b[1].providerCount - a[1].providerCount).slice(0,8);
+  sortedThemes.forEach(([t, d]) => {
+    h += `<div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--line)">
+      <span style="width:200px;font-size:13px;font-weight:600">${prettyTheme(t)}</span>
+      <span style="font-size:11px;color:var(--ink3);width:130px">${d.providerCount}/16 providers cite</span>
+      <div style="flex:1;height:8px;background:rgba(0,0,0,.05);border-radius:4px;overflow:hidden">
+        <div style="width:${d.providerCount/16*100}%;height:100%;background:var(--purple)"></div>
+      </div>
+      <span style="font-size:11px;color:var(--ink2);width:50px;text-align:right;font-weight:700">${d.votes} votes</span>
+    </div>`;
+  });
+  h += `</div>`;
+
+  // ALLOCATION
+  h += `<div class="ablock"><h3>📊 Strategic Allocation (Risk Baseline + Research Tilt)</h3>`;
+  Object.entries(r.allocation).filter(([,v]) => v > 0).forEach(([cls, pct]) => {
+    h += `<div class="abar">
+      <div class="abar-fund">${prettyClass(cls)}</div>
+      <div class="abar-track"><div class="abar-fill" style="width:${pct}%;background:var(--green)"></div></div>
+      <div class="abar-pct">${pct.toFixed(1)}%</div>
+    </div>`;
+  });
+  h += `</div>`;
+
+  // POSITIONS WITH FULL RATIONALE
+  h += `<div class="ablock"><h3>💼 Recommended Positions (${r.positions.length}) — Full Rationale</h3>`;
+  r.positions.forEach(p => {
+    h += `<div style="border-left:3px solid var(--green);padding:12px 14px;margin-bottom:10px;background:rgba(0,135,90,.03);border-radius:0 6px 6px 0">
+      <div style="display:flex;align-items:baseline;gap:12px;margin-bottom:6px">
+        <strong style="font-size:15px">${escapeHtml(p.ticker)}</strong>
+        <span style="color:var(--ink3);font-size:12px">${escapeHtml(p.name)} · ${escapeHtml(p.sponsor)}</span>
+        <span style="margin-left:auto;font-size:14px;font-weight:700;color:var(--green)">${p.weight.toFixed(1)}%</span>
+      </div>
+      <div style="font-size:12px;color:var(--ink2);line-height:1.6;margin-bottom:8px"><strong>Why selected:</strong> ${escapeHtml(p.rationale)}</div>
+      ${p.citations.length ? `<div style="font-size:11px;color:var(--ink3);font-style:italic;line-height:1.6"><strong style="color:var(--ink2);font-style:normal">Citations:</strong><br>${p.citations.map(c => '• '+escapeHtml(c)).join('<br>')}</div>` : ''}
+    </div>`;
+  });
+  h += `</div>`;
+
+  // RISKS
+  if(r.risks.length){
+    h += `<div class="ablock" style="border-left:4px solid var(--red)"><h3 style="color:var(--red)">⚠ Key Risks (extracted from research)</h3>`;
+    h += `<ul style="margin:0;padding-left:20px;line-height:1.7">${r.risks.map(rk => `<li>${escapeHtml(rk)}</li>`).join("")}</ul>`;
+    h += `</div>`;
+  }
+
+  // METHODOLOGY
+  h += `<div class="ablock" style="background:rgba(0,87,184,.04);font-size:11.5px;line-height:1.7">
+    <h3 style="color:var(--blue)">🔬 Methodology — How This Was Built</h3>
+    <ol style="margin-left:20px;color:var(--ink2)">
+      <li><strong>Signal extraction:</strong> Scanned ${r.signals.totalItems} research items via keyword lexicons across asset classes, sectors, regions, themes, and ticker mentions. Each item parsed for sentiment direction (overweight/underweight phrases).</li>
+      <li><strong>Aggregation:</strong> Net votes computed per signal — provider count and total votes tracked. Tickers explicitly mentioned by multiple providers get conviction bonus.</li>
+      <li><strong>Allocation:</strong> Started with your ${prettyRisk(r.signals.providerCount ? '' : '')}<strong>${$("agRisk").value.replace(/_/g," ")}</strong> baseline (${Object.entries(RISK_TO_ALLOCATION[$("agRisk").value]||{}).map(([k,v]) => `${k}:${v}%`).slice(0,4).join(", ")}). Tilted ±8% based on net research votes.</li>
+      <li><strong>Fund selection:</strong> For each class with weight ≥2%, picked from 38-fund universe. Scoring: lowest expense ratio + ticker conviction bonus − sponsor concentration penalty. Filtered for ESG-strict, ETF-preference (high tax sensitivity), liquidity needs.</li>
+      <li><strong>Rationale:</strong> Each position's "Why selected" cites the specific consensus vote count + matched research items. Fully deterministic — same inputs always produce same output.</li>
+    </ol>
+  </div>`;
+
+  $("agResult").innerHTML = h;
+}
+function prettyRisk(){ return ""; }
+
+// ═══════════════════════════════════════════════════════════
 // USER MANAGEMENT
 // ═══════════════════════════════════════════════════════════
 const USERS_KEY = "wa_users";
@@ -2666,6 +3181,7 @@ if(document.readyState === "loading"){
 window.loadProfile = loadProfile;
 window.loadProfileFile = loadProfileFile;
 window.runAgent = runAgent;
+window.runResearchEngine = runResearchEngine;
 window.exportToProposal = exportToProposal;
 window.manualResearchRefresh = manualResearchRefresh;
 window.tickAllResearch = tickAllResearch;
