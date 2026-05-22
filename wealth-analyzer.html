@@ -1299,7 +1299,7 @@ input[type=date]{color-scheme:light}
     <span><span class="swatch sw-ret"></span>Retirement starts</span>
     <span><span class="swatch sw-pen"></span>State pension starts</span>
     <span><span class="swatch sw-goal"></span>Goal year</span>
-    <span style="color:var(--text3)">Deterministic projection at the household's mean return; investment growth assumes reinvested surplus and a 30/70 cash–invest split during accumulation. In retirement, earned income → 0 and expenses swap to the inflation-adjusted retirement spend; state pension / Social Security is credited from the configured start age (with the chosen COLA treatment). <strong>Pension / SS / RMD</strong> column combines all income-equivalent payments including mandatory drawdowns from locked accounts (401k/IRA RMD starts at 73, Canadian RRIF at 71, Australian Super at 60). <strong>Ret. pool</strong> shows the remaining retirement account balance after each year's RMD deduction — it still grows at the portfolio mean return inside the account. <strong>Income tax</strong> is recomputed each year on gross earned income + pension + RMD; <strong>savings target</strong> is funded first each year from net cash flow before remaining surplus is split.</span>
+    <span style="color:var(--text3)">Deterministic projection at the household's mean return; investment growth assumes reinvested surplus and a 30/70 cash–invest split during accumulation. In retirement, earned income → 0 and expenses swap to the inflation-adjusted retirement spend; state pension / Social Security is credited from the configured start age (with the chosen COLA treatment). <strong>Pension / SS / RMD</strong> column combines all income-equivalent payments including mandatory drawdowns from locked accounts (401k/IRA RMD starts at 73, Canadian RRIF at 71, Australian Super at 60). <strong>Ret. pool</strong> shows the remaining retirement account balance after each year's RMD deduction — it grows at a <strong>fixed 3.5%/yr</strong> (extremely conservative, intentionally decoupled from the household risk profile, the AI Portfolio Builder, and the Investment Proposal so an aggressive investment stance never affects the retirement reserve). <strong>Income tax</strong> is recomputed each year on gross earned income + pension + RMD; <strong>savings target</strong> is funded first each year from net cash flow before remaining surplus is split.</span>
   </div>
 </div>
 
@@ -6926,8 +6926,9 @@ function renderProposalSourceBanner(){
     + '<div style="font-size:12px;font-weight:700;color:#92400e;margin-bottom:3px">'
     + 'Simulation driven by AI-recommended portfolio</div>'
     + '<div style="font-size:11.5px;color:var(--text2);line-height:1.5">'
-    + 'Monte Carlo, "What could your wealth look like", Cash Flow, and Portfolio Comparison '
+    + 'Monte Carlo, "What could your wealth look like", Cash Flow (Investments column), and Portfolio Comparison '
     + 'all use the AI portfolio\'s return parameters (' + info.detail + '). '
+    + '<strong>The Retirement pool is intentionally kept on a fixed 3.5%/yr conservative profile</strong> and never moves with this setting. '
     + 'Switch back to your household risk profile to compare.'
     + '</div></div>'
     + '<button onclick="switchSimSourceToHousehold()" '
@@ -8180,6 +8181,18 @@ function getEffectiveReturnParams(){
   const fee=getPortfolioAdvisoryFeePct();
   return {mu:Math.max(0,gross.mu-fee), sig:gross.sig};
 }
+// ─── Retirement-pool growth rate (intentionally fixed) ─────────────
+// The retirement pool (401k/IRA/RRSP/Super/Pillar 3a etc.) is held to
+// an extremely conservative bond-heavy mix regardless of:
+//   • the household risk profile
+//   • the AI Portfolio Builder result
+//   • the Investment Proposal positions
+// Only the liquid Investments pool ever tracks those. This way the
+// retirement pool stays insulated from aggressive portfolio choices,
+// which is how most retirement accounts should actually be managed in
+// late accumulation and in retirement.
+const RET_POOL_MU = 0.035; // 3.5% nominal — both accumulation and retirement
+
 // ═══════════════════════════════════════════════════════════════════
 // UNIFIED PORTFOLIO METRICS — single source of truth used by all three
 // views (AI Portfolio Builder, Investment Proposal, Portfolio Comparison)
@@ -8336,10 +8349,12 @@ function runMC(years,sims,muOverride,sigOverride){
       const pen1=calcPension(penSrc,penAnn,penStart,penCola,age,inf);
       const c2AgeY=c2Age0+y;
       const pen2=showC2?calcPension(penSrc2,penAnn2,penStart2,penCola2,c2AgeY,inf):0;
-      // ── Retirement pool: conservatively managed (3.5% in retirement, full mu pre-retirement).
-      //    Voluntary 4% drawdown begins at retirement; mandatory rules apply from legal age.
-      //    At 3.5% growth vs ≥4% withdrawal the pool naturally decreases each year. ──
-      const retMu=retired?0.035:mu;
+      // ── Retirement pool: ALWAYS extremely conservative (3.5% nominal).
+      //    Kept fully decoupled from the household risk profile AND from
+      //    the AI Portfolio Builder / Investment Proposal results — those
+      //    only drive the "Investments" pool. Voluntary 4% drawdown begins
+      //    at retirement; mandatory rules apply from legal age. ──
+      const retMu=RET_POOL_MU; // 3.5% across both accumulation and retirement
       const retPotBefore=retPot; // prior year-end balance — IRS uses this as RMD base
       retPot=retPot*(1+retMu);
       let rmd=0;
@@ -8813,9 +8828,12 @@ function renderCashFlow(){
   const cfMu=Math.max(0.01, _geomMu);
   // Property: inflation minus 1 pp real, floored at 1% nominal
   const propGrowth=Math.max(0.01, inf-0.01);
-  // Retirement pool pre-retirement: same geometric mean; post-retirement: 3.5% (bond-heavy)
-  const retMuWork=Math.max(0.01, _geomMu);
-  const retMuRetired=0.035;
+  // Retirement pool: ALWAYS extremely conservative — 3.5% nominal across
+  // BOTH accumulation and retirement. Decoupled from the household risk
+  // profile, AI Portfolio Builder, and Investment Proposal results. Only
+  // the "Investments" pool tracks those.
+  const retMuWork    = RET_POOL_MU;
+  const retMuRetired = RET_POOL_MU;
 
   const cy=currentYear();
   const other=num("aOther",0);
@@ -8835,7 +8853,10 @@ function renderCashFlow(){
   //   loopMu   — annual investment return (geometric mean = mu − 0.5σ², matching MC median)
   function runLoop(initInv, initCash, loopMu){
     let iv=initInv, ca=initCash, rp=retSeed;
-    const loopRetMuRetired=0.035; // post-retirement pool: bond-heavy conservative mix
+    // Retirement pool: fixed extremely conservative rate — never tied to
+    // the simulation's active μ (proposal-driven or otherwise). Only the
+    // "Investments" pool tracks loopMu.
+    const loopRetMu = RET_POOL_MU; // both accumulation and retirement
     let lb=loans.map(l=>({bal:l.bal,rate:l.rate/100,yrs:l.yrs}));
     let pr=num("aProp",0);
     let ic=getGrossIncome(), ex=getTotalExpenses();
@@ -8851,9 +8872,11 @@ function renderCashFlow(){
       const pen1=calcPension(penSrc,penAnn,penStart,penCola,age,inf);
       const c2AgeY=c2Age0+y;
       const pen2=showC2?calcPension(penSrc2,penAnn2,penStart2,penCola2,c2AgeY,inf):0;
-      // Retirement pool: grows at loopMu pre-retirement, 3.5% post-retirement.
-      // RMD is computed from the prior year-end balance (before growth) per IRS rules.
-      const retMu=retired?loopRetMuRetired:Math.max(0.025,loopMu);
+      // Retirement pool: ALWAYS extremely conservative — 3.5% nominal in
+      // both accumulation and retirement, decoupled from loopMu so the
+      // AI Portfolio Builder / Investment Proposal results never affect
+      // this pool. RMD computed from prior year-end balance per IRS rules.
+      const retMu=loopRetMu;
       const rpBefore=rp; // prior year-end balance — base for RMD calculation
       rp=rp*(1+retMu);
       const rpGrowth=rp-rpBefore;
@@ -9054,7 +9077,7 @@ function renderCashFlow(){
     ? "AI-recommended portfolio return"
     : (hasPortfolio ? "holdings-weighted return" : "risk-profile return");
   const rmdNote=retSeed>0
-    ?` · Ret. pool (${fmtMoney(retSeed)}): 3.5%/yr in retirement; 4% voluntary drawdown from age ${retAge}, mandatory rules from age ${rmdStartAge}.`
+    ?` · <strong>Ret. pool (${fmtMoney(retSeed)})</strong>: <strong>3.5%/yr always</strong> (extremely conservative — decoupled from household risk profile and AI/Proposal returns; only the Investments column tracks those). 4% voluntary drawdown from age ${retAge}, mandatory rules from age ${rmdStartAge}.`
     :"";
   setH("cfHeader",
     `<strong>Median cash flow projection — Current Portfolio</strong> — age ${a1} to 90 (${horizon+1} years) &nbsp;`+
