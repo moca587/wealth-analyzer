@@ -1656,6 +1656,8 @@ input[type=date]{color-scheme:light}
 
 <!-- ═══ SIMULATION ═══ -->
 <div class="tab" id="tab-simulation">
+<!-- Simulation source banner — populated by renderProposalSourceBanner() -->
+<div id="simSourceBanner" style="display:none"></div>
 <div class="panel" id="simInputsPanel">
   <div class="ptitle">Inputs feeding into this simulation</div>
   <div id="simInputsSummary" style="font-size:12px;color:var(--text3);line-height:1.8">
@@ -2674,7 +2676,7 @@ input[type=date]{color-scheme:light}
 // ═══════════════════════════════════════════════════════════
 // VERSION — updated by build-standalone.pl on each build
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260522-2101";
+const APP_VERSION = "20260522-2330";
 
 // ═══════════════════════════════════════════════════════════
 // DATA
@@ -3843,7 +3845,12 @@ function showTab(name,el){
   if(el) el.classList.add("active");
   if(name==="portfolio"){renderInvestments();renderPortfolioMetrics();renderPortfolioBars();drawPortfolioPie();}
   if(name==="proposal"){renderProposals();renderProposalMetrics();renderProposalBars();drawProposalPie();syncProposalClient();}
-  if(name==="simulation"){buildSimInputsSummary();}
+  if(name==="simulation"){
+    buildSimInputsSummary();
+    // Refresh the proposal-source banner so it shows the right state
+    // when the user navigates back to the Simulation tab.
+    try { if(typeof renderProposalSourceBanner === "function") renderProposalSourceBanner(); } catch(_){}
+  }
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -7247,20 +7254,27 @@ window.addEventListener("load", () => {
 function applyAIRecommendationToProposal(){
   if(!lastAIGenResult || !lastAIGenResult.positions) return;
   const target = num("prAmount", 100000);
-  if(!confirm(`Replace current proposal positions with ${lastAIGenResult.positions.length} AI-recommended positions?\n\nThis will clear any positions you've added manually.`)) return;
-  // Clear existing
+  const msg = `Apply the AI-recommended portfolio?\n\n`
+            + `• Replace ${proposals.length} current proposal positions with ${lastAIGenResult.positions.length} AI-recommended ones\n`
+            + `• Drive Simulation, "What could your wealth look like", Cash Flow analysis, and Portfolio Comparison from the AI portfolio's return/volatility\n`
+            + `• You can switch back to your household risk profile anytime from the Simulation tab.`;
+  if(!confirm(msg)) return;
+  // ─── 1. Replace proposal positions ───
   proposals = [];
-  // Convert weights → allocation %
   lastAIGenResult.positions.forEach(p => {
     const fund = AI_FUND_UNIVERSE.find(f => f.tkr === p.ticker);
+    // Carry the fund's expected return so getProposalReturnParams uses it
+    // (instead of the asset-class default). Falls back to fund.mu when set,
+    // then to the per-class default inside getProposalReturnParams.
+    const exp = fund && typeof fund.mu === "number" ? fund.mu : null;
     proposals.push({
       id: "pr_"+Date.now()+Math.random().toString(36).slice(2,6),
       name: fund?.name || p.ticker,
-      tkr: p.tkr,
+      tkr: p.ticker,
       vehicle: fund?.vehicle || "etf",
       cls: fund?.cls || "mixed",
       alloc: p.weight,
-      exp: null,
+      exp: exp,
       er: fund?.er ?? null,
       yld: fund?.yld ?? null,
       note: "AI-generated · " + (p.rationale || "").slice(0,200)
@@ -7270,14 +7284,96 @@ function applyAIRecommendationToProposal(){
   if($("prRationale") && !val("prRationale").trim()){
     $("prRationale").value = lastAIGenResult.summary || "";
   }
-  // Re-render proposal UI
+  // ─── 2. Re-render Investment Proposal UI ───
   if(typeof renderProposals === "function") renderProposals();
   if(typeof renderProposalMetrics === "function") renderProposalMetrics();
   if(typeof renderProposalBars === "function") renderProposalBars();
   if(typeof drawProposalPie === "function") drawProposalPie();
-  toastTopbar("Applied "+lastAIGenResult.positions.length+" AI positions to proposal");
-  document.getElementById("aiGenResult").scrollIntoView({behavior:"smooth"});
+  // ─── 3. Switch the simulation source flag ON so all downstream views
+  //         (Monte Carlo, "what could wealth look like", cash flow, comparison)
+  //         use the AI portfolio's μ/σ instead of the household risk profile. ───
+  setSimUsesProposal(true);
+  // ─── 4. Cascade re-runs across every dependent view ───
+  const refreshed = [];
+  try { if(typeof runSim === "function") { runSim(); refreshed.push("Simulation"); refreshed.push('"What could your wealth look like"'); refreshed.push("Cash Flow analysis"); } } catch(e){ console.warn("runSim:", e); }
+  try { if(typeof runComparison === "function") { runComparison(); refreshed.push("Portfolio Comparison"); } } catch(e){ console.warn("runComparison:", e); }
+  try { if(typeof refreshTopMetrics === "function" && Array.isArray(lastSimPaths) && lastSimPaths.length) refreshTopMetrics(lastSimPaths, lastSimYrs); } catch(_){}
+  // ─── 5. Render the proposal-source banner in the Simulation tab ───
+  if(typeof renderProposalSourceBanner === "function") renderProposalSourceBanner();
+  // ─── 6. Inform the user of the cascade ───
+  const n = lastAIGenResult.positions.length;
+  toastTopbar(`✓ AI portfolio applied — ${n} positions → ${refreshed.join(" · ")}`);
+  // Scroll the result panel into view so the user sees the confirmation
+  const tgt = document.getElementById("aiGenResult") || document.getElementById("aiSimpleResult");
+  if(tgt) tgt.scrollIntoView({behavior:"smooth", block:"start"});
 }
+
+// ─── Render the simulation-source banner (in the Simulation tab) ─────
+// Shows whether the live simulation is driven by the household risk profile
+// or by the AI-recommended portfolio, with a one-click toggle to switch.
+function renderProposalSourceBanner(){
+  const host = document.getElementById("simSourceBanner");
+  if(!host) return;
+  const info = getSimSourceLabel();
+  if(info.source === "proposal"){
+    host.style.display = "block";
+    host.innerHTML =
+      '<div style="display:flex;align-items:flex-start;gap:12px;padding:12px 16px;'
+    + 'background:linear-gradient(135deg,#fff7ed,#fef3c7);border-left:4px solid #f59e0b;'
+    + 'border-radius:8px;margin-bottom:14px">'
+    + '<div style="font-size:22px;flex-shrink:0">🤖</div>'
+    + '<div style="flex:1">'
+    + '<div style="font-size:12px;font-weight:700;color:#92400e;margin-bottom:3px">'
+    + 'Simulation driven by AI-recommended portfolio</div>'
+    + '<div style="font-size:11.5px;color:var(--text2);line-height:1.5">'
+    + 'Monte Carlo, "What could your wealth look like", Cash Flow, and Portfolio Comparison '
+    + 'all use the AI portfolio\'s return parameters (' + info.detail + '). '
+    + 'Switch back to your household risk profile to compare.'
+    + '</div></div>'
+    + '<button onclick="switchSimSourceToHousehold()" '
+    + 'style="background:#fff;border:1px solid #f59e0b;color:#92400e;padding:6px 12px;'
+    + 'border-radius:6px;font-size:11.5px;font-weight:600;cursor:pointer;flex-shrink:0">'
+    + 'Use household risk profile</button>'
+    + '</div>';
+  } else if(proposals && proposals.length > 0){
+    // Proposal exists but flag is off — show a subtle prompt to switch
+    host.style.display = "block";
+    host.innerHTML =
+      '<div style="display:flex;align-items:center;gap:12px;padding:10px 14px;'
+    + 'background:rgba(0,87,184,.04);border:1px solid rgba(0,87,184,.15);'
+    + 'border-radius:8px;margin-bottom:14px;font-size:12px;color:var(--text2)">'
+    + '<div style="font-size:18px;flex-shrink:0">📋</div>'
+    + '<div style="flex:1">'
+    + 'Simulation is using your <strong>household risk profile</strong> ('+info.detail+'). '
+    + 'You have ' + proposals.length + ' proposal positions — apply them to the simulation?'
+    + '</div>'
+    + '<button onclick="switchSimSourceToProposal()" '
+    + 'style="background:var(--gold);color:#fff;border:none;padding:6px 12px;'
+    + 'border-radius:6px;font-size:11.5px;font-weight:600;cursor:pointer;flex-shrink:0">'
+    + 'Use proposal portfolio</button>'
+    + '</div>';
+  } else {
+    host.style.display = "none";
+    host.innerHTML = "";
+  }
+}
+
+function switchSimSourceToHousehold(){
+  setSimUsesProposal(false);
+  if(typeof runSim === "function") runSim();
+  if(typeof runComparison === "function") runComparison();
+  toastTopbar("✓ Simulation switched to household risk profile");
+}
+function switchSimSourceToProposal(){
+  if(!proposals || proposals.length === 0){ toastTopbar("Add proposal positions first"); return; }
+  setSimUsesProposal(true);
+  if(typeof runSim === "function") runSim();
+  if(typeof runComparison === "function") runComparison();
+  toastTopbar("✓ Simulation switched to proposal portfolio");
+}
+window.switchSimSourceToHousehold = switchSimSourceToHousehold;
+window.switchSimSourceToProposal = switchSimSourceToProposal;
+window.renderProposalSourceBanner = renderProposalSourceBanner;
 
 function toastTopbar(msg){
   setT("topbarStatus", msg);
@@ -7317,6 +7413,11 @@ function addProposal(){
 function removeProposal(id){
   proposals=proposals.filter(p=>p.id!==id);
   renderProposals(); renderProposalMetrics(); renderProposalBars(); drawProposalPie();
+  // If the proposal is now empty, the simulation can no longer be proposal-driven —
+  // silently fall back to household risk profile so the user isn't confused.
+  if(proposals.length === 0 && getSimUsesProposal()){
+    setSimUsesProposal(false);
+  }
 }
 function renderProposals(){
   const list=$("prList"); if(!list) return;
@@ -8502,8 +8603,54 @@ function getProposalReturnParams(){
   const fee=getProposalAdvisoryFeePct();
   return {mu:Math.max(0,grossMu-fee), sig};
 }
+
+// ─── Proposal-driven simulation source flag ──────────────────────────
+// When ON, the main Monte Carlo simulation, "what could your wealth look like"
+// chart, cash flow analysis, and portfolio comparison all source μ/σ from the
+// Investment Proposal (i.e. the AI-recommended portfolio) instead of the
+// household's blended risk profile. Flag persists to localStorage so it
+// survives reloads, and is auto-flipped ON when the AI portfolio is applied.
+function getSimUsesProposal(){
+  try { return localStorage.getItem("wa_sim_uses_proposal") === "1"; } catch(_) { return false; }
+}
+function setSimUsesProposal(on){
+  try { localStorage.setItem("wa_sim_uses_proposal", on ? "1" : "0"); } catch(_){}
+  // Repaint the banner whenever the flag changes
+  if(typeof renderProposalSourceBanner === "function") renderProposalSourceBanner();
+}
+
+// Active params for the main simulation — proposal-weighted when the flag is
+// set AND the proposal has positions; otherwise falls back to household risk.
+function getActiveSimulationParams(){
+  if(getSimUsesProposal() && proposals && proposals.length > 0){
+    const p = getProposalReturnParams();
+    // Guard against zero/tiny totalAlloc
+    if(p && p.mu != null && p.sig != null) return p;
+  }
+  return getEffectiveReturnParams();
+}
+
+// Returns a label describing the current simulation source for UI banners
+function getSimSourceLabel(){
+  const usesProp = getSimUsesProposal() && proposals && proposals.length > 0;
+  if(usesProp){
+    const p = getProposalReturnParams();
+    return {
+      source: "proposal",
+      label: "AI-recommended portfolio",
+      detail: `μ ${(p.mu*100).toFixed(2)}% · σ ${(p.sig*100).toFixed(2)}% · ${proposals.length} positions`
+    };
+  }
+  const e = getEffectiveReturnParams();
+  return {
+    source: "household",
+    label: "Household risk profile",
+    detail: `μ ${(e.mu*100).toFixed(2)}% · σ ${(e.sig*100).toFixed(2)}%`
+  };
+}
 function runMC(years,sims,muOverride,sigOverride){
-  const {mu,sig} = (muOverride!=null)?{mu:muOverride,sig:sigOverride}:getEffectiveReturnParams();
+  // Override → proposal-driven (when AI applied) → household effective (default)
+  const {mu,sig} = (muOverride!=null)?{mu:muOverride,sig:sigOverride}:getActiveSimulationParams();
   const inf=num("inf",3.8)/100, raise=num("raise",3)/100;
   const baseInc=getGrossIncome();
   const baseExp=getTotalExpenses();
@@ -8765,6 +8912,9 @@ function buildSimInputsSummary(){
 function runSim(){
   const yrs=num("simYrs",20), sims=parseInt(val("simN")||"500",10);
   buildSimInputsSummary();
+  // Repaint the proposal-source banner before charts (so users see which
+  // params drove this run)
+  try { if(typeof renderProposalSourceBanner === "function") renderProposalSourceBanner(); } catch(_){}
   const paths=runMC(yrs,sims);
   lastSimPaths=paths; lastSimYrs=yrs;
   redrawChart(paths);
@@ -9039,7 +9189,10 @@ function renderCashFlow(){
   // Monte Carlo simulation, so the CF table and the "60% probability" bar tell a
   // consistent story. (The MC samples (mu − 0.5σ²) + σ·N(0,1); expected compound
   // return across all paths equals the geometric mean.)
-  const params=getEffectiveReturnParams(); // risk-profile based (mode A) or holdings-weighted (B/C)
+  // Honor the proposal-driven flag so the cash flow table tracks the same
+  // params as the Monte Carlo simulation above (chart, "what could wealth
+  // look like", and CF table all stay in sync).
+  const params=getActiveSimulationParams();
   const _geomMu=params.mu - 0.5*params.sig*params.sig; // log-normal geometric mean
   const cfMu=Math.max(0.01, _geomMu);
   // Property: inflation minus 1 pp real, floored at 1% nominal
@@ -9274,9 +9427,16 @@ function renderCashFlow(){
   tbody.innerHTML=html;
 
   const cfPct=(cfMu*100).toFixed(1);
+  // Switch return-source label to "AI-recommended portfolio" when the
+  // proposal-driven simulation flag is set so users see the source clearly
+  // in the cash flow caption.
+  const __simSrc=getSimSourceLabel();
   const fullPct=(params.mu*100).toFixed(1);
   const propGrowthPct=(propGrowth*100).toFixed(1);
-  const returnSrc=hasPortfolio?"holdings-weighted return":"risk-profile return";
+  // Source label honors the proposal-driven flag first, then portfolio holdings, then risk profile
+  const returnSrc = __simSrc.source === "proposal"
+    ? "AI-recommended portfolio return"
+    : (hasPortfolio ? "holdings-weighted return" : "risk-profile return");
   const rmdNote=retSeed>0
     ?` · Ret. pool (${fmtMoney(retSeed)}): 3.5%/yr in retirement; 4% voluntary drawdown from age ${retAge}, mandatory rules from age ${rmdStartAge}.`
     :"";
