@@ -193,6 +193,7 @@ textarea{font-family:var(--fm);font-size:12px;width:100%;min-height:70px;resize:
 
   <div class="grp">AI Agent</div>
   <div class="nav" data-tab="agent"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 1a3 3 0 00-3 3v1.5L3 7v5l2 1.5V15h6v-1.5L13 12V7l-2-1.5V4a3 3 0 00-3-3zm-1 7a1 1 0 110 2 1 1 0 010-2zm2 0a1 1 0 110 2 1 1 0 010-2z"/></svg>AI Portfolio Agent</div>
+  <div class="nav" data-tab="enginestress"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M3 1h2v4H3zm0 5h2v4H3zm0 5h2v4H3zm3-9h2v14H6zm3 3h2v11H9zm3-2h2v13h-2z"/></svg>Engine Stress Test<span class="nav-new" style="background:linear-gradient(135deg,#00875a,#0057b8)">NEW</span></div>
   <div class="nav" data-tab="research"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M3 1h7l3 3v11H3zm5 0v3h3M5 6h6v1H5V6zm0 2h6v1H5V8zm0 2h4v1H5v-1z"/></svg>Research Library</div>
 
   <div class="grp">Engineering</div>
@@ -415,6 +416,108 @@ Down payment | 2028 | 150000</textarea>
   <div class="panel">
     <div class="ptitle">Latest Items</div>
     <div id="rpFeed" style="max-height:600px;overflow-y:auto"></div>
+  </div>
+</div>
+
+<!-- ─── ENGINE STRESS TEST ─── -->
+<div class="tab" id="tab-enginestress">
+  <div class="hero" style="background:linear-gradient(135deg,#00875a,#0057b8)">
+    <h1>🧪 AI Portfolio Engine Stress Test</h1>
+    <p>Daily sensitivity & robustness testing for the deterministic Research Engine. Sweep across risk profiles, net worth levels, ESG settings, and research provider counts — verify the engine reacts coherently to every input change. Daily benchmark snapshots track engine drift over time.</p>
+  </div>
+
+  <!-- Daily Benchmark — record today's engine output for a standard client -->
+  <div class="panel">
+    <div class="ptitle">📅 Daily Benchmark Snapshot</div>
+    <div class="pdesc">Records today's engine output for a <strong>standard benchmark client</strong> (Moderate risk · $500k NW · $150k income · 15+ year horizon · Medium tax sensitivity · No ESG preference). Run daily to track how engine recommendations drift as institutional research evolves.</div>
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:14px">
+      <button class="btn" data-action="runDailyBenchmark" style="background:linear-gradient(135deg,#00875a,#0057b8)">📅 Run Today's Benchmark</button>
+      <button class="btn-ghost" data-action="clearBenchmarkHistory">↺ Clear history</button>
+      <span id="benchmarkStatus" style="font-size:11px;color:var(--ink3)"></span>
+    </div>
+    <div id="benchmarkTimeline"></div>
+  </div>
+
+  <!-- Sensitivity Sweeps -->
+  <div class="panel">
+    <div class="ptitle">🎚 Sensitivity Sweeps</div>
+    <div class="pdesc">Run the engine 5-7 times with one parameter varied. See how allocation shifts in response. Useful for finding edge cases or verifying expected behavior.</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin-bottom:14px">
+      <button class="btn-ghost" data-action="sweepRisk" style="text-align:left;padding:12px 16px;height:auto">
+        <div style="font-weight:700;font-size:13px;color:var(--blue)">🎯 Risk Profile Sweep</div>
+        <div style="font-size:11px;color:var(--ink3);margin-top:2px">7 profiles · Very Cons → Very Agg</div>
+      </button>
+      <button class="btn-ghost" data-action="sweepNW" style="text-align:left;padding:12px 16px;height:auto">
+        <div style="font-weight:700;font-size:13px;color:var(--blue)">💰 Net Worth Sweep</div>
+        <div style="font-size:11px;color:var(--ink3);margin-top:2px">$100k · $500k · $2M · $10M · $50M</div>
+      </button>
+      <button class="btn-ghost" data-action="sweepESG" style="text-align:left;padding:12px 16px;height:auto">
+        <div style="font-weight:700;font-size:13px;color:var(--blue)">🌱 ESG Strictness Sweep</div>
+        <div style="font-size:11px;color:var(--ink3);margin-top:2px">None · Prefer · Strict</div>
+      </button>
+      <button class="btn-ghost" data-action="sweepTax" style="text-align:left;padding:12px 16px;height:auto">
+        <div style="font-weight:700;font-size:13px;color:var(--blue)">💼 Tax Sensitivity Sweep</div>
+        <div style="font-size:11px;color:var(--ink3);margin-top:2px">Low · Medium · High</div>
+      </button>
+      <button class="btn-ghost" data-action="sweepLiquidity" style="text-align:left;padding:12px 16px;height:auto">
+        <div style="font-weight:700;font-size:13px;color:var(--blue)">💧 Liquidity Need Sweep</div>
+        <div style="font-size:11px;color:var(--ink3);margin-top:2px">Low · Medium · High</div>
+      </button>
+      <button class="btn-ghost" data-action="sweepResearch" style="text-align:left;padding:12px 16px;height:auto">
+        <div style="font-weight:700;font-size:13px;color:var(--blue)">📚 Research Source Count Sweep</div>
+        <div style="font-size:11px;color:var(--ink3);margin-top:2px">1 · 4 · 8 · 16 sources</div>
+      </button>
+    </div>
+    <div id="sweepResult"></div>
+  </div>
+
+  <!-- Robustness checks -->
+  <div class="panel">
+    <div class="ptitle">🔒 Robustness Checks</div>
+    <div class="pdesc">Verify the engine produces sensible output across edge cases. Each check runs the engine once and grades the result green/amber/red.</div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px">
+      <button class="btn" data-action="runRobustnessChecks" style="background:var(--green)">▶ Run All Robustness Checks</button>
+      <span id="robustnessStatus" style="font-size:11px;color:var(--ink3);align-self:center"></span>
+    </div>
+    <div id="robustnessResults"></div>
+  </div>
+
+  <!-- Side-by-side comparison -->
+  <div class="panel">
+    <div class="ptitle">🔀 A/B Comparison</div>
+    <div class="pdesc">Run the engine twice with two different briefs side-by-side. Useful for showing clients how their portfolio changes between scenarios.</div>
+    <div class="grid2">
+      <div>
+        <div style="font-weight:700;font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--blue);margin-bottom:10px">Scenario A</div>
+        <div class="row"><label class="lbl">Risk</label>
+          <select id="abRiskA" class="fw">
+            <option value="conservative">Conservative</option>
+            <option value="moderate" selected>Moderate</option>
+            <option value="aggressive">Aggressive</option>
+          </select>
+        </div>
+        <div class="row"><label class="lbl">Net worth</label><input type="number" id="abNwA" value="500000" class="fw"></div>
+        <div class="row"><label class="lbl">ESG</label>
+          <select id="abEsgA" class="fw"><option value="none" selected>None</option><option value="prefer">Prefer</option><option value="strict">Strict</option></select>
+        </div>
+      </div>
+      <div>
+        <div style="font-weight:700;font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--purple);margin-bottom:10px">Scenario B</div>
+        <div class="row"><label class="lbl">Risk</label>
+          <select id="abRiskB" class="fw">
+            <option value="conservative">Conservative</option>
+            <option value="moderate">Moderate</option>
+            <option value="aggressive" selected>Aggressive</option>
+          </select>
+        </div>
+        <div class="row"><label class="lbl">Net worth</label><input type="number" id="abNwB" value="2000000" class="fw"></div>
+        <div class="row"><label class="lbl">ESG</label>
+          <select id="abEsgB" class="fw"><option value="none">None</option><option value="prefer" selected>Prefer</option><option value="strict">Strict</option></select>
+        </div>
+      </div>
+    </div>
+    <button class="btn" data-action="runAB" style="width:100%;margin-top:14px;justify-content:center">▶ Run A/B Comparison</button>
+    <div id="abResult" style="margin-top:14px"></div>
   </div>
 </div>
 
@@ -677,7 +780,7 @@ Down payment | 2028 | 150000</textarea>
 // ═══════════════════════════════════════════════════════════
 // VERSION + UTILS
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260522-0924";
+const APP_VERSION = "20260522-0938";
 const $ = (id) => document.getElementById(id);
 const $$ = (sel, ctx) => Array.from((ctx||document).querySelectorAll(sel));
 
@@ -746,6 +849,7 @@ function showTab(name){
     if(name==="dashboard") renderDashboard();
     else if(name==="users") renderUsersTab();
     else if(name==="agent") renderAgent();
+    else if(name==="enginestress") renderEngineStressTab();
     else if(name==="research") renderResearch();
     else if(name==="testbench") renderTestBench();
     else if(name==="constants") renderConstants();
@@ -2823,6 +2927,398 @@ function renderEngineResult(r){
   $("agResult").innerHTML = h;
 }
 function prettyRisk(){ return ""; }
+function renderEngineStressTab(){
+  // Just refresh the benchmark timeline if any history exists
+  try { renderBenchmarkTimeline(); } catch(_){}
+}
+
+// ═══════════════════════════════════════════════════════════
+// ENGINE STRESS TEST — sensitivity sweeps + daily benchmark
+// ═══════════════════════════════════════════════════════════
+const BENCHMARK_KEY = "wa_engine_benchmark_history";
+
+// Standard benchmark client for daily snapshots
+const STANDARD_BENCHMARK_BRIEF = {
+  risk:"moderate", horizon:"15_plus", country:"US", currency:"USD",
+  nw:500000, income:150000, surplus:30000, deploy:500000,
+  esg:"none", taxSensitivity:"medium", liquidity:"medium",
+  maxPosition:20, goals:["Retirement | 2055 | 80000"], notes:""
+};
+
+// Pure function — same as runResearchEngine() but doesn't touch UI
+function buildEngineRecommendation(brief, providerIds){
+  const signals = aggregateAllSignals(providerIds);
+  const result = buildPortfolioFromEngine(brief, signals);
+  return result;
+}
+
+function getAllEnabledProviders(){
+  const cfg = getResearchCfg();
+  return RESEARCH_PROVIDERS.filter(p => (cfg[p.id]?.enabled !== false) && (cfg[p.id]?.items?.length > 0)).map(p => p.id);
+}
+
+// ── DAILY BENCHMARK ─────────────────────────────────────────
+function runDailyBenchmark(){
+  const status = $("benchmarkStatus");
+  status.textContent = "Running benchmark engine…";
+  const providerIds = getAllEnabledProviders();
+  if(providerIds.length === 0){
+    status.textContent = "✗ No research available — pull research first in Research Library";
+    return;
+  }
+  const result = buildEngineRecommendation(STANDARD_BENCHMARK_BRIEF, providerIds);
+  // Save snapshot
+  const history = getBenchmarkHistory();
+  const today = new Date().toISOString().slice(0,10);
+  const snapshot = {
+    date: today,
+    timestamp: Date.now(),
+    providerCount: providerIds.length,
+    totalItems: result.signals.totalItems,
+    allocation: result.allocation,
+    positions: result.positions.map(p => ({tkr:p.ticker, w:p.weight, cls:p.cls})),
+    expectedReturn: result.expectedReturn,
+    expectedVolatility: result.expectedVolatility,
+    topThemes: result.topThemes.slice(0,5)
+  };
+  // Replace any existing snapshot for today, otherwise prepend
+  const existing = history.findIndex(h => h.date === today);
+  if(existing >= 0) history[existing] = snapshot;
+  else history.unshift(snapshot);
+  // Cap history at 90 entries
+  if(history.length > 90) history.length = 90;
+  localStorage.setItem(BENCHMARK_KEY, JSON.stringify(history));
+  status.textContent = `✓ Saved snapshot for ${today} — ${result.positions.length} positions, ${(result.expectedReturn*100).toFixed(2)}% expected return`;
+  addLog("ok", `Daily benchmark recorded: ${result.positions.length} positions`);
+  renderBenchmarkTimeline();
+}
+
+function getBenchmarkHistory(){
+  try { return JSON.parse(localStorage.getItem(BENCHMARK_KEY) || "[]"); } catch(_){return [];}
+}
+
+function clearBenchmarkHistory(){
+  if(!confirm("Clear all benchmark history?")) return;
+  localStorage.removeItem(BENCHMARK_KEY);
+  renderBenchmarkTimeline();
+  $("benchmarkStatus").textContent = "✓ History cleared";
+}
+
+function renderBenchmarkTimeline(){
+  const history = getBenchmarkHistory();
+  const el = $("benchmarkTimeline");
+  if(!el) return;
+  if(history.length === 0){
+    el.innerHTML = '<div style="text-align:center;padding:30px;color:var(--ink3)"><div style="font-size:32px;margin-bottom:6px">📅</div>No benchmark snapshots yet. Click "Run Today\'s Benchmark" to start tracking.</div>';
+    return;
+  }
+  // Stats
+  const latest = history[0];
+  const oldest = history[history.length - 1];
+  const drift = history.length > 1 ? ((latest.expectedReturn - oldest.expectedReturn) * 100).toFixed(2) : "0.00";
+  let h = '<div class="kpi-grid" style="margin-bottom:14px">';
+  h += kpiCard("Snapshots", history.length, "saved","tone-blue");
+  h += kpiCard("Latest E[R]", (latest.expectedReturn*100).toFixed(2)+"%", latest.date, "tone-green");
+  h += kpiCard("Latest E[σ]", (latest.expectedVolatility*100).toFixed(2)+"%", "", "tone-amber");
+  h += kpiCard("E[R] Drift", (drift>=0?'+':'')+drift+"%", "vs first snapshot", drift>=0?"tone-green":"tone-red");
+  h += kpiCard("Latest Positions", latest.positions.length, "");
+  h += '</div>';
+  // Timeline chart (Chart.js) — expected return over time
+  h += '<div style="position:relative;height:200px;margin-bottom:14px;background:#fff;padding:10px;border-radius:8px;border:1px solid var(--line)"><canvas id="benchmarkChart"></canvas></div>';
+  // Recent snapshots table
+  h += '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Date</th><th class="num">E[R]</th><th class="num">E[σ]</th><th class="num">Positions</th><th class="num">Research items</th><th>Top theme</th></tr></thead><tbody>';
+  history.slice(0,15).forEach(s => {
+    const theme = (s.topThemes||[])[0] || "—";
+    h += `<tr><td><strong>${s.date}</strong></td>
+      <td class="num">${(s.expectedReturn*100).toFixed(2)}%</td>
+      <td class="num">${(s.expectedVolatility*100).toFixed(2)}%</td>
+      <td class="num">${s.positions.length}</td>
+      <td class="num">${s.totalItems||0}</td>
+      <td style="font-size:11.5px;color:var(--ink3)">${escapeHtml(theme)}</td></tr>`;
+  });
+  h += '</tbody></table></div>';
+  el.innerHTML = h;
+  // Render the chart
+  setTimeout(() => {
+    const canvas = $("benchmarkChart"); if(!canvas) return;
+    const reversed = history.slice().reverse();
+    if(window._benchmarkChart) window._benchmarkChart.destroy();
+    window._benchmarkChart = new Chart(canvas, {
+      type:"line",
+      data:{labels:reversed.map(s => s.date), datasets:[
+        {label:"E[R] %", data:reversed.map(s => +(s.expectedReturn*100).toFixed(2)), borderColor:"var(--green)", backgroundColor:"rgba(0,135,90,.12)", fill:true, tension:0.3, yAxisID:"y"},
+        {label:"E[σ] %", data:reversed.map(s => +(s.expectedVolatility*100).toFixed(2)), borderColor:"var(--amber)", backgroundColor:"rgba(245,158,11,.08)", fill:false, tension:0.3, yAxisID:"y"}
+      ]},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:"top",labels:{font:{size:11}}}},scales:{x:{ticks:{maxTicksLimit:8,font:{size:10}}},y:{title:{display:true,text:"% return",font:{size:10}},ticks:{font:{size:10}}}}}
+    });
+  }, 50);
+}
+
+// ── SENSITIVITY SWEEPS ─────────────────────────────────────
+function makeBrief(overrides){
+  return {...STANDARD_BENCHMARK_BRIEF, ...overrides};
+}
+
+function renderSweepResult(title, sweepVar, results){
+  const allClasses = Array.from(new Set(results.flatMap(r => Object.keys(r.result.allocation))));
+  let h = `<div style="background:#fff;border:1px solid var(--line);border-radius:8px;padding:16px 18px">
+    <div style="font-weight:700;font-size:14px;margin-bottom:14px">${escapeHtml(title)}</div>
+    <div class="tbl-wrap"><table class="tbl">
+    <thead><tr><th>${escapeHtml(sweepVar)}</th>${allClasses.map(c => `<th class="num">${prettyClass(c)}</th>`).join("")}<th class="num">E[R]</th><th class="num">E[σ]</th><th class="num">Positions</th></tr></thead><tbody>`;
+  results.forEach(r => {
+    h += `<tr><td><strong>${escapeHtml(r.label)}</strong></td>`;
+    allClasses.forEach(c => { const v = r.result.allocation[c] || 0; h += `<td class="num">${v>0?v.toFixed(0)+'%':'—'}</td>`; });
+    h += `<td class="num"><strong>${(r.result.expectedReturn*100).toFixed(2)}%</strong></td>`;
+    h += `<td class="num">${(r.result.expectedVolatility*100).toFixed(2)}%</td>`;
+    h += `<td class="num">${r.result.positions.length}</td></tr>`;
+  });
+  h += '</tbody></table></div>';
+  // Visual chart
+  h += '<div style="position:relative;height:280px;margin-top:14px"><canvas id="sweepChart"></canvas></div>';
+  h += '</div>';
+  $("sweepResult").innerHTML = h;
+  setTimeout(() => {
+    const canvas = $("sweepChart"); if(!canvas) return;
+    if(window._sweepChart) window._sweepChart.destroy();
+    const colors = {equity:"#0057b8",fixed_income:"#00875a",real_estate:"#f59e0b",commodity:"#d4af37",cash:"#06b6d4",mixed:"#7c3aed",alternative:"#e31837"};
+    window._sweepChart = new Chart(canvas, {
+      type:"bar",
+      data:{labels:results.map(r => r.label), datasets: allClasses.filter(c => results.some(r => (r.result.allocation[c]||0) > 0)).map(c => ({
+        label: prettyClass(c),
+        data: results.map(r => r.result.allocation[c] || 0),
+        backgroundColor: colors[c] || "#64748b",
+        stack: "alloc"
+      }))},
+      options:{responsive:true,maintainAspectRatio:false,scales:{x:{stacked:true,ticks:{font:{size:10}}},y:{stacked:true,max:100,title:{display:true,text:"Allocation %",font:{size:10}}}},plugins:{legend:{position:"top",labels:{font:{size:11}}}}}
+    });
+  }, 50);
+}
+
+function sweepRisk(){
+  const providerIds = getAllEnabledProviders();
+  if(providerIds.length === 0){ toast("No research available — pull research first","err"); return; }
+  const profiles = ["very_conservative","conservative","moderately_conservative","moderate","moderately_aggressive","aggressive","very_aggressive"];
+  const results = profiles.map(r => ({
+    label: r.replace(/_/g," "),
+    result: buildEngineRecommendation(makeBrief({risk: r}), providerIds)
+  }));
+  renderSweepResult("🎯 Risk Profile Sweep — Allocation by Risk Tolerance", "Risk profile", results);
+  addLog("ok", "Risk profile sweep complete");
+}
+
+function sweepNW(){
+  const providerIds = getAllEnabledProviders();
+  if(providerIds.length === 0){ toast("No research available","err"); return; }
+  const nws = [100000, 500000, 2000000, 10000000, 50000000];
+  const results = nws.map(nw => ({
+    label: fmt$(nw),
+    result: buildEngineRecommendation(makeBrief({nw, deploy:nw}), providerIds)
+  }));
+  renderSweepResult("💰 Net Worth Sweep — Allocation by Wealth Level", "Net Worth", results);
+}
+
+function sweepESG(){
+  const providerIds = getAllEnabledProviders();
+  if(providerIds.length === 0){ toast("No research available","err"); return; }
+  const opts = [{v:"none",l:"None"},{v:"prefer",l:"Prefer ESG"},{v:"strict",l:"ESG Strict"}];
+  const results = opts.map(o => ({
+    label: o.l,
+    result: buildEngineRecommendation(makeBrief({esg: o.v}), providerIds)
+  }));
+  renderSweepResult("🌱 ESG Strictness Sweep — Position Universe Filter", "ESG mode", results);
+}
+
+function sweepTax(){
+  const providerIds = getAllEnabledProviders();
+  if(providerIds.length === 0){ toast("No research available","err"); return; }
+  const opts = [{v:"low",l:"Low"},{v:"medium",l:"Medium"},{v:"high",l:"High"}];
+  const results = opts.map(o => ({
+    label: o.l,
+    result: buildEngineRecommendation(makeBrief({taxSensitivity: o.v}), providerIds)
+  }));
+  renderSweepResult("💼 Tax Sensitivity Sweep — Vehicle Preference", "Tax mode", results);
+}
+
+function sweepLiquidity(){
+  const providerIds = getAllEnabledProviders();
+  if(providerIds.length === 0){ toast("No research available","err"); return; }
+  const opts = [{v:"low",l:"Low"},{v:"medium",l:"Medium"},{v:"high",l:"High"}];
+  const results = opts.map(o => ({
+    label: o.l,
+    result: buildEngineRecommendation(makeBrief({liquidity: o.v}), providerIds)
+  }));
+  renderSweepResult("💧 Liquidity Need Sweep — Universe Filter", "Liquidity mode", results);
+}
+
+function sweepResearch(){
+  const allProviders = getAllEnabledProviders();
+  if(allProviders.length === 0){ toast("No research available","err"); return; }
+  const counts = [1, Math.max(2,Math.min(4,allProviders.length)), Math.max(4,Math.min(8,allProviders.length)), allProviders.length];
+  const labels = ["1 source", `${counts[1]} sources`, `${counts[2]} sources`, `${counts[3]} sources (all)`];
+  const results = counts.map((cnt, i) => ({
+    label: labels[i],
+    result: buildEngineRecommendation(makeBrief({}), allProviders.slice(0, cnt))
+  }));
+  renderSweepResult("📚 Research Source Count Sweep — Influence of Consensus Breadth", "Source count", results);
+}
+
+// ── ROBUSTNESS CHECKS ──────────────────────────────────────
+function runRobustnessChecks(){
+  const providerIds = getAllEnabledProviders();
+  if(providerIds.length === 0){
+    $("robustnessResults").innerHTML = '<div style="padding:14px;color:var(--red)">No research available — pull research first in Research Library</div>';
+    return;
+  }
+  const checks = [
+    {
+      name: "Allocation sums to 100% (Moderate)",
+      run: () => {
+        const r = buildEngineRecommendation(makeBrief({risk:"moderate"}), providerIds);
+        const sum = Object.values(r.allocation).reduce((s,v)=>s+v,0);
+        return {pass: Math.abs(sum - 100) < 1, msg: `Allocation sum = ${sum.toFixed(2)}%`};
+      }
+    },
+    {
+      name: "Position weights sum to 100%",
+      run: () => {
+        const r = buildEngineRecommendation(makeBrief({risk:"moderate"}), providerIds);
+        const sum = r.positions.reduce((s,p)=>s+p.weight,0);
+        return {pass: Math.abs(sum - 100) < 1, msg: `Position weights sum = ${sum.toFixed(2)}%`};
+      }
+    },
+    {
+      name: "Conservative has more bonds than equity",
+      run: () => {
+        const r = buildEngineRecommendation(makeBrief({risk:"very_conservative"}), providerIds);
+        const eq = r.allocation.equity||0, fi = r.allocation.fixed_income||0;
+        return {pass: fi > eq, msg: `Equity ${eq.toFixed(1)}% vs Fixed Income ${fi.toFixed(1)}%`};
+      }
+    },
+    {
+      name: "Aggressive has more equity than bonds",
+      run: () => {
+        const r = buildEngineRecommendation(makeBrief({risk:"aggressive"}), providerIds);
+        const eq = r.allocation.equity||0, fi = r.allocation.fixed_income||0;
+        return {pass: eq > fi, msg: `Equity ${eq.toFixed(1)}% vs Fixed Income ${fi.toFixed(1)}%`};
+      }
+    },
+    {
+      name: "No position exceeds max position constraint",
+      run: () => {
+        const r = buildEngineRecommendation(makeBrief({maxPosition:20}), providerIds);
+        const violated = r.positions.filter(p => p.weight > 20.5);
+        return {pass: violated.length === 0, msg: violated.length === 0 ? "All positions ≤ 20%" : `${violated.length} positions exceed 20%`};
+      }
+    },
+    {
+      name: "ESG-strict mode returns only ESG funds",
+      run: () => {
+        const r = buildEngineRecommendation(makeBrief({esg:"strict"}), providerIds);
+        const nonESG = r.positions.filter(p => {
+          const f = FUND_UNIVERSE.find(x => x.tkr === p.ticker);
+          return f && !f.esg;
+        });
+        return {pass: nonESG.length === 0, msg: nonESG.length === 0 ? "All positions ESG-flagged" : `${nonESG.length} non-ESG positions: ${nonESG.map(p=>p.ticker).join(", ")}`};
+      }
+    },
+    {
+      name: "High liquidity excludes mutual funds + alternatives",
+      run: () => {
+        const r = buildEngineRecommendation(makeBrief({liquidity:"high"}), providerIds);
+        const illiquid = r.positions.filter(p => {
+          const f = FUND_UNIVERSE.find(x => x.tkr === p.ticker);
+          return f && (f.vehicle === "mutual_fund" || f.vehicle === "alternative");
+        });
+        return {pass: illiquid.length === 0, msg: illiquid.length === 0 ? "All positions ETF/cash" : `${illiquid.length} illiquid: ${illiquid.map(p=>p.ticker).join(", ")}`};
+      }
+    },
+    {
+      name: "Determinism — same input twice → same output",
+      run: () => {
+        const a = buildEngineRecommendation(makeBrief({}), providerIds);
+        const b = buildEngineRecommendation(makeBrief({}), providerIds);
+        const aTickers = a.positions.map(p => p.ticker+":"+p.weight.toFixed(1)).join(",");
+        const bTickers = b.positions.map(p => p.ticker+":"+p.weight.toFixed(1)).join(",");
+        return {pass: aTickers === bTickers, msg: aTickers === bTickers ? "Identical output" : "Output differs!"};
+      }
+    },
+    {
+      name: "Expected return > risk-free rate (4.5%)",
+      run: () => {
+        const r = buildEngineRecommendation(makeBrief({risk:"moderate"}), providerIds);
+        return {pass: r.expectedReturn > 0.045, msg: `E[R] = ${(r.expectedReturn*100).toFixed(2)}%`};
+      }
+    },
+    {
+      name: "Position count in 6-15 range",
+      run: () => {
+        const r = buildEngineRecommendation(makeBrief({}), providerIds);
+        const n = r.positions.length;
+        return {pass: n >= 6 && n <= 15, msg: `${n} positions`};
+      }
+    }
+  ];
+
+  const results = checks.map(c => ({...c, ...c.run()}));
+  const passed = results.filter(r => r.pass).length;
+  $("robustnessStatus").textContent = `${passed}/${results.length} checks passed`;
+  $("robustnessResults").innerHTML = results.map(r => `
+    <div style="display:grid;grid-template-columns:30px 1fr auto;gap:12px;align-items:center;padding:10px 14px;background:#fff;border:1px solid var(--line);border-radius:8px;margin-bottom:6px;border-left:3px solid ${r.pass?'var(--green)':'var(--red)'}">
+      <div style="width:26px;height:26px;border-radius:50%;background:${r.pass?'var(--green)':'var(--red)'};color:#fff;font-weight:800;display:flex;align-items:center;justify-content:center;font-size:13px">${r.pass?'✓':'✗'}</div>
+      <div><div style="font-weight:700;font-size:13px">${escapeHtml(r.name)}</div><div style="font-size:11px;color:var(--ink3);font-family:var(--fm);margin-top:2px">${escapeHtml(r.msg)}</div></div>
+      <div style="font-size:10px;color:var(--ink3);text-transform:uppercase;letter-spacing:.05em">${r.pass?'PASS':'FAIL'}</div>
+    </div>
+  `).join("");
+  addLog(passed===results.length?"ok":"warn", `Robustness: ${passed}/${results.length} passed`);
+}
+
+// ── A/B COMPARISON ─────────────────────────────────────────
+function runAB(){
+  const providerIds = getAllEnabledProviders();
+  if(providerIds.length === 0){ toast("No research available","err"); return; }
+  const briefA = makeBrief({risk:$("abRiskA").value, nw:+$("abNwA").value, deploy:+$("abNwA").value, esg:$("abEsgA").value});
+  const briefB = makeBrief({risk:$("abRiskB").value, nw:+$("abNwB").value, deploy:+$("abNwB").value, esg:$("abEsgB").value});
+  const a = buildEngineRecommendation(briefA, providerIds);
+  const b = buildEngineRecommendation(briefB, providerIds);
+  const allClasses = Array.from(new Set([...Object.keys(a.allocation), ...Object.keys(b.allocation)]));
+  let h = '<div class="grid2">';
+  function side(label, color, r, brief){
+    let s = `<div style="background:#fff;border:1px solid var(--line);border-left:4px solid ${color};border-radius:8px;padding:14px 16px">`;
+    s += `<div style="font-weight:700;font-size:13px;color:${color};margin-bottom:6px">${label}</div>`;
+    s += `<div style="font-size:11px;color:var(--ink3);margin-bottom:10px">${brief.risk.replace(/_/g," ")} · ${fmt$(brief.nw)} · ${brief.esg} ESG</div>`;
+    s += `<div style="margin-bottom:8px"><strong style="font-size:18px;color:var(--green)">${(r.expectedReturn*100).toFixed(2)}%</strong> E[R] · <strong style="color:var(--amber)">${(r.expectedVolatility*100).toFixed(2)}%</strong> E[σ]</div>`;
+    s += '<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--ink3);margin-bottom:4px">Allocation</div>';
+    Object.entries(r.allocation).filter(([,v])=>v>0).forEach(([cls,pct]) => {
+      s += `<div style="display:flex;justify-content:space-between;font-size:12px;padding:3px 0;border-bottom:1px dashed var(--line)"><span>${prettyClass(cls)}</span><strong>${pct.toFixed(1)}%</strong></div>`;
+    });
+    s += `<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--ink3);margin:10px 0 4px">Positions (${r.positions.length})</div>`;
+    r.positions.forEach(p => {
+      s += `<div style="display:flex;justify-content:space-between;font-size:11.5px;padding:3px 0"><span><strong>${p.ticker}</strong></span><span>${p.weight.toFixed(1)}%</span></div>`;
+    });
+    s += '</div>';
+    return s;
+  }
+  h += side("Scenario A", "var(--blue)", a, briefA);
+  h += side("Scenario B", "var(--purple)", b, briefB);
+  h += '</div>';
+  // Delta summary
+  h += '<div style="background:rgba(0,87,184,.04);border-radius:8px;padding:14px 18px;margin-top:14px">';
+  h += '<div style="font-weight:700;font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--blue);margin-bottom:8px">B vs A — Key Differences</div>';
+  const deltaER = (b.expectedReturn - a.expectedReturn) * 100;
+  const deltaSig = (b.expectedVolatility - a.expectedVolatility) * 100;
+  h += `<div style="font-size:12.5px;line-height:1.7">`;
+  h += `<div>Expected return: <strong style="color:${deltaER>=0?'var(--green)':'var(--red)'}">${deltaER>=0?'+':''}${deltaER.toFixed(2)}%</strong></div>`;
+  h += `<div>Expected volatility: <strong style="color:${deltaSig>=0?'var(--red)':'var(--green)'}">${deltaSig>=0?'+':''}${deltaSig.toFixed(2)}%</strong></div>`;
+  allClasses.forEach(c => {
+    const da = a.allocation[c]||0, db = b.allocation[c]||0;
+    const d = db - da;
+    if(Math.abs(d) < 1) return;
+    h += `<div>${prettyClass(c)}: <strong style="color:${d>=0?'var(--green)':'var(--red)'}">${d>=0?'+':''}${d.toFixed(1)}%</strong></div>`;
+  });
+  h += '</div></div>';
+  $("abResult").innerHTML = h;
+  addLog("ok","A/B comparison run");
+}
 
 // ═══════════════════════════════════════════════════════════
 // USER MANAGEMENT
@@ -3183,6 +3679,17 @@ window.loadProfileFile = loadProfileFile;
 window.runAgent = runAgent;
 window.runResearchEngine = runResearchEngine;
 window.exportToProposal = exportToProposal;
+// Engine stress test
+window.runDailyBenchmark = runDailyBenchmark;
+window.clearBenchmarkHistory = clearBenchmarkHistory;
+window.sweepRisk = sweepRisk;
+window.sweepNW = sweepNW;
+window.sweepESG = sweepESG;
+window.sweepTax = sweepTax;
+window.sweepLiquidity = sweepLiquidity;
+window.sweepResearch = sweepResearch;
+window.runRobustnessChecks = runRobustnessChecks;
+window.runAB = runAB;
 window.manualResearchRefresh = manualResearchRefresh;
 window.tickAllResearch = tickAllResearch;
 window.untickAllResearch = untickAllResearch;
