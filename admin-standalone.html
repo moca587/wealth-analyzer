@@ -808,19 +808,41 @@ Citations:<br>
       <label class="lbl">Ticker</label><input id="mdTicker" placeholder="AAPL" class="w160" value="AAPL">
       <label class="lbl" style="min-width:60px">Provider</label>
       <select id="mdProvider" class="w260">
-        <option value="auto">Auto (try all)</option>
-        <optgroup label="Free (with key)">
+        <option value="auto">Auto (try all in failover order)</option>
+        <optgroup label="── Equities (with API key) ──">
           <option value="finnhub">Finnhub</option>
           <option value="alphavantage">Alpha Vantage</option>
           <option value="polygon">Polygon.io</option>
           <option value="twelvedata">Twelve Data</option>
           <option value="fmp">Financial Modeling Prep</option>
           <option value="tiingo">Tiingo</option>
+          <option value="eodhd">EOD Historical Data</option>
+          <option value="marketstack">Marketstack</option>
+          <option value="stockdata">Stockdata.org</option>
+          <option value="finazon">Finazon (SIP)</option>
         </optgroup>
-        <optgroup label="Free (no key)">
+        <optgroup label="── Equities (no API key) ──">
           <option value="yahoo">Yahoo Finance</option>
-          <option value="coingecko">CoinGecko (crypto)</option>
-          <option value="frankfurter">Frankfurter (FX)</option>
+          <option value="stooq">Stooq (global CSV)</option>
+        </optgroup>
+        <optgroup label="── Crypto ──">
+          <option value="coingecko">CoinGecko (no key)</option>
+          <option value="cryptocompare">CryptoCompare (no key)</option>
+          <option value="coinbase">Coinbase Spot (no key)</option>
+          <option value="coinmarketcap">CoinMarketCap (key)</option>
+        </optgroup>
+        <optgroup label="── FX ──">
+          <option value="frankfurter">Frankfurter / ECB (no key)</option>
+          <option value="exchangerate_host">ExchangeRate.host (no key)</option>
+          <option value="open_er_api">Open ER API (no key)</option>
+        </optgroup>
+        <optgroup label="── Macro / Rates ──">
+          <option value="fred">FRED — St Louis Fed (key)</option>
+          <option value="treasury">Treasury.gov (no key)</option>
+        </optgroup>
+        <optgroup label="── Reference Data (no key) ──">
+          <option value="openfigi">OpenFIGI (ISIN/CUSIP/FIGI)</option>
+          <option value="secedgar">SEC EDGAR (filings)</option>
         </optgroup>
       </select>
       <button class="btn" data-action="testQuote">▶ Fetch Quote</button>
@@ -867,7 +889,7 @@ Citations:<br>
   <div class="panel">
     <div class="ptitle">Free Providers <span style="color:var(--green);font-weight:600">— health-checked every 2 minutes</span></div>
     <table class="tbl"><thead><tr><th>Provider</th><th>Key</th><th>Status</th><th>Health</th><th>Action</th></tr></thead><tbody id="keysTbl"></tbody></table>
-    <div style="font-size:11px;color:var(--ink3);margin-top:10px;line-height:1.6">
+    <div style="font-size:11px;color:var(--ink3);margin-top:10px;line-height:1.7">
       <strong>Get free keys:</strong>
       <a href="https://finnhub.io/register" target="_blank" style="color:var(--blue)">finnhub.io</a> ·
       <a href="https://www.alphavantage.co/support/#api-key" target="_blank" style="color:var(--blue)">alphavantage.co</a> ·
@@ -875,7 +897,16 @@ Citations:<br>
       <a href="https://site.financialmodelingprep.com/developer" target="_blank" style="color:var(--blue)">FMP</a> ·
       <a href="https://tiingo.com/account/api/token" target="_blank" style="color:var(--blue)">tiingo.com</a> ·
       <a href="https://polygon.io/dashboard/api-keys" target="_blank" style="color:var(--blue)">polygon.io</a> ·
+      <a href="https://eodhistoricaldata.com/register" target="_blank" style="color:var(--blue)">eodhistoricaldata.com</a> ·
+      <a href="https://marketstack.com/signup/free" target="_blank" style="color:var(--blue)">marketstack.com</a> ·
+      <a href="https://stockdata.org/register" target="_blank" style="color:var(--blue)">stockdata.org</a> ·
+      <a href="https://finazon.io/register" target="_blank" style="color:var(--blue)">finazon.io</a> ·
+      <a href="https://coinmarketcap.com/api/" target="_blank" style="color:var(--blue)">coinmarketcap.com</a> ·
+      <a href="https://fred.stlouisfed.org/docs/api/api_key.html" target="_blank" style="color:var(--blue)">FRED (St Louis Fed)</a> ·
       <a href="https://console.anthropic.com/" target="_blank" style="color:var(--blue)">Claude</a>
+      <br><br>
+      <strong style="color:var(--green)">No key needed:</strong>
+      Yahoo Finance · Stooq · CoinGecko · CryptoCompare · Coinbase Spot · Frankfurter (ECB FX) · ExchangeRate.host · OpenFIGI (ISIN/CUSIP) · SEC EDGAR (filings) · Treasury.gov (yields)
     </div>
   </div>
 </div>
@@ -949,7 +980,7 @@ Citations:<br>
 // ═══════════════════════════════════════════════════════════
 // VERSION + UTILS
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260522-0945";
+const APP_VERSION = "20260522-1042";
 const $ = (id) => document.getElementById(id);
 const $$ = (sel, ctx) => Array.from((ctx||document).querySelectorAll(sel));
 
@@ -1718,22 +1749,54 @@ function renderDashboard(){
   h += kpiCard("Tax Countries",Object.keys(LOCAL_TAX).length,"+ all 50 US states");
   $("dashKpis").innerHTML = h;
 
-  // Provider status
-  const providers = [
-    {n:"Finnhub",  k:localStorage.getItem("fhKey")},
-    {n:"Alpha Vantage",  k:localStorage.getItem("avKey")},
-    {n:"Polygon",  k:localStorage.getItem("wa_polygon_key")},
-    {n:"Twelve Data",  k:localStorage.getItem("wa_twelvedata_key")},
-    {n:"FMP",      k:localStorage.getItem("wa_fmp_key")},
-    {n:"Tiingo",   k:localStorage.getItem("wa_tiingo_key")},
-    {n:"Yahoo",    k:"always"},
-    {n:"Claude API", k:claudeKey}
+  // Provider status — grouped by data class
+  const groups = [
+    {label:"Equities (keyed)", items:[
+      {n:"Finnhub",  k:localStorage.getItem("fhKey")},
+      {n:"Alpha Vantage",  k:localStorage.getItem("avKey")},
+      {n:"Polygon",  k:localStorage.getItem("wa_polygon_key")},
+      {n:"Twelve Data",  k:localStorage.getItem("wa_twelvedata_key")},
+      {n:"FMP",      k:localStorage.getItem("wa_fmp_key")},
+      {n:"Tiingo",   k:localStorage.getItem("wa_tiingo_key")},
+      {n:"EOD HD",   k:localStorage.getItem("wa_eodhd_key")},
+      {n:"Marketstack",  k:localStorage.getItem("wa_marketstack_key")},
+      {n:"Stockdata",k:localStorage.getItem("wa_stockdata_key")},
+      {n:"Finazon",  k:localStorage.getItem("wa_finazon_key")}
+    ]},
+    {label:"Equities (no key)", items:[
+      {n:"Yahoo Finance",     k:"always"},
+      {n:"Stooq (CSV)",       k:"always"},
+      {n:"OpenFIGI (ref)",    k:"always"},
+      {n:"SEC EDGAR (ref)",   k:"always"}
+    ]},
+    {label:"Crypto", items:[
+      {n:"CoinGecko",      k:"always"},
+      {n:"CryptoCompare",  k:"always"},
+      {n:"Coinbase Spot",  k:"always"},
+      {n:"CoinMarketCap",  k:localStorage.getItem("wa_cmc_key")}
+    ]},
+    {label:"FX (no key)", items:[
+      {n:"Frankfurter (ECB)",  k:"always"},
+      {n:"ExchangeRate.host",  k:"always"},
+      {n:"Open ER API",        k:"always"}
+    ]},
+    {label:"Macro / Rates", items:[
+      {n:"FRED (St Louis Fed)",  k:localStorage.getItem("wa_fred_key")},
+      {n:"Treasury.gov",         k:"always"}
+    ]},
+    {label:"AI / LLM", items:[
+      {n:"Claude API",   k:claudeKey}
+    ]}
   ];
-  let ph = '<table class="tbl"><tbody>';
-  providers.forEach(p => {
-    ph += `<tr><td><strong>${p.n}</strong></td><td>${p.k?'<span class="pill pill-on">Connected</span>':'<span class="pill pill-off">Not set</span>'}</td></tr>`;
+  let ph = '';
+  groups.forEach(g => {
+    ph += `<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink3);margin:10px 0 4px">${g.label}</div>`;
+    ph += '<table class="tbl" style="margin-bottom:6px"><tbody>';
+    g.items.forEach(p => {
+      ph += `<tr><td><strong>${p.n}</strong></td><td>${p.k?'<span class="pill pill-on">Connected</span>':'<span class="pill pill-off">Not set</span>'}</td></tr>`;
+    });
+    ph += '</tbody></table>';
   });
-  ph += '</tbody></table>';
   $("dashProviders").innerHTML = ph;
 
   // Recent logs
@@ -2393,24 +2456,212 @@ async function fetchQuote(ticker, provider){
   const cfg = {
     fh:localStorage.getItem("fhKey")||"", av:localStorage.getItem("avKey")||"",
     poly:localStorage.getItem("wa_polygon_key")||"", td:localStorage.getItem("wa_twelvedata_key")||"",
-    fmp:localStorage.getItem("wa_fmp_key")||"", tiingo:localStorage.getItem("wa_tiingo_key")||""
+    fmp:localStorage.getItem("wa_fmp_key")||"", tiingo:localStorage.getItem("wa_tiingo_key")||"",
+    eodhd:localStorage.getItem("wa_eodhd_key")||"", marketstack:localStorage.getItem("wa_marketstack_key")||"",
+    stockdata:localStorage.getItem("wa_stockdata_key")||"", finazon:localStorage.getItem("wa_finazon_key")||"",
+    cmc:localStorage.getItem("wa_cmc_key")||"", fred:localStorage.getItem("wa_fred_key")||""
   };
   async function tryFn(p){
     switch(p){
-      case "finnhub": { if(!cfg.fh) throw new Error("No Finnhub key"); const r=await fetch(`https://finnhub.io/api/v1/quote?symbol=${ticker}&token=${cfg.fh}`); const j=await r.json(); if(!j.c) throw new Error("No data"); return {price:j.c,change:j.d,changePct:j.dp,source:"finnhub"}; }
-      case "alphavantage": { if(!cfg.av) throw new Error("No AV key"); const r=await fetch(`https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=${ticker}&apikey=${cfg.av}`); const j=await r.json(); const q=j["Global Quote"]; if(!q||!q["05. price"]) throw new Error("Rate-limited or no data"); return {price:+q["05. price"],change:+q["09. change"],changePct:parseFloat(q["10. change percent"]),source:"alphavantage"}; }
-      case "polygon": { if(!cfg.poly) throw new Error("No Polygon key"); const r=await fetch(`https://api.polygon.io/v2/aggs/ticker/${ticker}/prev?apiKey=${cfg.poly}`); const j=await r.json(); const d=j.results?.[0]; if(!d) throw new Error("No data"); return {price:d.c,change:d.c-d.o,changePct:(d.c/d.o-1)*100,source:"polygon"}; }
-      case "twelvedata": { if(!cfg.td) throw new Error("No Twelve Data key"); const r=await fetch(`https://api.twelvedata.com/quote?symbol=${ticker}&apikey=${cfg.td}`); const j=await r.json(); if(j.status==="error"||!j.close) throw new Error(j.message||"No data"); return {price:+j.close,change:+j.change,changePct:+j.percent_change,source:"twelvedata"}; }
-      case "fmp": { if(!cfg.fmp) throw new Error("No FMP key"); const r=await fetch(`https://financialmodelingprep.com/api/v3/quote/${ticker}?apikey=${cfg.fmp}`); const j=await r.json(); const d=Array.isArray(j)&&j[0]; if(!d) throw new Error("No data"); return {price:d.price,change:d.change,changePct:d.changesPercentage,source:"fmp"}; }
-      case "tiingo": { if(!cfg.tiingo) throw new Error("No Tiingo key"); const r=await fetch(`https://api.tiingo.com/iex/?tickers=${ticker}&token=${cfg.tiingo}`); const j=await r.json(); const d=Array.isArray(j)&&j[0]; if(!d||!d.last) throw new Error("No data"); return {price:d.last,change:d.last-d.prevClose,changePct:(d.last/d.prevClose-1)*100,source:"tiingo"}; }
-      case "yahoo": { let r; try { r = await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?interval=1d`); } catch(_) { r = await fetch(`https://corsproxy.io/?https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?interval=1d`); } if(!r.ok) throw new Error("HTTP "+r.status); const j=await r.json(); const m=j.chart?.result?.[0]?.meta; if(!m) throw new Error("No data"); return {price:m.regularMarketPrice,change:m.regularMarketPrice-m.previousClose,changePct:(m.regularMarketPrice/m.previousClose-1)*100,source:"yahoo"}; }
-      case "coingecko": { const CRYPTO_MAP={BTC:"bitcoin",ETH:"ethereum",SOL:"solana"}; const id=CRYPTO_MAP[ticker.toUpperCase()]||ticker.toLowerCase(); const r=await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${id}&vs_currencies=usd&include_24hr_change=true`); const j=await r.json(); if(!j[id]) throw new Error("No data"); return {price:j[id].usd,changePct:j[id].usd_24h_change,source:"coingecko"}; }
-      case "frankfurter": { if(ticker.length!==6) throw new Error("FX expects 6-char pair"); const r=await fetch(`https://api.frankfurter.app/latest?from=${ticker.slice(0,3)}&to=${ticker.slice(3,6)}`); const j=await r.json(); if(!j.rates) throw new Error("No rate"); return {price:j.rates[ticker.slice(3,6)],source:"frankfurter"}; }
+      // ─── EQUITIES — Free with API key ───────────────────────────
+      case "finnhub": {
+        if(!cfg.fh) throw new Error("No Finnhub key");
+        const r=await fetch(`https://finnhub.io/api/v1/quote?symbol=${ticker}&token=${cfg.fh}`);
+        const j=await r.json(); if(!j.c) throw new Error("No data");
+        return {price:j.c,change:j.d,changePct:j.dp,high:j.h,low:j.l,open:j.o,prevClose:j.pc,source:"finnhub"};
+      }
+      case "alphavantage": {
+        if(!cfg.av) throw new Error("No AV key");
+        const r=await fetch(`https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=${ticker}&apikey=${cfg.av}`);
+        const j=await r.json(); const q=j["Global Quote"];
+        if(!q||!q["05. price"]) throw new Error(j["Note"]||"Rate-limited or no data");
+        return {price:+q["05. price"],change:+q["09. change"],changePct:parseFloat(q["10. change percent"]),volume:+q["06. volume"],source:"alphavantage"};
+      }
+      case "polygon": {
+        if(!cfg.poly) throw new Error("No Polygon key");
+        const r=await fetch(`https://api.polygon.io/v2/aggs/ticker/${ticker}/prev?apiKey=${cfg.poly}`);
+        const j=await r.json(); const d=j.results?.[0]; if(!d) throw new Error("No data");
+        return {price:d.c,change:d.c-d.o,changePct:(d.c/d.o-1)*100,open:d.o,high:d.h,low:d.l,volume:d.v,source:"polygon"};
+      }
+      case "twelvedata": {
+        if(!cfg.td) throw new Error("No Twelve Data key");
+        const r=await fetch(`https://api.twelvedata.com/quote?symbol=${ticker}&apikey=${cfg.td}`);
+        const j=await r.json(); if(j.status==="error"||!j.close) throw new Error(j.message||"No data");
+        return {price:+j.close,change:+j.change,changePct:+j.percent_change,open:+j.open,high:+j.high,low:+j.low,volume:+j.volume,source:"twelvedata"};
+      }
+      case "fmp": {
+        if(!cfg.fmp) throw new Error("No FMP key");
+        const r=await fetch(`https://financialmodelingprep.com/api/v3/quote/${ticker}?apikey=${cfg.fmp}`);
+        const j=await r.json(); const d=Array.isArray(j)&&j[0]; if(!d) throw new Error("No data");
+        return {price:d.price,change:d.change,changePct:d.changesPercentage,open:d.open,high:d.dayHigh,low:d.dayLow,volume:d.volume,marketCap:d.marketCap,pe:d.pe,eps:d.eps,source:"fmp"};
+      }
+      case "tiingo": {
+        if(!cfg.tiingo) throw new Error("No Tiingo key");
+        const r=await fetch(`https://api.tiingo.com/iex/?tickers=${ticker}&token=${cfg.tiingo}`);
+        const j=await r.json(); const d=Array.isArray(j)&&j[0]; if(!d||!d.last) throw new Error("No data");
+        return {price:d.last,change:d.last-d.prevClose,changePct:(d.last/d.prevClose-1)*100,high:d.high,low:d.low,open:d.open,volume:d.volume,source:"tiingo"};
+      }
+      case "eodhd": {
+        if(!cfg.eodhd) throw new Error("No EOD HD key");
+        const sym = ticker.includes(".") ? ticker : ticker + ".US";
+        const r=await fetch(`https://eodhistoricaldata.com/api/real-time/${sym}?api_token=${cfg.eodhd}&fmt=json`);
+        const j=await r.json(); if(!j.close && !j.previousClose) throw new Error("No data");
+        return {price:+j.close||+j.previousClose,change:+j.change,changePct:+j.change_p,open:+j.open,high:+j.high,low:+j.low,volume:+j.volume,source:"eodhd"};
+      }
+      case "marketstack": {
+        if(!cfg.marketstack) throw new Error("No Marketstack key");
+        const r=await fetch(`https://api.marketstack.com/v1/intraday/latest?access_key=${cfg.marketstack}&symbols=${ticker}`);
+        const j=await r.json(); const d=j.data?.[0]; if(!d) throw new Error(j.error?.message||"No data");
+        return {price:d.last||d.close,change:d.last-d.open,changePct:(d.last/d.open-1)*100,open:d.open,high:d.high,low:d.low,volume:d.volume,source:"marketstack"};
+      }
+      case "stockdata": {
+        if(!cfg.stockdata) throw new Error("No Stockdata.org key");
+        const r=await fetch(`https://api.stockdata.org/v1/data/quote?symbols=${ticker}&api_token=${cfg.stockdata}`);
+        const j=await r.json(); const d=j.data?.[0]; if(!d) throw new Error("No data");
+        return {price:d.price,change:d.day_change,changePct:d.day_change_pct,open:d.day_open,high:d.day_high,low:d.day_low,volume:d.volume,source:"stockdata"};
+      }
+      case "finazon": {
+        if(!cfg.finazon) throw new Error("No Finazon key");
+        const r=await fetch(`https://api.finazon.io/latest/time_series?dataset=sip_non_pro&ticker=${ticker}&interval=1d&page_size=1`, {headers:{Authorization:`apikey ${cfg.finazon}`}});
+        const j=await r.json(); const d=j.data?.[0]; if(!d) throw new Error(j.message||"No data");
+        return {price:+d.c,open:+d.o,high:+d.h,low:+d.l,volume:+d.v,change:+d.c-+d.o,changePct:(+d.c/+d.o-1)*100,source:"finazon"};
+      }
+      // ─── EQUITIES — Free without API key ───────────────────────
+      case "yahoo": {
+        let r;
+        try { r = await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?interval=1d`); }
+        catch(_) { r = await fetch(`https://corsproxy.io/?https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?interval=1d`); }
+        if(!r.ok) throw new Error("HTTP "+r.status);
+        const j=await r.json(); const m=j.chart?.result?.[0]?.meta; if(!m) throw new Error("No data");
+        return {price:m.regularMarketPrice,change:m.regularMarketPrice-m.previousClose,changePct:(m.regularMarketPrice/m.previousClose-1)*100,high:m.regularMarketDayHigh,low:m.regularMarketDayLow,currency:m.currency,exchange:m.exchangeName,source:"yahoo"};
+      }
+      case "stooq": {
+        const sym = ticker.includes(".") ? ticker.toLowerCase() : ticker.toLowerCase() + ".us";
+        const url = `https://stooq.com/q/l/?s=${sym}&f=sd2t2ohlcv&h&e=csv`;
+        let r;
+        try { r = await fetch(url); } catch(_){ r = await fetch(`https://corsproxy.io/?${encodeURIComponent(url)}`); }
+        if(!r.ok) throw new Error("HTTP "+r.status);
+        const txt = await r.text();
+        const lines = txt.trim().split("\n"); if(lines.length < 2) throw new Error("No data");
+        const c = lines[1].split(","); if(c[6]==="N/D" || !c[6]) throw new Error("No price");
+        const close = +c[6], open = +c[3];
+        return {price:close,open,high:+c[4],low:+c[5],change:close-open,changePct:(close/open-1)*100,volume:+c[7],source:"stooq"};
+      }
+      // ─── REFERENCE DATA — Free no key ─────────────────────────
+      case "openfigi": {
+        // Resolves ticker → ISIN/CUSIP/FIGI etc. No price, just reference data.
+        const r = await fetch("https://api.openfigi.com/v3/search", {method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({query:ticker})});
+        if(!r.ok) throw new Error("HTTP "+r.status);
+        const j = await r.json(); const d = (j.data||[])[0];
+        if(!d) throw new Error("No FIGI match");
+        return {price:0,name:d.name,figi:d.figi,ticker:d.ticker,marketSector:d.marketSector,securityType:d.securityType,exchCode:d.exchCode,source:"openfigi",isReferenceOnly:true};
+      }
+      case "secedgar": {
+        // SEC EDGAR — company facts (US filings only). No price, fundamental data.
+        // First resolve ticker → CIK via /files/company_tickers.json (heavy, ~5MB so cache)
+        if(!window._secTickersCache){
+          try {
+            const cr = await fetch("https://www.sec.gov/files/company_tickers.json");
+            window._secTickersCache = await cr.json();
+          } catch(_){ throw new Error("SEC EDGAR ticker map unavailable"); }
+        }
+        const map = window._secTickersCache || {};
+        const match = Object.values(map).find(x => x.ticker === ticker.toUpperCase());
+        if(!match) throw new Error("Ticker not in SEC EDGAR (US-listed only)");
+        const cik = String(match.cik_str).padStart(10, "0");
+        const r = await fetch(`https://data.sec.gov/api/xbrl/companyfacts/CIK${cik}.json`);
+        if(!r.ok) throw new Error("HTTP "+r.status);
+        const j = await r.json();
+        return {price:0,name:j.entityName,cik:cik,source:"secedgar",isReferenceOnly:true,filingsCount:Object.keys(j.facts?.["us-gaap"]||{}).length};
+      }
+      // ─── CRYPTO ─────────────────────────────────────────────────
+      case "coingecko": {
+        const CRYPTO_MAP={BTC:"bitcoin",ETH:"ethereum",SOL:"solana",ADA:"cardano",DOT:"polkadot",DOGE:"dogecoin",MATIC:"matic-network",AVAX:"avalanche-2",LINK:"chainlink",UNI:"uniswap",ATOM:"cosmos",LTC:"litecoin",XRP:"ripple",BNB:"binancecoin",USDT:"tether",USDC:"usd-coin"};
+        const id=CRYPTO_MAP[ticker.toUpperCase()]||ticker.toLowerCase();
+        const r=await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${id}&vs_currencies=usd&include_24hr_change=true&include_24hr_vol=true&include_market_cap=true`);
+        const j=await r.json(); if(!j[id]) throw new Error("No data");
+        return {price:j[id].usd,changePct:j[id].usd_24h_change,volume:j[id].usd_24h_vol,marketCap:j[id].usd_market_cap,source:"coingecko"};
+      }
+      case "coinmarketcap": {
+        if(!cfg.cmc) throw new Error("No CoinMarketCap key");
+        const r = await fetch(`https://pro-api.coinmarketcap.com/v2/cryptocurrency/quotes/latest?symbol=${ticker.toUpperCase()}`, {headers:{"X-CMC_PRO_API_KEY":cfg.cmc}});
+        const j = await r.json();
+        const d = j.data?.[ticker.toUpperCase()]?.[0]?.quote?.USD;
+        if(!d) throw new Error(j.status?.error_message||"No data");
+        return {price:d.price,changePct:d.percent_change_24h,volume:d.volume_24h,marketCap:d.market_cap,source:"coinmarketcap"};
+      }
+      case "cryptocompare": {
+        // No API key needed for basic price endpoint
+        const r = await fetch(`https://min-api.cryptocompare.com/data/pricemultifull?fsyms=${ticker.toUpperCase()}&tsyms=USD`);
+        const j = await r.json();
+        const d = j.RAW?.[ticker.toUpperCase()]?.USD;
+        if(!d) throw new Error("No data");
+        return {price:d.PRICE,change:d.CHANGE24HOUR,changePct:d.CHANGEPCT24HOUR,volume:d.VOLUME24HOURTO,marketCap:d.MKTCAP,source:"cryptocompare"};
+      }
+      case "coinbase": {
+        // Free spot rates from Coinbase, no key needed
+        const base = ticker.toUpperCase();
+        const r = await fetch(`https://api.coinbase.com/v2/prices/${base}-USD/spot`);
+        const j = await r.json();
+        if(!j.data?.amount) throw new Error(j.errors?.[0]?.message||"No data");
+        return {price:+j.data.amount,source:"coinbase"};
+      }
+      // ─── FX ─────────────────────────────────────────────────────
+      case "frankfurter": {
+        if(ticker.length!==6) throw new Error("FX expects 6-char pair (e.g. EURUSD)");
+        const r=await fetch(`https://api.frankfurter.app/latest?from=${ticker.slice(0,3)}&to=${ticker.slice(3,6)}`);
+        const j=await r.json(); if(!j.rates) throw new Error("No rate");
+        return {price:j.rates[ticker.slice(3,6)],source:"frankfurter"};
+      }
+      case "exchangerate_host": {
+        if(ticker.length!==6) throw new Error("FX expects 6-char pair");
+        const r=await fetch(`https://api.exchangerate.host/latest?base=${ticker.slice(0,3)}&symbols=${ticker.slice(3,6)}`);
+        const j=await r.json(); if(!j.rates) throw new Error("No rate");
+        return {price:j.rates[ticker.slice(3,6)],source:"exchangerate_host"};
+      }
+      case "open_er_api": {
+        if(ticker.length!==6) throw new Error("FX expects 6-char pair");
+        const r=await fetch(`https://open.er-api.com/v6/latest/${ticker.slice(0,3)}`);
+        const j=await r.json(); const rate=j.rates?.[ticker.slice(3,6)];
+        if(!rate) throw new Error("No rate");
+        return {price:rate,source:"open_er_api"};
+      }
+      // ─── MACRO ──────────────────────────────────────────────────
+      case "fred": {
+        if(!cfg.fred) throw new Error("No FRED API key (free at fred.stlouisfed.org)");
+        // ticker is treated as FRED series ID e.g. "DGS10" (10yr Treasury), "UNRATE", "CPIAUCSL"
+        const r=await fetch(`https://api.stlouisfed.org/fred/series/observations?series_id=${ticker}&api_key=${cfg.fred}&file_type=json&sort_order=desc&limit=2`);
+        const j=await r.json(); const obs = j.observations;
+        if(!obs?.length) throw new Error("No FRED series — try DGS10 (10yr Treas), UNRATE (Unemployment), CPIAUCSL (CPI)");
+        const cur=+obs[0].value, prev = obs[1]?+obs[1].value:cur;
+        return {price:cur,change:cur-prev,changePct:prev!==0?(cur/prev-1)*100:0,asOf:obs[0].date,source:"fred"};
+      }
+      case "treasury": {
+        // US Treasury yields — free no key. ticker = "DGS10" maps to a specific tenor
+        const tenorMap = {DGS1MO:"1mo",DGS3MO:"3mo",DGS6MO:"6mo",DGS1:"1yr",DGS2:"2yr",DGS5:"5yr",DGS10:"10yr",DGS30:"30yr"};
+        const t = tenorMap[ticker.toUpperCase()];
+        if(!t) throw new Error("Treasury ticker must be DGS1MO/3MO/6MO/1/2/5/10/30");
+        const r = await fetch("https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/2025/all?type=daily_treasury_yield_curve&field_tdr_date_value=2025&page&_format=csv");
+        if(!r.ok) throw new Error("HTTP "+r.status);
+        const txt = await r.text();
+        const lines = txt.trim().split("\n");
+        const header = lines[0].split(",");
+        const colMap = {"1mo":"1 Mo","3mo":"3 Mo","6mo":"6 Mo","1yr":"1 Yr","2yr":"2 Yr","5yr":"5 Yr","10yr":"10 Yr","30yr":"30 Yr"};
+        const colName = colMap[t];
+        const colIdx = header.findIndex(h => h.trim() === colName);
+        if(colIdx < 0) throw new Error("Column not found");
+        const last = lines[1].split(",");
+        const cur = +last[colIdx];
+        if(isNaN(cur)) throw new Error("No data for "+t);
+        return {price:cur,asOf:last[0],source:"treasury"};
+      }
       default: throw new Error("Unknown provider "+p);
     }
   }
   if(provider !== "auto") return await tryFn(provider);
-  for(const p of ["finnhub","alphavantage","polygon","twelvedata","fmp","tiingo","yahoo"]){
+  // Auto-failover order: fast paid → free with key → free → reference data
+  const order = ["finnhub","twelvedata","fmp","tiingo","alphavantage","polygon","stockdata","finazon","yahoo","stooq","eodhd","marketstack","cryptocompare"];
+  for(const p of order){
     try { const d = await tryFn(p); if(d?.price>0) return d; } catch(_){}
   }
   throw new Error("All providers failed");
@@ -2440,7 +2691,7 @@ async function testAllProviders(){
   const ticker = $("mdTicker").value.trim().toUpperCase();
   if(!ticker) return toast("Enter a ticker","err");
   $("mdResult").innerHTML = "Testing all providers for "+ticker+"…";
-  const providers = ["finnhub","alphavantage","polygon","twelvedata","fmp","tiingo","yahoo"];
+  const providers = ["finnhub","alphavantage","polygon","twelvedata","fmp","tiingo","eodhd","marketstack","stockdata","finazon","yahoo","stooq","cryptocompare","coinbase"];
   const results = await Promise.all(providers.map(async p => {
     const t0 = performance.now();
     try { const d = await fetchQuote(ticker, p); return {p, ok:true, price:d.price, ms:performance.now()-t0}; }
@@ -2520,13 +2771,23 @@ function testZip(){
 // KEYS
 // ═══════════════════════════════════════════════════════════
 const API_KEY_DEFS = [
-  {id:"fhKey", n:"Finnhub", url:"finnhub.io/register"},
-  {id:"avKey", n:"Alpha Vantage", url:"alphavantage.co/support/#api-key"},
-  {id:"wa_polygon_key", n:"Polygon.io", url:"polygon.io/dashboard/api-keys"},
-  {id:"wa_twelvedata_key", n:"Twelve Data", url:"twelvedata.com/pricing"},
-  {id:"wa_fmp_key", n:"Financial Modeling Prep", url:"site.financialmodelingprep.com"},
-  {id:"wa_tiingo_key", n:"Tiingo", url:"tiingo.com/account/api/token"},
-  {id:"wa_claude_key", n:"Claude API (Anthropic)", url:"console.anthropic.com"}
+  // ── Equity quotes ──
+  {id:"fhKey", n:"Finnhub", url:"finnhub.io/register", note:"60 calls/min · stocks/FX/crypto"},
+  {id:"avKey", n:"Alpha Vantage", url:"alphavantage.co/support/#api-key", note:"25/day · 5/min · stocks"},
+  {id:"wa_polygon_key", n:"Polygon.io", url:"polygon.io/dashboard/api-keys", note:"5/min · US stocks"},
+  {id:"wa_twelvedata_key", n:"Twelve Data", url:"twelvedata.com/pricing", note:"800/day · stocks/FX/crypto"},
+  {id:"wa_fmp_key", n:"Financial Modeling Prep", url:"site.financialmodelingprep.com", note:"250/day · stocks + fundamentals"},
+  {id:"wa_tiingo_key", n:"Tiingo", url:"tiingo.com/account/api/token", note:"IEX feed + news"},
+  {id:"wa_eodhd_key", n:"EOD Historical Data", url:"eodhistoricaldata.com/register", note:"20/day · 60+ exchanges global"},
+  {id:"wa_marketstack_key", n:"Marketstack", url:"marketstack.com/signup/free", note:"100/month · global stocks"},
+  {id:"wa_stockdata_key", n:"Stockdata.org", url:"stockdata.org/register", note:"100/day · real-time stocks"},
+  {id:"wa_finazon_key", n:"Finazon", url:"finazon.io/register", note:"Free tier · institutional SIP feed"},
+  // ── Crypto ──
+  {id:"wa_cmc_key", n:"CoinMarketCap", url:"coinmarketcap.com/api/", note:"333/day · crypto"},
+  // ── Macro ──
+  {id:"wa_fred_key", n:"FRED (St Louis Fed)", url:"fred.stlouisfed.org/docs/api/api_key.html", note:"Free unlimited · US economic data"},
+  // ── AI / LLM ──
+  {id:"wa_claude_key", n:"Claude API (Anthropic)", url:"console.anthropic.com", note:"Powers narrative AI agent"}
 ];
 // Health status persisted per-key — updated by the 2-minute auto-check loop
 function getKeyHealth(){ try { return JSON.parse(localStorage.getItem("wa_key_health")||"{}"); } catch(_){return {};} }
@@ -2552,11 +2813,11 @@ function renderKeys(){
       }
     }
     h += `<tr>
-      <td><strong>${k.n}</strong><br><a href="https://${k.url}" target="_blank" style="font-size:10.5px;color:var(--blue)">↗ ${k.url}</a></td>
-      <td><input type="password" id="key-${k.id}" value="${escapeHtml(v)}" placeholder="API key" style="width:240px;font-family:var(--fm);font-size:11px"></td>
+      <td><strong>${k.n}</strong><br><a href="https://${k.url}" target="_blank" style="font-size:10.5px;color:var(--blue)">↗ ${k.url}</a>${k.note?'<br><span style="font-size:10px;color:var(--ink3);font-style:italic">'+escapeHtml(k.note)+'</span>':''}</td>
+      <td><input type="password" id="key-${k.id}" value="${escapeHtml(v)}" placeholder="API key" style="width:220px;font-family:var(--fm);font-size:11px"></td>
       <td>${v?'<span class="pill pill-on">Set ('+v.length+' chars)</span>':'<span class="pill pill-off">Empty</span>'}</td>
       <td>${healthPill}</td>
-      <td><button class="btn-ghost" data-action="saveKey" data-key="${k.id}">Save</button> ${v?'<button class="btn-ghost" data-action="testKeyHealthNow" data-key="'+k.id+'" style="font-size:10px;padding:3px 8px">Test now</button>':''}</td>
+      <td><button class="btn-ghost" data-action="saveKey" data-key="${k.id}">Save</button> ${v?'<button class="btn-ghost" data-action="testKeyHealthNow" data-key="'+k.id+'" style="font-size:10px;padding:3px 8px">Test</button>':''}</td>
     </tr>`;
   });
   $("keysTbl").innerHTML = h;
@@ -2624,6 +2885,44 @@ async function testKeyHealth(keyId){
       if(!r.ok) throw new Error("HTTP "+r.status);
       const j = await r.json();
       if(!Array.isArray(j) || !j[0]) throw new Error("No data");
+      ok = true;
+    } else if(keyId === "wa_eodhd_key"){
+      const r = await fetch(`https://eodhistoricaldata.com/api/real-time/AAPL.US?api_token=${v}&fmt=json`);
+      if(!r.ok) throw new Error("HTTP "+r.status);
+      const j = await r.json();
+      if(!j.close && !j.previousClose) throw new Error("No data");
+      ok = true;
+    } else if(keyId === "wa_marketstack_key"){
+      const r = await fetch(`https://api.marketstack.com/v1/intraday/latest?access_key=${v}&symbols=AAPL`);
+      const j = await r.json();
+      if(j.error) throw new Error(j.error.message || j.error.code);
+      if(!j.data?.[0]) throw new Error("No data");
+      ok = true;
+    } else if(keyId === "wa_stockdata_key"){
+      const r = await fetch(`https://api.stockdata.org/v1/data/quote?symbols=AAPL&api_token=${v}`);
+      const j = await r.json();
+      if(j.error) throw new Error(j.error.message || "Error");
+      if(!j.data?.[0]) throw new Error("No data");
+      ok = true;
+    } else if(keyId === "wa_finazon_key"){
+      const r = await fetch(`https://api.finazon.io/latest/time_series?dataset=sip_non_pro&ticker=AAPL&interval=1d&page_size=1`, {headers:{Authorization:`apikey ${v}`}});
+      const j = await r.json();
+      if(j.message && !j.data) throw new Error(j.message);
+      if(!j.data?.[0]) throw new Error("No data");
+      ok = true;
+    } else if(keyId === "wa_cmc_key"){
+      const r = await fetch("https://pro-api.coinmarketcap.com/v2/cryptocurrency/quotes/latest?symbol=BTC", {headers:{"X-CMC_PRO_API_KEY":v}});
+      if(!r.ok) throw new Error("HTTP "+r.status);
+      const j = await r.json();
+      if(j.status?.error_code) throw new Error(j.status.error_message);
+      if(!j.data?.BTC) throw new Error("No data");
+      ok = true;
+    } else if(keyId === "wa_fred_key"){
+      const r = await fetch(`https://api.stlouisfed.org/fred/series/observations?series_id=DGS10&api_key=${v}&file_type=json&sort_order=desc&limit=1`);
+      if(!r.ok){ const t = await r.text(); throw new Error("HTTP "+r.status+": "+t.slice(0,80)); }
+      const j = await r.json();
+      if(j.error_code) throw new Error(j.error_message);
+      if(!j.observations?.length) throw new Error("No data");
       ok = true;
     } else if(keyId === "wa_claude_key"){
       // Light-touch validity check — just a ping that requires valid key
