@@ -1030,7 +1030,7 @@ Citations:<br>
 // ═══════════════════════════════════════════════════════════
 // VERSION + UTILS
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260522-1425";
+const APP_VERSION = "20260522-2101";
 const $ = (id) => document.getElementById(id);
 const $$ = (sel, ctx) => Array.from((ctx||document).querySelectorAll(sel));
 
@@ -4803,10 +4803,29 @@ function buildPortfolioFromEngine(brief, signals){
     });
   }
 
-  // Renormalize weights to sum to 100
-  const totalW = positions.reduce((s,p) => s + p.weight, 0);
+  // Renormalize weights to sum to 100, then enforce maxPosition cap and redistribute overflow
+  let totalW = positions.reduce((s,p) => s + p.weight, 0);
   if(totalW > 0){
     positions.forEach(p => { p.weight = +(p.weight * 100 / totalW).toFixed(1); });
+  }
+  // Cap any position above maxPos, redistribute the excess proportionally to uncapped positions
+  if(positions.length > 1 && maxPos > 0){
+    for(let pass = 0; pass < 5; pass++){
+      const over = positions.filter(p => p.weight > maxPos);
+      if(over.length === 0) break;
+      let excess = 0;
+      over.forEach(p => { excess += (p.weight - maxPos); p.weight = maxPos; p._capped = true; });
+      const uncapped = positions.filter(p => !p._capped && p.weight < maxPos);
+      const denom = uncapped.reduce((s,p)=>s+p.weight, 0);
+      if(denom <= 0 || excess <= 0) break;
+      uncapped.forEach(p => { p.weight = +(p.weight + excess * (p.weight/denom)).toFixed(1); });
+    }
+    positions.forEach(p => { delete p._capped; });
+    // Final normalization to fix any rounding drift
+    totalW = positions.reduce((s,p) => s + p.weight, 0);
+    if(totalW > 0 && Math.abs(totalW - 100) > 0.1){
+      positions.forEach(p => { p.weight = +(p.weight * 100 / totalW).toFixed(1); });
+    }
   }
 
   // Portfolio aggregates from real fund metrics (weighted by position size)

@@ -2674,7 +2674,7 @@ input[type=date]{color-scheme:light}
 // ═══════════════════════════════════════════════════════════
 // VERSION — updated by build-standalone.pl on each build
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260522-1425";
+const APP_VERSION = "20260522-2101";
 
 // ═══════════════════════════════════════════════════════════
 // DATA
@@ -6966,23 +6966,26 @@ function runDeterministicEngine(brief){
 
   // ── Step 5: build real risks from negative consensus ──
   const risks = [];
-  // Domicile / regulatory note (always first)
-  if(domicilePolicy.type === "UCITS"){
-    risks.unshift(`Universe restricted to ${eligibleUniverse.length} UCITS-passportable funds (of ${totalUniverse}) — required for ${brief.country} resident under PRIIPs`);
-  }
+  // Track research-derived risks separately so the regulatory notice doesn't
+  // suppress the "broad institutional alignment" reassurance for non-US clients
+  let researchRiskCount = 0;
   if(hasResearch){
     const negClasses = Object.entries(signals.classes).filter(([,d]) => d.votes < -5).sort((a,b) => a[1].votes - b[1].votes).slice(0,3);
-    negClasses.forEach(([cls,d]) => risks.push(`${ENG_PRETTY_CLASS[cls]} under pressure — ${d.providerCount} providers underweight (${d.votes} net votes)`));
+    negClasses.forEach(([cls,d]) => { risks.push(`${ENG_PRETTY_CLASS[cls]} under pressure — ${d.providerCount} providers underweight (${d.votes} net votes)`); researchRiskCount++; });
     const negRegions = Object.entries(signals.regions).filter(([,d]) => d.votes < -5).slice(0,2);
-    negRegions.forEach(([r,d]) => risks.push(`${ENG_PRETTY_REGION[r]} regional risk flagged by ${d.providerCount} providers`));
-    if(brief.maxPosition < 20) risks.push("Position size constraint may limit conviction expression in highest-rated classes");
+    negRegions.forEach(([r,d]) => { risks.push(`${ENG_PRETTY_REGION[r]} regional risk flagged by ${d.providerCount} providers`); researchRiskCount++; });
+    if(brief.maxPosition < 20){ risks.push("Position size constraint may limit conviction expression in highest-rated classes"); researchRiskCount++; }
     // Concentration risk
     const eqW = alloc.equity || 0;
-    if(eqW > 75) risks.push("High equity concentration (>"+eqW.toFixed(0)+"%) — vulnerable to market drawdowns; consider tail hedges");
-    if(risks.length === 0) risks.push("No significant negative consensus signals detected — broad institutional alignment");
+    if(eqW > 75){ risks.push("High equity concentration (>"+eqW.toFixed(0)+"%) — vulnerable to market drawdowns; consider tail hedges"); researchRiskCount++; }
+    if(researchRiskCount === 0) risks.push("No significant negative consensus signals detected — broad institutional alignment");
   } else {
     risks.push("No research cache available — open admin → Research Library and click Refresh to enable research-tilted recommendations");
     risks.push("Recommendation reflects baseline risk-profile allocation only");
+  }
+  // Domicile / regulatory note (appended last so it doesn't suppress the alignment message above)
+  if(domicilePolicy.type === "UCITS"){
+    risks.push(`Universe restricted to ${eligibleUniverse.length} UCITS-passportable funds (of ${totalUniverse}) — required for ${brief.country} resident under PRIIPs`);
   }
 
   // ── Step 6: top themes for narrative ──
@@ -6997,8 +7000,9 @@ function runDeterministicEngine(brief){
 
   const topClass = Object.entries(alloc).sort((a,b) => b[1] - a[1])[0];
   const topClassName = topClass ? ENG_PRETTY_CLASS[topClass[0]] : "—";
+  const topClassPct = topClass ? topClass[1].toFixed(0) : "0";
   const summary = hasResearch
-    ? `Research-aware recommendation based on ${signals.totalItems} items across ${signals.providerCount} institutional sources. Allocation tilted to ${topClass[1].toFixed(0)}% ${topClassName} reflecting cross-provider consensus. ${topThemes.length > 0 ? "Dominant themes: " + topThemes.map(([t,d]) => ENG_PRETTY_THEME[t] || t).join(", ") + "." : ""} Matched to your ${brief.risk.replace(/_/g," ")} risk profile.`
+    ? `Research-aware recommendation based on ${signals.totalItems} items across ${signals.providerCount} institutional sources. Allocation tilted to ${topClassPct}% ${topClassName} reflecting cross-provider consensus. ${topThemes.length > 0 ? "Dominant themes: " + topThemes.map(([t,d]) => ENG_PRETTY_THEME[t] || t).join(", ") + "." : ""} Matched to your ${brief.risk.replace(/_/g," ")} risk profile.`
     : `Baseline recommendation for your ${brief.risk.replace(/_/g," ")} risk profile (no cached research available). Open admin → Research Library and click Refresh to enable research-tilted output.`;
 
   const rec = {
@@ -7209,7 +7213,7 @@ function importAdminProposal(){
     localStorage.setItem("wa_pending_proposal_seen", data.builtAt);
     dismissAdminProposal();
     // Switch user to Investment Proposal tab
-    const propTab = document.querySelector('[data-tab="proposal"], [onclick*="\'proposal\'"]');
+    const propTab = document.querySelector('[data-tab="proposal"]');
     if(propTab) propTab.click();
   } catch(e){ console.error("importAdminProposal:", e); alert("Could not import: " + e.message); }
 }
@@ -7230,10 +7234,14 @@ window.importAdminProposal = importAdminProposal;
 window.dismissAdminProposal = dismissAdminProposal;
 window.checkForAdminProposal = checkForAdminProposal;
 
-// Poll on load + every 30s
+// Listen for live admin writes via the storage event (fires instantly, cross-tab)
+// + a 60s safety poll for the same-tab case where storage doesn't fire
+window.addEventListener("storage", (e) => {
+  if(e.key === "wa_pending_proposal" && e.newValue) checkForAdminProposal();
+});
 window.addEventListener("load", () => {
   setTimeout(checkForAdminProposal, 1500);
-  setInterval(checkForAdminProposal, 30000);
+  setInterval(checkForAdminProposal, 60000);
 });
 
 function applyAIRecommendationToProposal(){
