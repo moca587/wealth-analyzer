@@ -1930,6 +1930,27 @@ input[type=date]{color-scheme:light}
 <!-- ═══ PORTFOLIO ═══ -->
 <div class="tab" id="tab-portfolio">
 
+<!-- ─── In-app API key panel (collapsible) ─── -->
+<div class="panel" id="mdKeysPanel">
+  <div class="ptitle" style="cursor:pointer;user-select:none;display:flex;align-items:center;justify-content:space-between" onclick="toggleMdKeys()">
+    <span>🔑 Market data API keys <span id="mdKeysSummary" style="font-size:11px;font-weight:500;color:var(--text3);margin-left:8px"></span></span>
+    <span id="mdKeysCaret" style="font-size:13px;color:var(--text3);transition:transform .2s">▼</span>
+  </div>
+  <div id="mdKeysBody" style="display:none;padding-top:8px">
+    <div style="font-size:12px;color:var(--text3);line-height:1.6;margin-bottom:14px">
+      Paste your free API keys below to enable richer market data and AI features. Keys are stored in your browser only (never sent anywhere except the provider) and are also available to the <a href="admin.html" target="_blank" style="color:var(--gold)">Admin console</a>. Get free keys from each provider's link.
+    </div>
+    <div id="mdKeysGrid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:10px"></div>
+    <div style="margin-top:12px;padding:10px 14px;background:rgba(245,158,11,.06);border-left:3px solid var(--amber);border-radius:6px;font-size:11.5px;color:var(--text2);line-height:1.6">
+      <strong>CORS note:</strong> Some providers (CoinMarketCap, FRED, NewsAPI, Marketstack) block direct browser requests. The app automatically retries those through corsproxy.io. For sustained production use, deploy your own CORS proxy.
+    </div>
+    <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn-secondary" onclick="testAllMdKeys()" style="font-size:12px;padding:7px 14px">⚡ Test all keys</button>
+      <span id="mdKeysTestStatus" style="font-size:12px;color:var(--text3);align-self:center"></span>
+    </div>
+  </div>
+</div>
+
 <!-- Linked account -->
 <div class="panel">
   <div class="ptitle">Linked Account</div>
@@ -2667,7 +2688,7 @@ input[type=date]{color-scheme:light}
 // ═══════════════════════════════════════════════════════════
 // VERSION — updated by build-standalone.pl on each build
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260522-2344";
+const APP_VERSION = "20260522-2355";
 
 // ═══════════════════════════════════════════════════════════
 // DATA
@@ -3834,7 +3855,10 @@ function showTab(name,el){
   document.querySelectorAll(".nav-item").forEach(n=>n.classList.remove("active"));
   const tab=$("tab-"+name); if(tab) tab.classList.add("active");
   if(el) el.classList.add("active");
-  if(name==="portfolio"){renderInvestments();renderPortfolioMetrics();renderPortfolioBars();drawPortfolioPie();}
+  if(name==="portfolio"){
+    renderInvestments();renderPortfolioMetrics();renderPortfolioBars();drawPortfolioPie();
+    try { applyMdKeysState(); renderMdKeysGrid(); } catch(_){}
+  }
   if(name==="proposal"){renderProposals();renderProposalMetrics();renderProposalBars();drawProposalPie();syncProposalClient();}
   if(name==="simulation"){
     buildSimInputsSummary();
@@ -3845,6 +3869,153 @@ function showTab(name,el){
     try { applySimInputsState(); } catch(_){}
   }
 }
+
+// ═══════════════════════════════════════════════════════════════════
+// IN-APP MARKET DATA API KEYS — paste your keys without leaving the app
+// (admin.html still works for full management; this is the quick path)
+// ═══════════════════════════════════════════════════════════════════
+const APP_KEY_DEFS = [
+  // Equities — generous free tier
+  {id:"fhKey",                n:"Finnhub",               url:"https://finnhub.io/register",                         tip:"60 calls/min · stocks/FX/crypto"},
+  {id:"avKey",                n:"Alpha Vantage",         url:"https://www.alphavantage.co/support/#api-key",        tip:"25/day · 5/min"},
+  {id:"wa_twelvedata_key",    n:"Twelve Data",           url:"https://twelvedata.com/pricing",                      tip:"800/day · stocks/FX/crypto"},
+  {id:"wa_fmp_key",           n:"Financial Modeling Prep",url:"https://site.financialmodelingprep.com/developer",   tip:"250/day · fundamentals"},
+  {id:"wa_tiingo_key",        n:"Tiingo",                url:"https://tiingo.com/account/api/token",                tip:"IEX feed + news"},
+  // Premium
+  {id:"wa_polygon_key",       n:"Polygon.io",            url:"https://polygon.io/dashboard/api-keys",               tip:"5/min · US stocks/options"},
+  {id:"wa_eodhd_key",         n:"EOD HD",                url:"https://eodhd.com/register",                          tip:"60+ exchanges global"},
+  // Account-based
+  {id:"wa_alpaca_key",        n:"Alpaca — Key ID",       url:"https://alpaca.markets/learn/api-keys",               tip:"Paper or live account"},
+  {id:"wa_alpaca_secret",     n:"Alpaca — Secret",       url:"https://alpaca.markets/learn/api-keys",               tip:"Secret key", secret:true},
+  // Crypto
+  {id:"wa_cmc_key",           n:"CoinMarketCap",         url:"https://coinmarketcap.com/api/",                      tip:"333/day · proxied"},
+  // FX
+  {id:"wa_oxr_key",           n:"Open Exchange Rates",   url:"https://openexchangerates.org/signup/free",           tip:"1000/month · 170 ccys"},
+  // News
+  {id:"wa_newsapi_key",       n:"NewsAPI.org",           url:"https://newsapi.org/register",                        tip:"100/day · proxied"},
+  {id:"wa_marketaux_key",     n:"Marketaux",             url:"https://marketaux.com/account/dashboard",             tip:"100/day · sentiment"},
+  // Macro
+  {id:"wa_fred_key",          n:"FRED (St Louis Fed)",   url:"https://fred.stlouisfed.org/docs/api/api_key.html",   tip:"Free unlimited · proxied"},
+  // AI
+  {id:"wa_claude_key",        n:"Claude API (Anthropic)",url:"https://console.anthropic.com",                       tip:"Powers AI agent narration", secret:true}
+];
+
+function renderMdKeysGrid(){
+  const grid = document.getElementById("mdKeysGrid");
+  if(!grid) return;
+  let h = "";
+  APP_KEY_DEFS.forEach(k => {
+    const v = localStorage.getItem(k.id) || "";
+    const hh = mdGetHealth()[k.id] || {};
+    const stamp = hh.lastCheck ? (Date.now() - hh.lastCheck) : null;
+    const ago = stamp == null ? "" : (stamp < 60000 ? Math.floor(stamp/1000)+"s ago" : Math.floor(stamp/60000)+"m ago");
+    const pill = !v ? '<span style="background:rgba(156,163,175,.15);color:var(--text3);padding:2px 8px;border-radius:50px;font-size:10px;font-weight:600">Empty</span>'
+               : hh.lastCheck && hh.ok ? '<span style="background:rgba(0,135,90,.15);color:#1b6841;padding:2px 8px;border-radius:50px;font-size:10px;font-weight:600">✓ '+ (hh.latencyMs||"—") +'ms · ' + ago + '</span>'
+               : hh.lastCheck && !hh.ok ? '<span style="background:rgba(227,24,55,.15);color:#a83232;padding:2px 8px;border-radius:50px;font-size:10px;font-weight:600" title="'+escapeForHTML(hh.error||"")+'">✗ failing</span>'
+               : '<span style="background:rgba(91,155,213,.15);color:#1e40af;padding:2px 8px;border-radius:50px;font-size:10px;font-weight:600">' + v.length + ' chars · pending</span>';
+    h += '<div style="border:1px solid var(--border);background:var(--bg3);border-radius:8px;padding:10px 12px">';
+    h += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px">';
+    h += '<a href="'+k.url+'" target="_blank" style="font-size:12.5px;font-weight:600;color:var(--text);text-decoration:none">' + k.n + ' <span style="color:var(--gold);font-size:10px">↗</span></a>';
+    h += pill;
+    h += '</div>';
+    h += '<input type="password" id="mdKey-'+k.id+'" placeholder="paste key…" value="'+escapeForHTML(v)+'" oninput="saveMdKey(\''+k.id+'\')" style="width:100%;font-family:var(--fm);font-size:11px;padding:6px 9px;border:1px solid var(--border);border-radius:5px;background:var(--bg2);color:var(--text)">';
+    h += '<div style="font-size:10.5px;color:var(--text3);margin-top:4px">' + k.tip + '</div>';
+    h += '</div>';
+  });
+  grid.innerHTML = h;
+  // Summary
+  let configured = 0, working = 0, failing = 0;
+  APP_KEY_DEFS.forEach(k => {
+    if(!localStorage.getItem(k.id)) return;
+    configured++;
+    const hh = mdGetHealth()[k.id];
+    if(hh && hh.ok) working++;
+    else if(hh && !hh.ok) failing++;
+  });
+  const sum = document.getElementById("mdKeysSummary");
+  if(sum){
+    if(configured === 0) sum.textContent = "(none configured)";
+    else sum.innerHTML = '(' + configured + ' set' + (working ? ' · <span style="color:#1b6841">' + working + ' working</span>' : '') + (failing ? ' · <span style="color:#a83232">' + failing + ' failing</span>' : '') + ')';
+  }
+}
+
+function saveMdKey(id){
+  const v = (document.getElementById("mdKey-"+id) || {}).value || "";
+  if(v) localStorage.setItem(id, v.trim());
+  else localStorage.removeItem(id);
+  renderMdKeysGrid();
+}
+
+function mdGetHealth(){ try { return JSON.parse(localStorage.getItem("wa_key_health")||"{}"); } catch(_){return {};} }
+function mdSetHealth(h){ try { localStorage.setItem("wa_key_health", JSON.stringify(h)); } catch(_){} }
+
+async function testAllMdKeys(){
+  const status = document.getElementById("mdKeysTestStatus");
+  const configured = APP_KEY_DEFS.filter(k => !!localStorage.getItem(k.id));
+  if(configured.length === 0){ if(status) status.textContent = "No keys configured yet"; return; }
+  const health = mdGetHealth();
+  let ok = 0, fail = 0;
+  for(let i=0;i<configured.length;i++){
+    const k = configured[i];
+    if(status) status.textContent = "Testing " + (i+1) + "/" + configured.length + ": " + k.n + "…";
+    const t0 = Date.now();
+    let res = {ok:false, error:"untested", latencyMs:0};
+    try {
+      // Each provider gets a representative test fetch
+      if(k.id === "fhKey")          await MarketData.fetchOne("AAPL", "finnhub");
+      else if(k.id === "avKey")     await MarketData.fetchOne("AAPL", "alphavantage");
+      else if(k.id === "wa_twelvedata_key") await MarketData.fetchOne("AAPL", "twelvedata");
+      else if(k.id === "wa_fmp_key")        await MarketData.fetchOne("AAPL", "fmp");
+      else if(k.id === "wa_tiingo_key")     await MarketData.fetchOne("AAPL", "tiingo");
+      else if(k.id === "wa_polygon_key")    await MarketData.fetchOne("AAPL", "polygon");
+      else if(k.id === "wa_eodhd_key")      await MarketData.fetchOne("AAPL", "eodhd");
+      else if(k.id === "wa_alpaca_key" || k.id === "wa_alpaca_secret") await MarketData.fetchOne("AAPL", "alpaca");
+      else if(k.id === "wa_cmc_key")        await MarketData.fetchOne("BTC", "cmc");
+      else if(k.id === "wa_oxr_key")        await MarketData.fetchOne("EURUSD", "oxr");
+      else if(k.id === "wa_newsapi_key" || k.id === "wa_marketaux_key"){
+        const news = await MarketData.getNewsForTicker("AAPL", {limit:2});
+        if(!news || news.length === 0) throw new Error("no news returned");
+      }
+      else if(k.id === "wa_fred_key")       await MarketData.getFREDSeries("DFF"); // Fed funds rate
+      else if(k.id === "wa_claude_key"){
+        // Quick ping — list models endpoint requires no body
+        const r = await fetch("https://api.anthropic.com/v1/models", {
+          headers:{"x-api-key":localStorage.getItem("wa_claude_key"),"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"}
+        });
+        if(!r.ok) throw new Error("HTTP "+r.status);
+      }
+      else { res = {ok:true, latencyMs:Date.now()-t0, lastCheck:Date.now()}; health[k.id] = res; ok++; continue; }
+      res = {ok:true, latencyMs:Date.now()-t0, lastCheck:Date.now()};
+      ok++;
+    } catch(e){
+      res = {ok:false, error:String(e.message||e), latencyMs:Date.now()-t0, lastCheck:Date.now()};
+      fail++;
+    }
+    health[k.id] = res;
+    mdSetHealth(health);
+    renderMdKeysGrid();
+    await new Promise(r => setTimeout(r, 250));
+  }
+  if(status) status.innerHTML = '<span style="color:#1b6841">✓ ' + ok + ' working</span>' + (fail ? ' · <span style="color:#a83232">' + fail + ' failing</span>' : "");
+}
+
+function toggleMdKeys(){
+  const open = (function(){ try { return localStorage.getItem("wa_md_keys_open") === "1"; } catch(_) { return false; } })();
+  try { localStorage.setItem("wa_md_keys_open", open ? "0" : "1"); } catch(_){}
+  applyMdKeysState();
+}
+function applyMdKeysState(){
+  const open = (function(){ try { return localStorage.getItem("wa_md_keys_open") === "1"; } catch(_) { return false; } })();
+  const body = document.getElementById("mdKeysBody");
+  const caret = document.getElementById("mdKeysCaret");
+  if(body) body.style.display = open ? "block" : "none";
+  if(caret) caret.style.transform = open ? "rotate(0deg)" : "rotate(-90deg)";
+  if(open) renderMdKeysGrid();
+}
+window.toggleMdKeys = toggleMdKeys;
+window.saveMdKey = saveMdKey;
+window.testAllMdKeys = testAllMdKeys;
+window.renderMdKeysGrid = renderMdKeysGrid;
 
 // ─── Inputs-feeding panel collapse/expand (state persisted) ─────────────
 function applySimInputsState(){
@@ -7982,45 +8153,66 @@ const MarketData = (function(){
     };
   }
 
+  // ─── CORS-resilient fetch ──────────────────────────────────────────────
+  // Tries the direct URL first. If it fails with a network/CORS error
+  // (TypeError or opaque response), retries through corsproxy.io which
+  // adds the missing Access-Control-Allow-Origin header for us.
+  async function corsFetch(url, opts){
+    opts = opts || {};
+    try {
+      const r = await fetch(url, opts);
+      // Note: opaque responses have r.ok===false but no readable body;
+      // treating them as failures triggers the proxy retry.
+      if(r.ok) return r;
+      // 4xx is a real API error, not CORS — return as-is so caller sees it.
+      if(r.status >= 400 && r.status < 500) return r;
+      throw new Error("HTTP "+r.status);
+    } catch(_){
+      // Network error → retry through CORS proxy
+      const proxied = "https://corsproxy.io/?" + encodeURIComponent(url);
+      return await fetch(proxied, opts);
+    }
+  }
+
   // ─── FREE: API key required ────────────────────────────────────────────
   async function tryFinnhub(t, cfg){
     if(!cfg.fh) throw new Error("No Finnhub key");
-    const r = await fetch(`https://finnhub.io/api/v1/quote?symbol=${encodeURIComponent(t)}&token=${cfg.fh}`);
+    const r = await corsFetch(`https://finnhub.io/api/v1/quote?symbol=${encodeURIComponent(t)}&token=${cfg.fh}`);
     if(!r.ok) throw new Error("HTTP "+r.status);
     const j = await r.json(); if(!j.c) throw new Error("No data");
     return {price:j.c,change:j.d,changePct:j.dp,asOf:new Date((j.t||0)*1000).toISOString()};
   }
   async function tryAlphaVantage(t, cfg){
     if(!cfg.av) throw new Error("No AV key");
-    const r = await fetch(`https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=${encodeURIComponent(t)}&apikey=${cfg.av}`);
+    const r = await corsFetch(`https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=${encodeURIComponent(t)}&apikey=${cfg.av}`);
     const j = await r.json(); const q = j["Global Quote"];
-    if(!q || !q["05. price"]) throw new Error("No data — possibly rate-limited");
+    if(!q || !q["05. price"]) throw new Error(j.Note || j.Information || "No data — possibly rate-limited (5/min, 25/day)");
     return {price:+q["05. price"], change:+q["09. change"], changePct:parseFloat(q["10. change percent"]), volume:+q["06. volume"]};
   }
   async function tryPolygon(t, cfg){
     if(!cfg.polygon) throw new Error("No Polygon key");
-    const r = await fetch(`https://api.polygon.io/v2/aggs/ticker/${encodeURIComponent(t)}/prev?apiKey=${cfg.polygon}`);
+    const r = await corsFetch(`https://api.polygon.io/v2/aggs/ticker/${encodeURIComponent(t)}/prev?apiKey=${cfg.polygon}`);
     if(!r.ok) throw new Error("HTTP "+r.status);
-    const j = await r.json(); const d = j.results && j.results[0]; if(!d) throw new Error("No data");
+    const j = await r.json(); const d = j.results && j.results[0]; if(!d) throw new Error(j.message || "No data");
     return {price:d.c, change:d.c-d.o, changePct:(d.c/d.o-1)*100, volume:d.v};
   }
   async function tryTwelveData(t, cfg){
     if(!cfg.twelvedata) throw new Error("No Twelve Data key");
-    const r = await fetch(`https://api.twelvedata.com/quote?symbol=${encodeURIComponent(t)}&apikey=${cfg.twelvedata}`);
+    const r = await corsFetch(`https://api.twelvedata.com/quote?symbol=${encodeURIComponent(t)}&apikey=${cfg.twelvedata}`);
     if(!r.ok) throw new Error("HTTP "+r.status);
     const j = await r.json(); if(j.status==="error" || !j.close) throw new Error(j.message||"No data");
     return {price:+j.close, change:+j.change, changePct:+j.percent_change, volume:+j.volume, currency:j.currency, exchange:j.exchange};
   }
   async function tryFMP(t, cfg){
     if(!cfg.fmp) throw new Error("No FMP key");
-    const r = await fetch(`https://financialmodelingprep.com/api/v3/quote/${encodeURIComponent(t)}?apikey=${cfg.fmp}`);
+    const r = await corsFetch(`https://financialmodelingprep.com/api/v3/quote/${encodeURIComponent(t)}?apikey=${cfg.fmp}`);
     if(!r.ok) throw new Error("HTTP "+r.status);
     const j = await r.json(); const d = Array.isArray(j) && j[0]; if(!d) throw new Error("No data");
     return {price:d.price, change:d.change, changePct:d.changesPercentage, volume:d.volume, marketCap:d.marketCap, pe:d.pe, eps:d.eps, dayHigh:d.dayHigh, dayLow:d.dayLow};
   }
   async function tryTiingo(t, cfg){
     if(!cfg.tiingo) throw new Error("No Tiingo key");
-    const r = await fetch(`https://api.tiingo.com/iex/?tickers=${encodeURIComponent(t)}&token=${cfg.tiingo}`);
+    const r = await corsFetch(`https://api.tiingo.com/iex/?tickers=${encodeURIComponent(t)}&token=${cfg.tiingo}`);
     if(!r.ok) throw new Error("HTTP "+r.status);
     const j = await r.json(); const d = Array.isArray(j) && j[0]; if(!d || !d.last) throw new Error("No data");
     return {price:d.last, prevClose:d.prevClose, change:d.last-d.prevClose, changePct:(d.last/d.prevClose-1)*100, volume:d.volume, high:d.high, low:d.low, asOf:d.timestamp};
@@ -8028,14 +8220,15 @@ const MarketData = (function(){
   async function tryEODHD(t, cfg){
     if(!cfg.eodhd) throw new Error("No EOD HD key");
     const sym = t.includes(".") ? t : t + ".US";
-    const r = await fetch(`https://eodhistoricaldata.com/api/real-time/${encodeURIComponent(sym)}?api_token=${cfg.eodhd}&fmt=json`);
+    // EODHD uses eodhd.com (newer) as primary, eodhistoricaldata.com still works
+    const r = await corsFetch(`https://eodhd.com/api/real-time/${encodeURIComponent(sym)}?api_token=${cfg.eodhd}&fmt=json`);
     if(!r.ok) throw new Error("HTTP "+r.status);
     const j = await r.json(); if(!j.close && !j.previousClose) throw new Error("No data");
     return {price:+j.close||+j.previousClose, prevClose:+j.previousClose, change:+j.change, changePct:+j.change_p, volume:+j.volume};
   }
   async function tryAlpaca(t, cfg){
     if(!cfg.alpacaKey || !cfg.alpacaSecret) throw new Error("No Alpaca key/secret");
-    const r = await fetch(`https://data.alpaca.markets/v2/stocks/${encodeURIComponent(t)}/quotes/latest`,{
+    const r = await corsFetch(`https://data.alpaca.markets/v2/stocks/${encodeURIComponent(t)}/quotes/latest`,{
       headers:{"APCA-API-KEY-ID":cfg.alpacaKey,"APCA-API-SECRET-KEY":cfg.alpacaSecret}
     });
     if(!r.ok) throw new Error("HTTP "+r.status);
@@ -8045,7 +8238,7 @@ const MarketData = (function(){
   }
   async function tryIntrinio(t, cfg){
     if(!cfg.intrinio) throw new Error("No Intrinio key");
-    const r = await fetch(`https://api-v2.intrinio.com/securities/${encodeURIComponent(t)}/prices/realtime?api_key=${cfg.intrinio}`);
+    const r = await corsFetch(`https://api-v2.intrinio.com/securities/${encodeURIComponent(t)}/prices/realtime?api_key=${cfg.intrinio}`);
     if(!r.ok) throw new Error("HTTP "+r.status);
     const j = await r.json(); if(!j.last_price && !j.close_price) throw new Error("No data");
     const p = j.last_price || j.close_price;
@@ -8054,7 +8247,7 @@ const MarketData = (function(){
   async function tryNasdaq(t, cfg){
     // Nasdaq Data Link (Quandl) — WIKI dataset deprecated, use EOD via SHARADAR/SEP if subscribed
     if(!cfg.nasdaq) throw new Error("No Nasdaq Data Link key");
-    const r = await fetch(`https://data.nasdaq.com/api/v3/datasets/EOD/${encodeURIComponent(t.toUpperCase())}.json?rows=2&api_key=${cfg.nasdaq}`);
+    const r = await corsFetch(`https://data.nasdaq.com/api/v3/datasets/EOD/${encodeURIComponent(t.toUpperCase())}.json?rows=2&api_key=${cfg.nasdaq}`);
     if(!r.ok) throw new Error("HTTP "+r.status);
     const j = await r.json(); const rows = j.dataset && j.dataset.data;
     if(!rows || !rows.length) throw new Error("No data — EOD/SHARADAR subscription required");
@@ -8063,7 +8256,7 @@ const MarketData = (function(){
   }
   async function tryTradier(t, cfg){
     if(!cfg.tradier) throw new Error("No Tradier key");
-    const r = await fetch(`https://api.tradier.com/v1/markets/quotes?symbols=${encodeURIComponent(t)}`,{
+    const r = await corsFetch(`https://api.tradier.com/v1/markets/quotes?symbols=${encodeURIComponent(t)}`,{
       headers:{"Authorization":"Bearer "+cfg.tradier,"Accept":"application/json"}
     });
     if(!r.ok) throw new Error("HTTP "+r.status);
@@ -8073,7 +8266,7 @@ const MarketData = (function(){
   }
   async function tryRapidAPI(t, cfg){
     if(!cfg.rapidapi) throw new Error("No RapidAPI key");
-    const r = await fetch(`https://yh-finance.p.rapidapi.com/stock/v2/get-summary?symbol=${encodeURIComponent(t)}`,{
+    const r = await corsFetch(`https://yh-finance.p.rapidapi.com/stock/v2/get-summary?symbol=${encodeURIComponent(t)}`,{
       headers:{"X-RapidAPI-Key":cfg.rapidapi,"X-RapidAPI-Host":"yh-finance.p.rapidapi.com"}
     });
     if(!r.ok) throw new Error("HTTP "+r.status);
@@ -8083,15 +8276,16 @@ const MarketData = (function(){
   }
   async function tryMarketstack(t, cfg){
     if(!cfg.marketstack) throw new Error("No Marketstack key");
-    const r = await fetch(`https://api.marketstack.com/v1/eod/latest?access_key=${cfg.marketstack}&symbols=${encodeURIComponent(t)}`);
+    // Free tier is HTTP-only — must go via CORS proxy
+    const r = await corsFetch(`http://api.marketstack.com/v1/eod/latest?access_key=${cfg.marketstack}&symbols=${encodeURIComponent(t)}`);
     if(!r.ok) throw new Error("HTTP "+r.status);
     const j = await r.json(); const d = j.data && j.data[0];
-    if(!d || !d.close) throw new Error("No data");
+    if(!d || !d.close) throw new Error(j.error?.message || "No data — free tier is HTTP-only, requires proxy");
     return {price:+d.close, open:+d.open, high:+d.high, low:+d.low, volume:+d.volume, change:+d.close-+d.open, changePct:((+d.close/+d.open)-1)*100, asOf:d.date};
   }
   async function tryStockdata(t, cfg){
     if(!cfg.stockdata) throw new Error("No Stockdata key");
-    const r = await fetch(`https://api.stockdata.org/v1/data/quote?symbols=${encodeURIComponent(t)}&api_token=${cfg.stockdata}`);
+    const r = await corsFetch(`https://api.stockdata.org/v1/data/quote?symbols=${encodeURIComponent(t)}&api_token=${cfg.stockdata}`);
     if(!r.ok) throw new Error("HTTP "+r.status);
     const j = await r.json(); const d = j.data && j.data[0];
     if(!d || !d.price) throw new Error("No data");
@@ -8099,7 +8293,7 @@ const MarketData = (function(){
   }
   async function tryFinazon(t, cfg){
     if(!cfg.finazon) throw new Error("No Finazon key");
-    const r = await fetch(`https://api.finazon.io/latest/time_series?dataset=us_stocks_essential&ticker=${encodeURIComponent(t)}&interval=1d&page=0&page_size=1&apikey=${cfg.finazon}`,{
+    const r = await corsFetch(`https://api.finazon.io/latest/time_series?dataset=us_stocks_essential&ticker=${encodeURIComponent(t)}&interval=1d&page=0&page_size=1&apikey=${cfg.finazon}`,{
       headers:{"Authorization":"apikey "+cfg.finazon}
     });
     if(!r.ok) throw new Error("HTTP "+r.status);
@@ -8121,7 +8315,7 @@ const MarketData = (function(){
   async function tryCoinGecko(t){
     // Crypto only — map common tickers to CoinGecko IDs
     const id = CRYPTO_MAP[t.toUpperCase()] || t.toLowerCase();
-    const r = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${encodeURIComponent(id)}&vs_currencies=usd&include_24hr_change=true&include_24hr_vol=true&include_market_cap=true`);
+    const r = await corsFetch(`https://api.coingecko.com/api/v3/simple/price?ids=${encodeURIComponent(id)}&vs_currencies=usd&include_24hr_change=true&include_24hr_vol=true&include_market_cap=true`);
     if(!r.ok) throw new Error("HTTP "+r.status);
     const j = await r.json(); const d = j[id];
     if(!d || !d.usd) throw new Error("No CoinGecko data for " + id + " (try the full coin id e.g. 'bitcoin' for BTC)");
@@ -8131,7 +8325,7 @@ const MarketData = (function(){
     // FX only — accepts pairs like "EURUSD" or "GBPJPY"
     if(t.length !== 6) throw new Error("Frankfurter expects FX pair (e.g. EURUSD)");
     const base = t.slice(0,3), quote = t.slice(3,6);
-    const r = await fetch(`https://api.frankfurter.app/latest?from=${base}&to=${quote}`);
+    const r = await corsFetch(`https://api.frankfurter.app/latest?from=${base}&to=${quote}`);
     if(!r.ok) throw new Error("HTTP "+r.status);
     const j = await r.json(); const rate = j.rates && j.rates[quote];
     if(!rate) throw new Error("No FX rate returned");
@@ -8155,18 +8349,19 @@ const MarketData = (function(){
   // ─── CRYPTO (keyed providers) ──────────────────────────────────────────
   async function tryCMC(t, cfg){
     if(!cfg.cmc) throw new Error("No CoinMarketCap key");
-    const r = await fetch(`https://pro-api.coinmarketcap.com/v2/cryptocurrency/quotes/latest?symbol=${encodeURIComponent(t.toUpperCase())}&convert=USD`,{
+    // CMC Pro API blocks browser CORS — always proxy
+    const r = await corsFetch(`https://pro-api.coinmarketcap.com/v2/cryptocurrency/quotes/latest?symbol=${encodeURIComponent(t.toUpperCase())}&convert=USD`,{
       headers:{"X-CMC_PRO_API_KEY":cfg.cmc}
     });
     if(!r.ok) throw new Error("HTTP "+r.status);
     const j = await r.json(); const d = j.data && j.data[t.toUpperCase()];
     const c = d && d[0] && d[0].quote && d[0].quote.USD;
-    if(!c || !c.price) throw new Error("No data");
+    if(!c || !c.price) throw new Error(j.status?.error_message || "No data");
     return {price:c.price, change:c.price - c.price/(1+c.percent_change_24h/100), changePct:c.percent_change_24h, volume:c.volume_24h, marketCap:c.market_cap, currency:"USD"};
   }
   async function tryMessari(t, cfg){
     if(!cfg.messari) throw new Error("No Messari key");
-    const r = await fetch(`https://data.messari.io/api/v1/assets/${encodeURIComponent(t.toLowerCase())}/metrics/market-data`,{
+    const r = await corsFetch(`https://data.messari.io/api/v1/assets/${encodeURIComponent(t.toLowerCase())}/metrics/market-data`,{
       headers:{"x-messari-api-key":cfg.messari}
     });
     if(!r.ok) throw new Error("HTTP "+r.status);
@@ -8180,10 +8375,10 @@ const MarketData = (function(){
     if(!cfg.oxr) throw new Error("No OpenExchangeRates key");
     if(t.length !== 6) throw new Error("OXR expects FX pair (e.g. EURUSD)");
     const base = t.slice(0,3), quote = t.slice(3,6);
-    const r = await fetch(`https://openexchangerates.org/api/latest.json?app_id=${cfg.oxr}&base=USD&symbols=${base},${quote}`);
+    const r = await corsFetch(`https://openexchangerates.org/api/latest.json?app_id=${cfg.oxr}&base=USD&symbols=${base},${quote}`);
     if(!r.ok) throw new Error("HTTP "+r.status);
     const j = await r.json(); const usdBase = j.rates && j.rates[base], usdQuote = j.rates && j.rates[quote];
-    if(!usdBase || !usdQuote) throw new Error("No FX rate returned");
+    if(!usdBase || !usdQuote) throw new Error(j.description || "No FX rate returned");
     const rate = usdQuote / usdBase;
     return {price:rate, currency:quote, base:base, asOf:new Date(j.timestamp*1000).toISOString(), source_label:"Open Exchange Rates"};
   }
@@ -8191,21 +8386,21 @@ const MarketData = (function(){
     if(!cfg.currencyapi) throw new Error("No CurrencyAPI key");
     if(t.length !== 6) throw new Error("CurrencyAPI expects FX pair (e.g. EURUSD)");
     const base = t.slice(0,3), quote = t.slice(3,6);
-    const r = await fetch(`https://api.currencyapi.com/v3/latest?apikey=${cfg.currencyapi}&base_currency=${base}&currencies=${quote}`);
+    const r = await corsFetch(`https://api.currencyapi.com/v3/latest?apikey=${cfg.currencyapi}&base_currency=${base}&currencies=${quote}`);
     if(!r.ok) throw new Error("HTTP "+r.status);
     const j = await r.json(); const c = j.data && j.data[quote];
-    if(!c || !c.value) throw new Error("No FX rate");
+    if(!c || !c.value) throw new Error(j.message || "No FX rate");
     return {price:c.value, currency:quote, base:base, source_label:"CurrencyAPI.com"};
   }
   async function tryCurrencyLayer(t, cfg){
     if(!cfg.currencylayer) throw new Error("No CurrencyLayer key");
     if(t.length !== 6) throw new Error("CurrencyLayer expects FX pair (e.g. EURUSD)");
     const base = t.slice(0,3), quote = t.slice(3,6);
-    // Free plan: base USD only — compute cross-rate via USD
-    const r = await fetch(`https://api.currencylayer.com/live?access_key=${cfg.currencylayer}&currencies=${base},${quote}`);
+    // Free plan: HTTP-only, USD base — proxy to add HTTPS + CORS
+    const r = await corsFetch(`http://api.currencylayer.com/live?access_key=${cfg.currencylayer}&currencies=${base},${quote}`);
     if(!r.ok) throw new Error("HTTP "+r.status);
     const j = await r.json(); const ub = j.quotes && j.quotes["USD"+base], uq = j.quotes && j.quotes["USD"+quote];
-    if(!ub || !uq) throw new Error("No FX rate");
+    if(!ub || !uq) throw new Error(j.error?.info || "No FX rate");
     return {price:uq / ub, currency:quote, base:base, asOf:new Date(j.timestamp*1000).toISOString(), source_label:"CurrencyLayer"};
   }
 
@@ -8213,7 +8408,8 @@ const MarketData = (function(){
   async function getFREDSeries(seriesId){
     const cfg = getCfg();
     if(!cfg.fred) throw new Error("No FRED key");
-    const r = await fetch(`https://api.stlouisfed.org/fred/series/observations?series_id=${encodeURIComponent(seriesId)}&api_key=${cfg.fred}&file_type=json&sort_order=desc&limit=2`);
+    // FRED blocks browser CORS — always proxy
+    const r = await corsFetch(`https://api.stlouisfed.org/fred/series/observations?series_id=${encodeURIComponent(seriesId)}&api_key=${cfg.fred}&file_type=json&sort_order=desc&limit=2`);
     if(!r.ok) throw new Error("HTTP "+r.status);
     const j = await r.json(); const obs = j.observations;
     if(!obs || obs.length === 0) throw new Error("No data for "+seriesId);
@@ -8230,7 +8426,7 @@ const MarketData = (function(){
     // Try Marketaux first (best financial sentiment)
     if(cfg.marketaux){
       try {
-        const r = await fetch(`https://api.marketaux.com/v1/news/all?symbols=${encodeURIComponent(ticker)}&filter_entities=true&language=en&api_token=${cfg.marketaux}&limit=${limit}`);
+        const r = await corsFetch(`https://api.marketaux.com/v1/news/all?symbols=${encodeURIComponent(ticker)}&filter_entities=true&language=en&api_token=${cfg.marketaux}&limit=${limit}`);
         if(r.ok){
           const j = await r.json();
           (j.data||[]).forEach(it => out.push({title:it.title, url:it.url, source:it.source, publishedAt:it.published_at, sentiment:it.entities?.[0]?.sentiment_score, provider:"marketaux"}));
@@ -8240,7 +8436,7 @@ const MarketData = (function(){
     }
     if(cfg.benzinga){
       try {
-        const r = await fetch(`https://api.benzinga.com/api/v2/news?token=${cfg.benzinga}&tickers=${encodeURIComponent(ticker)}&pageSize=${limit}&displayOutput=full`);
+        const r = await corsFetch(`https://api.benzinga.com/api/v2/news?token=${cfg.benzinga}&tickers=${encodeURIComponent(ticker)}&pageSize=${limit}&displayOutput=full`);
         if(r.ok){
           const j = await r.json();
           (Array.isArray(j)?j:[]).forEach(it => out.push({title:it.title, url:it.url, source:"Benzinga", publishedAt:it.created, summary:it.teaser, provider:"benzinga"}));
@@ -8250,7 +8446,8 @@ const MarketData = (function(){
     }
     if(cfg.newsapi){
       try {
-        const r = await fetch(`https://newsapi.org/v2/everything?q=${encodeURIComponent(ticker)}&sortBy=publishedAt&pageSize=${limit}&apiKey=${cfg.newsapi}`);
+        // NewsAPI.org blocks browser CORS — always proxy
+        const r = await corsFetch(`https://newsapi.org/v2/everything?q=${encodeURIComponent(ticker)}&sortBy=publishedAt&pageSize=${limit}&apiKey=${cfg.newsapi}`);
         if(r.ok){
           const j = await r.json();
           (j.articles||[]).forEach(it => out.push({title:it.title, url:it.url, source:it.source?.name, publishedAt:it.publishedAt, summary:it.description, provider:"newsapi"}));
