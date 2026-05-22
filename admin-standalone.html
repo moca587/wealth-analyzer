@@ -188,8 +188,11 @@ textarea{font-family:var(--fm);font-size:12px;width:100%;min-height:70px;resize:
   <div class="grp">Overview</div>
   <div class="nav active" data-tab="dashboard"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M2 2h5v5H2zm7 0h5v5H9zM2 9h5v5H2zm7 0h5v5H9z"/></svg>Dashboard</div>
 
+  <div class="grp">Clients</div>
+  <div class="nav" data-tab="users"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M6 8a3 3 0 100-6 3 3 0 000 6zm-5 7c0-2.5 2.5-4 5-4s5 1.5 5 4v1H1zm10-5a2.5 2.5 0 100-5 2.5 2.5 0 000 5zm-1.5 1c1.8 0 5.5 1 5.5 3.5V16h-4v-1c0-1.5-.7-2.7-1.8-3.5z"/></svg>User Management<span class="nav-new">NEW</span></div>
+
   <div class="grp">AI Agent</div>
-  <div class="nav" data-tab="agent"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 1a3 3 0 00-3 3v1.5L3 7v5l2 1.5V15h6v-1.5L13 12V7l-2-1.5V4a3 3 0 00-3-3zm-1 7a1 1 0 110 2 1 1 0 010-2zm2 0a1 1 0 110 2 1 1 0 010-2z"/></svg>AI Portfolio Agent<span class="nav-new">NEW</span></div>
+  <div class="nav" data-tab="agent"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 1a3 3 0 00-3 3v1.5L3 7v5l2 1.5V15h6v-1.5L13 12V7l-2-1.5V4a3 3 0 00-3-3zm-1 7a1 1 0 110 2 1 1 0 010-2zm2 0a1 1 0 110 2 1 1 0 010-2z"/></svg>AI Portfolio Agent</div>
   <div class="nav" data-tab="research"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M3 1h7l3 3v11H3zm5 0v3h3M5 6h6v1H5V6zm0 2h6v1H5V8zm0 2h4v1H5v-1z"/></svg>Research Library</div>
 
   <div class="grp">Engineering</div>
@@ -227,6 +230,36 @@ textarea{font-family:var(--fm);font-size:12px;width:100%;min-height:70px;resize:
       <div class="ptitle">Recent Activity</div>
       <div id="dashLogs" style="max-height:300px;overflow-y:auto"></div>
     </div>
+  </div>
+</div>
+
+<!-- ─── USERS ─── -->
+<div class="tab" id="tab-users">
+  <div class="hero" style="background:linear-gradient(135deg,#0057b8,#003d82)">
+    <h1>👥 User Management</h1>
+    <p>Track every user who creates a financial plan. When a user saves their plan in the main app, it appears here automatically. Click <strong>Build Portfolio</strong> on any user to send their plan to the AI Agent and generate an institutional-grade recommendation.</p>
+  </div>
+
+  <div class="kpi-grid" id="userStats"></div>
+
+  <div class="panel">
+    <div class="ptitle">All Users</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;align-items:center">
+      <button class="btn" data-action="addUser">+ Add User</button>
+      <button class="btn-ghost" data-action="captureFromMainApp">↻ Capture from Main App</button>
+      <button class="btn-ghost" data-action="buildAllPortfolios">⚡ Build Portfolios for All</button>
+      <input type="text" id="userSearch" placeholder="Search by name or email..." style="margin-left:auto;width:240px" oninput="renderUserTable()">
+    </div>
+    <div id="userTable"></div>
+    <div style="font-size:11px;color:var(--ink3);margin-top:14px;line-height:1.6;padding:10px 12px;background:rgba(0,87,184,.04);border-radius:6px">
+      <strong style="color:var(--blue)">💡 How users get added:</strong> the admin automatically watches the main app's <code>wa_pending_profile</code> localStorage key. When a user saves their profile in the main app and clicks "↻ Capture from Main App" here, the latest profile is registered as a user. You can also manually add users via the + Add User button.
+    </div>
+  </div>
+
+  <!-- User detail panel (slides in when a user is selected) -->
+  <div class="panel" id="userDetailPanel" style="display:none">
+    <div class="ptitle">User Detail — <span id="userDetailName" style="text-transform:none;color:var(--ink)">—</span></div>
+    <div id="userDetailBody"></div>
   </div>
 </div>
 
@@ -631,7 +664,7 @@ Down payment | 2028 | 150000</textarea>
 // ═══════════════════════════════════════════════════════════
 // VERSION + UTILS
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260522-0847";
+const APP_VERSION = "20260522-0849";
 const $ = (id) => document.getElementById(id);
 const $$ = (sel, ctx) => Array.from((ctx||document).querySelectorAll(sel));
 
@@ -698,6 +731,7 @@ function showTab(name){
   // Lazy refresh
   try {
     if(name==="dashboard") renderDashboard();
+    else if(name==="users") renderUsersTab();
     else if(name==="agent") renderAgent();
     else if(name==="research") renderResearch();
     else if(name==="testbench") renderTestBench();
@@ -1832,6 +1866,280 @@ function clearLogs(){
 }
 
 // ═══════════════════════════════════════════════════════════
+// USER MANAGEMENT
+// ═══════════════════════════════════════════════════════════
+const USERS_KEY = "wa_users";
+
+function getUsers(){ try { return JSON.parse(localStorage.getItem(USERS_KEY)||"[]"); } catch(_){return [];} }
+function saveUsers(users){ localStorage.setItem(USERS_KEY, JSON.stringify(users)); }
+function findUser(id){ return getUsers().find(u => u.id === id); }
+function updateUser(id, patch){
+  const users = getUsers();
+  const i = users.findIndex(u => u.id === id);
+  if(i < 0) return null;
+  users[i] = {...users[i], ...patch, lastUpdated: new Date().toISOString()};
+  saveUsers(users);
+  return users[i];
+}
+
+// Compute summary from a profile (the wa_pending_profile shape)
+function summarizeProfile(profile){
+  const f = profile.fields || {};
+  const assets = profile.assets || [];
+  const loans = profile.loans || [];
+  const totA = assets.reduce((s,a)=>s+(+a.value||0),0);
+  const totL = loans.reduce((s,l)=>s+(+l.bal||0),0);
+  const income = (+f.inc1||0)+(+f.inc2||0)+(+f.inc1b||0)+(+f.inc2b||0);
+  return {
+    totalAssets: totA,
+    totalLiabilities: totL,
+    netWorth: totA - totL,
+    annualIncome: income,
+    risk: f.c1r || "moderate",
+    horizon: f.c1h || "15_plus",
+    country: f.c1co || "US",
+    goalsCount: (profile.goals||[]).length
+  };
+}
+
+// Capture current main-app profile as a user (or update existing)
+function captureFromMainApp(){
+  const pending = localStorage.getItem("wa_pending_profile");
+  if(!pending){
+    toast("No profile in main app's localStorage. Save one in the main app first.","err");
+    return;
+  }
+  let profile;
+  try { profile = JSON.parse(pending); } catch(_){ toast("Invalid profile JSON","err"); return; }
+  const f = profile.fields || {};
+  const name = ((f.c1f||"")+" "+(f.c1l||"")).trim() || "Unnamed Client";
+  const email = f.c1email || ""; // optional field
+
+  // Match by name (or email) — if exists, update; else create
+  const users = getUsers();
+  let user = users.find(u => u.name === name || (email && u.email === email));
+  const now = new Date().toISOString();
+  if(user){
+    user.plan = profile;
+    user.summary = summarizeProfile(profile);
+    user.lastUpdated = now;
+    toast("Updated user: "+name,"ok");
+    addLog("ok","Updated user "+user.id);
+  } else {
+    user = {
+      id: "u_"+Date.now().toString(36),
+      name, email, createdAt: now, lastUpdated: now,
+      status: "active",
+      plan: profile,
+      summary: summarizeProfile(profile),
+      portfolios: []
+    };
+    users.push(user);
+    toast("Added user: "+name,"ok");
+    addLog("ok","Added new user "+user.id+" ("+name+")");
+  }
+  saveUsers(users);
+  renderUsersTab();
+}
+
+function addUser(){
+  const name = prompt("Client name?");
+  if(!name) return;
+  const email = prompt("Email (optional)?") || "";
+  const users = getUsers();
+  const now = new Date().toISOString();
+  users.push({
+    id: "u_"+Date.now().toString(36),
+    name: name.trim(), email: email.trim(),
+    createdAt: now, lastUpdated: now,
+    status: "draft",
+    plan: null,
+    summary: null,
+    portfolios: []
+  });
+  saveUsers(users);
+  toast("Added "+name,"ok");
+  renderUsersTab();
+}
+
+function deleteUser(el){
+  const id = el.dataset.uid;
+  const u = findUser(id); if(!u) return;
+  if(!confirm("Delete user "+u.name+"? This removes all stored plans and portfolios.")) return;
+  saveUsers(getUsers().filter(x => x.id !== id));
+  toast("Deleted "+u.name,"warn");
+  addLog("warn","Deleted user "+id);
+  renderUsersTab();
+}
+
+function viewUser(el){
+  const id = el.dataset.uid;
+  const u = findUser(id); if(!u) return;
+  $("userDetailName").textContent = u.name;
+  $("userDetailPanel").style.display = "block";
+  let h = '';
+  // Stats
+  h += '<div class="kpi-grid" style="margin-bottom:14px">';
+  if(u.summary){
+    h += kpiCard("Net Worth",fmt$(u.summary.netWorth),"","tone-blue");
+    h += kpiCard("Total Assets",fmt$(u.summary.totalAssets));
+    h += kpiCard("Total Debt",fmt$(u.summary.totalLiabilities),"","tone-red");
+    h += kpiCard("Annual Income",fmt$(u.summary.annualIncome));
+    h += kpiCard("Goals",u.summary.goalsCount);
+    h += kpiCard("Portfolios Built",u.portfolios?.length||0,"","tone-amber");
+  } else {
+    h += '<div class="kpi"><div class="kpi-l">No plan</div><div class="kpi-v" style="font-size:14px">Awaiting</div></div>';
+  }
+  h += '</div>';
+  // Actions
+  h += '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">';
+  if(u.plan){
+    h += '<button class="btn-purple" data-action="buildPortfolioForUser" data-uid="'+u.id+'">🤖 Build Portfolio with AI</button>';
+    h += '<button class="btn-ghost" data-action="loadUserIntoAgent" data-uid="'+u.id+'">↗ Load into AI Agent</button>';
+  }
+  h += '<button class="btn-danger" data-action="deleteUser" data-uid="'+u.id+'">Delete user</button>';
+  h += '</div>';
+  // Portfolio history
+  if(u.portfolios && u.portfolios.length){
+    h += '<div class="ptitle" style="margin-top:18px">Portfolio History</div>';
+    u.portfolios.forEach((p,i) => {
+      h += '<div style="background:rgba(124,58,237,.04);border-left:3px solid var(--purple);padding:12px 16px;border-radius:6px;margin-bottom:8px">';
+      h += '<div style="font-weight:700;font-size:13px;margin-bottom:4px">Portfolio #'+(i+1)+'</div>';
+      h += '<div style="font-size:11px;color:var(--ink3)">Built '+new Date(p.builtAt).toLocaleString()+' · '+(p.positions?.length||0)+' positions · Expected return '+((p.expectedReturn||0)*100).toFixed(2)+'%</div>';
+      h += '<div style="font-size:12px;color:var(--ink2);margin-top:6px;line-height:1.5">'+escapeHtml(p.summary||'')+'</div>';
+      h += '</div>';
+    });
+  }
+  // Plan details
+  if(u.plan){
+    h += '<div class="ptitle" style="margin-top:18px">Current Plan</div>';
+    h += '<details style="background:rgba(0,87,184,.03);padding:10px 14px;border-radius:6px"><summary style="cursor:pointer;font-weight:600;font-size:12.5px">View raw plan JSON ('+(JSON.stringify(u.plan).length/1024).toFixed(1)+' KB)</summary><pre style="font-family:var(--fm);font-size:11px;margin-top:10px;max-height:300px;overflow-y:auto">'+escapeHtml(JSON.stringify(u.plan,null,2))+'</pre></details>';
+  }
+  $("userDetailBody").innerHTML = h;
+  $("userDetailPanel").scrollIntoView({behavior:"smooth"});
+}
+
+function loadUserIntoAgent(el){
+  const id = el.dataset.uid;
+  const u = findUser(id); if(!u || !u.plan) return;
+  // Push the user's plan into wa_pending_profile so the agent's "Refresh from main app" works
+  localStorage.setItem("wa_pending_profile", JSON.stringify(u.plan));
+  // Switch to agent tab and populate
+  showTab("agent");
+  setTimeout(() => { try { loadProfile(); } catch(_){}; toast("Loaded "+u.name+"'s plan into AI Agent","ok"); }, 100);
+}
+
+async function buildPortfolioForUser(el){
+  const id = el.dataset.uid;
+  const u = findUser(id); if(!u || !u.plan) return;
+  // Load user's plan, then run agent
+  localStorage.setItem("wa_pending_profile", JSON.stringify(u.plan));
+  showTab("agent");
+  await new Promise(r => setTimeout(r, 200));
+  try { loadProfile(); } catch(_){}
+  toast("Building portfolio for "+u.name+"…","ok");
+  await new Promise(r => setTimeout(r, 200));
+  // Run the agent
+  await runAgent();
+  // If agent succeeded, attach the result to the user
+  if(lastAgentRec){
+    const portfolio = {
+      builtAt: new Date().toISOString(),
+      model: $("agModel").value,
+      summary: lastAgentRec.summary,
+      allocationByClass: lastAgentRec.allocationByClass,
+      positions: lastAgentRec.positions,
+      expectedReturn: lastAgentRec.expectedReturn,
+      expectedVolatility: lastAgentRec.expectedVolatility
+    };
+    u.portfolios = u.portfolios || [];
+    u.portfolios.push(portfolio);
+    updateUser(u.id, {portfolios: u.portfolios});
+    addLog("ok","Built portfolio for user "+u.id);
+    toast("Portfolio saved to "+u.name+"'s history","ok");
+  }
+}
+
+async function buildAllPortfolios(){
+  const users = getUsers().filter(u => u.plan);
+  if(users.length === 0){ toast("No users with plans","err"); return; }
+  if(!confirm("Build portfolios for "+users.length+" users? This calls the Claude API once per user.")) return;
+  for(const u of users){
+    const fakeEl = {dataset:{uid:u.id}};
+    try { await buildPortfolioForUser(fakeEl); } catch(e){ addLog("err","Build failed for "+u.id+": "+e.message); }
+    await new Promise(r => setTimeout(r, 1500)); // throttle API calls
+  }
+  toast("Bulk build complete","ok");
+}
+
+function renderUsersTab(){
+  const users = getUsers();
+  // Stats
+  let stats = '';
+  stats += kpiCard("Total Users",users.length,"","tone-blue");
+  stats += kpiCard("With Plans",users.filter(u=>u.plan).length,"");
+  stats += kpiCard("Portfolios Built",users.reduce((s,u)=>s+(u.portfolios?.length||0),0),"","tone-amber");
+  stats += kpiCard("Total NW Tracked",fmt$(users.reduce((s,u)=>s+(u.summary?.netWorth||0),0)),"","tone-green");
+  $("userStats").innerHTML = stats;
+  // Table
+  renderUserTable();
+}
+
+function renderUserTable(){
+  const users = getUsers();
+  const q = ($("userSearch")?.value || "").toLowerCase().trim();
+  const filtered = q ? users.filter(u => (u.name||"").toLowerCase().includes(q) || (u.email||"").toLowerCase().includes(q)) : users;
+  if(filtered.length === 0){
+    $("userTable").innerHTML = '<div style="text-align:center;padding:30px;color:var(--ink3)"><div style="font-size:36px;margin-bottom:8px">👤</div>No users yet. Click <strong>+ Add User</strong> or <strong>↻ Capture from Main App</strong> to get started.</div>';
+    return;
+  }
+  let h = '<div class="tbl-wrap"><table class="tbl">';
+  h += '<thead><tr><th>Name</th><th>Status</th><th class="num">Net Worth</th><th class="num">Income</th><th>Risk</th><th class="num">Portfolios</th><th>Last Updated</th><th>Actions</th></tr></thead><tbody>';
+  filtered.forEach(u => {
+    const s = u.summary || {};
+    const updated = u.lastUpdated ? new Date(u.lastUpdated).toLocaleDateString() : "—";
+    const statusPill = u.plan ? '<span class="pill pill-on">Active</span>' : '<span class="pill pill-warn">Draft</span>';
+    const riskLbl = ({very_conservative:"Very Cons.",conservative:"Cons.",moderately_conservative:"Mod. Cons.",moderate:"Moderate",moderately_aggressive:"Mod. Agg.",aggressive:"Aggressive",very_aggressive:"Very Agg."})[s.risk] || (s.risk || "—");
+    h += `<tr style="cursor:pointer" data-action="viewUser" data-uid="${u.id}">
+      <td><strong>${escapeHtml(u.name)}</strong>${u.email?'<br><span style="font-size:10.5px;color:var(--ink3)">'+escapeHtml(u.email)+'</span>':''}</td>
+      <td>${statusPill}</td>
+      <td class="num">${s.netWorth!=null?fmt$(s.netWorth):'—'}</td>
+      <td class="num">${s.annualIncome?fmt$(s.annualIncome):'—'}</td>
+      <td><span style="font-size:11px">${riskLbl}</span></td>
+      <td class="num">${u.portfolios?.length||0}</td>
+      <td style="font-size:11px;color:var(--ink3)">${updated}</td>
+      <td>
+        ${u.plan?`<button class="btn-ghost" style="font-size:11px;padding:4px 12px" data-action="buildPortfolioForUser" data-uid="${u.id}">🤖 Build</button>`:''}
+        <button class="btn-ghost" style="font-size:11px;padding:4px 12px" data-action="viewUser" data-uid="${u.id}">View</button>
+      </td>
+    </tr>`;
+  });
+  h += '</tbody></table></div>';
+  $("userTable").innerHTML = h;
+}
+
+// Auto-watch wa_pending_profile — when main app saves a profile, prompt to register
+let _lastWatchedProfile = localStorage.getItem("wa_pending_profile") || "";
+function startUserAutoWatch(){
+  setInterval(() => {
+    const cur = localStorage.getItem("wa_pending_profile") || "";
+    if(cur && cur !== _lastWatchedProfile){
+      _lastWatchedProfile = cur;
+      try {
+        const profile = JSON.parse(cur);
+        const f = profile.fields || {};
+        const name = ((f.c1f||"")+" "+(f.c1l||"")).trim();
+        if(name){
+          // Auto-register / update
+          captureFromMainApp();
+          addLog("info","Auto-detected profile change in main app — registered "+name);
+        }
+      } catch(_){}
+    }
+  }, 3000); // every 3s
+}
+
+// ═══════════════════════════════════════════════════════════
 // LIVE UPDATE POLLER
 // ═══════════════════════════════════════════════════════════
 function startLivePoll(){
@@ -1877,6 +2185,9 @@ function init(){
     addLog("ok","Self-test ✓ — "+requiredEls.length+" tabs verified");
   }
   addLog("info","Admin console loaded v"+APP_VERSION);
+
+  // Start auto-watching wa_pending_profile so we capture user changes from main app
+  safe("startUserAutoWatch", startUserAutoWatch);
 
   // Kick off background research refresh on every page load (so by the time
   // the user opens the AI Agent tab, every source is already populated)
@@ -1935,6 +2246,15 @@ window.saveKey = saveKey;
 window.copyLogs = copyLogs;
 window.downloadLogs = downloadLogs;
 window.clearLogs = clearLogs;
+// User management
+window.captureFromMainApp = captureFromMainApp;
+window.addUser = addUser;
+window.deleteUser = deleteUser;
+window.viewUser = viewUser;
+window.loadUserIntoAgent = loadUserIntoAgent;
+window.buildPortfolioForUser = buildPortfolioForUser;
+window.buildAllPortfolios = buildAllPortfolios;
+window.renderUserTable = renderUserTable;
 </script>
 </body>
 </html>
