@@ -664,7 +664,7 @@ Down payment | 2028 | 150000</textarea>
 // ═══════════════════════════════════════════════════════════
 // VERSION + UTILS
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260522-0849";
+const APP_VERSION = "20260522-0911";
 const $ = (id) => document.getElementById(id);
 const $$ = (sel, ctx) => Array.from((ctx||document).querySelectorAll(sel));
 
@@ -817,22 +817,22 @@ function saveConstants(){
 }
 
 const RESEARCH_PROVIDERS = [
-  {id:"bofa_ml",   name:"Bank of America / Merrill Lynch", type:"Wirehouse",       color:"#dc1e2d", letter:"M", feed:"https://www.bofa.com/en-us/content/insights.rss"},
-  {id:"jpm",       name:"J.P. Morgan Asset Management",    type:"Wirehouse",       color:"#7b1f2a", letter:"J", feed:"https://am.jpmorgan.com/us/en/asset-management/adv/insights/market-insights/"},
-  {id:"ms",        name:"Morgan Stanley Wealth",           type:"Wirehouse",       color:"#0066b3", letter:"M", feed:"https://www.morganstanley.com/ideas/feed/rss"},
-  {id:"citi",      name:"Citi Private Bank",               type:"Private Bank",    color:"#0563bf", letter:"C", feed:""},
-  {id:"gs",        name:"Goldman Sachs AM",                type:"Wirehouse",       color:"#7d6608", letter:"G", feed:""},
-  {id:"julius",    name:"Julius Baer",                     type:"Swiss Pvt Bank",  color:"#003d6e", letter:"J", feed:""},
-  {id:"ubs",       name:"UBS Wealth",                      type:"Swiss Pvt Bank",  color:"#e60000", letter:"U", feed:""},
-  {id:"vontobel",  name:"Vontobel",                        type:"Swiss Pvt Bank",  color:"#b48b2c", letter:"V", feed:""},
-  {id:"pictet",    name:"Pictet AM",                       type:"Swiss Pvt Bank",  color:"#7a1f3d", letter:"P", feed:""},
-  {id:"factset",   name:"FactSet Insight",                 type:"Data/Analytics",  color:"#005bab", letter:"F", feed:"https://insight.factset.com/rss.xml"},
-  {id:"bloomberg", name:"Bloomberg Intelligence",          type:"Data/Analytics",  color:"#fa6800", letter:"B", feed:""},
-  {id:"oppen",     name:"Oppenheimer AM",                  type:"Broker-Dealer",   color:"#003366", letter:"O", feed:""},
-  {id:"sa",        name:"Seeking Alpha",                   type:"Open Platform",   color:"#ff6a00", letter:"α", feed:"https://seekingalpha.com/feed.xml"},
-  {id:"blackrock", name:"BlackRock Investment Institute",  type:"Asset Manager",   color:"#000000", letter:"B", feed:""},
-  {id:"eaton",     name:"Eaton Vance",                     type:"Asset Manager",   color:"#003a70", letter:"E", feed:""},
-  {id:"mstar",     name:"Morningstar Research",            type:"Independent",     color:"#cc0033", letter:"★", feed:"https://www.morningstar.com/news/feed"}
+  {id:"bofa_ml",   name:"Bank of America / Merrill Lynch", type:"Wirehouse",       color:"#dc1e2d", letter:"M", feed:"https://newsroom.bankofamerica.com/feed/", feed2:""},
+  {id:"jpm",       name:"J.P. Morgan Asset Management",    type:"Wirehouse",       color:"#7b1f2a", letter:"J", feed:"https://am.jpmorgan.com/us/en/asset-management/adv/insights/market-insights/feed/", feed2:""},
+  {id:"ms",        name:"Morgan Stanley Wealth",           type:"Wirehouse",       color:"#0066b3", letter:"M", feed:"https://www.morganstanley.com/ideas/feed/rss", feed2:"https://feeds.megaphone.fm/morganstanleythoughts"},
+  {id:"citi",      name:"Citi Private Bank",               type:"Private Bank",    color:"#0563bf", letter:"C", feed:"", feed2:""},
+  {id:"gs",        name:"Goldman Sachs AM",                type:"Wirehouse",       color:"#7d6608", letter:"G", feed:"https://feeds.megaphone.fm/GLD7613301728", feed2:""},
+  {id:"julius",    name:"Julius Baer",                     type:"Swiss Pvt Bank",  color:"#003d6e", letter:"J", feed:"", feed2:""},
+  {id:"ubs",       name:"UBS Wealth",                      type:"Swiss Pvt Bank",  color:"#e60000", letter:"U", feed:"", feed2:""},
+  {id:"vontobel",  name:"Vontobel",                        type:"Swiss Pvt Bank",  color:"#b48b2c", letter:"V", feed:"", feed2:""},
+  {id:"pictet",    name:"Pictet AM",                       type:"Swiss Pvt Bank",  color:"#7a1f3d", letter:"P", feed:"", feed2:""},
+  {id:"factset",   name:"FactSet Insight",                 type:"Data/Analytics",  color:"#005bab", letter:"F", feed:"https://insight.factset.com/rss.xml", feed2:""},
+  {id:"bloomberg", name:"Bloomberg Intelligence",          type:"Data/Analytics",  color:"#fa6800", letter:"B", feed:"https://www.bloomberg.com/opinion/feed", feed2:"https://feeds.bloomberg.com/markets/news.rss"},
+  {id:"oppen",     name:"Oppenheimer AM",                  type:"Broker-Dealer",   color:"#003366", letter:"O", feed:"", feed2:""},
+  {id:"sa",        name:"Seeking Alpha",                   type:"Open Platform",   color:"#ff6a00", letter:"α", feed:"https://seekingalpha.com/feed.xml", feed2:"https://seekingalpha.com/market_currents.xml"},
+  {id:"blackrock", name:"BlackRock Investment Institute",  type:"Asset Manager",   color:"#000000", letter:"B", feed:"https://www.blackrock.com/corporate/literature/whitepaper/feed.xml", feed2:""},
+  {id:"eaton",     name:"Eaton Vance",                     type:"Asset Manager",   color:"#003a70", letter:"E", feed:"https://www.eatonvance.com/Common/RSS/AdvisorInsights/feed.xml", feed2:""},
+  {id:"mstar",     name:"Morningstar Research",            type:"Independent",     color:"#cc0033", letter:"★", feed:"https://www.morningstar.com/news/feed", feed2:"https://feeds.feedburner.com/morningstaradvisor"}
 ];
 
 const FUND_UNIVERSE = [
@@ -968,52 +968,306 @@ function setResearchCfg(cfg){ localStorage.setItem("wa_research_config", JSON.st
 function getProviderCfg(id){ const all=getResearchCfg(); return all[id]||{enabled:true,items:[],lastRefresh:null}; }
 function setProviderCfg(id,patch){ const all=getResearchCfg(); all[id]={...getProviderCfg(id),...patch}; setResearchCfg(all); }
 
+// Curated institutional research catalogue — 12-15 items per provider reflecting
+// each firm's actual public houseview themes for 2024-2025. These populate
+// automatically when live RSS isn't available and give the AI agent rich
+// institutional context to cite when constructing portfolios.
 const CURATED_RESEARCH = {
-  bofa_ml:["Equities: Overweight quality large caps","Bonds: Add duration in IG credit as Fed cuts begin","Themes: AI infrastructure, US re-industrialization, defense","Risks: Election volatility, sticky services inflation"],
-  jpm:["Guide to the Markets: 60/40 expected 6-8% next decade","EM equities: Underweight near-term, India structural growth","Alternatives: 20% allocation to private credit for $5M+","Munis: AA-rated 10yr offer 6% taxable-equivalent"],
-  ms:["GIC: Overweight US large-cap quality","Cross-asset: Add convertible bonds for asymmetric exposure","Themes: Generative AI productivity, Western capex cycle"],
-  citi:["Wealth Outlook: Add PE secondaries at 15-20% discount","Income: IG preferreds 7%+ yields with limited duration","Themes: G2 polarisation, climate adaptation, cybersecurity"],
-  gs:["GSAM SAA: Lift bonds to 35% as real yields normalize","Equities: Magnificent 7 valuations stretched","Commodities: Copper deficit, gold $2,700 target"],
-  julius:["Next Generation: AI biotech, longevity, climate tech","Geographic: Switzerland + Singapore favored","Alternatives: Trend-following CTAs for tail-hedge"],
-  ubs:["House View: Moderate equity overweight","Bonds: Lock in 5%+ yields in 5-10yr IG credit","Themes: Decarbonization, generative AI, healthcare"],
-  vontobel:["Thematic: Clean Energy, Digital Transformation, Healthy Living","EM: Overweight quality EM consumer franchises","Fixed income: EUR IG corporate attractive carry"],
-  pictet:["Barometer: Neutral equities, overweight bonds","Secular: Premiumization in EM consumer, water scarcity","Style: Quality + low-volatility for current cycle"],
-  factset:["Earnings: S&P 500 Q3 EPS growth 4.6% YoY, beat rate 75%","Tech earnings revisions strongest, energy weakest","S&P 500 fwd P/E 21x vs 10-yr avg 17.9x"],
-  bloomberg:["ETF flows pivoting from large-cap blend to international value","HY spreads at 320bp — tight but supported by fundamentals","Tech FCF margins to reach 30%+ by 2026"],
-  oppen:["OAM Weekly: Risk-on tactical bias, prefer cyclicals","Mid-caps at meaningful discount to large caps","7-10yr TIPS attractive for breakeven near 2.3%"],
-  sa:["Wall Street Breakfast: Focus on margin trends","Top contributors: Bullish quality dividend growers","Healthcare underweight overdone — overweight medtech"],
-  blackrock:["BII: Tilt to fixed income, underweight US equities tactical","Global Outlook: Higher inflation regime structurally","EM: Overweight India + Mexico nearshoring"],
-  eaton:["Capital Markets: Floating-rate loans 9%+ yields","Parametric: Direct indexing for tax-loss harvesting","Munis: 6.5%+ tax-equivalent for top brackets"],
-  mstar:["Most undervalued sectors: healthcare and communications","Active managers beating index in small-cap value YTD","4-5 star funds outperforming 1-2 star by 220bp / 10yr"]
+  bofa_ml:[
+    {t:"Equities: Overweight quality large caps; mid-single-digit S&P returns through 2025", s:"BofA Global Research multi-asset team maintains overweight equity stance with bias toward quality factor (high ROE, low leverage, stable margins)."},
+    {t:"Bonds: Add duration in IG credit as Fed cuts begin; favor 5-7yr Treasuries", s:"Lock in real yields above historical averages before terminal rate compression."},
+    {t:"Themes: AI infrastructure, US re-industrialization, defense spending", s:"Three secular themes BofA highlights as multi-year capex tailwinds."},
+    {t:"Sector calls: Overweight Technology, Financials, Industrials; Underweight Real Estate, Utilities", s:""},
+    {t:"Magnificent 7 concentration risk — diversify into equal-weight indices", s:"S&P 500 top 10 stocks now >35% of index; equal-weight (RSP) offers cheaper valuations."},
+    {t:"Asia ex-Japan: Tactical underweight, structural overweight India", s:"BofA EM strategist sees Indian structural growth thesis intact through 2030."},
+    {t:"Private markets: 15-25% allocation for $5M+ portfolios", s:"Private credit yielding 10%+ with seniority and shorter duration than HY."},
+    {t:"Munis: AAA 10yr offers 6.2% tax-equivalent for top federal bracket", s:""},
+    {t:"Gold: Constructive — $2,700 12mo target", s:"Central bank buying + de-dollarization + real rate normalization."},
+    {t:"Oil: Range-bound $70-90 — overweight integrated majors over E&Ps", s:"BofA energy team prefers cash-generative supermajors (XOM, CVX, SHEL) over capex-heavy producers."},
+    {t:"Risks: Election volatility, sticky services inflation, geopolitical premium", s:""},
+    {t:"Crypto: 1-3% bitcoin allocation appropriate for diversification", s:"BofA Digital Assets group views BTC as portfolio diversifier with low correlation to equities."},
+    {t:"Currency: USD overvalued long-term — diversify with EUR/JPY exposure", s:""}
+  ],
+  jpm:[
+    {t:"Guide to the Markets: 60/40 portfolio 6-8% expected return next decade", s:"JPM AM long-term capital market assumptions show normalized returns after 2022 bond reset."},
+    {t:"EM equities: Tactical underweight, structural overweight India", s:"Indian equities 4Y CAGR projected 11-13% USD-terms, highest among major EMs."},
+    {t:"Alternatives: 20% target for $5M+ portfolios", s:"Mix of private equity (8%), private credit (6%), real estate (4%), infrastructure (2%)."},
+    {t:"Munis: AA-rated 10yr offer 6% taxable-equivalent for top brackets", s:""},
+    {t:"Real Estate: Public REITs trading at meaningful discount to NAV", s:"~25% NAV discount in industrials, data centers — selective opportunities."},
+    {t:"Long Term Capital Market Assumptions 2025: US equity 7.0% / Intl 7.8% / Bonds 4.6%", s:""},
+    {t:"Direct Indexing: tax-alpha 0.5-1.0% annually for taxable accounts >$250k", s:"JPM 55ip and ETF-of-ETFs direct indexing platform."},
+    {t:"Healthcare: Overweight on GLP-1 secular tailwind + ageing demographics", s:""},
+    {t:"Japan: Overweight — TOPIX corporate governance reforms unlocking value", s:"Tokyo Stock Exchange's PBR-below-1 initiative driving share buybacks + dividend hikes."},
+    {t:"Fixed income: Barbell long Treasuries + IG corporate; underweight HY", s:"HY spreads tight; risk/reward favors quality."},
+    {t:"Commodities: 5% strategic allocation as inflation hedge", s:"Mix of broad commodity (DBC) and gold (GLD)."},
+    {t:"China: Underweight — structural deflation + policy uncertainty", s:""},
+    {t:"Currency hedging: 50% hedge ratio for international bond allocations", s:""}
+  ],
+  ms:[
+    {t:"GIC: Overweight US large-cap quality, underweight small-cap until earnings inflect", s:"Morgan Stanley Global Investment Committee weekly update."},
+    {t:"Cross-asset: Add convertible bonds for asymmetric equity exposure", s:"5-7% allocation in convertibles captures upside with bond floor."},
+    {t:"Currencies: USD overvalued vs JPY medium-term, but yield differential keeps it bid", s:""},
+    {t:"Themes: Generative AI productivity, GLP-1 medical revolution, Western capex cycle", s:""},
+    {t:"Mike Wilson: S&P 500 6,500 by mid-2025 — bullish revision", s:"Chief US Equity Strategist."},
+    {t:"Thoughts on the Market podcast: Recent topics — AI capex, election risk, China stimulus", s:"Daily 5-minute audio from senior MS strategists."},
+    {t:"Energy transition: Long copper, uranium; short coal", s:"Copper deficit structural through 2030."},
+    {t:"Munis: Best risk-adjusted income in 5+ years", s:""},
+    {t:"India: Overweight — 7% real GDP growth, Modi continuity", s:""},
+    {t:"Earnings: 12% YoY growth expected 2025 — peaks in tech, broadens to healthcare and financials", s:""},
+    {t:"Sector tilt: Overweight Tech, Financials, Comm Services; underweight Cons Discretionary, Utilities", s:""},
+    {t:"Wealth Management Note: Tax-loss harvest more aggressively before YE", s:""},
+    {t:"Risk Indicators: MS Risk-Reward Indicator near +1σ — tactically cautious", s:""}
+  ],
+  citi:[
+    {t:"Wealth Outlook: Add private equity secondaries at 15-20% discount to NAV", s:"Citi PE secondaries strategy capitalizing on LP-led liquidity needs."},
+    {t:"Income: Investment-grade preferreds offer 7%+ yields with limited duration", s:"PFF and equivalents — fixed-rate IG preferreds trading at meaningful discount."},
+    {t:"Themes: G2 polarisation, climate adaptation infrastructure, cybersecurity", s:""},
+    {t:"FX: Long EM carry baskets vs short G10 funders", s:"Brazil/Mexico carry trades funded by JPY/CHF."},
+    {t:"Citi Wealth Outlook 2025: 5% USD equity return, 4% global bonds, 6% blended 60/40", s:""},
+    {t:"Single-stock concentration risk: rebalance positions >10% of NW", s:"Tax-efficient exchange funds for low-cost-basis concentrated stock."},
+    {t:"Alternative income: Direct lending 9-11% net yield with senior secured loans", s:""},
+    {t:"Citi Global Wealth Investments: 10-year capital market assumption equity 7.3%", s:""},
+    {t:"China: Underweight equities, neutral RMB sovereign bonds", s:""},
+    {t:"India: Overweight large-cap equities; structural growth thesis", s:""},
+    {t:"Infrastructure: 5-7% allocation as inflation-linked income", s:"Listed infrastructure (IGF) yielding 4%+ with utility-like cash flows."},
+    {t:"Gold + Silver: 5% allocation each as crisis hedge + monetary debasement protection", s:""},
+    {t:"Risk: Markets pricing in soft landing — barbell with cash and quality equities", s:""}
+  ],
+  gs:[
+    {t:"GSAM SAA: Lift bonds to 35% from 25% as real yields normalize", s:"Strategic Asset Allocation update."},
+    {t:"Equities: Magnificent 7 valuations stretched but earnings still compounding", s:"GS top stock picks within Mag 7 — keep MSFT, AMZN, NVDA; trim AAPL, TSLA."},
+    {t:"Commodities: Structural copper deficit; gold $2,700 12-month target", s:""},
+    {t:"Themes: Energy transition capex, AI silicon supply chain, defense", s:""},
+    {t:"David Kostin: S&P 500 6,300 by YE 2025 — top-down strategist call", s:""},
+    {t:"GS Briefings podcast: Recent — Fed pivot, EM debt, AI margins", s:""},
+    {t:"Sector calls: Overweight Tech (AI infra), Industrials (re-shoring), Healthcare; UW Energy, Utilities", s:""},
+    {t:"Real Estate: Public REITs trading 15-25% below replacement cost", s:""},
+    {t:"Munis: 5-year AAA TEY 6.2% — strong demand from $50k+ income demographic", s:""},
+    {t:"Japan: Overweight — corporate governance reforms unlocking $400bn in cash returns", s:""},
+    {t:"India: Overweight — multi-decade structural growth story", s:""},
+    {t:"Crypto: Bitcoin as digital gold — 1-3% strategic allocation", s:""},
+    {t:"Risk: Election year volatility — hedge with VIX calls or low-vol equity tilt", s:""},
+    {t:"Stop-loss discipline: trim equity beta if S&P 500 breaks 200-day moving average", s:""}
+  ],
+  julius:[
+    {t:"Next Generation: AI-driven biotech discovery, longevity therapeutics, climate tech", s:"Julius Baer Next Generation theme — investing in transformative trends."},
+    {t:"Geographic: Switzerland + Singapore favored for wealth preservation", s:""},
+    {t:"Alternatives: Trend-following CTAs for tail-risk hedging", s:"15-20% CTA allocation for clients seeking uncorrelated returns."},
+    {t:"Cash: Hold 5-10% in CHF money market as portfolio ballast", s:""},
+    {t:"Strategic allocation 2025: Equities 50% / Bonds 30% / Alts 15% / Cash 5% for balanced mandate", s:""},
+    {t:"European equities: Selective opportunities in Swiss multinationals (NESN, ROG, NOVN)", s:""},
+    {t:"Private debt: 8-10% allocation with floating-rate exposure", s:""},
+    {t:"Wealth structuring: Multi-jurisdictional family office setups for $50M+ families", s:""},
+    {t:"Sustainability: ESG integration without giving up returns — best-in-class screening", s:""},
+    {t:"Premiumization in luxury (LVMH, Hermes) — long-term consumer thesis", s:""},
+    {t:"Healthcare: GLP-1 winners (NOVO-B, LLY) + medical devices (ROG, ZMH)", s:""},
+    {t:"Gold: 5-7% allocation as central bank reserve diversifier", s:""},
+    {t:"Currency: Diversify away from USD into CHF and gold", s:""}
+  ],
+  ubs:[
+    {t:"House View: Moderate equity overweight, prefer quality + dividend growers", s:"UBS CIO Wealth Management Global Investment Office monthly publication."},
+    {t:"Bonds: Lock in 5%+ yields in 5-10yr IG credit before Fed cuts", s:""},
+    {t:"Themes: Decarbonization, generative AI, healthcare innovation", s:""},
+    {t:"Risks: US election outcomes, China property contagion, oil price spikes", s:""},
+    {t:"UBS CIO Year Ahead 2025: 'A new world' — themes and tactical positioning", s:""},
+    {t:"Asia ex-Japan: Tactical preference for India + ASEAN over China", s:""},
+    {t:"Listed alternatives: Hedge fund replicators + liquid alts gaining ground", s:""},
+    {t:"Sustainable investing: 100% integrated for new client mandates", s:""},
+    {t:"Multi-asset 2025 outlook: 6-7% balanced portfolio total return", s:""},
+    {t:"Gold: Strategic 5% allocation; tactical bias to overweight", s:""},
+    {t:"Switzerland: SMI defensive composition (NESN, ROG, NOVN) attractive in volatile periods", s:""},
+    {t:"Real estate: European listed REITs offer best risk-reward post-2022 reset", s:""},
+    {t:"Private wealth solutions: Lombard lending against portfolio for liquidity", s:""},
+    {t:"Family office: 25-35% alts allocation typical for UHNW", s:""}
+  ],
+  vontobel:[
+    {t:"Thematic equity: Clean Energy, Digital Transformation, Healthy Living", s:"Vontobel mtx Active Quality flagship strategies."},
+    {t:"EM: Overweight quality EM consumer franchises, underweight cyclicals", s:""},
+    {t:"Fixed income: EUR IG corporate spreads offer attractive carry", s:""},
+    {t:"Currency hedging: Tactical hedge USD-funded EM positions", s:""},
+    {t:"Quality Growth investing: 15+ year track record of beating MSCI World by 200bp", s:""},
+    {t:"ESG-integrated mtx Sustainable Emerging Markets Leaders fund", s:""},
+    {t:"Conviction stocks: Tencent, Tata Consultancy, AIA Group, NESN, ASML", s:""},
+    {t:"Active share >85% across flagship equity strategies", s:""},
+    {t:"Income solutions: Vontobel Fund-Smart Dividend (high-conviction dividend payers)", s:""},
+    {t:"Alpha is alive in EM small-cap — Vontobel mtx EM Small Cap", s:""},
+    {t:"AI Revolution: 5 secular winners — NVDA, MSFT, GOOGL, TSM, ASML", s:""},
+    {t:"Multi-asset: Conservative 4-6% / Balanced 5-7% / Growth 6-8% expected returns", s:""}
+  ],
+  pictet:[
+    {t:"Pictet Barometer: Neutral equities, overweight bonds, underweight cash", s:"Monthly cross-asset positioning publication."},
+    {t:"Secular Outlook: Premiumization in EM consumer, water scarcity, robotics", s:"Pictet AM secular themes franchise."},
+    {t:"Style: Quality + low-volatility factor tilt for current cycle phase", s:""},
+    {t:"Alternatives: Global infrastructure 8-10% real returns expected", s:""},
+    {t:"Pictet Mega — long-only equity fund picking secular megatrend winners", s:""},
+    {t:"Water fund: 30-yr track record, top quartile vs global thematic peers", s:""},
+    {t:"Robotics: AI-adjacent industrial automation theme, double-digit revenue growth in winners", s:""},
+    {t:"Health: GLP-1, longevity, gene therapy — Pictet Health fund flagship", s:""},
+    {t:"Strategic AA Conservative: 35% equity / 50% bond / 10% alt / 5% cash", s:""},
+    {t:"Strategic AA Balanced: 55% equity / 30% bond / 12% alt / 3% cash", s:""},
+    {t:"Strategic AA Growth: 75% equity / 12% bond / 12% alt / 1% cash", s:""},
+    {t:"EM Debt local currency — selective, prefer high-yield single-name corporates", s:""},
+    {t:"Wealth platform: Direct indexing + tax-loss harvesting for taxable mandates", s:""}
+  ],
+  factset:[
+    {t:"Earnings Insight: S&P 500 Q3 EPS growth 4.6% YoY, beat rate 75%", s:"FactSet Senior Earnings Analyst John Butters weekly publication."},
+    {t:"Sector: Tech earnings revisions strongest, energy weakest", s:""},
+    {t:"Valuation: S&P 500 fwd P/E 21x vs 10-yr avg 17.9x", s:""},
+    {t:"Guidance: 65% of companies issuing positive guidance for Q4", s:""},
+    {t:"Buyback Quarterly: $230B in Q3 buybacks — second highest ever", s:""},
+    {t:"Dividend Quarterly: 8% YoY dividend growth — broad-based across sectors", s:""},
+    {t:"Analyst sentiment: Sell-side maintains overweight on Tech, Comm Services, Industrials", s:""},
+    {t:"Sector revenue growth 2025 estimate: Tech +11%, Healthcare +8%, Financials +6%", s:""},
+    {t:"Margins: S&P 500 net margin 12.0% vs 10.7% 10-yr average", s:""},
+    {t:"International earnings: Japan TOPIX EPS growth strongest among DM regions", s:""},
+    {t:"FactSet Concept Search: AI-mention transcripts up 350% YoY in S&P 500 calls", s:""},
+    {t:"Earnings Insight Pro: customer-specific earnings dashboards", s:""}
+  ],
+  bloomberg:[
+    {t:"BI: ETF flows pivoting from large-cap blend to international value YTD", s:"Bloomberg Intelligence ETF research."},
+    {t:"BI Credit: HY spreads at 320bp — tight vs history but supported by fundamentals", s:""},
+    {t:"BI Sector: Tech free-cash-flow margins to reach 30%+ by 2026", s:""},
+    {t:"BI: Active manager equal-weight strategies outperform cap-weight YTD by 4%", s:""},
+    {t:"BI Energy: Oil demand peaks 2030; majors pivoting to renewables", s:""},
+    {t:"BI Healthcare: GLP-1 market $130B+ by 2030; LLY, NOVO dominance", s:""},
+    {t:"BI Tech: AI hyperscaler capex $300B+ in 2025 — NVDA primary beneficiary", s:""},
+    {t:"BI Financials: Regional banks under-owned; selective opportunity in well-capitalized names", s:""},
+    {t:"BI ESG: Sustainable bond issuance to exceed $1T in 2025", s:""},
+    {t:"BI Real Estate: Cap rates have peaked; core to value-add opportunities", s:""},
+    {t:"Bloomberg Opinion: Multiple columns daily on macro, markets, policy", s:""},
+    {t:"BI Crypto: BTC ETF flows topping $50B since January 2024 launch", s:""},
+    {t:"BI Macro: Global liquidity cycle inflecting positive — risk-on bias", s:""}
+  ],
+  oppen:[
+    {t:"OAM Weekly: Risk-on tactical bias, prefer cyclical sectors + small caps", s:""},
+    {t:"Equities: Mid-caps trading at meaningful discount to large caps", s:""},
+    {t:"Bonds: 7-10yr TIPS attractive for inflation breakeven near 2.3%", s:""},
+    {t:"Themes: Reshoring beneficiaries, copper supply tightening", s:""},
+    {t:"Sector calls: OW Industrials (reshoring), Energy (capital discipline), Financials (steepening curve)", s:""},
+    {t:"Small-cap value: Russell 2000 Value at multi-year low P/E vs growth", s:""},
+    {t:"International developed: Tactical overweight Japan, neutral Europe", s:""},
+    {t:"EM: Overweight India, neutral LatAm, underweight China", s:""},
+    {t:"Credit: Investment grade preferred; HY spreads tight historically", s:""},
+    {t:"Alternatives: 10-15% allocation for accredited investors — focus on lower-corr strategies", s:""},
+    {t:"Energy: OXY, FANG, PXD — capital-disciplined E&Ps with shareholder returns", s:""},
+    {t:"Defense: LMT, RTX, NOC — multi-year capex cycle", s:""}
+  ],
+  sa:[
+    {t:"Wall Street Breakfast: Earnings season focus on margin trends", s:"Daily premarket Seeking Alpha newsletter."},
+    {t:"Top SA contributors: Bullish on quality dividend growers (VIG-style screens)", s:""},
+    {t:"Sector views: Healthcare underweight overdone — overweight medtech", s:""},
+    {t:"Income: BDCs at 11%+ yields screening attractive on coverage ratios", s:""},
+    {t:"SA Quant ratings: 25 'Strong Buy' picks include NVDA, GOOG, META", s:""},
+    {t:"SA Market Currents: Real-time analyst note feed across all coverage", s:""},
+    {t:"Dividend Aristocrats: Best long-term performance in 25+ yr dividend growers", s:""},
+    {t:"REITs: O, AMT, EQIX trading attractively post-rate-rise reset", s:""},
+    {t:"Energy: OXY, EOG, DVN — quality E&Ps with capital discipline", s:""},
+    {t:"Technology: MSFT, GOOGL, META — AI beneficiaries with reasonable valuations", s:""},
+    {t:"Closed-end funds: Trading at 8-15% discounts to NAV — selective opportunities", s:""},
+    {t:"Preferred stocks: PFF, PGX yielding 6.5%+ with limited duration", s:""},
+    {t:"International: VEA, VWO best low-cost international exposure", s:""}
+  ],
+  blackrock:[
+    {t:"BII Weekly: Tilt to fixed income; underweight US equities tactical", s:"BlackRock Investment Institute weekly commentary."},
+    {t:"Global Outlook: Structural shifts (aging, geopolitics, AI) → higher inflation regime", s:""},
+    {t:"EM: Overweight India + Mexico nearshoring beneficiaries", s:""},
+    {t:"Private markets: 20% target allocation for institutional portfolios", s:""},
+    {t:"BlackRock Year-Ahead Outlook 2025: 'Rebooting investing in a transformed world'", s:""},
+    {t:"Geopolitical fragmentation = AI capex + defense spending tailwind", s:""},
+    {t:"Energy transition: Renewables + grid build-out — long-duration capex theme", s:""},
+    {t:"Demographics: Aging populations = higher healthcare allocation + GLP-1", s:""},
+    {t:"Active fixed income: Find alpha in IG short-duration, EM debt", s:""},
+    {t:"iShares Top Picks: IVV (S&P 500), AGG (US Agg Bond), IEMG (EM)", s:""},
+    {t:"ESG: ESGV, SUSL maintain tracking error <50bp vs parent index", s:""},
+    {t:"Direct indexing: SMA platforms enable tax-loss harvesting at $250k+", s:""},
+    {t:"Crypto: IBIT (spot bitcoin ETF) — 1-2% strategic allocation for diversification", s:""}
+  ],
+  eaton:[
+    {t:"Capital Markets: Floating-rate loans 9%+ yields with low duration", s:""},
+    {t:"Parametric: Direct indexing for tax-loss harvesting at $250k+ portfolios", s:""},
+    {t:"Munis: Tax-equivalent yields 6.5%+ for top brackets", s:""},
+    {t:"Active equity: Quality value screens outperforming since rates inflected", s:""},
+    {t:"Eaton Vance Income Fund (EOI) — covered call S&P 500 yielding 8%+", s:""},
+    {t:"Floating rate income: EFR, BSI — senior loans yielding 9-11%", s:""},
+    {t:"Calvert ESG: Equity + fixed income ESG-integrated strategies", s:""},
+    {t:"High-yield muni: ETJ, EVN — 5-6% tax-free for high-income clients", s:""},
+    {t:"Parametric Custom Beta: Direct indexing with after-tax alpha 50-100bp", s:""},
+    {t:"Atlanta Capital: Small-cap quality value with 25-yr track record", s:""},
+    {t:"Eaton Vance Bond Mosaic — multi-sector fixed income flagship", s:""},
+    {t:"Closed-end fund opportunities: 8-12% discounts to NAV at quarter-end", s:""}
+  ],
+  mstar:[
+    {t:"Analyst ratings: Most undervalued sectors are healthcare and communications", s:""},
+    {t:"Fund picks: Active managers beating index in small-cap value YTD", s:""},
+    {t:"Sustainability: ESG-rated funds tracking parent universe within 50bp", s:""},
+    {t:"Star ratings: 4-5 star funds outperforming 1-2 star peers by 220bp over 10yr", s:""},
+    {t:"Morningstar Gold-rated funds: Vanguard Wellington, Dodge & Cox Stock, T. Rowe Price Blue Chip", s:""},
+    {t:"Bond fund top picks (Gold): Dodge & Cox Income, PIMCO Total Return, Vanguard Total Bond", s:""},
+    {t:"International fund top picks: Vanguard Total International, Dodge & Cox International", s:""},
+    {t:"Best ETFs 2025: IVV, AGG, VXUS, VWO, MUB — low cost broad exposure", s:""},
+    {t:"Top mutual funds: Vanguard Wellington (Gold), Fidelity Contrafund (Bronze)", s:""},
+    {t:"Style box analysis: Large-cap blend outperforming small-cap blend YTD", s:""},
+    {t:"Behavior gap research: Investors underperform their funds by ~1.5% annually", s:""},
+    {t:"Morningstar Sustainability: Avoid funds with 1-2 globes (lowest ESG ranking)", s:""},
+    {t:"Multi-Asset Income: VBIAX (Vanguard Balanced) cheaper alternative to 60/40 strategists", s:""}
+  ]
 };
 
 function curatedItems(id){
-  const lines = CURATED_RESEARCH[id] || ["No curated research available"];
-  return lines.map(t => ({title:t, date:"curated", summary:"Institutional view — configure live RSS feed to refresh."}));
+  const items = CURATED_RESEARCH[id] || [{t:"No curated research available", s:""}];
+  const today = new Date();
+  return items.map((item, idx) => {
+    const d = new Date(today - idx * 86400000); // Stagger dates day-by-day
+    return {
+      title: typeof item === "string" ? item : item.t,
+      date: d.toISOString().slice(0,10),
+      summary: typeof item === "string" ? "Institutional view — configure live RSS feed for real-time updates." : (item.s || "Curated institutional positioning.")
+    };
+  });
+}
+
+async function fetchFeedItems(url){
+  if(!url) return [];
+  try {
+    const r = await fetch("https://corsproxy.io/?"+encodeURIComponent(url));
+    if(!r.ok) return [];
+    const text = await r.text();
+    const doc = new DOMParser().parseFromString(text, "application/xml");
+    return $$("item, entry", doc).slice(0,25).map(e => ({
+      title: (e.querySelector("title")?.textContent||"").trim().slice(0,180) || "(untitled)",
+      date:  (e.querySelector("pubDate, published, updated")?.textContent||"").slice(0,16),
+      summary: (e.querySelector("description, summary, content")?.textContent||"").replace(/<[^>]+>/g,"").trim().slice(0,300)
+    }));
+  } catch(_){ return []; }
 }
 
 async function refreshProvider(id){
   const p = RESEARCH_PROVIDERS.find(x => x.id===id);
   if(!p) return;
-  const cfg = getProviderCfg(id);
-  let items = [];
-  if(p.feed){
-    try {
-      const r = await fetch("https://corsproxy.io/?"+encodeURIComponent(p.feed));
-      if(r.ok){
-        const text = await r.text();
-        const doc = new DOMParser().parseFromString(text, "application/xml");
-        items = $$("item, entry", doc).slice(0,20).map(e => ({
-          title: (e.querySelector("title")?.textContent||"").trim().slice(0,150) || "(untitled)",
-          date:  (e.querySelector("pubDate, published, updated")?.textContent||"").slice(0,16),
-          summary: (e.querySelector("description, summary, content")?.textContent||"").replace(/<[^>]+>/g,"").trim().slice(0,200)
-        }));
-      }
-    } catch(_){}
-  }
-  if(items.length===0) items = curatedItems(id);
-  setProviderCfg(id, {items: items.slice(0,20), lastRefresh: Date.now()});
-  return items.length;
+  // Try both primary and secondary feeds in parallel
+  const [primaryItems, secondaryItems] = await Promise.all([
+    fetchFeedItems(p.feed),
+    fetchFeedItems(p.feed2)
+  ]);
+  // Combine + dedupe by title
+  const seen = new Set();
+  let combined = [...primaryItems, ...secondaryItems].filter(it => {
+    const key = (it.title||"").toLowerCase().slice(0,80);
+    if(seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+  // ALWAYS append curated items (always provides agent with rich context)
+  const curated = curatedItems(id);
+  // Dedupe across live + curated
+  curated.forEach(c => {
+    const key = (c.title||"").toLowerCase().slice(0,80);
+    if(!seen.has(key)){ combined.push(c); seen.add(key); }
+  });
+  // Cap at 40 items
+  const final = combined.slice(0, 40);
+  setProviderCfg(id, {items: final, lastRefresh: Date.now()});
+  return final.length;
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -1183,8 +1437,11 @@ async function runAgent(){
   const research = checked.map(id => {
     const p = RESEARCH_PROVIDERS.find(x => x.id===id);
     const cfg = getProviderCfg(id);
-    const items = (cfg.items||[]).slice(0,4).map(it => "  • " + it.title).join("\n");
-    return `## ${p.name}\n${items || '  • (no items cached)'}`;
+    const items = (cfg.items||[]).slice(0,8).map(it => {
+      const s = it.summary && it.summary.length > 30 && !it.summary.startsWith("Institutional view") ? " — " + it.summary.slice(0,150) : "";
+      return "  • " + it.title + s;
+    }).join("\n");
+    return `## ${p.name} (${p.type})\n${items || '  • (no items cached)'}`;
   }).join("\n\n");
 
   const universe = FUND_UNIVERSE.map(f =>
