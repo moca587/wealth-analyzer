@@ -6053,6 +6053,31 @@ Constraints:
     const m = text.match(/\{[\s\S]*\}/);
     if(!m) throw new Error("Agent returned no parseable JSON");
     const rec = JSON.parse(m[0]);
+    // ─── Recompute portfolio metrics against the actual fund universe ───
+    // Claude's expectedReturn / expectedVolatility are advisory — overwrite
+    // with the deterministic weighted-mean against fund.mu / fund.sigma so
+    // AI Builder matches Investment Proposal and Portfolio Comparison exactly.
+    if(Array.isArray(rec.positions)){
+      rec.positions.forEach(p => {
+        const f = AI_FUND_UNIVERSE.find(x => x.tkr === (p.ticker || p.tkr));
+        if(f){
+          p.exp   = f.mu;
+          p.sigma = f.sigma;
+          p.cls   = f.cls;
+          p.er    = p.er ?? f.er;
+          p.yld   = p.yld ?? f.yld;
+          p.metrics = p.metrics || {
+            name: f.name, sponsor: f.sponsor, vehicle: f.vehicle, dom: f.dom||"US",
+            ucits: !!f.ucits, esg: !!f.esg, er: f.er, yld: f.yld, mu: f.mu, sigma: f.sigma,
+            sharpe: f.sharpe, beta: f.beta, maxDD: f.maxDD, r1y: f.r1y, r3y: f.r3y,
+            r5y: f.r5y, r10y: f.r10y, holdings: f.holdings, aum: f.aum, inception: f.inception, te: f.te
+          };
+        }
+      });
+      const _u = computePortfolioMetrics(rec.positions, "weight");
+      rec.expectedReturn     = _u.grossMu;
+      rec.expectedVolatility = _u.sigma;
+    }
     lastAIGenResult = rec;
     renderAIGenResult(rec, {risk, horizon, country, netWorth, grossIncome, surplus, researchProviderCount});
     status.innerHTML = '✓ <strong style="color:#1b6841">Portfolio recommendation ready</strong> — review below, then click <strong>↓ Apply to Proposal Below</strong>';
@@ -6152,12 +6177,20 @@ function renderSimpleAIResult(rec, simpleBrief){
   h += '<div style="font-size:13px;line-height:1.7;color:var(--text2)">' + escapeForHTML(rec.summary || "") + '</div>';
   h += '</div>';
 
-  // 3 BIG KPIs (very large, easy to read)
+  // 3 BIG KPIs — gross-of-fees return, net-of-fees return shown together
+  // so the AI Builder matches Investment Proposal and Portfolio Comparison.
+  const _aiFee = (typeof getProposalAdvisoryFeePct === "function") ? getProposalAdvisoryFeePct() : 0;
+  const _aiGross = (rec.expectedReturn || 0);
+  const _aiNet   = Math.max(0, _aiGross - _aiFee);
   h += '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:18px">';
   h += '<div style="background:#fff;border:1px solid var(--border);border-radius:12px;padding:18px 20px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,.04)">';
-  h += '<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.10em;color:var(--text3);margin-bottom:6px">Expected yearly return</div>';
-  h += '<div style="font-size:32px;font-weight:800;color:var(--green);letter-spacing:-.03em">' + ((rec.expectedReturn||0)*100).toFixed(1) + '%</div>';
-  h += '<div style="font-size:11px;color:var(--text3);margin-top:4px">Based on long-run market history</div>';
+  h += '<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.10em;color:var(--text3);margin-bottom:6px">Expected yearly return ' + (_aiFee>0 ? '<span style="color:var(--text3);font-weight:600">(gross / net of '+(_aiFee*100).toFixed(2)+'% fee)</span>' : '(gross)') + '</div>';
+  if(_aiFee > 0){
+    h += '<div style="font-size:28px;font-weight:800;color:var(--green);letter-spacing:-.03em">' + (_aiGross*100).toFixed(2) + '% <span style="font-size:18px;color:var(--text3)">/</span> ' + (_aiNet*100).toFixed(2) + '%</div>';
+  } else {
+    h += '<div style="font-size:32px;font-weight:800;color:var(--green);letter-spacing:-.03em">' + (_aiGross*100).toFixed(2) + '%</div>';
+  }
+  h += '<div style="font-size:11px;color:var(--text3);margin-top:4px">Weighted from fund expected returns &mdash; matches Proposal &amp; Comparison</div>';
   h += '</div>';
   h += '<div style="background:#fff;border:1px solid var(--border);border-radius:12px;padding:18px 20px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,.04)">';
   h += '<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.10em;color:var(--text3);margin-bottom:6px">Expected volatility</div>';
@@ -6493,6 +6526,12 @@ function runDeterministicEngine(brief){
       positions.push({
         ticker: f.tkr,
         weight: +each.toFixed(1),
+        // Carry exp/sigma/cls on the position itself so the unified
+        // computePortfolioMetrics() returns the same number as the
+        // Investment Proposal and Portfolio Comparison views.
+        exp:   f.mu,
+        sigma: f.sigma,
+        cls:   f.cls,
         rationale: rationaleParts.join(" · "),
         citations: (clsData?.items || []).slice(0,3).map(i => `[${i.provider}] ${i.title}`),
         metrics: {
@@ -6516,8 +6555,10 @@ function runDeterministicEngine(brief){
     const f = fundLookup(p.ticker);
     return s + (((f && f[key] != null) ? f[key] : dflt) * p.weight / 100);
   }, 0);
-  const expectedReturn     = wsum("mu",     7) / 100;
-  const expectedVolatility = wsum("sigma", 12) / 100;
+  // Use unified helper so AI Builder matches Proposal/Comparison exactly
+  const _unifiedM = computePortfolioMetrics(positions, "weight");
+  const expectedReturn     = _unifiedM.grossMu;
+  const expectedVolatility = _unifiedM.sigma;
   const portfolioBeta      = wsum("beta",  0.7);
   const portfolioR1y       = wsum("r1y",  10);
   const portfolioR3y       = wsum("r3y",   6);
@@ -7047,9 +7088,12 @@ function renderProposalMetrics(){
     ["pr-ret","pr-er","pr-yld","pr-risk","pr-fee-sum","pr-ret-net-sum"].forEach(id=>setT(id,"—"));
     return;
   }
-  const wExp=proposals.reduce((s,p)=>s+(p.exp||0)*p.alloc,0)/totalAlloc;
-  const wEr=proposals.reduce((s,p)=>s+(p.er||0)*p.alloc,0)/totalAlloc;
-  const wYld=proposals.reduce((s,p)=>s+(p.yld||0)*p.alloc,0)/totalAlloc;
+  // Gross expected return — uses unified computePortfolioMetrics so it
+  // matches AI Builder + Portfolio Comparison exactly. Falls back to
+  // class default (not 0) when a position has no p.exp set.
+  const wExp = computePortfolioMetrics(proposals, "alloc").grossMu * 100;
+  const wEr  = proposals.reduce((s,p)=>s+(p.er||0)*p.alloc,0)/totalAlloc;
+  const wYld = proposals.reduce((s,p)=>s+(p.yld||0)*p.alloc,0)/totalAlloc;
   setT("pr-ret",wExp.toFixed(2)+"%");
   setT("pr-er",wEr.toFixed(2)+"%");
   setT("pr-yld",wYld.toFixed(2)+"%");
@@ -8136,18 +8180,44 @@ function getEffectiveReturnParams(){
   const fee=getPortfolioAdvisoryFeePct();
   return {mu:Math.max(0,gross.mu-fee), sig:gross.sig};
 }
+// ═══════════════════════════════════════════════════════════════════
+// UNIFIED PORTFOLIO METRICS — single source of truth used by all three
+// views (AI Portfolio Builder, Investment Proposal, Portfolio Comparison)
+// so that "Expected yearly return" matches everywhere.
+// ═══════════════════════════════════════════════════════════════════
+const PORT_DEF_MU  = {equity:8,  fixed_income:4.5, real_estate:6.5, commodity:5.5, cash:0, mixed:6,  alternative:9,  crypto:25};
+const PORT_DEF_SIG = {equity:14, fixed_income:5,   real_estate:11,  commodity:16,  cash:0, mixed:9,  alternative:18, crypto:65};
+
+// A position's expected return in percent. Prefers p.exp (set by AI engine
+// to fund.mu, or hand-entered on the Proposal form), then class default,
+// then 7% as the universal fallback.
+function _posMu(p){
+  return (p && p.exp != null && !isNaN(p.exp)) ? +p.exp : (PORT_DEF_MU[p.cls] ?? 7);
+}
+function _posSig(p){
+  return (p && p.sigma != null && !isNaN(p.sigma)) ? +p.sigma : (PORT_DEF_SIG[p.cls] ?? 12);
+}
+
+// Weighted gross return + sigma for any list of positions.
+//   weightField — "weight" (AI engine positions) or "alloc" (proposal positions)
+// Returns decimals (e.g. 0.087 = 8.7%).
+function computePortfolioMetrics(positions, weightField){
+  if(!positions || positions.length === 0) return {grossMu:0, sigma:0};
+  const W = positions.reduce((s,p) => s + (+p[weightField] || 0), 0);
+  if(W <= 0) return {grossMu:0, sigma:0};
+  const muPct  = positions.reduce((s,p) => s + _posMu(p)  * (+p[weightField] || 0), 0) / W;
+  const sigPct = positions.reduce((s,p) => s + _posSig(p) * (+p[weightField] || 0), 0) / W;
+  return {grossMu: muPct/100, sigma: sigPct/100};
+}
+
 // Investment-proposal weighted return params — mirrors runComparison() logic.
 // Uses p.exp (fetched expected return) if available, otherwise falls back to
 // asset-class defaults. Deducts proposal advisory fee.
 function getProposalReturnParams(){
-  const totalAlloc=proposals.reduce((s,p)=>s+p.alloc,0);
-  if(totalAlloc===0) return getReturnParams();
-  const DEF_RET={equity:8,fixed_income:4.5,real_estate:6.5,commodity:5.5,cash:0,mixed:6,alternative:9};
-  const DEF_VOL={equity:14,fixed_income:5,real_estate:11,commodity:16,cash:0,mixed:9,alternative:18};
-  const grossMu=proposals.reduce((s,p)=>s+(p.exp??DEF_RET[p.cls]??7)*p.alloc,0)/totalAlloc/100;
-  const sig=proposals.reduce((s,p)=>s+(DEF_VOL[p.cls]??12)*p.alloc,0)/totalAlloc/100;
-  const fee=getProposalAdvisoryFeePct();
-  return {mu:Math.max(0,grossMu-fee), sig};
+  if(!proposals || proposals.length === 0) return getReturnParams();
+  const {grossMu, sigma} = computePortfolioMetrics(proposals, "alloc");
+  const fee = getProposalAdvisoryFeePct();
+  return {mu: Math.max(0, grossMu - fee), sig: sigma};
 }
 
 // ─── Proposal-driven simulation source flag ──────────────────────────
@@ -9322,13 +9392,10 @@ function runComparison(){
 
   let propGrossMu=curGrossMu, propMu=curParams.mu, propSig=curParams.sig, propFee=0;
   if(proposals.length>0){
-    const totalAlloc=proposals.reduce((s,p)=>s+p.alloc,0);
-    if(totalAlloc>0){
-      const w=(field,defByCls)=>proposals.reduce((s,p)=>s+(p[field]??defByCls[p.cls]??7)*p.alloc,0)/totalAlloc;
-      propGrossMu=w("exp",{equity:8,fixed_income:4.5,real_estate:6.5,commodity:5.5,cash:0,mixed:6,alternative:9})/100;
-      // Weighted volatility across all proposal positions
-      propSig=proposals.reduce((s,p)=>s+({equity:14,fixed_income:5,real_estate:11,commodity:16,cash:0,mixed:9,alternative:18}[p.cls]||12)*p.alloc,0)/totalAlloc/100;
-    }
+    // Unified — same formula as AI Builder + Investment Proposal metrics
+    const m = computePortfolioMetrics(proposals, "alloc");
+    propGrossMu = m.grossMu;
+    propSig     = m.sigma;
   }
   // Deduct proposal advisory fee from gross return
   propFee = getProposalAdvisoryFeePct();
