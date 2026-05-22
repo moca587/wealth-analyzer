@@ -390,6 +390,175 @@ Down payment | 2028 | 150000</textarea>
     <div id="agResult"></div>
   </div>
 
+  <!-- Methodology — How the Agent Selects Funds -->
+  <div class="panel" style="background:linear-gradient(135deg,#fff,#f0f9ff);border:1px solid rgba(0,87,184,.20)">
+    <div class="ptitle" style="color:var(--blue);display:flex;align-items:center;justify-content:space-between">
+      <span>🔬 How the Agent Selects Funds — Full Decision Logic</span>
+      <button class="btn-ghost" onclick="document.getElementById('methodBody').style.display = document.getElementById('methodBody').style.display==='none'?'block':'none'" style="font-size:11px;padding:4px 12px">Show / Hide</button>
+    </div>
+    <div id="methodBody">
+      <div class="pdesc">Every fund selection is fully traceable. The engine follows a deterministic 5-stage pipeline with explicit scoring, constraints, and rationale. Below is the complete decision logic — same logic used by both the Research Engine and the Claude API agent.</div>
+
+      <!-- Stage 1 — Signal extraction -->
+      <div style="background:#fff;border:1px solid var(--line);border-left:4px solid #0057b8;border-radius:8px;padding:16px 20px;margin-bottom:12px">
+        <div style="font-weight:700;font-size:14px;color:#0057b8;margin-bottom:8px">STAGE 1 — Signal Extraction from Research</div>
+        <div style="font-size:12.5px;line-height:1.7;color:var(--ink2)">
+          For each cached research item (typically 100+ per provider, 1,600+ total), the engine parses the title + summary against keyword lexicons:
+          <ul style="margin:8px 0 0 20px">
+            <li><strong>Sentiment lexicons:</strong> 18 bullish phrases (overweight, bullish, favor, top pick, overperform, attractive, compelling, upside, tailwind, constructive, accumulate…) weighted +1 to +4. 16 bearish phrases (underweight, bearish, avoid, cautious, stretched, headwind, exit, trim…) weighted −1 to −4.</li>
+            <li><strong>Asset class detection:</strong> 6 classes scanned for phrases (equity, fixed income, real estate, commodity, cash, alternative). Item sentiment is applied to the class as a signed vote.</li>
+            <li><strong>Sector detection:</strong> 11 sectors with specific ticker tags (Tech: NVDA/MSFT/QQQ/XLK; Healthcare: LLY/NOVO/XLV; Financials: JPM/XLF; Energy: XOM/CVX/XLE; etc.).</li>
+            <li><strong>Region detection:</strong> 7 regions (US, Europe, Japan, China, India, EM, Developed Intl).</li>
+            <li><strong>Theme detection:</strong> 11 themes (AI, decarbonization, GLP-1, defense, reshoring, cybersecurity, demographics, water, crypto, dividend growth, quality factor).</li>
+            <li><strong>Ticker extraction:</strong> regex against 38-fund universe + 30 common stocks. Each mention recorded with the provider name for conviction scoring.</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Stage 2 — Aggregation -->
+      <div style="background:#fff;border:1px solid var(--line);border-left:4px solid #00875a;border-radius:8px;padding:16px 20px;margin-bottom:12px">
+        <div style="font-weight:700;font-size:14px;color:#00875a;margin-bottom:8px">STAGE 2 — Cross-Provider Consensus Aggregation</div>
+        <div style="font-size:12.5px;line-height:1.7;color:var(--ink2)">
+          Net votes summed across all 16 providers. For each signal (e.g. "overweight Equity"), the engine tracks:
+          <ul style="margin:8px 0 0 20px">
+            <li><strong>Total net votes</strong>: sum of all signed sentiments across all items mentioning this signal</li>
+            <li><strong>Provider count</strong>: number of unique institutions endorsing the position</li>
+            <li><strong>Top 8 supporting research items</strong>: kept for citation in the position's rationale</li>
+            <li><strong>Ticker conviction</strong>: tickers mentioned by 3+ providers get a +1 score bonus per additional provider</li>
+          </ul>
+          <div style="margin-top:8px;padding:8px 12px;background:rgba(0,135,90,.05);border-radius:5px;font-family:var(--fm);font-size:11px">
+            <strong>Example:</strong> If BofA, JPM, Morgan Stanley, Goldman, BlackRock, and Pictet all express "overweight equities" with weight 3 each → Equity gets +18 net votes from 6 providers
+          </div>
+        </div>
+      </div>
+
+      <!-- Stage 3 — Allocation -->
+      <div style="background:#fff;border:1px solid var(--line);border-left:4px solid #f59e0b;border-radius:8px;padding:16px 20px;margin-bottom:12px">
+        <div style="font-weight:700;font-size:14px;color:#f59e0b;margin-bottom:8px">STAGE 3 — Strategic Asset Allocation (Risk Baseline + Research Tilt)</div>
+        <div style="font-size:12.5px;line-height:1.7;color:var(--ink2)">
+          Starts with a <strong>risk-profile baseline</strong>, then tilts based on research consensus:
+        </div>
+        <div class="tbl-wrap" style="margin-top:10px"><table class="tbl" style="font-size:11.5px">
+          <thead><tr><th>Risk Profile</th><th class="num">Equity</th><th class="num">Fixed Inc</th><th class="num">Real Estate</th><th class="num">Commodity</th><th class="num">Cash</th><th class="num">Alts</th></tr></thead>
+          <tbody>
+            <tr><td>Very Conservative</td><td class="num">20%</td><td class="num">60%</td><td class="num">5%</td><td class="num">5%</td><td class="num">10%</td><td class="num">0%</td></tr>
+            <tr><td>Conservative</td><td class="num">30%</td><td class="num">55%</td><td class="num">5%</td><td class="num">3%</td><td class="num">5%</td><td class="num">2%</td></tr>
+            <tr><td>Mod. Conservative</td><td class="num">40%</td><td class="num">45%</td><td class="num">5%</td><td class="num">3%</td><td class="num">3%</td><td class="num">4%</td></tr>
+            <tr><td><strong>Moderate</strong></td><td class="num"><strong>55%</strong></td><td class="num"><strong>30%</strong></td><td class="num"><strong>7%</strong></td><td class="num"><strong>3%</strong></td><td class="num"><strong>0%</strong></td><td class="num"><strong>5%</strong></td></tr>
+            <tr><td>Mod. Aggressive</td><td class="num">65%</td><td class="num">20%</td><td class="num">7%</td><td class="num">3%</td><td class="num">0%</td><td class="num">5%</td></tr>
+            <tr><td>Aggressive</td><td class="num">75%</td><td class="num">10%</td><td class="num">8%</td><td class="num">2%</td><td class="num">0%</td><td class="num">5%</td></tr>
+            <tr><td>Very Aggressive</td><td class="num">85%</td><td class="num">5%</td><td class="num">5%</td><td class="num">0%</td><td class="num">0%</td><td class="num">5%</td></tr>
+          </tbody>
+        </table></div>
+        <div style="font-size:12.5px;line-height:1.7;color:var(--ink2);margin-top:10px">
+          <strong>Research tilt:</strong> each asset class can be shifted ±8 percentage points from baseline based on net votes. Formula:
+          <div style="padding:8px 12px;background:rgba(245,158,11,.06);border-radius:5px;font-family:var(--fm);font-size:11px;margin-top:6px">
+            tilt = max(-8, min(+8, netVotes / 4))<br>
+            allocation[class] = baseline[class] + tilt
+          </div>
+          So a class with +24 net votes gets +6% above baseline; a class with −16 net votes gets −4%. Final allocation normalized to sum exactly 100%.
+        </div>
+      </div>
+
+      <!-- Stage 4 — Fund Selection -->
+      <div style="background:#fff;border:1px solid var(--line);border-left:4px solid #7c3aed;border-radius:8px;padding:16px 20px;margin-bottom:12px">
+        <div style="font-weight:700;font-size:14px;color:#7c3aed;margin-bottom:8px">STAGE 4 — Fund Selection from Universe</div>
+        <div style="font-size:12.5px;line-height:1.7;color:var(--ink2)">
+          For each asset class with allocation ≥ 2%, the engine picks specific funds:
+          <ol style="margin:8px 0 0 20px">
+            <li><strong>Filter candidates by class:</strong> only funds where <code>fund.cls === targetClass</code></li>
+            <li><strong>Apply hard constraints:</strong>
+              <ul style="margin-top:4px">
+                <li>If <code>ESG = strict</code> → keep only funds with <code>esg: true</code> flag</li>
+                <li>If <code>liquidity = high</code> → exclude mutual funds and alternatives; ETFs + cash only</li>
+                <li>If <code>tax sensitivity = high</code> → sort ETFs before mutual funds</li>
+              </ul>
+            </li>
+            <li><strong>Score each candidate:</strong>
+              <div style="padding:10px 14px;background:rgba(124,58,237,.05);border-radius:5px;font-family:var(--fm);font-size:11px;margin-top:6px;line-height:1.8">
+                score = <strong>(1 − expense_ratio)</strong>        ← low cost preferred<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;+ <strong>2 + (mentions × 0.3)</strong> if fund's ticker explicitly cited in research<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;− <strong>0.2</strong> if sponsor already used for another position
+              </div>
+            </li>
+            <li><strong>Sort by score</strong> and pick top N funds where:
+              <ul style="margin-top:4px">
+                <li>N = 1 if class weight < 12%</li>
+                <li>N = 2 if class weight between 12% and 25%</li>
+                <li>N = 3 if class weight ≥ 25%</li>
+              </ul>
+            </li>
+            <li><strong>Apply max-position cap:</strong> if user set <code>maxPosition = 20%</code>, no single position exceeds 20%</li>
+            <li><strong>Renormalize:</strong> all weights scaled to sum to exactly 100%</li>
+          </ol>
+        </div>
+      </div>
+
+      <!-- Stage 5 — Rationale -->
+      <div style="background:#fff;border:1px solid var(--line);border-left:4px solid #e31837;border-radius:8px;padding:16px 20px;margin-bottom:12px">
+        <div style="font-weight:700;font-size:14px;color:#e31837;margin-bottom:8px">STAGE 5 — Rationale Generation (per position)</div>
+        <div style="font-size:12.5px;line-height:1.7;color:var(--ink2)">
+          Every fund pick gets a multi-part rationale:
+          <ul style="margin:8px 0 0 20px">
+            <li><strong>Consensus citation:</strong> "<em>N/16 providers overweight [class] (+X net votes)</em>"</li>
+            <li><strong>Specific ticker mentions:</strong> if applicable, "<em>VTI explicitly mentioned by BlackRock, Vanguard + 2 more</em>"</li>
+            <li><strong>Cost rationale:</strong> "<em>Low expense ratio (0.03%)</em>"</li>
+            <li><strong>Constraint match:</strong> "<em>ETF wrapper preferred for high tax sensitivity</em>" or "<em>ESG-flagged matches preference</em>"</li>
+            <li><strong>Top 3 research citations:</strong> bulleted list of the actual research items that drove the asset-class consensus, each tagged with the providing institution</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Worked example -->
+      <div style="background:linear-gradient(135deg,#fff,#fef3c7);border:1px solid rgba(245,158,11,.30);border-radius:8px;padding:16px 20px">
+        <div style="font-weight:700;font-size:13px;color:#92400e;margin-bottom:10px">📝 WORKED EXAMPLE — Moderate Profile, Sample Walkthrough</div>
+        <div style="font-size:11.5px;line-height:1.8;color:var(--ink2);font-family:var(--fm)">
+<strong>Brief:</strong> risk = moderate · NW = $500k · ESG = none · tax = medium · liquidity = medium · max pos = 20%<br>
+<strong>Research scanned:</strong> 1,420 items across 16 providers<br><br>
+
+<strong>Signals extracted:</strong><br>
+• Equity: +28 net votes from 14 providers (overweight consensus)<br>
+• Fixed Income: +8 net votes from 11 providers<br>
+• Real Estate: −2 net votes (mixed views)<br>
+• Cash: −12 net votes (underweight)<br>
+• Top theme: AI (16/16 providers, 67 votes)<br>
+• Ticker mentions: VTI 4x, IVV 6x, AGG 5x, QQQ 8x<br><br>
+
+<strong>Allocation (Moderate baseline tilted by research):</strong><br>
+• Equity: 55% baseline + 7% tilt (28/4) = <strong>62%</strong><br>
+• Fixed Income: 30% + 2% = <strong>32%</strong><br>
+• Real Estate: 7% − 0.5% = <strong>6.5%</strong> (but rounds down, stays at 7%)<br>
+• Cash: 0% − 3% (floor at 0) = <strong>0%</strong><br>
+• Normalized to 100%<br><br>
+
+<strong>Fund picks for Equity (62% → 3 funds):</strong><br>
+• <strong>IVV</strong> 20% — score = 0.97 + 2 + 1.8 (mentions) − 0 = 4.77 → highest<br>
+• <strong>QQQ</strong> 20% — score = 0.80 + 2 + 2.4 (8 mentions) − 0.2 (BlackRock used) = 5.00 → highest<br>
+• <strong>VXUS</strong> 22% — score = 0.93 + 0 − 0.2 = 0.73 (no mention, but good for diversification)<br><br>
+
+<strong>Rationale for IVV:</strong><br>
+14/16 providers overweight Equity (+28 net votes) ·<br>
+IVV explicitly mentioned by BlackRock, BofA, JPM + 3 more ·<br>
+Low expense ratio (0.03%)<br>
+Citations:<br>
+• [BofA] "Equities: Overweight quality large caps; mid-single-digit S&P returns"<br>
+• [BlackRock] "iShares Top Picks: IVV, AGG, IEMG"<br>
+• [JPM] "Guide to the Markets: 60/40 6-8% expected next decade"
+        </div>
+      </div>
+
+      <!-- Determinism note -->
+      <div style="margin-top:14px;padding:12px 16px;background:rgba(0,87,184,.05);border-radius:6px;font-size:12px;color:var(--ink2);line-height:1.6">
+        <strong style="color:var(--blue)">🔒 Determinism guarantee:</strong> the Research Engine is fully deterministic. Same brief + same cached research → always same output. Run it twice in a row and verify identical fund picks via the Engine Stress Test tab → "Robustness Checks" → "Determinism" test. The only thing that changes the output is (a) you change the brief, (b) new research arrives in the cache, or (c) you modify the fund universe / risk-baseline / scoring constants directly in the code.
+      </div>
+
+      <!-- Differences from Claude version -->
+      <div style="margin-top:10px;padding:12px 16px;background:rgba(124,58,237,.05);border-radius:6px;font-size:12px;color:var(--ink2);line-height:1.6">
+        <strong style="color:var(--purple)">🤖 How the Claude API agent differs:</strong> the Claude version receives the same client brief + research items + fund universe as the deterministic engine, but uses an LLM to reason narratively over the inputs. It may suggest weights that deviate from the deterministic baseline (e.g. tactical overweights based on theme strength), and can produce richer prose rationale. Both produce the same JSON shape and feed the same Export-to-Proposal button. Pick deterministic for auditability, Claude for narrative reasoning.
+      </div>
+    </div>
+  </div>
+
   <div class="panel">
     <div class="ptitle">Curated Fund Universe</div>
     <div id="fundTable"></div>
@@ -780,7 +949,7 @@ Down payment | 2028 | 150000</textarea>
 // ═══════════════════════════════════════════════════════════
 // VERSION + UTILS
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260522-0938";
+const APP_VERSION = "20260522-0942";
 const $ = (id) => document.getElementById(id);
 const $$ = (sel, ctx) => Array.from((ctx||document).querySelectorAll(sel));
 
