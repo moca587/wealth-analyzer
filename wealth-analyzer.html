@@ -1820,8 +1820,8 @@ input[type=date]{color-scheme:light}
           <option value="alternative">Alternative</option>
         </select>
       </div>
-      <div class="fld"><label>Alloc %</label><input type="number" id="prAlloc" placeholder="0" min="0" max="100" step="0.1"></div>
-      <div class="fld"><label>Exp Ret %</label><input type="number" id="prExp" placeholder="0" step="0.1"></div>
+      <div class="fld"><label>Weight %</label><input type="number" id="prAlloc" placeholder="0" min="0" max="100" step="0.1"></div>
+      <div class="fld"><label>10yr Exp Return %</label><input type="number" id="prExp" placeholder="0" step="0.1"></div>
       <div class="fld"><label>Expense Ratio %</label><input type="number" id="prErIn" placeholder="0" min="0" max="10" step="0.01"></div>
       <div class="fld"><label>Yield %</label><input type="number" id="prYldIn" placeholder="0" min="0" max="50" step="0.01"></div>
       <div class="fld"><label>Rationale</label><input id="prNote" placeholder="optional note"></div>
@@ -5046,14 +5046,30 @@ function renderProposals(){
   const list=$("prList"); if(!list) return;
   if(proposals.length===0){list.innerHTML='<div class="pf-empty">No positions added yet.</div>'; return;}
   const target=num("prAmount",0);
-  list.innerHTML=proposals.map(p=>{
+
+  // Header row — column labels above the position numbers
+  const headerStyle = "font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text3);padding:8px 0;line-height:1.3";
+  let html = `<div class="pr-row" style="background:var(--bg3);border-bottom:2px solid var(--border2);align-items:end">
+    <span style="${headerStyle}">Vehicle</span>
+    <span style="${headerStyle}">Fund Name</span>
+    <span style="${headerStyle}">Ticker</span>
+    <span style="${headerStyle}">Asset Class</span>
+    <span style="${headerStyle}">Weight<br><span style="font-size:9px;font-weight:500;text-transform:none;letter-spacing:0;color:var(--text3)">% of portfolio</span></span>
+    <span style="${headerStyle}">Avg Expected<br>Return <span style="font-size:9px;font-weight:500;color:var(--gold)">10yr</span></span>
+    <span style="${headerStyle}">Expense<br>Ratio</span>
+    <span style="${headerStyle}">Yield</span>
+    <span style="${headerStyle}">Rationale</span>
+    <span></span>
+  </div>`;
+
+  html += proposals.map(p=>{
     const dollar=target>0?p.alloc/100*target:0;
     return `<div class="pr-row">
       <span class="pv-tag pv-${p.vehicle}">${PROP_VEHICLE_LABELS[p.vehicle]||p.vehicle}</span>
       <span class="prname">${p.name}</span>
       <span style="color:var(--text3);font-size:11px">${p.tkr||"—"}</span>
       <span style="color:var(--text2)">${INV_CLASS_LABELS[p.cls]||p.cls}</span>
-      <span style="color:var(--text);font-variant-numeric:tabular-nums">${p.alloc.toFixed(1)}%${target>0?" • "+fmtMoney(dollar):""}</span>
+      <span style="color:var(--text);font-variant-numeric:tabular-nums;font-weight:600">${p.alloc.toFixed(1)}%${target>0?'<br><span style="font-size:10px;color:var(--text3);font-weight:400">'+fmtMoney(dollar)+'</span>':''}</span>
       <span style="color:var(--text2);font-variant-numeric:tabular-nums">${p.exp!=null?p.exp.toFixed(1)+"%":"—"}</span>
       <span style="color:var(--text2);font-variant-numeric:tabular-nums">${p.er!=null?p.er.toFixed(2)+"%":"—"}</span>
       <span style="color:var(--text2);font-variant-numeric:tabular-nums">${p.yld!=null?p.yld.toFixed(2)+"%":"—"}</span>
@@ -5061,6 +5077,8 @@ function renderProposals(){
       <button class="btn-x" onclick="removeProposal('${p.id}')">✕</button>
     </div>`;
   }).join("");
+
+  list.innerHTML = html;
 }
 function renderProposalMetrics(){
   const target=num("prAmount",0);
