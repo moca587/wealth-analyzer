@@ -728,6 +728,16 @@ input[type=date]{color-scheme:light}
 .alloc-pie-pct{color:var(--text3);font-variant-numeric:tabular-nums;font-weight:600;min-width:44px;text-align:right}
 @media(max-width:1100px){.alloc-pies{grid-template-columns:1fr 1fr}}
 @media(max-width:760px){.alloc-pies{grid-template-columns:1fr}}
+
+/* ─── AI position card: reveal full rationale on hover/focus ─── */
+.ai-pos-card:hover, .ai-pos-card:focus-within {
+  background:rgba(124,58,237,.08) !important;
+  box-shadow:0 4px 18px rgba(124,58,237,.15);
+}
+.ai-pos-card:hover .ai-pos-why,
+.ai-pos-card:focus-within .ai-pos-why {
+  max-height:1200px;
+}
 .pf-mc{padding:10px 14px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--rs)}
 .pf-mc-lbl{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px}
 .pf-mc-val{font-family:var(--fd);font-size:18px;color:var(--text);font-weight:700}
@@ -2222,8 +2232,10 @@ input[type=date]{color-scheme:light}
     <div class="pf-mc"><div class="pf-mc-lbl">Risk score</div><div class="pf-mc-val" id="pr-risk">—</div><div class="risk-bar"><div id="pr-risk-fill" style="flex:0 0 0%"></div></div></div>
   </div>
 
-  <!-- Twin pies row -->
-  <div class="alloc-pies alloc-pies-2" style="margin-top:8px">
+  <!-- Three pies row — Asset Class, Vehicle Type, Geographic Region.
+       Each pie uses a distinct color palette (blues / oranges / greens)
+       matching the Portfolio tab for consistency. -->
+  <div class="alloc-pies" style="margin-top:8px">
     <div class="alloc-pie-wrap">
       <div class="alloc-pie-title">By Asset Class</div>
       <div class="alloc-pie-canvas-wrap"><canvas id="prPieCanvas" role="img" aria-label="Proposal asset-class pie chart"></canvas></div>
@@ -2233,6 +2245,11 @@ input[type=date]{color-scheme:light}
       <div class="alloc-pie-title">By Vehicle Type</div>
       <div class="alloc-pie-canvas-wrap"><canvas id="prPieVehicleCanvas" role="img" aria-label="Proposal vehicle-type pie chart"></canvas></div>
       <div id="prPieVehicleLegend" class="alloc-pie-legend"></div>
+    </div>
+    <div class="alloc-pie-wrap">
+      <div class="alloc-pie-title">By Geographic Region</div>
+      <div class="alloc-pie-canvas-wrap"><canvas id="prPieRegionCanvas" role="img" aria-label="Proposal region pie chart"></canvas></div>
+      <div id="prPieRegionLegend" class="alloc-pie-legend"></div>
     </div>
   </div>
 
@@ -2697,7 +2714,7 @@ input[type=date]{color-scheme:light}
 // ═══════════════════════════════════════════════════════════
 // VERSION — updated by build-standalone.pl on each build
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260523-1831";
+const APP_VERSION = "20260523-1836";
 
 // ═══════════════════════════════════════════════════════════
 // DATA
@@ -6877,21 +6894,57 @@ function renderSimpleAIResult(rec, simpleBrief){
     h += '</div>';
   }
 
-  // Funds with simple language
+  // Funds with rich hover-to-expand rationale
   if(rec.positions?.length){
     h += '<div style="background:#fff;border:1px solid var(--border);border-radius:12px;padding:18px 22px;margin-bottom:18px">';
-    h += '<div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:14px">💼 The funds we picked for you</div>';
+    h += '<div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:6px">💼 The funds we picked for you</div>';
+    h += '<div style="font-size:11.5px;color:var(--text3);margin-bottom:14px;font-style:italic">Hover over any fund to see the full reasoning, metrics, and why it fits your profile.</div>';
     rec.positions.forEach((p, i) => {
       const fund = AI_FUND_UNIVERSE.find(f => f.tkr === p.ticker);
       const dollar = (p.weight/100) * amt;
-      h += '<div style="border-left:3px solid #7c3aed;padding:12px 16px;margin-bottom:10px;background:rgba(124,58,237,.03);border-radius:0 8px 8px 0">';
+      const expanded = buildExpandedRationale(p, fund, simpleBrief, rec);
+      h += '<div class="ai-pos-card" tabindex="0" style="position:relative;border-left:3px solid #7c3aed;padding:12px 16px;margin-bottom:10px;background:rgba(124,58,237,.03);border-radius:0 8px 8px 0;transition:background .2s,box-shadow .2s;cursor:pointer">';
       h += '<div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap">';
       h += '<div style="font-weight:800;font-size:14px;color:var(--text)">' + (i+1) + '. ' + escapeForHTML(fund?.name || p.ticker) + '</div>';
       h += '<div style="font-size:11px;color:var(--text3)">' + escapeForHTML(p.ticker) + (fund?' · '+escapeForHTML(fund.sponsor):'') + '</div>';
       h += '<div style="margin-left:auto;display:flex;gap:10px;align-items:baseline"><span style="font-size:18px;font-weight:800;color:#7c3aed">' + p.weight.toFixed(1) + '%</span><span style="font-size:11px;color:var(--text3)">' + fmtMoney(dollar) + '</span></div>';
       h += '</div>';
-      h += '<div style="font-size:12px;color:var(--text2);line-height:1.6;margin-top:6px"><strong>Why this fund:</strong> ' + escapeForHTML(simplifyRationale(p.rationale)) + '</div>';
+      // One-line summary (always visible)
+      h += '<div style="font-size:11.5px;color:var(--text3);margin-top:4px;display:flex;align-items:center;gap:6px">';
+      h += '<span style="background:rgba(124,58,237,.1);color:#7c3aed;padding:2px 7px;border-radius:50px;font-size:10px;font-weight:700">' + expanded.tagline + '</span>';
+      h += '<span style="font-size:10.5px;color:var(--text3);font-style:italic">↓ hover for details</span>';
       h += '</div>';
+      // Expanded rationale — hidden by default, revealed on hover/focus
+      h += '<div class="ai-pos-why" style="overflow:hidden;max-height:0;transition:max-height .35s ease,margin-top .25s ease,padding .25s ease">';
+      h += '<div style="margin-top:12px;padding-top:12px;border-top:1px dashed rgba(124,58,237,.3)">';
+      // Section 1 — plain language summary
+      h += '<div style="font-size:12.5px;color:var(--text);line-height:1.65;margin-bottom:12px">';
+      h += '<strong style="color:#7c3aed">💡 Why this fund</strong><br>' + expanded.why;
+      h += '</div>';
+      // Section 2 — metric snapshot
+      if(expanded.metrics){
+        h += '<div style="margin-bottom:12px">';
+        h += '<div style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);margin-bottom:6px">📊 Fund metrics</div>';
+        h += '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(90px,1fr));gap:5px;font-size:10.5px;background:rgba(0,0,0,.025);padding:8px;border-radius:6px">';
+        expanded.metrics.forEach(m => {
+          h += '<div style="text-align:center"><div style="color:var(--text3);font-size:9px;text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px">' + m.label + '</div><strong style="font-size:11.5px;color:' + (m.color||"var(--text)") + '">' + m.value + '</strong></div>';
+        });
+        h += '</div>';
+        h += '</div>';
+      }
+      // Section 3 — why it fits the profile
+      h += '<div style="font-size:12px;color:var(--text2);line-height:1.6;padding:10px 12px;background:rgba(0,135,90,.05);border-left:3px solid var(--green);border-radius:0 6px 6px 0;margin-bottom:8px">';
+      h += '<strong style="color:#1b6841">✓ Why it fits your profile</strong><br>' + expanded.fit;
+      h += '</div>';
+      // Section 4 — research citations (if present)
+      if(expanded.citations && expanded.citations.length){
+        h += '<div style="font-size:11px;color:var(--text3);line-height:1.55;padding:8px 12px;background:rgba(91,155,213,.05);border-left:3px solid var(--blue);border-radius:0 6px 6px 0">';
+        h += '<strong style="color:#1e40af">📚 Backed by research from</strong><br>';
+        h += expanded.citations.map(c => '• ' + escapeForHTML(c)).join('<br>');
+        h += '</div>';
+      }
+      h += '</div></div>'; // close inner + ai-pos-why
+      h += '</div>'; // close ai-pos-card
     });
     h += '</div>';
   }
@@ -6934,6 +6987,126 @@ function simplifyRationale(r){
 // Tiny HTML escaper if not present
 function escapeForHTML(s){
   return String(s||"").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+}
+
+// ─── Build the rich expanded rationale shown on hover ───────────────────
+// Returns {tagline, why, metrics:[{label,value,color}], fit, citations:[]}
+// Pulls together the engine's rationale, the fund's quantitative metrics,
+// risk profile fit, and the research citations into a layered explanation
+// so users can drill from a one-line summary down to the actual numbers
+// that drove the pick.
+function buildExpandedRationale(p, fund, simpleBrief, rec){
+  const m = fund || {};
+  // One-line tagline — fund's signature characteristic
+  let tagline = "";
+  if(m.cls === "equity"){
+    if(m.holdings >= 1000)      tagline = "Broad diversification";
+    else if(m.holdings >= 100)  tagline = "Mid-conviction equity";
+    else if(m.holdings <= 50)   tagline = "Concentrated theme";
+    else                        tagline = "Equity exposure";
+  } else if(m.cls === "fixed_income"){
+    if(m.yld >= 6)              tagline = "High-yield income";
+    else if(m.yld >= 4)         tagline = "Income & stability";
+    else                        tagline = "Bond ballast";
+  } else if(m.cls === "real_estate") tagline = "Real-estate income";
+  else if(m.cls === "commodity")     tagline = "Inflation hedge";
+  else if(m.cls === "cash")          tagline = "Cash buffer";
+  else if(m.cls === "mixed")         tagline = "Balanced allocation";
+  else if(m.cls === "alternative")   tagline = "Diversifier";
+  else if(m.cls === "crypto")        tagline = "Digital asset";
+  else                                tagline = "Portfolio building block";
+  if(m.esg) tagline += " · ESG";
+  if(m.ucits) tagline += " · UCITS";
+
+  // ─── Plain-language "why" — a long-form explanation ───
+  const whyBits = [];
+  // Asset-class consensus from the rationale string
+  if(p.rationale && /\d+ of \d+ providers (overweight|underweight)/.test(p.rationale)){
+    const match = p.rationale.match(/(\d+) of (\d+) providers (overweight|underweight) (\w[\w\s]*)/);
+    if(match){
+      const [_, n, total, direction, what] = match;
+      whyBits.push(`<strong>${n} of ${total} major wealth managers</strong> currently ${direction === "overweight" ? "favor" : "are cautious on"} ${what.toLowerCase()} — this fund is the most efficient way to express that view in your portfolio.`);
+    }
+  } else if(p.rationale && /baseline/i.test(p.rationale)){
+    whyBits.push("This is a <strong>core building block</strong> for your risk profile — it provides the foundation exposure that most institutional portfolios start with.");
+  }
+  // Sharpe quality
+  if(m.sharpe != null){
+    if(m.sharpe >= 0.5)      whyBits.push(`Its <strong>Sharpe ratio of ${m.sharpe.toFixed(2)}</strong> places it in the top tier for risk-adjusted return — you're getting paid well for every unit of volatility you accept.`);
+    else if(m.sharpe >= 0.3) whyBits.push(`Solid <strong>Sharpe ratio of ${m.sharpe.toFixed(2)}</strong> — risk-adjusted return is appropriate for this asset class.`);
+    else if(m.sharpe < 0.2 && m.cls !== "cash") whyBits.push(`Sharpe of ${m.sharpe.toFixed(2)} is modest — this fund earns its place through diversification or specific exposure, not absolute returns.`);
+  }
+  // Track record
+  if(m.r10y != null && m.r10y > 8) whyBits.push(`Strong <strong>10-year annualized return of ${m.r10y.toFixed(1)}%</strong> demonstrates persistent outperformance through multiple market regimes.`);
+  else if(m.r5y != null && m.r5y > 7) whyBits.push(`<strong>${m.r5y.toFixed(1)}% annualized over the last 5 years</strong> — recent track record is solid.`);
+  // Cost
+  if(m.er != null && m.er <= 0.10) whyBits.push(`Ultra-low expense ratio of <strong>${m.er.toFixed(2)}%</strong> — at this cost, fund fees barely make a dent in your returns over decades.`);
+  else if(m.er != null && m.er <= 0.25) whyBits.push(`Low expense ratio (<strong>${m.er.toFixed(2)}%</strong>) keeps the long-term cost of holding this position minimal.`);
+  else if(m.er != null && m.er > 0.50 && (m.vehicle === "mutual_fund")) whyBits.push(`Higher expense ratio (<strong>${m.er.toFixed(2)}%</strong>) reflects active management — justified only when the strategy has a proven alpha edge.`);
+  // Scale & diversification
+  if(m.aum != null && m.aum >= 20) whyBits.push(`<strong>$${m.aum}B in AUM</strong> means deep liquidity, tight spreads, and institutional-grade operational quality.`);
+  if(m.holdings != null && m.holdings >= 1000) whyBits.push(`Holds <strong>${m.holdings.toLocaleString()} underlying positions</strong> — single-stock risk is essentially neutralized at this level of diversification.`);
+  else if(m.holdings != null && m.holdings >= 100) whyBits.push(`<strong>${m.holdings} underlying holdings</strong> provide solid diversification while keeping the strategy focused.`);
+  // ESG
+  if(m.esg && simpleBrief && simpleBrief.esg && simpleBrief.esg !== "none"){
+    whyBits.push(`Matches your <strong>ESG preference</strong> — sustainability screen applied by the index provider.`);
+  }
+  // UCITS / domicile
+  if(m.ucits){
+    whyBits.push(`<strong>UCITS-passportable</strong> (domiciled in ${m.dom}) — legally tradeable for EU/UK/Swiss/Asian/MENA residents under PRIIPs. US 40-Act funds are not.`);
+  }
+  // Income angle
+  if(m.yld != null && m.yld >= 4) whyBits.push(`Distributes <strong>${m.yld.toFixed(1)}% in yield</strong> — meaningful regular cash flow if you reinvest or use it for income.`);
+  // Default catch-all if nothing matched
+  if(whyBits.length === 0){
+    whyBits.push(simplifyRationale(p.rationale || ""));
+  }
+  const why = whyBits.join(" ");
+
+  // ─── Metric grid ───
+  let metrics = null;
+  if(m && (m.mu != null || m.sharpe != null)){
+    metrics = [];
+    if(m.mu != null)       metrics.push({label:"Expected μ",  value:m.mu.toFixed(1)+"%", color:"var(--green)"});
+    if(m.sigma != null)    metrics.push({label:"Volatility σ", value:m.sigma.toFixed(1)+"%", color:"var(--amber)"});
+    if(m.sharpe != null)   metrics.push({label:"Sharpe",       value:m.sharpe.toFixed(2)});
+    if(m.beta != null)     metrics.push({label:"Beta",         value:m.beta.toFixed(2)});
+    if(m.maxDD != null)    metrics.push({label:"Max DD",       value:m.maxDD.toFixed(0)+"%", color:"var(--red)"});
+    if(m.er != null)       metrics.push({label:"Expense",      value:m.er.toFixed(2)+"%"});
+    if(m.yld != null)      metrics.push({label:"Yield",        value:m.yld.toFixed(1)+"%"});
+    if(m.r5y != null)      metrics.push({label:"5y CAGR",      value:m.r5y.toFixed(1)+"%", color:m.r5y>=0?"var(--green)":"var(--red)"});
+    if(m.r10y != null)     metrics.push({label:"10y CAGR",     value:m.r10y.toFixed(1)+"%", color:m.r10y>=0?"var(--green)":"var(--red)"});
+    if(m.holdings != null) metrics.push({label:"Holdings",     value:m.holdings.toLocaleString()});
+    if(m.aum != null)      metrics.push({label:"AUM",          value:"$"+m.aum+"B"});
+    if(m.inception != null)metrics.push({label:"Inception",    value:m.inception});
+  }
+
+  // ─── Why it fits the user's profile ───
+  const fitBits = [];
+  const risk = simpleBrief && simpleBrief.risk;
+  const horizon = simpleBrief && simpleBrief.horizon;
+  const country = (val("c1co")||"US");
+  if(risk){
+    const aggressive = /aggressive/.test(risk);
+    const conservative = /conservative/.test(risk);
+    if(aggressive && m.sigma >= 12) fitBits.push(`Your <strong>${risk.replace(/_/g," ")}</strong> risk profile can absorb this fund's volatility (σ ${m.sigma.toFixed(0)}%) in exchange for higher long-term return.`);
+    else if(conservative && m.sigma <= 10) fitBits.push(`Low volatility (σ ${m.sigma.toFixed(0)}%) matches your <strong>${risk.replace(/_/g," ")}</strong> stance — drawdowns are bounded.`);
+    else if(!aggressive && !conservative) fitBits.push(`Risk profile fits a <strong>moderate</strong> stance — meaningful upside without exposing you to extreme drawdowns.`);
+  }
+  if(horizon){
+    if(horizon === "15_plus") fitBits.push(`Your <strong>15+ year horizon</strong> means short-term volatility matters less than long-run compounding — this fund has time to recover from any single drawdown.`);
+    else if(horizon === "0_5") fitBits.push(`Given your <strong>0-5 year horizon</strong>, capital preservation matters — this fund's role in your portfolio is to balance higher-volatility positions.`);
+  }
+  if(m.ucits && country !== "US" && country !== "CA"){
+    fitBits.push(`Required for ${country} residents — direct US-listed equivalents (e.g. VOO for CSPX) are not legally distributable to retail under PRIIPs.`);
+  }
+  if(fitBits.length === 0) fitBits.push("Fits your overall portfolio construction — diversification, cost, and risk fit are all consistent with your stated preferences.");
+  const fit = fitBits.join(" ");
+
+  // ─── Research citations (if present) ───
+  const citations = (p.citations || []).slice(0, 4);
+
+  return {tagline, why, metrics, fit, citations};
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -7349,7 +7522,8 @@ function renderAIGenResult(rec, brief){
       const fund = AI_FUND_UNIVERSE.find(f => f.tkr === p.ticker);
       const m = p.metrics || fund || {};
       const flags = [m.ucits?'UCITS':'', m.esg?'ESG':'', (m.dom && m.dom!=='US')?m.dom:''].filter(Boolean).join(' · ');
-      h += `<div style="border-left:3px solid #7c3aed;padding:11px 14px;margin-bottom:10px;background:rgba(124,58,237,.03);border-radius:0 6px 6px 0">
+      const expanded = buildExpandedRationale(p, fund, brief, rec);
+      h += `<div class="ai-pos-card" tabindex="0" style="position:relative;border-left:3px solid #7c3aed;padding:11px 14px;margin-bottom:10px;background:rgba(124,58,237,.03);border-radius:0 6px 6px 0;transition:background .2s,box-shadow .2s;cursor:pointer">
         <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:4px;flex-wrap:wrap">
           <strong style="font-size:14px">${p.ticker}</strong>
           <span style="color:var(--text3);font-size:11.5px">${m.name||fund?.name||""}${m.sponsor||fund?.sponsor?' · '+(m.sponsor||fund.sponsor):''}${flags?' · <span style="background:rgba(124,58,237,.1);color:#7c3aed;padding:1px 6px;border-radius:3px;font-size:10px;font-weight:600">'+flags+'</span>':''}</span>
@@ -7369,7 +7543,19 @@ function renderAIGenResult(rec, brief){
           <div><div style="color:var(--text3);font-size:9px;text-transform:uppercase;letter-spacing:.05em">AUM</div><strong>$${m.aum||0}B</strong></div>
           <div><div style="color:var(--text3);font-size:9px;text-transform:uppercase;letter-spacing:.05em">Inception</div><strong>${m.inception||'—'}</strong></div>
         </div>
-        <div style="font-size:11.5px;color:var(--text2);line-height:1.55"><strong>💡 Why:</strong> ${p.rationale || ""}</div>
+        <div style="font-size:11.5px;color:var(--text3);font-style:italic;display:flex;align-items:center;gap:6px">
+          <span style="background:rgba(124,58,237,.1);color:#7c3aed;padding:2px 7px;border-radius:50px;font-size:10px;font-weight:700;font-style:normal">${expanded.tagline}</span>
+          <span>↓ hover for full reasoning</span>
+        </div>
+        <div class="ai-pos-why" style="overflow:hidden;max-height:0;transition:max-height .35s ease">
+          <div style="margin-top:10px;padding-top:10px;border-top:1px dashed rgba(124,58,237,.3)">
+            <div style="font-size:12px;color:var(--text);line-height:1.6;margin-bottom:10px"><strong style="color:#7c3aed">💡 Why this fund:</strong><br>${expanded.why}</div>
+            <div style="font-size:12px;color:var(--text2);line-height:1.6;padding:9px 12px;background:rgba(0,135,90,.05);border-left:3px solid var(--green);border-radius:0 6px 6px 0;margin-bottom:8px">
+              <strong style="color:#1b6841">✓ Why it fits your profile:</strong><br>${expanded.fit}
+            </div>
+            ${expanded.citations && expanded.citations.length ? '<div style="font-size:11px;color:var(--text3);line-height:1.55;padding:7px 12px;background:rgba(91,155,213,.05);border-left:3px solid var(--blue);border-radius:0 6px 6px 0"><strong style="color:#1e40af">📚 Research:</strong><br>' + expanded.citations.map(c => '• '+escapeForHTML(c)).join('<br>') + '</div>' : ''}
+          </div>
+        </div>
       </div>`;
     });
     h += `</div>`;
@@ -7506,17 +7692,36 @@ function applyAIRecommendationToProposal(){
     // (instead of the asset-class default). Falls back to fund.mu when set,
     // then to the per-class default inside getProposalReturnParams.
     const exp = fund && typeof fund.mu === "number" ? fund.mu : null;
+    // Stash region so the Geographic Region pie has authoritative data
+    // (falls back to inferProposalRegion if fund is unknown)
+    const region = (function(){
+      if(fund){
+        const tmp = {tkr: p.ticker, name: fund.name, cls: fund.cls};
+        return inferProposalRegion(tmp);
+      }
+      return inferProposalRegion({tkr: p.ticker, name: p.name||"", cls: p.cls});
+    })();
     proposals.push({
       id: "pr_"+Date.now()+Math.random().toString(36).slice(2,6),
       name: fund?.name || p.ticker,
       tkr: p.ticker,
       vehicle: fund?.vehicle || "etf",
       cls: fund?.cls || "mixed",
+      region: region,
       alloc: p.weight,
       exp: exp,
       er: fund?.er ?? null,
       yld: fund?.yld ?? null,
-      note: "AI-generated · " + (p.rationale || "").slice(0,200)
+      note: "AI-generated · " + (p.rationale || "").slice(0,200),
+      // Carry the full rationale (untruncated) for the hover panel
+      fullRationale: p.rationale || "",
+      // Carry the position's metric snapshot so the hover panel can show it
+      metrics: p.metrics || (fund ? {
+        name: fund.name, sponsor: fund.sponsor, vehicle: fund.vehicle, dom: fund.dom||"US",
+        ucits: !!fund.ucits, esg: !!fund.esg, er: fund.er, yld: fund.yld, mu: fund.mu, sigma: fund.sigma,
+        sharpe: fund.sharpe, beta: fund.beta, maxDD: fund.maxDD, r1y: fund.r1y, r3y: fund.r3y,
+        r5y: fund.r5y, r10y: fund.r10y, holdings: fund.holdings, aum: fund.aum, inception: fund.inception, te: fund.te
+      } : null)
     });
   });
   // Optionally populate rationale field
@@ -7803,9 +8008,25 @@ function drawProposalSinglePie(canvasId, legendId, classifyFn, labelMap, colorMa
   return chart;
 }
 
+// Infer a proposal position's region from p.region (if set), then from
+// ticker + name keywords (most ETFs/mutual funds advertise geography
+// in their name), then class-based heuristics. AI-applied positions
+// get this set on apply; manual form entries fall through to inference.
+function inferProposalRegion(p){
+  if(p.region) return p.region;
+  const s = ((p.tkr||"") + " " + (p.name||"")).toLowerCase();
+  if(/(emerging|\bem\b|frontier|china|india|brazil|mexico|vietnam|indonesia|saudi|thailand|south africa|turkey|philippines)/.test(s)) return "emerging";
+  if(/(world|global|all-?world|acwi|developed world|msci world|ftse all)/.test(s)) return "global";
+  if(/(eafe|europe|japan|pacific|developed.*intl|developed.*international|\bintl\b|united kingdom|\buk\b|germany|france|italy|spain|switzerland|sweden|netherlands|canada|australia|korea|taiwan|hong kong|singapore|asia)/.test(s)) return "dev_intl";
+  if(/(s&p|sp.?500|nasdaq|russell|dow jones|\bus\b|\bu\.s\.\b|total stock|total market|core s&p|cspx|spy|voo|vti|vusa|vuaa|cndx|qqq)/.test(s)) return "us";
+  if(p.cls === "commodity" || p.cls === "crypto") return "global";
+  return "us"; // sensible default — most platform retail is US-heavy
+}
+let prRegionChart = null;
 function drawProposalPie(){
-  prClassChart   = drawProposalSinglePie("prPieCanvas","prPieLegend",effClass,INV_CLASS_LABELS,CLASS_COLORS,prClassChart);
-  prVehicleChart = drawProposalSinglePie("prPieVehicleCanvas","prPieVehicleLegend",(p)=>p.vehicle||"other",PROP_VEHICLE_LABELS,TYPE_COLORS,prVehicleChart);
+  prClassChart   = drawProposalSinglePie("prPieCanvas","prPieLegend",          effClass,                  INV_CLASS_LABELS,  CLASS_COLORS,  prClassChart);
+  prVehicleChart = drawProposalSinglePie("prPieVehicleCanvas","prPieVehicleLegend",(p)=>p.vehicle||"other",PROP_VEHICLE_LABELS,TYPE_COLORS,  prVehicleChart);
+  prRegionChart  = drawProposalSinglePie("prPieRegionCanvas","prPieRegionLegend",  inferProposalRegion,    INV_REGION_LABELS, REGION_COLORS, prRegionChart);
 }
 
 // ═══════════════════════════════════════════════════════════
