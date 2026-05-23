@@ -726,7 +726,38 @@ input[type=date]{color-scheme:light}
         <div class="ag ag3">
           <div><div class="albl">State / Province / Canton</div><select id="c1st" class="fw" onchange="syncTaxState()"></select></div>
           <div><div class="albl">Postal code</div><input id="c1zp" placeholder="ZIP" class="fw" oninput="onZipChange('c1')"></div>
-          <div><div class="albl">Country</div><select id="c1co" class="fw" onchange="syncAssetCountry();onCurrencyCountryChange()"></select></div>
+          <div><div class="albl">Country</div><select id="c1co" class="fw" onchange="syncAssetCountry();onCurrencyCountryChange();onEuCountryToggle()"></select></div>
+        </div>
+        <!-- Eurozone country selector — only visible when EU is chosen -->
+        <div class="ag ag3" id="c1euRow" style="display:none;margin-top:8px;padding:10px 12px;background:rgba(0,87,184,.04);border:1px solid rgba(0,87,184,.15);border-radius:6px">
+          <div style="grid-column:1/-1;font-size:11px;color:var(--text3);margin-bottom:6px"><strong style="color:var(--accent)">🇪🇺 Euro zone</strong> — pick the specific country for taxation, inflation, and account-type accuracy:</div>
+          <div><div class="albl">Specific EU country</div>
+            <select id="c1eu" class="fw" onchange="onEuCountryPick()">
+              <option value="">— pick a country —</option>
+              <option value="AT">🇦🇹 Austria</option>
+              <option value="BE">🇧🇪 Belgium</option>
+              <option value="CY">🇨🇾 Cyprus</option>
+              <option value="HR">🇭🇷 Croatia</option>
+              <option value="EE">🇪🇪 Estonia</option>
+              <option value="FI">🇫🇮 Finland</option>
+              <option value="FR">🇫🇷 France</option>
+              <option value="DE">🇩🇪 Germany</option>
+              <option value="GR">🇬🇷 Greece</option>
+              <option value="IE">🇮🇪 Ireland</option>
+              <option value="IT">🇮🇹 Italy</option>
+              <option value="LV">🇱🇻 Latvia</option>
+              <option value="LT">🇱🇹 Lithuania</option>
+              <option value="LU">🇱🇺 Luxembourg</option>
+              <option value="MT">🇲🇹 Malta</option>
+              <option value="NL">🇳🇱 Netherlands</option>
+              <option value="PT">🇵🇹 Portugal</option>
+              <option value="SK">🇸🇰 Slovakia</option>
+              <option value="SI">🇸🇮 Slovenia</option>
+              <option value="ES">🇪🇸 Spain</option>
+            </select>
+          </div>
+          <div><div class="albl">Region / state</div><select id="c1euReg" class="fw" onchange="syncTaxState()"></select></div>
+          <div><div class="albl">City (optional)</div><input id="c1euCity" placeholder="e.g. Berlin, Paris…" class="fw"></div>
         </div>
       </div>
       <div class="sdiv">
@@ -898,7 +929,7 @@ input[type=date]{color-scheme:light}
 <!-- ── Tax panel — fields always visible, brackets/details collapsible ── -->
 <div class="panel" id="taxPanel">
   <div class="ptitle">Income &amp; Capital Gains Tax</div>
-  <div style="font-size:12px;color:var(--text3);margin-bottom:12px;line-height:1.5">Tax is computed from the country and state/province/canton selected on the primary client's address. Federal brackets are <strong style="color:var(--text2)">approximate USD equivalents</strong> of national rates (late-2024 FX, rounded). State/cantonal rates are approximate effective rates at ~$100k household income. Rates auto-sync from the Household address. Use manual overrides if your situation differs.</div>
+  <div style="font-size:12px;color:var(--text3);margin-bottom:12px;line-height:1.5">Tax is computed from the country and state/province/canton selected on the primary client's address. Federal brackets are expressed in the household's <strong style="color:var(--text2)" id="taxCcyNote">selected currency</strong> (late-2024 FX, rounded — switch currencies in the topbar). State/cantonal rates are approximate effective rates at the equivalent of ~$100k household income. Rates auto-sync from the Household address. Use manual overrides if your situation differs.</div>
 
   <div class="two-col">
     <div>
@@ -2045,17 +2076,18 @@ input[type=date]{color-scheme:light}
   </div>
 </div>
 
-<!-- Total return horizon comparison — % only, with benchmark -->
+<!-- Total return horizon comparison — clean 4-row by 4-column grid -->
 <div class="panel">
-  <div class="ptitle">Total Return Comparison — 1Y / 3Y / 5Y / 10Y</div>
-  <div style="font-size:12px;color:var(--text3);margin-bottom:14px;line-height:1.6">Compounded total return at each horizon using the net (after-fee) expected return. The <strong id="benchmarkLabel" style="color:var(--text2)">benchmark</strong> below reflects what an appropriate index would return over the same period — auto-selected based on the asset mix of your inputs.</div>
-  <div class="cmp-grid" id="cmpReturnHorizon" style="grid-template-columns:140px 1fr 1fr 1fr 110px">
-    <div class="cmp-h">Horizon</div>
-    <div class="cmp-h cur">Current Portfolio</div>
-    <div class="cmp-h prop">Proposed Portfolio</div>
-    <div class="cmp-h" id="benchmarkColHead" style="color:var(--amber)">Benchmark</div>
-    <div class="cmp-h delta">Δ (Prop vs Cur)</div>
-    <div class="cmp-c" style="grid-column:1/-1;text-align:center;color:var(--text3);padding:18px">Run comparison to see return horizons.</div>
+  <div class="ptitle">Average Annualized Return — 1Y / 3Y / 5Y / 10Y</div>
+  <div style="font-size:12px;color:var(--text3);margin-bottom:14px;line-height:1.6">Average annualized return at each horizon. Uses the actual trailing returns of each fund where known (AI-built portfolios), otherwise falls back to the expected mean (μ). The <strong id="benchmarkLabel" style="color:var(--text2)">benchmark</strong> tracks an appropriate index over the same period — auto-selected based on your asset mix.</div>
+  <div id="cmpReturnHorizon" style="display:grid;grid-template-columns:170px repeat(4,1fr);gap:6px;background:var(--bg3);padding:10px;border-radius:8px">
+    <!-- Header row -->
+    <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);padding:8px 10px">Portfolio</div>
+    <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);padding:8px 10px;text-align:center">1 Year</div>
+    <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);padding:8px 10px;text-align:center">3 Years</div>
+    <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);padding:8px 10px;text-align:center">5 Years</div>
+    <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);padding:8px 10px;text-align:center">10 Years</div>
+    <div style="grid-column:1/-1;text-align:center;color:var(--text3);padding:18px;font-size:13px">Run comparison to populate.</div>
   </div>
   <div id="benchmarkExplain" style="font-size:11px;color:var(--text3);margin-top:10px;padding:8px 12px;background:rgba(245,158,11,.07);border-left:3px solid var(--amber);border-radius:4px;line-height:1.6"></div>
 </div>
@@ -3923,6 +3955,83 @@ function onRegion(){
   setT("rnote",r.note);
   refreshTopMetrics();
 }
+// ─── Eurozone country sub-selector ─────────────────────────────────
+// 20 eurozone members with tax brackets in EUR (rounded), regional
+// breakouts where they have material impact, and inflation rates.
+const EU_COUNTRY_DATA = {
+  AT: {name:"Austria",     inflation:0.027, brackets:[{t:0,r:0},{t:11693,r:20},{t:19134,r:30},{t:32075,r:40},{t:62080,r:48},{t:93120,r:50}], regions:[{c:"ALL",name:"Federal only — no regional surcharge"}]},
+  BE: {name:"Belgium",     inflation:0.029, brackets:[{t:0,r:25},{t:13870,r:40},{t:24480,r:45},{t:42370,r:50}], regions:[{c:"BR",name:"Brussels",eff:7.5},{c:"FL",name:"Flanders",eff:6.5},{c:"WA",name:"Wallonia",eff:8.5}]},
+  CY: {name:"Cyprus",      inflation:0.024, brackets:[{t:0,r:0},{t:19500,r:20},{t:28000,r:25},{t:36300,r:30},{t:60000,r:35}], regions:[{c:"ALL",name:"National only"}]},
+  HR: {name:"Croatia",     inflation:0.035, brackets:[{t:0,r:20},{t:50400,r:30}], regions:[{c:"ZG",name:"Zagreb (city surtax)",eff:18},{c:"OTH",name:"Other cities",eff:10}]},
+  EE: {name:"Estonia",     inflation:0.025, brackets:[{t:0,r:20}], regions:[{c:"ALL",name:"Flat 20% nationally"}]},
+  FI: {name:"Finland",     inflation:0.025, brackets:[{t:0,r:0},{t:21200,r:12.64},{t:31500,r:19},{t:52100,r:30.25},{t:88200,r:34}], regions:[{c:"ALL",name:"Plus municipal tax 16-23% (avg 20%)",eff:20}]},
+  FR: {name:"France",      inflation:0.030, brackets:[{t:0,r:0},{t:11294,r:11},{t:28797,r:30},{t:82341,r:41},{t:177106,r:45}], regions:[{c:"ALL",name:"No state income tax (CSG-CRDS social charges apply)"}]},
+  DE: {name:"Germany",     inflation:0.028, brackets:[{t:0,r:0},{t:11604,r:14},{t:17005,r:24},{t:66760,r:42},{t:277826,r:45}], regions:[{c:"ALL",name:"All Länder (solidarity surcharge 5.5% on tax)"}]},
+  GR: {name:"Greece",      inflation:0.028, brackets:[{t:0,r:9},{t:10000,r:22},{t:20000,r:28},{t:30000,r:36},{t:40000,r:44}], regions:[{c:"ALL",name:"National only"}]},
+  IE: {name:"Ireland",     inflation:0.025, brackets:[{t:0,r:20},{t:42000,r:40}], regions:[{c:"ALL",name:"Plus USC 2-8% and PRSI 4%"}]},
+  IT: {name:"Italy",       inflation:0.028, brackets:[{t:0,r:23},{t:28000,r:35},{t:50000,r:43}], regions:[{c:"LOM",name:"Lombardy (regional + municipal)",eff:2.7},{c:"LAZ",name:"Lazio (Rome)",eff:3.3},{c:"VEN",name:"Veneto",eff:2.0},{c:"PIE",name:"Piedmont",eff:2.6},{c:"CAM",name:"Campania (Naples)",eff:3.5},{c:"SIC",name:"Sicily",eff:2.5},{c:"OTH",name:"Other regions",eff:2.5}]},
+  LV: {name:"Latvia",      inflation:0.030, brackets:[{t:0,r:20},{t:20004,r:23},{t:78100,r:31}], regions:[{c:"ALL",name:"National only"}]},
+  LT: {name:"Lithuania",   inflation:0.030, brackets:[{t:0,r:20},{t:104277,r:32}], regions:[{c:"ALL",name:"National only"}]},
+  LU: {name:"Luxembourg",  inflation:0.026, brackets:[{t:0,r:0},{t:12438,r:8},{t:14508,r:9},{t:16578,r:10},{t:46368,r:30},{t:117390,r:39},{t:200004,r:42}], regions:[{c:"ALL",name:"National + 7-9% surcharge"}]},
+  MT: {name:"Malta",       inflation:0.026, brackets:[{t:0,r:0},{t:9100,r:15},{t:14500,r:25},{t:60000,r:35}], regions:[{c:"ALL",name:"National only"}]},
+  NL: {name:"Netherlands", inflation:0.027, brackets:[{t:0,r:36.97},{t:75518,r:49.5}], regions:[{c:"ALL",name:"Two-band system, national only"}]},
+  PT: {name:"Portugal",    inflation:0.027, brackets:[{t:0,r:13.25},{t:7703,r:18},{t:11623,r:23},{t:16472,r:26},{t:21321,r:32.75},{t:27146,r:37},{t:39791,r:43.5},{t:51997,r:45},{t:81199,r:48}], regions:[{c:"ALL",name:"Mainland"},{c:"AZ",name:"Azores (-30%)",eff:-0.3},{c:"MD",name:"Madeira (-20%)",eff:-0.2}]},
+  SK: {name:"Slovakia",    inflation:0.030, brackets:[{t:0,r:19},{t:41446,r:25}], regions:[{c:"ALL",name:"National only"}]},
+  SI: {name:"Slovenia",    inflation:0.028, brackets:[{t:0,r:16},{t:8755,r:26},{t:25750,r:33},{t:51500,r:39},{t:74160,r:50}], regions:[{c:"ALL",name:"National only"}]},
+  ES: {name:"Spain",       inflation:0.028, brackets:[{t:0,r:19},{t:12450,r:24},{t:20200,r:30},{t:35200,r:37},{t:60000,r:45},{t:300000,r:47}], regions:[{c:"MAD",name:"Madrid (lowest)",eff:-1.5},{c:"CAT",name:"Catalonia",eff:1.5},{c:"VAL",name:"Valencia",eff:1.0},{c:"AND",name:"Andalusia",eff:0.5},{c:"BAS",name:"Basque Country (foral)",eff:0},{c:"NAV",name:"Navarra (foral)",eff:0},{c:"OTH",name:"Other autonomous communities",eff:0.5}]}
+};
+
+function onEuCountryToggle(){
+  const country = ($("c1co")||{}).value || "";
+  const euRow = document.getElementById("c1euRow");
+  if(!euRow) return;
+  if(country === "EU"){
+    euRow.style.display = "grid";
+    // Default to a sensible pick if none selected yet
+    const sel = document.getElementById("c1eu");
+    if(sel && !sel.value){
+      // Try to remember last EU pick
+      let last = "";
+      try { last = localStorage.getItem("wa_last_eu_country") || ""; } catch(_){}
+      if(last && EU_COUNTRY_DATA[last]) sel.value = last;
+    }
+    onEuCountryPick();
+  } else {
+    euRow.style.display = "none";
+  }
+}
+
+function onEuCountryPick(){
+  const ec = ($("c1eu")||{}).value || "";
+  if(!ec || !EU_COUNTRY_DATA[ec]) { setT("c1taxPreview",""); return; }
+  try { localStorage.setItem("wa_last_eu_country", ec); } catch(_){}
+  const data = EU_COUNTRY_DATA[ec];
+  // Populate region select
+  const reg = document.getElementById("c1euReg");
+  if(reg){
+    reg.innerHTML = "";
+    data.regions.forEach(r => {
+      const o = document.createElement("option");
+      o.value = r.c; o.textContent = r.name;
+      reg.appendChild(o);
+    });
+  }
+  // Auto-sync inflation for the picked country
+  const infEl = document.getElementById("inf");
+  if(infEl) infEl.value = (data.inflation*100).toFixed(2);
+  // Refresh tax preview
+  if(typeof syncTaxState === "function") syncTaxState();
+  // Show preview
+  const tp = document.getElementById("c1taxPreview");
+  if(tp){
+    const topBracket = data.brackets[data.brackets.length-1];
+    tp.style.display = "block";
+    tp.innerHTML = '🇪🇺 <strong>' + data.name + '</strong> · top marginal rate <strong>' + topBracket.r + '%</strong> at €' + (topBracket.t||0).toLocaleString() + ' · inflation reference <strong>' + (data.inflation*100).toFixed(1) + '%/yr</strong>';
+  }
+}
+window.onEuCountryToggle = onEuCountryToggle;
+window.onEuCountryPick = onEuCountryPick;
+
 function onCurrencyCountryChange(){
   // Country changed — only auto-update currency if user hasn't manually overridden it
   if(_ccyManual) return;
@@ -3950,8 +4059,10 @@ function syncCcySym(){
   const sym = c.sym.trim();
   setT("ccy-sym", sym);
   // Also refresh any labels that show the unit alongside an input
-  // (Income tab "Annual savings" currently — extend as needed)
   setT("savAnnualCcy", sym);
+  // Expenses tab — currency-aware note for the Income/CG tax box
+  const taxCcyNote = document.getElementById("taxCcyNote");
+  if(taxCcyNote) taxCcyNote.textContent = CURRENT_CCY + " (" + sym + ")";
 }
 function popCurrencyTag(){
   const sel=$("m-ccy-tag"); if(!sel) return;
@@ -9861,7 +9972,6 @@ function pickBenchmark(){
 
 // Total return horizon table — % only, no $ amounts, with benchmark column
 function renderReturnHorizon(curMu, curSig, propMu, propSig){
-  const horizons = [1, 3, 5, 10];
   const bench = pickBenchmark();
 
   // Update benchmark label + caption above the table
@@ -9869,25 +9979,101 @@ function renderReturnHorizon(curMu, curSig, propMu, propSig){
   const benchExpEl = $("benchmarkExplain");
   if(benchExpEl) benchExpEl.innerHTML = '<strong style="color:var(--amber)">Benchmark: ' + bench.label + '</strong> — ' + bench.note + ' Auto-selected based on the dominant asset class across your Current + Proposed allocations.';
 
-  let html = '<div class="cmp-h">Horizon</div>';
-  html += '<div class="cmp-h cur">Current Portfolio</div>';
-  html += '<div class="cmp-h prop">Proposed Portfolio</div>';
-  html += '<div class="cmp-h" style="color:var(--amber)">Benchmark</div>';
-  html += '<div class="cmp-h delta">Δ (Prop vs Cur)</div>';
+  // Helper: weighted trailing returns from a position list. Returns
+  // {r1y, r3y, r5y, r10y} or null if no metric data available.
+  function weightedTrailing(positions, weightField){
+    if(!positions || positions.length === 0) return null;
+    const W = positions.reduce((s,p) => s + (+p[weightField] || 0), 0);
+    if(W <= 0) return null;
+    const get = (p, key, fallback) => {
+      const m = p.metrics || {};
+      if(m[key] != null) return m[key];
+      // Fund universe lookup as secondary fallback
+      const tk = p.ticker || p.tkr;
+      if(tk && Array.isArray(AI_FUND_UNIVERSE)){
+        const f = AI_FUND_UNIVERSE.find(x => x.tkr === tk);
+        if(f && f[key] != null) return f[key];
+      }
+      return fallback;
+    };
+    let any = false;
+    const out = {};
+    ["r1y","r3y","r5y","r10y"].forEach(k => {
+      const fallback = (curMu*100); // not used unless every position lacks data
+      const wsum = positions.reduce((s,p) => {
+        const v = get(p, k, null);
+        if(v != null) any = true;
+        return s + ((v != null ? v : fallback) * (+p[weightField] || 0));
+      }, 0);
+      out[k] = wsum / W;
+    });
+    return any ? out : null;
+  }
 
-  horizons.forEach(n => {
-    const curRetPct  = (Math.pow(1+curMu,  n) - 1) * 100;
-    const propRetPct = (Math.pow(1+propMu, n) - 1) * 100;
-    const benchPct   = (Math.pow(1+bench.annRet, n) - 1) * 100;
-    const delta      = propRetPct - curRetPct;
-    const dCls = delta > 0.01 ? "delta-pos" : (delta < -0.01 ? "delta-neg" : "delta-neu");
+  // Compute trailing returns for both portfolios
+  const curTrail  = weightedTrailing(investments.map(i => ({ticker:i.tkr, val:i.val, metrics:i.metrics})), "val");
+  const propTrail = weightedTrailing(proposals, "alloc");
+  const muToTrail = mu => ({r1y:mu*100, r3y:mu*100, r5y:mu*100, r10y:mu*100});
 
-    html += `<div class="cmp-c cf-l" style="text-align:left;font-weight:700;color:var(--text)">${n} year${n>1?'s':''}</div>`;
-    html += `<div class="cmp-c" style="font-weight:600">${curRetPct.toFixed(2)}%</div>`;
-    html += `<div class="cmp-c" style="font-weight:700">${propRetPct.toFixed(2)}%</div>`;
-    html += `<div class="cmp-c" style="color:var(--amber);font-weight:600">${benchPct.toFixed(2)}%</div>`;
-    html += `<div class="cmp-c ${dCls}" style="font-weight:700">${delta>=0?'+':''}${delta.toFixed(2)}%</div>`;
+  // Final values: prefer actual trailing data, else use the deterministic μ
+  const cur   = curTrail  || muToTrail(curMu);
+  const prop  = propTrail || muToTrail(propMu);
+  const benchAnn = bench.annRet * 100; // benchmark μ in %
+  const benchRow = { r1y:benchAnn, r3y:benchAnn, r5y:benchAnn, r10y:benchAnn };
+
+  // Render: 4 rows (Current / Proposed / Benchmark / Δ) × 4 cols (1y/3y/5y/10y)
+  const cellNum = (v, color, weight) =>
+    '<div style="padding:14px 10px;text-align:center;background:#fff;border-radius:6px;font-family:var(--fb);font-size:18px;font-weight:'+(weight||700)+';color:'+(color||"var(--text)")+';letter-spacing:-.02em">' +
+    (v>=0?'':'') + (+v).toFixed(2) + '%</div>';
+  const labelCell = (label, sub, color) =>
+    '<div style="padding:14px 12px;display:flex;flex-direction:column;justify-content:center;background:#fff;border-radius:6px;border-left:3px solid '+(color||"var(--accent)")+'">'+
+    '<div style="font-size:13px;font-weight:700;color:var(--text);line-height:1.1">'+label+'</div>'+
+    (sub ? '<div style="font-size:10.5px;color:var(--text3);margin-top:2px">'+sub+'</div>' : '') +
+    '</div>';
+
+  let html = "";
+  // Header row (re-render the header to keep the grid uniform)
+  ["Portfolio","1 Year","3 Years","5 Years","10 Years"].forEach((h,i) => {
+    html += '<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);padding:6px 10px;'+(i===0?'':'text-align:center')+'">' + h + '</div>';
   });
+
+  // Row 1: Current portfolio
+  const curSrc = curTrail ? "Trailing actual" : "Expected μ";
+  html += labelCell("Current Portfolio", curSrc, "var(--accent)");
+  html += cellNum(cur.r1y);
+  html += cellNum(cur.r3y);
+  html += cellNum(cur.r5y);
+  html += cellNum(cur.r10y);
+
+  // Row 2: Proposed portfolio
+  const propSrc = propTrail ? "Trailing actual" : "Expected μ";
+  html += labelCell("Proposed Portfolio", propSrc, "#7c3aed");
+  html += cellNum(prop.r1y, "var(--green)");
+  html += cellNum(prop.r3y, "var(--green)");
+  html += cellNum(prop.r5y, "var(--green)");
+  html += cellNum(prop.r10y, "var(--green)");
+
+  // Row 3: Benchmark
+  html += labelCell(bench.label, "Index reference", "var(--amber)");
+  html += cellNum(benchRow.r1y, "var(--amber)", 600);
+  html += cellNum(benchRow.r3y, "var(--amber)", 600);
+  html += cellNum(benchRow.r5y, "var(--amber)", 600);
+  html += cellNum(benchRow.r10y, "var(--amber)", 600);
+
+  // Row 4: Δ (Proposed vs Current)
+  const dCell = (delta) => {
+    const cls = delta > 0.05 ? "var(--green)" : (delta < -0.05 ? "var(--red)" : "var(--text3)");
+    return '<div style="padding:12px 10px;text-align:center;background:#fff;border-radius:6px;font-family:var(--fb);font-size:14px;font-weight:700;color:'+cls+'">'+
+      (delta>=0?'+':'') + delta.toFixed(2) + '%</div>';
+  };
+  html += '<div style="padding:14px 12px;display:flex;flex-direction:column;justify-content:center;background:rgba(124,58,237,.08);border-radius:6px;border-left:3px solid #7c3aed">'+
+    '<div style="font-size:13px;font-weight:700;color:#7c3aed;line-height:1.1">Δ (Prop vs Cur)</div>'+
+    '<div style="font-size:10.5px;color:var(--text3);margin-top:2px">Outperformance</div>'+
+    '</div>';
+  html += dCell(prop.r1y  - cur.r1y);
+  html += dCell(prop.r3y  - cur.r3y);
+  html += dCell(prop.r5y  - cur.r5y);
+  html += dCell(prop.r10y - cur.r10y);
 
   $("cmpReturnHorizon").innerHTML = html;
 }
