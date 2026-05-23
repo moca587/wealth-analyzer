@@ -3693,7 +3693,21 @@ const CURRENCIES={
   SAR:{sym:"SAR ",code:"SAR",name:"Saudi Riyal",fxToUSD:0.267},
   ZAR:{sym:"R",code:"ZAR",name:"South African Rand",fxToUSD:0.055}
 };
-const COUNTRY_CURRENCIES={US:"USD",CA:"CAD",GB:"GBP",AU:"AUD",CH:"CHF",EU:"EUR",JP:"JPY",SG:"SGD",HK:"HKD",CN:"CNY",TW:"TWD",KR:"KRW",IN:"INR",ID:"IDR",MX:"MXN",BR:"BRL",SA:"SAR",ZA:"ZAR",OTHER:"USD"};
+// All 20 eurozone members map to EUR; the rest keep their native currency.
+const COUNTRY_CURRENCIES={
+  US:"USD", CA:"CAD", GB:"GBP", AU:"AUD", CH:"CHF",
+  // Eurozone (all → EUR)
+  EU:"EUR", AT:"EUR", BE:"EUR", CY:"EUR", HR:"EUR", EE:"EUR", FI:"EUR",
+  FR:"EUR", DE:"EUR", GR:"EUR", IE:"EUR", IT:"EUR", LV:"EUR", LT:"EUR",
+  LU:"EUR", MT:"EUR", NL:"EUR", PT:"EUR", SK:"EUR", SI:"EUR", ES:"EUR",
+  // Rest of world
+  JP:"JPY", SG:"SGD", HK:"HKD", CN:"CNY", TW:"TWD", KR:"KRW", IN:"INR",
+  ID:"IDR", MX:"MXN", BR:"BRL", SA:"SAR", ZA:"ZAR",
+  OTHER:"USD"
+};
+
+// Eurozone member detection — used for region/inflation sub-picker prefill
+const EUROZONE_MEMBERS = new Set(["EU","AT","BE","CY","HR","EE","FI","FR","DE","GR","IE","IT","LV","LT","LU","MT","NL","PT","SK","SI","ES"]);
 let CURRENT_CCY="USD";
 
 
@@ -4348,7 +4362,17 @@ function calcEffectiveRate(country, stateCode, cityCode, income){
 }
 
 // Maps COUNTRY_ACCOUNTS codes → REGIONS keys for inflation auto-sync
-const COUNTRY_TO_REGION={US:"us",CA:"ca",GB:"uk",AU:"au",CH:"ch",EU:"eu",JP:"jp",SG:"sg",HK:"hk",CN:"cn",TW:"cn",KR:"kr",IN:"in",ID:"id",MX:"mx",BR:"br",SA:"sa",ZA:"za"};
+const COUNTRY_TO_REGION={
+  US:"us", CA:"ca", GB:"uk", AU:"au", CH:"ch",
+  // All eurozone members map to the "eu" inflation region — but the
+  // EU sub-picker (under Inflation) will be auto-pre-filled to the
+  // specific country so the user gets its 50-yr average rate.
+  EU:"eu", AT:"eu", BE:"eu", CY:"eu", HR:"eu", EE:"eu", FI:"eu",
+  FR:"eu", DE:"eu", GR:"eu", IE:"eu", IT:"eu", LV:"eu", LT:"eu",
+  LU:"eu", MT:"eu", NL:"eu", PT:"eu", SK:"eu", SI:"eu", ES:"eu",
+  JP:"jp", SG:"sg", HK:"hk", CN:"cn", TW:"cn", KR:"kr", IN:"in",
+  ID:"id", MX:"mx", BR:"br", SA:"sa", ZA:"za"
+};
 
 // Cost-of-living factors for retirement location (US=1.00 baseline)
 const COL_FACTORS={US:1.00,CA:0.95,GB:1.05,AU:1.05,CH:1.45,EU:0.85,JP:0.85,SG:1.10,HK:1.05,CN:0.45,TW:0.55,KR:0.70,IN:0.30,ID:0.30,MX:0.55,BR:0.50,SA:0.65,ZA:0.50,OTHER:0.85};
@@ -5057,9 +5081,32 @@ function onEuCountryPick(){
       reg.appendChild(o);
     });
   }
-  // Auto-sync inflation for the picked country
-  const infEl = document.getElementById("inf");
-  if(infEl) infEl.value = (data.inflation*100).toFixed(2);
+  // ─── Mirror the pick into the Inflation EU sub-picker ───
+  // So the inflation rate uses the country's 50-yr average, not the
+  // recent reference value (e.g. Italy 5.0% historical, not 2.8%).
+  const infEuSel = document.getElementById("infEuCountry");
+  if(infEuSel && Array.from(infEuSel.options).some(o => o.value === ec)){
+    infEuSel.value = ec;
+    // Make sure the inflation Region is set to "eu" so the sub-picker is visible
+    const regSel = document.getElementById("region");
+    if(regSel && regSel.value !== "eu"){
+      regSel.value = "eu";
+      if(typeof onRegion === "function") onRegion();
+    }
+    if(typeof onInfEuCountry === "function") onInfEuCountry();
+  } else {
+    // Fall back to the country's current-rate inflation
+    const infEl = document.getElementById("inf");
+    if(infEl) infEl.value = (data.inflation*100).toFixed(2);
+  }
+  // ─── Also sync the asset-tab country to this EU member ───
+  // So the asset-type dropdown shows e.g. France-specific accounts
+  // (Livret A, PEA, etc.) rather than the generic EU set.
+  const acSel = document.getElementById("acountry");
+  if(acSel && Array.from(acSel.options).some(o => o.value === ec)){
+    acSel.value = ec;
+    if(typeof refreshAssetTypes === "function") refreshAssetTypes();
+  }
   // Refresh tax preview
   if(typeof syncTaxState === "function") syncTaxState();
   // Show preview
@@ -5181,11 +5228,26 @@ function syncAssetCountry(){
   refreshStateDropdown(c);
   // Loan types
   refreshLoanTypes();
-  // Inflation — sync region preset and rate to client's country
+  // Inflation — sync region preset and rate to client's country.
+  // For eurozone members, also auto-pre-fill the EU country sub-picker
+  // so the inflation rate uses the country's specific 50-yr average
+  // (e.g. Germany 2.5%, Italy 5.0%) instead of the blended HICP (3.1%).
   const rk=COUNTRY_TO_REGION[c];
   if(rk && REGIONS[rk]){
     $("region").value=rk;
     $("inf").value=REGIONS[rk].rate;
+    // Re-run onRegion so the eurozone sub-picker shows/hides correctly
+    if(typeof onRegion === "function") onRegion();
+    // If the household country is itself a eurozone member, pre-fill
+    // the EU sub-picker to that country (overrides the blended 3.1%
+    // with the country-specific 50-yr average).
+    if(typeof EUROZONE_MEMBERS !== "undefined" && EUROZONE_MEMBERS.has(c) && c !== "EU"){
+      const euSel = document.getElementById("infEuCountry");
+      if(euSel && Array.from(euSel.options).some(o => o.value === c)){
+        euSel.value = c;
+        if(typeof onInfEuCountry === "function") onInfEuCountry();
+      }
+    }
   }
 }
 function refreshAssetTypes(){
