@@ -267,7 +267,8 @@ input[type=date]{color-scheme:light}
 .pf-summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:14px}
 
 /* ── Twin pie charts ── */
-.alloc-pies{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:8px}
+.alloc-pies{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-bottom:8px}
+.alloc-pies.alloc-pies-2{grid-template-columns:1fr 1fr}
 .alloc-pie-wrap{display:flex;flex-direction:column;align-items:center;gap:14px;padding:18px;background:linear-gradient(135deg,#ffffff 0%,#f5f8ff 100%);border:1px solid rgba(0,87,184,.10);border-radius:var(--r);box-shadow:0 1px 4px rgba(0,87,184,.05)}
 .alloc-pie-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.10em;color:var(--gold);margin-bottom:0}
 .alloc-pie-canvas-wrap{position:relative;width:220px;height:220px;flex-shrink:0}
@@ -278,7 +279,8 @@ input[type=date]{color-scheme:light}
 .alloc-pie-name{flex:1;color:var(--text);font-weight:500}
 .alloc-pie-amt{color:var(--text2);font-variant-numeric:tabular-nums;font-weight:600}
 .alloc-pie-pct{color:var(--text3);font-variant-numeric:tabular-nums;font-weight:600;min-width:44px;text-align:right}
-@media(max-width:900px){.alloc-pies{grid-template-columns:1fr}}
+@media(max-width:1100px){.alloc-pies{grid-template-columns:1fr 1fr}}
+@media(max-width:760px){.alloc-pies{grid-template-columns:1fr}}
 .pf-mc{padding:10px 14px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--rs)}
 .pf-mc-lbl{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px}
 .pf-mc-val{font-family:var(--fd);font-size:18px;color:var(--text);font-weight:700}
@@ -1572,7 +1574,9 @@ input[type=date]{color-scheme:light}
 <div class="panel">
   <div class="ptitle">Portfolio Allocation &amp; Asset Class Breakdown</div>
 
-  <!-- Twin pie charts row -->
+  <!-- Three pie charts row — Asset Class, Instrument Type, Region.
+       Each uses a distinct color palette (blues / oranges / greens) so
+       they're easy to tell apart at a glance. -->
   <div class="alloc-pies">
     <div class="alloc-pie-wrap">
       <div class="alloc-pie-title">By Asset Class</div>
@@ -1583,6 +1587,11 @@ input[type=date]{color-scheme:light}
       <div class="alloc-pie-title">By Instrument Type</div>
       <div class="alloc-pie-canvas-wrap"><canvas id="pfPieTypeCanvas" role="img" aria-label="Portfolio instrument-type pie chart"></canvas></div>
       <div id="pfPieTypeLegend" class="alloc-pie-legend"></div>
+    </div>
+    <div class="alloc-pie-wrap">
+      <div class="alloc-pie-title">By Geographic Region</div>
+      <div class="alloc-pie-canvas-wrap"><canvas id="pfPieRegionCanvas" role="img" aria-label="Portfolio region pie chart"></canvas></div>
+      <div id="pfPieRegionLegend" class="alloc-pie-legend"></div>
     </div>
   </div>
 
@@ -1767,7 +1776,7 @@ input[type=date]{color-scheme:light}
   </div>
 
   <!-- Twin pies row -->
-  <div class="alloc-pies" style="margin-top:8px">
+  <div class="alloc-pies alloc-pies-2" style="margin-top:8px">
     <div class="alloc-pie-wrap">
       <div class="alloc-pie-title">By Asset Class</div>
       <div class="alloc-pie-canvas-wrap"><canvas id="prPieCanvas" role="img" aria-label="Proposal asset-class pie chart"></canvas></div>
@@ -2001,7 +2010,7 @@ input[type=date]{color-scheme:light}
 <!-- Asset Class Allocation — twin pies + diff bars -->
 <div class="panel">
   <div class="ptitle">Asset Class Allocation — Side by Side</div>
-  <div class="alloc-pies">
+  <div class="alloc-pies alloc-pies-2">
     <div class="alloc-pie-wrap">
       <div class="alloc-pie-title" style="color:#5b9bd5">Current Portfolio</div>
       <div class="alloc-pie-canvas-wrap"><canvas id="cmpPieCur" role="img" aria-label="Current portfolio asset class pie"></canvas></div>
@@ -2697,38 +2706,46 @@ const INV_CLASS_LABELS={equity:"Equity",fixed_income:"Fixed income",real_estate:
 const INV_REGION_LABELS={us:"US",dev_intl:"Dev Intl",emerging:"EM",global:"Global",other:"Other"};
 const PROP_VEHICLE_LABELS={mutual_fund:"Mutual fund",etf:"ETF",stock:"Stock",bond:"Bond",alternative:"Alternative",precious:"Precious metals",sma:"SMA",futures:"Futures"};
 
-// Colour palette for asset-class pie chart
-// Bright, distinguishable palette for portfolio allocation pies
-// Designed for high visual contrast in adjacent segments + colorblind-friendly hues
+// ═══════════════════════════════════════════════════════════════════
+// Distinct color palettes per pie chart so the three views are
+// visually distinguishable at a glance.
+//   • Asset Class — cool BLUE/TEAL palette ("what you own" — structural)
+//   • Instrument Type — warm ORANGE/RED palette ("the wrapper" — vehicle)
+//   • Region — vibrant GREEN/PURPLE/PINK palette ("where" — geography)
+// ═══════════════════════════════════════════════════════════════════
 const CLASS_COLORS={
-  equity:       "#0057b8",   // strong blue — equities
-  fixed_income: "#00875a",   // emerald green — bonds
-  real_estate:  "#f59e0b",   // bright amber — real estate
-  commodity:    "#d4af37",   // metallic gold — commodities
-  cash:         "#06b6d4",   // cyan — cash
-  mixed:        "#7c3aed",   // vivid purple — mixed
-  alternative:  "#e31837",   // bright red — alternatives
-  other:        "#64748b"    // slate — other
+  equity:       "#0057b8",   // strong blue
+  fixed_income: "#14b8a6",   // teal
+  real_estate:  "#0ea5e9",   // sky blue
+  commodity:    "#6366f1",   // indigo
+  cash:         "#67e8f9",   // pale cyan
+  mixed:        "#1e3a8a",   // deep navy
+  alternative:  "#8b5cf6",   // violet (cool side of purple)
+  crypto:       "#3b82f6",   // bright blue
+  other:        "#94a3b8"    // slate
 };
 const TYPE_COLORS={
-  etf:          "#10b981",   // emerald — ETFs
-  mutual_fund:  "#0057b8",   // strong blue — mutual funds
-  stock:        "#f59e0b",   // amber — individual stocks
-  bond:         "#06b6d4",   // cyan — bonds
-  structured:   "#7c3aed",   // purple — structured
-  alternative:  "#e31837",   // red — alternatives
-  precious:     "#d4af37",   // gold — precious metals
-  sma:          "#a855f7",   // light purple — SMA
-  futures:      "#ec4899",   // pink — futures
-  other:        "#64748b"
+  etf:          "#f97316",   // orange — most common, prominent hue
+  mutual_fund:  "#ea580c",   // red-orange
+  stock:        "#ef4444",   // bright red
+  bond:         "#f59e0b",   // amber
+  structured:   "#e11d48",   // rose
+  alternative:  "#9f1239",   // deep crimson
+  precious:     "#d4af37",   // metallic gold
+  sma:          "#b45309",   // tan/copper
+  futures:      "#7f1d1d",   // dark red
+  cash:         "#fde68a",   // pale yellow
+  other:        "#94a3b8"
 };
-// Region colors — kept consistent across class & region pies
 const REGION_COLORS={
-  us:           "#0057b8",
-  dev_intl:     "#00875a",
-  emerging:     "#f59e0b",
-  global:       "#06b6d4",
-  other:        "#64748b"
+  us:           "#10b981",   // emerald
+  dev_intl:     "#7c3aed",   // vivid purple
+  emerging:     "#ec4899",   // hot pink
+  global:       "#84cc16",   // lime green
+  uk:           "#a855f7",   // light purple
+  europe:       "#22d3ee",   // bright cyan (region accent)
+  asia:         "#f472b6",   // pink
+  other:        "#94a3b8"
 };
 
 // Pension defaults by country (approximate annual benefit USD-equivalent + start age)
@@ -4919,6 +4936,7 @@ function effClass(item){
 
 // Shared helper: render a doughnut pie + legend for any grouping
 let pfTypeChart = null;
+let pfRegionChart = null;
 function drawSinglePie(canvasId, legendId, items, labelMap, colorMap, classifyFn, existingChart){
   const canvas = $(canvasId);
   const legend = $(legendId);
@@ -4971,10 +4989,13 @@ function drawSinglePie(canvasId, legendId, items, labelMap, colorMap, classifyFn
   return chart;
 }
 
-// Render BOTH pies — Asset Class and Instrument Type — in the unified box
+// Render all three pies — Asset Class, Instrument Type, and Region.
+// Each uses its own distinct color palette (blues / oranges / greens)
+// for clear visual separation in the side-by-side layout.
 function drawPortfolioPie(){
-  pfClassChart = drawSinglePie("pfPieCanvas","pfPieLegend",investments,INV_CLASS_LABELS,CLASS_COLORS,effClass,pfClassChart);
-  pfTypeChart  = drawSinglePie("pfPieTypeCanvas","pfPieTypeLegend",investments,INV_TYPE_LABELS,TYPE_COLORS,(i)=>i.type||"other",pfTypeChart);
+  pfClassChart  = drawSinglePie("pfPieCanvas",       "pfPieLegend",       investments, INV_CLASS_LABELS,  CLASS_COLORS,  effClass,                       pfClassChart);
+  pfTypeChart   = drawSinglePie("pfPieTypeCanvas",   "pfPieTypeLegend",   investments, INV_TYPE_LABELS,   TYPE_COLORS,   (i)=>i.type||"other",           pfTypeChart);
+  pfRegionChart = drawSinglePie("pfPieRegionCanvas", "pfPieRegionLegend", investments, INV_REGION_LABELS, REGION_COLORS, (i)=>i.region||"other",         pfRegionChart);
 }
 
 // ═══════════════════════════════════════════════════════════
