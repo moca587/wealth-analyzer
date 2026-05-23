@@ -1369,6 +1369,33 @@ input[type=date]{color-scheme:light}
     <div class="slbl">Inflation</div>
     <div class="frow"><label class="flbl">Region</label><select id="region" class="w200" onchange="onRegion()"></select></div>
     <div id="rnote" class="rnote-box"></div>
+    <!-- Eurozone country picker — only visible when "eu" is selected as region. -->
+    <div class="frow" id="infEuRow" style="display:none;margin-top:8px"><label class="flbl">EU country</label>
+      <select id="infEuCountry" class="w200" onchange="onInfEuCountry()">
+        <option value="">— pick a specific country —</option>
+        <option value="AT">🇦🇹 Austria — 2.7%</option>
+        <option value="BE">🇧🇪 Belgium — 3.0%</option>
+        <option value="CY">🇨🇾 Cyprus — 3.5%</option>
+        <option value="HR">🇭🇷 Croatia — 11.8% (pre-euro hyperinf.)</option>
+        <option value="EE">🇪🇪 Estonia — 5.0%</option>
+        <option value="FI">🇫🇮 Finland — 3.5%</option>
+        <option value="FR">🇫🇷 France — 3.4%</option>
+        <option value="DE">🇩🇪 Germany — 2.5%</option>
+        <option value="GR">🇬🇷 Greece — 7.5% (drachma era)</option>
+        <option value="IE">🇮🇪 Ireland — 4.0%</option>
+        <option value="IT">🇮🇹 Italy — 5.0% (lira era)</option>
+        <option value="LV">🇱🇻 Latvia — 5.5%</option>
+        <option value="LT">🇱🇹 Lithuania — 5.5%</option>
+        <option value="LU">🇱🇺 Luxembourg — 2.6%</option>
+        <option value="MT">🇲🇹 Malta — 3.0%</option>
+        <option value="NL">🇳🇱 Netherlands — 2.7%</option>
+        <option value="PT">🇵🇹 Portugal — 6.5% (escudo era)</option>
+        <option value="SK">🇸🇰 Slovakia — 5.5%</option>
+        <option value="SI">🇸🇮 Slovenia — 7.0% (tolar era)</option>
+        <option value="ES">🇪🇸 Spain — 5.5% (peseta era)</option>
+      </select>
+    </div>
+    <div id="infEuNote" class="rnote-box" style="display:none"></div>
     <div class="frow" style="margin-top:8px"><label class="flbl">Inflation rate %</label><input type="number" id="inf" value="3.8" step="0.1" class="w120"></div>
   </div>
 </div>
@@ -2792,7 +2819,7 @@ input[type=date]{color-scheme:light}
 // ═══════════════════════════════════════════════════════════
 // VERSION — updated by build-standalone.pl on each build
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260523-1902";
+const APP_VERSION = "20260523-2117";
 
 // ═══════════════════════════════════════════════════════════
 // DATA
@@ -5345,8 +5372,77 @@ function onRegion(){
   const r=REGIONS[$("region").value]; if(!r) return;
   $("inf").value=r.rate;
   setT("rnote",r.note);
+  // Show/hide the eurozone country sub-picker
+  const euRow = document.getElementById("infEuRow");
+  const euNote = document.getElementById("infEuNote");
+  if($("region").value === "eu"){
+    if(euRow) euRow.style.display = "";
+    // Pre-select last EU choice if persisted
+    let last = "";
+    try { last = localStorage.getItem("wa_inf_eu_country") || ""; } catch(_){}
+    const sel = document.getElementById("infEuCountry");
+    if(sel && last && EUROZONE_50Y_INFLATION[last]){
+      sel.value = last;
+      onInfEuCountry();
+    } else if(euNote){
+      euNote.style.display = "block";
+      euNote.innerHTML = '<span style="color:var(--text3);font-size:11.5px">Default: <strong>3.1%</strong> (blended HICP). Pick a specific eurozone country above to use its 50-year average instead.</span>';
+    }
+  } else {
+    if(euRow) euRow.style.display = "none";
+    if(euNote){ euNote.style.display = "none"; euNote.innerHTML = ""; }
+  }
   refreshTopMetrics();
 }
+
+// ─── Eurozone 50-year average inflation table ──────────────────────
+// Approximate 50-year (1974-2024) CPI averages per eurozone member,
+// including the pre-euro currency era — high-inflation pre-euro
+// periods (drachma, lira, peseta, escudo, tolar, koruna, kuna) are
+// reflected. Switch to "current" reference for post-euro-only outlook.
+const EUROZONE_50Y_INFLATION = {
+  AT: {name:"Austria",     rate:2.7,  note:"50-yr avg CPI: 2.7% — Schilling and euro era both low-inflation."},
+  BE: {name:"Belgium",     rate:3.0,  note:"50-yr avg CPI: 3.0% — moderate franc and euro era."},
+  CY: {name:"Cyprus",      rate:3.5,  note:"50-yr avg CPI: 3.5% — Cypriot pound and euro era."},
+  HR: {name:"Croatia",     rate:11.8, note:"50-yr avg CPI: 11.8% — includes 1990s Yugoslav-era hyperinflation. Post-2000 average ~3%."},
+  EE: {name:"Estonia",     rate:5.0,  note:"50-yr avg CPI: 5.0% — post-Soviet kroon era through euro adoption."},
+  FI: {name:"Finland",     rate:3.5,  note:"50-yr avg CPI: 3.5% — markka and euro era."},
+  FR: {name:"France",      rate:3.4,  note:"50-yr avg CPI: 3.4% — franc 1970s-80s higher, euro era ~1.5%."},
+  DE: {name:"Germany",     rate:2.5,  note:"50-yr avg CPI: 2.5% — among the world's lowest. Bundesbank discipline."},
+  GR: {name:"Greece",      rate:7.5,  note:"50-yr avg CPI: 7.5% — drachma era 10%+, euro era ~2%."},
+  IE: {name:"Ireland",     rate:4.0,  note:"50-yr avg CPI: 4.0% — punt era 1970s-80s high, euro era moderate."},
+  IT: {name:"Italy",       rate:5.0,  note:"50-yr avg CPI: 5.0% — lira era 1970s-80s 10%+, euro era ~1.5%."},
+  LV: {name:"Latvia",      rate:5.5,  note:"50-yr avg CPI: 5.5% — Soviet ruble + lats + euro periods."},
+  LT: {name:"Lithuania",   rate:5.5,  note:"50-yr avg CPI: 5.5% — Soviet ruble + litas + euro periods."},
+  LU: {name:"Luxembourg",  rate:2.6,  note:"50-yr avg CPI: 2.6% — small open economy, low inflation."},
+  MT: {name:"Malta",       rate:3.0,  note:"50-yr avg CPI: 3.0% — Maltese lira and euro era."},
+  NL: {name:"Netherlands", rate:2.7,  note:"50-yr avg CPI: 2.7% — guilder and euro era both disciplined."},
+  PT: {name:"Portugal",    rate:6.5,  note:"50-yr avg CPI: 6.5% — escudo era 10%+, euro era moderate."},
+  SK: {name:"Slovakia",    rate:5.5,  note:"50-yr avg CPI: 5.5% — Czechoslovak koruna era through euro adoption."},
+  SI: {name:"Slovenia",    rate:7.0,  note:"50-yr avg CPI: 7.0% — Yugoslav dinar + tolar pre-euro."},
+  ES: {name:"Spain",       rate:5.5,  note:"50-yr avg CPI: 5.5% — peseta era 1970s-80s 10%+, euro era ~2%."}
+};
+
+function onInfEuCountry(){
+  const code = ($("infEuCountry")||{}).value || "";
+  const euNote = document.getElementById("infEuNote");
+  if(!code || !EUROZONE_50Y_INFLATION[code]){
+    if(euNote){ euNote.style.display = "block"; euNote.innerHTML = '<span style="color:var(--text3);font-size:11.5px">Default: <strong>3.1%</strong> (blended HICP). Pick a specific eurozone country above to use its 50-year average instead.</span>'; }
+    return;
+  }
+  try { localStorage.setItem("wa_inf_eu_country", code); } catch(_){}
+  const d = EUROZONE_50Y_INFLATION[code];
+  // Push the country-specific rate into the inflation input
+  const infEl = $("inf");
+  if(infEl) infEl.value = d.rate.toFixed(1);
+  // Show note
+  if(euNote){
+    euNote.style.display = "block";
+    euNote.innerHTML = '🇪🇺 <strong>' + d.name + '</strong> — ' + d.note;
+  }
+  if(typeof refreshTopMetrics === "function") refreshTopMetrics();
+}
+window.onInfEuCountry = onInfEuCountry;
 // ─── Eurozone country sub-selector ─────────────────────────────────
 // 20 eurozone members with tax brackets in EUR (rounded), regional
 // breakouts where they have material impact, and inflation rates.
