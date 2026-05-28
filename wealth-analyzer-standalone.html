@@ -2819,7 +2819,7 @@ input[type=date]{color-scheme:light}
 // ═══════════════════════════════════════════════════════════
 // VERSION — updated by build-standalone.pl on each build
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260523-2142";
+const APP_VERSION = "20260528-1411";
 
 // ═══════════════════════════════════════════════════════════
 // DATA
@@ -3745,7 +3745,7 @@ OTHER:{flag:"🌍",name:"Other",groups:[
 
 const REGIONS={us:{rate:3.8,flag:"🇺🇸",name:"United States",note:"50-yr avg CPI-U (1974–2024): 3.8%"},ca:{rate:3.7,flag:"🇨🇦",name:"Canada",note:"50-yr avg CPI: 3.7%"},mx:{rate:15.2,flag:"🇲🇽",name:"Mexico",note:"50-yr avg CPI: 15.2% — includes high-inflation 1980s–90s. Adjust manually for current outlook."},eu:{rate:3.1,flag:"🇪🇺",name:"Euro zone",note:"50-yr avg HICP blended: 3.1%"},uk:{rate:4.8,flag:"🇬🇧",name:"United Kingdom",note:"50-yr avg RPI/CPI: 4.8%"},ch:{rate:2.1,flag:"🇨🇭",name:"Switzerland",note:"50-yr avg CPI: 2.1% — among the world's lowest"},jp:{rate:2.0,flag:"🇯🇵",name:"Japan",note:"50-yr avg CPI: 2.0% — prolonged deflation era pulls average down"},cn:{rate:3.9,flag:"🇨🇳",name:"China & Taiwan",note:"50-yr blended avg CPI: 3.9% — China ~4.2%, Taiwan ~3.3%"},sg:{rate:2.8,flag:"🇸🇬",name:"Singapore",note:"50-yr avg CPI: 2.8%"},au:{rate:4.4,flag:"🇦🇺",name:"Australia",note:"50-yr avg CPI: 4.4%"},hk:{rate:4.1,flag:"🇭🇰",name:"Hong Kong",note:"50-yr avg CPI: 4.1%"},kr:{rate:5.2,flag:"🇰🇷",name:"South Korea",note:"50-yr avg CPI: 5.2%"},in:{rate:7.4,flag:"🇮🇳",name:"India",note:"50-yr avg CPI: 7.4%"},id:{rate:11.6,flag:"🇮🇩",name:"Indonesia",note:"50-yr avg CPI: 11.6% — includes 1998 hyperinflationary spike"},sa:{rate:2.5,flag:"🇸🇦",name:"Saudi Arabia",note:"50-yr avg CPI: 2.5% — oil-pegged economy"},za:{rate:8.9,flag:"🇿🇦",name:"South Africa",note:"50-yr avg CPI: 8.9%"},br:{rate:58.5,flag:"🇧🇷",name:"Brazil",note:"50-yr avg CPI: 58.5% — hyperinflation era. Post-Real Plan avg ~7%. Adjust manually."}};
 
-const RISK_PROFILES={conservative:{label:"Conservative",color:"#5b9bd5",bg:"rgba(91,155,213,.15)",border:"rgba(91,155,213,.3)",retMean:4.5,retVol:7,note:"Income-oriented. Heavy fixed income, small equity allocation (~20–30%)."},moderately_conservative:{label:"Moderately Conservative",color:"#4caf7d",bg:"rgba(76,175,125,.15)",border:"rgba(76,175,125,.3)",retMean:5.5,retVol:9,note:"Balanced tilt toward safety. ~40% equities, 60% fixed income."},moderate:{label:"Moderate",color:"#4caf7d",bg:"rgba(76,175,125,.15)",border:"rgba(76,175,125,.3)",retMean:7.0,retVol:12,note:"Classic 60/40 balanced portfolio. Equal focus on growth and stability."},moderately_aggressive:{label:"Moderately Aggressive",color:"#1e40af",bg:"rgba(30,64,175,.15)",border:"rgba(30,64,175,.3)",retMean:8.5,retVol:15,note:"Growth-oriented. ~70–75% equities, 25–30% bonds."},aggressive:{label:"Aggressive",color:"#d4956a",bg:"rgba(212,149,106,.15)",border:"rgba(212,149,106,.3)",retMean:10.0,retVol:18,note:"Primarily equities (~85–90%). Accepts significant short-term volatility."}};
+const RISK_PROFILES={very_conservative:{label:"Very Conservative",color:"#7cb6e8",bg:"rgba(124,182,232,.15)",border:"rgba(124,182,232,.3)",retMean:3.5,retVol:4,note:"Capital-preservation focus. Mostly cash & short bonds, minimal equity (~10–20%)."},conservative:{label:"Conservative",color:"#5b9bd5",bg:"rgba(91,155,213,.15)",border:"rgba(91,155,213,.3)",retMean:4.5,retVol:7,note:"Income-oriented. Heavy fixed income, small equity allocation (~20–30%)."},moderately_conservative:{label:"Moderately Conservative",color:"#4caf7d",bg:"rgba(76,175,125,.15)",border:"rgba(76,175,125,.3)",retMean:5.5,retVol:9,note:"Balanced tilt toward safety. ~40% equities, 60% fixed income."},moderate:{label:"Moderate",color:"#4caf7d",bg:"rgba(76,175,125,.15)",border:"rgba(76,175,125,.3)",retMean:7.0,retVol:12,note:"Classic 60/40 balanced portfolio. Equal focus on growth and stability."},moderately_aggressive:{label:"Moderately Aggressive",color:"#1e40af",bg:"rgba(30,64,175,.15)",border:"rgba(30,64,175,.3)",retMean:8.5,retVol:15,note:"Growth-oriented. ~70–75% equities, 25–30% bonds."},aggressive:{label:"Aggressive",color:"#d4956a",bg:"rgba(212,149,106,.15)",border:"rgba(212,149,106,.3)",retMean:10.0,retVol:18,note:"Primarily equities (~85–90%). Accepts significant short-term volatility."},very_aggressive:{label:"Very Aggressive",color:"#e31837",bg:"rgba(227,24,55,.15)",border:"rgba(227,24,55,.3)",retMean:12.0,retVol:22,note:"Maximum growth. ~95–100% equities incl. emerging/small-cap. Highest volatility."}};
 
 const HORIZON_PROFILES={"1_5":{label:"1–5 years",color:"#5b9bd5",bg:"rgba(91,155,213,.15)",note:"Short-term focus. Preserve capital. Favour low-volatility, income-oriented assets."},"5_10":{label:"5–10 years",color:"#4caf7d",bg:"rgba(76,175,125,.15)",note:"Medium-term. Balanced approach — measured equity exposure with a stability anchor."},"10_15":{label:"10–15 years",color:"#1e40af",bg:"rgba(30,64,175,.15)",note:"Medium-to-long term. Can tolerate moderate volatility for meaningful compound growth."},"15_plus":{label:"15+ years",color:"#d4956a",bg:"rgba(212,149,106,.15)",note:"Long horizon. Equity-heavy allocation is appropriate. Time smooths out volatility."}};
 
@@ -9101,8 +9101,8 @@ function syncProposalClient(){
   const r1=$("c1r").value, h1=$("c1h").value;
   let snap="Household profile not loaded yet.";
   if(r1){
-    snap="Client risk: "+RISK_PROFILES[r1].label;
-    if(h1) snap+=" • Horizon: "+HORIZON_PROFILES[h1].label;
+    snap="Client risk: "+(RISK_PROFILES[r1]?.label || r1);
+    if(h1) snap+=" • Horizon: "+(HORIZON_PROFILES[h1]?.label || h1);
   }
   setT("prHHSnap",snap);
 }
@@ -12465,7 +12465,7 @@ async function generatePDFReport(){
       fund:       () => val("rptIncFund") !== "no",
       cf:         () => val("rptIncCF") !== "no",
       method:     () => val("rptIncMethod") !== "no",
-      disc:       () => val("rptDiscLvl") !== "none"
+      disc:       () => val("rptDiscLvl") !== "none" || !!(function(){ try { return (localStorage.getItem("wa_rpt_custom_disc")||"").trim(); } catch(_) { return ""; } })()
     };
     const tocItems = [];
     userOrder.forEach(k => {
