@@ -601,6 +601,10 @@ input[type=date]{color-scheme:light}
   <div class="nav-item" data-tab="simulation" onclick="showTab('simulation',this)">
     <svg viewBox="0 0 16 16" fill="currentColor"><path d="M1 12l4-5 3 3 3-4 4 5H1z"/></svg>Simulation
   </div>
+  <div class="nav-item" data-tab="goalsbased" onclick="showTab('goalsbased',this);runGoalsBased()">
+    <svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 0a8 8 0 100 16A8 8 0 008 0zm0 3a5 5 0 110 10A5 5 0 018 3zm0 3a2 2 0 100 4 2 2 0 000-4z"/></svg>Goals-Based Analysis
+    <span style="margin-left:auto;font-size:9px;font-weight:700;background:linear-gradient(135deg,#7c3aed,var(--gold));color:#fff;padding:2px 6px;border-radius:50px;pointer-events:none">NEW</span>
+  </div>
   <div class="nav-item" data-tab="report" onclick="showTab('report',this)">
     <svg viewBox="0 0 16 16" fill="currentColor"><path d="M3 1.5A1.5 1.5 0 0 1 4.5 0h5L13 3.5V14.5A1.5 1.5 0 0 1 11.5 16h-7A1.5 1.5 0 0 1 3 14.5v-13zM9 1v3h3L9 1zm-4 6.5h6v1H5v-1zM5 10h6v1H5v-1zm0 2.5h4v1H5v-1z"/></svg>PDF Report
   </div>
@@ -2168,6 +2172,57 @@ input[type=date]{color-scheme:light}
   </div>
 </div>
 
+</div>
+
+<!-- ═══ GOALS-BASED ANALYSIS (Merrill-style) ═══ -->
+<div class="tab" id="tab-goalsbased">
+  <div class="panel" style="background:linear-gradient(135deg,#fff,#f3f0ff);border-left:4px solid #7c3aed">
+    <div class="ptitle" style="border:none">🎯 Goals-Based Wealth Analysis</div>
+    <div style="font-size:12.5px;color:var(--text2);line-height:1.6">
+      Institutional goals-based framework modeled on the Merrill Lynch Wealth Management Analysis. Each goal is priced in present-value terms, discounted at a risk-adjusted rate matched to its priority, and compared to your funding sources to produce a <strong>Funding Ratio</strong>. Uses per-asset-class capital market assumptions with a full correlation matrix for accurate portfolio risk.
+    </div>
+    <div style="margin-top:12px;display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+      <button class="btn-primary" onclick="runGoalsBased()" style="font-size:14px;padding:10px 24px">▶ Run Goals-Based Analysis</button>
+      <span id="gbStatus" style="font-size:12px;color:var(--text3)"></span>
+    </div>
+  </div>
+
+  <!-- Overall Funding Ratio -->
+  <div class="panel" id="gbOverallPanel" style="display:none">
+    <div class="ptitle">Goal Funding Status — Overview</div>
+    <div id="gbOverall"></div>
+  </div>
+
+  <!-- Per-goal funding detail -->
+  <div class="panel" id="gbGoalsPanel" style="display:none">
+    <div class="ptitle">Goal Funding Detail (by priority)</div>
+    <div id="gbGoals"></div>
+  </div>
+
+  <!-- Potentially Achievable Lifestyle -->
+  <div class="panel" id="gbLifestylePanel" style="display:none">
+    <div class="ptitle">Potentially Achievable Annual Lifestyle</div>
+    <div style="font-size:12px;color:var(--text3);margin-bottom:14px;line-height:1.6">Estimated sustainable annual retirement spending (today's dollars) that lasts to age 90, under three confidence levels. <strong>80%</strong> is the conservative/pessimistic floor (returns below mean); <strong>30%</strong> is optimistic (returns above mean).</div>
+    <div id="gbLifestyle"></div>
+  </div>
+
+  <!-- Wealth Allocation Framework -->
+  <div class="panel" id="gbWealthPanel" style="display:none">
+    <div class="ptitle">Wealth Allocation Framework</div>
+    <div style="font-size:12px;color:var(--text3);margin-bottom:14px;line-height:1.6">Merrill's three-bucket framework organizes assets by risk-return role: <strong style="color:var(--green)">Personal</strong> (preserve lifestyle — residence, cash), <strong style="color:var(--accent)">Market</strong> (balance risk & return — diversified equities/bonds), and <strong style="color:#7c3aed">Aspirational</strong> (idiosyncratic upside — concentrated stock, business, crypto, investment property).</div>
+    <div id="gbWealth"></div>
+  </div>
+
+  <!-- Capital Market Assumptions -->
+  <div class="panel" id="gbCmaPanel" style="display:none">
+    <div class="ptitle">Capital Market Assumptions</div>
+    <div style="font-size:12px;color:var(--text3);margin-bottom:14px;line-height:1.6">Per-asset-class long-term return/risk assumptions used to derive your portfolio's risk-adjusted return. Geometric mean = arithmetic − ½σ². Core long-term inflation assumption: <strong id="gbInflRef">2.28%</strong>.</div>
+    <div id="gbCma"></div>
+  </div>
+
+  <div style="font-size:11px;color:var(--text3);margin:10px 4px;line-height:1.6">
+    <strong>Educational projection only — not financial advice.</strong> Funding ratios and achievable lifestyle figures are hypothetical, derived from capital market assumptions and your inputs. Actual results will differ. Consult a licensed advisor.
+  </div>
 </div>
 
 <!-- ═══ PDF REPORT ═══ -->
@@ -4500,6 +4555,9 @@ function showTab(name,el){
     try { if(typeof renderProposalSourceBanner === "function") renderProposalSourceBanner(); } catch(_){}
     // Restore the collapsed/expanded state of the Inputs panel
     try { applySimInputsState(); } catch(_){}
+  }
+  if(name==="goalsbased"){
+    try { if(typeof runGoalsBased === "function") runGoalsBased(); } catch(e){ console.warn("runGoalsBased:", e); }
   }
 }
 
@@ -11663,6 +11721,382 @@ async function fetchMorningstarFactSheet(ticker){
     console.warn("fetchMorningstarFactSheet failed for "+ticker+":", e.message);
     return null;
   }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// GOALS-BASED ANALYSIS ENGINE (Merrill-style)
+// Per-asset-class capital market assumptions + correlation matrix →
+// covariance-based portfolio risk → risk-adjusted PV goal funding ratios
+// + potentially-achievable lifestyle + wealth allocation framework.
+// ═══════════════════════════════════════════════════════════════════
+
+// Long-term capital market assumptions (arithmetic μ, σ, geometric μ, income yield) — annual %.
+// Calibrated to institutional long-horizon assumptions (Merrill-style).
+const CMA = {
+  equity:        {label:"Equity",            arith:8.58,  sigma:15.93, geo:7.43, income:1.93},
+  fixed_income:  {label:"Fixed Income",      arith:4.01,  sigma:6.28,  geo:3.83, income:3.31},
+  cash:          {label:"Cash",              arith:2.54,  sigma:2.47,  geo:2.51, income:2.24},
+  real_estate:   {label:"Real Assets/REITs", arith:4.57,  sigma:10.30, geo:4.06, income:3.38},
+  commodity:     {label:"Commodities",       arith:4.57,  sigma:10.30, geo:4.06, income:0},
+  alternative:   {label:"Hedge/Alternatives",arith:7.36,  sigma:8.88,  geo:6.99, income:0},
+  private_equity:{label:"Private Equity",    arith:11.03, sigma:23.05, geo:8.71, income:0},
+  mixed:         {label:"Mixed/Balanced",    arith:6.00,  sigma:9.00,  geo:5.60, income:2.0},
+  crypto:        {label:"Crypto",            arith:20.0,  sigma:65.0,  geo:5.0,  income:0}
+};
+const CMA_INFLATION = 2.28; // core long-term inflation %
+
+// Correlation matrix (symmetric). Classes not listed default to 0.3 cross-correlation.
+const CMA_CORR = {
+  equity:        {equity:1.00, fixed_income:0.019, cash:0.286, real_estate:0.128, commodity:0.128, alternative:0.636, private_equity:0.696, crypto:0.50},
+  fixed_income:  {equity:0.019, fixed_income:1.00, cash:0.281, real_estate:-0.153, commodity:-0.153, alternative:0.038, private_equity:0.001, crypto:0.10},
+  cash:          {equity:0.286, fixed_income:0.281, cash:1.00, real_estate:0.250, commodity:0.250, alternative:0.281, private_equity:0.060, crypto:0.05},
+  real_estate:   {equity:0.128, fixed_income:-0.153, cash:0.250, real_estate:1.00, commodity:0.60, alternative:0.144, private_equity:0.079, crypto:0.20},
+  commodity:     {equity:0.128, fixed_income:-0.153, cash:0.250, real_estate:0.60, commodity:1.00, alternative:0.144, private_equity:0.079, crypto:0.30},
+  alternative:   {equity:0.636, fixed_income:0.038, cash:0.281, real_estate:0.144, commodity:0.144, alternative:1.00, private_equity:0.613, crypto:0.40},
+  private_equity:{equity:0.696, fixed_income:0.001, cash:0.060, real_estate:0.079, commodity:0.079, alternative:0.613, private_equity:1.00, crypto:0.45},
+  crypto:        {equity:0.50, fixed_income:0.10, cash:0.05, real_estate:0.20, commodity:0.30, alternative:0.40, private_equity:0.45, crypto:1.00}
+};
+function cmaCorr(a, b){
+  if(a === b) return 1.0;
+  if(CMA_CORR[a] && CMA_CORR[a][b] != null) return CMA_CORR[a][b];
+  if(CMA_CORR[b] && CMA_CORR[b][a] != null) return CMA_CORR[b][a];
+  return 0.30;
+}
+
+// Inverse normal CDF (Acklam's algorithm) — for confidence-level z-scores.
+function normInv(p){
+  if(p <= 0) return -Infinity; if(p >= 1) return Infinity;
+  const a=[-3.969683028665376e+01,2.209460984245205e+02,-2.759285104469687e+02,1.383577518672690e+02,-3.066479806614716e+01,2.506628277459239e+00];
+  const b=[-5.447609879822406e+01,1.615858368580409e+02,-1.556989798598866e+02,6.680131188771972e+01,-1.328068155288572e+01];
+  const c=[-7.784894002430293e-03,-3.223964580411365e-01,-2.400758277161838e+00,-2.549732539343734e+00,4.374664141464968e+00,2.938163982698783e+00];
+  const d=[7.784695709041462e-03,3.224671290700398e-01,2.445134137142996e+00,3.754408661907416e+00];
+  const pl=0.02425, ph=1-pl; let q,r;
+  if(p<pl){ q=Math.sqrt(-2*Math.log(p)); return (((((c[0]*q+c[1])*q+c[2])*q+c[3])*q+c[4])*q+c[5])/((((d[0]*q+d[1])*q+d[2])*q+d[3])*q+1); }
+  if(p<=ph){ q=p-0.5; r=q*q; return (((((a[0]*r+a[1])*r+a[2])*r+a[3])*r+a[4])*r+a[5])*q/(((((b[0]*r+b[1])*r+b[2])*r+b[3])*r+b[4])*r+1); }
+  q=Math.sqrt(-2*Math.log(1-p)); return -(((((c[0]*q+c[1])*q+c[2])*q+c[3])*q+c[4])*q+c[5])/((((d[0]*q+d[1])*q+d[2])*q+d[3])*q+1);
+}
+
+// Build the household's asset-class weights (fractions summing to 1) from
+// the active portfolio (proposal-driven if flagged, else investments, else risk profile).
+function gbAssetClassWeights(){
+  // Prefer proposal positions if proposal-driven sim is on
+  let src = null;
+  if(typeof getSimUsesProposal === "function" && getSimUsesProposal() && proposals && proposals.length){
+    src = proposals.map(p => ({cls:p.cls||"mixed", w:p.alloc||0}));
+  } else if(investments && investments.length){
+    src = investments.map(i => ({cls:(typeof effClass==="function"?effClass(i):(i.cls||"mixed")), w:i.val||0}));
+  }
+  if(src && src.length){
+    const tot = src.reduce((s,x)=>s+x.w,0);
+    if(tot > 0){
+      const agg = {};
+      src.forEach(x => { agg[x.cls] = (agg[x.cls]||0) + x.w/tot; });
+      return agg;
+    }
+  }
+  // Fallback: map the household risk profile to a stylized allocation
+  const risk = val("c1r") || "moderate";
+  const ALLOC = {
+    very_conservative:{cash:0.10,fixed_income:0.65,equity:0.20,real_estate:0.05},
+    conservative:{cash:0.05,fixed_income:0.55,equity:0.30,real_estate:0.05,alternative:0.05},
+    moderately_conservative:{cash:0.03,fixed_income:0.45,equity:0.42,real_estate:0.05,alternative:0.05},
+    moderate:{cash:0.02,fixed_income:0.30,equity:0.55,real_estate:0.07,alternative:0.06},
+    moderately_aggressive:{cash:0,fixed_income:0.20,equity:0.66,real_estate:0.08,alternative:0.06},
+    aggressive:{cash:0,fixed_income:0.10,equity:0.78,real_estate:0.07,alternative:0.05},
+    very_aggressive:{cash:0,fixed_income:0.05,equity:0.85,real_estate:0.05,alternative:0.05}
+  };
+  return ALLOC[risk] || ALLOC.moderate;
+}
+
+// Covariance-based portfolio risk + return from asset-class weights.
+function gbPortfolioRisk(weights){
+  const classes = Object.keys(weights).filter(c => (weights[c]||0) > 0);
+  let variance = 0, arithMu = 0;
+  classes.forEach(ci => {
+    const wi = weights[ci], si = (CMA[ci]?.sigma ?? 12)/100;
+    arithMu += wi * (CMA[ci]?.arith ?? 7)/100;
+    classes.forEach(cj => {
+      const wj = weights[cj], sj = (CMA[cj]?.sigma ?? 12)/100;
+      variance += wi*wj*si*sj*cmaCorr(ci,cj);
+    });
+  });
+  const sigma = Math.sqrt(Math.max(0,variance));
+  const geoMu = arithMu - 0.5*sigma*sigma; // geometric drift
+  return {arithMu, geoMu, sigma};
+}
+
+// Annualized return at a confidence level over a horizon (decimal).
+// 50% → geometric mean; higher confidence → lower return (z>0).
+function gbReturnAtConfidence(geoMu, sigma, years, confidencePct){
+  const z = normInv(confidencePct/100);
+  const horizonVol = sigma / Math.sqrt(Math.max(1, years));
+  return geoMu - z*horizonVol;
+}
+
+// Priority → probability-of-success confidence level (Merrill convention)
+const GB_PRIORITY_CONF = { essential:95, important:75, aspirational:55 };
+
+// Main goals-based analysis
+function runGoalsBased(){
+  const status = $("gbStatus");
+  if(status) status.textContent = "Computing…";
+
+  const weights = gbAssetClassWeights();
+  const port = gbPortfolioRisk(weights);
+  const inflation = num("inf", CMA_INFLATION) / 100;
+  const cy = (typeof currentYear === "function") ? currentYear() : new Date().getFullYear();
+  const a1 = (typeof ageFromDOB === "function" ? ageFromDOB(val("c1d")) : 0) || 40;
+  const retAge = num("retAge", 65);
+  const effTax = (function(){
+    // Use the income effective tax rate if available; else 22%
+    try {
+      const inc = getGrossIncome(); const tax = (typeof computeIncomeTax==="function")?computeIncomeTax(inc):0;
+      return inc>0 ? Math.min(0.45, Math.max(0.10, tax/inc)) : 0.22;
+    } catch(_){ return 0.22; }
+  })();
+
+  // ─── Funding sources ───
+  const currentInvestable = (typeof totalAccountValue==="function" ? totalAccountValue() : 0)
+    + (typeof portfolioInvestmentSeed==="function" ? 0 : 0);
+  const liquidAssets = currentInvestable;
+  const annualSavings = num("savAnnual", 0);
+  const grossIncome = (typeof getGrossIncome==="function")?getGrossIncome():0;
+
+  // ─── Per-goal funding ratio ───
+  const goalRows = [];
+  // Sort goals by priority then start year
+  const prioOrder = {essential:0, important:1, aspirational:2};
+  const sortedGoals = [...goals].sort((a,b)=>(prioOrder[a.tier]??1)-(prioOrder[b.tier]??1) || a.startYear-b.startYear);
+
+  // Pool of funding sources consumed in priority order
+  let remainingAssets = liquidAssets;
+
+  let totalGoalPV = 0, totalFundedPV = 0;
+  sortedGoals.forEach(g => {
+    const tier = g.tier || "important";
+    const conf = GB_PRIORITY_CONF[tier] || 75;
+    const yrsToStart = Math.max(0, g.startYear - cy);
+    const yrsToEnd = Math.max(yrsToStart, g.endYear - cy);
+    const midHorizon = Math.max(1, (yrsToStart + yrsToEnd)/2);
+    // Risk-adjusted discount rate for this priority
+    const discRate = gbReturnAtConfidence(port.geoMu, port.sigma, midHorizon, conf);
+    // PV of the goal's inflation-growing cash flows, grossed for tax
+    let goalPV = 0;
+    for(let y = g.startYear; y <= g.endYear; y++){
+      const n = y - cy;
+      if(n < 0) continue;
+      const nominal = g.amt * Math.pow(1+inflation, n);
+      const pv = nominal / Math.pow(1+Math.max(0.001,1+discRate-1), n);
+      goalPV += pv;
+    }
+    // Gross up for taxes (tax-advantaged withdrawals taxed on the way out)
+    const taxOnGoal = goalPV * effTax * 0.6; // ~60% of withdrawals from taxable sources
+    const goalCostPV = goalPV + taxOnGoal;
+
+    // Funding: future savings PV allocated proportionally + current assets in priority order
+    const savingsYears = Math.max(0, Math.min(retAge - a1, yrsToEnd));
+    let futureSavingsPV = 0;
+    for(let n = 1; n <= savingsYears; n++){
+      futureSavingsPV += annualSavings / Math.pow(1+Math.max(0.001,1+discRate-1), n);
+    }
+    // Consume current assets for this goal (priority waterfall)
+    const assetsForThisGoal = Math.min(remainingAssets, goalCostPV);
+    const fundingSourcesPV = assetsForThisGoal + Math.min(futureSavingsPV, Math.max(0,goalCostPV-assetsForThisGoal)+goalCostPV);
+    remainingAssets = Math.max(0, remainingAssets - assetsForThisGoal);
+
+    const fundedPV = Math.min(goalCostPV, assetsForThisGoal + futureSavingsPV);
+    const ratio = goalCostPV > 0 ? fundedPV/goalCostPV : 1;
+
+    totalGoalPV += goalCostPV;
+    totalFundedPV += fundedPV;
+
+    goalRows.push({
+      name: g.name || "(unnamed goal)", tier, conf,
+      period: g.startYear + "–" + g.endYear,
+      annual: g.amt,
+      goalCostPV, taxOnGoal, fundedPV,
+      currentAssets: assetsForThisGoal, futureSavingsPV,
+      ratio: Math.min(1.5, ratio), discRate
+    });
+  });
+
+  const overallRatio = totalGoalPV > 0 ? totalFundedPV/totalGoalPV : 1;
+
+  // ─── Render everything ───
+  gbRenderOverall(overallRatio, totalGoalPV, totalFundedPV, port, weights);
+  gbRenderGoals(goalRows);
+  gbRenderLifestyle(port, weights, inflation, a1, retAge);
+  gbRenderWealth();
+  gbRenderCMA(weights, port);
+
+  ["gbOverallPanel","gbGoalsPanel","gbLifestylePanel","gbWealthPanel","gbCmaPanel"].forEach(id => {
+    const el = document.getElementById(id); if(el) el.style.display = "block";
+  });
+  if(status) status.innerHTML = '✓ <strong style="color:#1b6841">Analysis complete</strong> — portfolio μ ' + (port.geoMu*100).toFixed(2) + '% · σ ' + (port.sigma*100).toFixed(2) + '%';
+}
+window.runGoalsBased = runGoalsBased;
+
+function gbRing(pct, color){
+  // SVG donut ring showing a funding ratio percentage
+  const r = 52, c = 2*Math.PI*r, val = Math.min(100, Math.max(0, pct));
+  const off = c*(1 - val/100);
+  return '<svg viewBox="0 0 130 130" style="width:130px;height:130px">'
+    + '<circle cx="65" cy="65" r="'+r+'" fill="none" stroke="rgba(0,0,0,.07)" stroke-width="12"/>'
+    + '<circle cx="65" cy="65" r="'+r+'" fill="none" stroke="'+color+'" stroke-width="12" stroke-linecap="round" stroke-dasharray="'+c+'" stroke-dashoffset="'+off+'" transform="rotate(-90 65 65)"/>'
+    + '<text x="65" y="60" text-anchor="middle" font-size="26" font-weight="800" fill="'+color+'">'+Math.round(pct)+'%</text>'
+    + '<text x="65" y="80" text-anchor="middle" font-size="10" fill="var(--text3)">FUNDED</text>'
+    + '</svg>';
+}
+function gbRatioColor(r){ return r>=0.9?"var(--green)":(r>=0.6?"var(--amber)":"var(--red)"); }
+
+function gbRenderOverall(ratio, goalPV, fundedPV, port, weights){
+  const pct = ratio*100;
+  let h = '<div style="display:flex;gap:24px;align-items:center;flex-wrap:wrap">';
+  h += '<div>' + gbRing(pct, gbRatioColor(ratio)) + '</div>';
+  h += '<div style="flex:1;min-width:240px">';
+  h += '<div style="font-size:13px;color:var(--text2);line-height:1.7">';
+  h += 'Across all your goals, your funding sources cover <strong style="color:'+gbRatioColor(ratio)+'">'+pct.toFixed(0)+'%</strong> of the present-value cost.';
+  h += '</div>';
+  h += '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-top:14px">';
+  h += '<div class="mc"><div class="mc-lbl">Total goal cost (PV)</div><div class="mc-val">'+fmtMoney(goalPV)+'</div></div>';
+  h += '<div class="mc"><div class="mc-lbl">Funded (PV)</div><div class="mc-val" style="color:var(--green)">'+fmtMoney(fundedPV)+'</div></div>';
+  h += '<div class="mc"><div class="mc-lbl">Shortfall (PV)</div><div class="mc-val" style="color:'+(goalPV-fundedPV>0?"var(--red)":"var(--green)")+'">'+fmtMoney(Math.max(0,goalPV-fundedPV))+'</div></div>';
+  h += '<div class="mc"><div class="mc-lbl">Portfolio μ / σ</div><div class="mc-val" style="font-size:15px">'+(port.geoMu*100).toFixed(1)+'% / '+(port.sigma*100).toFixed(1)+'%</div></div>';
+  h += '</div></div></div>';
+  setH("gbOverall", h);
+}
+
+function gbRenderGoals(rows){
+  if(rows.length === 0){ setH("gbGoals", '<div class="pf-empty">No goals defined. Add goals on the Goals tab.</div>'); return; }
+  let h = '';
+  const tierLabel = {essential:"Essential",important:"Important",aspirational:"Aspirational"};
+  const tierColor = {essential:"var(--red)",important:"var(--amber)",aspirational:"#7c3aed"};
+  rows.forEach(r => {
+    h += '<div style="border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:12px;background:var(--bg2)">';
+    h += '<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:10px">';
+    h += '<div style="font-size:15px;font-weight:700;color:var(--text)">'+escapeForHTML(r.name)+'</div>';
+    h += '<span style="font-size:10px;font-weight:700;padding:2px 9px;border-radius:50px;background:'+tierColor[r.tier]+'1a;color:'+tierColor[r.tier]+'">'+tierLabel[r.tier]+' · '+r.conf+'% confidence</span>';
+    h += '<span style="font-size:11px;color:var(--text3)">'+r.period+' · '+fmtMoney(r.annual)+'/yr</span>';
+    h += '<span style="margin-left:auto;font-size:22px;font-weight:800;color:'+gbRatioColor(r.ratio)+'">'+Math.round(r.ratio*100)+'%</span>';
+    h += '</div>';
+    // Funding bar
+    h += '<div style="height:10px;background:rgba(0,0,0,.06);border-radius:5px;overflow:hidden;margin-bottom:10px"><div style="height:100%;width:'+Math.min(100,r.ratio*100)+'%;background:'+gbRatioColor(r.ratio)+';border-radius:5px"></div></div>';
+    // Breakdown grid
+    h += '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:6px;font-size:11px">';
+    h += '<div><div style="color:var(--text3);font-size:9px;text-transform:uppercase">Goal cost (PV)</div><strong>'+fmtMoney(r.goalCostPV)+'</strong></div>';
+    h += '<div><div style="color:var(--text3);font-size:9px;text-transform:uppercase">Est. tax incl.</div><strong>'+fmtMoney(r.taxOnGoal)+'</strong></div>';
+    h += '<div><div style="color:var(--text3);font-size:9px;text-transform:uppercase">Current assets</div><strong>'+fmtMoney(r.currentAssets)+'</strong></div>';
+    h += '<div><div style="color:var(--text3);font-size:9px;text-transform:uppercase">Future savings (PV)</div><strong>'+fmtMoney(r.futureSavingsPV)+'</strong></div>';
+    h += '<div><div style="color:var(--text3);font-size:9px;text-transform:uppercase">Discount rate</div><strong>'+(r.discRate*100).toFixed(2)+'%</strong></div>';
+    h += '<div><div style="color:var(--text3);font-size:9px;text-transform:uppercase">Shortfall (PV)</div><strong style="color:'+(r.goalCostPV-r.fundedPV>0?"var(--red)":"var(--green)")+'">'+fmtMoney(Math.max(0,r.goalCostPV-r.fundedPV))+'</strong></div>';
+    h += '</div></div>';
+  });
+  setH("gbGoals", h);
+}
+
+function gbRenderLifestyle(port, weights, inflation, a1, retAge){
+  // Wealth available at retirement: grow current investable + savings to retirement
+  const yrsToRet = Math.max(1, retAge - a1);
+  const investable = (typeof totalAccountValue==="function" ? totalAccountValue() : 0);
+  const annualSavings = num("savAnnual", 0);
+  const yearsInRet = Math.max(1, 90 - retAge);
+
+  const confs = [{p:80,lbl:"Conservative (80%)"},{p:50,lbl:"Expected (50%)"},{p:30,lbl:"Optimistic (30%)"}];
+  let h = '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px">';
+  confs.forEach(c => {
+    const r = gbReturnAtConfidence(port.geoMu, port.sigma, yrsToRet, c.p);
+    // Grow assets to retirement at this confidence return + save annually
+    let wealth = investable;
+    for(let y=0;y<yrsToRet;y++){ wealth = wealth*(1+r) + annualSavings; }
+    // Sustainable real annual spend = annuity payment over retirement years at real rate
+    const realRate = (r - inflation)/(1+inflation);
+    let spend;
+    if(Math.abs(realRate) < 1e-6) spend = wealth/yearsInRet;
+    else spend = wealth * realRate / (1 - Math.pow(1+realRate, -yearsInRet));
+    const color = c.p===80?"var(--green)":(c.p===50?"var(--accent)":"#7c3aed");
+    h += '<div style="background:var(--bg2);border:1px solid var(--border);border-top:3px solid '+color+';border-radius:10px;padding:16px;text-align:center">';
+    h += '<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);margin-bottom:8px">'+c.lbl+'</div>';
+    h += '<div style="font-size:30px;font-weight:800;color:'+color+';letter-spacing:-.03em">'+fmtMoney(Math.max(0,spend))+'</div>';
+    h += '<div style="font-size:11px;color:var(--text3);margin-top:4px">per year, to age 90</div>';
+    h += '<div style="font-size:10.5px;color:var(--text3);margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">Return assumption '+(r*100).toFixed(1)+'%/yr<br>Wealth at retirement '+fmtMoney(wealth)+'</div>';
+    h += '</div>';
+  });
+  h += '</div>';
+  setH("gbLifestyle", h);
+}
+
+// Categorize an asset into Personal / Market / Aspirational risk bucket
+function gbWealthBucket(asset){
+  const cls = asset.cls || "";
+  const type = (asset.type||"").toLowerCase();
+  const label = (asset.label||"").toLowerCase();
+  const s = type + " " + label;
+  // Aspirational: concentrated stock, business, investment property, crypto, PE
+  if(cls === "crypto" || /crypto|business|private.?equity|concentrated|stock option|venture|investment property|investment real estate|art|collect/.test(s)) return "aspirational";
+  // Personal: residence, cash, personal property, emergency reserve, checking/savings
+  if(cls === "cash" || /residence|home|property\b|personal|checking|chequing|current account|savings|emergency|deposit|livret|sparbuch|tagesgeld/.test(s)) return "personal";
+  // Market: everything else (equities, bonds, diversified funds, alternatives, real assets)
+  return "market";
+}
+
+function gbRenderWealth(){
+  const buckets = {personal:0, market:0, aspirational:0};
+  (assets||[]).forEach(a => { buckets[gbWealthBucket(a)] += (+a.value||0); });
+  // Property + other from the Assets tab summary fields
+  const prop = num("aProp",0), other = num("aOther",0);
+  buckets.personal += prop; // primary residence → personal
+  buckets.aspirational += other; // "other" treated as idiosyncratic
+  // Portfolio holdings (investments) → market
+  (investments||[]).forEach(i => {
+    const b = gbWealthBucket({cls:(typeof effClass==="function"?effClass(i):i.cls), type:i.type, label:i.name});
+    buckets[b] += (+i.val||0);
+  });
+  const total = buckets.personal + buckets.market + buckets.aspirational;
+  const defs = [
+    {k:"personal",   label:"Personal Assets",     sub:"Preserve lifestyle · safety", color:"var(--green)"},
+    {k:"market",     label:"Market Assets",        sub:"Balance risk & return",       color:"var(--accent)"},
+    {k:"aspirational",label:"Aspirational Assets", sub:"Idiosyncratic upside",        color:"#7c3aed"}
+  ];
+  let h = '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px">';
+  defs.forEach(d => {
+    const v = buckets[d.k], pct = total>0?v/total*100:0;
+    h += '<div style="background:var(--bg2);border:1px solid var(--border);border-top:3px solid '+d.color+';border-radius:10px;padding:16px">';
+    h += '<div style="font-size:13px;font-weight:700;color:'+d.color+'">'+d.label+'</div>';
+    h += '<div style="font-size:10.5px;color:var(--text3);margin-bottom:10px">'+d.sub+'</div>';
+    h += '<div style="font-size:26px;font-weight:800;letter-spacing:-.03em">'+fmtMoney(v)+'</div>';
+    h += '<div style="font-size:12px;color:var(--text3)">'+pct.toFixed(1)+'% of total</div>';
+    h += '<div style="height:8px;background:rgba(0,0,0,.06);border-radius:4px;overflow:hidden;margin-top:10px"><div style="height:100%;width:'+pct+'%;background:'+d.color+';border-radius:4px"></div></div>';
+    h += '</div>';
+  });
+  h += '</div>';
+  h += '<div style="font-size:11px;color:var(--text3);margin-top:12px">Total categorized: <strong>'+fmtMoney(total)+'</strong>. Concentrated/idiosyncratic positions (business, concentrated stock, investment property, crypto) carry higher risk — Merrill recommends limiting Aspirational exposure relative to your essential-goal funding needs.</div>';
+  setH("gbWealth", h);
+}
+
+function gbRenderCMA(weights, port){
+  let h = '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px">';
+  h += '<thead><tr style="border-bottom:2px solid var(--border);text-align:right">';
+  h += '<th style="text-align:left;padding:6px 8px">Asset class</th><th style="padding:6px 8px">Your weight</th><th style="padding:6px 8px">Arith μ</th><th style="padding:6px 8px">σ</th><th style="padding:6px 8px">Geo μ</th><th style="padding:6px 8px">Income</th></tr></thead><tbody>';
+  Object.entries(CMA).forEach(([k,c]) => {
+    const w = (weights[k]||0)*100;
+    if(c.label === "Mixed/Balanced" && w === 0) return; // skip synthetic unless used
+    h += '<tr style="border-bottom:1px solid var(--border);text-align:right">';
+    h += '<td style="text-align:left;padding:6px 8px;font-weight:600">'+c.label+'</td>';
+    h += '<td style="padding:6px 8px;'+(w>0?'font-weight:700;color:var(--accent)':'color:var(--text3)')+'">'+w.toFixed(1)+'%</td>';
+    h += '<td style="padding:6px 8px">'+c.arith.toFixed(2)+'%</td>';
+    h += '<td style="padding:6px 8px">'+c.sigma.toFixed(2)+'%</td>';
+    h += '<td style="padding:6px 8px">'+c.geo.toFixed(2)+'%</td>';
+    h += '<td style="padding:6px 8px">'+c.income.toFixed(2)+'%</td>';
+    h += '</tr>';
+  });
+  h += '<tr style="border-top:2px solid var(--border);text-align:right;font-weight:800;background:rgba(0,87,184,.04)">';
+  h += '<td style="text-align:left;padding:8px">YOUR PORTFOLIO (covariance-based)</td>';
+  h += '<td style="padding:8px">100%</td><td style="padding:8px">'+(port.arithMu*100).toFixed(2)+'%</td>';
+  h += '<td style="padding:8px">'+(port.sigma*100).toFixed(2)+'%</td><td style="padding:8px">'+(port.geoMu*100).toFixed(2)+'%</td><td style="padding:8px">—</td></tr>';
+  h += '</tbody></table></div>';
+  h += '<div style="font-size:11px;color:var(--text3);margin-top:10px">Portfolio σ uses the full correlation matrix (not a weighted average), so diversification correctly reduces total risk below the naive weighted-σ. Geometric mean = arithmetic − ½σ².</div>';
+  setH("gbInflRef", CMA_INFLATION.toFixed(2)+"%");
+  setH("gbCma", h);
 }
 
 // ═══════════════════════════════════════════════════════════════════
