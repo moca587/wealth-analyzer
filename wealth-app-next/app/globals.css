@@ -1,0 +1,47 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ─── Brand CSS variables (light theme, matches existing HTML app) ─── */
+@layer base {
+  :root {
+    --background: 210 17% 98%;       /* #fafbfc */
+    --foreground: 215 60% 10%;       /* #0a1628 */
+    --card: 0 0% 100%;
+    --card-foreground: 215 60% 10%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 215 60% 10%;
+    --primary: 211 100% 36%;         /* #0057b8 — ML blue */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 213 23% 96%;
+    --secondary-foreground: 215 60% 10%;
+    --muted: 213 23% 96%;
+    --muted-foreground: 215 14% 47%;
+    --accent: 211 100% 36%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 350 80% 50%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 213 22% 92%;
+    --input: 213 22% 92%;
+    --ring: 211 100% 36%;
+    --radius: 0.625rem;
+  }
+
+  * { @apply border-border; }
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "ss01", "cv11";
+  }
+
+  /* Headings use the serif display font */
+  .font-display { font-family: var(--font-dm-serif), Georgia, serif; }
+}
+
+/* Smooth animations */
+@layer utilities {
+  .animate-fade-in { animation: fade-in 0.4s ease-out both; }
+  @keyframes fade-in {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+}
