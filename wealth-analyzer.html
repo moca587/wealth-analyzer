@@ -40,6 +40,39 @@ body{font-family:var(--fb);background:var(--bg);color:var(--text);font-size:14px
 .ccy-picker select option{background:var(--bg2);color:var(--text)}
 .body{display:flex;flex:1;overflow:hidden}
 
+/* ── Settings: gear button + slide-out drawer ── */
+.icon-btn{display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;border-radius:50%;background:var(--bg3);border:1px solid var(--border);color:var(--gold);cursor:pointer;transition:all .15s;flex-shrink:0}
+.icon-btn:hover{background:var(--gold);color:#fff;border-color:var(--gold);transform:rotate(35deg)}
+.icon-btn svg{width:18px;height:18px}
+#settingsOverlay{position:fixed;inset:0;background:rgba(8,20,45,.34);opacity:0;visibility:hidden;transition:opacity .25s;z-index:9000}
+#settingsOverlay.open{opacity:1;visibility:visible}
+#settingsPanel{position:fixed;top:0;right:0;height:100vh;width:370px;max-width:90vw;background:#fff;box-shadow:-14px 0 44px rgba(0,40,120,.18);
+  transform:translateX(102%);transition:transform .32s cubic-bezier(.3,.7,.2,1);z-index:9001;display:flex;flex-direction:column}
+#settingsPanel.open{transform:none}
+.set-head{display:flex;align-items:center;justify-content:space-between;padding:20px 22px;border-bottom:1px solid var(--border);flex-shrink:0}
+.set-title{font-size:18px;font-weight:800;color:var(--text);letter-spacing:-.02em}
+.set-close{width:32px;height:32px;border-radius:50%;border:1px solid var(--border);background:var(--bg3);color:var(--text2);cursor:pointer;font-size:13px;transition:all .15s}
+.set-close:hover{background:var(--red);color:#fff;border-color:var(--red)}
+.set-body{padding:4px 22px 30px;overflow-y:auto}
+.set-sec{padding:18px 0;border-bottom:1px solid var(--border)}
+.set-sec:last-child{border-bottom:none}
+.set-sec-h{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);margin-bottom:14px}
+.set-row{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:14px}
+.set-row:last-child{margin-bottom:0}
+.set-row-lbl{font-size:13px;font-weight:600;color:var(--text);display:flex;flex-direction:column;gap:2px}
+.set-row-lbl small{font-size:11px;font-weight:400;color:var(--text3);line-height:1.4}
+.set-actions{display:flex;gap:10px;flex-wrap:wrap}
+.set-note{font-size:11.5px;color:var(--text3);line-height:1.6;margin-top:10px}
+.set-link{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--gold);text-decoration:none;padding:11px 13px;border:1px solid var(--border);border-radius:var(--rs);transition:all .15s}
+.set-link:hover{background:rgba(0,87,184,.06);border-color:var(--border2)}
+.set-link-ext{margin-left:auto;color:var(--text3);font-size:12px}
+.set-switch{position:relative;display:inline-block;width:44px;height:24px;flex-shrink:0}
+.set-switch input{opacity:0;width:0;height:0}
+.set-switch span{position:absolute;inset:0;background:var(--bg4);border-radius:50px;cursor:pointer;transition:.2s}
+.set-switch span::before{content:"";position:absolute;width:18px;height:18px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.2s;box-shadow:0 1px 3px rgba(0,0,0,.25)}
+.set-switch input:checked+span{background:var(--gold)}
+.set-switch input:checked+span::before{transform:translateX(20px)}
+
 /* ── Sidebar ── */
 .sidebar{width:200px;flex-shrink:0;background:#ffffff;border-right:1px solid rgba(0,87,184,0.08);overflow-y:auto;padding:20px 0}
 .nav-grp-label{font-size:9.5px;font-weight:700;letter-spacing:.10em;text-transform:uppercase;color:var(--text3);padding:14px 18px 5px}
@@ -534,6 +567,113 @@ input[type=date]{color-scheme:light}
 </style>
 </head>
 <body>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     INTRO / LANDING SPLASH — shown first; clicking "Launch" reveals
+     the Wealth Analyzer app underneath.
+     ═══════════════════════════════════════════════════════════════ -->
+<style>
+#introScreen{position:fixed;inset:0;z-index:100000;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  background:radial-gradient(1200px 800px at 72% -12%,#0a3d8f 0%,#062b66 38%,#041b40 100%);
+  color:#fff;text-align:center;padding:48px 24px;overflow-y:auto;opacity:1;transition:opacity .6s ease}
+#introScreen.intro-hide{opacity:0;pointer-events:none}
+#introScreen::before{content:"";position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(560px 380px at 18% 92%,rgba(0,135,255,.20),transparent 60%),
+             radial-gradient(420px 300px at 88% 12%,rgba(90,169,255,.14),transparent 60%)}
+.intro-inner{position:relative;max-width:700px;animation:introUp .85s cubic-bezier(.2,.7,.2,1) both}
+@keyframes introUp{from{opacity:0;transform:translateY(26px)}to{opacity:1;transform:none}}
+.intro-badge{display:inline-flex;align-items:center;gap:8px;font-size:11px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;
+  color:#9fc4ff;border:1px solid rgba(159,196,255,.32);border-radius:50px;padding:7px 17px;margin-bottom:30px}
+.intro-logo{font-family:var(--fb);font-size:clamp(42px,7.2vw,72px);font-weight:800;letter-spacing:-.045em;line-height:1.04;margin-bottom:20px}
+.intro-logo .accent{color:#5aa9ff}
+.intro-tag{font-size:clamp(15px,2.1vw,19px);color:#c7d6ee;font-weight:400;line-height:1.65;margin:0 auto 38px;max-width:540px}
+.intro-feats{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-bottom:42px}
+.intro-feat{font-size:12.5px;font-weight:600;color:#dbe6f7;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.13);
+  border-radius:50px;padding:8px 17px}
+.intro-launch{display:inline-flex;align-items:center;gap:11px;background:#fff;color:#062b66;border:none;cursor:pointer;
+  font-family:var(--fb);font-size:16px;font-weight:700;letter-spacing:-.01em;padding:16px 40px;border-radius:50px;
+  box-shadow:0 14px 42px rgba(0,40,120,.5);transition:transform .15s,box-shadow .15s}
+.intro-launch:hover{transform:translateY(-2px);box-shadow:0 20px 54px rgba(0,70,180,.62)}
+.intro-launch svg{transition:transform .15s}
+.intro-launch:hover svg{transform:translateX(4px)}
+.intro-foot{margin-top:32px;font-size:11px;color:#7e9bc8;letter-spacing:.03em}
+.intro-credit{margin-top:10px;font-size:12px;color:#aec3e6;letter-spacing:.02em}
+.intro-credit strong{color:#fff;font-weight:700}
+</style>
+<div id="introScreen" role="dialog" aria-label="Welcome to Wealth Analyzer">
+  <div class="intro-inner">
+    <div class="intro-badge">◆ Private Wealth Intelligence</div>
+    <div class="intro-logo">Wealth<span class="accent">Analyzer</span></div>
+    <p class="intro-tag">Institutional-grade Monte Carlo financial planning — goals-based funding analysis, capital-market assumptions, and multi-country portfolio modelling, all running privately in your browser.</p>
+    <div class="intro-feats">
+      <span class="intro-feat">Monte Carlo simulation</span>
+      <span class="intro-feat">Goals-based funding</span>
+      <span class="intro-feat">39-country accounts</span>
+      <span class="intro-feat">AI portfolio builder</span>
+    </div>
+    <button class="intro-launch" onclick="launchApp()" autofocus>
+      Launch Wealth Analyzer
+      <svg width="18" height="18" viewBox="0 0 16 16" fill="none"><path d="M1 8h11M8 3l5 5-5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+    <div class="intro-foot">Press Enter to begin · Educational use only</div>
+    <div class="intro-credit">WealthAnalyzer is produced by <strong>Momir Ivetic</strong></div>
+  </div>
+</div>
+<script>
+  // Defined inline (before the main app script) so the Launch button + Settings work immediately.
+  function launchApp(){
+    var s=document.getElementById('introScreen');
+    if(!s) return;
+    s.classList.add('intro-hide');
+    setTimeout(function(){ s.style.display='none'; }, 650);
+  }
+  window.launchApp=launchApp;
+
+  // Respect the "Welcome screen" preference — skip the splash entirely if the
+  // user turned it off in Settings (runs synchronously, so no flash of the intro).
+  try{ if(localStorage.getItem('wa_show_intro')==='no'){ var _i=document.getElementById('introScreen'); if(_i) _i.style.display='none'; } }catch(_){}
+
+  // ── Settings drawer ──
+  function openSettings(){
+    var o=document.getElementById('settingsOverlay'), p=document.getElementById('settingsPanel');
+    if(o) o.classList.add('open');
+    if(p){ p.classList.add('open'); p.setAttribute('aria-hidden','false'); }
+    // refresh the API-key summary pill (full grid renders when the section is expanded)
+    try{ if(window.renderMdKeysGrid) window.renderMdKeysGrid(); }catch(_){}
+  }
+  function closeSettings(){
+    var o=document.getElementById('settingsOverlay'), p=document.getElementById('settingsPanel');
+    if(o) o.classList.remove('open');
+    if(p){ p.classList.remove('open'); p.setAttribute('aria-hidden','true'); }
+  }
+  function onToggleIntro(){
+    var cb=document.getElementById('setShowIntro');
+    try{ localStorage.setItem('wa_show_intro', (cb && cb.checked)?'yes':'no'); }catch(_){}
+  }
+  window.openSettings=openSettings; window.closeSettings=closeSettings; window.onToggleIntro=onToggleIntro;
+
+  // Keyboard: Enter/Space launches the splash; Esc closes Settings.
+  window.addEventListener('keydown', function(e){
+    var s=document.getElementById('introScreen');
+    if(s && s.style.display!=='none' && !s.classList.contains('intro-hide') && (e.key==='Enter'||e.key===' ')){
+      e.preventDefault(); launchApp(); return;
+    }
+    if(e.key==='Escape') closeSettings();
+  });
+
+  // Initialise Settings controls once everything has loaded.
+  window.addEventListener('load', function(){
+    try{
+      var cb=document.getElementById('setShowIntro');
+      if(cb) cb.checked = (localStorage.getItem('wa_show_intro')!=='no');
+    }catch(_){}
+    try{
+      var v=document.getElementById('setVersion');
+      if(v && typeof APP_VERSION!=='undefined') v.textContent=APP_VERSION;
+    }catch(_){}
+  });
+</script>
+
 <div id="inv-tip-box"></div>
 <div id="prob-tip-box"></div>
 <div class="app-shell">
@@ -542,24 +682,82 @@ input[type=date]{color-scheme:light}
 <div class="topbar">
   <div style="display:flex;align-items:center;gap:20px">
     <div class="logo">WealthAnalyzer <small>Monte Carlo Financial Planner</small></div>
-    <!-- Currency picker -->
-    <div class="ccy-picker" title="Display currency — automatically set by Client 1 country. Override here.">
-      <span class="ccy-picker-label">Currency</span>
-      <span class="ccy-picker-sym" id="ccy-sym">$</span>
-      <select id="m-ccy-tag" onchange="onCurrencyManualChange()"></select>
-    </div>
   </div>
-  <div style="display:flex;align-items:center;gap:10px">
+  <div style="display:flex;align-items:center;gap:12px">
     <span id="topbarStatus" style="font-size:11px;color:var(--green);font-weight:600;min-width:90px;text-align:right"></span>
-    <a href="admin.html" target="_blank" title="Admin Console" style="display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:50%;background:rgba(0,87,184,.06);color:var(--gold);text-decoration:none;font-size:15px;transition:all .15s;border:1px solid rgba(0,87,184,.10)" onmouseover="this.style.background='var(--gold)';this.style.color='#fff'" onmouseout="this.style.background='rgba(0,87,184,.06)';this.style.color='var(--gold)'">⚙</a>
-    <button class="btn-secondary" onclick="loadProfile()" style="padding:7px 16px">⬆ Load</button>
-    <button class="btn-secondary" onclick="saveProfile()" style="padding:7px 16px">⬇ Save</button>
     <button class="btn-primary" onclick="runSim()">
       <svg width="11" height="11" viewBox="0 0 16 16" fill="currentColor"><path d="M4 2l10 6-10 6z"/></svg>
       Run Simulation
     </button>
+    <button class="icon-btn" id="settingsBtn" onclick="openSettings()" title="Settings" aria-label="Settings">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+    </button>
   </div>
 </div>
+
+<!-- ═══ SETTINGS DRAWER ═══ -->
+<div id="settingsOverlay" onclick="closeSettings()"></div>
+<aside id="settingsPanel" role="dialog" aria-label="Settings" aria-hidden="true">
+  <div class="set-head">
+    <div class="set-title">Settings</div>
+    <button class="set-close" onclick="closeSettings()" aria-label="Close settings">✕</button>
+  </div>
+  <div class="set-body">
+
+    <div class="set-sec">
+      <div class="set-sec-h">Display</div>
+      <div class="set-row">
+        <div class="set-row-lbl">Currency<small>Auto-set from Client 1's country — override here</small></div>
+        <div class="ccy-picker" title="Display currency">
+          <span class="ccy-picker-sym" id="ccy-sym">$</span>
+          <select id="m-ccy-tag" onchange="onCurrencyManualChange()"></select>
+        </div>
+      </div>
+      <div class="set-row">
+        <div class="set-row-lbl">Welcome screen<small>Show the intro page each time you open the app</small></div>
+        <label class="set-switch"><input type="checkbox" id="setShowIntro" onchange="onToggleIntro()"><span></span></label>
+      </div>
+    </div>
+
+    <div class="set-sec">
+      <div class="set-sec-h">Profile data</div>
+      <div class="set-actions">
+        <button class="btn-secondary" onclick="loadProfile();closeSettings()" style="padding:8px 16px">⬆ Load profile</button>
+        <button class="btn-secondary" onclick="saveProfile();closeSettings()" style="padding:8px 16px">⬇ Save profile</button>
+      </div>
+      <div class="set-note">Save your household to a file on this device, or load one back. Everything stays private in your browser — nothing is uploaded.</div>
+    </div>
+
+    <div class="set-sec">
+      <div class="set-sec-h">Data &amp; integrations</div>
+      <!-- Market data API keys (collapsed by default) -->
+      <div id="mdKeysPanel">
+        <div onclick="toggleMdKeys()" style="cursor:pointer;user-select:none;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:11px 13px;border:1px solid var(--border);border-radius:var(--rs);background:var(--bg3)">
+          <span style="font-size:13px;font-weight:600;color:var(--text)">🔑 Provider API keys <span id="mdKeysSummary" style="font-size:11px;font-weight:500;color:var(--text3);margin-left:4px"></span></span>
+          <span id="mdKeysCaret" style="font-size:13px;color:var(--text3);transition:transform .2s">▼</span>
+        </div>
+        <div id="mdKeysBody" style="display:none;padding-top:12px">
+          <div style="font-size:11.5px;color:var(--text3);line-height:1.6;margin-bottom:12px">Paste free API keys to enable richer market data and AI features. Keys are stored only in your browser and are shared with the Admin console below. Get keys from each provider's link.</div>
+          <div id="mdKeysGrid" style="display:grid;grid-template-columns:1fr;gap:10px"></div>
+          <div style="margin-top:12px;padding:10px 12px;background:rgba(245,158,11,.06);border-left:3px solid var(--amber);border-radius:6px;font-size:11px;color:var(--text2);line-height:1.6"><strong>CORS note:</strong> Some providers (CoinMarketCap, FRED, NewsAPI, Marketstack) block direct browser requests — the app retries those via corsproxy.io.</div>
+          <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+            <button class="btn-secondary" onclick="testAllMdKeys()" style="font-size:12px;padding:7px 14px">⚡ Test all keys</button>
+            <span id="mdKeysTestStatus" style="font-size:12px;color:var(--text3)"></span>
+          </div>
+        </div>
+      </div>
+      <!-- Admin console — full key manager + advanced tools -->
+      <a class="set-link" href="admin.html" target="_blank" style="margin-top:10px">⚙ Admin Console <span class="set-link-ext">full manager ↗</span></a>
+      <div class="set-note">Keys you set here and in the Admin console are the same — manage them in whichever is handier.</div>
+    </div>
+
+    <div class="set-sec">
+      <div class="set-sec-h">About</div>
+      <div class="set-note"><strong style="color:var(--text2)">WealthAnalyzer</strong> — Monte Carlo financial planner.<br>Version <span id="setVersion">—</span> · Educational use only.<br>All calculations run locally; your data never leaves this device.</div>
+    </div>
+
+  </div>
+</aside>
 
 <div class="body">
 <!-- Sidebar -->
@@ -584,7 +782,7 @@ input[type=date]{color-scheme:light}
   <div class="nav-item" data-tab="liabilities" onclick="showTab('liabilities',this)">
     <svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 1a7 7 0 100 14A7 7 0 008 1zm-.75 4.5h1.5v5h-1.5v-5zm0 6h1.5v1.5h-1.5z"/></svg>Liabilities
   </div>
-  <div class="nav-grp-label">Analysis</div>
+  <div class="nav-grp-label">Portfolio</div>
   <div class="nav-item" data-tab="portfolio" onclick="showTab('portfolio',this)">
     <svg viewBox="0 0 16 16" fill="currentColor"><path d="M2 2h12v3H2V2zm0 4.5h5.5v7.5H2V6.5zm6.5 0H14v3H8.5v-3zm0 4H14v3.5H8.5v-3.5z"/></svg>Portfolio
   </div>
@@ -598,6 +796,7 @@ input[type=date]{color-scheme:light}
   <div class="nav-item" data-tab="compare" onclick="showTab('compare',this);runComparison()">
     <svg viewBox="0 0 16 16" fill="currentColor"><path d="M2 2v12h5V2H2zm7 0v6h5V2H9zm0 7.5v4.5h5V9.5H9z"/></svg>Portfolio Comparison
   </div>
+  <div class="nav-grp-label">Analysis</div>
   <div class="nav-item" data-tab="simulation" onclick="showTab('simulation',this)">
     <svg viewBox="0 0 16 16" fill="currentColor"><path d="M1 12l4-5 3 3 3-4 4 5H1z"/></svg>Simulation
   </div>
@@ -605,6 +804,7 @@ input[type=date]{color-scheme:light}
     <svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 0a8 8 0 100 16A8 8 0 008 0zm0 3a5 5 0 110 10A5 5 0 018 3zm0 3a2 2 0 100 4 2 2 0 000-4z"/></svg>Goals-Based Analysis
     <span style="margin-left:auto;font-size:9px;font-weight:700;background:linear-gradient(135deg,#7c3aed,var(--gold));color:#fff;padding:2px 6px;border-radius:50px;pointer-events:none">NEW</span>
   </div>
+  <div class="nav-grp-label">Reports</div>
   <div class="nav-item" data-tab="report" onclick="showTab('report',this)">
     <svg viewBox="0 0 16 16" fill="currentColor"><path d="M3 1.5A1.5 1.5 0 0 1 4.5 0h5L13 3.5V14.5A1.5 1.5 0 0 1 11.5 16h-7A1.5 1.5 0 0 1 3 14.5v-13zM9 1v3h3L9 1zm-4 6.5h6v1H5v-1zM5 10h6v1H5v-1zm0 2.5h4v1H5v-1z"/></svg>PDF Report
   </div>
@@ -959,8 +1159,12 @@ input[type=date]{color-scheme:light}
 
 <!-- ── Tax panel — fields always visible, brackets/details collapsible ── -->
 <div class="panel" id="taxPanel">
-  <div class="ptitle">Income &amp; Capital Gains Tax</div>
-  <div style="font-size:12px;color:var(--text3);margin-bottom:12px;line-height:1.5">Tax is computed from the country and state/province/canton selected on the primary client's address. Federal brackets are expressed in the household's <strong style="color:var(--text2)" id="taxCcyNote">selected currency</strong> (late-2024 FX, rounded — switch currencies in the topbar). State/cantonal rates are approximate effective rates at the equivalent of ~$100k household income. Rates auto-sync from the Household address. Use manual overrides if your situation differs.</div>
+  <div class="ptitle section-dropdown" onclick="toggleDropdown('taxPanelBody')">
+    Income &amp; Capital Gains Tax <span class="dropdown-hint">click to expand</span>
+    <span class="ptitle-line"></span>
+  </div>
+  <div class="dropdown-body" id="taxPanelBody">
+  <div style="font-size:12px;color:var(--text3);margin:12px 0;line-height:1.5">Tax is computed from the country and state/province/canton selected on the primary client's address. Federal brackets are expressed in the household's <strong style="color:var(--text2)" id="taxCcyNote">selected currency</strong> (late-2024 FX, rounded — switch currencies in the topbar). State/cantonal rates are approximate effective rates at the equivalent of ~$100k household income. Rates auto-sync from the Household address. Use manual overrides if your situation differs.</div>
 
   <div class="two-col">
     <div>
@@ -1039,6 +1243,7 @@ input[type=date]{color-scheme:light}
       </div>
     </div>
   </div>
+  </div><!-- /taxPanelBody -->
 </div>
 
 </div>
@@ -1346,15 +1551,18 @@ input[type=date]{color-scheme:light}
 </div>
 
 <div class="panel">
-  <div style="margin-bottom:4px">
-    <div class="ptitle" style="margin:0">What could your wealth look like?</div>
-    <div style="font-size:12px;color:var(--text3);margin-top:4px;margin-bottom:12px">Three scenarios showing the probability your wealth reaches <strong style="color:var(--text2)">at least that level</strong> by end of the projection. All figures in <strong style="color:var(--text2)">today's money</strong> (inflation-adjusted).</div>
+  <div class="ptitle section-dropdown open" onclick="toggleDropdown('mcChartBody')" style="margin:0">
+    What could your wealth look like? <span class="dropdown-hint">click to toggle</span>
+    <span class="ptitle-line"></span>
   </div>
-  <div class="chart-wrap"><canvas id="mcChart" role="img" aria-label="Monte Carlo wealth projection chart"></canvas></div>
-  <!-- Probability values grid -->
-  <div id="probGrid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:14px;text-align:center"></div>
-  <div style="margin-top:10px;padding:8px 12px;background:var(--bg3);border-radius:var(--rs);font-size:11px;color:var(--text3);line-height:1.6">
-    <strong style="color:var(--text2)">How to read this:</strong> "90% probability" means 9 out of 10 simulation paths end with <em>at least</em> that much wealth — the conservative floor advisors use for essential planning. "60%" is the likely outcome that most plans should target. "40%" is the optimistic scenario that only 4 in 10 paths reach. The dashed line is your wealth today. All figures in today's money (inflation-adjusted).
+  <div class="dropdown-body open" id="mcChartBody">
+    <div style="font-size:12px;color:var(--text3);margin-top:8px;margin-bottom:12px">Three possible outcomes for your wealth by the end of the projection — all in <strong style="color:var(--text2)">today's money</strong> (inflation-adjusted).</div>
+    <div class="chart-wrap"><canvas id="mcChart" role="img" aria-label="Monte Carlo wealth projection chart"></canvas></div>
+    <!-- Outcome values grid -->
+    <div id="probGrid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:14px;text-align:center"></div>
+    <div style="margin-top:10px;padding:8px 12px;background:var(--bg3);border-radius:var(--rs);font-size:11px;color:var(--text3);line-height:1.6">
+      <strong style="color:var(--text2)">How to read this:</strong> Each bar is a possible outcome — <strong style="color:var(--text2)">Pessimistic</strong> (10th percentile), <strong style="color:var(--text2)">Median</strong> (50th), and <strong style="color:var(--text2)">Optimistic</strong> (90th). The dashed line is today's wealth.
+    </div>
   </div>
 </div>
 
@@ -1575,26 +1783,7 @@ input[type=date]{color-scheme:light}
 <!-- ═══ PORTFOLIO ═══ -->
 <div class="tab" id="tab-portfolio">
 
-<!-- ─── In-app API key panel (collapsible) ─── -->
-<div class="panel" id="mdKeysPanel">
-  <div class="ptitle" style="cursor:pointer;user-select:none;display:flex;align-items:center;justify-content:space-between" onclick="toggleMdKeys()">
-    <span>🔑 Market data API keys <span id="mdKeysSummary" style="font-size:11px;font-weight:500;color:var(--text3);margin-left:8px"></span></span>
-    <span id="mdKeysCaret" style="font-size:13px;color:var(--text3);transition:transform .2s">▼</span>
-  </div>
-  <div id="mdKeysBody" style="display:none;padding-top:8px">
-    <div style="font-size:12px;color:var(--text3);line-height:1.6;margin-bottom:14px">
-      Paste your free API keys below to enable richer market data and AI features. Keys are stored in your browser only (never sent anywhere except the provider) and are also available to the <a href="admin.html" target="_blank" style="color:var(--gold)">Admin console</a>. Get free keys from each provider's link.
-    </div>
-    <div id="mdKeysGrid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:10px"></div>
-    <div style="margin-top:12px;padding:10px 14px;background:rgba(245,158,11,.06);border-left:3px solid var(--amber);border-radius:6px;font-size:11.5px;color:var(--text2);line-height:1.6">
-      <strong>CORS note:</strong> Some providers (CoinMarketCap, FRED, NewsAPI, Marketstack) block direct browser requests. The app automatically retries those through corsproxy.io. For sustained production use, deploy your own CORS proxy.
-    </div>
-    <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
-      <button class="btn-secondary" onclick="testAllMdKeys()" style="font-size:12px;padding:7px 14px">⚡ Test all keys</button>
-      <span id="mdKeysTestStatus" style="font-size:12px;color:var(--text3);align-self:center"></span>
-    </div>
-  </div>
-</div>
+<!-- Market data API keys moved to Settings (gear, top-right) → "Data & integrations". -->
 
 <!-- Linked account -->
 <div class="panel">
@@ -2128,7 +2317,7 @@ input[type=date]{color-scheme:light}
 <!-- Total return horizon comparison — clean 4-row by 4-column grid -->
 <div class="panel">
   <div class="ptitle">Average Annualized Return — 1Y / 3Y / 5Y / 10Y</div>
-  <div style="font-size:12px;color:var(--text3);margin-bottom:14px;line-height:1.6">Average annualized return at each horizon. Uses the actual trailing returns of each fund where known (AI-built portfolios), otherwise falls back to the expected mean (μ). The <strong id="benchmarkLabel" style="color:var(--text2)">benchmark</strong> tracks an appropriate index over the same period — auto-selected based on your asset mix.</div>
+  <div style="font-size:12px;color:var(--text3);margin-bottom:14px;line-height:1.6">Average annualized return at each horizon. Uses the actual trailing returns of each fund where known (AI-built portfolios), otherwise estimates each horizon from the historical trailing returns of your asset-class mix (so 1Y / 3Y / 5Y / 10Y genuinely differ). The <strong id="benchmarkLabel" style="color:var(--text2)">benchmark</strong> tracks an appropriate index over the same period — auto-selected based on your asset mix.</div>
   <div id="cmpReturnHorizon" style="display:grid;grid-template-columns:170px repeat(4,1fr);gap:6px;background:var(--bg3);padding:10px;border-radius:8px">
     <!-- Header row -->
     <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);padding:8px 10px">Portfolio</div>
@@ -2396,8 +2585,23 @@ input[type=date]{color-scheme:light}
       <div class="frow"><label class="flbl">Monte Carlo projection</label>
         <select id="rptIncSim" class="w180"><option value="yes" selected>Yes</option><option value="no">No</option></select>
       </div>
-      <div class="frow"><label class="flbl">Goal funding status</label>
+      <div class="frow"><label class="flbl">Goal success probability</label>
         <select id="rptIncFund" class="w180"><option value="yes" selected>Yes</option><option value="no">No</option></select>
+      </div>
+      <div class="frow"><label class="flbl">Goal funding status (PV)</label>
+        <select id="rptIncGoalFunding" class="w180"><option value="yes" selected>Yes (if goals added)</option><option value="no">No</option></select>
+      </div>
+      <div class="frow"><label class="flbl">Achievable lifestyle</label>
+        <select id="rptIncLifestyle" class="w180"><option value="yes" selected>Yes</option><option value="no">No</option></select>
+      </div>
+      <div class="frow"><label class="flbl">Wealth allocation framework</label>
+        <select id="rptIncWealthFw" class="w180"><option value="yes" selected>Yes</option><option value="no">No</option></select>
+      </div>
+      <div class="frow"><label class="flbl">Annual potential wealth</label>
+        <select id="rptIncPotWealth" class="w180"><option value="yes" selected>Yes (if simulated)</option><option value="no">No</option></select>
+      </div>
+      <div class="frow"><label class="flbl">Capital market assumptions</label>
+        <select id="rptIncCMA" class="w180"><option value="yes" selected>Yes</option><option value="no">No</option></select>
       </div>
       <div class="frow"><label class="flbl">Cash-flow projection</label>
         <select id="rptIncCF" class="w180">
@@ -2445,7 +2649,7 @@ input[type=date]{color-scheme:light}
 // ═══════════════════════════════════════════════════════════
 // VERSION — updated by build-standalone.pl on each build
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260521-1";
+const APP_VERSION = "20260530-0953";
 
 // ═══════════════════════════════════════════════════════════
 // DATA
@@ -3863,15 +4067,19 @@ const TYPE_COLORS={
   cash:         "#fde68a",   // pale yellow
   other:        "#94a3b8"
 };
+// Geographic-region palette — kept entirely within the GREEN family so the
+// region pie is visually distinct from the blue asset-class pie and the
+// orange instrument-type pie. Hues span forest → emerald → lime → olive →
+// mint → yellow-green for good intra-pie separation.
 const REGION_COLORS={
-  us:           "#10b981",   // emerald
-  dev_intl:     "#7c3aed",   // vivid purple
-  emerging:     "#ec4899",   // hot pink
-  global:       "#84cc16",   // lime green
-  uk:           "#a855f7",   // light purple
-  europe:       "#22d3ee",   // bright cyan (region accent)
-  asia:         "#f472b6",   // pink
-  other:        "#94a3b8"
+  us:           "#15803d",   // forest green
+  dev_intl:     "#22c55e",   // green
+  emerging:     "#84cc16",   // lime
+  global:       "#10b981",   // emerald
+  uk:           "#4d7c0f",   // olive / dark lime
+  europe:       "#34d399",   // mint
+  asia:         "#a3e635",   // yellow-green
+  other:        "#94a3b8"    // slate (neutral)
 };
 
 // Pension defaults by country (approximate annual benefit USD-equivalent + start age)
@@ -4470,6 +4678,16 @@ function toggleDropdown(bodyId, ev){
   const wasOpen = body.classList.contains("open");
   body.classList.toggle("open");
   if(head) head.classList.toggle("open");
+  // When expanding, let any Chart.js canvases inside refit to the now-visible size
+  // (a chart drawn while its container was display:none can otherwise stay mis-sized).
+  if(!wasOpen){
+    try{
+      body.querySelectorAll("canvas").forEach(cv => {
+        const ch = (typeof Chart !== "undefined" && Chart.getChart) ? Chart.getChart(cv) : null;
+        if(ch) setTimeout(() => { try { ch.resize(); } catch(_){} }, 40);
+      });
+    }catch(_){}
+  }
 }
 
 function fmtMoney(n,sym){
@@ -10547,14 +10765,17 @@ function redrawChart(paths){
   const inf=num("inf",3.8)/100;
   const deflate=(v)=>v/Math.pow(1+inf,yrs); // always inflation-adjusted
 
-  // Three bars — each probability = share of paths that reach AT LEAST this level
-  // 90% prob → 10th percentile (90% of paths exceed it)
-  // 60% prob → 40th percentile (60% of paths exceed it)
-  // 40% prob → 60th percentile (only 40% of paths exceed it)
+  // Three outcome bars at fixed percentiles of the simulated end-wealth
+  // distribution. Plain "Pessimistic / Median / Optimistic" framing with the
+  // percentile shown underneath — no "probability" wording (which read as
+  // counter-intuitive, since a higher % appeared to mean a better outcome).
+  //   Pessimistic = 10th percentile (only 10% of outcomes are worse)
+  //   Median      = 50th percentile (the middle outcome)
+  //   Optimistic  = 90th percentile (only 10% of outcomes are better)
   const SCENARIOS=[
-    {prob:"90%", label:["90%","probability"], sublabel:"Conservative floor", pct:10, color:"rgba(76,175,125,0.85)",  border:"#1b6841"},
-    {prob:"60%", label:["60%","probability"], sublabel:"Likely outcome",     pct:40, color:"rgba(91,155,213,0.85)",  border:"#1e40af"},
-    {prob:"40%", label:["40%","probability"], sublabel:"Optimistic outcome", pct:60, color:"rgba(212,149,106,0.85)", border:"#c06020"},
+    {key:"pessimistic", name:"Pessimistic", pctLabel:"10th percentile", label:["Pessimistic","10th percentile"], pct:10, color:"rgba(212,149,106,0.85)", border:"#c06020"},
+    {key:"median",      name:"Median",      pctLabel:"50th percentile", label:["Median","50th percentile"],      pct:50, color:"rgba(91,155,213,0.85)",  border:"#1e40af"},
+    {key:"optimistic",  name:"Optimistic",  pctLabel:"90th percentile", label:["Optimistic","90th percentile"],  pct:90, color:"rgba(76,175,125,0.85)",  border:"#1b6841"},
   ];
 
   // Starting wealth = year-0 value. Already in today's dollars — do NOT deflate.
@@ -10605,7 +10826,7 @@ function redrawChart(paths){
           callbacks:{
             title:(items)=>{
               const s=SCENARIOS[items[0].dataIndex];
-              return s.prob+" probability — "+s.sublabel;
+              return s.name+" — "+s.pctLabel;
             },
             label:(item)=>{
               if(item.datasetIndex===1) return "Today: "+fmtMoney(item.raw);
@@ -10622,11 +10843,11 @@ function redrawChart(paths){
               if(items[0].datasetIndex===1) return "";
               const s=SCENARIOS[items[0].dataIndex];
               const EXPL={
-                "90%":"9 in 10 paths reach at least this — the conservative floor for essential planning.",
-                "60%":"6 in 10 paths reach at least this — the realistic, balanced target.",
-                "40%":"4 in 10 paths reach at least this — the optimistic upside scenario.",
+                pessimistic:"Only 1 in 10 simulated outcomes ends below this — a cautious downside case.",
+                median:"The middle outcome — half the simulations finish above this, half below.",
+                optimistic:"Only 1 in 10 simulated outcomes ends above this — a strong upside case.",
               };
-              return EXPL[s.prob]||s.prob+" of simulation paths reach at least this level.";
+              return EXPL[s.key]||"";
             }
           }
         }
@@ -10651,17 +10872,16 @@ function redrawChart(paths){
     const sign=diff>=0?"+":"";
     const isPos=diff>=0;
     const pctChg=startDeflated>0?((diff/startDeflated)*100).toFixed(0):0;
-    return `<div class="prob-card-wrap" data-prob="${s.prob}" style="background:var(--bg3);border:2px solid ${s.border};border-radius:var(--r);padding:14px 10px;position:relative">
-      <button class="prob-info-btn" data-prob="${s.prob}" tabindex="-1" aria-label="Explain ${s.prob} probability">ℹ</button>
-      <div style="font-size:22px;font-weight:800;color:${s.border};margin-bottom:2px;letter-spacing:-.02em">${s.prob}</div>
-      <div style="font-size:10px;color:var(--text3);margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em;font-weight:600">probability</div>
-      <div style="font-size:20px;color:${isPos?"var(--green)":"var(--red)"};font-weight:700;font-variant-numeric:tabular-nums">${fmtMoney(v)}</div>
-      <div style="font-size:11px;color:${isPos?"#1b6841":"#a83232"};margin-top:3px;font-weight:600">${sign}${fmtMoney(diff)} (${sign}${pctChg}%)</div>
-      <div style="font-size:10px;color:var(--text3);margin-top:4px">${s.sublabel}</div>
+    return `<div class="prob-card-wrap" data-prob="${s.key}" style="background:var(--bg3);border:2px solid ${s.border};border-radius:var(--r);padding:14px 10px;position:relative">
+      <button class="prob-info-btn" data-prob="${s.key}" tabindex="-1" aria-label="Explain the ${s.name} outcome">ℹ</button>
+      <div style="font-size:13px;font-weight:800;color:${s.border};margin-bottom:2px;text-transform:uppercase;letter-spacing:.04em">${s.name}</div>
+      <div style="font-size:10px;color:var(--text3);margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em;font-weight:600">${s.pctLabel}</div>
+      <div style="font-size:22px;color:${isPos?"var(--green)":"var(--red)"};font-weight:800;font-variant-numeric:tabular-nums;letter-spacing:-.02em">${fmtMoney(v)}</div>
+      <div style="font-size:11px;color:${isPos?"#1b6841":"#a83232"};margin-top:3px;font-weight:600">${sign}${fmtMoney(diff)} (${sign}${pctChg}%) vs today</div>
     </div>`;
   }).join("");
   setH("probGrid",gridHtml);
-  setT("m-med",fmtMoney(endValues[1])); // 60% probability bar (index 1)
+  setT("m-med",fmtMoney(endValues[1])); // median (50th percentile) bar (index 1)
 }
 function renderGoalAnalysis(paths,yrs){
   if(goals.length===0){show("goalResults",false); return;}
@@ -11317,15 +11537,34 @@ function drawComparisonPies(){
 
 // Benchmark catalogue — long-run annualised total returns (decimal)
 // Sources: S&P historical 1928-2024 (~10%), Bloomberg Agg ~5%, FTSE NAREIT ~9%
+// Each benchmark carries a long-run annualised return (annRet, used elsewhere)
+// AND trailing annualised total returns (t.r1y/r3y/r5y/r10y, % through ~end-2024)
+// so the horizon table shows genuinely different figures per horizon.
 const BENCHMARKS = {
-  sp500:       {label:"S&P 500 Index",                annRet:0.10,  note:"Large-cap US equities, ~10% long-run annualised total return (1928-2024)."},
-  acwi:        {label:"MSCI ACWI (Global Equities)",  annRet:0.085, note:"Global developed + emerging equities, ~8.5% long-run annualised total return."},
-  agg:         {label:"Bloomberg US Agg Bond Index",  annRet:0.05,  note:"Investment-grade US bonds, ~5% long-run annualised total return."},
-  reits:       {label:"FTSE NAREIT Equity REIT Index",annRet:0.09,  note:"US REITs, ~9% long-run annualised total return."},
-  balanced60:  {label:"Balanced 60/40 (S&P/Agg)",     annRet:0.080, note:"60% S&P 500 + 40% Bloomberg Agg blend, ~8% long-run annualised return."},
-  conservative:{label:"Conservative 30/70",           annRet:0.065, note:"30% equities + 70% bonds blend, ~6.5% long-run annualised return."},
-  commodities: {label:"Bloomberg Commodity Index",    annRet:0.04,  note:"Broad commodity basket, ~4% long-run annualised total return (highly variable)."},
-  cash:        {label:"3-mo US Treasury Bills",       annRet:0.035, note:"Cash-equivalent yield, ~3.5% long-run average."}
+  sp500:       {label:"S&P 500 Index",                annRet:0.10,  t:{r1y:25.0, r3y:9.0,  r5y:14.5, r10y:13.0}, note:"Large-cap US equities, ~10% long-run annualised total return (1928-2024)."},
+  acwi:        {label:"MSCI ACWI (Global Equities)",  annRet:0.085, t:{r1y:17.0, r3y:5.5,  r5y:10.0, r10y:9.5},  note:"Global developed + emerging equities, ~8.5% long-run annualised total return."},
+  agg:         {label:"Bloomberg US Agg Bond Index",  annRet:0.05,  t:{r1y:1.3,  r3y:-2.4, r5y:-0.3, r10y:1.3},  note:"Investment-grade US bonds, ~5% long-run annualised total return."},
+  reits:       {label:"FTSE NAREIT Equity REIT Index",annRet:0.09,  t:{r1y:8.0,  r3y:-2.0, r5y:4.0,  r10y:6.0},  note:"US REITs, ~9% long-run annualised total return."},
+  balanced60:  {label:"Balanced 60/40 (S&P/Agg)",     annRet:0.080, t:{r1y:15.5, r3y:4.4,  r5y:8.6,  r10y:8.3},  note:"60% S&P 500 + 40% Bloomberg Agg blend, ~8% long-run annualised return."},
+  conservative:{label:"Conservative 30/70",           annRet:0.065, t:{r1y:8.4,  r3y:1.0,  r5y:4.1,  r10y:4.8},  note:"30% equities + 70% bonds blend, ~6.5% long-run annualised return."},
+  commodities: {label:"Bloomberg Commodity Index",    annRet:0.04,  t:{r1y:5.4,  r3y:4.0,  r5y:6.8,  r10y:0.5},  note:"Broad commodity basket, ~4% long-run annualised total return (highly variable)."},
+  cash:        {label:"3-mo US Treasury Bills",       annRet:0.035, t:{r1y:5.2,  r3y:3.9,  r5y:2.5,  r10y:1.8},  note:"Cash-equivalent yield, ~3.5% long-run average."}
+};
+
+// Per-asset-class trailing annualised total returns (%), approx through end-2024.
+// Used to estimate horizon returns from a portfolio's composition when actual
+// per-fund metric data is unavailable — so 1y/3y/5y/10y are genuinely different.
+const CLASS_TRAILING = {
+  equity:        {r1y:22.0, r3y:8.0,  r5y:13.0, r10y:12.0},
+  fixed_income:  {r1y:1.5,  r3y:-2.0, r5y:0.2,  r10y:1.6},
+  real_estate:   {r1y:8.0,  r3y:-2.0, r5y:4.0,  r10y:6.0},
+  commodity:     {r1y:5.4,  r3y:4.0,  r5y:6.8,  r10y:0.6},
+  cash:          {r1y:5.2,  r3y:3.9,  r5y:2.5,  r10y:1.8},
+  alternative:   {r1y:9.0,  r3y:5.0,  r5y:6.0,  r10y:5.0},
+  private_equity:{r1y:14.0, r3y:9.0,  r5y:15.0, r10y:14.0},
+  crypto:        {r1y:80.0, r3y:10.0, r5y:40.0, r10y:65.0},
+  mixed:         {r1y:13.0, r3y:4.0,  r5y:8.0,  r10y:8.0},
+  other:         {r1y:10.0, r3y:4.0,  r5y:7.0,  r10y:7.0}
 };
 
 // Pick the most appropriate benchmark from the dominant asset class
@@ -11394,16 +11633,37 @@ function renderReturnHorizon(curMu, curSig, propMu, propSig){
     return any ? out : null;
   }
 
-  // Compute trailing returns for both portfolios
-  const curTrail  = weightedTrailing(investments.map(i => ({ticker:i.tkr, val:i.val, metrics:i.metrics})), "val");
-  const propTrail = weightedTrailing(proposals, "alloc");
+  // Estimate horizon returns from a portfolio's asset-class composition using
+  // historical per-class trailing returns. Returns {r1y,r3y,r5y,r10y} (%) or null.
+  function classBlendTrailing(positions, weightFn){
+    if(!positions || positions.length === 0) return null;
+    let W = 0; const agg = {};
+    positions.forEach(p => { const w = +weightFn(p) || 0; if(w <= 0) return; W += w; const k = effClass(p); agg[k] = (agg[k]||0) + w; });
+    if(W <= 0) return null;
+    const out = {r1y:0, r3y:0, r5y:0, r10y:0};
+    Object.entries(agg).forEach(([k,w]) => {
+      const t = CLASS_TRAILING[k] || CLASS_TRAILING.other;
+      const frac = w / W;
+      out.r1y += t.r1y*frac; out.r3y += t.r3y*frac; out.r5y += t.r5y*frac; out.r10y += t.r10y*frac;
+    });
+    return out;
+  }
   const muToTrail = mu => ({r1y:mu*100, r3y:mu*100, r5y:mu*100, r10y:mu*100});
 
-  // Final values: prefer actual trailing data, else use the deterministic μ
-  const cur   = curTrail  || muToTrail(curMu);
-  const prop  = propTrail || muToTrail(propMu);
+  // Compute trailing returns for both portfolios:
+  //   1. prefer actual per-fund trailing metrics,
+  //   2. else estimate from the asset-class composition (differs per horizon),
+  //   3. else (empty portfolio) fall back to the deterministic μ.
+  const curTrail  = weightedTrailing(investments.map(i => ({ticker:i.tkr, val:i.val, metrics:i.metrics})), "val");
+  const propTrail = weightedTrailing(proposals, "alloc");
+  const curBlend  = classBlendTrailing(investments, i => i.val);
+  const propBlend = classBlendTrailing(proposals,   p => p.alloc);
+
+  const cur   = curTrail  || curBlend  || muToTrail(curMu);
+  const prop  = propTrail || propBlend || muToTrail(propMu);
   const benchAnn = bench.annRet * 100; // benchmark μ in %
-  const benchRow = { r1y:benchAnn, r3y:benchAnn, r5y:benchAnn, r10y:benchAnn };
+  const bt = bench.t || {r1y:benchAnn, r3y:benchAnn, r5y:benchAnn, r10y:benchAnn};
+  const benchRow = { r1y:bt.r1y, r3y:bt.r3y, r5y:bt.r5y, r10y:bt.r10y };
 
   // Render: 4 rows (Current / Proposed / Benchmark / Δ) × 4 cols (1y/3y/5y/10y)
   const cellNum = (v, color, weight) =>
@@ -11422,7 +11682,7 @@ function renderReturnHorizon(curMu, curSig, propMu, propSig){
   });
 
   // Row 1: Current portfolio
-  const curSrc = curTrail ? "Trailing actual" : "Expected μ";
+  const curSrc = curTrail ? "Trailing actual" : (curBlend ? "Asset-class est." : "Expected μ");
   html += labelCell("Current Portfolio", curSrc, "var(--accent)");
   html += cellNum(cur.r1y);
   html += cellNum(cur.r3y);
@@ -11430,7 +11690,7 @@ function renderReturnHorizon(curMu, curSig, propMu, propSig){
   html += cellNum(cur.r10y);
 
   // Row 2: Proposed portfolio
-  const propSrc = propTrail ? "Trailing actual" : "Expected μ";
+  const propSrc = propTrail ? "Trailing actual" : (propBlend ? "Asset-class est." : "Expected μ");
   html += labelCell("Proposed Portfolio", propSrc, "#7c3aed");
   html += cellNum(prop.r1y, "var(--green)");
   html += cellNum(prop.r3y, "var(--green)");
@@ -11838,10 +12098,94 @@ function buildReportHtml(){
         const pct=row.length?row[0].querySelector(".grs-pct")?.textContent||"—":"—";
         return `<tr><td>${g.name}</td><td>${fmtMoneyFull(g.amt)}/yr</td><td>${g.startYear}–${g.endYear}</td><td>${pct}</td></tr>`;
       }).join("");
-      fundSection=`<h2>Goal funding status</h2><table><tr><th>Goal</th><th>Annual amount</th><th>Year range</th><th>Success probability</th></tr>${rows}</table>`;
+      fundSection=`<h2>Goal success probability</h2><table><tr><th>Goal</th><th>Annual amount</th><th>Year range</th><th>Success probability</th></tr>${rows}</table>`;
     } else if(goals.length>0){
-      fundSection=`<h2>Goal funding status</h2><p style="color:#666;font-style:italic">Run the simulation to populate goal funding results.</p>`;
+      fundSection=`<h2>Goal success probability</h2><p style="color:#666;font-style:italic">Run the simulation to populate goal results.</p>`;
     }
+  }
+
+  // --- Goal Funding Status (PV) section [Merrill methodology] ---
+  let goalFundSection="";
+  if((val("rptIncGoalFunding")||"yes")!=="no" && goals.length>0){
+    try{
+      const st=computeGoalFundingStatus();
+      const tierLbl={essential:"Essential",important:"Important",aspirational:"Aspirational"};
+      const rows=st.rows.map(r=>`<tr><td>${r.name}</td><td>${tierLbl[r.tier]||r.tier} / ${r.conf}%</td><td>${r.period}</td><td>${fmtMoneyFull(r.goalCostPV)}</td><td>${fmtMoneyFull(r.fundedPV)}</td><td>${Math.round(r.ratio*100)}%</td></tr>`).join("");
+      goalFundSection=`<h2>Goal funding status (present value)</h2>
+      <p>Overall funding ratio: <strong>${(st.overallRatio*100).toFixed(0)}%</strong> — total goal cost (PV) ${fmtMoneyFull(st.totalGoalPV)}, funded ${fmtMoneyFull(st.totalFundedPV)}, shortfall ${fmtMoneyFull(Math.max(0,st.totalGoalPV-st.totalFundedPV))}. Portfolio geometric return ${(st.port.geoMu*100).toFixed(2)}% · σ ${(st.port.sigma*100).toFixed(2)}%.</p>
+      <table><tr><th>Goal</th><th>Tier / confidence</th><th>Period</th><th>Cost (PV)</th><th>Funded (PV)</th><th>Funded %</th></tr>${rows}</table>`;
+    }catch(e){ goalFundSection=""; }
+  }
+
+  // --- Potentially Achievable Lifestyle section [Merrill] ---
+  let lifestyleSection="";
+  if((val("rptIncLifestyle")||"yes")!=="no"){
+    try{
+      const w2=gbAssetClassWeights(), port2=gbPortfolioRisk(w2);
+      const inflation=num("inf",CMA_INFLATION)/100, a1=ageFromDOB(val("c1d"))||40, retAge=num("retAge",65);
+      const yrsToRet=Math.max(1,retAge-a1), investable=totalAccountValue(), annualSavings=num("savAnnual",0), yearsInRet=Math.max(1,90-retAge);
+      const rows=[{p:80,lbl:"Conservative (80%)"},{p:50,lbl:"Expected (50%)"},{p:30,lbl:"Optimistic (30%)"}].map(c=>{
+        const r=gbReturnAtConfidence(port2.geoMu,port2.sigma,yrsToRet,c.p);
+        let wealth=investable; for(let i=0;i<yrsToRet;i++){wealth=wealth*(1+r)+annualSavings;}
+        const rr=(r-inflation)/(1+inflation);
+        const spend=Math.abs(rr)<1e-6?wealth/yearsInRet:wealth*rr/(1-Math.pow(1+rr,-yearsInRet));
+        return `<tr><td>${c.lbl}</td><td>${(r*100).toFixed(1)}%/yr</td><td>${fmtMoneyFull(Math.max(0,wealth))}</td><td>${fmtMoneyFull(Math.max(0,spend))}/yr</td></tr>`;
+      }).join("");
+      lifestyleSection=`<h2>Potentially achievable lifestyle</h2>
+      <p>Sustainable inflation-adjusted annual spending in retirement (to age 90), at three confidence levels.</p>
+      <table><tr><th>Scenario</th><th>Return assumption</th><th>Wealth at retirement</th><th>Sustainable annual spend</th></tr>${rows}</table>`;
+    }catch(e){ lifestyleSection=""; }
+  }
+
+  // --- Wealth Allocation Framework section [Merrill] ---
+  let wealthFwSection="";
+  if((val("rptIncWealthFw")||"yes")!=="no"){
+    try{
+      const b={personal:0,market:0,aspirational:0};
+      assets.forEach(a=>b[gbWealthBucket(a)]+=(+a.value||0));
+      b.personal+=num("aProp",0); b.aspirational+=num("aOther",0);
+      investments.forEach(i=>{const k=gbWealthBucket({cls:(typeof effClass==="function"?effClass(i):i.cls),type:i.type,label:i.name}); b[k]+=(+i.val||0);});
+      const total=b.personal+b.market+b.aspirational;
+      const pct=v=>total>0?(v/total*100).toFixed(1)+"%":"—";
+      wealthFwSection=`<h2>Wealth allocation framework</h2>
+      <p>Assets classified into Personal (preserve lifestyle), Market (balance risk &amp; return) and Aspirational (idiosyncratic upside).</p>
+      <table><tr><th>Bucket</th><th>Purpose</th><th>Value</th><th>Share</th></tr>
+      <tr><td>Personal</td><td>Preserve lifestyle · safety</td><td>${fmtMoneyFull(b.personal)}</td><td>${pct(b.personal)}</td></tr>
+      <tr><td>Market</td><td>Balance risk &amp; return</td><td>${fmtMoneyFull(b.market)}</td><td>${pct(b.market)}</td></tr>
+      <tr><td>Aspirational</td><td>Idiosyncratic upside</td><td>${fmtMoneyFull(b.aspirational)}</td><td>${pct(b.aspirational)}</td></tr>
+      <tr><th>Total</th><td></td><th>${fmtMoneyFull(total)}</th><th>100%</th></tr></table>`;
+    }catch(e){ wealthFwSection=""; }
+  }
+
+  // --- Annual Potential Wealth section [Merrill] ---
+  let potWealthSection="";
+  if((val("rptIncPotWealth")||"yes")!=="no" && lastSimPaths){
+    try{
+      const yrs=lastSimYrs, cy2=currentYear(), a1=ageFromDOB(val("c1d"))||40;
+      const step=yrs>30?5:(yrs>15?2:1);
+      let rows="";
+      for(let yI=0;yI<=yrs;yI+=step){
+        rows+=`<tr><td>${cy2+yI}</td><td>${a1+yI}</td><td>${fmtMoneyFull(percentileAt(lastSimPaths,yI,20))}</td><td>${fmtMoneyFull(percentileAt(lastSimPaths,yI,50))}</td><td>${fmtMoneyFull(percentileAt(lastSimPaths,yI,70))}</td></tr>`;
+      }
+      if(yrs%step!==0){ rows+=`<tr><td>${cy2+yrs}</td><td>${a1+yrs}</td><td>${fmtMoneyFull(percentileAt(lastSimPaths,yrs,20))}</td><td>${fmtMoneyFull(percentileAt(lastSimPaths,yrs,50))}</td><td>${fmtMoneyFull(percentileAt(lastSimPaths,yrs,70))}</td></tr>`; }
+      potWealthSection=`<h2>Annual potential wealth</h2>
+      <p>Projected portfolio value year by year. 80% = conservative floor; 30% = optimistic. Values nominal.</p>
+      <table><tr><th>Year</th><th>Age</th><th>Conservative (80%)</th><th>Expected (50%)</th><th>Optimistic (30%)</th></tr>${rows}</table>`;
+    }catch(e){ potWealthSection=""; }
+  }
+
+  // --- Capital Market Assumptions section [Merrill] ---
+  let cmaSection="";
+  if((val("rptIncCMA")||"yes")!=="no"){
+    try{
+      const w3=gbAssetClassWeights(), port3=gbPortfolioRisk(w3);
+      let rows="";
+      Object.entries(CMA).forEach(([k,c])=>{ const w=(w3[k]||0)*100; if(c.label==="Mixed/Balanced"&&w===0) return; rows+=`<tr><td>${c.label}</td><td>${w.toFixed(1)}%</td><td>${c.arith.toFixed(2)}%</td><td>${c.sigma.toFixed(2)}%</td><td>${c.geo.toFixed(2)}%</td><td>${c.income.toFixed(2)}%</td></tr>`; });
+      rows+=`<tr><th>Your portfolio</th><th>100%</th><th>${(port3.arithMu*100).toFixed(2)}%</th><th>${(port3.sigma*100).toFixed(2)}%</th><th>${(port3.geoMu*100).toFixed(2)}%</th><th>—</th></tr>`;
+      cmaSection=`<h2>Capital market assumptions</h2>
+      <p>Long-term assumptions underpinning all projections. Core inflation ${CMA_INFLATION.toFixed(2)}%. Geometric μ = arithmetic − ½σ². Portfolio σ uses the full correlation matrix.</p>
+      <table><tr><th>Asset class</th><th>Your weight</th><th>Arith μ</th><th>σ</th><th>Geo μ</th><th>Income</th></tr>${rows}</table>`;
+    }catch(e){ cmaSection=""; }
   }
 
   // --- Portfolio section ---
@@ -11903,8 +12247,13 @@ function buildReportHtml(){
 
   ${portSection}
   ${simSection}
-  ${cfSection}
   ${fundSection}
+  ${goalFundSection}
+  ${lifestyleSection}
+  ${wealthFwSection}
+  ${potWealthSection}
+  ${cfSection}
+  ${cmaSection}
 
   <div class="disc">${DISC[discLvl]||DISC.standard}</div>
   </body></html>`;
@@ -12255,21 +12604,26 @@ function gbRenderCMA(weights, port){
 // ═══════════════════════════════════════════════════════════════════
 // PDF REPORT — custom content + page ordering
 // ═══════════════════════════════════════════════════════════════════
-const RPT_DEFAULT_ORDER = ["exec","about","hh","inc","assets","goals","port","factsheets","sim","fund","cf","method","disc"];
+const RPT_DEFAULT_ORDER = ["exec","about","hh","inc","assets","goals","port","factsheets","sim","fund","goalfunding","lifestyle","wealthframework","potentialwealth","cf","cma","method","disc"];
 const RPT_SECTION_LABELS = {
-  exec:       "Executive Summary",
-  about:      "About the Client (custom)",
-  hh:         "Household Profile",
-  inc:        "Income, Expenses & Tax",
-  assets:     "Assets & Liabilities",
-  goals:      "Goals & Retirement Plan",
-  port:       "Portfolio Analysis",
-  factsheets: "Investment Fact Sheets",
-  sim:        "Monte Carlo Projection",
-  fund:       "Goal Funding Status",
-  cf:         "Cash-Flow Projection",
-  method:     "Methodology & Assumptions",
-  disc:       "Disclosures"
+  exec:            "Executive Summary",
+  about:           "About the Client (custom)",
+  hh:              "Household Profile",
+  inc:             "Income, Expenses & Tax",
+  assets:          "Assets & Liabilities",
+  goals:           "Goals & Retirement Plan",
+  port:            "Portfolio Analysis",
+  factsheets:      "Investment Fact Sheets",
+  sim:             "Monte Carlo Projection",
+  fund:            "Goal Success Probability",
+  goalfunding:     "Goal Funding Status",
+  lifestyle:       "Potentially Achievable Lifestyle",
+  wealthframework: "Wealth Allocation Framework",
+  potentialwealth: "Annual Potential Wealth",
+  cf:              "Cash-Flow Projection",
+  cma:             "Capital Market Assumptions",
+  method:          "Methodology & Assumptions",
+  disc:            "Disclosures"
 };
 
 function getRptOrder(){
@@ -12601,10 +12955,15 @@ async function generatePDFReport(){
       goals:      () => val("rptIncGoals") !== "no",
       port:       () => val("rptIncPort") !== "no" && investments.length > 0,
       factsheets: () => wantFactsheets && factPositions.length > 0,
-      sim:        () => val("rptIncSim") !== "no",
-      fund:       () => val("rptIncFund") !== "no",
-      cf:         () => val("rptIncCF") !== "no",
-      method:     () => val("rptIncMethod") !== "no",
+      sim:            () => val("rptIncSim") !== "no",
+      fund:           () => val("rptIncFund") !== "no",
+      goalfunding:    () => val("rptIncGoalFunding") !== "no" && goals.length > 0,
+      lifestyle:      () => val("rptIncLifestyle") !== "no",
+      wealthframework:() => val("rptIncWealthFw") !== "no",
+      potentialwealth:() => val("rptIncPotWealth") !== "no" && lastSimPaths && lastSimPaths.length > 0,
+      cma:            () => val("rptIncCMA") !== "no",
+      cf:             () => val("rptIncCF") !== "no",
+      method:         () => val("rptIncMethod") !== "no",
       disc:       () => val("rptDiscLvl") !== "none" || !!(function(){ try { return (localStorage.getItem("wa_rpt_custom_disc")||"").trim(); } catch(_) { return ""; } })()
     };
     const tocItems = [];
@@ -12612,14 +12971,19 @@ async function generatePDFReport(){
       if(SECTION_PREDS[k] && SECTION_PREDS[k]()){
         let label = RPT_SECTION_LABELS[k] || k;
         // Tweak labels for special cases
-        if(k === "about")      label = "About the Client";
-        if(k === "factsheets") label = "Investment Vehicle Fact Sheets";
-        if(k === "port")       label = "Portfolio Analysis";
-        if(k === "sim")        label = "Monte Carlo Projection";
-        if(k === "fund")       label = "Goal Funding Status";
-        if(k === "cf")         label = "Cash-Flow Projection";
-        if(k === "method")     label = "Methodology & Assumptions";
-        if(k === "disc")       label = "Disclosures";
+        if(k === "about")           label = "About the Client";
+        if(k === "factsheets")      label = "Investment Vehicle Fact Sheets";
+        if(k === "port")            label = "Portfolio Analysis";
+        if(k === "sim")             label = "Monte Carlo Projection";
+        if(k === "fund")            label = "Goal Success Probability";
+        if(k === "goalfunding")     label = "Goal Funding Status";
+        if(k === "lifestyle")       label = "Potentially Achievable Lifestyle";
+        if(k === "wealthframework") label = "Wealth Allocation Framework";
+        if(k === "potentialwealth") label = "Annual Potential Wealth";
+        if(k === "cma")             label = "Capital Market Assumptions";
+        if(k === "cf")              label = "Cash-Flow Projection";
+        if(k === "method")          label = "Methodology & Assumptions";
+        if(k === "disc")            label = "Disclosures";
         tocItems.push(label);
       }
     });
@@ -12884,11 +13248,11 @@ async function generatePDFReport(){
           para("Run the simulation to include Monte Carlo results.",[136,136,136]);
         }
       },
-      // ─── FUNDING STATUS ──
+      // ─── GOAL SUCCESS PROBABILITY (Monte-Carlo based) ──
       fund: () => {
         if(val("rptIncFund") === "no" || goals.length === 0) return;
         checkY(30);
-        sectionH2("Goal Funding Status");
+        sectionH2("Goal Success Probability");
         if(lastSimPaths&&lastSimPaths.length>0){
           const fundEl=$("goalResultList");
           const rows=goals.map(g=>{
@@ -12900,6 +13264,128 @@ async function generatePDFReport(){
         } else {
           para("Run the simulation to populate funding status.");
         }
+      },
+      // ─── GOAL FUNDING STATUS (PV funding ratios — Merrill methodology) ──
+      goalfunding: () => {
+        if(val("rptIncGoalFunding") === "no" || goals.length === 0) return;
+        newPage();
+        sectionH2("Goal Funding Status");
+        let st;
+        try { st = computeGoalFundingStatus(); }
+        catch(e){ para("Goal funding analysis unavailable — define goals and run the analysis."); return; }
+        para("Funding status compares the present value (PV) of each goal's inflation-adjusted cash flows — grossed up for tax — against the assets and future savings allocated to it in priority order. Each goal is discounted at a return adjusted to its confidence level (Essential 95%, Important 75%, Aspirational 55%).");
+        const ov = (st.overallRatio*100).toFixed(0);
+        kv([
+          ["Overall funding ratio",        ov+"%"],
+          ["Total goal cost (PV)",         fmt(st.totalGoalPV)],
+          ["Funded (PV)",                  fmt(st.totalFundedPV)],
+          ["Shortfall (PV)",               fmt(Math.max(0, st.totalGoalPV - st.totalFundedPV))],
+          ["Portfolio geometric return",   (st.port.geoMu*100).toFixed(2)+"% / yr"],
+          ["Portfolio volatility (σ)",     (st.port.sigma*100).toFixed(2)+"% / yr"],
+        ]);
+        checkY(40);
+        const tierLbl = {essential:"Essential", important:"Important", aspirational:"Aspirational"};
+        tbl(["Goal","Tier / conf.","Period","Cost (PV)","Funded (PV)","Funded %"],
+          st.rows.map(r=>[
+            r.name,
+            (tierLbl[r.tier]||r.tier)+" / "+r.conf+"%",
+            r.period,
+            fmt(r.goalCostPV),
+            fmt(r.fundedPV),
+            Math.round(r.ratio*100)+"%"
+          ]));
+        para("Funding ratios above 100% indicate the goal is fully funded with surplus; ratios below indicate a present-value shortfall to be closed through additional savings, return, or a revised goal.", [120,120,120]);
+      },
+      // ─── POTENTIALLY ACHIEVABLE LIFESTYLE (80/50/30 confidence) ──
+      lifestyle: () => {
+        if(val("rptIncLifestyle") === "no") return;
+        newPage();
+        sectionH2("Potentially Achievable Lifestyle");
+        para("This estimates the sustainable inflation-adjusted annual spending your portfolio could support throughout retirement (to age 90), at three confidence levels. Higher confidence assumes a more conservative return; lower confidence assumes more favourable markets.");
+        const weights = gbAssetClassWeights();
+        const port = gbPortfolioRisk(weights);
+        const inflation = num("inf", CMA_INFLATION)/100;
+        const a1 = ageFromDOB(val("c1d")) || 40;
+        const retAge = num("retAge", 65);
+        const yrsToRet = Math.max(1, retAge - a1);
+        const investable = (typeof totalAccountValue==="function" ? totalAccountValue() : 0);
+        const annualSavings = num("savAnnual", 0);
+        const yearsInRet = Math.max(1, 90 - retAge);
+        const confs = [
+          {p:80, lbl:"Conservative (80% confidence)"},
+          {p:50, lbl:"Expected (50% confidence)"},
+          {p:30, lbl:"Optimistic (30% confidence)"}
+        ];
+        const rows = confs.map(c=>{
+          const r = gbReturnAtConfidence(port.geoMu, port.sigma, yrsToRet, c.p);
+          let wealth = investable;
+          for(let yI=0; yI<yrsToRet; yI++){ wealth = wealth*(1+r) + annualSavings; }
+          const realRate = (r - inflation)/(1+inflation);
+          let spend;
+          if(Math.abs(realRate) < 1e-6) spend = wealth/yearsInRet;
+          else spend = wealth*realRate/(1 - Math.pow(1+realRate, -yearsInRet));
+          return [c.lbl, (r*100).toFixed(1)+"% / yr", fmt(Math.max(0,wealth)), fmt(Math.max(0,spend))+" / yr"];
+        });
+        tbl(["Scenario","Return assumption","Wealth at retirement","Sustainable annual spend"], rows);
+        para("Sustainable spend is modelled as a real (inflation-adjusted) annuity over the retirement horizon (current age "+a1+" → retirement "+retAge+" → age 90), assuming the portfolio continues to earn the confidence-level return through retirement.", [120,120,120]);
+      },
+      // ─── WEALTH ALLOCATION FRAMEWORK (Personal / Market / Aspirational) ──
+      wealthframework: () => {
+        if(val("rptIncWealthFw") === "no") return;
+        checkY(40);
+        sectionH2("Wealth Allocation Framework");
+        para("Your assets are classified into three risk buckets following the Merrill framework: Personal (preserve lifestyle and safety), Market (balance risk and return) and Aspirational (idiosyncratic upside such as concentrated stock, a business, investment property or crypto).");
+        const buckets = {personal:0, market:0, aspirational:0};
+        (assets||[]).forEach(a=>{ buckets[gbWealthBucket(a)] += (+a.value||0); });
+        buckets.personal     += num("aProp",0);
+        buckets.aspirational += num("aOther",0);
+        (investments||[]).forEach(i=>{
+          const b = gbWealthBucket({cls:(typeof effClass==="function"?effClass(i):i.cls), type:i.type, label:i.name});
+          buckets[b] += (+i.val||0);
+        });
+        const total = buckets.personal + buckets.market + buckets.aspirational;
+        const pctOf = v => total>0 ? (v/total*100).toFixed(1)+"%" : "—";
+        tbl(["Bucket","Purpose","Value","Share"],[
+          ["Personal",     "Preserve lifestyle · safety", fmt(buckets.personal),     pctOf(buckets.personal)],
+          ["Market",       "Balance risk & return",       fmt(buckets.market),       pctOf(buckets.market)],
+          ["Aspirational", "Idiosyncratic upside",        fmt(buckets.aspirational), pctOf(buckets.aspirational)],
+          ["TOTAL",        "",                            fmt(total),                "100%"],
+        ]);
+        para("Concentrated and idiosyncratic positions carry higher risk. The framework recommends limiting Aspirational exposure relative to the assets required to fund your essential goals.", [120,120,120]);
+      },
+      // ─── ANNUAL POTENTIAL WEALTH (year-by-year at confidence bands) ──
+      potentialwealth: () => {
+        if(val("rptIncPotWealth") === "no") return;
+        checkY(40);
+        sectionH2("Annual Potential Wealth");
+        if(!(lastSimPaths && lastSimPaths.length>0)){
+          para("Run the simulation to populate the potential-wealth projection.");
+          return;
+        }
+        para("Projected portfolio value year by year at three confidence levels. The 80% column is a conservative floor (80% of simulated paths exceed it); the 30% column is an optimistic outcome (only 30% exceed it). Values are nominal.");
+        const yrs = lastSimYrs;
+        const cy  = (typeof currentYear==="function") ? currentYear() : new Date().getFullYear();
+        const a1  = ageFromDOB(val("c1d")) || 40;
+        const step = yrs > 30 ? 5 : (yrs > 15 ? 2 : 1);
+        const rows = [];
+        for(let yI=0; yI<=yrs; yI+=step){
+          rows.push([
+            (cy+yI).toString(),
+            (a1+yI).toString(),
+            fmt(percentileAt(lastSimPaths, yI, 20)),
+            fmt(percentileAt(lastSimPaths, yI, 50)),
+            fmt(percentileAt(lastSimPaths, yI, 70)),
+          ]);
+        }
+        if((yrs % step) !== 0){
+          rows.push([
+            (cy+yrs).toString(), (a1+yrs).toString(),
+            fmt(percentileAt(lastSimPaths, yrs, 20)),
+            fmt(percentileAt(lastSimPaths, yrs, 50)),
+            fmt(percentileAt(lastSimPaths, yrs, 70)),
+          ]);
+        }
+        tbl(["Year","Age","Conservative (80%)","Expected (50%)","Optimistic (30%)"], rows);
       },
       // ─── CASH FLOW ──
       cf: () => {
@@ -12922,6 +13408,24 @@ async function generatePDFReport(){
         } else {
           para("Run the simulation to populate the cash-flow table.");
         }
+      },
+      // ─── CAPITAL MARKET ASSUMPTIONS (appendix) ──
+      cma: () => {
+        if(val("rptIncCMA") === "no") return;
+        newPage();
+        sectionH2("Capital Market Assumptions");
+        para("Long-term capital market assumptions underpinning all projections in this report. Arithmetic μ is the expected annual return; σ is annual volatility; geometric μ (= arithmetic − ½σ²) is the compounding return used for multi-year projections. Core inflation assumption: "+CMA_INFLATION.toFixed(2)+"% / yr.");
+        const weights = gbAssetClassWeights();
+        const port = gbPortfolioRisk(weights);
+        const rows = [];
+        Object.entries(CMA).forEach(([k,c])=>{
+          const w = (weights[k]||0)*100;
+          if(c.label === "Mixed/Balanced" && w === 0) return; // skip synthetic unless used
+          rows.push([c.label, w.toFixed(1)+"%", c.arith.toFixed(2)+"%", c.sigma.toFixed(2)+"%", c.geo.toFixed(2)+"%", c.income.toFixed(2)+"%"]);
+        });
+        rows.push(["YOUR PORTFOLIO", "100%", (port.arithMu*100).toFixed(2)+"%", (port.sigma*100).toFixed(2)+"%", (port.geoMu*100).toFixed(2)+"%", "—"]);
+        tbl(["Asset class","Your weight","Arith μ","σ","Geo μ","Income"], rows);
+        para("Portfolio σ is computed from the full asset-class correlation matrix rather than a naive weighted average of individual volatilities, so diversification correctly reduces total portfolio risk.", [120,120,120]);
       },
       // ─── METHODOLOGY ──
       method: () => {
@@ -13687,34 +14191,34 @@ document.addEventListener("DOMContentLoaded",function(){
     if(!box) return;
 
     const DATA={
-      "90%":{
-        icon:"🛡️",
-        headline:"90% Probability — Conservative Floor",
-        color:"#1b6841",
-        body:"<strong>9 out of every 10</strong> simulated futures end with at least this much wealth. Markets went through recessions, crashes, and long flat periods in those simulations — and you still came out here.",
-        what:"This is the number advisors use for <strong>essential planning</strong>: commitments that cannot fail — housing, healthcare, basic living costs. If your retirement spending fits inside this bar, your plan is highly resilient.",
-        paths:"9 in 10 paths",
-        label:"Conservative floor",
-        use:"Essential spending target"
+      pessimistic:{
+        icon:"⚠️",
+        headline:"Pessimistic — 10th percentile",
+        color:"#c06020",
+        body:"Only <strong>1 in 10</strong> simulated futures ends below this level. It reflects a run of poor markets — recessions, crashes, or long flat stretches — across your projection window.",
+        what:"Treat this as your <strong>downside stress test</strong>. If your essential spending still fits inside this bar, your plan is highly resilient even in tough markets.",
+        paths:"Bottom 10% of outcomes",
+        label:"Cautious downside",
+        use:"Essential spending floor"
       },
-      "60%":{
+      median:{
         icon:"🎯",
-        headline:"60% Probability — Likely Outcome",
+        headline:"Median — 50th percentile",
         color:"#1e40af",
-        body:"<strong>6 out of every 10</strong> simulated futures end with at least this much wealth. This is the balanced, realistic scenario — neither the best nor worst case, but the outcome you can reasonably expect over time.",
-        what:"This is the <strong>central target</strong> most financial plans are built around. It gives you enough upside to grow your lifestyle while still accounting for realistic market variability.",
-        paths:"6 in 10 paths",
-        label:"Likely outcome",
+        body:"The <strong>middle</strong> outcome: half of all simulated futures finish above this level and half below. Neither lucky nor unlucky markets — just the central case.",
+        what:"This is the <strong>central target</strong> most financial plans are built around — a realistic expectation to plan your lifestyle around over time.",
+        paths:"Middle of all outcomes",
+        label:"Most likely middle",
         use:"Balanced planning target"
       },
-      "40%":{
+      optimistic:{
         icon:"🚀",
-        headline:"40% Probability — Optimistic Scenario",
-        color:"#c06020",
-        body:"Only <strong>4 out of every 10</strong> simulated futures reach this level. This requires markets to perform well above average for most of your projection window — possible, but far from guaranteed.",
-        what:"Use this to understand your <strong>upside potential</strong> — what happens if things go well. Never plan essential spending around it. It is useful for goal-setting and aspirational targets.",
-        paths:"4 in 10 paths",
-        label:"Optimistic scenario",
+        headline:"Optimistic — 90th percentile",
+        color:"#1b6841",
+        body:"Only <strong>1 in 10</strong> simulated futures ends above this level. It requires markets to perform well above average for most of your projection window — possible, but far from guaranteed.",
+        what:"Use this to understand your <strong>upside potential</strong>. Never plan essential spending around it; it's best for aspirational goals and stretch targets.",
+        paths:"Top 10% of outcomes",
+        label:"Strong upside",
         use:"Aspirational / upside target"
       },
     };
@@ -13731,12 +14235,12 @@ document.addEventListener("DOMContentLoaded",function(){
           <p style="margin:0 0 8px">${d.body}</p>
           <p style="margin:0;font-size:11px;color:var(--text3)">${d.what}</p>
           <div class="pt-stats">
-            <div class="pt-stat"><div class="ps-val" style="color:${d.color}">${d.paths}</div><div class="ps-lbl">Reach this level</div></div>
-            <div class="pt-stat"><div class="ps-val" style="font-size:12px">${d.label}</div><div class="ps-lbl">Scenario type</div></div>
+            <div class="pt-stat"><div class="ps-val" style="color:${d.color}">${d.paths}</div><div class="ps-lbl">Where it sits</div></div>
+            <div class="pt-stat"><div class="ps-val" style="font-size:12px">${d.label}</div><div class="ps-lbl">Outcome type</div></div>
             <div class="pt-stat"><div class="ps-val" style="font-size:11px">${d.use}</div><div class="ps-lbl">Best used for</div></div>
           </div>
         </div>
-        <div class="pt-footer">💡 Hover the chart bar above to see projected wealth at this confidence level.</div>`;
+        <div class="pt-footer">💡 Hover the chart bar above to see projected wealth for this outcome.</div>`;
       // Position: prefer right of cursor, flip left if near edge
       const W=320, H=280;
       let lx=x+16, ly=y-H/2;
