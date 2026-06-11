@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
-"""Generate the Wealth Analyzer client intake questionnaire PDF (3 pages, A4).
+"""Generate the Wealth Analyzer client intake questionnaire PDF (4 pages, A4).
 
 Paper-fillable form mirroring the app's data model, enriched with
 goals-based-wealth-management intake questions (marital status, dependents'
 relationship, per-account yearly contributions, current vs retirement tax
-rates, retirement lifestyle E/I/A split, goal trade-offs) and a firm
-disclosure block.
+rates, retirement lifestyle E/I/A split) plus a dedicated Goals & Projected
+Expenses page (per-goal priority continuum, owner, duration, trade-offs,
+inflation assumption) and a firm disclosure block. Risk ladder: 5 levels.
 """
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.colors import Color, white
@@ -20,7 +21,7 @@ LINE   = Color(170/255, 185/255, 210/255)
 W, H = A4
 M = 46
 CW = W - 2 * M
-N_PAGES = 3
+N_PAGES = 4
 
 OUT = "Wealth-Analyzer-Client-Questionnaire.pdf"
 c = canvas.Canvas(OUT, pagesize=A4)
@@ -182,6 +183,39 @@ def table(headers, widths, n_rows, row_h=18):
     y -= 8
 
 
+def goal_block(n):
+    """One Merrill-style goal block: name/owner, priority continuum,
+    amount + timing, and per-goal trade-offs."""
+    global y
+    c.setFont("Helvetica-Bold", 9)
+    c.setFillColor(BLUE)
+    c.drawString(M, y - 2, f"Goal {n}")
+    c.setFillColor(INK)
+    y -= 10
+    field_row([("Goal name", 0.46), ("Goal owner (C1 / C2 / Joint)", 0.27), ("Amount per year (today's money)", 0.27)])
+    field_row([("First year (or age)", 0.27), ("Duration (number of years, or 'lifetime')", 0.37), ("Target amount or range (optional)", 0.36)])
+    # Priority continuum — mark an X on the line
+    c.setFont("Helvetica", 7.6)
+    c.setFillColor(GREY)
+    c.drawString(M, y - 6, "Priority — mark an X on the line:")
+    c.setFillColor(INK)
+    lx = M + 150
+    rx = M + CW - 12
+    ly = y - 9
+    c.setStrokeColor(INK)
+    c.setLineWidth(0.8)
+    c.line(lx, ly, rx, ly)
+    for t in (lx, (lx + rx) / 2, rx):
+        c.line(t, ly - 3, t, ly + 3)
+    c.setFont("Helvetica-Bold", 7.4)
+    c.drawString(lx - 6, ly - 12, "Essential")
+    c.drawCentredString((lx + rx) / 2, ly - 12, "Important")
+    c.drawRightString(rx + 6, ly - 12, "Aspirational")
+    y -= 28
+    inline_checks("To pursue this goal I'd be willing to:", ["Retire later", "Reduce spending", "Save more", "Take more risk"], size=8)
+    y -= 4
+
+
 # ════════════════ PAGE 1 — YOU & YOUR INCOME ════════════════
 new_page()
 c.setFont("Helvetica", 8.6)
@@ -215,8 +249,8 @@ field_row([("Expected yearly raise (%)", 0.34), ("Annual savings target", 0.33),
 section("E", "Annual Living Expenses  (today)")
 field_row([("Living (housing, food, transport...)", 0.34), ("Insurance & health", 0.33), ("Other expenses", 0.33)])
 
-# ════════════════ PAGE 2 — ASSETS, LIABILITIES, GOALS ════════════════
-new_page("Assets · Liabilities · Goals")
+# ════════════════ PAGE 2 — ASSETS, LIABILITIES, RETIREMENT ════════════════
+new_page("Assets · Liabilities · Retirement")
 
 section("F", "Accounts & Assets")
 note("One per row: bank, brokerage, pension/retirement accounts, crypto... Tax type: T = taxable, D = tax-deferred (401(k), Pillar 2), F = tax-free (Roth, Pillar 3a).")
@@ -228,31 +262,43 @@ section("G", "Loans & Liabilities")
 table(["Loan type (mortgage, card, student...)", "Current balance", "Interest rate %", "Years left", "Monthly payment"],
       [0.32, 0.20, 0.14, 0.12, 0.22], 3, 17)
 
-section("H", "Financial Goals")
-note("E.g. retirement income, education, buying a home, a sabbatical. Priority: E = Essential (need), I = Important, A = Aspirational (want). Amounts in today's money.")
-table(["Goal", "Owner (C1/C2/Joint)", "Amount per year", "First year", "Last year", "Priority (E/I/A)"],
-      [0.30, 0.15, 0.19, 0.11, 0.11, 0.14], 4, 17)
-inline_checks("To pursue these goals I'd be willing to:", ["Retire later", "Reduce spending", "Save more", "Take more risk"], size=8)
-inline_checks("How do you feel about your financial picture?  I have:", ["Not enough money", "Just enough", "More than enough"], size=8)
-
-section("I", "Retirement")
+section("H", "Retirement")
+note("Essential expenses are basics you need (housing, utilities, health care, food). Important are critical but flexible (e.g. education). Aspirational are wants (travel, gifts).")
 field_row([("Desired yearly spending in retirement (today's money)", 0.5), ("Of that: % Essential", 0.17), ("% Important", 0.16), ("% Aspirational", 0.17)])
 field_row([("Client 1 — pension / social security (source)", 0.5), ("Amount per year", 0.27), ("From age", 0.23)])
 field_row([("Client 2 — pension / social security (source)", 0.5), ("Amount per year", 0.27), ("From age", 0.23)])
 
-# ════════════════ PAGE 3 — RISK, TAX, DISCLOSURE ════════════════
+# ════════════════ PAGE 3 — GOALS & PROJECTED EXPENSES ════════════════
+new_page("Goals & Projected Expenses")
+
+section("I", "Goals & Projected Expenses")
+inline_checks("How do you feel about your financial picture?  I have:", ["Not enough money", "Just enough", "More than enough"], size=8)
+note("Think about what's important to you — retirement lifestyle, education, a home, travel, helping family. List each goal below;")
+note("your advisor will use these to identify, define, and prioritize your goals and track your progress toward them.")
+y -= 4
+
+goal_block(1)
+goal_block(2)
+goal_block(3)
+goal_block(4)
+
+c.setFont("Helvetica", 7.6)
+c.setFillColor(GREY)
+c.drawString(M, y - 4, "Inflation: unless you specify an assumption below, a standard annual inflation rate is used to adjust goal amounts and income sources over time.")
+c.setFillColor(INK)
+y -= 14
+field_row([("Inflation assumption (% per year — leave blank for standard)", 0.5), ("Attach additional sheets for more goals", 0.5)])
+
+# ════════════════ PAGE 4 — RISK, TAX, DISCLOSURE ════════════════
 new_page("Risk · Tax · Disclosure")
 
 section("J", "Risk Profile — how would you describe yourself as an investor?  (tick ONE; C1 left box / C2 right)")
-# two checkboxes per row: C1 and C2
 profiles = [
-    ("Very conservative",       "Protecting capital matters most; I accept very low returns."),
-    ("Conservative",            "Mostly stability; small market swings are acceptable."),
+    ("Conservative",            "Stability first; small market swings are acceptable."),
     ("Moderately conservative", "Some growth, but losses should stay limited."),
     ("Moderate",                "Balanced growth and risk; I can sit through normal downturns."),
     ("Moderately aggressive",   "Growth focus; I tolerate meaningful temporary losses."),
     ("Aggressive",              "High growth; large swings don't change my plan."),
-    ("Very aggressive",         "Maximum growth; I accept the largest ups and downs."),
 ]
 c.setFont("Helvetica-Bold", 7); c.setFillColor(GREY)
 c.drawString(M + 1, y - 1, "C1"); c.drawString(M + 19, y - 1, "C2")
@@ -296,15 +342,14 @@ c.setFont("Helvetica", 7.4)
 c.setFillColor(GREY)
 for line in [
     "Private Wealth Intelligence provides this questionnaire and the resulting Wealth Analyzer report for educational and financial-planning purposes only. They do",
-    "not constitute investment, legal, tax, or accounting advice, nor an offer or solicitation to buy or sell any security or financial instrument. Projections — including",
-    "Monte Carlo simulations — are hypothetical, rely on assumptions and on the information you provide, and do not predict or guarantee future results; actual",
-    "outcomes will differ. Neither Private Wealth Intelligence nor its representatives provide legal or tax advice — please consult your own legal and/or tax advisor",
+    "not constitute investment, legal, tax, or accounting advice, nor an offer or solicitation to buy or sell any security or financial instrument. Projections - including",
+    "Monte Carlo simulations - are hypothetical, rely on assumptions and on the information you provide, and do not predict or guarantee future results; actual",
+    "outcomes will differ. Neither Private Wealth Intelligence nor its representatives provide legal or tax advice - please consult your own legal and/or tax advisor",
     "before making financial decisions. The information you provide is treated as confidential and is used solely to prepare your personal analysis.",
 ]:
     c.drawString(M, y, line)
     y -= 9.5
 y -= 4
-# three-box product-risk strip
 strip_w = (CW - 16) / 3
 labels = ["Not insured by any government agency", "No bank or firm guarantee", "Investments may lose value"]
 x = M
