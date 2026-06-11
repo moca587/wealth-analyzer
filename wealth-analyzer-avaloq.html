@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>Wealth Analyzer — Monte Carlo Financial Planner</title>
+<title>Wealth Analyzer — Avaloq Edition</title>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,200;0,300;0,400;0,500;0,600;0,700;0,800;1,300;1,400;1,500&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
@@ -643,7 +643,7 @@ input[type=date]{color-scheme:light}
       <span class="intro-feat">Monte Carlo simulation</span>
       <span class="intro-feat">Goals-based funding</span>
       <span class="intro-feat">39-country accounts</span>
-      <span class="intro-feat">AI portfolio builder</span>
+      <span class="intro-feat">Multi-currency planning</span>
     </div>
     <button class="intro-launch" onclick="launchApp()" autofocus>
       Launch Wealth Analyzer
@@ -665,7 +665,7 @@ input[type=date]{color-scheme:light}
 
   // Respect the "Welcome screen" preference — skip the splash entirely if the
   // user turned it off in Settings (runs synchronously, so no flash of the intro).
-  // Share-link arrivals also skip it: the viewer should land straight on the data.
+  // Share-link arrivals also skip the splash: the viewer should land straight on the data.
   try{
     if(localStorage.getItem('wa_show_intro')==='no' || location.hash.indexOf('#share=')===0){
       var _i=document.getElementById('introScreen'); if(_i) _i.style.display='none';
@@ -729,7 +729,7 @@ input[type=date]{color-scheme:light}
 <!-- Top bar -->
 <div class="topbar">
   <div style="display:flex;align-items:center;gap:20px">
-    <div class="logo">WealthAnalyzer <small>Monte Carlo Financial Planner</small></div>
+    <div class="logo">WealthAnalyzer <small>Monte Carlo Planner · Avaloq Edition</small></div>
   </div>
   <div style="display:flex;align-items:center;gap:12px">
     <span id="topbarStatus" style="font-size:11px;color:var(--green);font-weight:600;min-width:90px;text-align:right"></span>
@@ -858,10 +858,6 @@ input[type=date]{color-scheme:light}
   </div>
   <div class="nav-item" data-tab="proposal" onclick="showTab('proposal',this)">
     <svg viewBox="0 0 16 16" fill="currentColor"><path d="M3 1h7l3 3v11a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1zm6.5 1v3h3l-3-3zM4.5 7h7v1h-7V7zm0 2.5h7v1h-7v-1zm0 2.5h5v1h-5v-1z"/></svg>Investment Proposal
-  </div>
-  <div class="nav-item" data-tab="ai-builder" onclick="showTab('ai-builder',this)">
-    <svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 1a3 3 0 00-3 3v1.5L3 7v5l2 1.5V15h6v-1.5L13 12V7l-2-1.5V4a3 3 0 00-3-3zm-1 7a1 1 0 110 2 1 1 0 010-2zm2 0a1 1 0 110 2 1 1 0 010-2z"/></svg>AI Portfolio Builder
-    <span style="margin-left:auto;background:linear-gradient(135deg,#7c3aed,var(--gold));color:#fff;font-size:8px;padding:2px 6px;border-radius:50px;font-weight:700;pointer-events:none">NEW</span>
   </div>
   <div class="nav-item" data-tab="compare" onclick="showTab('compare',this);runComparison()">
     <svg viewBox="0 0 16 16" fill="currentColor"><path d="M2 2v12h5V2H2zm7 0v6h5V2H9zm0 7.5v4.5h5V9.5H9z"/></svg>Portfolio Comparison
@@ -1651,7 +1647,7 @@ input[type=date]{color-scheme:light}
     <span><span class="swatch sw-ret"></span>Retirement starts</span>
     <span><span class="swatch sw-pen"></span>State pension starts</span>
     <span><span class="swatch sw-goal"></span>Goal year</span>
-    <span style="color:var(--text3)">Deterministic projection at the household's mean return; investment growth assumes reinvested surplus and a 30/70 cash–invest split during accumulation. In retirement, earned income → 0 and expenses swap to the inflation-adjusted retirement spend; state pension / Social Security is credited from the configured start age (with the chosen COLA treatment). <strong>Pension / SS / RMD</strong> column combines all income-equivalent payments including mandatory drawdowns from locked accounts (401k/IRA RMD starts at 73, Canadian RRIF at 71, Australian Super at 60). <strong>Ret. pool</strong> shows the remaining retirement account balance after each year's RMD deduction — it grows at a <strong>fixed 3.5%/yr</strong> (extremely conservative, intentionally decoupled from the household risk profile, the AI Portfolio Builder, and the Investment Proposal so an aggressive investment stance never affects the retirement reserve). <strong>Income tax</strong> is recomputed each year on gross earned income + pension + RMD; <strong>savings target</strong> is funded first each year from net cash flow before remaining surplus is split.</span>
+    <span style="color:var(--text3)">Deterministic projection at the household's mean return; investment growth assumes reinvested surplus and a 30/70 cash–invest split during accumulation. In retirement, earned income → 0 and expenses swap to the inflation-adjusted retirement spend; state pension / Social Security is credited from the configured start age (with the chosen COLA treatment). <strong>Pension / SS / RMD</strong> column combines all income-equivalent payments including mandatory drawdowns from locked accounts (401k/IRA RMD starts at 73, Canadian RRIF at 71, Australian Super at 60). <strong>Ret. pool</strong> shows the remaining retirement account balance after each year's RMD deduction — it grows at a <strong>fixed 3.5%/yr</strong> (extremely conservative, intentionally decoupled from the household risk profile and the Investment Proposal so an aggressive investment stance never affects the retirement reserve). <strong>Income tax</strong> is recomputed each year on gross earned income + pension + RMD; <strong>savings target</strong> is funded first each year from net cash flow before remaining surplus is split.</span>
   </div>
 </div>
 
@@ -2039,15 +2035,6 @@ input[type=date]{color-scheme:light}
 <!-- ═══ INVESTMENT PROPOSAL ═══ -->
 <div class="tab" id="tab-proposal">
 
-<!-- Pointer to AI Portfolio Builder tab -->
-<div class="panel" style="background:linear-gradient(135deg,#fff,#f3f0ff);border:1px solid rgba(124,58,237,.20);display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap">
-  <div style="flex:1;min-width:200px">
-    <div style="font-size:13px;font-weight:700;color:#7c3aed;margin-bottom:2px">🤖 Need AI to build this portfolio for you?</div>
-    <div style="font-size:12px;color:var(--text3);line-height:1.5">Open the new <strong>AI Portfolio Builder</strong> tab — answer 4 simple questions and get a complete recommendation in 15 seconds.</div>
-  </div>
-  <button class="btn-secondary" onclick="showTab('ai-builder', document.querySelector('[data-tab=ai-builder]'))" style="background:linear-gradient(135deg,#7c3aed,#0057b8);color:#fff;border:none;padding:10px 20px;font-weight:700">↗ Open AI Portfolio Builder</button>
-</div>
-
 <!-- Proposal setup -->
 <div class="panel">
   <div class="ptitle">Proposal Setup</div>
@@ -2196,145 +2183,6 @@ input[type=date]{color-scheme:light}
     <!-- API key inputs hidden — manage in admin → API Keys tab. Status span retained for any code that references it. -->
     <span id="prAvStatus" style="display:none"></span>
     <div style="font-size:11px;color:var(--text3);margin-top:6px;line-height:1.5">Enter a ticker (VOO, AGG, AAPL), ISIN/UCIT number (IE00B3RBWM25), exchange symbol (VUSA.L, IWDA.AS), or fund name to search. Name, type, class, region and yield fill automatically. Allocation % is always required. <strong>API keys for enhanced data are managed in the <a href="admin.html" target="_blank" style="color:var(--gold)">Admin → API Keys tab</a></strong> and auto-checked every 2 minutes.</div>
-  </div>
-</div>
-
-</div>
-
-<!-- ═══ AI PORTFOLIO BUILDER (simple, modern, average-user friendly) ═══ -->
-<div class="tab" id="tab-ai-builder">
-
-<!-- Hero with simple language -->
-<div class="panel" style="background:linear-gradient(135deg,#7c3aed 0%,#0057b8 100%);color:#fff;border:none;padding:32px 36px;box-shadow:0 12px 40px rgba(124,58,237,.25)">
-  <div style="display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap">
-    <div style="flex:1;min-width:240px">
-      <div style="font-size:11px;font-weight:700;letter-spacing:.10em;text-transform:uppercase;opacity:.8;margin-bottom:6px">AI-Powered</div>
-      <h1 style="font-size:30px;font-weight:800;letter-spacing:-.035em;margin-bottom:8px;line-height:1.1">Let AI build your portfolio</h1>
-      <div style="font-size:14px;opacity:.9;line-height:1.6;max-width:540px">Our AI reads research from the world's biggest wealth managers — Bank of America, JPMorgan, Goldman Sachs, UBS, BlackRock, and 11 more — then designs a portfolio just for you. No expertise needed.</div>
-    </div>
-    <div style="font-size:80px;line-height:1;opacity:.85">🤖</div>
-  </div>
-</div>
-
-<!-- 3-step indicator -->
-<div class="panel" style="background:#fff;border:1px solid rgba(124,58,237,.15)">
-  <div style="display:grid;grid-template-columns:repeat(3, 1fr);gap:14px;text-align:center">
-    <div style="padding:14px">
-      <div style="font-size:30px;margin-bottom:8px">1️⃣</div>
-      <div style="font-weight:700;font-size:14px;color:var(--text);margin-bottom:4px">Tell us about you</div>
-      <div style="font-size:11.5px;color:var(--text3);line-height:1.5">We use your Household, Income, Assets and Goals from the other tabs</div>
-    </div>
-    <div style="padding:14px;border-left:1px solid var(--border);border-right:1px solid var(--border)">
-      <div style="font-size:30px;margin-bottom:8px">2️⃣</div>
-      <div style="font-weight:700;font-size:14px;color:var(--text);margin-bottom:4px">AI reads market research</div>
-      <div style="font-size:11.5px;color:var(--text3);line-height:1.5">Pulls latest views from 16 institutional sources — automatically</div>
-    </div>
-    <div style="padding:14px">
-      <div style="font-size:30px;margin-bottom:8px">3️⃣</div>
-      <div style="font-weight:700;font-size:14px;color:var(--text);margin-bottom:4px">Get your portfolio</div>
-      <div style="font-size:11.5px;color:var(--text3);line-height:1.5">A complete investment plan with explanations for every pick</div>
-    </div>
-  </div>
-</div>
-
-<!-- Simple preferences (just 4 inputs) -->
-<div class="panel">
-  <div class="ptitle">Your preferences <span style="color:var(--text3);font-weight:400;letter-spacing:0;text-transform:none">— most clients only adjust these 4</span></div>
-  <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));gap:14px">
-    <div>
-      <label style="font-size:12px;font-weight:600;color:var(--text2);display:block;margin-bottom:6px">How much can you invest?</label>
-      <div style="display:flex;align-items:center;gap:6px"><span style="font-size:16px;color:var(--text3)">$</span><input type="number" id="aiSimpleAmount" value="100000" step="10000" style="flex:1;font-size:15px;font-weight:600;padding:9px 12px"></div>
-      <div style="font-size:11px;color:var(--text3);margin-top:4px">Your starting investment amount</div>
-    </div>
-    <div>
-      <label style="font-size:12px;font-weight:600;color:var(--text2);display:block;margin-bottom:6px">Comfort with risk</label>
-      <select id="aiSimpleRisk" style="width:100%;font-size:14px;font-weight:600;padding:9px 12px">
-        <option value="very_conservative">🛡 Very safe — protect my money</option>
-        <option value="conservative">🛡 Conservative — small growth</option>
-        <option value="moderately_conservative">⚖ Balanced — slight tilt to safety</option>
-        <option value="moderate" selected>⚖ Balanced — equal growth & safety</option>
-        <option value="moderately_aggressive">📈 Growth — accept some bumps</option>
-        <option value="aggressive">📈 Aggressive — chase higher returns</option>
-        <option value="very_aggressive">🚀 Maximum growth — comfortable with big swings</option>
-      </select>
-      <div style="font-size:11px;color:var(--text3);margin-top:4px">How much volatility are you OK with?</div>
-    </div>
-    <div>
-      <label style="font-size:12px;font-weight:600;color:var(--text2);display:block;margin-bottom:6px">When will you need this money?</label>
-      <select id="aiSimpleHorizon" style="width:100%;font-size:14px;font-weight:600;padding:9px 12px">
-        <option value="1_5">⏱ Soon (1-5 years)</option>
-        <option value="5_10">📅 Medium-term (5-10 years)</option>
-        <option value="10_15">📆 Long-term (10-15 years)</option>
-        <option value="15_plus" selected>🗓 Very long-term (15+ years)</option>
-      </select>
-      <div style="font-size:11px;color:var(--text3);margin-top:4px">Longer horizons can take more risk</div>
-    </div>
-    <div>
-      <label style="font-size:12px;font-weight:600;color:var(--text2);display:block;margin-bottom:6px">Do you care about sustainability?</label>
-      <select id="aiSimpleESG" style="width:100%;font-size:14px;font-weight:600;padding:9px 12px">
-        <option value="none" selected>No preference</option>
-        <option value="prefer">🌱 Prefer sustainable (ESG)</option>
-        <option value="strict">🌍 Sustainable only</option>
-      </select>
-      <div style="font-size:11px;color:var(--text3);margin-top:4px">Environmental, Social & Governance funds</div>
-    </div>
-  </div>
-</div>
-
-<!-- BIG GO BUTTON -->
-<div class="panel" style="background:linear-gradient(135deg,#fff,#f3f0ff);border:2px dashed rgba(124,58,237,.30);text-align:center;padding:32px 24px">
-  <button onclick="runSimpleAIBuilder()" style="background:linear-gradient(135deg,#7c3aed,#0057b8);color:#fff;border:none;padding:18px 48px;border-radius:50px;font-size:17px;font-weight:800;cursor:pointer;font-family:var(--fb);letter-spacing:.01em;box-shadow:0 10px 28px rgba(124,58,237,.35);transition:transform .15s,box-shadow .15s" onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 14px 36px rgba(124,58,237,.45)'" onmouseout="this.style.transform='translateY(0)';this.style.boxShadow='0 10px 28px rgba(124,58,237,.35)'">
-    🤖&nbsp; Build my portfolio now
-  </button>
-  <div style="font-size:12px;color:var(--text3);margin-top:14px;line-height:1.6">Takes about <strong style="color:var(--text2)">15 seconds</strong> · No credit card · No registration · Your data stays on your device</div>
-  <div id="aiSimpleStatus" style="font-size:13px;color:var(--text2);margin-top:14px;font-weight:600"></div>
-</div>
-
-<!-- Result panel -->
-<div class="panel" id="aiSimpleResult" style="display:none">
-  <div class="ptitle" style="display:flex;align-items:center;justify-content:space-between">
-    <span>🎯 Your AI Portfolio</span>
-    <div style="display:flex;gap:8px">
-      <button class="btn-secondary" onclick="applyAIRecommendationToProposal()" style="font-size:12px;padding:7px 14px;background:var(--green);color:#fff;border:none">↗ Apply to Investment Proposal</button>
-      <button class="btn-secondary" onclick="document.getElementById('aiSimpleResult').style.display='none'" style="font-size:12px;padding:7px 14px">✕ Close</button>
-    </div>
-  </div>
-  <div id="aiSimpleResultBody"></div>
-</div>
-
-<!-- Original detailed result panel (used by complex flow if needed) -->
-<div class="panel" id="aiGenResult" style="display:none">
-  <div class="ptitle" style="display:flex;align-items:center;justify-content:space-between">
-    <span>🎯 AI Portfolio Recommendation</span>
-    <div style="display:flex;gap:8px">
-      <button class="btn-secondary" onclick="applyAIRecommendationToProposal()" style="font-size:12px;padding:6px 14px">↓ Apply to Investment Proposal</button>
-      <button class="btn-secondary" onclick="document.getElementById('aiGenResult').style.display='none'" style="font-size:12px;padding:6px 14px">✕ Close</button>
-    </div>
-  </div>
-  <div id="aiGenResultBody"></div>
-  <span id="aiGenStatus" style="display:none"></span>
-</div>
-
-<!-- Trust strip — what we use -->
-<div class="panel" style="background:var(--bg3);border:1px solid var(--border)">
-  <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.10em;color:var(--text3);margin-bottom:14px">Powered by research from 16 institutional sources</div>
-  <div style="display:flex;flex-wrap:wrap;gap:8px;font-size:11.5px;color:var(--text2);font-weight:600">
-    <span style="padding:5px 11px;background:#fff;border:1px solid var(--border);border-radius:50px">Bank of America / Merrill</span>
-    <span style="padding:5px 11px;background:#fff;border:1px solid var(--border);border-radius:50px">JPMorgan AM</span>
-    <span style="padding:5px 11px;background:#fff;border:1px solid var(--border);border-radius:50px">Morgan Stanley</span>
-    <span style="padding:5px 11px;background:#fff;border:1px solid var(--border);border-radius:50px">Goldman Sachs</span>
-    <span style="padding:5px 11px;background:#fff;border:1px solid var(--border);border-radius:50px">Citi Private Bank</span>
-    <span style="padding:5px 11px;background:#fff;border:1px solid var(--border);border-radius:50px">UBS Wealth</span>
-    <span style="padding:5px 11px;background:#fff;border:1px solid var(--border);border-radius:50px">Julius Baer</span>
-    <span style="padding:5px 11px;background:#fff;border:1px solid var(--border);border-radius:50px">Pictet AM</span>
-    <span style="padding:5px 11px;background:#fff;border:1px solid var(--border);border-radius:50px">Vontobel</span>
-    <span style="padding:5px 11px;background:#fff;border:1px solid var(--border);border-radius:50px">BlackRock</span>
-    <span style="padding:5px 11px;background:#fff;border:1px solid var(--border);border-radius:50px">Eaton Vance</span>
-    <span style="padding:5px 11px;background:#fff;border:1px solid var(--border);border-radius:50px">Morningstar</span>
-    <span style="padding:5px 11px;background:#fff;border:1px solid var(--border);border-radius:50px">FactSet</span>
-    <span style="padding:5px 11px;background:#fff;border:1px solid var(--border);border-radius:50px">Bloomberg</span>
-    <span style="padding:5px 11px;background:#fff;border:1px solid var(--border);border-radius:50px">Oppenheimer</span>
-    <span style="padding:5px 11px;background:#fff;border:1px solid var(--border);border-radius:50px">Seeking Alpha</span>
   </div>
 </div>
 
@@ -4892,9 +4740,7 @@ const APP_KEY_DEFS = [
   {id:"wa_newsapi_key",       n:"NewsAPI.org",           url:"https://newsapi.org/register",                        tip:"100/day · proxied"},
   {id:"wa_marketaux_key",     n:"Marketaux",             url:"https://marketaux.com/account/dashboard",             tip:"100/day · sentiment"},
   // Macro
-  {id:"wa_fred_key",          n:"FRED (St Louis Fed)",   url:"https://fred.stlouisfed.org/docs/api/api_key.html",   tip:"Free unlimited · proxied"},
-  // AI
-  {id:"wa_claude_key",        n:"Claude API (Anthropic)",url:"https://console.anthropic.com",                       tip:"Powers AI agent narration", secret:true}
+  {id:"wa_fred_key",          n:"FRED (St Louis Fed)",   url:"https://fred.stlouisfed.org/docs/api/api_key.html",   tip:"Free unlimited · proxied"}
 ];
 
 function renderMdKeysGrid(){

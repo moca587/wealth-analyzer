@@ -13,8 +13,8 @@ sub slurp_text {
     local $/; my $data = <$fh>; close $fh; return $data;
 }
 
-my $SRC  = "wealth-analyzer.html";
-my $DEST = "wealth-analyzer-standalone.html";
+my $SRC  = "wealth-analyzer-avaloq.html";
+my $DEST = "wealth-analyzer-avaloq-standalone.html";
 my $V    = "vendor";
 
 print "Reading source files...\n";
@@ -33,12 +33,17 @@ my $version = strftime("%Y%m%d-%H%M", localtime);
 $html =~ s/const APP_VERSION\s*=\s*"[^"]*"/const APP_VERSION = "$version"/;
 print "  Version: $version\n";
 
-# 0b. Write version.json — polled by live clients to detect new deploys
+# 0b. The Avaloq edition gets its OWN version channel. version.json belongs to
+# the main app — sharing it would make whichever edition was built last force
+# the other into an auto-reload loop, and the shared localStorage version key
+# would wipe wa_* keys every time the user switched editions on one origin.
 my $version_full = strftime("%Y-%m-%dT%H:%M:%S", localtime);
-open my $vf, '>:encoding(UTF-8)', "version.json" or die "Cannot write version.json: $!";
-print $vf qq({\n  "version": "$version",\n  "builtAt": "$version_full",\n  "channel": "production"\n}\n);
+open my $vf, '>:encoding(UTF-8)', "version-avaloq.json" or die "Cannot write version-avaloq.json: $!";
+print $vf qq({\n  "version": "$version",\n  "builtAt": "$version_full",\n  "channel": "avaloq"\n}\n);
 close $vf;
-print "  Wrote version.json\n";
+print "  Wrote version-avaloq.json\n";
+$html =~ s|fetch\("version\.json\?t="|fetch("version-avaloq.json?t="|g;
+$html =~ s|"wa_app_version"|"wa_avaloq_app_version"|g;
 
 # 1. Remove Google Fonts link
 $html =~ s|<link href="https://fonts\.googleapis\.com[^"]*" rel="stylesheet">|<!-- Google Fonts removed — system fonts used (standalone mode) -->|;
