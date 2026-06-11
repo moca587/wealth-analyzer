@@ -1,0 +1,12 @@
+# Local Claude Code tool config — contains machine-local permission grants
+# (and must never be committed: settings.local.json can embed credentials)
+.claude/
+
+# Node
+node_modules/
+.next/
+
+# Env secrets
+.env
+.env.local
+.env.*.local
