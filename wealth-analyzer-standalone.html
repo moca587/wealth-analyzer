@@ -3127,6 +3127,9 @@ input[type=date]{color-scheme:light}
       <div class="frow"><label class="flbl">Methodology notes</label>
         <select id="rptIncMethod" class="w180"><option value="yes" selected>Yes</option><option value="no">No</option></select>
       </div>
+      <div class="frow"><label class="flbl">Glossary of terms</label>
+        <select id="rptIncGlossary" class="w180"><option value="yes" selected>Yes</option><option value="no">No</option></select>
+      </div>
       <div class="frow"><label class="flbl">Disclosure profile</label>
         <select id="rptDiscLvl" class="w180">
           <option value="standard" selected>Standard (retail)</option>
@@ -3163,7 +3166,7 @@ input[type=date]{color-scheme:light}
 // ═══════════════════════════════════════════════════════════
 // VERSION — updated by build-standalone.pl on each build
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260611-2032";
+const APP_VERSION = "20260611-2040";
 
 // ═══════════════════════════════════════════════════════════
 // DATA
@@ -10779,10 +10782,20 @@ const PORT_DEF_SIG = {equity:14, fixed_income:5,   real_estate:11,  commodity:16
 // to fund.mu, or hand-entered on the Proposal form), then class default,
 // then 7% as the universal fallback.
 function _posMu(p){
-  return (p && p.exp != null && !isNaN(p.exp)) ? +p.exp : (PORT_DEF_MU[p.cls] ?? 7);
+  if(p && p.exp != null && !isNaN(p.exp)) return +p.exp;
+  const cls = p && p.cls;
+  if(cls === "cash") return 0; // cash pinned at 0% — matches the current-portfolio engine
+  // Fall back to the SAME CMA table the current-portfolio side uses, so an
+  // identical mix prices identically on both sides of Portfolio Comparison.
+  if(typeof CMA !== "undefined" && CMA[cls]) return CMA[cls].arith;
+  return PORT_DEF_MU[cls] ?? 7;
 }
 function _posSig(p){
-  return (p && p.sigma != null && !isNaN(p.sigma)) ? +p.sigma : (PORT_DEF_SIG[p.cls] ?? 12);
+  if(p && p.sigma != null && !isNaN(p.sigma)) return +p.sigma;
+  const cls = p && p.cls;
+  if(cls === "cash") return 0;
+  if(typeof CMA !== "undefined" && CMA[cls]) return CMA[cls].sigma;
+  return PORT_DEF_SIG[cls] ?? 12;
 }
 
 // Weighted gross return + COVARIANCE-based sigma for any list of positions.
@@ -12667,6 +12680,17 @@ function buildReportHtml(){
     }catch(e){ potWealthSection=""; }
   }
 
+  // --- Glossary of Terms section ---
+  let glossarySection="";
+  if((val("rptIncGlossary")||"yes")!=="no"){
+    try{
+      const rows=RPT_GLOSSARY.map(g=>`<tr><td style="font-weight:bold;width:27%">${g[0]}</td><td>${g[1]}</td></tr>`).join("");
+      glossarySection=`<h2>Glossary of terms</h2>
+      <p>Definitions of the terms used throughout this report, provided for your convenience.</p>
+      <table>${rows}</table>`;
+    }catch(e){ glossarySection=""; }
+  }
+
   // --- Capital Market Assumptions section [Merrill] ---
   let cmaSection="";
   if((val("rptIncCMA")||"yes")!=="no"){
@@ -12747,6 +12771,7 @@ function buildReportHtml(){
   ${potWealthSection}
   ${cfSection}
   ${cmaSection}
+  ${glossarySection}
 
   <div class="disc">${DISC[discLvl]||DISC.standard}</div>
   </body></html>`;
@@ -13097,7 +13122,7 @@ function gbRenderCMA(weights, port){
 // ═══════════════════════════════════════════════════════════════════
 // PDF REPORT — custom content + page ordering
 // ═══════════════════════════════════════════════════════════════════
-const RPT_DEFAULT_ORDER = ["exec","about","hh","inc","assets","goals","port","factsheets","sim","fund","goalfunding","lifestyle","wealthframework","potentialwealth","cf","cma","method","disc"];
+const RPT_DEFAULT_ORDER = ["exec","about","hh","inc","assets","goals","port","factsheets","sim","fund","goalfunding","lifestyle","wealthframework","potentialwealth","cf","cma","method","glossary","disc"];
 const RPT_SECTION_LABELS = {
   exec:            "Executive Summary",
   about:           "About the Client (custom)",
@@ -13116,8 +13141,42 @@ const RPT_SECTION_LABELS = {
   cf:              "Cash-Flow Projection",
   cma:             "Capital Market Assumptions",
   method:          "Methodology & Assumptions",
+  glossary:        "Glossary of Terms",
   disc:            "Disclosures"
 };
+
+// ─── Supplemental glossary — original definitions of the terms this report
+// actually uses (modelled on the structure of institutional PWA glossaries).
+const RPT_GLOSSARY = [
+  ["Advisory Fee", "The annual fee charged on managed assets, expressed as a percentage. Deducted from the gross expected return to give the net return used in projections."],
+  ["Asset Allocation", "The mix of asset classes (equities, fixed income, cash, real assets, alternatives) in a portfolio. The balance is set from your risk profile, time horizon, and goals."],
+  ["Asset Class", "A broad grouping of investments that behave similarly — e.g. equities, fixed income, cash, real assets/REITs, commodities, alternatives, private equity, crypto."],
+  ["Benchmark", "A market index used as a reference point to compare a portfolio's return — chosen automatically here from the portfolio's dominant asset mix."],
+  ["Capital Market Assumptions (CMA)", "The long-term per-asset-class estimates of expected return, volatility, income, and cross-correlations that drive every projection in this report."],
+  ["Confidence Level", "The probability that an outcome is achieved at or above the stated value. An amount at 80% confidence is reached in at least 8 of 10 simulated futures."],
+  ["Correlation", "How closely two asset classes move together (−1 to +1). Combining assets with low correlation lowers total portfolio risk."],
+  ["Diversification", "Spreading investments across asset classes so portfolio volatility is lower than the weighted average of its parts; computed here via the full correlation matrix."],
+  ["Essential / Important / Aspirational", "Goal priorities: Essential goals are needs and are tested at 95% confidence; Important goals at 75%; Aspirational goals (wants) at 55%."],
+  ["Expected Return (Arithmetic)", "The simple average annual return assumed for an asset class or portfolio. Used as the input mean for the Monte Carlo engine."],
+  ["Expense Ratio", "A fund's internal annual operating cost as a percentage of assets, charged by the fund issuer and already reflected in fund performance."],
+  ["Geometric (Compound) Return", "The constant annual growth rate that produces the same cumulative result over time; approximately the arithmetic mean minus half the variance (mu − ½σ²)."],
+  ["Goal Funding Ratio", "The present value of the resources allocated to a goal divided by the present value of the goal's cost. 100% or more means the goal is fully funded."],
+  ["Liquid vs Locked Assets", "Liquid assets (cash, brokerage) can be spent at any time. Locked assets (pension and retirement accounts) are subject to withdrawal-age rules."],
+  ["Median (50th Percentile)", "The middle simulated outcome — half of all Monte Carlo paths finish above this value and half below."],
+  ["Monte Carlo Simulation", "A technique that projects wealth under hundreds of randomized market-return paths, producing a distribution of outcomes instead of a single forecast."],
+  ["Net Worth", "Total assets (accounts, portfolio, property, other) minus total liabilities (loans and other debts)."],
+  ["Percentile (Pessimistic / Optimistic)", "A ranking within the simulated outcomes. The 10th percentile (pessimistic) is beaten by 90% of paths; the 90th (optimistic) by only 10%."],
+  ["Potentially Achievable Lifestyle", "The sustainable, inflation-adjusted annual spending the portfolio could support through retirement at a given confidence level."],
+  ["Present Value (PV)", "The today's-money equivalent of future cash flows, discounted at a risk- and confidence-adjusted return."],
+  ["Required Minimum Distribution (RMD)", "Mandatory annual withdrawals from tax-deferred retirement accounts from a statutory age (e.g. IRS RMD at 73, Canadian RRIF at 71, Australian Super at 60)."],
+  ["Retirement Pool", "The combined locked retirement accounts. Grown at a fixed conservative 3.5%/yr in this analysis — intentionally insulated from the household's investment risk choices."],
+  ["Risk Profile", "Your investor categorization, from conservative to aggressive. Sets the expected-return and volatility assumptions when no explicit portfolio drives the simulation."],
+  ["Standard Deviation (Volatility, σ)", "The dispersion of returns around the average — the core measure of investment risk. Higher σ means wider swings in outcomes."],
+  ["Tax Drag (CGT Turnover)", "The reduction in effective return caused by realizing taxable gains each year, modelled as: effective return ≈ gross × (1 − CGT rate × turnover)."],
+  ["Time Horizon", "How long until the money is needed. Longer horizons can support more volatility because there is more time to recover from downturns."],
+  ["Wealth Allocation Framework", "Classification of assets into Personal (preserve lifestyle), Market (balance risk and return), and Aspirational (concentrated upside) buckets."],
+  ["Yield", "Annual income (dividends or interest) produced by an investment, expressed as a percentage of its price."]
+];
 
 function getRptOrder(){
   try {
@@ -13457,6 +13516,7 @@ async function generatePDFReport(){
       cma:            () => val("rptIncCMA") !== "no",
       cf:             () => val("rptIncCF") !== "no",
       method:         () => val("rptIncMethod") !== "no",
+      glossary:       () => val("rptIncGlossary") !== "no",
       disc:       () => val("rptDiscLvl") !== "none" || !!(function(){ try { return (localStorage.getItem("wa_rpt_custom_disc")||"").trim(); } catch(_) { return ""; } })()
     };
     const tocItems = [];
@@ -13476,6 +13536,7 @@ async function generatePDFReport(){
         if(k === "cma")             label = "Capital Market Assumptions";
         if(k === "cf")              label = "Cash-Flow Projection";
         if(k === "method")          label = "Methodology & Assumptions";
+        if(k === "glossary")        label = "Glossary of Terms";
         if(k === "disc")            label = "Disclosures";
         tocItems.push(label);
       }
@@ -13932,6 +13993,16 @@ async function generatePDFReport(){
         para("Tax: Income tax is estimated from configurable bracket tables for the selected country. Child/family benefit offsets are applied per country rules. Tax drag on investment returns is modelled through a CGT turnover drag.");
         para("Retirement drawdown: Voluntary 4% drawdown begins at the configured retirement age. When two clients are present, the pool is split equally and each half draws independently based on each client's own retirement age. Mandatory drawdown rules (IRS RMD, RRIF, Australian Super) apply from the relevant statutory age.");
         para("Inflation: All expenses, retirement spend, and pension COLA adjustments compound at the configured annual inflation rate.");
+      },
+      // ─── GLOSSARY OF TERMS (supplemental reference) ──
+      glossary: () => {
+        if(val("rptIncGlossary") === "no") return;
+        newPage();
+        sectionH2("Glossary of Terms");
+        para("Definitions of the terms used throughout this report, provided for your convenience.");
+        tbl(["Term","Definition"], RPT_GLOSSARY.map(g=>[g[0], g[1]]),
+          {styles:{fontSize:Math.max(7,fsz-1),cellPadding:1.8,overflow:"linebreak"},
+           columnStyles:{0:{fontStyle:"bold",cellWidth:CW*0.27},1:{cellWidth:CW*0.73}}});
       },
       // ─── DISCLOSURES ──
       disc: () => {
