@@ -21,9 +21,9 @@ CW = W - 2 * M               # content width
 
 OUT = "Wealth-Analyzer-Client-Questionnaire.pdf"
 c = canvas.Canvas(OUT, pagesize=A4)
-c.setTitle("Wealth Analyzer - Client Questionnaire")
-c.setAuthor("Momir Ivetic")
-c.setSubject("Client intake questionnaire for Wealth Analyzer")
+c.setTitle("Wealth Analyzer by Private Wealth Intelligence - Client Questionnaire")
+c.setAuthor("Private Wealth Intelligence")
+c.setSubject("Client intake questionnaire for Wealth Analyzer by Private Wealth Intelligence")
 
 y = 0                        # cursor (set per page)
 page_no = 0
@@ -32,7 +32,7 @@ page_no = 0
 def footer():
     c.setFont("Helvetica", 7.5)
     c.setFillColor(GREY)
-    c.drawString(M, 24, "Wealth Analyzer — Client Questionnaire · Confidential")
+    c.drawString(M, 24, "Wealth Analyzer by Private Wealth Intelligence · Confidential")
     c.drawCentredString(W / 2, 24, "Produced by Momir Ivetic")
     c.drawRightString(W - M, 24, f"Page {page_no} of 4")
     c.setFillColor(INK)
@@ -48,20 +48,24 @@ def new_page(title=None):
     if page_no == 1:
         # Brand header bar
         c.setFillColor(BLUE)
-        c.rect(0, H - 92, W, 92, stroke=0, fill=1)
+        c.rect(0, H - 100, W, 100, stroke=0, fill=1)
         c.setFillColor(white)
         c.setFont("Helvetica-Bold", 24)
-        c.drawString(M, H - 52, "WealthAnalyzer")
+        c.drawString(M, H - 46, "WealthAnalyzer")
+        c.setFont("Helvetica-Bold", 10)
+        c.drawString(M + 200, H - 46, "by  PRIVATE  WEALTH  INTELLIGENCE")
         c.setFont("Helvetica", 10.5)
-        c.drawString(M, H - 70, "Client Questionnaire — the starting point of your personal wealth analysis")
+        c.drawString(M, H - 66, "Client Questionnaire — the starting point of your personal wealth analysis")
         c.setFillColor(INK)
-        y = H - 92 - 26
+        y = H - 100 - 26
     else:
         c.setFillColor(BLUE)
         c.rect(0, H - 40, W, 40, stroke=0, fill=1)
         c.setFillColor(white)
         c.setFont("Helvetica-Bold", 12)
-        c.drawString(M, H - 26, "WealthAnalyzer — Client Questionnaire")
+        c.drawString(M, H - 26, "WealthAnalyzer")
+        c.setFont("Helvetica", 8.5)
+        c.drawString(M + 110, H - 26, "by Private Wealth Intelligence — Client Questionnaire")
         if title:
             c.setFont("Helvetica", 9.5)
             c.drawRightString(W - M, H - 26, title)
