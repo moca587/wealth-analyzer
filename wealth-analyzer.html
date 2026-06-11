@@ -1944,12 +1944,7 @@ input[type=date]{color-scheme:light}
     </div>
   </div>
 
-  <!-- Region bars retained (instrument-type and asset-class bars removed —
-       the pie charts above already show those breakdowns) -->
-  <div class="sdiv">
-    <div class="slbl">By region</div>
-    <div id="pfBarsRegion"><div class="pf-empty">No holdings yet.</div></div>
-  </div>
+  <!-- Bars removed — the three pie charts above show all breakdowns -->
 </div>
 
 <!-- Holdings list -->
@@ -2719,7 +2714,7 @@ input[type=date]{color-scheme:light}
 // ═══════════════════════════════════════════════════════════
 // VERSION — updated by build-standalone.pl on each build
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260611-1542";
+const APP_VERSION = "20260611-2032";
 
 // ═══════════════════════════════════════════════════════════
 // DATA
@@ -4850,7 +4845,7 @@ function showTab(name,el){
   const tab=$("tab-"+name); if(tab) tab.classList.add("active");
   if(el) el.classList.add("active");
   if(name==="portfolio"){
-    renderInvestments();renderPortfolioMetrics();renderPortfolioBars();drawPortfolioPie();
+    renderInvestments();renderPortfolioMetrics();drawPortfolioPie();
     try { applyMdKeysState(); renderMdKeysGrid(); } catch(_){}
   }
   if(name==="proposal"){renderProposals();renderProposalMetrics();renderProposalBars();drawProposalPie();syncProposalClient();}
@@ -6310,7 +6305,7 @@ function addInvestment(){
   }
   ["pfName","pfTkr","pfVal","pfEr","pfYld","pfNote"].forEach(id=>$(id).value="");
   setT("pfTkrHint","");
-  renderInvestments(); renderPortfolioMetrics(); renderPortfolioBars(); drawPortfolioPie();
+  renderInvestments(); renderPortfolioMetrics(); drawPortfolioPie();
   refreshTopMetrics();
 }
 function editInvestment(id){
@@ -6342,7 +6337,7 @@ function cancelEditInvestment(){
 function removeInvestment(id){
   if(_editingInvId===id) cancelEditInvestment();
   investments=investments.filter(i=>i.id!==id);
-  renderInvestments(); renderPortfolioMetrics(); renderPortfolioBars(); drawPortfolioPie();
+  renderInvestments(); renderPortfolioMetrics(); drawPortfolioPie();
   refreshTopMetrics();
 }
 
@@ -6489,7 +6484,7 @@ async function parseHoldingsFile(){
       });
       added++;
     });
-    renderInvestments(); renderPortfolioMetrics(); renderPortfolioBars(); drawPortfolioPie(); refreshTopMetrics();
+    renderInvestments(); renderPortfolioMetrics(); drawPortfolioPie(); refreshTopMetrics();
     status.textContent="✓ Imported "+added+" holding"+(added!==1?"s":"")+" from "+file.name;
     status.style.color="var(--green)";
     if(fileInput) fileInput.value="";
@@ -6547,29 +6542,8 @@ function renderPortfolioMetrics(){
   setT("pf-risk",wRisk.toFixed(1)+"/10");
   const fill=$("pf-risk-fill"); if(fill) fill.style.flex="0 0 "+(wRisk/10*100)+"%";
 }
-function renderPortfolioBars(){
-  // Only the region bars remain — instrument-type and asset-class bars
-  // were removed because the pie charts above already show those breakdowns.
-  if(investments.length===0){
-    setH("pfBarsRegion",'<div class="pf-empty">No holdings yet.</div>');
-    return;
-  }
-  const total=investments.reduce((s,i)=>s+i.val,0);
-  function bars(field,labels,colors){
-    const agg={};
-    investments.forEach(i=>{const k=(field==="cls"?effClass(i):(i[field]||"other")); agg[k]=(agg[k]||0)+i.val;});
-    return Object.entries(agg).sort((a,b)=>b[1]-a[1]).map(([k,v])=>{
-      const pct=v/total*100;
-      return `<div class="pf-bar-row">
-        <div class="pf-bar-label">${labels[k]||k}</div>
-        <div class="pf-bar-track"><div class="pf-bar-fill" style="width:${pct}%;background:${colors[k]||'#1e40af'}"></div></div>
-        <div class="pf-bar-amt">${fmtMoney(v)}</div>
-        <div class="pf-bar-pct">${pct.toFixed(1)}%</div>
-      </div>`;
-    }).join("");
-  }
-  setH("pfBarsRegion",bars("region",INV_REGION_LABELS,REGION_COLORS));
-}
+// renderPortfolioBars removed — the three pie charts (class / type / region)
+// in the Allocation panel cover all portfolio breakdowns.
 
 
 // Treat anything with vehicle/type=bond as fixed_income for asset-class aggregation
