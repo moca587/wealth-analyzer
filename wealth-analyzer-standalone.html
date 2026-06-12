@@ -1628,6 +1628,34 @@ input[type=date]{color-scheme:light}
 </div>
 </div>
 
+<!-- ─── Equity compensation ─── -->
+<div class="panel" id="equityPanel">
+  <div class="ptitle">Equity Compensation — Options &amp; RSUs</div>
+  <div style="font-size:12px;color:var(--text3);margin-bottom:12px;line-height:1.5">Track stock options and restricted stock units. Tranches vest in equal annual amounts; <strong style="color:var(--text2)">vesting proceeds flow into income</strong> (and are taxed) in both the cash-flow projection and the Monte Carlo simulation.</div>
+  <div id="eqList"><div class="empty">No grants added.</div></div>
+  <div class="sdiv">
+    <div class="slbl">Add Grant</div>
+    <div class="frow"><label class="flbl">Grant type</label>
+      <select id="eqkind" class="w200">
+        <option value="rsu">RSU — restricted stock units</option>
+        <option value="nqso">NQSO — non-qualified options</option>
+        <option value="iso">ISO — incentive options</option>
+      </select>
+    </div>
+    <div class="frow"><label class="flbl">Company / ticker</label><input id="eqtkr" placeholder="e.g. AAPL" class="w140"></div>
+    <div class="frow"><label class="flbl">Number of shares</label><input type="number" id="eqshares" placeholder="0" step="100" class="w140"></div>
+    <div class="frow" id="eqstrikeRow"><label class="flbl">Strike price (options)</label><input type="number" id="eqstrike" placeholder="0" step="0.01" class="w140"></div>
+    <div class="frow"><label class="flbl">Current share price</label><input type="number" id="eqprice" placeholder="0" step="0.01" class="w140"></div>
+    <div class="frow"><label class="flbl">Assumed share growth %/yr</label><input type="number" id="eqgrowth" value="8" step="0.5" class="w120"></div>
+    <div class="frow"><label class="flbl">First vesting year</label><input type="number" id="eqstart" placeholder="2027" step="1" class="w120"></div>
+    <div class="frow"><label class="flbl">Vesting period (years)</label><input type="number" id="eqyears" value="4" step="1" class="w120"></div>
+    <div class="frow"><label class="flbl">Label (optional)</label><input id="eqlbl" placeholder="e.g. 2026 refresh grant" class="w200"></div>
+    <button id="eqAddBtn" class="btn-secondary full" onclick="addEquityGrant()">+ Add Grant</button>
+    <button id="eqCancelBtn" class="btn-secondary full" onclick="cancelEditEquityGrant()" style="display:none;margin-top:4px;color:var(--text3)">✕ Cancel edit</button>
+  </div>
+</div>
+</div>
+
 <!-- ═══ EXPENSES ═══ -->
 <div class="tab" id="tab-expenses">
 <div class="panel">
@@ -1869,6 +1897,40 @@ input[type=date]{color-scheme:light}
     <button id="loanCancelBtn" class="btn-secondary full" onclick="cancelEditLoan()" style="display:none;margin-top:4px;color:var(--text3)">✕ Cancel edit</button>
   </div>
 </div>
+
+<!-- ─── Insurance — protection inventory ─── -->
+<div class="panel" id="insurancePanel">
+  <div class="ptitle">Insurance — Protection Inventory</div>
+  <div style="font-size:12px;color:var(--text3);margin-bottom:12px;line-height:1.5">Track life, disability, and long-term-care policies. <strong style="color:var(--text2)">Cash value</strong> counts toward net worth; <strong style="color:var(--text2)">death benefits</strong> feed the estate transfer summary; premiums can flow into annual expenses below.</div>
+  <div id="insList"><div class="empty">No policies added.</div></div>
+  <div class="sdiv">
+    <div class="slbl">Add Policy</div>
+    <div class="frow"><label class="flbl">Policy type</label>
+      <select id="istype" class="w200">
+        <option value="term_life">Term life</option>
+        <option value="whole_life">Whole life</option>
+        <option value="universal_life">Universal / variable life</option>
+        <option value="disability">Disability income</option>
+        <option value="ltc">Long-term care</option>
+        <option value="other">Other</option>
+      </select>
+    </div>
+    <div class="frow"><label class="flbl">Insured</label>
+      <select id="isins" class="w160"><option value="c1">Client 1</option><option value="c2">Client 2</option></select>
+    </div>
+    <div class="frow"><label class="flbl">Benefit amount</label><input type="number" id="isben" placeholder="Death benefit / monthly / daily" step="1000" class="w160"></div>
+    <div class="frow"><label class="flbl">Cash value (if any)</label><input type="number" id="iscash" placeholder="0" step="1000" class="w140"></div>
+    <div class="frow"><label class="flbl">Annual premium</label><input type="number" id="isprem" placeholder="0" step="100" class="w140"></div>
+    <div class="frow"><label class="flbl">Beneficiary (optional)</label><input id="isbenef" placeholder="e.g. Spouse 50% / Children 50%" class="w220"></div>
+    <div class="frow"><label class="flbl">Label (optional)</label><input id="islbl" placeholder="e.g. Zurich term 2040" class="w200"></div>
+    <button id="insAddBtn" class="btn-secondary full" onclick="addInsurance()">+ Add Policy</button>
+    <button id="insCancelBtn" class="btn-secondary full" onclick="cancelEditInsurance()" style="display:none;margin-top:4px;color:var(--text3)">✕ Cancel edit</button>
+  </div>
+  <div class="sdiv" style="display:flex;align-items:center;gap:8px">
+    <input type="checkbox" id="insPremExp" checked onchange="refreshTopMetrics();updateTaxPanel()" style="width:15px;height:15px;accent-color:var(--gold)">
+    <label for="insPremExp" style="font-size:12px;color:var(--text2);cursor:pointer">Include premiums in annual expenses <span style="color:var(--text3)">(untick if already counted in the Expenses tab's "Insurance &amp; health")</span></label>
+  </div>
+</div>
 </div>
 
 <!-- ═══ GOALS ═══ -->
@@ -1966,6 +2028,22 @@ input[type=date]{color-scheme:light}
   </div>
 </div>
 
+<!-- Pension claiming-age comparison -->
+<div class="panel" id="claimAgePanel">
+  <div class="ptitle section-dropdown" onclick="toggleDropdown('claimAgeBody')">
+    Pension / Social Security — Claiming-Age Comparison <span class="dropdown-hint">click to expand</span>
+    <span class="ptitle-line"></span>
+  </div>
+  <div class="dropdown-body" id="claimAgeBody">
+    <div style="font-size:12px;color:var(--text3);margin:10px 0;line-height:1.6">Claiming earlier shrinks the annual benefit; delaying grows it. This compares total benefits received by a given age for each claiming age, using Client 1's configured benefit (<span id="caBase" style="color:var(--text2);font-weight:600">—</span>) as the reference at its start age.</div>
+    <div style="display:flex;gap:18px;flex-wrap:wrap;margin-bottom:12px">
+      <div class="frow" style="margin:0"><label class="flbl">Adjustment per year (±%)</label><input type="number" id="caAdj" value="7" step="0.5" min="0" max="15" class="w120" oninput="renderClaimAge()"></div>
+      <div class="frow" style="margin:0"><label class="flbl">Evaluate to age</label><input type="number" id="caLife" value="90" step="1" min="70" max="105" class="w120" oninput="renderClaimAge()"></div>
+    </div>
+    <div id="claimAgeTable"><div class="empty">Configure a pension above to compare claiming ages.</div></div>
+  </div>
+</div>
+
 <!-- Financial Goals -->
 <div class="panel">
   <div class="ptitle">Financial Goals</div>
@@ -2025,6 +2103,13 @@ input[type=date]{color-scheme:light}
   <div class="two-col">
     <div>
       <div class="frow"><label class="flbl">Projection years</label><input type="number" id="simYrs" value="20" min="5" max="40" step="1" class="w120"></div>
+      <div class="frow"><label class="flbl">Glidepath de-risking</label>
+        <select id="gpOn" class="w200" onchange="runSim()">
+          <option value="no" selected>Off — static allocation</option>
+          <option value="yes">On — de-risk toward retirement</option>
+        </select>
+      </div>
+      <div class="frow"><label class="flbl">De-risk over final (years)</label><input type="number" id="gpYears" value="10" min="1" max="30" step="1" class="w120" onchange="runSim()"></div>
       <div class="frow"><label class="flbl">Simulations</label>
         <select id="simN" class="w160">
           <option value="200">200 — fast</option>
@@ -2101,6 +2186,18 @@ input[type=date]{color-scheme:light}
     <span><span class="swatch sw-pen"></span>State pension starts</span>
     <span><span class="swatch sw-goal"></span>Goal year</span>
     <span style="color:var(--text3)">Deterministic projection at the household's mean return; investment growth assumes reinvested surplus and a 30/70 cash–invest split during accumulation. In retirement, earned income → 0 and expenses swap to the inflation-adjusted retirement spend; state pension / Social Security is credited from the configured start age (with the chosen COLA treatment). <strong>Pension / SS / RMD</strong> column combines all income-equivalent payments including mandatory drawdowns from locked accounts (401k/IRA RMD starts at 73, Canadian RRIF at 71, Australian Super at 60). <strong>Ret. pool</strong> shows the remaining retirement account balance after each year's RMD deduction — it grows at a <strong>fixed 3.5%/yr</strong> (extremely conservative, intentionally decoupled from the household risk profile, the AI Portfolio Builder, and the Investment Proposal so an aggressive investment stance never affects the retirement reserve). <strong>Income tax</strong> is recomputed each year on gross earned income + pension + RMD; <strong>savings target</strong> is funded first each year from net cash flow before remaining surplus is split.</span>
+  </div>
+</div>
+
+<!-- Net worth by component (stacked) -->
+<div class="panel" id="nwCompPanel">
+  <div class="ptitle section-dropdown open" onclick="toggleDropdown('nwCompBody')" style="margin:0">
+    Net Worth by Component <span class="dropdown-hint">click to toggle</span>
+    <span class="ptitle-line"></span>
+  </div>
+  <div class="dropdown-body open" id="nwCompBody">
+    <div style="font-size:12px;color:var(--text3);margin:8px 0 12px">How each part of your wealth — cash, investments, retirement pool, property, insurance cash value — evolves along the deterministic projection. The dashed line is total net worth after liabilities.</div>
+    <div class="chart-wrap" style="height:300px"><canvas id="nwCompChart" role="img" aria-label="Net worth by component stacked chart"></canvas></div>
   </div>
 </div>
 
@@ -2944,6 +3041,32 @@ input[type=date]{color-scheme:light}
   <div style="font-size:11px;color:var(--text3);margin:10px 4px;line-height:1.6">
     <strong>Educational projection only — not financial advice.</strong> Funding ratios and achievable lifestyle figures are hypothetical, derived from capital market assumptions and your inputs. Actual results will differ. Consult a licensed advisor.
   </div>
+
+<!-- Estate transfer summary (lite) -->
+<div class="panel" id="estatePanel">
+  <div class="ptitle section-dropdown" onclick="toggleDropdown('estateBody')">
+    Estate Transfer Summary <span class="dropdown-hint">click to expand</span>
+    <span class="ptitle-line"></span>
+  </div>
+  <div class="dropdown-body" id="estateBody">
+    <div style="font-size:12px;color:var(--text3);margin:10px 0;line-height:1.6">A simplified look at what transfers to your beneficiaries at the end of the projection: median projected net worth plus life-insurance death benefits, less a configurable estate tax. Run the simulation first.</div>
+    <div style="display:flex;gap:18px;flex-wrap:wrap;margin-bottom:12px">
+      <div class="frow" style="margin:0"><label class="flbl">Estate tax exemption</label><input type="number" id="estExemption" value="13610000" step="100000" class="w160" oninput="renderEstate()"></div>
+      <div class="frow" style="margin:0"><label class="flbl">Estate tax rate %</label><input type="number" id="estRate" value="40" step="1" min="0" max="80" class="w120" oninput="renderEstate()"></div>
+    </div>
+    <div class="sdiv">
+      <div class="slbl">Beneficiaries</div>
+      <div id="benList"><div class="empty">No beneficiaries added.</div></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
+        <input id="bname" placeholder="Name" class="w160">
+        <input id="brel" placeholder="Relationship (child, spouse...)" class="w180">
+        <input type="number" id="bshare" placeholder="Share %" min="0" max="100" step="1" class="w120">
+        <button class="btn-secondary" onclick="addBeneficiary()" style="padding:7px 16px">+ Add</button>
+      </div>
+    </div>
+    <div id="estateResult" style="margin-top:14px"></div>
+  </div>
+</div>
 </div>
 
 <!-- ═══ PDF REPORT ═══ -->
@@ -3082,11 +3205,20 @@ input[type=date]{color-scheme:light}
       <div class="frow"><label class="flbl">Income, expenses &amp; tax</label>
         <select id="rptIncInc" class="w180"><option value="yes" selected>Yes</option><option value="no">No</option></select>
       </div>
+      <div class="frow"><label class="flbl">Equity compensation</label>
+        <select id="rptIncEquity" class="w180"><option value="yes" selected>Yes (if grants added)</option><option value="no">No</option></select>
+      </div>
       <div class="frow"><label class="flbl">Assets &amp; liabilities</label>
         <select id="rptIncAssets" class="w180"><option value="yes" selected>Yes</option><option value="no">No</option></select>
       </div>
+      <div class="frow"><label class="flbl">Insurance inventory</label>
+        <select id="rptIncInsurance" class="w180"><option value="yes" selected>Yes (if policies added)</option><option value="no">No</option></select>
+      </div>
       <div class="frow"><label class="flbl">Goals &amp; retirement plan</label>
         <select id="rptIncGoals" class="w180"><option value="yes" selected>Yes</option><option value="no">No</option></select>
+      </div>
+      <div class="frow"><label class="flbl">Plan strategies summary</label>
+        <select id="rptIncStrategies" class="w180"><option value="yes" selected>Yes</option><option value="no">No</option></select>
       </div>
       <div class="frow"><label class="flbl">Portfolio detail</label>
         <select id="rptIncPort" class="w180"><option value="yes" selected>Yes (if holdings added)</option><option value="no">No</option></select>
@@ -3113,6 +3245,9 @@ input[type=date]{color-scheme:light}
       </div>
       <div class="frow"><label class="flbl">Annual potential wealth</label>
         <select id="rptIncPotWealth" class="w180"><option value="yes" selected>Yes (if simulated)</option><option value="no">No</option></select>
+      </div>
+      <div class="frow"><label class="flbl">Estate transfer summary</label>
+        <select id="rptIncEstate" class="w180"><option value="yes" selected>Yes (if beneficiaries/insurance)</option><option value="no">No</option></select>
       </div>
       <div class="frow"><label class="flbl">Capital market assumptions</label>
         <select id="rptIncCMA" class="w180"><option value="yes" selected>Yes</option><option value="no">No</option></select>
@@ -3166,7 +3301,7 @@ input[type=date]{color-scheme:light}
 // ═══════════════════════════════════════════════════════════
 // VERSION — updated by build-standalone.pl on each build
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260611-2040";
+const APP_VERSION = "20260612-1321";
 
 // ═══════════════════════════════════════════════════════════
 // DATA
@@ -5269,6 +5404,9 @@ function _gcLookup(group){
 // ═══════════════════════════════════════════════════════════
 let assets=[]; let assetSeq=0;
 let loans=[]; let loanSeq=0;
+let insurances=[]; let insSeq=0; let _editingInsId=null;
+let equityComp=[]; let eqSeq=0; let _editingEqId=null;
+let beneficiaries=[]; let benSeq=0;
 let goals=[]; let goalSeq=0;
 let _editingGoalId=null;
 let _editingAssetId=null;
@@ -5715,7 +5853,10 @@ function updateIncTotal(){
   updateSavingsPanel();
   refreshTopMetrics();
 }
-function getTotalExpenses(){return num("expL",0)+num("expI",0)+num("expO",0);}
+function getTotalExpenses(){
+  const prem=(typeof insurancePremiumsIncluded==="function"&&insurancePremiumsIncluded()&&typeof insurancePremiumAnnual==="function")?insurancePremiumAnnual():0;
+  return num("expL",0)+num("expI",0)+num("expO",0)+prem;
+}
 function updateExpTotal(){
   setT("exp-total",fmtMoneyFull(getTotalExpenses())+" / yr");
   updateSavingsPanel();
@@ -6290,6 +6431,227 @@ function renderLoans(){
     </div>`;
   }).join("");
 }
+
+// ═══════════════════════════════════════════════════════════
+// INSURANCE — protection inventory
+// ═══════════════════════════════════════════════════════════
+const INS_TYPE_LABELS={term_life:"Term life",whole_life:"Whole life",universal_life:"Universal / variable life",disability:"Disability",ltc:"Long-term care",other:"Other"};
+const INS_LIFE_TYPES=new Set(["term_life","whole_life","universal_life"]);
+function insuranceCashValue(){return insurances.reduce((s,p)=>s+(+p.cash||0),0);}
+function insurancePremiumAnnual(){return insurances.reduce((s,p)=>s+(+p.prem||0),0);}
+function insuranceDeathBenefit(insured){
+  return insurances.reduce((s,p)=>(INS_LIFE_TYPES.has(p.type)&&(!insured||p.insured===insured))?s+(+p.ben||0):s,0);
+}
+function insurancePremiumsIncluded(){const cb=$("insPremExp");return cb?cb.checked:true;}
+function addInsurance(){
+  const t=val("istype"), ins=val("isins"), ben=num("isben",0), cash=num("iscash",0), prem=num("isprem",0);
+  if(ben<=0&&cash<=0&&prem<=0){alert("Enter at least a benefit amount, cash value, or premium");return;}
+  const lbl=val("islbl")||INS_TYPE_LABELS[t]||t;
+  const benef=val("isbenef")||"";
+  if(_editingInsId){
+    insurances=insurances.map(p=>p.id===_editingInsId?{...p,type:t,label:lbl,insured:ins,ben,cash,prem,benef}:p);
+    _editingInsId=null;
+    $("insAddBtn").textContent="+ Add Policy";
+    show("insCancelBtn",false);
+  } else {
+    insurances.push({id:"p"+(++insSeq),type:t,label:lbl,insured:ins,ben,cash,prem,benef});
+  }
+  ["isben","iscash","isprem","isbenef","islbl"].forEach(id=>{if($(id))$(id).value="";});
+  renderInsurances(); refreshTopMetrics();
+}
+function editInsurance(id){
+  const p=insurances.find(x=>x.id===id); if(!p) return;
+  $("istype").value=p.type; $("isins").value=p.insured||"c1";
+  $("isben").value=p.ben||""; $("iscash").value=p.cash||"";
+  $("isprem").value=p.prem||""; $("isbenef").value=p.benef||""; $("islbl").value=p.label||"";
+  _editingInsId=id;
+  $("insAddBtn").textContent="Save changes";
+  show("insCancelBtn",true);
+}
+function cancelEditInsurance(){
+  _editingInsId=null;
+  ["isben","iscash","isprem","isbenef","islbl"].forEach(id=>{if($(id))$(id).value="";});
+  $("insAddBtn").textContent="+ Add Policy";
+  show("insCancelBtn",false);
+}
+function delInsurance(id){
+  if(_editingInsId===id) cancelEditInsurance();
+  insurances=insurances.filter(p=>p.id!==id); renderInsurances(); refreshTopMetrics();
+}
+function renderInsurances(){
+  const list=$("insList"); if(!list) return;
+  if(insurances.length===0){list.innerHTML='<div class="empty">No policies added.</div>'; return;}
+  list.innerHTML=insurances.map(p=>{
+    const who=p.insured==="c2"?(val("c2f")||"Client 2"):(val("c1f")||"Client 1");
+    const benLbl=INS_LIFE_TYPES.has(p.type)?"Death benefit":(p.type==="disability"?"Monthly benefit":(p.type==="ltc"?"Daily benefit":"Benefit"));
+    return `<div class="loan-item">
+      <div class="item-row">
+        <span class="lbadge">${INS_TYPE_LABELS[p.type]||p.type}</span>
+        <span style="font-weight:500;flex:1">${p.label}</span>
+        <span style="font-variant-numeric:tabular-nums;font-weight:500">${p.ben?fmtMoneyFull(p.ben):"—"}</span>
+        <button class="btn-x" style="font-size:10px;padding:2px 7px;color:var(--text3);border:1px solid var(--border);border-radius:3px" onclick="editInsurance('${p.id}')">✎</button>
+        <button class="btn-x" onclick="delInsurance('${p.id}')">✕</button>
+      </div>
+      <div class="item-meta">
+        <span>Insured: ${who} • ${benLbl}${p.benef?" • → "+p.benef:""}</span>
+        <span>${p.cash?"Cash value: "+fmtMoneyFull(p.cash)+" • ":""}Premium: ${fmtMoneyFull(p.prem||0)}/yr</span>
+      </div>
+    </div>`;
+  }).join("");
+}
+window.addInsurance=addInsurance; window.editInsurance=editInsurance;
+window.cancelEditInsurance=cancelEditInsurance; window.delInsurance=delInsurance;
+
+// ═══════════════════════════════════════════════════════════
+// EQUITY COMPENSATION — options & RSUs with annual vesting
+// ═══════════════════════════════════════════════════════════
+const EQ_KIND_LABELS={rsu:"RSU",nqso:"NQSO option",iso:"ISO option"};
+// Value of tranches vesting in projection year y (0 = this year), nominal.
+function equityVestIncomeYear(y){
+  if(!equityComp||equityComp.length===0) return 0;
+  const cy=currentYear();
+  return equityComp.reduce((s,g)=>{
+    const vy=Math.max(1,+g.vestYears||1);
+    const cal=cy+y;
+    if(cal<(+g.vestStart||cy)||cal>=(+g.vestStart||cy)+vy) return s;
+    const perYear=(+g.shares||0)/vy;
+    const px=(+g.price||0)*Math.pow(1+(+g.growth||0)/100,y);
+    const v=g.kind==="rsu"?perYear*px:perYear*Math.max(0,px-(+g.strike||0));
+    return s+v;
+  },0);
+}
+// Today's in-the-money value of all not-yet-vested tranches (info only — NOT in net worth).
+function equityUnvestedValueNow(){
+  if(!equityComp||equityComp.length===0) return 0;
+  const cy=currentYear();
+  return equityComp.reduce((s,g)=>{
+    const vy=Math.max(1,+g.vestYears||1);
+    const perYear=(+g.shares||0)/vy;
+    let unvested=0;
+    for(let k=0;k<vy;k++){ if(((+g.vestStart||cy)+k)>=cy) unvested+=perYear; }
+    const v=g.kind==="rsu"?unvested*(+g.price||0):unvested*Math.max(0,(+g.price||0)-(+g.strike||0));
+    return s+v;
+  },0);
+}
+function addEquityGrant(){
+  const kind=val("eqkind"), tkr=(val("eqtkr")||"").toUpperCase(), shares=num("eqshares",0);
+  const strike=num("eqstrike",0), price=num("eqprice",0), growth=num("eqgrowth",8);
+  const vestStart=num("eqstart",0)||currentYear()+1, vestYears=Math.max(1,num("eqyears",4));
+  if(shares<=0||price<=0){alert("Enter shares and current price");return;}
+  const lbl=val("eqlbl")||((tkr||"Grant")+" "+EQ_KIND_LABELS[kind]);
+  if(_editingEqId){
+    equityComp=equityComp.map(g=>g.id===_editingEqId?{...g,kind,label:lbl,tkr,shares,strike,price,growth,vestStart,vestYears}:g);
+    _editingEqId=null; $("eqAddBtn").textContent="+ Add Grant"; show("eqCancelBtn",false);
+  } else {
+    equityComp.push({id:"e"+(++eqSeq),kind,label:lbl,tkr,shares,strike,price,growth,vestStart,vestYears});
+  }
+  ["eqtkr","eqshares","eqstrike","eqprice","eqlbl","eqstart"].forEach(id=>{if($(id))$(id).value="";});
+  renderEquityGrants(); refreshTopMetrics();
+}
+function editEquityGrant(id){
+  const g=equityComp.find(x=>x.id===id); if(!g) return;
+  $("eqkind").value=g.kind; $("eqtkr").value=g.tkr||""; $("eqshares").value=g.shares||"";
+  $("eqstrike").value=g.strike||""; $("eqprice").value=g.price||""; $("eqgrowth").value=g.growth??8;
+  $("eqstart").value=g.vestStart||""; $("eqyears").value=g.vestYears||4; $("eqlbl").value=g.label||"";
+  _editingEqId=id; $("eqAddBtn").textContent="Save changes"; show("eqCancelBtn",true);
+}
+function cancelEditEquityGrant(){
+  _editingEqId=null;
+  ["eqtkr","eqshares","eqstrike","eqprice","eqlbl","eqstart"].forEach(id=>{if($(id))$(id).value="";});
+  $("eqAddBtn").textContent="+ Add Grant"; show("eqCancelBtn",false);
+}
+function delEquityGrant(id){
+  if(_editingEqId===id) cancelEditEquityGrant();
+  equityComp=equityComp.filter(g=>g.id!==id); renderEquityGrants(); refreshTopMetrics();
+}
+function renderEquityGrants(){
+  const list=$("eqList"); if(!list) return;
+  if(equityComp.length===0){list.innerHTML='<div class="empty">No grants added.</div>'; return;}
+  list.innerHTML=equityComp.map(g=>{
+    const vy=Math.max(1,+g.vestYears||1);
+    const window_=g.vestStart+"–"+((+g.vestStart||0)+vy-1);
+    const itm=g.kind==="rsu"?(+g.shares||0)*(+g.price||0):(+g.shares||0)*Math.max(0,(+g.price||0)-(+g.strike||0));
+    return `<div class="loan-item">
+      <div class="item-row">
+        <span class="lbadge">${EQ_KIND_LABELS[g.kind]||g.kind}</span>
+        <span style="font-weight:500;flex:1">${g.label}${g.tkr?" · "+g.tkr:""}</span>
+        <span style="font-variant-numeric:tabular-nums;font-weight:500">${fmtMoneyFull(itm)}</span>
+        <button class="btn-x" style="font-size:10px;padding:2px 7px;color:var(--text3);border:1px solid var(--border);border-radius:3px" onclick="editEquityGrant('${g.id}')">✎</button>
+        <button class="btn-x" onclick="delEquityGrant('${g.id}')">✕</button>
+      </div>
+      <div class="item-meta">
+        <span>${(+g.shares||0).toLocaleString()} shares • vest ${window_}${g.kind!=="rsu"?" • strike "+fmtMoneyFull(g.strike||0):""}</span>
+        <span>Price ${fmtMoneyFull(g.price||0)} • growth ${(+g.growth||0).toFixed(1)}%/yr</span>
+      </div>
+    </div>`;
+  }).join("");
+}
+window.addEquityGrant=addEquityGrant; window.editEquityGrant=editEquityGrant;
+window.cancelEditEquityGrant=cancelEditEquityGrant; window.delEquityGrant=delEquityGrant;
+
+// ═══════════════════════════════════════════════════════════
+// ESTATE PLANNING (LITE) — beneficiaries + transfer-at-death estimate
+// ═══════════════════════════════════════════════════════════
+function addBeneficiary(){
+  const name=val("bname"), rel=val("brel"), share=num("bshare",0);
+  if(!name){alert("Enter a beneficiary name");return;}
+  beneficiaries.push({id:"b"+(++benSeq),name,rel:rel||"—",share:Math.max(0,share)});
+  ["bname","brel","bshare"].forEach(id=>{if($(id))$(id).value="";});
+  renderBeneficiaries(); renderEstate();
+}
+function delBeneficiary(id){
+  beneficiaries=beneficiaries.filter(b=>b.id!==id); renderBeneficiaries(); renderEstate();
+}
+function renderBeneficiaries(){
+  const list=$("benList"); if(!list) return;
+  if(beneficiaries.length===0){list.innerHTML='<div class="empty">No beneficiaries added.</div>'; return;}
+  list.innerHTML=beneficiaries.map(b=>`<div class="item-row" style="padding:6px 0;border-bottom:1px solid var(--border)">
+    <span style="font-weight:600">${b.name}</span>
+    <span style="color:var(--text3);font-size:12px;flex:1">${b.rel}</span>
+    <span style="font-variant-numeric:tabular-nums;font-weight:600">${(+b.share||0).toFixed(0)}%</span>
+    <button class="btn-x" onclick="delBeneficiary('${b.id}')">✕</button>
+  </div>`).join("");
+}
+// Core numbers used by both the in-app panel and the PDF section.
+function computeEstate(){
+  const medianNW=(lastSimPaths&&lastSimPaths.length)?percentileAt(lastSimPaths,lastSimYrs,50):null;
+  const baseNW=medianNW!=null?medianNW:(function(){
+    const tA=totalAccountValue()+num("aProp",0)+num("aOther",0)+insuranceCashValue();
+    return tA-loans.reduce((s,l)=>s+l.bal,0);
+  })();
+  const death=insuranceDeathBenefit();
+  const gross=Math.max(0,baseNW)+death;
+  const exemption=num("estExemption",13610000), rate=num("estRate",40)/100;
+  const taxable=Math.max(0,gross-exemption);
+  const tax=taxable*rate;
+  const net=gross-tax;
+  const totalShare=beneficiaries.reduce((s,b)=>s+(+b.share||0),0);
+  return {medianNW,baseNW,death,gross,exemption,rate,taxable,tax,net,totalShare,fromProjection:medianNW!=null};
+}
+function renderEstate(){
+  const host=$("estateResult"); if(!host) return;
+  const e=computeEstate();
+  let h='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:12px">';
+  h+='<div class="mc"><div class="mc-lbl">'+(e.fromProjection?"Median projected estate":"Current net worth")+'</div><div class="mc-val" style="font-size:16px">'+fmtMoney(e.baseNW)+'</div></div>';
+  h+='<div class="mc"><div class="mc-lbl">+ Life insurance</div><div class="mc-val" style="font-size:16px">'+fmtMoney(e.death)+'</div></div>';
+  h+='<div class="mc"><div class="mc-lbl">- Estate tax</div><div class="mc-val" style="font-size:16px;color:'+(e.tax>0?"var(--red)":"var(--green)")+'">'+fmtMoney(e.tax)+'</div></div>';
+  h+='<div class="mc"><div class="mc-lbl">Net to beneficiaries</div><div class="mc-val" style="font-size:16px;color:var(--green)">'+fmtMoney(e.net)+'</div></div>';
+  h+='</div>';
+  if(beneficiaries.length>0){
+    h+='<table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr style="border-bottom:2px solid var(--border);text-align:right"><th style="text-align:left;padding:6px 8px">Beneficiary</th><th style="padding:6px 8px">Share</th><th style="padding:6px 8px">Receives</th></tr></thead><tbody>';
+    beneficiaries.forEach(b=>{
+      h+='<tr style="border-bottom:1px solid var(--border);text-align:right"><td style="text-align:left;padding:6px 8px;font-weight:600">'+b.name+' <span style="color:var(--text3);font-weight:400">('+b.rel+')</span></td><td style="padding:6px 8px">'+(+b.share||0).toFixed(0)+'%</td><td style="padding:6px 8px;font-weight:600">'+fmtMoney(e.net*(+b.share||0)/100)+'</td></tr>';
+    });
+    if(e.totalShare!==100){
+      h+='<tr style="text-align:right"><td style="text-align:left;padding:6px 8px;color:var(--amber);font-weight:600">'+(e.totalShare<100?"Unallocated":"Over-allocated")+'</td><td style="padding:6px 8px;color:var(--amber)">'+(100-e.totalShare).toFixed(0)+'%</td><td style="padding:6px 8px;color:var(--amber)">'+fmtMoney(e.net*(100-e.totalShare)/100)+'</td></tr>';
+    }
+    h+='</tbody></table>';
+  }
+  h+='<div style="font-size:11px;color:var(--text3);margin-top:10px;line-height:1.6">Simplified estimate: '+(e.fromProjection?'uses the median Monte Carlo net worth at the end of the projection':'run the simulation to use the projected estate')+' plus life-insurance death benefits; ignores probate, state/inheritance taxes, trusts, basis step-up, and exemption portability. Default exemption reflects the 2024 US federal level - adjust for your jurisdiction.</div>';
+  host.innerHTML=h;
+}
+window.addBeneficiary=addBeneficiary; window.delBeneficiary=delBeneficiary;
+window.renderEstate=renderEstate; window.computeEstate=computeEstate;
 
 // ═══════════════════════════════════════════════════════════
 // GOALS
@@ -10872,6 +11234,63 @@ function getSimSourceLabel(){
     detail: `μ ${(e.mu*100).toFixed(2)}% · σ ${(e.sig*100).toFixed(2)}%`
   };
 }
+// ═══════════════════════════════════════════════════════════
+// GLIDEPATH — optional linear de-risking over the final N working years.
+// Blends current params toward a conservative floor (never increases risk).
+// ═══════════════════════════════════════════════════════════
+const GP_MU_FLOOR=0.045, GP_SIG_FLOOR=0.06; // arithmetic, decimals
+function glidepathEnabled(){ return val("gpOn")==="yes"; }
+function glidepathFrac(y){
+  if(!glidepathEnabled()) return 0;
+  const a1=ageFromDOB(val("c1d"))||40, retAge=num("retAge",65);
+  const gpY=Math.max(1,num("gpYears",10));
+  const yearsToRet=retAge-(a1+y);
+  if(yearsToRet>=gpY) return 0;
+  if(yearsToRet<=0) return 1;
+  return 1-(yearsToRet/gpY);
+}
+function glidepathAdjust(mu,sig,y){
+  const f=glidepathFrac(y);
+  if(f<=0) return {mu,sig};
+  return {mu:Math.min(mu, mu+(GP_MU_FLOOR-mu)*f), sig:Math.min(sig, sig+(GP_SIG_FLOOR-sig)*f)};
+}
+
+// ═══════════════════════════════════════════════════════════
+// PENSION CLAIMING-AGE COMPARISON
+// ═══════════════════════════════════════════════════════════
+function renderClaimAge(){
+  const host=$("claimAgeTable"); if(!host) return;
+  const base=num("penAnnual",0), fra=num("penStartAge",67);
+  const baseEl=$("caBase"); if(baseEl) baseEl.textContent=base>0?fmtMoneyFull(base)+"/yr from age "+fra:"—";
+  if(base<=0 || (val("penSrc")||"none")==="none"){
+    host.innerHTML='<div class="empty">Configure a pension above to compare claiming ages.</div>'; return;
+  }
+  const adj=num("caAdj",7)/100, life=num("caLife",90);
+  const ages=[]; for(let a=Math.max(58,fra-5); a<=Math.min(75,fra+3); a++) ages.push(a);
+  const rows=ages.map(a=>{
+    const annual=base*Math.pow(1+adj,a-fra);
+    const years=Math.max(0,life-a+1);
+    return {a, annual, total:annual*years};
+  });
+  const best=rows.reduce((m,r)=>r.total>m.total?r:m,rows[0]);
+  const baseRow=rows.find(r=>r.a===fra)||rows[0];
+  let h='<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px">';
+  h+='<thead><tr style="border-bottom:2px solid var(--border);text-align:right"><th style="text-align:left;padding:6px 8px">Claim at age</th><th style="padding:6px 8px">Annual benefit</th><th style="padding:6px 8px">Total by age '+life+'</th><th style="padding:6px 8px">vs your plan</th></tr></thead><tbody>';
+  rows.forEach(r=>{
+    const d=r.total-baseRow.total;
+    const isPlan=r.a===fra, isBest=r.a===best.a;
+    h+='<tr style="border-bottom:1px solid var(--border);text-align:right'+(isBest?";background:rgba(0,135,90,.06)":"")+'">';
+    h+='<td style="text-align:left;padding:6px 8px;font-weight:600">'+r.a+(isPlan?' <span style="font-size:10px;color:var(--gold)">(your plan)</span>':'')+(isBest?' <span style="font-size:10px;color:var(--green)">★ best</span>':'')+'</td>';
+    h+='<td style="padding:6px 8px">'+fmtMoneyFull(r.annual)+'</td>';
+    h+='<td style="padding:6px 8px;font-weight:600">'+fmtMoneyFull(r.total)+'</td>';
+    h+='<td style="padding:6px 8px;color:'+(d>0?"var(--green)":(d<0?"var(--red)":"var(--text3)"))+'">'+(d===0?"—":(d>0?"+":"")+fmtMoneyFull(d))+'</td></tr>';
+  });
+  h+='</tbody></table></div>';
+  h+='<div style="font-size:11px;color:var(--text3);margin-top:10px;line-height:1.6">Nominal totals, before tax and COLA; each year of early claiming reduces the benefit by '+num("caAdj",7).toFixed(1)+'%, each year of delay increases it by the same. Breakeven and the ★ best age shift with longevity — try different "evaluate to" ages.</div>';
+  host.innerHTML=h;
+}
+window.renderClaimAge=renderClaimAge;
+
 function runMC(years,sims,muOverride,sigOverride){
   // Override → proposal-driven (when AI applied) → household effective (default)
   const {mu,sig} = (muOverride!=null)?{mu:muOverride,sig:sigOverride}:getActiveSimulationParams();
@@ -10968,7 +11387,7 @@ function runMC(years,sims,muOverride,sigOverride){
       }
       retPot=Math.max(0, retPot-rmd);
       const totalPen=pen1+pen2+rmd; // drawdown credited as income
-      const earnedInc=retired?0:income;
+      const earnedInc=(retired?0:income)+equityVestIncomeYear(y);
       const curExp=retired?retSpend*Math.pow(1+inf,y):expense;
       // Debt service
       let debtPaid=0;
@@ -11022,7 +11441,8 @@ function runMC(years,sims,muOverride,sigOverride){
         }
       }
       // Random returns
-      const r=(muNet-0.5*sig*sig)+sig*boxMuller();
+      const gp_=glidepathAdjust(muNet,sig,y);
+      const r=(gp_.mu-0.5*gp_.sig*gp_.sig)+gp_.sig*boxMuller();
       inv=inv*Math.exp(r);
       const propR=0.03+0.02*boxMuller();
       prop=prop*(1+propR);
@@ -11155,6 +11575,8 @@ function runSim(){
   // Merrill-style PV funding ratios + achievable lifestyle (reuse GB engine)
   try { renderSimFundingStatus(); } catch(e){ console.warn("renderSimFundingStatus:", e); }
   try { renderSimLifestyle(); } catch(e){ console.warn("renderSimLifestyle:", e); }
+  try { renderClaimAge(); } catch(e){ console.warn("renderClaimAge:", e); }
+  try { renderEstate(); } catch(e){ console.warn("renderEstate:", e); }
 }
 
 // ─── Goal Funding Status in the Simulation tab (PV, priority-weighted) ───
@@ -11422,6 +11844,41 @@ function renderGoalAnalysis(paths,yrs){
 // ═══════════════════════════════════════════════════════════
 // CASH FLOW
 // ═══════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════
+// NET WORTH BY COMPONENT — stacked area over the deterministic projection
+// ═══════════════════════════════════════════════════════════
+let lastCfComponents=null; let nwCompChart=null;
+function renderComponentsChart(){
+  const canvas=$("nwCompChart"); if(!canvas||!lastCfComponents||lastCfComponents.length===0) return;
+  const cy=currentYear();
+  const insCV=(typeof insuranceCashValue==="function")?insuranceCashValue():0;
+  const labels=lastCfComponents.map(d=>cy+d.y);
+  const mk=(label,key,color)=>({label,data:lastCfComponents.map(d=>Math.max(0,d[key]||0)),
+    backgroundColor:color,borderColor:color,borderWidth:1,pointRadius:0,fill:true,stack:"assets",tension:.25});
+  const ds=[
+    mk("Cash","cash","rgba(103,232,249,.55)"),
+    mk("Investments","inv","rgba(0,87,184,.55)"),
+    mk("Retirement pool","retPot","rgba(20,184,166,.55)"),
+    mk("Property & other","prop","rgba(99,102,241,.45)")
+  ];
+  // property dataset should include "other assets"
+  ds[3].data=lastCfComponents.map(d=>Math.max(0,(d.prop||0)+(d.otherAssets||0)));
+  if(insCV>0) ds.push({label:"Insurance cash value",data:lastCfComponents.map(()=>insCV),
+    backgroundColor:"rgba(245,158,11,.40)",borderColor:"rgba(245,158,11,.40)",borderWidth:1,pointRadius:0,fill:true,stack:"assets",tension:0});
+  // net worth line (assets − liabilities + insurance cash value)
+  ds.push({label:"Net worth",type:"line",data:lastCfComponents.map(d=>(d.nw||0)+insCV),
+    borderColor:"#16213e",borderWidth:2,borderDash:[6,4],pointRadius:0,fill:false,tension:.25,stack:"nw"});
+  if(nwCompChart) nwCompChart.destroy();
+  nwCompChart=new Chart(canvas,{type:"line",
+    data:{labels,datasets:ds},
+    options:{responsive:true,maintainAspectRatio:false,interaction:{mode:"index",intersect:false},
+      plugins:{legend:{position:"bottom",labels:{boxWidth:14,font:{size:10}}},
+        tooltip:{callbacks:{label:c=>" "+c.dataset.label+": "+fmtMoney(c.raw)}}},
+      scales:{x:{grid:{display:false},ticks:{maxTicksLimit:12,font:{size:10}}},
+        y:{stacked:true,ticks:{callback:v=>fmtMoney(v)},grid:{color:"rgba(0,0,0,0.06)"}}}}});
+}
+window.renderComponentsChart=renderComponentsChart;
+
 function renderCashFlow(){
   const tbody=$("cfBody"); if(!tbody) return;
   const a1=ageFromDOB(val("c1d"))||35;
@@ -11578,7 +12035,7 @@ function renderCashFlow(){
       const age=a1+y;
       const retired=age>=retAge;
       const phase=retired?"Retired":"Working";
-      const earnedInc=retired?0:ic;
+      const earnedInc=(retired?0:ic)+equityVestIncomeYear(y);
       const pen1=calcPension(penSrc,penAnn,penStart,penCola,age,inf);
       const c2AgeY=c2Age0+y;
       const pen2=showC2?calcPension(penSrc2,penAnn2,penStart2,penCola2,c2AgeY,inf):0;
@@ -11632,8 +12089,11 @@ function renderCashFlow(){
       const effectiveSav=retired?0:sav;
       // Step 1 — beginning-of-period return on prior balance only (conservative convention)
       const invOpen=iv;
-      const invReturn=iv*loopMu;
-      iv=iv*(1+loopMu);
+      const _gpf=glidepathFrac(y);
+      const _geoFloor=GP_MU_FLOOR-0.5*GP_SIG_FLOOR*GP_SIG_FLOOR;
+      const loopMuY=_gpf>0?Math.min(loopMu, loopMu+(_geoFloor-loopMu)*_gpf):loopMu;
+      const invReturn=iv*loopMuY;
+      iv=iv*(1+loopMuY);
       // Step 2 — savings capped at available surplus; goes to cash (liquid savings buffer)
       const actualSav=Math.min(effectiveSav,Math.max(0,surp));
       ca+=actualSav;
@@ -11665,7 +12125,10 @@ function renderCashFlow(){
         surp,effectiveSav,actualSav,surpAfterSav,goalOut,
         invOpen,invReturn,surpToInv,deficitDrain,goalDrain,
         inv:iv,cash:ca,retPot:rp,nw,depleted:dep,
+        prop:pr,otherAssets:other,debtBal:debtTotal,
         caOpen,rpBefore,rpGrowth,retMu,loanPayments,goalsFired});
+      if(y===0) lastCfComponents=[];
+      lastCfComponents.push({y,age,cash:ca,inv:iv,retPot:rp,prop:pr,otherAssets:other,debtBal:debtTotal,nw});
     }
     return data;
   }
@@ -11774,6 +12237,7 @@ function renderCashFlow(){
     </tr>`;
   });
   tbody.innerHTML=html;
+  try{ renderComponentsChart(); }catch(e){ console.warn("components chart:", e); }
 
   const cfPct=(cfMu*100).toFixed(1);
   // Switch return-source label to "AI-recommended portfolio" when the
@@ -12539,7 +13003,7 @@ function buildReportHtml(){
   const ageC1=ageFromDOB(val("c1d"));
   const inc=getGrossIncome(), exp=getTotalExpenses();
   const tax=computeIncomeTax(inc), net=inc-tax;
-  const totAssets=totalAccountValue()+num("aProp",0)+num("aOther",0);
+  const totAssets=totalAccountValue()+num("aProp",0)+num("aOther",0)+insuranceCashValue();
   const debt=loans.reduce((s,l)=>s+l.bal,0);
   const nw=totAssets-debt;
 
@@ -12680,6 +13144,18 @@ function buildReportHtml(){
     }catch(e){ potWealthSection=""; }
   }
 
+  // --- Estate transfer summary section ---
+  let estateSection="";
+  if((val("rptIncEstate")||"yes")!=="no" && (beneficiaries.length>0 || insuranceDeathBenefit()>0)){
+    try{
+      const e=computeEstate();
+      const rowsB=beneficiaries.map(b=>`<tr><td>${b.name}</td><td>${b.rel}</td><td>${(+b.share||0).toFixed(0)}%</td><td>${fmtMoneyFull(e.net*(+b.share||0)/100)}</td></tr>`).join("");
+      estateSection=`<h2>Estate transfer summary</h2>
+      <p>${e.fromProjection?"Median projected estate":"Current net worth"}: ${fmtMoneyFull(e.baseNW)} + life insurance ${fmtMoneyFull(e.death)} − estate tax ${fmtMoneyFull(e.tax)} = <strong>${fmtMoneyFull(e.net)}</strong> to beneficiaries.</p>
+      ${beneficiaries.length?`<table><tr><th>Beneficiary</th><th>Relationship</th><th>Share</th><th>Receives</th></tr>${rowsB}</table>`:""}`;
+    }catch(_){ estateSection=""; }
+  }
+
   // --- Glossary of Terms section ---
   let glossarySection="";
   if((val("rptIncGlossary")||"yes")!=="no"){
@@ -12703,6 +13179,17 @@ function buildReportHtml(){
       <p>Long-term assumptions underpinning all projections. Core inflation ${CMA_INFLATION.toFixed(2)}%. Geometric μ = arithmetic − ½σ². Portfolio σ uses the full correlation matrix.</p>
       <table><tr><th>Asset class</th><th>Your weight</th><th>Arith μ</th><th>σ</th><th>Geo μ</th><th>Income</th></tr>${rows}</table>`;
     }catch(e){ cmaSection=""; }
+  }
+
+  // --- Insurance inventory section ---
+  let insSection="";
+  if((val("rptIncInsurance")||"yes")!=="no" && insurances.length>0){
+    const whoI=p=>p.insured==="c2"?(val("c2f")||"Client 2"):(val("c1f")||"Client 1");
+    insSection=`<h2>Insurance inventory (${insurances.length})</h2>
+    <table><tr><th>Policy</th><th>Type</th><th>Insured</th><th>Benefit</th><th>Cash value</th><th>Premium/yr</th><th>Beneficiary</th></tr>
+    ${insurances.map(p=>`<tr><td>${p.label}</td><td>${INS_TYPE_LABELS[p.type]||p.type}</td><td>${whoI(p)}</td><td>${p.ben?fmtMoneyFull(p.ben):"—"}</td><td>${p.cash?fmtMoneyFull(p.cash):"—"}</td><td>${fmtMoneyFull(p.prem||0)}</td><td>${p.benef||"—"}</td></tr>`).join("")}
+    </table>
+    <p>Total life death benefit: ${fmtMoneyFull(insuranceDeathBenefit())} • Cash value in net worth: ${fmtMoneyFull(insuranceCashValue())} • Annual premiums: ${fmtMoneyFull(insurancePremiumAnnual())}</p>`;
   }
 
   // --- Portfolio section ---
@@ -12762,6 +13249,7 @@ function buildReportHtml(){
   ${goals.map(g=>`<tr><td>${g.name}</td><td>${fmtMoneyFull(g.amt)}/yr (${fmtMoneyFull(g.amt*Math.max(1,g.endYear-g.startYear+1))} total)</td><td>${g.startYear}–${g.endYear}</td><td>${g.cat}</td><td>${g.tier}</td></tr>`).join("")}
   </table>
 
+  ${insSection}
   ${portSection}
   ${simSection}
   ${fundSection}
@@ -12771,6 +13259,7 @@ function buildReportHtml(){
   ${potWealthSection}
   ${cfSection}
   ${cmaSection}
+  ${estateSection}
   ${glossarySection}
 
   <div class="disc">${DISC[discLvl]||DISC.standard}</div>
@@ -13064,7 +13553,7 @@ function gbRenderWealth(){
   (assets||[]).forEach(a => { buckets[gbWealthBucket(a)] += (+a.value||0); });
   // Property + other from the Assets tab summary fields
   const prop = num("aProp",0), other = num("aOther",0);
-  buckets.personal += prop; // primary residence → personal
+  buckets.personal += prop + insuranceCashValue(); // primary residence + policy cash value → personal
   buckets.aspirational += other; // "other" treated as idiosyncratic
   // Portfolio holdings (investments) → market
   (investments||[]).forEach(i => {
@@ -13122,14 +13611,17 @@ function gbRenderCMA(weights, port){
 // ═══════════════════════════════════════════════════════════════════
 // PDF REPORT — custom content + page ordering
 // ═══════════════════════════════════════════════════════════════════
-const RPT_DEFAULT_ORDER = ["exec","about","hh","inc","assets","goals","port","factsheets","sim","fund","goalfunding","lifestyle","wealthframework","potentialwealth","cf","cma","method","glossary","disc"];
+const RPT_DEFAULT_ORDER = ["exec","about","hh","inc","equity","assets","insurance","goals","strategies","port","factsheets","sim","fund","goalfunding","lifestyle","wealthframework","potentialwealth","estate","cf","cma","method","glossary","disc"];
 const RPT_SECTION_LABELS = {
   exec:            "Executive Summary",
   about:           "About the Client (custom)",
   hh:              "Household Profile",
   inc:             "Income, Expenses & Tax",
+  equity:          "Equity Compensation",
   assets:          "Assets & Liabilities",
+  insurance:       "Insurance Inventory",
   goals:           "Goals & Retirement Plan",
+  strategies:      "Plan Strategies",
   port:            "Portfolio Analysis",
   factsheets:      "Investment Fact Sheets",
   sim:             "Monte Carlo Projection",
@@ -13138,6 +13630,7 @@ const RPT_SECTION_LABELS = {
   lifestyle:       "Potentially Achievable Lifestyle",
   wealthframework: "Wealth Allocation Framework",
   potentialwealth: "Annual Potential Wealth",
+  estate:          "Estate Transfer Summary",
   cf:              "Cash-Flow Projection",
   cma:             "Capital Market Assumptions",
   method:          "Methodology & Assumptions",
@@ -13409,7 +13902,7 @@ async function generatePDFReport(){
     const inc       = getGrossIncome();
     const tax       = computeIncomeTax(inc);
     const exp       = getTotalExpenses();
-    const totA      = totalAccountValue()+num("aProp",0)+num("aOther",0);
+    const totA      = totalAccountValue()+num("aProp",0)+num("aOther",0)+insuranceCashValue();
     const debtTot   = loans.reduce((s,l)=>s+l.bal,0);
     const nw        = totA-debtTot;
     const sav       = num("savAnnual",0);
@@ -13503,8 +13996,11 @@ async function generatePDFReport(){
       about:      () => !!customAbout,
       hh:         () => val("rptIncHH") !== "no",
       inc:        () => val("rptIncInc") !== "no",
+      equity:     () => val("rptIncEquity") !== "no" && equityComp.length > 0,
       assets:     () => val("rptIncAssets") !== "no",
+      insurance:  () => val("rptIncInsurance") !== "no" && insurances.length > 0,
       goals:      () => val("rptIncGoals") !== "no",
+      strategies: () => val("rptIncStrategies") !== "no",
       port:       () => val("rptIncPort") !== "no" && investments.length > 0,
       factsheets: () => wantFactsheets && factPositions.length > 0,
       sim:            () => val("rptIncSim") !== "no",
@@ -13513,6 +14009,7 @@ async function generatePDFReport(){
       lifestyle:      () => val("rptIncLifestyle") !== "no",
       wealthframework:() => val("rptIncWealthFw") !== "no",
       potentialwealth:() => val("rptIncPotWealth") !== "no" && lastSimPaths && lastSimPaths.length > 0,
+      estate:         () => val("rptIncEstate") !== "no" && (beneficiaries.length > 0 || insuranceDeathBenefit() > 0),
       cma:            () => val("rptIncCMA") !== "no",
       cf:             () => val("rptIncCF") !== "no",
       method:         () => val("rptIncMethod") !== "no",
@@ -13638,6 +14135,26 @@ async function generatePDFReport(){
         incRows.push(["Annual surplus / deficit",fmt(surplus)+(surplus<0?" ⚠":"")]);
         kv(incRows);
       },
+      // ─── EQUITY COMPENSATION ──
+      equity: () => {
+        if(val("rptIncEquity") === "no" || equityComp.length === 0) return;
+        checkY(30);
+        sectionH2("Equity Compensation");
+        tbl(["Grant","Type","Shares","Strike","Price","Growth","Vesting"],
+          equityComp.map(g=>[ g.label+(g.tkr?" ("+g.tkr+")":""), EQ_KIND_LABELS[g.kind]||g.kind,
+            (+g.shares||0).toLocaleString(), g.kind==="rsu"?"—":fmt(g.strike||0), fmt(g.price||0),
+            (+g.growth||0).toFixed(1)+"%/yr", g.vestStart+"–"+((+g.vestStart||0)+Math.max(1,+g.vestYears||1)-1)]));
+        // Projected vest proceeds for the next 10 years
+        const cy2=currentYear();
+        const rows=[];
+        for(let yv=0; yv<10; yv++){
+          const v=equityVestIncomeYear(yv);
+          if(v>0) rows.push([String(cy2+yv), fmt(v)]);
+        }
+        if(rows.length) tbl(["Year","Projected vest proceeds (pre-tax)"], rows, {columnStyles:{0:{cellWidth:CW*0.3}}});
+        kv([["Unvested in-the-money value today (not in net worth)", fmt(equityUnvestedValueNow())]]);
+        para("Vesting proceeds are treated as ordinary income in the year each tranche vests — they flow through tax, surplus, and savings in both the cash-flow projection and the Monte Carlo simulation. Option values assume exercise-and-sell at vest.", [120,120,120]);
+      },
       // ─── ASSETS & LIABILITIES ──
       assets: () => {
         if(val("rptIncAssets") === "no") return;
@@ -13656,6 +14173,21 @@ async function generatePDFReport(){
           tbl(["Loan","Balance","Rate","Remaining yrs","Monthly payment"],
             loans.map(l=>[l.label,fmt(l.bal),(l.rate*100).toFixed(2)+"%",l.yrs,fmt(loanMonthly(l))]));
         } else { para("No loans entered."); }
+      },
+      // ─── INSURANCE INVENTORY ──
+      insurance: () => {
+        if(val("rptIncInsurance") === "no" || insurances.length === 0) return;
+        checkY(30);
+        sectionH2("Insurance Inventory");
+        const who = p => p.insured==="c2" ? ((val("c2f")||"Client 2")) : ((val("c1f")||"Client 1"));
+        tbl(["Policy","Type","Insured","Benefit","Cash value","Premium / yr","Beneficiary"],
+          insurances.map(p=>[p.label, INS_TYPE_LABELS[p.type]||p.type, who(p),
+            p.ben?fmt(p.ben):"—", p.cash?fmt(p.cash):"—", fmt(p.prem||0), p.benef||"—"]));
+        kv([
+          ["Total life death benefit", fmt(insuranceDeathBenefit())],
+          ["Total policy cash value (in net worth)", fmt(insuranceCashValue())],
+          ["Total annual premiums" + (insurancePremiumsIncluded()?" (included in expenses)":""), fmt(insurancePremiumAnnual())],
+        ]);
       },
       // ─── GOALS & RETIREMENT ──
       goals: () => {
@@ -13683,6 +14215,32 @@ async function generatePDFReport(){
           retRows.push(["Client 2 annual pension",fmt(num("penAnnual2",0))+" / yr"]);
         }
         checkY(30); sectionH2("Retirement Parameters"); kv(retRows);
+      },
+      // ─── PLAN STRATEGIES (narrative summary of the current plan) ──
+      strategies: () => {
+        if(val("rptIncStrategies") === "no") return;
+        checkY(40);
+        sectionH2("Plan Strategies");
+        para("A summary of the strategies reflected in this plan, in plain language.");
+        const bullets = [];
+        const cy2 = currentYear();
+        const rAge = num("retAge",65);
+        bullets.push("Lifestyle — " + ((val("c1f")||"Client 1")) + " plans to retire at age " + rAge + " (" + (cy2 + Math.max(0, rAge-(ageFromDOB(val("c1d"))||40))) + "), spending " + fmt(num("retSpend",0)) + " per year in retirement (today's money).");
+        if((val("penSrc")||"none")!=="none" && num("penAnnual",0)>0)
+          bullets.push("Income — claim " + (val("penSrc")||"pension") + " of " + fmt(num("penAnnual",0)) + "/yr from age " + num("penStartAge",67) + ".");
+        if(num("penAnnual2",0)>0 && showC2)
+          bullets.push("Income — Client 2 claims " + (val("penSrc2")||"pension") + " of " + fmt(num("penAnnual2",0)) + "/yr from age " + num("penStartAge2",67) + ".");
+        if(sav>0) bullets.push("Saving — set aside " + fmt(sav) + " per year while working" + (num("raise",0)>0 ? ", with income growing " + num("raise",0).toFixed(1) + "%/yr." : "."));
+        goals.forEach(g => {
+          bullets.push("Goal — fund \"" + (g.name||"goal") + "\" at " + fmt(g.amt) + "/yr from " + g.startYear + " to " + g.endYear + (g.tier ? " (" + g.tier + ")." : "."));
+        });
+        if(typeof glidepathEnabled === "function" && glidepathEnabled())
+          bullets.push("Investing — de-risk the portfolio gradually over the " + num("gpYears",10) + " years before retirement (glidepath).");
+        else
+          bullets.push("Investing — maintain the " + (RISK_PROFILES[val("c1r")]?.label || "selected") + " allocation; the retirement pool stays conservative at a fixed 3.5%/yr.");
+        if(typeof insurances !== "undefined" && insurances.length > 0)
+          bullets.push("Protection — " + insurances.length + " polic" + (insurances.length>1?"ies":"y") + " in force with " + fmt(insuranceDeathBenefit()) + " total life cover; premiums " + fmt(insurancePremiumAnnual()) + "/yr.");
+        bullets.forEach(b => para("•  " + b, [50,50,50]));
       },
       // ─── PORTFOLIO ──
       port: () => {
@@ -13891,7 +14449,7 @@ async function generatePDFReport(){
         para("Your assets are classified into three risk buckets following the Merrill framework: Personal (preserve lifestyle and safety), Market (balance risk and return) and Aspirational (idiosyncratic upside such as concentrated stock, a business, investment property or crypto).");
         const buckets = {personal:0, market:0, aspirational:0};
         (assets||[]).forEach(a=>{ buckets[gbWealthBucket(a)] += (+a.value||0); });
-        buckets.personal     += num("aProp",0);
+        buckets.personal     += num("aProp",0) + insuranceCashValue();
         buckets.aspirational += num("aOther",0);
         (investments||[]).forEach(i=>{
           const b = gbWealthBucket({cls:(typeof effClass==="function"?effClass(i):i.cls), type:i.type, label:i.name});
@@ -13940,6 +14498,32 @@ async function generatePDFReport(){
           ]);
         }
         tbl(["Year","Age","Conservative (80%)","Expected (50%)","Optimistic (30%)"], rows);
+      },
+      // ─── ESTATE TRANSFER SUMMARY (lite) ──
+      estate: () => {
+        if(val("rptIncEstate") === "no" || (beneficiaries.length === 0 && insuranceDeathBenefit() <= 0)) return;
+        checkY(40);
+        sectionH2("Estate Transfer Summary");
+        const e = computeEstate();
+        para(e.fromProjection
+          ? "A simplified estimate of what transfers at the end of the projection, using the median Monte Carlo net worth plus life-insurance death benefits."
+          : "A simplified estimate based on current net worth plus life-insurance death benefits (run the simulation for a projected figure).");
+        kv([
+          [e.fromProjection?"Median projected estate":"Current net worth", fmt(e.baseNW)],
+          ["Life insurance death benefits", fmt(e.death)],
+          ["Gross estate", fmt(e.gross)],
+          ["Estate tax exemption", fmt(e.exemption)],
+          ["Estate tax ("+(e.rate*100).toFixed(0)+"% above exemption)", fmt(e.tax)],
+          ["Net to beneficiaries", fmt(e.net)],
+        ]);
+        if(beneficiaries.length > 0){
+          checkY(30);
+          tbl(["Beneficiary","Relationship","Share","Receives"],
+            beneficiaries.map(b=>[b.name, b.rel, (+b.share||0).toFixed(0)+"%", fmt(e.net*(+b.share||0)/100)]));
+          if(e.totalShare !== 100)
+            para((e.totalShare<100?"Unallocated":"Over-allocated")+" share: "+(100-e.totalShare).toFixed(0)+"% ("+fmt(e.net*(100-e.totalShare)/100)+").", [180,120,40]);
+        }
+        para("This summary ignores probate, state and inheritance taxes, trusts, basis step-up, and exemption portability. Consult an estate-planning professional.", [120,120,120]);
       },
       // ─── CASH FLOW ──
       cf: () => {
@@ -14084,7 +14668,7 @@ function renderRetirementNumber(){
     const pfT=portfolioInvestmentSeed();
     pfAdj=Math.max(0,pfT-liq);
   }
-  const totA=acctVal+pfAdj+num("aProp",0)+num("aOther",0);
+  const totA=acctVal+pfAdj+num("aProp",0)+num("aOther",0)+insuranceCashValue();
   const debt=loans.reduce((s,l)=>s+l.bal,0);
   const nw=totA-debt;
   const gap=nw-r.pvToday;
@@ -14371,7 +14955,7 @@ function refreshTopMetrics(){
     pfAdj=Math.max(0,pfTotal-liquidAcc);
   }
   // Mode A: pfAdj=0 — all value already in acctVal
-  const totA=acctVal+pfAdj+num("aProp",0)+num("aOther",0);
+  const totA=acctVal+pfAdj+num("aProp",0)+num("aOther",0)+insuranceCashValue();
   const debt=loans.reduce((s,l)=>s+l.bal,0);
   const netW=totA-debt;
   const annualSurplus=getNetSurplus();
@@ -14403,7 +14987,7 @@ function saveProfile(){
     "expL","expI","expO","inf","region","aProp","aOther","retM","retV",
     "retAge","retSpend","retLife","retLoc","penSrc","penAnnual","penStartAge","penCola","penSrc2","penAnnual2","penStartAge2","penCola2",
     "pfFeeType","pfAdvisoryFee","prFeeType","prAdvisoryFee",
-    "simYrs","simN","tgtEquity","rebalFreq",
+    "simYrs","simN","tgtEquity","rebalFreq","gpOn","gpYears","estExemption","estRate",
     "taxMode","taxFlat","cgtRate","cgtTurnover","taxApply","taxState","blow","bmid","bhigh"];
   const fields={};
   FLD.forEach(id=>{if($(id)) fields[id]=$(id).value;});
@@ -14411,8 +14995,8 @@ function saveProfile(){
     v:"1.1",savedAt:new Date().toISOString(),
     fields,
     c2visible:$("c2card").style.display!=="none",
-    assets,loans,goals,children,investments,proposals,
-    assetSeq,loanSeq,goalSeq,childSeq,invSeq,propSeq,pfLinkedAccountId
+    assets,loans,goals,children,investments,proposals,insurances,equityComp,beneficiaries,
+    assetSeq,loanSeq,goalSeq,childSeq,invSeq,propSeq,insSeq,eqSeq,benSeq,pfLinkedAccountId
   };
   const blob=new Blob([JSON.stringify(profile,null,2)],{type:"application/json"});
   const url=URL.createObjectURL(blob);
@@ -14444,18 +15028,21 @@ function restoreProfile(p){
     "expL","expI","expO","inf","region","aProp","aOther","retM","retV",
     "retAge","retSpend","retLife","retLoc","penSrc","penAnnual","penStartAge","penCola","penSrc2","penAnnual2","penStartAge2","penCola2",
     "pfFeeType","pfAdvisoryFee","prFeeType","prAdvisoryFee",
-    "simYrs","simN","tgtEquity","rebalFreq",
+    "simYrs","simN","tgtEquity","rebalFreq","gpOn","gpYears","estExemption","estRate",
     "taxMode","taxFlat","cgtRate","cgtTurnover","taxApply","taxState","blow","bmid","bhigh"];
   FLD.forEach(id=>{if(f[id]!=null && $(id)) $(id).value=f[id];});
   assets=p.assets||[]; assetSeq=p.assetSeq||assets.length;
   loans=p.loans||[]; loanSeq=p.loanSeq||loans.length;
+  insurances=p.insurances||[]; insSeq=p.insSeq||insurances.length;
+  equityComp=p.equityComp||[]; eqSeq=p.eqSeq||equityComp.length;
+  beneficiaries=p.beneficiaries||[]; benSeq=p.benSeq||beneficiaries.length;
   goals=p.goals||[]; goalSeq=p.goalSeq||goals.length;
   children=p.children||[]; childSeq=p.childSeq||children.length;
   investments=p.investments||[]; invSeq=p.invSeq||investments.length;
   proposals=p.proposals||[]; propSeq=p.propSeq||proposals.length;
   pfLinkedAccountId=p.pfLinkedAccountId||"";
   if(p.c2visible) showC2(); else hideC2();
-  renderAssets(); renderLoans(); renderGoals(); renderChildren();
+  renderAssets(); renderLoans(); renderInsurances(); renderEquityGrants(); renderBeneficiaries(); renderGoals(); renderChildren();
   renderInvestments(); renderProposals();
   refreshAssetTypes(); onRegion(); syncAssetCountry();
   // Re-apply state selections after dropdowns are populated
@@ -14488,15 +15075,15 @@ function _buildShareProfile(){
     "expL","expI","expO","inf","region","aProp","aOther","retM","retV",
     "retAge","retSpend","retLife","retLoc","penSrc","penAnnual","penStartAge","penCola","penSrc2","penAnnual2","penStartAge2","penCola2",
     "pfFeeType","pfAdvisoryFee","prFeeType","prAdvisoryFee",
-    "simYrs","simN","tgtEquity","rebalFreq",
+    "simYrs","simN","tgtEquity","rebalFreq","gpOn","gpYears","estExemption","estRate",
     "taxMode","taxFlat","cgtRate","cgtTurnover","taxApply","taxState","blow","bmid","bhigh"];
   const fields={}; FLD.forEach(id=>{if($(id)) fields[id]=$(id).value;});
   return {
     v:"1.1", savedAt:new Date().toISOString(),
     fields,
     c2visible: $("c2card") && $("c2card").style.display!=="none",
-    assets, loans, goals, children, investments, proposals,
-    assetSeq, loanSeq, goalSeq, childSeq, invSeq, propSeq, pfLinkedAccountId
+    assets, loans, goals, children, investments, proposals, insurances, equityComp, beneficiaries,
+    assetSeq, loanSeq, goalSeq, childSeq, invSeq, propSeq, insSeq, eqSeq, benSeq, pfLinkedAccountId
   };
 }
 function _b64uEncode(bytes){
@@ -14873,7 +15460,7 @@ document.addEventListener("DOMContentLoaded",function(){
   updateRetLifestyle();
   updateDisplays();
   setBand("standard");
-  renderAssets(); renderLoans(); renderGoals(); renderChildren();
+  renderAssets(); renderLoans(); renderInsurances(); renderEquityGrants(); renderBeneficiaries(); renderGoals(); renderChildren();
   renderInvestments(); renderProposals();
   renderRetirementNumber();
   renderTaxEfficiency();
