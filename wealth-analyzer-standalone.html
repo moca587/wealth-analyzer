@@ -3342,7 +3342,7 @@ input[type=date]{color-scheme:light}
 // ═══════════════════════════════════════════════════════════
 // VERSION — updated by build-standalone.pl on each build
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260613-1401";
+const APP_VERSION = "20260613-1411";
 
 // ═══════════════════════════════════════════════════════════
 // DATA
@@ -15434,6 +15434,18 @@ document.addEventListener("DOMContentLoaded",function(){
 
   // ── Live update poller: polls every 15s + on focus, AUTO-RELOADS on new version.
   // 5-second countdown banner gives the user a chance to cancel if they're mid-edit.
+  // Cache-busting reload: GitHub Pages (and browsers) may re-serve the cached
+  // HTML on a plain location.reload(), so the user would reload the SAME old
+  // version. Navigating with a fresh ?v= query param forces a clean fetch.
+  // The #share= hash (if any) is preserved so shared sessions survive reload.
+  window.waReloadFresh = function(ver){
+    try{
+      const u = new URL(location.href);
+      u.searchParams.set("v", ver || String(Date.now()));
+      location.replace(u.toString());
+    }catch(_){ location.reload(); }
+  };
+
   (function liveUpdatePoller(){
     const POLL_INTERVAL_MS = 15 * 1000;        // 15s — fast enough to feel live
     const AUTO_RELOAD_DELAY_MS = 5 * 1000;     // 5s countdown before auto-reload
@@ -15468,13 +15480,13 @@ document.addEventListener("DOMContentLoaded",function(){
         s.textContent = "@keyframes waSlideUp{from{transform:translate(-50%,40px);opacity:0}to{transform:translate(-50%,0);opacity:1}}";
         document.head.appendChild(s);
       }
-      document.getElementById("wa-reload-now").onclick = () => location.reload();
+      document.getElementById("wa-reload-now").onclick = () => waReloadFresh(newVer);
       document.getElementById("wa-cancel-reload").onclick = () => {
         cancelled = true;
         b.innerHTML =
           '<span style="font-size:16px">⏸</span>' +
           '<span><strong>Update v' + newVer + ' available</strong> <span style="opacity:.85;font-weight:400;margin-left:6px">— paused (you have unsaved work?)</span></span>' +
-          '<button onclick="location.reload()" style="background:rgba(255,255,255,.95);border:none;color:#0057b8;padding:6px 16px;border-radius:50px;cursor:pointer;font-weight:700;font-size:12px;font-family:inherit">Reload when ready</button>' +
+          '<button onclick="waReloadFresh(\'' + newVer + '\')" style="background:rgba(255,255,255,.95);border:none;color:#0057b8;padding:6px 16px;border-radius:50px;cursor:pointer;font-weight:700;font-size:12px;font-family:inherit">Reload when ready</button>' +
           '<button onclick="this.parentElement.remove()" style="background:transparent;border:none;color:#fff;padding:4px 8px;cursor:pointer;font-size:14px;opacity:.7;font-family:inherit">✕</button>';
       };
       // Countdown
@@ -15485,7 +15497,7 @@ document.addEventListener("DOMContentLoaded",function(){
         if(cd) cd.textContent = secondsLeft;
         if(secondsLeft <= 0){
           clearInterval(interval);
-          if(!cancelled) location.reload();
+          if(!cancelled) waReloadFresh(newVer);
         }
       }, 1000);
     }
