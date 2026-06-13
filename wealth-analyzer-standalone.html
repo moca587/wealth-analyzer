@@ -939,7 +939,7 @@ input[type=date]{color-scheme:light}
 .cf-tip-cell{cursor:help}
 .cf-tip-cell:hover{color:var(--gold)!important;text-decoration:underline dotted rgba(30,64,175,.4)}
 /* Reusable inline info icon + hover tooltip */
-.info-ic{display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;border-radius:50%;background:var(--bg3);border:1px solid var(--border);color:var(--text3);font-size:9px;font-weight:700;cursor:help;margin-left:5px;position:relative;vertical-align:middle;font-family:var(--fb)}
+.info-ic{display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;border-radius:50%;background:var(--bg3);border:1px solid var(--border);color:var(--text3);font-size:9px;font-weight:700;cursor:help;margin-left:5px;position:relative;vertical-align:middle;font-family:var(--fb);text-transform:none;letter-spacing:0}
 .info-ic:hover{background:var(--gold);color:#fff;border-color:var(--gold)}
 .info-ic .info-pop{visibility:hidden;opacity:0;position:absolute;bottom:140%;left:50%;transform:translateX(-50%);width:260px;background:var(--bg2);border:1px solid var(--border2);border-radius:8px;padding:10px 13px;font-size:11px;font-weight:400;color:var(--text2);line-height:1.65;box-shadow:0 8px 28px rgba(0,0,0,.45);z-index:9999;transition:opacity .15s;text-align:left;pointer-events:none}
 .info-ic:hover .info-pop{visibility:visible;opacity:1}
@@ -1295,11 +1295,11 @@ input[type=date]{color-scheme:light}
     <svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 1a7 7 0 100 14A7 7 0 008 1zm3.5 7.5h-3v3h-1v-3h-3v-1h3v-3h1v3h3v1z"/></svg>Goals
   </div>
   <div class="nav-grp-label">Finances</div>
-  <div class="nav-item" data-tab="income" onclick="showTab('income',this)">
-    <svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 1a7 7 0 100 14A7 7 0 008 1zm1 9.5H7v-1h2v1zm0-2.5c0 .28-.22.5-.5.5h-.5V5h1v3z"/></svg>Income
-  </div>
   <div class="nav-item" data-tab="expenses" onclick="showTab('expenses',this)">
     <svg viewBox="0 0 16 16" fill="currentColor"><path d="M14 3H2a1 1 0 00-1 1v8a1 1 0 001 1h12a1 1 0 001-1V4a1 1 0 00-1-1zM2 12V7h12v5H2zm0-6V4h12v2H2z"/></svg>Expenses
+  </div>
+  <div class="nav-item" data-tab="income" onclick="showTab('income',this)">
+    <svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 1a7 7 0 100 14A7 7 0 008 1zm1 9.5H7v-1h2v1zm0-2.5c0 .28-.22.5-.5.5h-.5V5h1v3z"/></svg>Income
   </div>
   <div class="nav-item" data-tab="assets" onclick="showTab('assets',this)">
     <svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 1l6 4v6l-6 4-6-4V5l6-4zm0 2.5L4 6v4l4 2.5L12 10V6L8 3.5z"/></svg>Assets
@@ -2440,14 +2440,14 @@ input[type=date]{color-scheme:light}
 <div class="panel">
   <div class="ptitle">Portfolio Summary</div>
   <div class="pf-summary" id="pfSummary">
-    <div class="pf-mc"><div class="pf-mc-lbl">Total value</div><div class="pf-mc-val" id="pf-total">$0</div></div>
-    <div class="pf-mc"><div class="pf-mc-lbl">Holdings</div><div class="pf-mc-val" id="pf-count">0</div></div>
-    <div class="pf-mc"><div class="pf-mc-lbl">Top holding</div><div class="pf-mc-val" id="pf-top">—</div></div>
-    <div class="pf-mc"><div class="pf-mc-lbl">Concentration (HHI)</div><div class="pf-mc-val" id="pf-hhi">—</div></div>
-    <div class="pf-mc"><div class="pf-mc-lbl">Diversification</div><div class="pf-mc-val" id="pf-grade">—</div></div>
-    <div class="pf-mc"><div class="pf-mc-lbl">Wtd yield</div><div class="pf-mc-val" id="pf-yield">—</div></div>
-    <div class="pf-mc"><div class="pf-mc-lbl">Wtd expense ratio</div><div class="pf-mc-val" id="pf-er">—</div></div>
-    <div class="pf-mc"><div class="pf-mc-lbl">Risk score</div><div class="pf-mc-val" id="pf-risk">—</div><div class="risk-bar"><div id="pf-risk-fill" style="flex:0 0 0%"></div></div></div>
+    <div class="pf-mc"><div class="pf-mc-lbl">Total value<span class="info-ic">i<span class="info-pop"><strong>Total value</strong> — the sum of all holding values in this portfolio. When non-zero, it seeds the Monte Carlo investment pool and its asset-class mix overrides the risk-profile return assumptions.</span></span></div><div class="pf-mc-val" id="pf-total">$0</div></div>
+    <div class="pf-mc"><div class="pf-mc-lbl">Holdings<span class="info-ic">i<span class="info-pop"><strong>Holdings</strong> — the number of distinct positions entered. More positions usually means more diversification, but quality of mix matters more than count.</span></span></div><div class="pf-mc-val" id="pf-count">0</div></div>
+    <div class="pf-mc"><div class="pf-mc-lbl">Top holding<span class="info-ic">i<span class="info-pop"><strong>Top holding</strong> — your single largest position as a share of the portfolio. A high figure signals single-name (idiosyncratic) risk: one holding driving outsized impact.</span></span></div><div class="pf-mc-val" id="pf-top">—</div></div>
+    <div class="pf-mc"><div class="pf-mc-lbl">Concentration (HHI)<span class="info-ic">i<span class="info-pop"><strong>Concentration (HHI)</strong> — the Herfindahl-Hirschman Index: the sum of each holding's squared weight (0-10,000). Higher = more concentrated. Below ~1,500 is diversified; above ~2,500 is concentrated.</span></span></div><div class="pf-mc-val" id="pf-hhi">—</div></div>
+    <div class="pf-mc"><div class="pf-mc-lbl">Diversification<span class="info-ic">i<span class="info-pop"><strong>Diversification grade</strong> — a letter grade (A-F) derived from the HHI concentration. A means well spread across positions; D/F means a few holdings dominate.</span></span></div><div class="pf-mc-val" id="pf-grade">—</div></div>
+    <div class="pf-mc"><div class="pf-mc-lbl">Wtd yield<span class="info-ic">i<span class="info-pop"><strong>Weighted yield</strong> — the value-weighted average income yield (dividends + interest) across holdings. Approximates the annual cash income the portfolio throws off as a % of value.</span></span></div><div class="pf-mc-val" id="pf-yield">—</div></div>
+    <div class="pf-mc"><div class="pf-mc-lbl">Wtd expense ratio<span class="info-ic">i<span class="info-pop"><strong>Weighted expense ratio</strong> — the value-weighted average annual fund fee across holdings. This cost is deducted from gross returns every year, so lower is better.</span></span></div><div class="pf-mc-val" id="pf-er">—</div></div>
+    <div class="pf-mc"><div class="pf-mc-lbl">Risk score<span class="info-ic">i<span class="info-pop"><strong>Risk score</strong> — the portfolio's covariance-based volatility mapped to a 0-10 scale. It accounts for how asset classes correlate, so a diversified mix scores lower than the average of its parts.</span></span></div><div class="pf-mc-val" id="pf-risk">—</div><div class="risk-bar"><div id="pf-risk-fill" style="flex:0 0 0%"></div></div></div>
   </div>
   <div style="font-size:11px;color:var(--text3);margin-top:8px">When the portfolio has holdings, its total is added to the Monte Carlo investment seed and the asset-class mix overrides the risk-profile return assumptions. Avoid double-counting positions you've already entered as Investment account values on the Assets tab.</div>
 </div>
@@ -3332,7 +3332,7 @@ input[type=date]{color-scheme:light}
 // ═══════════════════════════════════════════════════════════
 // VERSION — updated by build-standalone.pl on each build
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260613-1336";
+const APP_VERSION = "20260613-1345";
 
 // ═══════════════════════════════════════════════════════════
 // DATA
@@ -5476,6 +5476,11 @@ function showTab(name,el){
   document.querySelectorAll(".nav-item").forEach(n=>n.classList.remove("active"));
   const tab=$("tab-"+name); if(tab) tab.classList.add("active");
   if(el) el.classList.add("active");
+  // Expenses → Income are linked: refresh the live totals + savings/surplus
+  // panel whenever either tab is shown, so the Income tab's surplus always
+  // reflects the latest expenses (and vice-versa) regardless of tab order.
+  if(name==="expenses"){ try{ updateExpTotal(); }catch(_){} }
+  if(name==="income"){ try{ updateIncTotal(); updateSavingsPanel(); }catch(_){} }
   if(name==="portfolio"){
     renderInvestments();renderPortfolioMetrics();drawPortfolioPie();
     try { applyMdKeysState(); renderMdKeysGrid(); } catch(_){}
