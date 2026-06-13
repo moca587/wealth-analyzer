@@ -489,6 +489,12 @@ input[type=date]{color-scheme:light}
 .inv-cell:hover{color:var(--gold)!important;text-decoration:underline dotted rgba(201,169,110,.5)}
 .cf-tip-cell{cursor:help}
 .cf-tip-cell:hover{color:var(--gold)!important;text-decoration:underline dotted rgba(30,64,175,.4)}
+/* Reusable inline info icon + hover tooltip */
+.info-ic{display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;border-radius:50%;background:var(--bg3);border:1px solid var(--border);color:var(--text3);font-size:9px;font-weight:700;cursor:help;margin-left:5px;position:relative;vertical-align:middle;font-family:var(--fb)}
+.info-ic:hover{background:var(--gold);color:#fff;border-color:var(--gold)}
+.info-ic .info-pop{visibility:hidden;opacity:0;position:absolute;bottom:140%;left:50%;transform:translateX(-50%);width:260px;background:var(--bg2);border:1px solid var(--border2);border-radius:8px;padding:10px 13px;font-size:11px;font-weight:400;color:var(--text2);line-height:1.65;box-shadow:0 8px 28px rgba(0,0,0,.45);z-index:9999;transition:opacity .15s;text-align:left;pointer-events:none}
+.info-ic:hover .info-pop{visibility:visible;opacity:1}
+.info-ic .info-pop::after{content:"";position:absolute;top:100%;left:50%;transform:translateX(-50%);border:6px solid transparent;border-top-color:var(--border2)}
 #inv-tip-box{position:fixed;z-index:9999;background:var(--bg2);border:1px solid var(--border2);border-radius:8px;padding:12px 15px;font-size:11.5px;font-family:var(--fb);color:var(--text);line-height:1.85;box-shadow:0 8px 28px rgba(0,0,0,.55);pointer-events:none;opacity:0;transition:opacity .12s;min-width:270px;max-width:320px}
 #inv-tip-box.vis{opacity:1}
 /* ── Probability explanation tooltip ── */
@@ -1533,12 +1539,20 @@ input[type=date]{color-scheme:light}
           <div class="frow"><label class="flbl">Start age</label><input type="number" id="penStartAge" class="w120" placeholder="67" value="67" min="50" max="85" oninput="markPenEdited()"></div>
         </div>
         <div>
-          <div class="frow"><label class="flbl">COLA</label>
+          <div class="frow"><label class="flbl">COLA<span class="info-ic">i<span class="info-pop"><strong>Cost-of-Living Adjustment.</strong> How a pension/Social-Security benefit keeps pace with inflation over time. <strong>Full</strong>: rises with inflation each year (preserves purchasing power). <strong>Partial</strong>: rises at 50% of inflation (slowly loses value). <strong>None</strong>: fixed nominal amount — purchasing power erodes every year.</span></span></label>
             <select id="penCola" class="w200">
               <option value="full" selected>Full COLA — adjusts each year</option>
               <option value="partial">Partial — 50% of inflation</option>
               <option value="none">None — fixed nominal</option>
             </select>
+          </div>
+          <button type="button" class="coll-toggle" onclick="toggleColaInfo('colaInfo1',this)">▶ What is COLA &amp; why it matters</button>
+          <div id="colaInfo1" class="coll-body" style="font-size:11px;color:var(--text3);line-height:1.65;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:11px 13px;margin:2px 0 6px">
+            <strong style="color:var(--text2)">Cost-of-Living Adjustment (COLA)</strong> determines whether this income stream grows with inflation.<br><br>
+            • <strong>Full COLA</strong> — the benefit increases by the full inflation rate each year, so its <em>real</em> (purchasing) value stays constant. Typical of US Social Security and most public pensions.<br>
+            • <strong>Partial</strong> — the benefit rises at half the inflation rate; real value slowly declines (common for capped or partially-indexed plans).<br>
+            • <strong>None</strong> — the benefit is fixed in nominal terms. With 3% inflation, its real value roughly halves over ~23 years (typical of many private annuities).<br><br>
+            <em>Why it matters:</em> over a 25–30 year retirement, the COLA choice can change the lifetime value of a pension by tens of percent. Choosing <strong>None</strong> on an income that should be indexed will understate your real spending power later in life.
           </div>
           <div id="penNote" class="rnote" style="font-size:11px;color:var(--text3);margin-top:6px">Auto-populates from Client 1's country (Household tab).</div>
         </div>
@@ -1564,12 +1578,20 @@ input[type=date]{color-scheme:light}
           <div class="frow"><label class="flbl">Start age</label><input type="number" id="penStartAge2" class="w120" placeholder="67" value="67" min="50" max="85" oninput="markPen2Edited()"></div>
         </div>
         <div>
-          <div class="frow"><label class="flbl">COLA</label>
+          <div class="frow"><label class="flbl">COLA<span class="info-ic">i<span class="info-pop"><strong>Cost-of-Living Adjustment.</strong> How a pension/Social-Security benefit keeps pace with inflation over time. <strong>Full</strong>: rises with inflation each year (preserves purchasing power). <strong>Partial</strong>: rises at 50% of inflation (slowly loses value). <strong>None</strong>: fixed nominal amount — purchasing power erodes every year.</span></span></label>
             <select id="penCola2" class="w200">
               <option value="full" selected>Full COLA — adjusts each year</option>
               <option value="partial">Partial — 50% of inflation</option>
               <option value="none">None — fixed nominal</option>
             </select>
+          </div>
+          <button type="button" class="coll-toggle" onclick="toggleColaInfo('colaInfo2',this)">▶ What is COLA &amp; why it matters</button>
+          <div id="colaInfo2" class="coll-body" style="font-size:11px;color:var(--text3);line-height:1.65;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:11px 13px;margin:2px 0 6px">
+            <strong style="color:var(--text2)">Cost-of-Living Adjustment (COLA)</strong> determines whether this income stream grows with inflation.<br><br>
+            • <strong>Full COLA</strong> — the benefit increases by the full inflation rate each year, so its <em>real</em> (purchasing) value stays constant. Typical of US Social Security and most public pensions.<br>
+            • <strong>Partial</strong> — the benefit rises at half the inflation rate; real value slowly declines (common for capped or partially-indexed plans).<br>
+            • <strong>None</strong> — the benefit is fixed in nominal terms. With 3% inflation, its real value roughly halves over ~23 years (typical of many private annuities).<br><br>
+            <em>Why it matters:</em> over a 25–30 year retirement, the COLA choice can change the lifetime value of a pension by tens of percent. Choosing <strong>None</strong> on an income that should be indexed will understate your real spending power later in life.
           </div>
           <div id="penNote2" class="rnote" style="font-size:11px;color:var(--text3);margin-top:6px">Auto-populates from Client 2's country (Household tab).</div>
         </div>
@@ -2861,7 +2883,7 @@ input[type=date]{color-scheme:light}
 // ═══════════════════════════════════════════════════════════
 // VERSION — updated by build-standalone.pl on each build
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260612-1328";
+const APP_VERSION = "20260613-1336";
 
 // ═══════════════════════════════════════════════════════════
 // DATA
@@ -4886,6 +4908,13 @@ function setH(id,h){const e=$(id); if(e) e.innerHTML=h;}
 function show(id,b){const e=$(id); if(e) e.style.display=b?"":"none";}
 
 // Generic toggle for any .section-dropdown click-to-expand pair
+function toggleColaInfo(bodyId, btn){
+  const body = document.getElementById(bodyId);
+  if(!body) return;
+  const open = body.classList.toggle("open");
+  if(btn) btn.textContent = (open ? "▼" : "▶") + " What is COLA & why it matters";
+}
+window.toggleColaInfo = toggleColaInfo;
 function toggleDropdown(bodyId, ev){
   if(ev && ev.preventDefault) ev.preventDefault();
   const body = document.getElementById(bodyId);
