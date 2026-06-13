@@ -2215,9 +2215,10 @@ input[type=date]{color-scheme:light}
           <option value="commodity">Commodity</option>
           <option value="cash">Cash / MM</option>
           <option value="mixed">Mixed</option>
-          <option value="alternative">Alternatives / Hedge funds</option>
+          <option value="hedge_fund">Hedge funds</option>
           <option value="private_equity">Private equity</option>
-          <option value="structured">Structured products</option>
+          <option value="structured">Structured products / notes</option>
+          <option value="alternative">Alternatives (other)</option>
         </select>
       </div>
       <div class="fld"><label>Value ($)</label><input type="number" id="pfVal" placeholder="0" min="0" step="100"></div>
@@ -2396,9 +2397,10 @@ input[type=date]{color-scheme:light}
           <option value="commodity">Commodity</option>
           <option value="cash">Cash / MM</option>
           <option value="mixed">Mixed</option>
-          <option value="alternative">Alternatives / Hedge funds</option>
+          <option value="hedge_fund">Hedge funds</option>
           <option value="private_equity">Private equity</option>
-          <option value="structured">Structured products</option>
+          <option value="structured">Structured products / notes</option>
+          <option value="alternative">Alternatives (other)</option>
         </select>
       </div>
       <div class="fld"><label>Weight %</label><input type="number" id="prAlloc" placeholder="0" min="0" max="100" step="0.1"></div>
@@ -2976,7 +2978,7 @@ input[type=date]{color-scheme:light}
 // ═══════════════════════════════════════════════════════════
 // VERSION — updated by build-standalone.pl on each build
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260613-1503";
+const APP_VERSION = "20260613-1649";
 
 // ═══════════════════════════════════════════════════════════
 // DATA
@@ -4359,7 +4361,7 @@ const TICKER_DB={
 };
 
 const INV_TYPE_LABELS={mutual_fund:"Mutual fund",etf:"ETF",stock:"Stock",bond:"Bond",structured:"Structured product",alternative:"Alternative",hedge_fund:"Hedge fund",private_equity:"Private equity",precious:"Precious metals",sma:"SMA",futures:"Futures",cash:"Cash",other:"Other"};
-const INV_CLASS_LABELS={equity:"Equity",fixed_income:"Fixed income",real_estate:"Real estate",commodity:"Commodity",cash:"Cash / MM",mixed:"Mixed",alternative:"Alternatives / Hedge funds",private_equity:"Private equity",structured:"Structured products",crypto:"Crypto",other:"Other"};
+const INV_CLASS_LABELS={equity:"Equity",fixed_income:"Fixed income",real_estate:"Real estate",commodity:"Commodity",cash:"Cash / MM",mixed:"Mixed",alternative:"Alternatives",hedge_fund:"Hedge funds",private_equity:"Private equity",structured:"Structured products",crypto:"Crypto",other:"Other"};
 const INV_REGION_LABELS={us:"US",dev_intl:"Dev Intl",emerging:"EM",global:"Global",other:"Other"};
 const PROP_VEHICLE_LABELS={mutual_fund:"Mutual fund",etf:"ETF",stock:"Stock",bond:"Bond",alternative:"Alternative",structured:"Structured product",hedge_fund:"Hedge fund",private_equity:"Private equity fund",precious:"Precious metals",sma:"SMA",futures:"Futures"};
 
@@ -4379,6 +4381,7 @@ const CLASS_COLORS={
   mixed:        "#1e3a8a",   // deep navy
   alternative:  "#8b5cf6",   // violet (cool side of purple)
   private_equity:"#312e81",  // deep indigo
+  hedge_fund:   "#0e7490",   // teal-cyan
   structured:   "#38bdf8",   // light sky blue
   crypto:       "#3b82f6",   // bright blue
   other:        "#94a3b8"    // slate
@@ -10792,7 +10795,8 @@ const CMA = {
   cash:          {label:"Cash",              arith:2.54,  sigma:2.47,  geo:2.51, income:2.24},
   real_estate:   {label:"Real Assets/REITs", arith:4.57,  sigma:10.30, geo:4.06, income:3.38},
   commodity:     {label:"Commodities",       arith:4.57,  sigma:10.30, geo:4.06, income:0},
-  alternative:   {label:"Hedge/Alternatives",arith:7.36,  sigma:8.88,  geo:6.99, income:0},
+  alternative:   {label:"Alternatives (other)",arith:7.00, sigma:10.00, geo:6.50, income:0},
+  hedge_fund:    {label:"Hedge funds",       arith:6.50,  sigma:7.00,  geo:6.26, income:0},
   private_equity:{label:"Private Equity",    arith:11.03, sigma:23.05, geo:8.71, income:0},
   structured:    {label:"Structured products",arith:5.50, sigma:8.00,  geo:5.19, income:3.0},
   mixed:         {label:"Mixed/Balanced",    arith:6.00,  sigma:9.00,  geo:5.60, income:2.0},
@@ -10808,7 +10812,8 @@ const CMA_CORR = {
   alternative:   {equity:0.636, fixed_income:0.038, cash:0.281, real_estate:0.144, commodity:0.144, alternative:1.00, private_equity:0.613, crypto:0.40},
   private_equity:{equity:0.696, fixed_income:0.001, cash:0.060, real_estate:0.079, commodity:0.079, alternative:0.613, private_equity:1.00, crypto:0.45},
   crypto:        {equity:0.50, fixed_income:0.10, cash:0.05, real_estate:0.20, commodity:0.30, alternative:0.40, private_equity:0.45, crypto:1.00},
-  structured:    {equity:0.45, fixed_income:0.50, cash:0.30, real_estate:0.25, commodity:0.20, alternative:0.40, private_equity:0.35, crypto:0.15, structured:1.00}
+  structured:    {equity:0.45, fixed_income:0.50, cash:0.30, real_estate:0.25, commodity:0.20, alternative:0.40, private_equity:0.35, crypto:0.15, structured:1.00},
+  hedge_fund:    {equity:0.55, fixed_income:0.15, cash:0.10, real_estate:0.25, commodity:0.30, alternative:0.55, private_equity:0.50, structured:0.35, crypto:0.30, hedge_fund:1.00}
 };
 function cmaCorr(a, b){
   if(a === b) return 1.0;
@@ -10858,8 +10863,8 @@ function gbReturnAtConfidence(geoMu, sigma, years, confidencePct){
 // via the CMA covariance matrix (diversification-aware) rather than a
 // naive weighted average, which overstated risk.
 // ═══════════════════════════════════════════════════════════════════
-const PORT_DEF_MU  = {equity:8,  fixed_income:4.5, real_estate:6.5, commodity:5.5, cash:0, mixed:6,  alternative:9,  private_equity:11, structured:5.5, crypto:25};
-const PORT_DEF_SIG = {equity:14, fixed_income:5,   real_estate:11,  commodity:16,  cash:0, mixed:9,  alternative:18, private_equity:23, structured:8, crypto:65};
+const PORT_DEF_MU  = {equity:8,  fixed_income:4.5, real_estate:6.5, commodity:5.5, cash:0, mixed:6,  alternative:7,  hedge_fund:6.5, private_equity:11, structured:5.5, crypto:25};
+const PORT_DEF_SIG = {equity:14, fixed_income:5,   real_estate:11,  commodity:16,  cash:0, mixed:9,  alternative:10, hedge_fund:7, private_equity:23, structured:8, crypto:65};
 
 // A position's expected return in percent. Prefers p.exp (set by AI engine
 // to fund.mu, or hand-entered on the Proposal form), then class default,
@@ -12252,6 +12257,7 @@ const CLASS_TRAILING = {
   commodity:     {r1y:5.4,  r3y:4.0,  r5y:6.8,  r10y:0.6},
   cash:          {r1y:5.2,  r3y:3.9,  r5y:2.5,  r10y:1.8},
   alternative:   {r1y:9.0,  r3y:5.0,  r5y:6.0,  r10y:5.0},
+  hedge_fund:    {r1y:8.0,  r3y:5.5,  r5y:6.0,  r10y:5.5},
   private_equity:{r1y:14.0, r3y:9.0,  r5y:15.0, r10y:14.0},
   crypto:        {r1y:80.0, r3y:10.0, r5y:40.0, r10y:65.0},
   structured:    {r1y:6.0,  r3y:4.0,  r5y:5.0,  r10y:5.0},
