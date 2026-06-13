@@ -1675,6 +1675,16 @@ input[type=date]{color-scheme:light}
     <div style="font-size:18px;font-weight:500;color:var(--gold)" id="exp-total">—</div>
     <div style="font-size:11px;color:var(--text3);margin-top:4px">Updates as you type. Sum of all three categories above — covers the entire family.</div>
   </div>
+  <!-- Live Income → Expenses → Surplus connection (mirrors the Income tab) -->
+  <div id="exp-surplus-row" style="margin-top:8px;padding:10px 12px;background:var(--bg2);border-radius:var(--rs);border:1px solid var(--border)">
+    <div style="font-size:11px;color:var(--text3);margin-bottom:6px">How these expenses connect to your income <span class="info-ic">i<span class="info-pop">Your expenses are subtracted from income (less tax &amp; debt) to compute annual <strong>surplus</strong> — the money available to save and invest. This same figure drives the savings panel on the Income tab and the cash-flow projection.</span></span></div>
+    <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text2);padding:2px 0"><span>Gross income / yr</span><span id="exp-link-inc" style="font-variant-numeric:tabular-nums">—</span></div>
+    <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text2);padding:2px 0"><span>− Income tax</span><span id="exp-link-tax" style="font-variant-numeric:tabular-nums">—</span></div>
+    <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text2);padding:2px 0"><span>− Total expenses</span><span id="exp-link-exp" style="font-variant-numeric:tabular-nums">—</span></div>
+    <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text2);padding:2px 0"><span>− Debt service</span><span id="exp-link-debt" style="font-variant-numeric:tabular-nums">—</span></div>
+    <div style="display:flex;justify-content:space-between;font-size:14px;font-weight:600;padding:6px 0 0;margin-top:4px;border-top:1px solid var(--border)"><span>= Annual surplus</span><span id="exp-link-surplus" style="font-variant-numeric:tabular-nums;color:var(--green)">—</span></div>
+    <div style="font-size:11px;color:var(--text3);margin-top:6px" id="exp-link-note">This surplus feeds the savings panel on the <strong>Income</strong> tab and the simulation.</div>
+  </div>
   <div class="sdiv">
     <div class="slbl">Inflation</div>
     <div class="frow"><label class="flbl">Region</label><select id="region" class="w200" onchange="onRegion()"></select></div>
@@ -3332,7 +3342,7 @@ input[type=date]{color-scheme:light}
 // ═══════════════════════════════════════════════════════════
 // VERSION — updated by build-standalone.pl on each build
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260613-1345";
+const APP_VERSION = "20260613-1401";
 
 // ═══════════════════════════════════════════════════════════
 // DATA
@@ -5898,6 +5908,7 @@ function updateIncTotal(){
   setT("inc-total",fmtMoneyFull(tot)+" / yr");
   updateTaxPanel();
   updateSavingsPanel();
+  if(typeof updateExpSurplusLink==="function") updateExpSurplusLink();
   refreshTopMetrics();
 }
 function getTotalExpenses(){
@@ -5906,9 +5917,36 @@ function getTotalExpenses(){
 }
 function updateExpTotal(){
   setT("exp-total",fmtMoneyFull(getTotalExpenses())+" / yr");
+  updateExpSurplusLink();
   updateSavingsPanel();
   refreshTopMetrics();
 }
+// Live Income → Expenses → Surplus breakdown shown on the Expenses tab,
+// mirroring getNetSurplus() so the two tabs are visibly connected.
+function updateExpSurplusLink(){
+  if(!$("exp-link-surplus")) return;
+  const inc=getGrossIncome();
+  const tax=getApplyTax()?computeIncomeTax(inc):0;
+  const exp=getTotalExpenses();
+  const debt=sumDebtServiceAnnual();
+  const surp=inc-tax-exp-debt;
+  setT("exp-link-inc",fmtMoneyFull(inc));
+  setT("exp-link-tax",tax>0?"−"+fmtMoneyFull(tax):fmtMoneyFull(0));
+  setT("exp-link-exp","−"+fmtMoneyFull(exp));
+  setT("exp-link-debt",debt>0?"−"+fmtMoneyFull(debt):fmtMoneyFull(0));
+  const sEl=$("exp-link-surplus");
+  if(sEl){
+    sEl.textContent=(surp<0?"−":"")+fmtMoneyFull(Math.abs(surp))+" / yr";
+    sEl.style.color=surp>=0?"var(--green)":"var(--red)";
+  }
+  const note=$("exp-link-note");
+  if(note){
+    note.innerHTML = surp<0
+      ? "⚠ Expenses exceed income — this deficit draws down cash/investments in the simulation. Feeds the <strong>Income</strong> tab savings panel."
+      : "This surplus feeds the savings panel on the <strong>Income</strong> tab and the simulation.";
+  }
+}
+window.updateExpSurplusLink=updateExpSurplusLink;
 function getNetSurplus(){
   const inc=getGrossIncome();
   const tax=getApplyTax()?computeIncomeTax(inc):0;
