@@ -30,7 +30,7 @@ html,body{height:100%;max-width:100vw;overflow-x:hidden}
 body{font-family:var(--fb);background:var(--bg);color:var(--text);font-size:14px;line-height:1.6;overflow-x:hidden;font-weight:400;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;letter-spacing:-.005em}
 
 /* ── Layout ── */
-.app-shell{display:flex;flex-direction:column;height:100vh;max-width:100vw;overflow-x:hidden}
+.app-shell{display:flex;flex-direction:column;height:100vh}
 .topbar{background:#ffffff;border-bottom:1px solid rgba(0,87,184,0.09);padding:0 28px;height:64px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;position:sticky;top:0;z-index:200;box-shadow:0 2px 12px rgba(0,0,0,.05)}
 .logo{font-family:var(--fb);font-size:18px;font-weight:800;color:var(--gold);letter-spacing:-.04em}
 .logo small{font-family:var(--fb);font-size:11px;color:var(--text3);font-style:normal;margin-left:10px;font-weight:400;letter-spacing:.02em}
@@ -1267,9 +1267,8 @@ input[type=date]{color-scheme:light}
   </div>
 
 </div>
-</div>
 
-<!-- ─── Equity compensation ─── -->
+<!-- ─── Equity compensation (part of the Income tab) ─── -->
 <div class="panel" id="equityPanel">
   <div class="ptitle">Equity Compensation — Options &amp; RSUs</div>
   <div style="font-size:12px;color:var(--text3);margin-bottom:12px;line-height:1.5">Track stock options and restricted stock units. Tranches vest in equal annual amounts; <strong style="color:var(--text2)">vesting proceeds flow into income</strong> (and are taxed) in both the cash-flow projection and the Monte Carlo simulation.</div>
@@ -2977,7 +2976,7 @@ input[type=date]{color-scheme:light}
 // ═══════════════════════════════════════════════════════════
 // VERSION — updated by build-standalone.pl on each build
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260613-1451";
+const APP_VERSION = "20260613-1503";
 
 // ═══════════════════════════════════════════════════════════
 // DATA
