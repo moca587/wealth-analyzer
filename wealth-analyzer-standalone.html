@@ -3317,6 +3317,19 @@ input[type=date]{color-scheme:light}
   </div>
 </div>
 
+<!-- ── Glossary of Terms (in-app reference) ──────────────────── -->
+<div class="panel" id="glossaryPanel">
+  <div class="ptitle section-dropdown" onclick="toggleDropdown('glossaryBody')">
+    📖 Glossary of Terms <span class="dropdown-hint">click to expand</span>
+    <span class="ptitle-line"></span>
+  </div>
+  <div class="dropdown-body" id="glossaryBody">
+    <div style="font-size:12px;color:var(--text3);margin:10px 0 14px;line-height:1.6">Plain-language definitions of every term used across the app and the PDF report. The same glossary is included in your generated reports.</div>
+    <input type="text" id="glossarySearch" placeholder="🔍 Filter terms…" oninput="renderGlossaryViewer()" style="width:100%;max-width:300px;font-size:13px;padding:8px 12px;border:1px solid var(--border);border-radius:var(--rs);background:var(--bg3);color:var(--text);margin-bottom:14px">
+    <div id="glossaryViewer" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px 24px"></div>
+  </div>
+</div>
+
 <!-- ── Section Toggles ───────────────────────────────────────── -->
 <div class="panel">
   <div class="ptitle">Sections to Include</div>
@@ -3427,7 +3440,7 @@ input[type=date]{color-scheme:light}
 // ═══════════════════════════════════════════════════════════
 // VERSION — updated by build-standalone.pl on each build
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260614-2258";
+const APP_VERSION = "20260614-2320";
 
 // ═══════════════════════════════════════════════════════════
 // DATA
@@ -13848,6 +13861,22 @@ const RPT_GLOSSARY = [
   ["Yield", "Annual income (dividends or interest) produced by an investment, expressed as a percentage of its price."]
 ];
 
+// In-app glossary viewer (Report tab) — same definitions as the PDF glossary.
+function renderGlossaryViewer(){
+  const host = document.getElementById("glossaryViewer");
+  if(!host) return;
+  const q = (document.getElementById("glossarySearch")||{}).value || "";
+  const ql = q.trim().toLowerCase();
+  const items = RPT_GLOSSARY.filter(g => !ql || g[0].toLowerCase().includes(ql) || g[1].toLowerCase().includes(ql));
+  if(items.length === 0){ host.innerHTML = '<div style="color:var(--text3);font-size:12px;padding:12px 0">No terms match "'+escapeForHTML(q)+'".</div>'; return; }
+  host.innerHTML = items.map(g => `
+    <div style="break-inside:avoid">
+      <div style="font-size:13px;font-weight:700;color:var(--gold);margin-bottom:3px">${escapeForHTML(g[0])}</div>
+      <div style="font-size:12px;color:var(--text2);line-height:1.55">${escapeForHTML(g[1])}</div>
+    </div>`).join("");
+}
+window.renderGlossaryViewer = renderGlossaryViewer;
+
 function getRptOrder(){
   try {
     const s = localStorage.getItem("wa_rpt_order");
@@ -14002,54 +14031,82 @@ async function generatePDFReport(){
     const CW=pw-M*2;                   // content width
     let y=M;
 
+    // ── Sanitize text: jsPDF's built-in fonts only render WinAnsi (Latin-1).
+    // Map common non-Latin1 glyphs (σ, true minus, ≈, arrows, ≤/≥) to ASCII so
+    // they don't come out as mojibake anywhere in the report.
+    (function patchText(){
+      const _orig = doc.text.bind(doc);
+      const _san = s => (typeof s !== "string") ? s : s
+        .replace(/σ/g,"sigma").replace(/μ/g,"mu")
+        .replace(/−/g,"-").replace(/≈/g,"~").replace(/≠/g,"!=")
+        .replace(/≤/g,"<=").replace(/≥/g,">=")
+        .replace(/→/g,"->").replace(/←/g,"<-")
+        .replace(/•/g,"-").replace(/·/g,"·"); // keep middot (Latin-1)
+      doc.text = function(txt){
+        const a = Array.prototype.slice.call(arguments);
+        a[0] = Array.isArray(txt) ? txt.map(_san) : _san(txt);
+        return _orig.apply(null, a);
+      };
+    })();
+
     // ── Helpers ───────────────────────────────────────────────────────────────
     function newPage(){
       doc.addPage();
-      y=M;
-      // Optional logo on every page header (top-right corner) when user selected "header_all"
+      // ── Institutional running header: doc title (left) · firm (right) + thin rule ──
+      doc.setFont("times","normal"); doc.setFontSize(7.5); doc.setTextColor(140);
+      doc.text(val("rptTitle")||"Wealth Analysis", M, 10);
+      doc.text(val("rptFirm")||"Private Wealth Intelligence", pw-M, 10, {align:"right"});
+      doc.setDrawColor(...ac); doc.setLineWidth(0.4); doc.line(M, 12.5, pw-M, 12.5);
+      y = 19;
+      // Optional logo top-right when user selected "header_all"
       try {
         const _ld = localStorage.getItem("wa_rpt_logo") || "";
         const _lp = localStorage.getItem("wa_rpt_logo_pos") || "cover_top";
         if(_ld && _lp === "header_all"){
           const fmtSig = (_ld.indexOf("image/png")>=0)?"PNG":((_ld.indexOf("image/jpeg")>=0||_ld.indexOf("image/jpg")>=0)?"JPEG":"PNG");
-          doc.addImage(_ld, fmtSig, pw - M - 22, 5, 18, 8);
-          y = M + 8;
+          doc.addImage(_ld, fmtSig, pw - M - 22, 3, 18, 7);
         }
       } catch(_){}
-      // footer on every page
-      doc.setFontSize(7); doc.setTextColor(160);
-      doc.text(val("rptTitle")||"Wealth Report",M,ph-8);
-      doc.text("Page "+doc.internal.getNumberOfPages(),pw-M,ph-8,{align:"right"});
-      if(confidLabel){doc.text(confidLabel,pw/2,ph-8,{align:"center"});}
-      doc.setTextColor(40);
+      // ── Footer: thin rule + title (left) · confidential (center) · page (right) ──
+      doc.setDrawColor(215); doc.setLineWidth(0.3); doc.line(M, ph-11, pw-M, ph-11);
+      doc.setFont("times","normal"); doc.setFontSize(7); doc.setTextColor(150);
+      doc.text(val("rptTitle")||"Wealth Report",M,ph-6.5);
+      doc.text("Page "+doc.internal.getNumberOfPages(),pw-M,ph-6.5,{align:"right"});
+      if(confidLabel){doc.text(confidLabel,pw/2,ph-6.5,{align:"center"});}
+      doc.setTextColor(40); doc.setFont("helvetica","normal");
     }
     function checkY(need=20){if(y+need>ph-14) newPage();}
 
     function sectionH2(title){
-      checkY(14);
+      checkY(18);
+      y+=3;
       if(hdrStyle==="filled"){
-        doc.setFillColor(...ac);
-        doc.rect(M,y-4,CW,9,"F");
-        doc.setFontSize(10); doc.setFont(undefined,"bold"); doc.setTextColor(255,255,255);
-        doc.text(title,M+3,y+2);
-        doc.setFont(undefined,"normal"); doc.setTextColor(40);
-        y+=10;
+        // Subtle institutional band: thin accent fill behind a serif title
+        doc.setFillColor(...acL);
+        doc.rect(M,y-5,CW,9.5,"F");
+        doc.setDrawColor(...ac); doc.setLineWidth(0.4); doc.line(M,y-5,M,y+4.5); // accent edge
+        doc.setFont("times","bold"); doc.setFontSize(12.5); doc.setTextColor(...ac);
+        doc.text(title,M+3,y+1.5);
+        y+=9;
       } else if(hdrStyle==="box"){
         doc.setDrawColor(...ac); doc.setLineWidth(0.4);
-        doc.rect(M,y-4,CW,9);
-        doc.setFontSize(10); doc.setFont(undefined,"bold"); doc.setTextColor(...ac);
-        doc.text(title,M+3,y+2);
-        doc.setFont(undefined,"normal"); doc.setTextColor(40);
-        y+=10;
+        doc.rect(M,y-5,CW,9.5);
+        doc.setFont("times","bold"); doc.setFontSize(12.5); doc.setTextColor(...ac);
+        doc.text(title,M+3,y+1.5);
+        y+=9;
       } else {
-        doc.setFontSize(11); doc.setFont(undefined,"bold"); doc.setTextColor(...ac);
+        // Default institutional: serif title with a thin accent rule beneath
+        doc.setFont("times","bold"); doc.setFontSize(13); doc.setTextColor(...ac);
         doc.text(title,M,y);
-        y+=1;
-        doc.setDrawColor(...ac); doc.setLineWidth(0.4);
+        y+=2.5;
+        doc.setDrawColor(...ac); doc.setLineWidth(0.5);
         doc.line(M,y,pw-M,y);
-        doc.setFont(undefined,"normal"); doc.setTextColor(40);
+        y+=0.8;
+        doc.setDrawColor(...acL); doc.setLineWidth(0.3);
+        doc.line(M,y,pw-M,y); // subtle double-rule
         y+=5;
       }
+      doc.setFont("helvetica","normal"); doc.setTextColor(40); doc.setFontSize(fsz);
     }
 
     function tbl(head,rows,opts={}){
@@ -14116,10 +14173,10 @@ async function generatePDFReport(){
       setT("rptStatus","Generating PDF…");
     }
 
-    // ── COVER PAGE ────────────────────────────────────────────────────────────
-    // Full-width colour header bar
+    // ── COVER PAGE (institutional — white with serif title) ────────────────────
+    // Slim accent band at the very top edge
     doc.setFillColor(...ac);
-    doc.rect(0,0,pw,58,"F");
+    doc.rect(0,0,pw,5,"F");
     // ─── Optional client/firm logo on cover ───
     const logoData = (function(){ try { return localStorage.getItem("wa_rpt_logo") || ""; } catch(_) { return ""; } })();
     const logoPos  = (function(){ try { return localStorage.getItem("wa_rpt_logo_pos") || "cover_top"; } catch(_) { return "cover_top"; } })();
@@ -14132,29 +14189,34 @@ async function generatePDFReport(){
         doc.addImage(logoData, fmtSig, x, y, maxW, maxH);
       } catch(e){ console.warn("logo render failed:", e); }
     }
+    // Brand line (firm, small caps) top-left + optional logo
+    doc.setFont("times","normal"); doc.setFontSize(10.5); doc.setTextColor(...ac);
+    doc.text((rFirm||"Private Wealth Intelligence").toUpperCase(), M, 22);
     if(logoData && logoPos === "cover_top"){
-      _addLogoImage(pw/2 - 20, 6, 40, 12); // centered top, 40mm wide
+      _addLogoImage(pw/2 - 20, 11, 40, 12);
     } else if(logoData && logoPos === "cover_corner"){
-      _addLogoImage(pw - M - 28, 5, 24, 10); // top-right corner
+      _addLogoImage(pw - M - 26, 14, 24, 10);
     }
-    // Title
-    doc.setFontSize(22); doc.setFont(undefined,"bold"); doc.setTextColor(255,255,255);
+    // Thin rule under the brand
+    doc.setDrawColor(...ac); doc.setLineWidth(0.4); doc.line(M,26,pw-M,26);
+    // Large serif title (dark ink on white)
+    doc.setFont("times","bold"); doc.setFontSize(26); doc.setTextColor(28,40,60);
     const wrappedTitle=doc.splitTextToSize(rTitle,CW);
-    const titleStartY = logoData && logoPos === "cover_top" ? 32 : 22;
-    wrappedTitle.forEach((line,i)=>{doc.text(line,M,titleStartY+i*10);});
-    // Subtitle
+    let _ty=44;
+    wrappedTitle.forEach((line)=>{ doc.text(line,M,_ty); _ty+=11.5; });
+    // Subtitle (serif italic, grey)
     if(rSub){
-      doc.setFontSize(11); doc.setFont(undefined,"normal");
-      doc.text(rSub,M,22+wrappedTitle.length*10+3);
+      doc.setFont("times","italic"); doc.setFontSize(12.5); doc.setTextColor(95,105,120);
+      doc.splitTextToSize(rSub,CW).forEach(l=>{ doc.text(l,M,_ty+1); _ty+=6.5; });
     }
     // Confidentiality
     if(confidLabel){
-      doc.setFontSize(8); doc.setTextColor(200,220,255);
-      doc.text("— "+confidLabel+" —",M,54);
+      doc.setFont("helvetica","bold"); doc.setFontSize(8); doc.setTextColor(...ac);
+      doc.text(confidLabel,M,_ty+5); _ty+=8;
     }
     // Cover info block
-    y=72;
-    doc.setFontSize(10); doc.setFont(undefined,"normal"); doc.setTextColor(40);
+    y=Math.max(_ty+12, 88);
+    doc.setFontSize(10); doc.setFont("helvetica","normal"); doc.setTextColor(40);
     const infoRows=[
       ["Prepared for",rFor],
       ["Prepared by",rBy+(rFirm?" — "+rFirm:"")],
@@ -14771,10 +14833,32 @@ async function generatePDFReport(){
         if(val("rptIncGlossary") === "no") return;
         newPage();
         sectionH2("Glossary of Terms");
-        para("Definitions of the terms used throughout this report, provided for your convenience.");
-        tbl(["Term","Definition"], RPT_GLOSSARY.map(g=>[g[0], g[1]]),
-          {styles:{fontSize:Math.max(7,fsz-1),cellPadding:1.8,overflow:"linebreak"},
-           columnStyles:{0:{fontStyle:"bold",cellWidth:CW*0.27},1:{cellWidth:CW*0.73}}});
+        para("Definitions of the terms used throughout this report, provided for your convenience.", [110,110,110]);
+        // Flowing two-column term + definition layout (institutional glossary style)
+        const gutter = 8;
+        const colW = (CW - gutter) / 2;
+        const colX = [M, M + colW + gutter];
+        const bottom = ph - 14;
+        let contentTop = y, col = 0, gy = contentTop;
+        RPT_GLOSSARY.forEach(g => {
+          const term = g[0], def = g[1];
+          doc.setFont("times","bold"); doc.setFontSize(8.6);
+          const termLines = doc.splitTextToSize(term, colW);
+          doc.setFont("helvetica","normal"); doc.setFontSize(7.3);
+          const defLines = doc.splitTextToSize(def, colW);
+          const blockH = termLines.length*3.7 + defLines.length*3.3 + 3.5;
+          if(gy + blockH > bottom){
+            if(col === 0){ col = 1; gy = contentTop; }
+            else { newPage(); sectionH2("Glossary of Terms (continued)"); contentTop = y; col = 0; gy = contentTop; }
+          }
+          doc.setFont("times","bold"); doc.setFontSize(8.6); doc.setTextColor(...ac);
+          termLines.forEach(l => { doc.text(l, colX[col], gy); gy += 3.7; });
+          doc.setFont("helvetica","normal"); doc.setFontSize(7.3); doc.setTextColor(70);
+          defLines.forEach(l => { doc.text(l, colX[col], gy); gy += 3.3; });
+          gy += 3.5;
+        });
+        doc.setFont("helvetica","normal"); doc.setTextColor(40); doc.setFontSize(fsz);
+        y = gy;
       },
       // ─── DISCLOSURES ──
       disc: () => {
@@ -15665,6 +15749,7 @@ document.addEventListener("DOMContentLoaded",function(){
   renderRetirementNumber();
   renderTaxEfficiency();
   renderEfficientFrontier();
+  try { renderGlossaryViewer(); } catch(_){}
 
   // ── Probability card explanation tooltip ───────────────────────────────────
   (function initProbTooltip(){
