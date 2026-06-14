@@ -3427,7 +3427,7 @@ input[type=date]{color-scheme:light}
 // ═══════════════════════════════════════════════════════════
 // VERSION — updated by build-standalone.pl on each build
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260613-1649";
+const APP_VERSION = "20260614-2200";
 
 // ═══════════════════════════════════════════════════════════
 // DATA
@@ -13853,8 +13853,19 @@ function getRptOrder(){
     const s = localStorage.getItem("wa_rpt_order");
     if(s){
       const arr = s.split(",").filter(k => RPT_DEFAULT_ORDER.includes(k));
-      // Append any missing default keys (so newly-introduced sections still appear)
-      RPT_DEFAULT_ORDER.forEach(k => { if(!arr.includes(k)) arr.push(k); });
+      // Insert any missing default keys at their CANONICAL position (right after
+      // the nearest preceding default section already present) rather than at the
+      // end. This keeps newly-introduced sections in their logical place — e.g.
+      // Disclosures stays last instead of new sections being appended after it.
+      RPT_DEFAULT_ORDER.forEach((k, idx) => {
+        if(arr.includes(k)) return;
+        let insertAt = arr.length;
+        for(let j = idx - 1; j >= 0; j--){
+          const pos = arr.indexOf(RPT_DEFAULT_ORDER[j]);
+          if(pos !== -1){ insertAt = pos + 1; break; }
+        }
+        arr.splice(insertAt, 0, k);
+      });
       return arr;
     }
   } catch(_){}
