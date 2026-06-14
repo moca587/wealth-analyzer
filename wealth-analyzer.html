@@ -2868,6 +2868,18 @@ input[type=date]{color-scheme:light}
   </div>
 </div>
 
+<!-- ── Educational Charts (advisor-selectable) ───────────────── -->
+<div class="panel" id="eduChartsPanel">
+  <div class="ptitle section-dropdown" onclick="toggleDropdown('eduChartsBody')">
+    📊 Educational Charts <span class="dropdown-hint">click to expand</span>
+    <span class="ptitle-line"></span>
+  </div>
+  <div class="dropdown-body" id="eduChartsBody">
+    <div style="font-size:12px;color:var(--text3);margin:10px 0 14px;line-height:1.6">Tick any illustrative charts to include in the report. Each is rendered on its own page with a plain-language explanation and a source note — useful for client education. They're off by default; pick only the ones you want.</div>
+    <div id="eduChartPicker" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:10px"></div>
+  </div>
+</div>
+
 <!-- ── Glossary of Terms (in-app reference) ──────────────────── -->
 <div class="panel" id="glossaryPanel">
   <div class="ptitle section-dropdown" onclick="toggleDropdown('glossaryBody')">
@@ -2991,7 +3003,7 @@ input[type=date]{color-scheme:light}
 // ═══════════════════════════════════════════════════════════
 // VERSION — updated by build-standalone.pl on each build
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260614-2331";
+const APP_VERSION = "20260614-2354";
 
 // ═══════════════════════════════════════════════════════════
 // DATA
@@ -13352,7 +13364,7 @@ function gbRenderCMA(weights, port){
 // ═══════════════════════════════════════════════════════════════════
 // PDF REPORT — custom content + page ordering
 // ═══════════════════════════════════════════════════════════════════
-const RPT_DEFAULT_ORDER = ["exec","about","hh","inc","equity","assets","insurance","goals","strategies","port","factsheets","sim","fund","goalfunding","lifestyle","wealthframework","potentialwealth","estate","cf","cma","method","glossary","disc"];
+const RPT_DEFAULT_ORDER = ["exec","about","hh","inc","equity","assets","insurance","goals","strategies","port","factsheets","sim","fund","goalfunding","lifestyle","wealthframework","potentialwealth","estate","cf","educharts","cma","method","glossary","disc"];
 const RPT_SECTION_LABELS = {
   exec:            "Executive Summary",
   about:           "About the Client (custom)",
@@ -13375,6 +13387,7 @@ const RPT_SECTION_LABELS = {
   cf:              "Cash-Flow Projection",
   cma:             "Capital Market Assumptions",
   method:          "Methodology & Assumptions",
+  educharts:       "Investor Education",
   glossary:        "Glossary of Terms",
   disc:            "Disclosures"
 };
@@ -13427,6 +13440,125 @@ function renderGlossaryViewer(){
     </div>`).join("");
 }
 window.renderGlossaryViewer = renderGlossaryViewer;
+
+// ═══════════════════════════════════════════════════════════
+// EDUCATIONAL CHARTS LIBRARY — advisor-selectable illustrative charts
+// (original framing + figures; rendered natively in the PDF). Each chart
+// pairs a simple bar chart with a plain-language explanation + source note.
+// ═══════════════════════════════════════════════════════════
+const EDU_CHARTS = [
+  {
+    id:"compounding",
+    title:"The power of compounding",
+    subtitle:"Growth of $500 invested every month over 30 years",
+    fmtVal:"money",
+    bars:(function(){
+      const fv=r=>{const m=r/12,n=360;return Math.round(500*((Math.pow(1+m,n)-1)/m));};
+      return [{label:"4% / yr",value:fv(0.04)},{label:"6% / yr",value:fv(0.06)},{label:"8% / yr",value:fv(0.08)}];
+    })(),
+    points:[
+      "Compounding accelerates over time — most of the growth arrives in the final years.",
+      "A higher annual return compounds into a dramatically larger end result.",
+      "Starting early and contributing consistently matters more than trying to time the market."
+    ],
+    source:"Illustrative only. Assumes level monthly contributions and full reinvestment; ignores taxes, fees, and withdrawals. Not a projection of any actual investment."
+  },
+  {
+    id:"markettiming",
+    title:"The cost of trying to time the market",
+    subtitle:"Hypothetical $10,000 in a broad stock index over 20 years",
+    fmtVal:"money",
+    bars:[
+      {label:"Fully invested",value:32400},
+      {label:"Missed 10 best days",value:16200},
+      {label:"Missed 20 best days",value:9900},
+      {label:"Missed 30 best days",value:6400}
+    ],
+    points:[
+      "The market's best days often occur close to its worst days, in the middle of volatility.",
+      "Missing only a handful of the strongest days can cut the end result roughly in half.",
+      "Historically, staying invested has beaten attempts to move in and out of the market."
+    ],
+    source:"Hypothetical, illustrative figures reflecting long-run U.S. equity index behaviour. Past performance is no guarantee of future results; an investor cannot invest directly in an index."
+  },
+  {
+    id:"behaviorgap",
+    title:"The behaviour gap",
+    subtitle:"Illustrative 20-year annualised returns",
+    fmtVal:"pct",
+    bars:[
+      {label:"Average investor",value:3.5},
+      {label:"60/40 portfolio",value:6.4},
+      {label:"Broad stock index",value:7.5}
+    ],
+    points:[
+      "Emotional decisions — buying after gains, selling after losses — quietly erode returns.",
+      "The gap between the average investor and the market is the cost of poor timing.",
+      "A disciplined, rules-based plan helps close that gap over the long run."
+    ],
+    source:"Illustrative annualised returns for educational purposes. Actual investor results vary widely."
+  },
+  {
+    id:"stayinvested",
+    title:"Staying invested through downturns",
+    subtitle:"Illustrative ending value of $100,000 after a market decline",
+    fmtVal:"money",
+    bars:[
+      {label:"Stayed invested",value:228000},
+      {label:"Exited, back after 1 yr",value:149000},
+      {label:"Moved to cash",value:56000}
+    ],
+    points:[
+      "Market recoveries are often rapid and impossible to predict in advance.",
+      "Exiting during a decline can lock in losses and miss the rebound that follows.",
+      "A long-term plan is built to be held through volatility, not abandoned at the worst moment."
+    ],
+    source:"Hypothetical illustration for educational purposes. Past performance is no guarantee of future results."
+  },
+  {
+    id:"riskreturn",
+    title:"Risk and return go together",
+    subtitle:"Expected annual return by model allocation (higher return, higher volatility)",
+    fmtVal:"pct",
+    bars:[
+      {label:"Conservative",value:4.5},
+      {label:"Moderate",value:6.5},
+      {label:"Growth",value:8.5},
+      {label:"Aggressive",value:9.5}
+    ],
+    points:[
+      "Higher expected returns come with wider swings along the way (higher volatility).",
+      "The right allocation depends on your time horizon and tolerance for short-term loss.",
+      "Longer horizons can support more growth assets because there is more time to recover."
+    ],
+    source:"Illustrative expected returns based on long-run capital market assumptions. Not a forecast; actual returns will vary."
+  }
+];
+function getSelectedEduCharts(){
+  try { return (localStorage.getItem("wa_rpt_educharts")||"").split(",").filter(Boolean).filter(id=>EDU_CHARTS.some(c=>c.id===id)); }
+  catch(_){ return []; }
+}
+function toggleEduChart(id, on){
+  let sel = getSelectedEduCharts();
+  if(on && !sel.includes(id)) sel.push(id);
+  if(!on) sel = sel.filter(x=>x!==id);
+  try { localStorage.setItem("wa_rpt_educharts", sel.join(",")); } catch(_){}
+}
+function renderEduChartPicker(){
+  const host = document.getElementById("eduChartPicker");
+  if(!host) return;
+  const sel = getSelectedEduCharts();
+  host.innerHTML = EDU_CHARTS.map(c => `
+    <label style="display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border:1px solid var(--border);border-radius:var(--rs);background:var(--bg3);cursor:pointer">
+      <input type="checkbox" ${sel.includes(c.id)?"checked":""} onchange="toggleEduChart('${c.id}',this.checked)" style="width:15px;height:15px;margin-top:2px;accent-color:var(--gold);flex-shrink:0">
+      <span>
+        <span style="font-size:13px;font-weight:600;color:var(--text)">${escapeForHTML(c.title)}</span>
+        <span style="display:block;font-size:11px;color:var(--text3);margin-top:2px;line-height:1.4">${escapeForHTML(c.subtitle)}</span>
+      </span>
+    </label>`).join("");
+}
+window.toggleEduChart = toggleEduChart;
+window.renderEduChartPicker = renderEduChartPicker;
 
 function getRptOrder(){
   try {
@@ -13687,6 +13819,33 @@ async function generatePDFReport(){
       doc.setTextColor(40);
     }
 
+    // Native bar chart (no Chart.js in PDF) — axes, bars, value + category labels.
+    function drawBarChart(x, by0, w, h, bars, opts){
+      opts = opts || {};
+      const n = bars.length || 1;
+      const maxV = Math.max.apply(null, bars.map(b=>b.value).concat([0.0001]));
+      const baseY = by0 + h;
+      doc.setDrawColor(225); doc.setLineWidth(0.2);
+      for(let g=1; g<=4; g++){ const gyl = baseY - (h-6)*g/4; doc.line(x, gyl, x+w, gyl); }
+      doc.setDrawColor(170); doc.setLineWidth(0.4);
+      doc.line(x, by0, x, baseY); doc.line(x, baseY, x+w, baseY);
+      const gap = w / n;
+      const bw = Math.min(gap*0.5, 20);
+      bars.forEach((b,i)=>{
+        const bx = x + gap*i + (gap-bw)/2;
+        const bh = Math.max(0.5, (b.value/maxV)*(h-6));
+        const ty = baseY - bh;
+        doc.setFillColor.apply(doc, b.color || ac);
+        doc.rect(bx, ty, bw, bh, "F");
+        doc.setFont("helvetica","bold"); doc.setFontSize(7.3); doc.setTextColor.apply(doc, ac);
+        const vlabel = opts.fmtVal==="pct" ? (b.value.toFixed(1)+"%") : fmt(b.value);
+        doc.text(vlabel, bx+bw/2, ty-1.5, {align:"center"});
+        doc.setFont("helvetica","normal"); doc.setFontSize(6.6); doc.setTextColor(90);
+        doc.splitTextToSize(b.label, gap-1.5).forEach((l,li)=>{ doc.text(l, bx+bw/2, baseY+3.4+li*2.9, {align:"center"}); });
+      });
+      doc.setTextColor(40);
+    }
+
     // ── Gather data ───────────────────────────────────────────────────────────
     const rTitle    = val("rptTitle")||"Personal Wealth Analysis";
     const rBy       = val("rptPrepBy")||"Self-directed analysis";
@@ -13814,6 +13973,7 @@ async function generatePDFReport(){
       cma:            () => val("rptIncCMA") !== "no",
       cf:             () => val("rptIncCF") !== "no",
       method:         () => val("rptIncMethod") !== "no",
+      educharts:       () => getSelectedEduCharts().length > 0,
       glossary:       () => val("rptIncGlossary") !== "no",
       disc:       () => val("rptDiscLvl") !== "none" || !!(function(){ try { return (localStorage.getItem("wa_rpt_custom_disc")||"").trim(); } catch(_) { return ""; } })()
     };
@@ -14378,6 +14538,39 @@ async function generatePDFReport(){
         para("Tax: Income tax is estimated from configurable bracket tables for the selected country. Child/family benefit offsets are applied per country rules. Tax drag on investment returns is modelled through a CGT turnover drag.");
         para("Retirement drawdown: Voluntary 4% drawdown begins at the configured retirement age. When two clients are present, the pool is split equally and each half draws independently based on each client's own retirement age. Mandatory drawdown rules (IRS RMD, RRIF, Australian Super) apply from the relevant statutory age.");
         para("Inflation: All expenses, retirement spend, and pension COLA adjustments compound at the configured annual inflation rate.");
+      },
+      // ─── INVESTOR EDUCATION CHARTS (advisor-selected) ──
+      educharts: () => {
+        const sel = getSelectedEduCharts();
+        if(!sel.length) return;
+        const charts = EDU_CHARTS.filter(c => sel.includes(c.id));
+        charts.forEach(c => {
+          newPage();
+          // Title (serif) + subtitle + accent rule — institutional graph slide
+          doc.setFont("times","bold"); doc.setFontSize(15); doc.setTextColor(28,40,60);
+          doc.text(c.title, M, y); y += 7;
+          doc.setFont("times","bold"); doc.setFontSize(10.5); doc.setTextColor.apply(doc, ac);
+          doc.splitTextToSize(c.subtitle, CW).forEach(l => { doc.text(l, M, y); y += 5; });
+          y += 1;
+          doc.setDrawColor.apply(doc, ac); doc.setLineWidth(0.5); doc.line(M, y, pw-M, y); y += 9;
+          // Chart on the left (~56%), bullet explanation on the right (~40%)
+          const chartW = CW*0.56, chartH = 74, chartX = M, chartY = y;
+          drawBarChart(chartX, chartY, chartW, chartH, c.bars, {fmtVal:c.fmtVal});
+          const ex = M + chartW + 8, ew = CW - chartW - 8;
+          let ey = chartY + 6;
+          doc.setFont("helvetica","normal"); doc.setFontSize(9); doc.setTextColor(55);
+          c.points.forEach(pt => {
+            doc.setFillColor.apply(doc, ac); doc.circle(ex+1, ey-1.3, 0.7, "F");
+            const lines = doc.splitTextToSize(pt, ew-5);
+            lines.forEach((l,i) => { doc.text(l, ex+4.5, ey + i*4); });
+            ey += lines.length*4 + 4.5;
+          });
+          y = Math.max(chartY + chartH + 16, ey + 4);
+          // Source / disclaimer footnote
+          doc.setFont("helvetica","italic"); doc.setFontSize(6.8); doc.setTextColor(140);
+          doc.splitTextToSize(c.source, CW).forEach(l => { doc.text(l, M, y); y += 3.2; });
+          doc.setFont("helvetica","normal"); doc.setTextColor(40); doc.setFontSize(fsz);
+        });
       },
       // ─── GLOSSARY OF TERMS (supplemental reference) ──
       glossary: () => {
@@ -15301,6 +15494,7 @@ document.addEventListener("DOMContentLoaded",function(){
   renderTaxEfficiency();
   renderEfficientFrontier();
   try { renderGlossaryViewer(); } catch(_){}
+  try { renderEduChartPicker(); } catch(_){}
 
   // ── Probability card explanation tooltip ───────────────────────────────────
   (function initProbTooltip(){
