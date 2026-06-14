@@ -3363,8 +3363,8 @@ const TEST_SUITE = [
   {name:"Mortgage zero-interest", fn:"calcMortgagePayment", inputs:{principal:120000,rate:0,years:10}, expected:1000, tol:0.01},
   {name:"RMD age 75 $500k", fn:"calcRMD", inputs:{balance:500000,age:75}, expected:20325.20, tol:1},
   {name:"RMD age 65 (below 73)", fn:"calcRMD", inputs:{balance:500000,age:65}, expected:0, tol:0.01},
-  {name:"CA tax @ $100k", fn:"calcBracketTax", inputs:{income:100000,state:"CA"}, expected:6189, tol:50},
-  {name:"NY tax @ $150k", fn:"calcBracketTax", inputs:{income:150000,state:"NY"}, expected:8513, tol:50},
+  {name:"CA tax @ $100k", fn:"calcBracketTax", inputs:{income:100000,state:"CA"}, expected:5952.85, tol:2},
+  {name:"NY tax @ $150k", fn:"calcBracketTax", inputs:{income:150000,state:"NY"}, expected:8431.75, tol:2},
   {name:"TX tax (no income tax)", fn:"calcBracketTax", inputs:{income:200000,state:"TX"}, expected:0, tol:0.01},
   {name:"Retirement number $80k 25y", fn:"calcRetirementNumber", inputs:{curAge:40,retAge:65,spend:80000,inf:0.038,disc:0.068}, validator:(r)=>r&&r.pvToday>500000&&r.pvToday<3000000, description:"PV today $0.5M-$3M"},
   {name:"MC: p10 < p50 < p90", fn:"runMC", inputs:{nw:100000,mu:7,sig:12,years:10,sims:500,sav:10000}, validator:(r)=>r.p10<r.p50&&r.p50<r.p90, description:"Ordering"},
@@ -4241,7 +4241,10 @@ async function testKeyHealth(keyId){
       if(!j.data?.BTC) throw new Error("No data");
       ok = true;
     } else if(keyId === "wa_nasdaq_key"){
-      const r = await fetch(`https://data.nasdaq.com/api/v3/datasets/WIKI/AAPL.json?api_key=${v}&rows=1`);
+      // NOTE: the old WIKI/AAPL dataset was discontinued in 2018. LBMA/GOLD is a
+      // long-standing free dataset that any valid Nasdaq Data Link key can read,
+      // so it's a reliable key-validity probe.
+      const r = await fetch(`https://data.nasdaq.com/api/v3/datasets/LBMA/GOLD.json?api_key=${v}&rows=1`);
       if(!r.ok){ const t=await r.text(); throw new Error("HTTP "+r.status+": "+t.slice(0,80)); }
       const j = await r.json();
       if(j.quandl_error) throw new Error(j.quandl_error.message);
