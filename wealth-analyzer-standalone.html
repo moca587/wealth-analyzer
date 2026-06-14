@@ -3440,7 +3440,7 @@ input[type=date]{color-scheme:light}
 // ═══════════════════════════════════════════════════════════
 // VERSION — updated by build-standalone.pl on each build
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260614-2320";
+const APP_VERSION = "20260614-2331";
 
 // ═══════════════════════════════════════════════════════════
 // DATA
@@ -14860,12 +14860,12 @@ async function generatePDFReport(){
         doc.setFont("helvetica","normal"); doc.setTextColor(40); doc.setFontSize(fsz);
         y = gy;
       },
-      // ─── DISCLOSURES ──
+      // ─── DISCLOSURES (always starts on its own page) ──
       disc: () => {
         const discLvl = val("rptDiscLvl") || "standard";
         const customDisc = (function(){ try { return (localStorage.getItem("wa_rpt_custom_disc")||"").trim(); } catch(_) { return ""; } })();
         if(discLvl === "none" && !customDisc) return;
-        checkY(30);
+        newPage();
         sectionH2("Important Disclosures");
         if(customDisc){
           // Custom user-provided disclosure REPLACES the standard one
