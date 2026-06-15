@@ -3139,9 +3139,10 @@ input[type=date]{color-scheme:light}
     <div>
       <div class="frow"><label class="flbl">Logo placement</label>
         <select id="rptLogoPos" class="w180">
-          <option value="cover_top" selected>Cover &mdash; top centered</option>
-          <option value="cover_corner">Cover &mdash; top right corner</option>
+          <option value="header_last" selected>Top-right + last-page bottom-right</option>
           <option value="header_all">Every page header (top right)</option>
+          <option value="cover_top">Cover &mdash; top centered</option>
+          <option value="cover_corner">Cover &mdash; top right corner</option>
           <option value="none">Hide</option>
         </select>
       </div>
@@ -3301,7 +3302,7 @@ input[type=date]{color-scheme:light}
 // ═══════════════════════════════════════════════════════════
 // VERSION — updated by build-standalone.pl on each build
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260615-1448";
+const APP_VERSION = "20260615-1509";
 
 // ═══════════════════════════════════════════════════════════
 // DATA
@@ -14035,21 +14036,26 @@ async function generatePDFReport(){
     // ── Helpers ───────────────────────────────────────────────────────────────
     function newPage(){
       doc.addPage();
-      // ── Institutional running header: doc title (left) · firm (right) + thin rule ──
+      // Logo top-right on every page header when "header_all" or "header_last" is set
+      let _hdrLogo = false, _ldH = "", _lpH = "cover_top";
+      try {
+        _ldH = localStorage.getItem("wa_rpt_logo") || "";
+        _lpH = localStorage.getItem("wa_rpt_logo_pos") || "cover_top";
+        _hdrLogo = !!_ldH && (_lpH === "header_all" || _lpH === "header_last");
+      } catch(_){}
+      // ── Institutional running header: doc title (left) · firm or logo (right) + thin rule ──
       doc.setFont("times","normal"); doc.setFontSize(7.5); doc.setTextColor(140);
       doc.text(val("rptTitle")||"Wealth Analysis", M, 10);
-      doc.text(val("rptFirm")||"Private Wealth Intelligence", pw-M, 10, {align:"right"});
+      if(_hdrLogo){
+        try {
+          const fmtSig = (_ldH.indexOf("image/png")>=0)?"PNG":((_ldH.indexOf("image/jpeg")>=0||_ldH.indexOf("image/jpg")>=0)?"JPEG":"PNG");
+          doc.addImage(_ldH, fmtSig, pw - M - 22, 2.5, 18, 8);   // top-right logo (replaces firm text to avoid overlap)
+        } catch(_){ doc.text(val("rptFirm")||"Private Wealth Intelligence", pw-M, 10, {align:"right"}); }
+      } else {
+        doc.text(val("rptFirm")||"Private Wealth Intelligence", pw-M, 10, {align:"right"});
+      }
       doc.setDrawColor(...ac); doc.setLineWidth(0.4); doc.line(M, 12.5, pw-M, 12.5);
       y = 19;
-      // Optional logo top-right when user selected "header_all"
-      try {
-        const _ld = localStorage.getItem("wa_rpt_logo") || "";
-        const _lp = localStorage.getItem("wa_rpt_logo_pos") || "cover_top";
-        if(_ld && _lp === "header_all"){
-          const fmtSig = (_ld.indexOf("image/png")>=0)?"PNG":((_ld.indexOf("image/jpeg")>=0||_ld.indexOf("image/jpg")>=0)?"JPEG":"PNG");
-          doc.addImage(_ld, fmtSig, pw - M - 22, 3, 18, 7);
-        }
-      } catch(_){}
       // ── Footer: thin rule + title (left) · confidential (center) · page (right) ──
       doc.setDrawColor(215); doc.setLineWidth(0.3); doc.line(M, ph-11, pw-M, ph-11);
       doc.setFont("times","normal"); doc.setFontSize(7); doc.setTextColor(150);
@@ -14204,7 +14210,7 @@ async function generatePDFReport(){
     doc.text((rFirm||"Private Wealth Intelligence").toUpperCase(), M, 22);
     if(logoData && logoPos === "cover_top"){
       _addLogoImage(pw/2 - 20, 11, 40, 12);
-    } else if(logoData && logoPos === "cover_corner"){
+    } else if(logoData && (logoPos === "cover_corner" || logoPos === "header_last")){
       _addLogoImage(pw - M - 26, 14, 24, 10);
     }
     // Thin rule under the brand
@@ -14935,6 +14941,15 @@ async function generatePDFReport(){
       catch(e){ console.warn("PDF section '"+k+"' failed:", e); }
     });
 
+    // ── Logo bottom-right on the LAST page (when "header_last" is selected) ──
+    try {
+      const _ldL = localStorage.getItem("wa_rpt_logo") || "";
+      const _lpL = localStorage.getItem("wa_rpt_logo_pos") || "cover_top";
+      if(_ldL && _lpL === "header_last"){
+        const fmtSig = (_ldL.indexOf("image/png")>=0)?"PNG":((_ldL.indexOf("image/jpeg")>=0||_ldL.indexOf("image/jpg")>=0)?"JPEG":"PNG");
+        doc.addImage(_ldL, fmtSig, pw - M - 28, ph - 24, 26, 10);   // bottom-right, above the footer rule
+      }
+    } catch(_){}
 
     // ── Footer on page 1 (cover) already done; add footer stub to any remaining pages
     // ── SAVE ─────────────────────────────────────────────────────────────────
