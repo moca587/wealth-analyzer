@@ -266,7 +266,7 @@ textarea{font-family:var(--fm);font-size:12px;width:100%;min-height:70px;resize:
 <div class="tab" id="tab-agent">
   <div class="hero purple">
     <h1>🤖 AI Portfolio Construction Agent</h1>
-    <p>Synthesizes research from 16 institutional sources, the client's financial plan, and a curated fund universe to produce a complete portfolio recommendation. Powered by Claude.</p>
+    <p>Synthesizes research from 16 institutional sources, the client's financial plan, and a curated fund universe to produce a complete portfolio recommendation. Powered by AI.</p>
   </div>
 
   <div class="panel">
@@ -366,18 +366,18 @@ Down payment | 2028 | 150000</textarea>
   </div>
 
   <div class="panel" style="background:linear-gradient(135deg,#fff,#f3f0ff);border-color:rgba(124,58,237,.25)">
-    <div class="ptitle" style="color:var(--purple)">③b Build Portfolio — AI Agent (Claude)</div>
-    <div class="pdesc">Alternative: send the full client brief + research excerpts to Claude for an LLM-augmented recommendation. Use this when you want narrative reasoning beyond signal counts.</div>
+    <div class="ptitle" style="color:var(--purple)">③b Build Portfolio — AI Agent</div>
+    <div class="pdesc">Alternative: send the full client brief + research excerpts to the AI engine for an LLM-augmented recommendation. Use this when you want narrative reasoning beyond signal counts.</div>
     <div class="row">
-      <label class="lbl">Claude model</label>
+      <label class="lbl">AI model</label>
       <select id="agModel" class="w260">
-        <option value="claude-opus-4-7" selected>Claude Opus 4.7 (recommended)</option>
-        <option value="claude-sonnet-4-6">Claude Sonnet 4.6 (faster)</option>
-        <option value="claude-haiku-4-5">Claude Haiku 4.5 (fastest)</option>
+        <option value="claude-opus-4-7" selected>Premium engine (recommended)</option>
+        <option value="claude-sonnet-4-6">Balanced engine (faster)</option>
+        <option value="claude-haiku-4-5">Fast engine (fastest)</option>
       </select>
     </div>
     <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:14px;align-items:center">
-      <button class="btn-purple" data-action="runAgent">🤖 Build with Claude API</button>
+      <button class="btn-purple" data-action="runAgent">🤖 Build with AI</button>
       <button class="btn-ghost" data-action="exportToProposal" disabled id="agExportBtn">↗ Export to Main App's Investment Proposal</button>
       <span id="agStatus" style="font-size:12px;color:var(--ink3)"></span>
     </div>
@@ -395,7 +395,7 @@ Down payment | 2028 | 150000</textarea>
       <button class="btn-ghost" onclick="document.getElementById('methodBody').style.display = document.getElementById('methodBody').style.display==='none'?'block':'none'" style="font-size:11px;padding:4px 12px">Show / Hide</button>
     </div>
     <div id="methodBody">
-      <div class="pdesc">Every fund selection is fully traceable. The engine follows a deterministic 5-stage pipeline with explicit scoring, constraints, and rationale. Below is the complete decision logic — same logic used by both the Research Engine and the Claude API agent.</div>
+      <div class="pdesc">Every fund selection is fully traceable. The engine follows a deterministic 5-stage pipeline with explicit scoring, constraints, and rationale. Below is the complete decision logic — same logic used by both the Research Engine and the AI agent.</div>
 
       <!-- Stage 1 — Signal extraction -->
       <div style="background:#fff;border:1px solid var(--line);border-left:4px solid #0057b8;border-radius:8px;padding:16px 20px;margin-bottom:12px">
@@ -550,9 +550,9 @@ Citations:<br>
         <strong style="color:var(--blue)">🔒 Determinism guarantee:</strong> the Research Engine is fully deterministic. Same brief + same cached research → always same output. Run it twice in a row and verify identical fund picks via the Engine Stress Test tab → "Robustness Checks" → "Determinism" test. The only thing that changes the output is (a) you change the brief, (b) new research arrives in the cache, or (c) you modify the fund universe / risk-baseline / scoring constants directly in the code.
       </div>
 
-      <!-- Differences from Claude version -->
+      <!-- Differences from AI agent version -->
       <div style="margin-top:10px;padding:12px 16px;background:rgba(124,58,237,.05);border-radius:6px;font-size:12px;color:var(--ink2);line-height:1.6">
-        <strong style="color:var(--purple)">🤖 How the Claude API agent differs:</strong> the Claude version receives the same client brief + research items + fund universe as the deterministic engine, but uses an LLM to reason narratively over the inputs. It may suggest weights that deviate from the deterministic baseline (e.g. tactical overweights based on theme strength), and can produce richer prose rationale. Both produce the same JSON shape and feed the same Export-to-Proposal button. Pick deterministic for auditability, Claude for narrative reasoning.
+        <strong style="color:var(--purple)">🤖 How the AI agent differs:</strong> the AI version receives the same client brief + research items + fund universe as the deterministic engine, but uses an LLM to reason narratively over the inputs. It may suggest weights that deviate from the deterministic baseline (e.g. tactical overweights based on theme strength), and can produce richer prose rationale. Both produce the same JSON shape and feed the same Export-to-Proposal button. Pick deterministic for auditability, AI for narrative reasoning.
       </div>
     </div>
   </div>
@@ -951,7 +951,7 @@ Citations:<br>
 
       <strong>Macro + AI:</strong>
       <a href="https://fred.stlouisfed.org/docs/api/api_key.html" target="_blank" style="color:var(--blue)">FRED</a> ·
-      <a href="https://console.anthropic.com/" target="_blank" style="color:var(--blue)">Claude API</a>
+      <span style="color:var(--ink2)">AI Assistant</span>
       <br><br>
       <strong style="color:var(--green)">No key needed (always work):</strong>
       Yahoo Finance · Stooq · CoinGecko · CryptoCompare · Coinbase Spot · Frankfurter · ExchangeRate.host · Open ER API · OpenFIGI (ISIN/CUSIP) · SEC EDGAR · Treasury.gov
@@ -994,7 +994,7 @@ Citations:<br>
         <tr><td><code>wa_app_version</code></td><td>shared</td><td>Current app version stamp</td></tr>
         <tr><td><code>wa_pending_profile</code></td><td>admin → main</td><td>Profile injected by Profile Manager</td></tr>
         <tr><td><code>wa_pending_proposal</code></td><td>admin → main</td><td>Recommendation exported by AI Agent</td></tr>
-        <tr><td><code>wa_claude_key</code></td><td>shared</td><td>Anthropic API key</td></tr>
+        <tr><td><code>wa_ai_key</code></td><td>shared</td><td>AI assistant key</td></tr>
         <tr><td><code>fhKey</code>, <code>avKey</code>, <code>wa_polygon_key</code>, etc.</td><td>shared</td><td>Market data provider API keys</td></tr>
         <tr><td><code>wa_research_config</code></td><td>admin only</td><td>Provider feed URLs, enabled state, cached items</td></tr>
         <tr><td><code>wa_admin_constants</code></td><td>admin only</td><td>Edited RISK_PROFILES, REGIONS, LOAN_DEFAULTS</td></tr>
@@ -1004,7 +1004,7 @@ Citations:<br>
     <h2 style="font-size:17px;margin:18px 0 10px">Tab guide</h2>
     <ul style="margin-left:20px;line-height:1.85;color:var(--ink2)">
       <li><strong>Dashboard</strong> — KPI grid + provider status + recent activity</li>
-      <li><strong>AI Portfolio Agent</strong> — Claude-powered portfolio construction with 16 research sources</li>
+      <li><strong>AI Portfolio Agent</strong> — AI-powered portfolio construction with 16 research sources</li>
       <li><strong>Research Library</strong> — Configure RSS feeds for each institutional source</li>
       <li><strong>Calc Test Bench</strong> — Verify every internal financial calculation</li>
       <li><strong>Constants Editor</strong> — Live-edit RISK_PROFILES, REGIONS, LOAN_DEFAULTS</li>
@@ -1024,6 +1024,13 @@ Citations:<br>
 
 <script>
 "use strict";
+// One-time migration: move the AI-assistant key from its old provider-specific
+// name to the neutral key (localStorage is shared with the main app).
+try {
+  const _ok = localStorage.getItem("wa_claude_key");
+  if(_ok && !localStorage.getItem("wa_ai_key")) localStorage.setItem("wa_ai_key", _ok);
+  if(_ok) localStorage.removeItem("wa_claude_key");
+} catch(_){}
 
 // ═══════════════════════════════════════════════════════════
 // VERSION + UTILS
@@ -2827,12 +2834,12 @@ function renderDashboard(){
   const lsKeys = Object.keys(localStorage);
   const lsSize = lsKeys.reduce((s,k)=>s+(k.length+(localStorage.getItem(k)||"").length),0);
   const v = localStorage.getItem("wa_app_version")||"not set";
-  const claudeKey = localStorage.getItem("wa_claude_key")||"";
+  const aiKey = localStorage.getItem("wa_ai_key")||"";
 
   let h = '';
   h += kpiCard("Admin Version",APP_VERSION,"v"+v+" main");
   h += kpiCard("localStorage",lsKeys.length+" keys",fmtBytes(lsSize)+" used");
-  h += kpiCard("Claude API",claudeKey?"Connected":"Not set",claudeKey?"":"Set in API Keys tab","tone-"+(claudeKey?"green":"red"));
+  h += kpiCard("AI Assistant",aiKey?"Connected":"Not set",aiKey?"":"Set in API Keys tab","tone-"+(aiKey?"green":"red"));
   h += kpiCard("Research Sources",RESEARCH_PROVIDERS.length+" available","Refresh in Research tab");
   h += kpiCard("Fund Universe",FUND_UNIVERSE.length+" vehicles","Curated institutional-quality");
   h += kpiCard("Tax Countries",Object.keys(LOCAL_TAX).length,"+ all 50 US states");
@@ -2896,7 +2903,7 @@ function renderDashboard(){
       {n:"Treasury.gov",        k:"always"}
     ]},
     {label:"AI / LLM", items:[
-      {n:"Claude API", k:claudeKey}
+      {n:"AI Assistant", k:aiKey}
     ]}
   ];
   let ph = '';
@@ -3029,8 +3036,8 @@ $("profileFile")?.addEventListener("change", function(ev){
 let lastAgentRec = null;
 
 async function runAgent(){
-  const key = localStorage.getItem("wa_claude_key")||"";
-  if(!key){ toast("No Claude API key. Set one in API Keys tab.","err"); return; }
+  const key = localStorage.getItem("wa_ai_key")||"";
+  if(!key){ toast("No AI key. Set one in API Keys tab.","err"); return; }
   $("agStatus").textContent = "🤖 Thinking…";
   $("agResultPanel").style.display = "block";
   $("agResult").innerHTML = '<div style="text-align:center;padding:30px;color:var(--ink3)"><div style="font-size:32px">🤖</div>Synthesizing research, classifying client, constructing portfolio…</div>';
@@ -3142,7 +3149,7 @@ Constraints:
     $("agResult").innerHTML = `<div class="code" style="background:#7f1d1d">Error: ${escapeHtml(e.message)}</div>
       <div style="font-size:12px;color:var(--ink3);margin-top:14px;line-height:1.6">
         <strong>Common issues:</strong><br>
-        • Claude API key missing/invalid — set one in API Keys tab<br>
+        • AI key missing/invalid — set one in API Keys tab<br>
         • Network/CORS — try a different model or check connection<br>
         • Rate-limited — wait 60s and retry
       </div>`;
@@ -4076,7 +4083,7 @@ const API_KEY_DEFS = [
   // ── Macro ──
   {id:"wa_fred_key", n:"FRED (St Louis Fed)", url:"fred.stlouisfed.org/docs/api/api_key.html", note:"Free unlimited · US economic data"},
   // ── AI / LLM ──
-  {id:"wa_claude_key", n:"Claude API (Anthropic)", url:"console.anthropic.com", note:"Powers narrative AI agent"}
+  {id:"wa_ai_key", n:"AI Assistant", url:"", note:"Powers narrative AI agent"}
 ];
 // Health status persisted per-key — updated by the 2-minute auto-check loop
 function getKeyHealth(){ try { return JSON.parse(localStorage.getItem("wa_key_health")||"{}"); } catch(_){return {};} }
@@ -4329,7 +4336,7 @@ async function testKeyHealth(keyId){
       if(j.error_code) throw new Error(j.error_message);
       if(!j.observations?.length) throw new Error("No data");
       ok = true;
-    } else if(keyId === "wa_claude_key"){
+    } else if(keyId === "wa_ai_key"){
       // Light-touch validity check — just a ping that requires valid key
       const r = await fetch("https://api.anthropic.com/v1/messages", {
         method:"POST",
@@ -5735,7 +5742,7 @@ async function buildPortfolioForUser(el){
 async function buildAllPortfolios(){
   const users = getUsers().filter(u => u.plan);
   if(users.length === 0){ toast("No users with plans","err"); return; }
-  if(!confirm("Build portfolios for "+users.length+" users? This calls the Claude API once per user.")) return;
+  if(!confirm("Build portfolios for "+users.length+" users? This calls the AI engine once per user.")) return;
   for(const u of users){
     const fakeEl = {dataset:{uid:u.id}};
     try { await buildPortfolioForUser(fakeEl); } catch(e){ addLog("err","Build failed for "+u.id+": "+e.message); }

@@ -1063,7 +1063,7 @@ input[type=date]{color-scheme:light}
      ═══════════════════════════════════════════════════════════════ -->
 <style>
 #introScreen{position:fixed;inset:0;z-index:100000;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;
-  background:radial-gradient(1200px 800px at 72% -12%,#0a3d8f 0%,#062b66 38%,#041b40 100%);
+  background:radial-gradient(1200px 800px at 72% -12%,#0a63cf 0%,#0057b8 36%,#042a5e 100%);
   color:#fff;text-align:center;padding:0 24px 60px;overflow-y:auto;opacity:1;transition:opacity .6s ease}
 .intro-inner{padding-top:max(7vh,44px)}
 #introScreen.intro-hide{opacity:0;pointer-events:none}
@@ -2622,10 +2622,10 @@ input[type=date]{color-scheme:light}
       <input type="file" id="holdingsFile" accept=".pdf,.docx" style="font-size:12px;color:var(--text2)">
     </div>
     <div class="frow" style="margin-top:6px">
-      <label class="flbl">Claude API key <span style="color:var(--text3)">(for smart parsing)</span></label>
-      <input type="password" id="claudeKeyInput" placeholder="sk-ant-…  (optional — saved locally)" class="w220" oninput="saveClaudeKey()">
+      <label class="flbl">AI assistant key <span style="color:var(--text3)">(for smart parsing)</span></label>
+      <input type="password" id="aiKeyInput" placeholder="Paste key…  (optional — saved locally)" class="w220" oninput="saveAIKey()">
     </div>
-    <div style="font-size:11px;color:var(--text3);margin:6px 0 10px">Without an API key the app uses pattern matching. With a Claude key it reads the document intelligently. Your key is stored only in your browser.</div>
+    <div style="font-size:11px;color:var(--text3);margin:6px 0 10px">Without an API key the app uses pattern matching. With an AI key it reads the document intelligently. Your key is stored only in your browser.</div>
     <div style="display:flex;gap:8px;align-items:center">
       <button class="btn-primary" onclick="parseHoldingsFile()">Parse & Import</button>
       <button class="btn-secondary" onclick="show('importPanel',false)">Cancel</button>
@@ -3452,7 +3452,7 @@ input[type=date]{color-scheme:light}
 // ═══════════════════════════════════════════════════════════
 // VERSION — updated by build-standalone.pl on each build
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260614-2354";
+const APP_VERSION = "20260615-1350";
 
 // ═══════════════════════════════════════════════════════════
 // DATA
@@ -5647,7 +5647,7 @@ const APP_KEY_DEFS = [
   // Macro
   {id:"wa_fred_key",          n:"FRED (St Louis Fed)",   url:"https://fred.stlouisfed.org/docs/api/api_key.html",   tip:"Free unlimited · proxied"},
   // AI
-  {id:"wa_claude_key",        n:"Claude API (Anthropic)",url:"https://console.anthropic.com",                       tip:"Powers AI agent narration", secret:true}
+  {id:"wa_ai_key",        n:"AI Assistant",         url:"",                       tip:"Powers AI narrative features", secret:true}
 ];
 
 function renderMdKeysGrid(){
@@ -5665,7 +5665,9 @@ function renderMdKeysGrid(){
                : '<span style="background:rgba(91,155,213,.15);color:#1e40af;padding:2px 8px;border-radius:50px;font-size:10px;font-weight:600">' + v.length + ' chars · pending</span>';
     h += '<div style="border:1px solid var(--border);background:var(--bg3);border-radius:8px;padding:10px 12px">';
     h += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px">';
-    h += '<a href="'+k.url+'" target="_blank" style="font-size:12.5px;font-weight:600;color:var(--text);text-decoration:none">' + k.n + ' <span style="color:var(--gold);font-size:10px">↗</span></a>';
+    h += k.url
+      ? '<a href="'+k.url+'" target="_blank" style="font-size:12.5px;font-weight:600;color:var(--text);text-decoration:none">' + k.n + ' <span style="color:var(--gold);font-size:10px">↗</span></a>'
+      : '<span style="font-size:12.5px;font-weight:600;color:var(--text)">' + k.n + '</span>';
     h += pill;
     h += '</div>';
     h += '<input type="password" id="mdKey-'+k.id+'" placeholder="paste key…" value="'+escapeForHTML(v)+'" oninput="saveMdKey(\''+k.id+'\')" style="width:100%;font-family:var(--fm);font-size:11px;padding:6px 9px;border:1px solid var(--border);border-radius:5px;background:var(--bg2);color:var(--text)">';
@@ -5727,10 +5729,10 @@ async function testAllMdKeys(){
         if(!news || news.length === 0) throw new Error("no news returned");
       }
       else if(k.id === "wa_fred_key")       await MarketData.getFREDSeries("DFF"); // Fed funds rate
-      else if(k.id === "wa_claude_key"){
+      else if(k.id === "wa_ai_key"){
         // Quick ping — list models endpoint requires no body
         const r = await fetch("https://api.anthropic.com/v1/models", {
-          headers:{"x-api-key":localStorage.getItem("wa_claude_key"),"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"}
+          headers:{"x-api-key":localStorage.getItem("wa_ai_key"),"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"}
         });
         if(!r.ok) throw new Error("HTTP "+r.status);
       }
@@ -7354,17 +7356,17 @@ function removeInvestment(id){
 // ═══════════════════════════════════════════════════════════
 // HOLDINGS DOCUMENT IMPORT
 // ═══════════════════════════════════════════════════════════
-function getClaudeKey(){return localStorage.getItem("wa_claude_key")||"";}
-function saveClaudeKey(){
-  const v=$("claudeKeyInput")?.value||"";
-  if(v) localStorage.setItem("wa_claude_key",v);
+function getAIKey(){return localStorage.getItem("wa_ai_key")||"";}
+function saveAIKey(){
+  const v=$("aiKeyInput")?.value||"";
+  if(v) localStorage.setItem("wa_ai_key",v);
 }
 function openHoldingsUpload(){
   const panel=$("importPanel");
   const showing=panel.style.display!=="none";
   show("importPanel",!showing);
   if(!showing){
-    const k=getClaudeKey(); if(k && $("claudeKeyInput")) $("claudeKeyInput").value=k;
+    const k=getAIKey(); if(k && $("aiKeyInput")) $("aiKeyInput").value=k;
     setT("importStatus","");
   }
 }
@@ -7414,7 +7416,7 @@ function parseHoldingsLocal(text){
   });
   return results;
 }
-async function parseHoldingsWithClaude(text,apiKey){
+async function parseHoldingsWithAI(text,apiKey){
   const prompt=`You are a financial data extractor. Below is text extracted from a brokerage statement or investment document.
 
 Extract every investment holding you can find. For each holding return a JSON array item with these exact fields:
@@ -7437,12 +7439,12 @@ ${text.substring(0,6000)}`;
     headers:{"x-api-key":apiKey,"anthropic-version":"2023-06-01","content-type":"application/json","anthropic-dangerous-direct-browser-access":"true"},
     body:JSON.stringify({model:"claude-opus-4-5",max_tokens:4096,messages:[{role:"user",content:prompt}]})
   });
-  if(!resp.ok){const e=await resp.text(); throw new Error("Claude API error: "+resp.status+" "+e);}
+  if(!resp.ok){const e=await resp.text(); throw new Error("AI service error: "+resp.status+" "+e);}
   const data=await resp.json();
   const content=data.content?.[0]?.text||"[]";
   // Extract JSON array from response
   const match=content.match(/\[[\s\S]*\]/);
-  if(!match) throw new Error("No JSON found in Claude response");
+  if(!match) throw new Error("No JSON found in AI response");
   return JSON.parse(match[0]);
 }
 async function parseHoldingsFile(){
@@ -7464,16 +7466,16 @@ async function parseHoldingsFile(){
       setT("importStatus","⚠ Could not extract text from document."); return;
     }
     let parsed=[];
-    const key=getClaudeKey()||$("claudeKeyInput")?.value||"";
+    const key=getAIKey()||$("aiKeyInput")?.value||"";
     if(key){
-      status.textContent="Sending to Claude for analysis…";
-      parsed=await parseHoldingsWithClaude(text,key);
+      status.textContent="Analyzing with AI…";
+      parsed=await parseHoldingsWithAI(text,key);
     } else {
       status.textContent="Parsing with pattern matching…";
       parsed=parseHoldingsLocal(text);
     }
     if(!parsed||parsed.length===0){
-      status.textContent="⚠ No holdings detected. Try a different file or add a Claude API key for smarter parsing.";
+      status.textContent="⚠ No holdings detected. Try a different file or add an AI key for smarter parsing.";
       status.style.color="var(--amber)"; return;
     }
     // Import into investments array
@@ -7631,7 +7633,7 @@ function drawPortfolioPie(){
 // INVESTMENT PROPOSAL
 // ═══════════════════════════════════════════════════════════
 // ═══════════════════════════════════════════════════════════
-// AI PORTFOLIO GENERATOR — uses Claude API + shared research from admin
+// AI PORTFOLIO GENERATOR — uses the AI engine + shared research from admin
 // ═══════════════════════════════════════════════════════════
 let lastAIGenResult = null;
 
@@ -8721,7 +8723,7 @@ function _fundHash(tkr){
 async function runAIPortfolioGenerator(){
   const status = $("aiGenStatus");
   const resultPanel = $("aiGenResult");
-  const claudeKey = (function(){try{return localStorage.getItem("wa_claude_key")||"";}catch(e){return "";}})();
+  const aiKey = (function(){try{return localStorage.getItem("wa_ai_key")||"";}catch(e){return "";}})();
 
   // ─── 1. Gather client data from the main app's current state ───
   const inc1 = num("inc1", 0) + num("inc1b", 0);
@@ -8773,12 +8775,12 @@ async function runAIPortfolioGenerator(){
   status.innerHTML = '🤖 <strong style="color:#7c3aed">Analyzing your profile + ' + researchProviderCount + ' research sources…</strong>';
   $("aiGenResultBody").innerHTML = '<div style="text-align:center;padding:40px 20px;color:var(--text3)"><div style="font-size:36px;margin-bottom:14px">🤖</div><div style="font-size:14px">Synthesizing institutional research…<br>Classifying client risk profile…<br>Constructing portfolio…</div></div>';
 
-  // ─── 4. If no Claude key, run deterministic engine fallback ───
-  if(!claudeKey){
+  // ─── 4. If no AI key, run deterministic engine fallback ───
+  if(!aiKey){
     return runDeterministicEngine({risk, horizon, country, netWorth, grossIncome, surplus, totalAssets, totalDebt, goals, investments});
   }
 
-  // ─── 5. Build prompt and call Claude API ───
+  // ─── 5. Build prompt and call the AI engine ───
   // Filter to funds the client can legally buy (US-listed vs UCITS)
   const eligibleUniverse = AI_FUND_UNIVERSE.filter(f => isFundEligibleForCountry(f, country));
   const universeStr = eligibleUniverse.map(f =>
@@ -8855,7 +8857,7 @@ Constraints:
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "x-api-key": claudeKey,
+        "x-api-key": aiKey,
         "anthropic-version": "2023-06-01",
         "anthropic-dangerous-direct-browser-access": "true"
       },
@@ -8867,7 +8869,7 @@ Constraints:
     });
     if(!r.ok){
       const errText = await r.text();
-      throw new Error("Claude API " + r.status + ": " + errText.slice(0,200));
+      throw new Error("AI service " + r.status + ": " + errText.slice(0,200));
     }
     const j = await r.json();
     const text = j.content?.[0]?.text || "";
@@ -8875,7 +8877,7 @@ Constraints:
     if(!m) throw new Error("Agent returned no parseable JSON");
     const rec = JSON.parse(m[0]);
     // ─── Recompute portfolio metrics against the actual fund universe ───
-    // Claude's expectedReturn / expectedVolatility are advisory — overwrite
+    // The AI engine's expectedReturn / expectedVolatility are advisory — overwrite
     // with the deterministic weighted-mean against fund.mu / fund.sigma so
     // AI Builder matches Investment Proposal and Portfolio Comparison exactly.
     if(Array.isArray(rec.positions)){
@@ -8903,12 +8905,12 @@ Constraints:
     renderAIGenResult(rec, {risk, horizon, country, netWorth, grossIncome, surplus, researchProviderCount});
     status.innerHTML = '✓ <strong style="color:#1b6841">Portfolio recommendation ready</strong> — review below, then click <strong>↓ Apply to Proposal Below</strong>';
   } catch(e){
-    $("aiGenResultBody").innerHTML = '<div style="padding:14px;background:rgba(227,24,55,.05);border-left:3px solid var(--red);border-radius:6px"><strong style="color:var(--red)">Error:</strong> ' + e.message + '<div style="font-size:12px;color:var(--text3);margin-top:10px;line-height:1.6"><strong>Common issues:</strong><br>• Claude API key missing — set one in admin → API Keys tab<br>• Network/CORS error — check connection<br>• Rate-limited — wait 60s and retry</div></div>';
+    $("aiGenResultBody").innerHTML = '<div style="padding:14px;background:rgba(227,24,55,.05);border-left:3px solid var(--red);border-radius:6px"><strong style="color:var(--red)">Error:</strong> ' + e.message + '<div style="font-size:12px;color:var(--text3);margin-top:10px;line-height:1.6"><strong>Common issues:</strong><br>• AI key missing — set one in admin → API Keys tab<br>• Network/CORS error — check connection<br>• Rate-limited — wait 60s and retry</div></div>';
     status.textContent = "✗ Generation failed";
   }
 }
 
-// ── Deterministic fallback engine (no Claude API required) ───
+// ── Deterministic fallback engine (no AI key required) ───
 // ═══════════════════════════════════════════════════════════
 // SIMPLE AI BUILDER — average-user friendly wrapper
 // Takes 4 simple inputs + auto-pulls everything else from main app state
@@ -14141,7 +14143,7 @@ async function generatePDFReport(){
     const confidTxt = val("rptConfid")||"confidential";
 
     const THEMES={
-      blue:[30,64,175], navy:[15,23,42], forest:[20,83,45],
+      blue:[0,87,184], navy:[15,23,42], forest:[20,83,45],
       graphite:[55,65,81], crimson:[153,27,27], teal:[15,118,110]
     };
     const ac=THEMES[themeKey]||THEMES.blue;   // accent RGB array
@@ -15781,12 +15783,22 @@ function renderTornado(results,base){
 // ═══════════════════════════════════════════════════════════
 document.addEventListener("DOMContentLoaded",function(){
   // ── Version guard: clear stale localStorage on app update ──────────────────
+  // One-time migration: the AI-assistant key was previously stored under a
+  // provider-specific name. Move it to the neutral key BEFORE the version
+  // guard runs so it isn't wiped. (Old name kept only for this migration.)
+  (function migrateAIKey(){
+    try {
+      const oldK = localStorage.getItem("wa_claude_key");
+      if(oldK && !localStorage.getItem("wa_ai_key")) localStorage.setItem("wa_ai_key", oldK);
+      if(oldK) localStorage.removeItem("wa_claude_key");
+    } catch(_){}
+  })();
   (function checkVersion(){
     const stored = localStorage.getItem("wa_app_version");
     if(stored && stored !== APP_VERSION){
       // New version deployed — wipe all app keys (API keys excluded)
       Object.keys(localStorage)
-        .filter(k => k.startsWith("wa_") && k !== "wa_claude_key" && k !== "wa_av_key" && k !== "wa_fh_key")
+        .filter(k => k.startsWith("wa_") && k !== "wa_ai_key" && k !== "wa_av_key" && k !== "wa_fh_key")
         .forEach(k => localStorage.removeItem(k));
       // Brief update notification banner
       const banner = document.createElement("div");
@@ -15923,9 +15935,9 @@ document.addEventListener("DOMContentLoaded",function(){
     if($("pfFhKey")) $("pfFhKey").value=fhk;
     if($("prFhKey")) $("prFhKey").value=fhk;
   }
-  // Restore Claude API key
-  const ck=getClaudeKey();
-  if(ck && $("claudeKeyInput")) $("claudeKeyInput").value=ck;
+  // Restore AI key
+  const ck=getAIKey();
+  if(ck && $("aiKeyInput")) $("aiKeyInput").value=ck;
   // Initial state
   refreshAssetTypes();
   refreshLoanTypes();
