@@ -13736,9 +13736,29 @@ async function generatePDFReport(){
     })();
 
     // ── Helpers ───────────────────────────────────────────────────────────────
+    // Crisp corner logo: preserves aspect ratio (no stretch) within a small box
+    // and embeds losslessly (compression "NONE") so a high-res source stays sharp.
+    // rightX = right edge; edgeY = top edge (vAnchor "top") or bottom edge ("bottom").
+    function placeLogo(imgData, rightX, edgeY, maxW, maxH, vAnchor){
+      if(!imgData) return false;
+      try {
+        const p = doc.getImageProperties(imgData);
+        const fmt = (p.fileType==="PNG" || imgData.indexOf("image/png")>=0) ? "PNG"
+                  : (p.fileType==="JPEG" || imgData.indexOf("image/jpeg")>=0 || imgData.indexOf("image/jpg")>=0) ? "JPEG" : "PNG";
+        const ar = (p.width||1)/(p.height||1);
+        let w = maxW, h = w/ar;
+        if(h > maxH){ h = maxH; w = h*ar; }
+        const x  = rightX - w;
+        const yy = (vAnchor === "bottom") ? (edgeY - h) : edgeY;
+        doc.addImage(imgData, fmt, x, yy, w, h, undefined, "NONE");
+        return true;
+      } catch(_){
+        try { doc.addImage(imgData, "PNG", rightX-maxW, (vAnchor==="bottom"?edgeY-maxH:edgeY), maxW, maxH); return true; } catch(__){ return false; }
+      }
+    }
     function newPage(){
       doc.addPage();
-      // Logo top-right on every page header when "header_all" or "header_last" is set
+      // Small logo top-right corner when "header_all" or "header_last" is set
       let _hdrLogo = false, _ldH = "", _lpH = "cover_top";
       try {
         _ldH = localStorage.getItem("wa_rpt_logo") || "";
@@ -13748,12 +13768,7 @@ async function generatePDFReport(){
       // ── Institutional running header: doc title (left) · firm or logo (right) + thin rule ──
       doc.setFont("times","normal"); doc.setFontSize(7.5); doc.setTextColor(140);
       doc.text(val("rptTitle")||"Wealth Analysis", M, 10);
-      if(_hdrLogo){
-        try {
-          const fmtSig = (_ldH.indexOf("image/png")>=0)?"PNG":((_ldH.indexOf("image/jpeg")>=0||_ldH.indexOf("image/jpg")>=0)?"JPEG":"PNG");
-          doc.addImage(_ldH, fmtSig, pw - M - 22, 2.5, 18, 8);   // top-right logo (replaces firm text to avoid overlap)
-        } catch(_){ doc.text(val("rptFirm")||"Private Wealth Intelligence", pw-M, 10, {align:"right"}); }
-      } else {
+      if(!(_hdrLogo && placeLogo(_ldH, pw - M, 3, 11, 5.5, "top"))){
         doc.text(val("rptFirm")||"Private Wealth Intelligence", pw-M, 10, {align:"right"});
       }
       doc.setDrawColor(...ac); doc.setLineWidth(0.4); doc.line(M, 12.5, pw-M, 12.5);
@@ -13898,13 +13913,22 @@ async function generatePDFReport(){
     // ─── Optional client/firm logo on cover ───
     const logoData = (function(){ try { return localStorage.getItem("wa_rpt_logo") || ""; } catch(_) { return ""; } })();
     const logoPos  = (function(){ try { return localStorage.getItem("wa_rpt_logo_pos") || "cover_top"; } catch(_) { return "cover_top"; } })();
+    // Aspect-preserving (no stretch) + lossless ("NONE") embed, centered within the box → stays sharp.
     function _addLogoImage(x, y, maxW, maxH){
       if(!logoData) return;
       try {
         const fmtSig = (logoData.indexOf("image/png")>=0)?"PNG"
                     : (logoData.indexOf("image/jpeg")>=0||logoData.indexOf("image/jpg")>=0)?"JPEG"
                     : "PNG"; // SVG handled via PNG fallback in jsPDF
-        doc.addImage(logoData, fmtSig, x, y, maxW, maxH);
+        let w = maxW, h = maxH;
+        try {
+          const p = doc.getImageProperties(logoData);
+          const ar = (p.width||1)/(p.height||1);
+          w = maxW; h = w/ar;
+          if(h > maxH){ h = maxH; w = h*ar; }
+        } catch(_){}
+        const cx = x + (maxW - w)/2, cy = y + (maxH - h)/2;   // center within the box
+        doc.addImage(logoData, fmtSig, cx, cy, w, h, undefined, "NONE");
       } catch(e){ console.warn("logo render failed:", e); }
     }
     // Brand line (firm, small caps) top-left + optional logo
@@ -13913,7 +13937,7 @@ async function generatePDFReport(){
     if(logoData && logoPos === "cover_top"){
       _addLogoImage(pw/2 - 20, 11, 40, 12);
     } else if(logoData && (logoPos === "cover_corner" || logoPos === "header_last")){
-      _addLogoImage(pw - M - 26, 14, 24, 10);
+      _addLogoImage(pw - M - 18, 13, 16, 8);   // small top-right corner mark
     }
     // Thin rule under the brand
     doc.setDrawColor(...ac); doc.setLineWidth(0.4); doc.line(M,26,pw-M,26);
@@ -14643,13 +14667,12 @@ async function generatePDFReport(){
       catch(e){ console.warn("PDF section '"+k+"' failed:", e); }
     });
 
-    // ── Logo bottom-right on the LAST page (when "header_last" is selected) ──
+    // ── Small logo bottom-right on the LAST page (when "header_last" is selected) ──
     try {
       const _ldL = localStorage.getItem("wa_rpt_logo") || "";
       const _lpL = localStorage.getItem("wa_rpt_logo_pos") || "cover_top";
       if(_ldL && _lpL === "header_last"){
-        const fmtSig = (_ldL.indexOf("image/png")>=0)?"PNG":((_ldL.indexOf("image/jpeg")>=0||_ldL.indexOf("image/jpg")>=0)?"JPEG":"PNG");
-        doc.addImage(_ldL, fmtSig, pw - M - 28, ph - 24, 26, 10);   // bottom-right, above the footer rule
+        placeLogo(_ldL, pw - M, ph - 14, 13, 6.5, "bottom");   // small, aspect-preserved, above the footer rule
       }
     } catch(_){}
 
