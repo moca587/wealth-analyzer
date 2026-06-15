@@ -3446,6 +3446,58 @@ const TEST_SUITE = [
   {name:"TX tax (no income tax)", fn:"calcBracketTax", inputs:{income:200000,state:"TX"}, expected:0, tol:0.01},
   {name:"Retirement number $80k 25y", fn:"calcRetirementNumber", inputs:{curAge:40,retAge:65,spend:80000,inf:0.038,disc:0.068}, validator:(r)=>r&&r.pvToday>500000&&r.pvToday<3000000, description:"PV today $0.5M-$3M"},
   {name:"MC: p10 < p50 < p90", fn:"runMC", inputs:{nw:100000,mu:7,sig:12,years:10,sims:500,sav:10000}, validator:(r)=>r.p10<r.p50&&r.p50<r.p90, description:"Ordering"},
+
+  {
+        name: "MC: zero volatility still ordered",
+        fn: "runMC",
+        inputs: {},
+        validator: () => {
+          const r = runMC(100000, 7, 0, 20, 500, 10000);
+          return r.p10 <= r.p50 && r.p50 <= r.p90;
+        },
+        description: "Zero volatility produces valid percentiles"
+      },
+
+      {
+        name: "MC: higher savings increases p50",
+        fn: "runMC",
+        inputs: {},
+        validator: () => {
+          const low = runMC(100000, 7, 12, 20, 500, 10000);
+          const high = runMC(100000, 7, 12, 20, 500, 50000);
+          return high.p50 > low.p50;
+        },
+        description: "More annual savings → higher median wealth"
+      },
+
+      {
+        name: "MC: higher return increases p50",
+        fn: "runMC",
+        inputs: {},
+        validator: () => {
+          const low = runMC(100000, 5, 12, 20, 500, 10000);
+          const high = runMC(100000, 9, 12, 20, 500, 10000);
+          return high.p50 > low.p50;
+        },
+        description: "Higher expected return → higher median wealth"
+      },
+
+      {
+        name: "MC: higher volatility widens distribution",
+        fn: "runMC",
+        inputs: {},
+        validator: () => {
+          const low = runMC(100000, 7, 5, 20, 500, 10000);
+          const high = runMC(100000, 7, 20, 20, 500, 10000);
+
+          const lowSpread = low.p90 - low.p10;
+          const highSpread = high.p90 - high.p10;
+
+          return highSpread > lowSpread;
+        },
+        description: "Higher volatility → wider P90-P10 range"
+      },
+
   {name:"Box-Muller bounded", fn:"boxMuller", inputs:{}, validator:(r)=>isFinite(r)&&Math.abs(r)<6, description:"Finite, |z|<6"}
 ];
 
