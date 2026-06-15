@@ -81,6 +81,11 @@ textarea{font-family:var(--fm);font-size:12px;width:100%;min-height:70px;resize:
 .btn:hover{background:var(--blue2)}
 .btn-ghost{background:transparent;color:var(--blue);border:1.5px solid rgba(0,87,184,.25);padding:7px 16px;border-radius:50px;font-size:12px;font-weight:600;cursor:pointer}
 .btn-ghost:hover{background:rgba(0,87,184,.05)}
+/* iOS-style on/off switch (feature flags) */
+.wa-switch{position:relative;width:52px;height:28px;border-radius:50px;border:none;background:#cbd5e1;cursor:pointer;padding:0;flex:0 0 auto;transition:background .2s}
+.wa-switch.on{background:var(--green)}
+.wa-switch .wa-knob{position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.3);transition:left .2s}
+.wa-switch.on .wa-knob{left:27px}
 .btn-danger{background:var(--red);color:#fff;border:none;padding:7px 16px;border-radius:50px;font-size:12px;font-weight:600;cursor:pointer}
 .btn-purple{background:linear-gradient(135deg,#7c3aed,#0057b8);color:#fff;border:none;padding:10px 24px;border-radius:50px;font-size:14px;font-weight:700;cursor:pointer;box-shadow:0 4px 12px rgba(124,58,237,.25)}
 .btn-purple:hover{filter:brightness(1.05)}
@@ -269,6 +274,18 @@ textarea{font-family:var(--fm);font-size:12px;width:100%;min-height:70px;resize:
   <div class="hero purple">
     <h1>🤖 AI Portfolio Construction Agent</h1>
     <p>Synthesizes research from 16 institutional sources, the client's financial plan, and a curated fund universe to produce a complete portfolio recommendation. Powered by AI.</p>
+  </div>
+
+  <!-- Master switch: show / hide the AI Portfolio Builder in the client-facing app -->
+  <div class="panel" style="border:1px solid rgba(124,58,237,.28);background:linear-gradient(135deg,#fff,#faf5ff)">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap">
+      <div style="flex:1;min-width:240px">
+        <div class="ptitle" style="margin:0 0 4px">Client-app feature · AI Portfolio Builder</div>
+        <div class="pdesc" style="margin:0">Controls whether the <strong>AI Portfolio Builder</strong> tab appears in the client-facing Wealth Analyzer app. Switch it off to ship the clean, advisor-only edition. Current state: <strong id="aiBuilderSwitchState">…</strong></div>
+      </div>
+      <button class="wa-switch" id="aiBuilderSwitch" role="switch" aria-checked="true" data-action="toggleAIBuilderFeature" title="Toggle AI Portfolio Builder in the client app"><span class="wa-knob"></span></button>
+    </div>
+    <div class="pdesc" style="margin-top:10px;font-size:11px;color:var(--ink3)">Applies on the client app's next load, or instantly when its browser tab regains focus (same site / shared browser).</div>
   </div>
 
   <div class="panel">
@@ -1066,7 +1083,7 @@ function toggleQuestionnairePreview(){
 // ═══════════════════════════════════════════════════════════
 // VERSION + UTILS
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260615-1522";
+const APP_VERSION = "20260615-1714";
 const $ = (id) => document.getElementById(id);
 const $$ = (sel, ctx) => Array.from((ctx||document).querySelectorAll(sel));
 
@@ -3020,7 +3037,32 @@ async function autoRefreshAllResearch(silent){
   }
 }
 
+// ── AI Portfolio Builder feature flag — controls visibility in the client app ──
+// The client app reads "wa_ai_builder_enabled" from shared (same-origin)
+// localStorage. Default ON so existing installs are unchanged until toggled.
+function aiBuilderEnabled(){
+  const v = localStorage.getItem("wa_ai_builder_enabled");
+  return v === null ? true : v === "true";
+}
+function renderAIBuilderSwitch(){
+  const sw  = document.getElementById("aiBuilderSwitch");
+  const lbl = document.getElementById("aiBuilderSwitchState");
+  const on  = aiBuilderEnabled();
+  if(sw){ sw.classList.toggle("on", on); sw.setAttribute("aria-checked", on ? "true" : "false"); }
+  if(lbl){ lbl.textContent = on ? "ON — visible to clients" : "OFF — hidden in client app"; lbl.style.color = on ? "var(--green)" : "var(--ink3)"; }
+}
+function toggleAIBuilderFeature(){
+  const next = !aiBuilderEnabled();
+  localStorage.setItem("wa_ai_builder_enabled", next ? "true" : "false");
+  renderAIBuilderSwitch();
+  try { toast(next ? "AI Portfolio Builder shown in client app" : "AI Portfolio Builder hidden in client app", "ok"); } catch(_){}
+  try { addLog("info", "AI Portfolio Builder feature " + (next ? "ENABLED" : "DISABLED") + " in client app"); } catch(_){}
+}
+window.toggleAIBuilderFeature = toggleAIBuilderFeature;
+
 function renderAgent(){
+  // 0. Reflect the AI Builder feature-flag state on the master switch
+  renderAIBuilderSwitch();
   // 1. Render the picker with all 16 sources TICKED
   renderAgentPicker();
   // 2. Trigger background auto-refresh (non-blocking)
@@ -5883,6 +5925,7 @@ function init(){
   $("ver").textContent = "v"+APP_VERSION;
   function safe(name, fn){ try { fn(); } catch(e){ console.error("["+name+"]",e); addLog("err",name+": "+e.message); } }
   safe("dashboard", renderDashboard);
+  safe("aiBuilderSwitch", renderAIBuilderSwitch);
   safe("startLivePoll", startLivePoll);
   // Self-test
   const requiredEls = ["tab-dashboard","tab-agent","tab-research","tab-testbench","tab-keys","tab-logs"];

@@ -1125,7 +1125,7 @@ input[type=date]{color-scheme:light}
       <span class="intro-feat">Monte Carlo simulation</span>
       <span class="intro-feat">Goals-based funding</span>
       <span class="intro-feat">39-country accounts</span>
-      <span class="intro-feat">AI portfolio builder</span>
+      <span class="intro-feat" id="introFeatAI">AI portfolio builder</span>
     </div>
     <button class="intro-launch" onclick="launchApp()" autofocus>
       Launch Wealth Analyzer
@@ -2701,7 +2701,7 @@ input[type=date]{color-scheme:light}
 <div class="tab" id="tab-proposal">
 
 <!-- Pointer to AI Portfolio Builder tab -->
-<div class="panel" style="background:linear-gradient(135deg,#fff,#f3f0ff);border:1px solid rgba(124,58,237,.20);display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap">
+<div class="panel" id="aiBuilderPointer" style="background:linear-gradient(135deg,#fff,#f3f0ff);border:1px solid rgba(124,58,237,.20);display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap">
   <div style="flex:1;min-width:200px">
     <div style="font-size:13px;font-weight:700;color:#7c3aed;margin-bottom:2px">🤖 Need AI to build this portfolio for you?</div>
     <div style="font-size:12px;color:var(--text3);line-height:1.5">Open the new <strong>AI Portfolio Builder</strong> tab — answer 4 simple questions and get a complete recommendation in 15 seconds.</div>
@@ -3453,7 +3453,7 @@ input[type=date]{color-scheme:light}
 // ═══════════════════════════════════════════════════════════
 // VERSION — updated by build-standalone.pl on each build
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260615-1522";
+const APP_VERSION = "20260615-1714";
 
 // ═══════════════════════════════════════════════════════════
 // DATA
@@ -5618,6 +5618,32 @@ function showTab(name,el){
   }
   if(name==="goalsbased"){
     try { if(typeof runGoalsBased === "function") runGoalsBased(); } catch(e){ console.warn("runGoalsBased:", e); }
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// FEATURE FLAG — AI Portfolio Builder (toggled from the Admin Console)
+// The advisor flips this in Admin → AI Portfolio Agent. Both apps share
+// localStorage on the same origin, so the switch reflects here on load
+// and whenever the tab regains focus. Default ON (current behaviour).
+// ═══════════════════════════════════════════════════════════════════
+function aiBuilderEnabled(){
+  try { const v = localStorage.getItem("wa_ai_builder_enabled"); return v === null ? true : v === "true"; }
+  catch(_){ return true; }
+}
+function applyAIBuilderFlag(){
+  const on = aiBuilderEnabled();
+  const nav   = document.querySelector('.nav-item[data-tab="ai-builder"]');
+  const panel = document.getElementById("tab-ai-builder");
+  const ptr   = document.getElementById("aiBuilderPointer");
+  const chip  = document.getElementById("introFeatAI");
+  if(nav)   nav.style.display   = on ? "" : "none";
+  if(ptr)   ptr.style.display   = on ? "" : "none";
+  if(chip)  chip.style.display  = on ? "" : "none";
+  if(panel) panel.style.display = on ? "" : "none";   // inline none overrides .tab.active
+  // If the feature is switched OFF while its tab is open, fall back to Household
+  if(!on && panel && panel.classList.contains("active")){
+    showTab("household", document.querySelector('.nav-item[data-tab="household"]'));
   }
 }
 
@@ -15836,7 +15862,7 @@ document.addEventListener("DOMContentLoaded",function(){
     if(stored && stored !== APP_VERSION){
       // New version deployed — wipe all app keys (API keys excluded)
       Object.keys(localStorage)
-        .filter(k => k.startsWith("wa_") && k !== "wa_ai_key" && k !== "wa_av_key" && k !== "wa_fh_key")
+        .filter(k => k.startsWith("wa_") && k !== "wa_ai_key" && k !== "wa_av_key" && k !== "wa_fh_key" && k !== "wa_ai_builder_enabled")
         .forEach(k => localStorage.removeItem(k));
       // Brief update notification banner
       const banner = document.createElement("div");
@@ -15858,6 +15884,13 @@ document.addEventListener("DOMContentLoaded",function(){
     }
     localStorage.setItem("wa_app_version", APP_VERSION);
   })();
+
+  // ── Feature flags: apply AI Portfolio Builder visibility (set in Admin Console).
+  // Re-apply when the tab regains focus so an admin toggle reflects without a reload.
+  try { applyAIBuilderFlag(); } catch(_){}
+  document.addEventListener("visibilitychange", function(){
+    if(document.visibilityState === "visible"){ try { applyAIBuilderFlag(); } catch(_){} }
+  });
 
   // ── Live update poller: polls every 15s + on focus, AUTO-RELOADS on new version.
   // 5-second countdown banner gives the user a chance to cancel if they're mid-edit.
