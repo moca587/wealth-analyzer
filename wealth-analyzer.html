@@ -6866,8 +6866,28 @@ function setBand(mode){
   if(lastSimPaths) redrawChart(lastSimPaths);
 }
 function applyCustom(){
-  band={low:num("blow",10),mid:num("bmid",50),high:num("bhigh",90)};
-  setT("bdesc","Custom: "+band.low+"th / "+band.mid+"th / "+band.high+"th.");
+  const low = num("blow", 10);
+  const mid = num("bmid", 50);
+  const high = num("bhigh", 90);
+
+  if (
+    !Number.isFinite(low) ||
+    !Number.isFinite(mid) ||
+    !Number.isFinite(high) ||
+    low < 1 ||
+    mid < 1 ||
+    high < 1 ||
+    low > 99 ||
+    mid > 99 ||
+    high > 99 ||
+    !(low < mid && mid < high)
+  ) {
+    alert("Custom probability bands must be numbers between 1 and 99 in increasing order.");
+    return;
+  }
+
+  band = { low, mid, high };
+  setT("bdesc","Custom: "+band.low+"/"+band.mid+"/"+band.high+"%");
   if(lastSimPaths) redrawChart(lastSimPaths);
 }
 
