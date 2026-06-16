@@ -11801,43 +11801,97 @@ function drawFanChart(paths){
     data: {
       labels: fanData.map(r => "Year " + r.year),
       // draw lines/bars 
+      // datasets: [
+      //   {
+      //     label: "P90",
+      //     data: fanData.map(r => r.p90),
+      //     borderWidth: 1.5,
+      //     pointRadius: 0,
+      //     tension: 0.25
+      //   },
+      //   {
+      //     label: "P75",
+      //     data: fanData.map(r => r.p75),
+      //     borderWidth: 1,
+      //     pointRadius: 0,
+      //     tension: 0.25
+      //   },
+      //   {
+      //     label: "Median",
+      //     data: fanData.map(r => r.p50),
+      //     borderWidth: 3,
+      //     pointRadius: 0,
+      //     tension: 0.25
+      //   },
+      //   {
+      //     label: "P25",
+      //     data: fanData.map(r => r.p25),
+      //     borderWidth: 1,
+      //     pointRadius: 0,
+      //     tension: 0.25
+      //   },
+      //   {
+      //     label: "P10",
+      //     data: fanData.map(r => r.p10),
+      //     borderWidth: 1.5,
+      //     pointRadius: 0,
+      //     tension: 0.25
+      //   }
+      // ]
       datasets: [
-        {
-          label: "P90",
-          data: fanData.map(r => r.p90),
-          borderWidth: 1.5,
-          pointRadius: 0,
-          tension: 0.25
-        },
-        {
-          label: "P75",
-          data: fanData.map(r => r.p75),
-          borderWidth: 1,
-          pointRadius: 0,
-          tension: 0.25
-        },
-        {
-          label: "Median",
-          data: fanData.map(r => r.p50),
-          borderWidth: 3,
-          pointRadius: 0,
-          tension: 0.25
-        },
-        {
-          label: "P25",
-          data: fanData.map(r => r.p25),
-          borderWidth: 1,
-          pointRadius: 0,
-          tension: 0.25
-        },
-        {
-          label: "P10",
-          data: fanData.map(r => r.p10),
-          borderWidth: 1.5,
-          pointRadius: 0,
-          tension: 0.25
-        }
-      ]
+  // Upper outer band line
+  {
+    label: "P90",
+    data: fanData.map(r => r.p90),
+    borderWidth: 1,
+    pointRadius: 0,
+    tension: 0.25,
+    fill: false
+  },
+
+  // Fill from P10 up to P90
+  {
+    label: "P10-P90 range",
+    data: fanData.map(r => r.p10),
+    borderWidth: 1,
+    pointRadius: 0,
+    tension: 0.25,
+    fill: "-1",
+    backgroundColor: "rgba(91,155,213,0.12)"
+  },
+
+  // Upper inner band line
+  {
+    label: "P75",
+    data: fanData.map(r => r.p75),
+    borderWidth: 1,
+    pointRadius: 0,
+    tension: 0.25,
+    fill: false
+  },
+
+  // Fill from P25 up to P75
+  {
+    label: "P25-P75 range",
+    data: fanData.map(r => r.p25),
+    borderWidth: 1,
+    pointRadius: 0,
+    tension: 0.25,
+    fill: "-1",
+    backgroundColor: "rgba(91,155,213,0.22)"
+  },
+
+  // Median line
+  {
+    label: "Median",
+    data: fanData.map(r => r.p50),
+    borderWidth: 3,
+    pointRadius: 0,
+    tension: 0.25,
+    fill: false
+  }
+]
+      
     },
     options: {
       responsive: true,
