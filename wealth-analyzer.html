@@ -1783,6 +1783,18 @@ input[type=date]{color-scheme:light}
           <option value="1000">1000 — precise</option>
         </select>
       </div>
+
+      <!-- New: Stress scenario -->
+      <div class="frow">
+        <label class="flbl">Stress scenario</label>
+        <select id="stressScenario" class="w200">
+          <option value="base" selected>Base case</option>
+          <option value="high_inflation">High inflation</option>
+          <option value="market_crash">Market crash</option>
+          <option value="lost_decade">Lost decade</option>
+        </select>
+      </div>
+
       <div class="frow" style="margin-top:8px"><label class="flbl">Portfolio rebalancing</label>
         <select id="rebalFreq" class="w180">
           <option value="none" selected>None — static allocation</option>
@@ -1794,6 +1806,9 @@ input[type=date]{color-scheme:light}
         <input type="number" id="tgtEquity" value="60" min="0" max="100" step="5" class="w120">
         <span style="font-size:11px;color:var(--text3);margin-left:8px">remainder in cash</span>
       </div>
+
+      
+
       <div style="font-size:11px;color:var(--text3);line-height:1.6;margin-top:4px;padding:8px 10px;background:var(--bg3);border-radius:var(--rs);border:1px solid var(--border)">
         <strong style="color:var(--text2)">Two-bucket model:</strong> the simulation splits all wealth into an <em>invested</em> bucket (earns your return mean ± volatility each year) and a <em>cash</em> bucket (flat — no growth, but accumulates annual savings). This % sets how much stays invested. When rebalancing is on, the split is restored each year or whenever drift exceeds 5%. Has no effect if rebalancing is set to None.
       </div>
@@ -1830,6 +1845,14 @@ input[type=date]{color-scheme:light}
     <div class="chart-wrap"><canvas id="mcChart" role="img" aria-label="Monte Carlo wealth projection chart"></canvas></div>
     <!-- Outcome values grid -->
     <div id="probGrid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:14px;text-align:center"></div>
+
+    <!-- Fan chart -->
+    <div style="font-size:12px;color:var(--text3);margin-top:22px;margin-bottom:10px">
+      Fan chart: percentile paths through time. The wider the spread, the greater the uncertainty.
+    </div>
+    <div class="chart-wrap">
+      <canvas id="fanChart" role="img" aria-label="Monte Carlo fan chart showing percentile paths through time"></canvas>
+    </div>
 
     <!-- <div style="margin-top:10px;padding:8px 12px;background:var(--bg3);border-radius:var(--rs);font-size:11px;color:var(--text3);line-height:1.6">
       <strong style="color:var(--text2)">How to read this:</strong> Each bar is a possible outcome — <strong style="color:var(--text2)">Pessimistic</strong> (10th percentile), <strong style="color:var(--text2)">Median</strong> (50th), and <strong style="color:var(--text2)">Optimistic</strong> (90th). The dashed line is today's wealth.
@@ -5150,6 +5173,7 @@ let proposals=[]; let propSeq=0;
 let band={low:30,mid:50,high:80};
 let bandMode="standard";
 let mcChart=null; let pfClassChart=null; let prClassChart=null; let overviewDonutChart=null;
+let fanChart = null;
 let lastSimPaths=null; let lastSimYrs=null;
 let _taxUserEdited=false;
 let _penEdited=false;
@@ -11120,6 +11144,71 @@ function renderClaimAge(){
 }
 window.renderClaimAge=renderClaimAge;
 
+// Scenario: what inflation rate to use
+function scenarioInflation(year, baseInf){
+  const scenario = val("stressScenario") || "base";
+
+  if(scenario === "high_inflation"){
+    if(year < 3) return 0.08;
+    if(year < 7) return 0.06;
+  }
+
+  return baseInf;
+}
+
+// Scenario: Override market returns 
+function scenarioReturnShock(year){
+  const scenario = val("stressScenario") || "base"; // if value is empty, use base 
+
+  if(scenario === "market_crash"){
+    if(year > 0 && year <= 3) return 0.08;
+    if(year > 3 && year <= 7) return 0.06;
+  }
+
+  if(scenario === "lost_decade"){
+    if(year > 0 && year <= 10) return 0.00;
+  }
+
+  return null;
+}
+
+// Finds a percentile from a sorted array  
+function percentileFromSorted(sorted, p){
+  if(!sorted.length) return 0;
+
+  const idx = (p / 100) * (sorted.length - 1);
+  const lo = Math.floor(idx);
+  const hi = Math.ceil(idx);
+  if(lo === hi) return sorted[lo];
+  return sorted[lo] + (sorted[hi] - sorted[lo]) * (idx - lo);
+}
+
+// Takes Monte Carlo results and converts them into a format suitable for fan charting
+// Each column in paths is one year, each row is a simulation 
+function buildFanChartData(paths){
+  if(!paths || !paths.length) return [];
+
+  const years = paths[0].length;
+
+  const rows = [];
+  for(let y = 0; y < years; y++){
+    const vals = paths.map(p => p[y]).sort((a,b) => a - b);
+
+    rows.push({
+      year: y,
+      p5: percentileFromSorted(vals, 5),
+      p10: percentileFromSorted(vals, 10),
+      p25: percentileFromSorted(vals, 25),
+      p50: percentileFromSorted(vals, 50),
+      p75: percentileFromSorted(vals, 75),
+      p90: percentileFromSorted(vals, 90),
+      p95: percentileFromSorted(vals, 95)
+    });
+  }
+
+  return rows;
+}
+
 // Main Monte Carlo engine for the "what could your wealth look like" chart
 function runMC(years,sims,muOverride,sigOverride){
   // Override → proposal-driven (when AI applied) → household effective (default)
@@ -11181,14 +11270,14 @@ function runMC(years,sims,muOverride,sigOverride){
   // Pre-build goal outflow map: calendar year → total annual outflow across all goals
   const cy0=currentYear();
   const goalOutMap={};
-  
+
   goals.forEach(g=>{
     for(let yr=g.startYear;yr<=g.endYear;yr++){
       goalOutMap[yr]=(goalOutMap[yr]||0)+g.amt;
     }
   });
 
-  const paths=[];
+  const paths=[]; // collection of Monte Carlo simulation results
   for(let s=0;s<sims;s++){
     let cash=cashSeed, inv=investSeed, prop=propVal;
     let retPot=retSeed; // retirement pool per simulation path
@@ -11196,10 +11285,30 @@ function runMC(years,sims,muOverride,sigOverride){
     let loanState=loans.map(l=>({bal:l.bal,rate:l.rate/100,yrs:l.yrs}));
     const path=[];
 
+    // Yearly loop. One iteration simulates one year of the client's life 
+    // Updates the household's finances for one simulated year 
+
+    // Age increases
+    // Retirement status updates
+    // Pensions and RMDs are calculated
+    // Salary stops after retirement
+    // Expenses are paid
+    // Taxes are paid
+    // Loans are amortized
+    // Savings are added if possible
+    // Deficits reduce cash/investments
+    // Goals are paid from wealth
+    // Portfolio is optionally rebalanced
     for(let y=0;y<=years;y++){
-      const age=c1Age0+y;
+      const infY = scenarioInflation(y, inf);
+      const returnShock = scenarioReturnShock(y);
+
+      // age and retirement status 
+      const age=c1Age0+y; 
       const retired=age>=retAge;
-      const pen1=calcPension(penSrc,penAnn,penStart,penCola,age,inf);
+
+      // calculate pension / retirement income 
+      const pen1=calcPension(penSrc,penAnn,penStart,penCola,age,inf); // pension income
       const c2AgeY=c2Age0+y;
       const pen2=showC2?calcPension(penSrc2,penAnn2,penStart2,penCola2,c2AgeY,inf):0;
       // ── Retirement pool: ALWAYS extremely conservative (3.5% nominal).
@@ -11226,8 +11335,8 @@ function runMC(years,sims,muOverride,sigOverride){
       }
       retPot=Math.max(0, retPot-rmd);
       const totalPen=pen1+pen2+rmd; // drawdown credited as income
-      const earnedInc=(retired?0:income)+equityVestIncomeYear(y);
-      const curExp=retired?retSpend*Math.pow(1+inf,y):expense;
+      const earnedInc=(retired?0:income)+equityVestIncomeYear(y); // earned income 
+      const curExp=retired?retSpend*Math.pow(1+infY,y):expense; // earned expenses 
       // Debt service
       let debtPaid=0;
       loanState.forEach(l=>{
@@ -11239,9 +11348,12 @@ function runMC(years,sims,muOverride,sigOverride){
         l.yrs=Math.max(0,l.yrs-1);
         debtPaid+=m;
       });
-      const totalInc=earnedInc+totalPen;
+
+      // calculate surplus 
+      const totalInc=earnedInc+totalPen; 
       const tax=getApplyTax()?computeIncomeTax(totalInc):0;
       const surplus=totalInc-tax-curExp-debtPaid;
+
       // Lock in savings target (only while working)
       let savDone=retired?0:Math.min(savAnnual, Math.max(surplus,0));
       let remaining=surplus-savDone;
@@ -11279,14 +11391,19 @@ function runMC(years,sims,muOverride,sigOverride){
           }
         }
       }
-      // Random returns
-      const gp_=glidepathAdjust(muNet,sig,y);
-      const r=(gp_.mu-0.5*gp_.sig*gp_.sig)+gp_.sig*boxMuller();
-      inv=inv*Math.exp(r);
+      // Random returns, or scenario shock overrides
+      if(returnShock !== null){
+        inv = inv * (1 + returnShock);
+      } else {
+        const gp_ = glidepathAdjust(muNet, sig, y);
+        const r = (gp_.mu - 0.5 * gp_.sig * gp_.sig) + gp_.sig * boxMuller();
+        inv = inv * Math.exp(r);
+      }
+
       const propR=0.03+0.02*boxMuller();
       prop=prop*(1+propR);
       if(!retired) income*=(1+raise);
-      expense*=(1+inf);
+      expense*=(1+infY);
       const debtTotal=loanState.reduce((s,l)=>s+l.bal,0);
       path.push(cash+inv+prop+other+retPot-debtTotal);
     }
@@ -11294,6 +11411,7 @@ function runMC(years,sims,muOverride,sigOverride){
   }
   return paths;
 }
+
 function percentileAt(paths,yearIdx,p){
   const arr=paths.map(pp=>pp[yearIdx]).sort((a,b)=>a-b);
   const i=Math.max(0,Math.min(arr.length-1,Math.floor(p/100*arr.length)));
@@ -11403,6 +11521,7 @@ function runSim(){
   const paths=runMC(yrs,sims);
   lastSimPaths=paths; lastSimYrs=yrs;
   redrawChart(paths);
+  drawFanChart(paths);
   renderGoalAnalysis(paths,yrs);
   renderCashFlow();
   renderFundingStatus(paths,yrs);
@@ -11660,6 +11779,87 @@ function redrawChart(paths){
   setH("probGrid",gridHtml);
   setT("m-med",fmtMoney(endValues[1])); // median (50th percentile) bar (index 1)
 }
+
+// Draws the fan chart
+function drawFanChart(paths){
+  const ctx = $("fanChart");
+  if(!ctx || !paths || !paths.length) return;
+
+  const fanData = buildFanChartData(paths);
+
+  if(fanChart) fanChart.destroy();
+
+  fanChart = new Chart(ctx, {
+    type: "line",
+    data: {
+      labels: fanData.map(r => "Year " + r.year),
+      // draw lines/bars 
+      datasets: [
+        {
+          label: "P90",
+          data: fanData.map(r => r.p90),
+          borderWidth: 1.5,
+          pointRadius: 0,
+          tension: 0.25
+        },
+        {
+          label: "P75",
+          data: fanData.map(r => r.p75),
+          borderWidth: 1,
+          pointRadius: 0,
+          tension: 0.25
+        },
+        {
+          label: "Median",
+          data: fanData.map(r => r.p50),
+          borderWidth: 3,
+          pointRadius: 0,
+          tension: 0.25
+        },
+        {
+          label: "P25",
+          data: fanData.map(r => r.p25),
+          borderWidth: 1,
+          pointRadius: 0,
+          tension: 0.25
+        },
+        {
+          label: "P10",
+          data: fanData.map(r => r.p10),
+          borderWidth: 1.5,
+          pointRadius: 0,
+          tension: 0.25
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: "index", intersect: false },
+      plugins: {
+        legend: { position: "bottom" },
+        tooltip: {
+          callbacks: {
+            label: ctx => `${ctx.dataset.label}: ${fmtMoney(ctx.parsed.y)}`
+          }
+        }
+      },
+      scales: {
+        x: {
+          grid: { display: false },
+          ticks: { color: "var(--text2)" }
+        },
+        y: {
+          ticks: {
+            callback: v => fmtMoney(v)
+          },
+          grid: { color: "rgba(0,0,0,0.06)" }
+        }
+      }
+    }
+  });
+}
+
 function renderGoalAnalysis(paths,yrs){
   if(goals.length===0){show("goalResults",false); return;}
   show("goalResults",true);
