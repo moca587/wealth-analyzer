@@ -2,8 +2,7 @@ import { describe, expect, test } from "vitest";
 import { runMonteCarlo } from "../monte-carlo";
 import type { SimulationInput, WealthPlan } from "../types";
 
-// Creates a test financial plan 
-// Can be overridden with partials for specific test cases
+// Creates a test Wealth Plan with sensible defaults, allowing overrides for specific test cases.
 function makePlan(overrides: Partial<WealthPlan> = {}): WealthPlan {
   const base: WealthPlan = {
     version: 1,
