@@ -11194,7 +11194,12 @@ function buildFanChartData(paths){
 
   const rows = [];
   for(let y = 0; y < years; y++){
-    const vals = paths.map(p => p[y]).sort((a,b) => a - b);
+    // const vals = paths.map(p => p[y]).sort((a,b) => a - b);
+    const inf = num("inf", 3.8) / 100;
+
+    const vals = paths
+      .map(p => p[y] / Math.pow(1 + inf, y))
+      .sort((a,b) => a - b);
 
     rows.push({
       year: y,
