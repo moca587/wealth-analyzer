@@ -2279,9 +2279,19 @@ input[type=date]{color-scheme:light}
     <div class="chart-wrap"><canvas id="mcChart" role="img" aria-label="Monte Carlo wealth projection chart"></canvas></div>
     <!-- Outcome values grid -->
     <div id="probGrid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:14px;text-align:center"></div>
-    <div style="margin-top:10px;padding:8px 12px;background:var(--bg3);border-radius:var(--rs);font-size:11px;color:var(--text3);line-height:1.6">
+
+    <!-- <div style="margin-top:10px;padding:8px 12px;background:var(--bg3);border-radius:var(--rs);font-size:11px;color:var(--text3);line-height:1.6">
       <strong style="color:var(--text2)">How to read this:</strong> Each bar is a possible outcome — <strong style="color:var(--text2)">Pessimistic</strong> (10th percentile), <strong style="color:var(--text2)">Median</strong> (50th), and <strong style="color:var(--text2)">Optimistic</strong> (90th). The dashed line is today's wealth.
+    </div> -->
+    <div style="margin-top:10px;padding:8px 12px;background:var(--bg3);border-radius:var(--rs);font-size:11px;color:var(--text3);line-height:1.6">
+    <strong style="color:var(--text2)">How to read this:</strong>
+    Each bar is a possible outcome —
+    <strong style="color:var(--text2)">Pessimistic</strong> (<span id="mcReadLow">30th</span> percentile),
+    <strong style="color:var(--text2)">Median</strong> (<span id="mcReadMid">50th</span> percentile), and
+    <strong style="color:var(--text2)">Optimistic</strong> (<span id="mcReadHigh">80th</span> percentile).
+    The dashed line is today's wealth.
     </div>
+
   </div>
 </div>
 
@@ -3453,7 +3463,7 @@ input[type=date]{color-scheme:light}
 // ═══════════════════════════════════════════════════════════
 // VERSION — updated by build-standalone.pl on each build
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260617-1315";
+const APP_VERSION = "20260617-1318";
 
 // ═══════════════════════════════════════════════════════════
 // DATA
@@ -5401,6 +5411,12 @@ const ZIP_TO_CITY = (function(){
   return map;
 })();
 
+function updateBandReadText(){
+  setT("mcReadLow", band.low + "th");
+  setT("mcReadMid", band.mid + "th");
+  setT("mcReadHigh", band.high + "th");
+}
+
 // Lookup any 5-digit US ZIP → {state, city}. Returns null if unrecognised.
 function lookupZip(zipRaw){
   if(!zipRaw) return null;
@@ -7308,15 +7324,42 @@ function setBand(mode){
   show("cbwrap",mode==="custom");
   if(mode==="custom") $("cbwrap").classList.add("show");
   else if($("cbwrap")) $("cbwrap").classList.remove("show");
+
   if(mode==="standard"){band={low:30,mid:50,high:80};}
   else if(mode==="alternative"){band={low:40,mid:60,high:90};}
   else { applyCustom(); return; }
+
+  updateBandReadText();
+
   setT("bdesc","Showing "+band.low+"th / "+band.mid+"th / "+band.high+"th percentiles.");
   if(lastSimPaths) redrawChart(lastSimPaths);
 }
 function applyCustom(){
-  band={low:num("blow",10),mid:num("bmid",50),high:num("bhigh",90)};
-  setT("bdesc","Custom: "+band.low+"th / "+band.mid+"th / "+band.high+"th.");
+  const low = num("blow", 10);
+  const mid = num("bmid", 50);
+  const high = num("bhigh", 90);
+
+  if (
+    !Number.isFinite(low) ||
+    !Number.isFinite(mid) ||
+    !Number.isFinite(high) ||
+    low < 1 ||
+    mid < 1 ||
+    high < 1 ||
+    low > 99 ||
+    mid > 99 ||
+    high > 99 ||
+    !(low < mid && mid < high)
+  ) {
+    alert("Custom probability bands must be numbers between 1 and 99 in increasing order.");
+    return;
+  }
+
+  band = { low, mid, high };
+
+  updateBandReadText();
+
+  setT("bdesc","Custom: "+band.low+"/"+band.mid+"/"+band.high+"%");
   if(lastSimPaths) redrawChart(lastSimPaths);
 }
 
@@ -7561,6 +7604,7 @@ function renderPortfolioMetrics(){
   if(total<=0){
     ["pf-top","pf-hhi","pf-grade","pf-yield","pf-er","pf-risk"].forEach(id=>setT(id,"—"));
     const fill=$("pf-risk-fill"); if(fill) fill.style.flex="0 0 0%";
+    updateLinkedReconcile();
     return;
   }
   const top=investments.slice().sort((a,b)=>b.val-a.val)[0];
@@ -7580,6 +7624,8 @@ function renderPortfolioMetrics(){
   const wRisk=investments.reduce((s,i)=>s+(riskByClass[i.cls]||5)*i.val,0)/total;
   setT("pf-risk",wRisk.toFixed(1)+"/10");
   const fill=$("pf-risk-fill"); if(fill) fill.style.flex="0 0 "+(wRisk/10*100)+"%";
+
+  updateLinkedReconcile();
 }
 // renderPortfolioBars removed — the three pie charts (class / type / region)
 // in the Allocation panel cover all portfolio breakdowns.
@@ -11113,9 +11159,12 @@ function updateLinkedReconcile(){
   if(!pfLinkedAccountId||investments.length===0){show("pfLinkedReconcile",false); return;}
   const acct=assets.find(a=>a.id===pfLinkedAccountId);
   if(!acct){show("pfLinkedReconcile",false); return;}
+
   const holdingsTotal=investments.reduce((s,i)=>s+i.val,0);
+
   const diff=holdingsTotal-acct.value;
   const pct=acct.value>0?Math.abs(diff)/acct.value*100:0;
+
   if(Math.abs(diff)<1){
     box.style.background="rgba(76,175,125,.1)"; box.style.borderColor="rgba(76,175,125,.3)";
     box.style.color="#1b6841";
@@ -11520,16 +11569,24 @@ function renderClaimAge(){
 }
 window.renderClaimAge=renderClaimAge;
 
+// Main Monte Carlo engine for the "what could your wealth look like" chart
 function runMC(years,sims,muOverride,sigOverride){
   // Override → proposal-driven (when AI applied) → household effective (default)
   const {mu,sig} = (muOverride!=null)?{mu:muOverride,sig:sigOverride}:getActiveSimulationParams();
+
+  // Core household assumptions
   const inf=num("inf",3.8)/100, raise=num("raise",3)/100;
   const baseInc=getGrossIncome();
   const baseExp=getTotalExpenses();
+
+  // Starting balance sheet values
   const propVal=num("aProp",0), other=num("aOther",0);
   const totalAcc=totalAccountValue();
+
+  // Portfolio builder values 
   const pfCash=portfolioCashSeed();      // cash holdings — never compound
   const pfInvested=portfolioInvestedSeed(); // non-cash holdings — grow at mu
+
   // ── Retirement pool (RMD-managed) ──
   const retSeed=retirementAccountSeed();
   const country=val("c1co")||"US";
@@ -11573,6 +11630,7 @@ function runMC(years,sims,muOverride,sigOverride){
   // Pre-build goal outflow map: calendar year → total annual outflow across all goals
   const cy0=currentYear();
   const goalOutMap={};
+  
   goals.forEach(g=>{
     for(let yr=g.startYear;yr<=g.endYear;yr++){
       goalOutMap[yr]=(goalOutMap[yr]||0)+g.amt;
@@ -11586,6 +11644,7 @@ function runMC(years,sims,muOverride,sigOverride){
     let income=baseInc, expense=baseExp;
     let loanState=loans.map(l=>({bal:l.bal,rate:l.rate/100,yrs:l.yrs}));
     const path=[];
+
     for(let y=0;y<=years;y++){
       const age=c1Age0+y;
       const retired=age>=retAge;
@@ -11917,6 +11976,7 @@ function computeGoalFundingStatus(){
 window.renderSimFundingStatus = renderSimFundingStatus;
 window.renderSimLifestyle = renderSimLifestyle;
 window.computeGoalFundingStatus = computeGoalFundingStatus;
+
 function redrawChart(paths){
   const yrs=paths[0].length-1;
   const inf=num("inf",3.8)/100;
@@ -11929,11 +11989,20 @@ function redrawChart(paths){
   //   Pessimistic = 10th percentile (only 10% of outcomes are worse)
   //   Median      = 50th percentile (the middle outcome)
   //   Optimistic  = 90th percentile (only 10% of outcomes are better)
+
+  // const SCENARIOS=[
+  //   {key:"pessimistic", name:"Pessimistic", pctLabel:"10th percentile", label:["Pessimistic","10th percentile"], pct:10, color:"rgba(212,149,106,0.85)", border:"#c06020"},
+  //   {key:"median",      name:"Median",      pctLabel:"50th percentile", label:["Median","50th percentile"],      pct:50, color:"rgba(91,155,213,0.85)",  border:"#1e40af"},
+  //   {key:"optimistic",  name:"Optimistic",  pctLabel:"90th percentile", label:["Optimistic","90th percentile"],  pct:90, color:"rgba(76,175,125,0.85)",  border:"#1b6841"},
+  // ];
+  const pctLabel = (p) => p + (p === 1 ? "st" : p === 2 ? "nd" : p === 3 ? "rd" : "th") + " percentile";
+
   const SCENARIOS=[
-    {key:"pessimistic", name:"Pessimistic", pctLabel:"10th percentile", label:["Pessimistic","10th percentile"], pct:10, color:"rgba(212,149,106,0.85)", border:"#c06020"},
-    {key:"median",      name:"Median",      pctLabel:"50th percentile", label:["Median","50th percentile"],      pct:50, color:"rgba(91,155,213,0.85)",  border:"#1e40af"},
-    {key:"optimistic",  name:"Optimistic",  pctLabel:"90th percentile", label:["Optimistic","90th percentile"],  pct:90, color:"rgba(76,175,125,0.85)",  border:"#1b6841"},
+    {key:"pessimistic", name:"Pessimistic", pctLabel:pctLabel(band.low), label:["Pessimistic",pctLabel(band.low)], pct:band.low, color:"rgba(212,149,106,0.85)", border:"#c06020"},
+    {key:"median",      name:"Median",      pctLabel:pctLabel(band.mid), label:["Median",pctLabel(band.mid)],      pct:band.mid, color:"rgba(91,155,213,0.85)",  border:"#1e40af"},
+    {key:"optimistic",  name:"Optimistic",  pctLabel:pctLabel(band.high), label:["Optimistic",pctLabel(band.high)],  pct:band.high, color:"rgba(76,175,125,0.85)",  border:"#1b6841"},
   ];
+
 
   // Starting wealth = year-0 value. Already in today's dollars — do NOT deflate.
   // Deflation only applies to future end-of-horizon values to convert them to real terms.
