@@ -14064,6 +14064,16 @@ async function generatePDFReport(){
     }
 
     // Native bar chart (no Chart.js in PDF) — axes, bars, value + category labels.
+    // Refined multi-colour palette for educational charts (cycled per bar).
+    const CHART_PALETTE = [
+      [0,87,184],    // brand blue
+      [0,164,166],   // teal
+      [201,150,40],  // gold
+      [0,135,90],    // green
+      [124,58,237],  // purple
+      [230,120,30],  // amber
+      [205,70,70]    // coral
+    ];
     function drawBarChart(x, by0, w, h, bars, opts){
       opts = opts || {};
       const n = bars.length || 1;
@@ -14079,9 +14089,11 @@ async function generatePDFReport(){
         const bx = x + gap*i + (gap-bw)/2;
         const bh = Math.max(0.5, (b.value/maxV)*(h-6));
         const ty = baseY - bh;
-        doc.setFillColor.apply(doc, b.color || ac);
+        const col = b.color || CHART_PALETTE[i % CHART_PALETTE.length];
+        doc.setFillColor.apply(doc, col);
         doc.rect(bx, ty, bw, bh, "F");
-        doc.setFont("helvetica","bold"); doc.setFontSize(7.3); doc.setTextColor.apply(doc, ac);
+        doc.setFont("helvetica","bold"); doc.setFontSize(7.3);
+        doc.setTextColor(Math.round(col[0]*0.8), Math.round(col[1]*0.8), Math.round(col[2]*0.8));
         const vlabel = opts.fmtVal==="pct" ? (b.value.toFixed(1)+"%") : fmt(b.value);
         doc.text(vlabel, bx+bw/2, ty-1.5, {align:"center"});
         doc.setFont("helvetica","normal"); doc.setFontSize(6.6); doc.setTextColor(90);
@@ -14100,6 +14112,21 @@ async function generatePDFReport(){
       doc.setDrawColor(228); doc.setLineWidth(0.2); doc.line(x, y0+h, x+w, y0+h);
       doc.setFont("helvetica","italic"); doc.setFontSize(6.6); doc.setTextColor(150);
       doc.text("market cycle  (time →)", x+w, y0+h+4, {align:"right"});
+      // emotion colour stops across the cycle (t, rgb) — the curve flows through them
+      const STOPS = [
+        [0.00,[0,135,90]],    // green  — optimism
+        [0.18,[201,150,40]],  // gold   — euphoria (peak)
+        [0.37,[230,120,30]],  // amber  — anxiety
+        [0.52,[205,70,70]],   // coral  — panic (trough)
+        [0.70,[0,164,166]],   // teal   — hope
+        [1.00,[0,87,184]]     // blue   — relief / renewed optimism
+      ];
+      const hue = t => {
+        let a=STOPS[0], b=STOPS[STOPS.length-1];
+        for(let i=0;i<STOPS.length-1;i++){ if(t>=STOPS[i][0] && t<=STOPS[i+1][0]){ a=STOPS[i]; b=STOPS[i+1]; break; } }
+        const span=(b[0]-a[0])||1, f=Math.max(0,Math.min(1,(t-a[0])/span));
+        return [0,1,2].map(k=>Math.round(a[1][k]+(b[1][k]-a[1][k])*f));
+      };
       // control points (t, level 0..1): rise -> peak -> trough -> partial recovery
       const P = [[0,0.50],[0.18,0.86],[0.37,0.50],[0.52,0.12],[0.70,0.48],[0.88,0.70],[1.0,0.66]]
                   .map(c=>({t:c[0], l:c[1]}));
@@ -14110,12 +14137,17 @@ async function generatePDFReport(){
           const u=s/12, u2=u*u, u3=u2*u;
           const t=0.5*((2*p1.t)+(-p0.t+p2.t)*u+(2*p0.t-5*p1.t+4*p2.t-p3.t)*u2+(-p0.t+3*p1.t-3*p2.t+p3.t)*u3);
           const l=0.5*((2*p1.l)+(-p0.l+p2.l)*u+(2*p0.l-5*p1.l+4*p2.l-p3.l)*u2+(-p0.l+3*p1.l-3*p2.l+p3.l)*u3);
-          samp.push({X:xOf(t), Y:yOf(l)});
+          samp.push({X:xOf(t), Y:yOf(l), t:Math.max(0,Math.min(1,t))});
         }
       }
-      doc.setDrawColor.apply(doc, ac); doc.setLineWidth(1.2);
-      for(let i=1;i<samp.length;i++) doc.line(samp[i-1].X, samp[i-1].Y, samp[i].X, samp[i].Y);
-      // emotion markers along the curve
+      // multi-colour curve: each segment takes the cycle colour at its position
+      doc.setLineWidth(1.3);
+      for(let i=1;i<samp.length;i++){
+        const c=hue((samp[i-1].t+samp[i].t)/2);
+        doc.setDrawColor(c[0],c[1],c[2]);
+        doc.line(samp[i-1].X, samp[i-1].Y, samp[i].X, samp[i].Y);
+      }
+      // emotion markers in matching colours
       const marks=[
         {t:0.05,l:0.55, txt:"Optimism", above:true},
         {t:0.18,l:0.86, txt:"Euphoria", above:true},
@@ -14125,9 +14157,10 @@ async function generatePDFReport(){
         {t:0.88,l:0.70, txt:"Relief",   above:true}
       ];
       marks.forEach(mk=>{
-        const px=xOf(mk.t), py=yOf(mk.l);
-        doc.setFillColor.apply(doc, ac); doc.circle(px,py,1.0,"F");
-        doc.setFont("helvetica","bold"); doc.setFontSize(7.2); doc.setTextColor.apply(doc, ac);
+        const px=xOf(mk.t), py=yOf(mk.l), c=hue(mk.t);
+        doc.setFillColor(c[0],c[1],c[2]); doc.circle(px,py,1.2,"F");
+        doc.setFont("helvetica","bold"); doc.setFontSize(7.2);
+        doc.setTextColor(Math.round(c[0]*0.82), Math.round(c[1]*0.82), Math.round(c[2]*0.82));
         doc.text(mk.txt, px, mk.above?py-2.6:py+4.2, {align:"center"});
       });
       // plain-language tags at the extremes (the irony)
