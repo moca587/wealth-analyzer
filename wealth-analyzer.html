@@ -13630,6 +13630,120 @@ const EDU_CHARTS = [
       "Longer horizons can support more growth assets because there is more time to recover."
     ],
     source:"Illustrative expected returns based on long-run capital market assumptions. Not a forecast; actual returns will vary."
+  },
+  {
+    id:"startingearly",
+    title:"The cost of waiting to start",
+    subtitle:"Portfolio at age 65 from $500 invested monthly at 7% — by the age you begin",
+    fmtVal:"money",
+    bars:(function(){
+      const m=0.07/12, fv=yrs=>Math.round(500*((Math.pow(1+m,yrs*12)-1)/m));
+      return [
+        {label:"Begin at 25",value:fv(40)},
+        {label:"Begin at 35",value:fv(30)},
+        {label:"Begin at 45",value:fv(20)},
+        {label:"Begin at 55",value:fv(10)}
+      ];
+    })(),
+    points:[
+      "Begin at 25 instead of 35 and the end result more than doubles — the extra decade does most of the work.",
+      "Each ten-year delay roughly halves the final balance, even with the same monthly contribution.",
+      "Time in the market, not the size of any single deposit, is the most powerful lever you control."
+    ],
+    source:"Illustrative only. Assumes a level $500 monthly contribution earning 7% annually until age 65, with full reinvestment and no taxes, fees, or withdrawals. Not a projection of any actual investment."
+  },
+  {
+    id:"glidepath",
+    title:"How your mix shifts as you near retirement",
+    subtitle:"Illustrative growth-asset (stock) weighting across life stages",
+    fmtVal:"pct",
+    bars:[
+      {label:"In your 30s",value:90},
+      {label:"In your 40s",value:80},
+      {label:"In your 50s",value:65},
+      {label:"At retirement",value:50},
+      {label:"In retirement",value:35}
+    ],
+    points:[
+      "Early on, a long horizon lets the portfolio hold mostly growth assets and ride out volatility.",
+      "As retirement nears, the mix gradually tilts toward bonds and cash to protect what you have built.",
+      "The goal is to reduce exposure to a poorly-timed downturn just as withdrawals are about to begin."
+    ],
+    source:"Illustrative life-stage allocation for educational purposes. A personal allocation depends on your goals, resources, and tolerance for risk, and should be set with an advisor."
+  },
+  {
+    id:"diversification",
+    title:"Why diversification smooths the ride",
+    subtitle:"Illustrative depth of the worst one-year decline, by how concentrated the portfolio is",
+    fmtVal:"pct",
+    bars:[
+      {label:"A single stock",value:55},
+      {label:"One sector",value:42},
+      {label:"All stocks (broad)",value:37},
+      {label:"Diversified 60/40",value:24}
+    ],
+    points:[
+      "Concentrating in one stock or sector exposes you to losses a broader mix would have cushioned.",
+      "Spreading across many holdings and asset classes narrows the range of outcomes.",
+      "Diversification can lower risk without giving up most of the long-run return."
+    ],
+    source:"Hypothetical, illustrative decline magnitudes for educational purposes. Diversification does not ensure a profit or protect against loss in a falling market."
+  },
+  {
+    id:"inflation",
+    title:"What inflation does to your purchasing power",
+    subtitle:"What $100,000 still buys over time at 3% annual inflation",
+    fmtVal:"money",
+    bars:(function(){
+      const pp=yrs=>Math.round(100000/Math.pow(1.03,yrs)/1000)*1000;
+      return [
+        {label:"Today",value:100000},
+        {label:"In 10 years",value:pp(10)},
+        {label:"In 20 years",value:pp(20)},
+        {label:"In 30 years",value:pp(30)}
+      ];
+    })(),
+    points:[
+      "At just 3% inflation, money loses roughly a quarter of its value every decade it sits idle.",
+      "Across a 30-year retirement, today's $100,000 may buy closer to $40,000 worth of goods.",
+      "Holding some growth assets helps your savings keep pace with steadily rising prices."
+    ],
+    source:"Illustrative purchasing power at a constant 3% annual inflation rate. Actual inflation varies year to year; figures are rounded and for education only."
+  },
+  {
+    id:"incomestack",
+    title:"Building your retirement paycheck",
+    subtitle:"Illustrative annual retirement income by source, for a sample household",
+    fmtVal:"money",
+    bars:[
+      {label:"State / Social Security",value:30000},
+      {label:"Workplace pension",value:18000},
+      {label:"Portfolio withdrawals",value:36000},
+      {label:"Part-time & other",value:6000}
+    ],
+    points:[
+      "In retirement your salary is replaced by a paycheck assembled from several sources.",
+      "Guaranteed income — state and workplace pensions — covers essentials; the portfolio funds the rest.",
+      "Coordinating when to draw from each source can meaningfully extend how long your savings last."
+    ],
+    source:"Illustrative income mix for a sample household. Your own sources, amounts, and timing will differ; figures are for education only."
+  },
+  {
+    id:"sequencerisk",
+    title:"Why the order of returns matters",
+    subtitle:"Same average return, $1M start, $50k/yr withdrawals — balance after 10 years",
+    fmtVal:"money",
+    bars:[
+      {label:"Strong returns early",value:1180000},
+      {label:"Steady / average",value:840000},
+      {label:"Poor returns early",value:430000}
+    ],
+    points:[
+      "Two portfolios can earn the same average return yet end far apart once withdrawals begin.",
+      "A downturn in the first years of retirement does lasting damage — you sell more shares at low prices.",
+      "A cash-and-bond buffer near retirement reduces the need to sell growth assets during a slump."
+    ],
+    source:"Hypothetical illustration. Both paths assume the same average annual return in a different order, with level $50,000 withdrawals from a $1,000,000 starting balance. Not a projection."
   }
 ];
 function getSelectedEduCharts(){
