@@ -81,11 +81,16 @@ textarea{font-family:var(--fm);font-size:12px;width:100%;min-height:70px;resize:
 .btn:hover{background:var(--blue2)}
 .btn-ghost{background:transparent;color:var(--blue);border:1.5px solid rgba(0,87,184,.25);padding:7px 16px;border-radius:50px;font-size:12px;font-weight:600;cursor:pointer}
 .btn-ghost:hover{background:rgba(0,87,184,.05)}
-/* iOS-style on/off switch (feature flags) */
-.wa-switch{position:relative;width:52px;height:28px;border-radius:50px;border:none;background:#cbd5e1;cursor:pointer;padding:0;flex:0 0 auto;transition:background .2s}
+/* Labelled ON/OFF toggle button (feature flags) */
+.wa-switch{position:relative;width:78px;height:30px;border-radius:50px;border:none;background:#9aa3b2;cursor:pointer;padding:0;flex:0 0 auto;transition:background .2s;font-family:var(--fb);font-size:11px;font-weight:800;letter-spacing:.06em}
 .wa-switch.on{background:var(--green)}
-.wa-switch .wa-knob{position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.3);transition:left .2s}
-.wa-switch.on .wa-knob{left:27px}
+.wa-switch .wa-knob{position:absolute;top:3px;left:3px;width:24px;height:24px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.3);transition:left .2s;z-index:2}
+.wa-switch.on .wa-knob{left:51px}
+.wa-switch .wa-on,.wa-switch .wa-off{position:absolute;top:50%;transform:translateY(-50%);color:#fff;pointer-events:none;transition:opacity .2s}
+.wa-switch .wa-on{left:10px;opacity:0}
+.wa-switch .wa-off{right:9px;opacity:1}
+.wa-switch.on .wa-on{opacity:1}
+.wa-switch.on .wa-off{opacity:0}
 .btn-danger{background:var(--red);color:#fff;border:none;padding:7px 16px;border-radius:50px;font-size:12px;font-weight:600;cursor:pointer}
 .btn-purple{background:linear-gradient(135deg,#7c3aed,#0057b8);color:#fff;border:none;padding:10px 24px;border-radius:50px;font-size:14px;font-weight:700;cursor:pointer;box-shadow:0 4px 12px rgba(124,58,237,.25)}
 .btn-purple:hover{filter:brightness(1.05)}
@@ -283,7 +288,7 @@ textarea{font-family:var(--fm);font-size:12px;width:100%;min-height:70px;resize:
         <div class="ptitle" style="margin:0 0 4px">Client-app feature · AI Portfolio Builder</div>
         <div class="pdesc" style="margin:0">Controls whether the <strong>AI Portfolio Builder</strong> tab appears in the client-facing Wealth Analyzer app. Switch it off to ship the clean, advisor-only edition. Current state: <strong id="aiBuilderSwitchState">…</strong></div>
       </div>
-      <button class="wa-switch" id="aiBuilderSwitch" role="switch" aria-checked="true" data-action="toggleAIBuilderFeature" title="Toggle AI Portfolio Builder in the client app"><span class="wa-knob"></span></button>
+      <button class="wa-switch" id="aiBuilderSwitch" role="switch" aria-checked="true" data-action="toggleAIBuilderFeature" title="Toggle AI Portfolio Builder in the client app"><span class="wa-on">ON</span><span class="wa-off">OFF</span><span class="wa-knob"></span></button>
     </div>
     <div class="pdesc" style="margin-top:10px;font-size:11px;color:var(--ink3)">Applies on the client app's next load, or instantly when its browser tab regains focus (same site / shared browser).</div>
   </div>
@@ -1083,7 +1088,7 @@ function toggleQuestionnairePreview(){
 // ═══════════════════════════════════════════════════════════
 // VERSION + UTILS
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260615-1714";
+const APP_VERSION = "20260617-1315";
 const $ = (id) => document.getElementById(id);
 const $$ = (sel, ctx) => Array.from((ctx||document).querySelectorAll(sel));
 
