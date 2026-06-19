@@ -1863,6 +1863,14 @@ input[type=date]{color-scheme:light}
       <canvas id="fanChart" role="img" aria-label="Monte Carlo fan chart showing percentile paths through time"></canvas>
     </div>
 
+    <!-- Downside Path Analysis -->
+    <div class="panel">
+      <div class="ptitle">Downside Path Analysis</div>
+      <div id="downsideAnalysis" style="font-size:13px;color:var(--text2);line-height:1.7">
+        Run the simulation to see the bottom 10% outcome summary.
+      </div>
+    </div>
+
     <!-- <div style="margin-top:10px;padding:8px 12px;background:var(--bg3);border-radius:var(--rs);font-size:11px;color:var(--text3);line-height:1.6">
       <strong style="color:var(--text2)">How to read this:</strong> Each bar is a possible outcome — <strong style="color:var(--text2)">Pessimistic</strong> (10th percentile), <strong style="color:var(--text2)">Median</strong> (50th), and <strong style="color:var(--text2)">Optimistic</strong> (90th). The dashed line is today's wealth.
     </div> -->
@@ -11193,17 +11201,12 @@ function buildFanChartData(paths){
   const years = paths[0].length;
 
   const rows = [];
+
+  // one iteration per year
   for(let y = 0; y < years; y++){
-    // const vals = paths.map(p => p[y]).sort((a,b) => a - b);
-
-    // const inf = num("inf", 3.8) / 100;
-    // const vals = paths
-    //   .map(p => p[y] / Math.pow(1 + inf, y))
-    //   .sort((a,b) => a - b);
-
     const vals = paths
     .map(p => p[y])
-    .sort((a,b) => a - b);
+    .sort((a,b) => a - b); // sort smallest to highest value
 
     rows.push({
       year: y,
@@ -11529,10 +11532,13 @@ function runSim(){
   // Repaint the proposal-source banner before charts (so users see which
   // params drove this run)
   try { if(typeof renderProposalSourceBanner === "function") renderProposalSourceBanner(); } catch(_){}
+
   const paths=runMC(yrs,sims);
+
   lastSimPaths=paths; lastSimYrs=yrs;
   redrawChart(paths);
   drawFanChart(paths);
+  renderDownsideAnalysis(paths);
   renderGoalAnalysis(paths,yrs);
   renderCashFlow();
   renderFundingStatus(paths,yrs);
@@ -11804,44 +11810,6 @@ function drawFanChart(paths){
     type: "line",
     data: {
       labels: fanData.map(r => "Year " + r.year),
-      // draw lines/bars 
-      // datasets: [
-      //   {
-      //     label: "P90",
-      //     data: fanData.map(r => r.p90),
-      //     borderWidth: 1.5,
-      //     pointRadius: 0,
-      //     tension: 0.25
-      //   },
-      //   {
-      //     label: "P75",
-      //     data: fanData.map(r => r.p75),
-      //     borderWidth: 1,
-      //     pointRadius: 0,
-      //     tension: 0.25
-      //   },
-      //   {
-      //     label: "Median",
-      //     data: fanData.map(r => r.p50),
-      //     borderWidth: 3,
-      //     pointRadius: 0,
-      //     tension: 0.25
-      //   },
-      //   {
-      //     label: "P25",
-      //     data: fanData.map(r => r.p25),
-      //     borderWidth: 1,
-      //     pointRadius: 0,
-      //     tension: 0.25
-      //   },
-      //   {
-      //     label: "P10",
-      //     data: fanData.map(r => r.p10),
-      //     borderWidth: 1.5,
-      //     pointRadius: 0,
-      //     tension: 0.25
-      //   }
-      // ]
       datasets: [
   // Upper outer band line
   {
@@ -11923,6 +11891,55 @@ function drawFanChart(paths){
       }
     }
   });
+}
+
+// Render Downside Analysis section
+function renderDownsideAnalysis(paths){
+  const box = $("downsideAnalysis");
+  if(!box || !paths || !paths.length) return;
+
+  const finalYear = paths[0].length - 1; // final year. paths[0] is the first simulation
+  const inf = num("inf", 3.8) / 100; // default inflation value 3.8
+  const deflate = v => v / Math.pow(1 + inf, finalYear); // converts future dollar amount into todays dollars
+
+  // sort all simulations (paths[i]) so worst outcome is first
+  const sortedPaths = [...paths].sort(
+    (a,b) => a[a.length - 1] - b[b.length - 1]
+  );
+
+  // take bottom 10% 
+  const cutoff = Math.max(1, Math.floor(sortedPaths.length * 0.10)); // how many sims are in the bottom 10%
+  const worst10 = sortedPaths.slice(0, cutoff); // contains the x worst simulations
+
+  const endingValues = worst10.map(p => deflate(p[p.length - 1])); // get last value in the simulation (ending wealth) 
+
+  const avgEndingWealth =
+    endingValues.reduce((a,b) => a + b, 0) / endingValues.length;
+
+  const worstEndingWealth = Math.min(...endingValues);
+
+  setH("downsideAnalysis", `
+    <div style="margin-bottom:10px;color:var(--text3)">
+      Based on the worst ${cutoff} of ${paths.length} simulations by final-year wealth, shown in today's dollars.
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;text-align:center">
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:12px">
+        <div style="font-size:11px;color:var(--text3);text-transform:uppercase;font-weight:700">Average downside wealth</div>
+        <div style="font-size:20px;font-weight:800">${fmtMoney(avgEndingWealth)}</div>
+      </div>
+
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:12px">
+        <div style="font-size:11px;color:var(--text3);text-transform:uppercase;font-weight:700">Worst downside wealth</div>
+        <div style="font-size:20px;font-weight:800">${fmtMoney(worstEndingWealth)}</div>
+      </div>
+
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:12px">
+        <div style="font-size:11px;color:var(--text3);text-transform:uppercase;font-weight:700">Final year</div>
+        <div style="font-size:20px;font-weight:800">Year ${finalYear}</div>
+      </div>
+    </div>
+  `);
 }
 
 function renderGoalAnalysis(paths,yrs){
@@ -13895,6 +13912,132 @@ const EDU_CHARTS = [
       "Longer horizons can support more growth assets because there is more time to recover."
     ],
     source:"Illustrative expected returns based on long-run capital market assumptions. Not a forecast; actual returns will vary."
+  },
+  {
+    id:"startingearly",
+    title:"The cost of waiting to start",
+    subtitle:"Portfolio at age 65 from $500 invested monthly at 7% — by the age you begin",
+    fmtVal:"money",
+    bars:(function(){
+      const m=0.07/12, fv=yrs=>Math.round(500*((Math.pow(1+m,yrs*12)-1)/m));
+      return [
+        {label:"Begin at 25",value:fv(40)},
+        {label:"Begin at 35",value:fv(30)},
+        {label:"Begin at 45",value:fv(20)},
+        {label:"Begin at 55",value:fv(10)}
+      ];
+    })(),
+    points:[
+      "Begin at 25 instead of 35 and the end result more than doubles — the extra decade does most of the work.",
+      "Each ten-year delay roughly halves the final balance, even with the same monthly contribution.",
+      "Time in the market, not the size of any single deposit, is the most powerful lever you control."
+    ],
+    source:"Illustrative only. Assumes a level $500 monthly contribution earning 7% annually until age 65, with full reinvestment and no taxes, fees, or withdrawals. Not a projection of any actual investment."
+  },
+  {
+    id:"glidepath",
+    title:"How your mix shifts as you near retirement",
+    subtitle:"Illustrative growth-asset (stock) weighting across life stages",
+    fmtVal:"pct",
+    bars:[
+      {label:"In your 30s",value:90},
+      {label:"In your 40s",value:80},
+      {label:"In your 50s",value:65},
+      {label:"At retirement",value:50},
+      {label:"In retirement",value:35}
+    ],
+    points:[
+      "Early on, a long horizon lets the portfolio hold mostly growth assets and ride out volatility.",
+      "As retirement nears, the mix gradually tilts toward bonds and cash to protect what you have built.",
+      "The goal is to reduce exposure to a poorly-timed downturn just as withdrawals are about to begin."
+    ],
+    source:"Illustrative life-stage allocation for educational purposes. A personal allocation depends on your goals, resources, and tolerance for risk, and should be set with an advisor."
+  },
+  {
+    id:"diversification",
+    title:"Why diversification smooths the ride",
+    subtitle:"Illustrative depth of the worst one-year decline, by how concentrated the portfolio is",
+    fmtVal:"pct",
+    bars:[
+      {label:"A single stock",value:55},
+      {label:"One sector",value:42},
+      {label:"All stocks (broad)",value:37},
+      {label:"Diversified 60/40",value:24}
+    ],
+    points:[
+      "Concentrating in one stock or sector exposes you to losses a broader mix would have cushioned.",
+      "Spreading across many holdings and asset classes narrows the range of outcomes.",
+      "Diversification can lower risk without giving up most of the long-run return."
+    ],
+    source:"Hypothetical, illustrative decline magnitudes for educational purposes. Diversification does not ensure a profit or protect against loss in a falling market."
+  },
+  {
+    id:"inflation",
+    title:"What inflation does to your purchasing power",
+    subtitle:"What $100,000 still buys over time at 3% annual inflation",
+    fmtVal:"money",
+    bars:(function(){
+      const pp=yrs=>Math.round(100000/Math.pow(1.03,yrs)/1000)*1000;
+      return [
+        {label:"Today",value:100000},
+        {label:"In 10 years",value:pp(10)},
+        {label:"In 20 years",value:pp(20)},
+        {label:"In 30 years",value:pp(30)}
+      ];
+    })(),
+    points:[
+      "At just 3% inflation, money loses roughly a quarter of its value every decade it sits idle.",
+      "Across a 30-year retirement, today's $100,000 may buy closer to $40,000 worth of goods.",
+      "Holding some growth assets helps your savings keep pace with steadily rising prices."
+    ],
+    source:"Illustrative purchasing power at a constant 3% annual inflation rate. Actual inflation varies year to year; figures are rounded and for education only."
+  },
+  {
+    id:"incomestack",
+    title:"Building your retirement paycheck",
+    subtitle:"Illustrative annual retirement income by source, for a sample household",
+    fmtVal:"money",
+    bars:[
+      {label:"State / Social Security",value:30000},
+      {label:"Workplace pension",value:18000},
+      {label:"Portfolio withdrawals",value:36000},
+      {label:"Part-time & other",value:6000}
+    ],
+    points:[
+      "In retirement your salary is replaced by a paycheck assembled from several sources.",
+      "Guaranteed income — state and workplace pensions — covers essentials; the portfolio funds the rest.",
+      "Coordinating when to draw from each source can meaningfully extend how long your savings last."
+    ],
+    source:"Illustrative income mix for a sample household. Your own sources, amounts, and timing will differ; figures are for education only."
+  },
+  {
+    id:"sequencerisk",
+    title:"Why the order of returns matters",
+    subtitle:"Same average return, $1M start, $50k/yr withdrawals — balance after 10 years",
+    fmtVal:"money",
+    bars:[
+      {label:"Strong returns early",value:1180000},
+      {label:"Steady / average",value:840000},
+      {label:"Poor returns early",value:430000}
+    ],
+    points:[
+      "Two portfolios can earn the same average return yet end far apart once withdrawals begin.",
+      "A downturn in the first years of retirement does lasting damage — you sell more shares at low prices.",
+      "A cash-and-bond buffer near retirement reduces the need to sell growth assets during a slump."
+    ],
+    source:"Hypothetical illustration. Both paths assume the same average annual return in a different order, with level $50,000 withdrawals from a $1,000,000 starting balance. Not a projection."
+  },
+  {
+    id:"emotioncycle",
+    type:"emotioncycle",
+    title:"How emotions drive investment decisions",
+    subtitle:"The same market cycle, felt as a rollercoaster of emotion",
+    points:[
+      "Confidence runs highest near market peaks — the point of greatest risk and lowest future return.",
+      "Fear runs deepest near market lows — the point of greatest opportunity, just when selling feels safest.",
+      "Acting on emotion tends to mean buying high and selling low; a written plan keeps you steady through both."
+    ],
+    source:"Conceptual illustration of a common investor sentiment cycle. Emotions, timing, and outcomes vary widely; shown for education only, not as a forecast of any market."
   }
 ];
 function getSelectedEduCharts(){
@@ -14203,6 +14346,16 @@ async function generatePDFReport(){
     }
 
     // Native bar chart (no Chart.js in PDF) — axes, bars, value + category labels.
+    // Refined multi-colour palette for educational charts (cycled per bar).
+    const CHART_PALETTE = [
+      [0,87,184],    // brand blue
+      [0,164,166],   // teal
+      [201,150,40],  // gold
+      [0,135,90],    // green
+      [124,58,237],  // purple
+      [230,120,30],  // amber
+      [205,70,70]    // coral
+    ];
     function drawBarChart(x, by0, w, h, bars, opts){
       opts = opts || {};
       const n = bars.length || 1;
@@ -14218,14 +14371,84 @@ async function generatePDFReport(){
         const bx = x + gap*i + (gap-bw)/2;
         const bh = Math.max(0.5, (b.value/maxV)*(h-6));
         const ty = baseY - bh;
-        doc.setFillColor.apply(doc, b.color || ac);
+        const col = b.color || CHART_PALETTE[i % CHART_PALETTE.length];
+        doc.setFillColor.apply(doc, col);
         doc.rect(bx, ty, bw, bh, "F");
-        doc.setFont("helvetica","bold"); doc.setFontSize(7.3); doc.setTextColor.apply(doc, ac);
+        doc.setFont("helvetica","bold"); doc.setFontSize(7.3);
+        doc.setTextColor(Math.round(col[0]*0.8), Math.round(col[1]*0.8), Math.round(col[2]*0.8));
         const vlabel = opts.fmtVal==="pct" ? (b.value.toFixed(1)+"%") : fmt(b.value);
         doc.text(vlabel, bx+bw/2, ty-1.5, {align:"center"});
         doc.setFont("helvetica","normal"); doc.setFontSize(6.6); doc.setTextColor(90);
         doc.splitTextToSize(b.label, gap-1.5).forEach((l,li)=>{ doc.text(l, bx+bw/2, baseY+3.4+li*2.9, {align:"center"}); });
       });
+      doc.setTextColor(40);
+    }
+
+    // Original investor-sentiment curve (a market cycle felt as emotion). Custom
+    // line chart — peak then trough then partial recovery, with emotion markers.
+    function drawEmotionCycle(x, y0, w, h){
+      const pad = 3;
+      const yOf = lvl => y0 + pad + (1-lvl)*(h - pad*2);
+      const xOf = t   => x + t*w;
+      // faint time axis + caption
+      doc.setDrawColor(228); doc.setLineWidth(0.2); doc.line(x, y0+h, x+w, y0+h);
+      doc.setFont("helvetica","italic"); doc.setFontSize(6.6); doc.setTextColor(150);
+      doc.text("market cycle  (time →)", x+w, y0+h+4, {align:"right"});
+      // emotion colour stops across the cycle (t, rgb) — the curve flows through them
+      const STOPS = [
+        [0.00,[0,135,90]],    // green  — optimism
+        [0.18,[201,150,40]],  // gold   — euphoria (peak)
+        [0.37,[230,120,30]],  // amber  — anxiety
+        [0.52,[205,70,70]],   // coral  — panic (trough)
+        [0.70,[0,164,166]],   // teal   — hope
+        [1.00,[0,87,184]]     // blue   — relief / renewed optimism
+      ];
+      const hue = t => {
+        let a=STOPS[0], b=STOPS[STOPS.length-1];
+        for(let i=0;i<STOPS.length-1;i++){ if(t>=STOPS[i][0] && t<=STOPS[i+1][0]){ a=STOPS[i]; b=STOPS[i+1]; break; } }
+        const span=(b[0]-a[0])||1, f=Math.max(0,Math.min(1,(t-a[0])/span));
+        return [0,1,2].map(k=>Math.round(a[1][k]+(b[1][k]-a[1][k])*f));
+      };
+      // control points (t, level 0..1): rise -> peak -> trough -> partial recovery
+      const P = [[0,0.50],[0.18,0.86],[0.37,0.50],[0.52,0.12],[0.70,0.48],[0.88,0.70],[1.0,0.66]]
+                  .map(c=>({t:c[0], l:c[1]}));
+      const samp=[];
+      for(let i=0;i<P.length-1;i++){
+        const p0=P[i-1]||P[i], p1=P[i], p2=P[i+1], p3=P[i+2]||P[i+1];
+        for(let s=(i===0?0:1); s<=12; s++){
+          const u=s/12, u2=u*u, u3=u2*u;
+          const t=0.5*((2*p1.t)+(-p0.t+p2.t)*u+(2*p0.t-5*p1.t+4*p2.t-p3.t)*u2+(-p0.t+3*p1.t-3*p2.t+p3.t)*u3);
+          const l=0.5*((2*p1.l)+(-p0.l+p2.l)*u+(2*p0.l-5*p1.l+4*p2.l-p3.l)*u2+(-p0.l+3*p1.l-3*p2.l+p3.l)*u3);
+          samp.push({X:xOf(t), Y:yOf(l), t:Math.max(0,Math.min(1,t))});
+        }
+      }
+      // multi-colour curve: each segment takes the cycle colour at its position
+      doc.setLineWidth(1.3);
+      for(let i=1;i<samp.length;i++){
+        const c=hue((samp[i-1].t+samp[i].t)/2);
+        doc.setDrawColor(c[0],c[1],c[2]);
+        doc.line(samp[i-1].X, samp[i-1].Y, samp[i].X, samp[i].Y);
+      }
+      // emotion markers in matching colours
+      const marks=[
+        {t:0.05,l:0.55, txt:"Optimism", above:true},
+        {t:0.18,l:0.86, txt:"Euphoria", above:true},
+        {t:0.37,l:0.50, txt:"Anxiety", above:false},
+        {t:0.52,l:0.12, txt:"Panic",    above:false},
+        {t:0.70,l:0.48, txt:"Hope",     above:true},
+        {t:0.88,l:0.70, txt:"Relief",   above:true}
+      ];
+      marks.forEach(mk=>{
+        const px=xOf(mk.t), py=yOf(mk.l), c=hue(mk.t);
+        doc.setFillColor(c[0],c[1],c[2]); doc.circle(px,py,1.2,"F");
+        doc.setFont("helvetica","bold"); doc.setFontSize(7.2);
+        doc.setTextColor(Math.round(c[0]*0.82), Math.round(c[1]*0.82), Math.round(c[2]*0.82));
+        doc.text(mk.txt, px, mk.above?py-2.6:py+4.2, {align:"center"});
+      });
+      // plain-language tags at the extremes (the irony)
+      doc.setFont("helvetica","italic"); doc.setFontSize(6.4); doc.setTextColor(150);
+      doc.text("maximum risk",        xOf(0.18), yOf(0.86)+3.4, {align:"center"});
+      doc.text("maximum opportunity", xOf(0.52), yOf(0.12)-2.8, {align:"center"});
       doc.setTextColor(40);
     }
 
@@ -14945,19 +15168,34 @@ async function generatePDFReport(){
           doc.splitTextToSize(c.subtitle, CW).forEach(l => { doc.text(l, M, y); y += 5; });
           y += 1;
           doc.setDrawColor.apply(doc, ac); doc.setLineWidth(0.5); doc.line(M, y, pw-M, y); y += 9;
-          // Chart on the left (~56%), bullet explanation on the right (~40%)
-          const chartW = CW*0.56, chartH = 74, chartX = M, chartY = y;
-          drawBarChart(chartX, chartY, chartW, chartH, c.bars, {fmtVal:c.fmtVal});
-          const ex = M + chartW + 8, ew = CW - chartW - 8;
-          let ey = chartY + 6;
-          doc.setFont("helvetica","normal"); doc.setFontSize(9); doc.setTextColor(55);
-          c.points.forEach(pt => {
-            doc.setFillColor.apply(doc, ac); doc.circle(ex+1, ey-1.3, 0.7, "F");
-            const lines = doc.splitTextToSize(pt, ew-5);
-            lines.forEach((l,i) => { doc.text(l, ex+4.5, ey + i*4); });
-            ey += lines.length*4 + 4.5;
-          });
-          y = Math.max(chartY + chartH + 16, ey + 4);
+          if(c.type === "emotioncycle"){
+            // Full-width sentiment curve, with the takeaways stacked below it.
+            const chH = 60, chY = y;
+            drawEmotionCycle(M, chY, CW, chH);
+            y = chY + chH + 13;
+            doc.setFont("helvetica","normal"); doc.setFontSize(9); doc.setTextColor(55);
+            c.points.forEach(pt => {
+              doc.setFillColor.apply(doc, ac); doc.circle(M+1, y-1.3, 0.7, "F");
+              const lines = doc.splitTextToSize(pt, CW-5);
+              lines.forEach((l,i) => { doc.text(l, M+4.5, y + i*4); });
+              y += lines.length*4 + 4.5;
+            });
+            y += 2;
+          } else {
+            // Chart on the left (~56%), bullet explanation on the right (~40%)
+            const chartW = CW*0.56, chartH = 74, chartX = M, chartY = y;
+            drawBarChart(chartX, chartY, chartW, chartH, c.bars, {fmtVal:c.fmtVal});
+            const ex = M + chartW + 8, ew = CW - chartW - 8;
+            let ey = chartY + 6;
+            doc.setFont("helvetica","normal"); doc.setFontSize(9); doc.setTextColor(55);
+            c.points.forEach(pt => {
+              doc.setFillColor.apply(doc, ac); doc.circle(ex+1, ey-1.3, 0.7, "F");
+              const lines = doc.splitTextToSize(pt, ew-5);
+              lines.forEach((l,i) => { doc.text(l, ex+4.5, ey + i*4); });
+              ey += lines.length*4 + 4.5;
+            });
+            y = Math.max(chartY + chartH + 16, ey + 4);
+          }
           // Source / disclaimer footnote
           doc.setFont("helvetica","italic"); doc.setFontSize(6.8); doc.setTextColor(140);
           doc.splitTextToSize(c.source, CW).forEach(l => { doc.text(l, M, y); y += 3.2; });
