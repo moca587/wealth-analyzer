@@ -857,6 +857,84 @@ input[type=date]{color-scheme:light}
       </div>
     </div>
 
+    <!-- Monte Carlo (inside settings) -->
+    <div class="set-sec">
+  <div class="set-sec-h">Monte Carlo</div>
+
+  <div class="two-col">
+    <div>
+      <div class="frow"><label class="flbl">Projection years</label><input type="number" id="simYrs" value="20" min="5" max="40" step="1" class="w120"></div>
+
+      <div class="frow"><label class="flbl">Glidepath de-risking</label>
+        <select id="gpOn" class="w200" onchange="runSim()">
+          <option value="no" selected>Off — static allocation</option>
+          <option value="yes">On — de-risk toward retirement</option>
+        </select>
+      </div>
+
+      <div class="frow"><label class="flbl">De-risk over final (years)</label><input type="number" id="gpYears" value="10" min="1" max="30" step="1" class="w120" onchange="runSim()"></div>
+
+      <div class="frow"><label class="flbl">Simulations</label>
+        <select id="simN" class="w160">
+          <option value="200">200 — fast</option>
+          <option value="500" selected>500 — balanced</option>
+          <option value="1000">1000 — precise</option>
+        </select>
+      </div>
+
+      <div class="frow">
+        <label class="flbl">Stress scenario</label>
+        <select id="stressScenario" class="w200">
+          <option value="base" selected>Base case</option>
+          <option value="high_inflation">High inflation</option>
+          <option value="market_crash">Market crash</option>
+          <option value="lost_decade">Lost decade</option>
+          <option value="crash_2008">2008 financial crisis replay</option>
+          <option value="dot_com">Dot-com crash replay</option>   
+        </select>
+      </div>
+
+      <div class="frow" style="margin-top:8px"><label class="flbl">Portfolio rebalancing</label>
+        <select id="rebalFreq" class="w180">
+          <option value="none" selected>None — static allocation</option>
+          <option value="annual">Annual — rebalance every year</option>
+          <option value="threshold">5% drift — rebalance on breach</option>
+        </select>
+      </div>
+
+      <div class="frow"><label class="flbl">Invested allocation %</label>
+        <input type="number" id="tgtEquity" value="60" min="0" max="100" step="5" class="w120">
+        <span style="font-size:11px;color:var(--text3);margin-left:8px">remainder in cash</span>
+      </div>
+
+      <div style="font-size:11px;color:var(--text3);line-height:1.6;margin-top:4px;padding:8px 10px;background:var(--bg3);border-radius:var(--rs);border:1px solid var(--border)">
+        <strong style="color:var(--text2)">Two-bucket model:</strong> the simulation splits all wealth into an <em>invested</em> bucket (earns your return mean ± volatility each year) and a <em>cash</em> bucket (flat — no growth, but accumulates annual savings). This % sets how much stays invested. When rebalancing is on, the split is restored each year or whenever drift exceeds 5%. Has no effect if rebalancing is set to None.
+      </div>
+    </div>
+
+    <div>
+      <div class="slbl">Probability bands</div>
+      <div class="band-btns">
+        <button class="band-btn active" id="bb-standard" onclick="setBand('standard')">Standard (30/50/80%)</button>
+        <button class="band-btn" id="bb-alternative" onclick="setBand('alternative')">Alternative (40/60/90%)</button>
+        <button class="band-btn" id="bb-custom" onclick="setBand('custom')">Custom</button>
+      </div>
+
+      <div class="custom-bands" id="cbwrap">
+        <span style="font-size:11px;color:var(--text3)">Low</span>
+        <input type="number" id="blow" value="10" min="1" max="49" step="1">
+        <span style="font-size:11px;color:var(--text3)">Mid</span>
+        <input type="number" id="bmid" value="50" min="1" max="99" step="1">
+        <span style="font-size:11px;color:var(--text3)">High</span>
+        <input type="number" id="bhigh" value="90" min="1" max="99" step="1">
+        <button class="btn-secondary" onclick="applyCustom()">Apply</button>
+      </div>
+
+      <div id="bdesc" class="band-desc"></div>
+    </div>
+  </div>
+</div>
+
     <div class="set-sec">
       <div class="set-sec-h">Profile data</div>
       <div class="set-actions">
@@ -1765,6 +1843,8 @@ input[type=date]{color-scheme:light}
   </div>
 </div>
 <div class="panel">
+  
+  <!-- Simulation Settings -->
   <div class="ptitle">Simulation Settings</div>
   <div class="two-col">
     <div>
