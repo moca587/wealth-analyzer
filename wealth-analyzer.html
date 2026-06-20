@@ -1792,6 +1792,8 @@ input[type=date]{color-scheme:light}
           <option value="high_inflation">High inflation</option>
           <option value="market_crash">Market crash</option>
           <option value="lost_decade">Lost decade</option>
+          <option value="crash_2008">2008 financial crisis replay</option>
+          <option value="dot_com">Dot-com crash replay</option>   
         </select>
       </div>
 
@@ -1846,6 +1848,16 @@ input[type=date]{color-scheme:light}
     <!-- Outcome values grid -->
     <div id="probGrid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:14px;text-align:center"></div>
 
+    <div class="panel">
+    <div class="ptitle">Potentially Achievable Annual Lifestyle</div>
+    <div style="font-size:12px;color:var(--text3);margin-bottom:12px">
+      Estimated sustainable annual retirement spending in today's dollars.
+    </div>
+    <div id="simLifestyle">
+      Run the simulation to estimate sustainable retirement spending.
+    </div>
+    </div>
+
     <div style="margin-top:10px;padding:8px 12px;background:var(--bg3);border-radius:var(--rs);font-size:11px;color:var(--text3);line-height:1.6">
     <strong style="color:var(--text2)">How to read this:</strong>
     Each bar is a possible outcome —
@@ -1864,16 +1876,49 @@ input[type=date]{color-scheme:light}
     </div>
 
     <!-- Downside Path Analysis -->
-    <div class="panel">
+    <!-- <div class="panel">
       <div class="ptitle">Downside Path Analysis</div>
       <div id="downsideAnalysis" style="font-size:13px;color:var(--text2);line-height:1.7">
         Run the simulation to see the bottom 10% outcome summary.
       </div>
+    </div> -->
+
+    <!-- Downside and Upside Path Analysis -->
+<div class="panel">
+  <div class="ptitle">Path Analysis</div>
+
+  <div
+    style="
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:16px;
+      margin-top:12px;
+    "
+  >
+    <div>
+      <div style="font-weight:700;margin-bottom:8px">
+        ⚠️ Downside Path Analysis
+      </div>
+
+      <div id="downsideAnalysis">
+        Run the simulation to see the bottom 10% outcome summary.
+      </div>
     </div>
 
-    <!-- <div style="margin-top:10px;padding:8px 12px;background:var(--bg3);border-radius:var(--rs);font-size:11px;color:var(--text3);line-height:1.6">
-      <strong style="color:var(--text2)">How to read this:</strong> Each bar is a possible outcome — <strong style="color:var(--text2)">Pessimistic</strong> (10th percentile), <strong style="color:var(--text2)">Median</strong> (50th), and <strong style="color:var(--text2)">Optimistic</strong> (90th). The dashed line is today's wealth.
-    </div> -->
+    <div>
+      <div style="font-weight:700;margin-bottom:8px">
+        🚀 Upside Path Analysis
+      </div>
+
+      <div id="upsideAnalysis">
+        Run the simulation to see the top 10% outcome summary.
+      </div>
+    </div>
+
+  </div>
+</div>
+
+    
     
 
   </div>
@@ -11163,6 +11208,10 @@ function scenarioInflation(year, baseInf){
     if(year < 7) return 0.06;
   }
 
+  if(scenario === "stagflation"){
+    if(year > 0 && year <= 5) return 0.07;
+  }
+
   return baseInf;
 }
 
@@ -11171,8 +11220,27 @@ function scenarioReturnShock(year){
   const scenario = val("stressScenario") || "base"; // if value is empty, use base 
 
   if(scenario === "market_crash"){
-    if(year > 0 && year <= 3) return 0.08;
-    if(year > 3 && year <= 7) return 0.06;
+    if(year === 1) return -0.35;
+    if(year === 2) return 0.12; 
+  }
+
+  if(scenario === "crash_2008"){
+    if(year === 1) return -0.37;
+    if(year === 2) return 0.26;
+    if(year === 3) return 0.15;
+  }
+
+  if(scenario === "dot_com"){
+    if(year === 1) return -0.10;
+    if(year === 2) return -0.13;
+    if(year === 3) return -0.23;
+    if(year === 4) return 0.26;
+  }
+
+  if(scenario === "stagflation"){
+    if(year === 1) return -0.15;
+    if(year === 2) return -0.08;
+    if(year > 2 && year <= 5) return 0.02;
   }
 
   if(scenario === "lost_decade"){
@@ -11538,7 +11606,9 @@ function runSim(){
   lastSimPaths=paths; lastSimYrs=yrs;
   redrawChart(paths);
   drawFanChart(paths);
+  renderSimLifestyle(); // new
   renderDownsideAnalysis(paths);
+  renderUpsideAnalysis(paths);
   renderGoalAnalysis(paths,yrs);
   renderCashFlow();
   renderFundingStatus(paths,yrs);
@@ -11923,7 +11993,7 @@ function renderDownsideAnalysis(paths){
       Based on the worst ${cutoff} of ${paths.length} simulations by final-year wealth, shown in today's dollars.
     </div>
 
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;text-align:center">
+    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;text-align:center">
       <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:12px">
         <div style="font-size:11px;color:var(--text3);text-transform:uppercase;font-weight:700">Average downside wealth</div>
         <div style="font-size:20px;font-weight:800">${fmtMoney(avgEndingWealth)}</div>
@@ -11934,10 +12004,52 @@ function renderDownsideAnalysis(paths){
         <div style="font-size:20px;font-weight:800">${fmtMoney(worstEndingWealth)}</div>
       </div>
 
+      
+    </div>
+  `);
+}
+
+function renderUpsideAnalysis(paths){
+  const box = $("upsideAnalysis");
+  if(!box || !paths || !paths.length) return;
+
+  const finalYear = paths[0].length - 1; // final year. paths[0] is the first simulation
+  const inf = num("inf", 3.8) / 100; // default inflation value 3.8
+  const deflate = v => v / Math.pow(1 + inf, finalYear); // converts future dollar amount into todays dollars
+
+  // sort all simulations (paths[i]) so worst outcome is first
+  const sortedPaths = [...paths].sort(
+    (a,b) => a[a.length - 1] - b[b.length - 1]
+  );
+
+  // take bottom 10% 
+  const cutoff = Math.max(1, Math.floor(sortedPaths.length * 0.10)); // how many sims are in the bottom 10%
+  const best10 = sortedPaths.slice(-cutoff); // contains the x best simulations
+
+  const endingValues = best10.map(p => deflate(p[p.length - 1])); // get last value in the simulation (ending wealth) 
+
+  const avgEndingWealth =
+    endingValues.reduce((a,b) => a + b, 0) / endingValues.length;
+
+  const bestEndingWealth = Math.max(...endingValues);
+
+  setH("upsideAnalysis", `
+    <div style="margin-bottom:10px;color:var(--text3)">
+      Based on the best ${cutoff} of ${paths.length} simulations by final-year wealth, shown in today's dollars.
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;text-align:center">
       <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:12px">
-        <div style="font-size:11px;color:var(--text3);text-transform:uppercase;font-weight:700">Final year</div>
-        <div style="font-size:20px;font-weight:800">Year ${finalYear}</div>
+        <div style="font-size:11px;color:var(--text3);text-transform:uppercase;font-weight:700">Average upside wealth</div>
+        <div style="font-size:20px;font-weight:800">${fmtMoney(avgEndingWealth)}</div>
       </div>
+
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:12px">
+        <div style="font-size:11px;color:var(--text3);text-transform:uppercase;font-weight:700">Best upside wealth</div>
+        <div style="font-size:20px;font-weight:800">${fmtMoney(bestEndingWealth)}</div>
+      </div>
+
+      
     </div>
   `);
 }
