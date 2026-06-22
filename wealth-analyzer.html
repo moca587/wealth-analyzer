@@ -2584,7 +2584,7 @@ input[type=date]{color-scheme:light}
   <div class="cmp-grid" id="cmpParams">
     <div class="cmp-h cur">Current portfolio</div>
     <div class="cmp-h prop">Proposed portfolio</div>
-    <div class="cmp-h delta">Δ</div>
+    <div class="cmp-h delta">Variance</div>
     <div class="cmp-c"><span class="lbl">Run comparison to populate</span>—</div>
     <div class="cmp-c"><span class="lbl">&nbsp;</span>—</div>
     <div class="cmp-c">—</div>
@@ -12570,7 +12570,7 @@ function runComparison(){
   params.innerHTML = `
     <div class="cmp-h cur">Current portfolio</div>
     <div class="cmp-h prop">Proposed portfolio</div>
-    <div class="cmp-h delta">Δ</div>
+    <div class="cmp-h delta">Variance</div>
     <div class="cmp-c"><span class="lbl">Gross return</span>${(curGrossMu*100).toFixed(2)}%</div>
     <div class="cmp-c"><span class="lbl">Gross return</span>${(propGrossMu*100).toFixed(2)}%</div>
     ${d(propGrossMu,curGrossMu)}
