@@ -941,6 +941,9 @@ Citations:<br>
     <h1>🔑 API Keys & Endpoints</h1>
     <p>All credentials stored in browser localStorage and shared with the main app. <strong>Keys are auto-tested every 2 minutes</strong> to ensure they're working — see the Health column.</p>
   </div>
+  <div class="panel" style="padding:12px 16px">
+    <div style="font-size:12px;color:var(--ink2);line-height:1.6">Enter a ticker (VOO, AAPL), ISIN/UCIT number (IE00B3RBWM25), exchange symbol (VUSA.L, IWDA.AS), or fund name to search in the main app's Add Investment box. Data fills automatically from Yahoo Finance &amp; OpenFIGI — no key needed. <strong>API keys for enhanced data are managed here</strong> and auto-checked every 2 minutes.</div>
+  </div>
   <div class="panel">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:10px">
       <div class="ptitle" style="margin:0">Free Providers <span style="color:var(--green);font-weight:600">— health-checked every 2 minutes</span></div>
@@ -1088,7 +1091,7 @@ function toggleQuestionnairePreview(){
 // ═══════════════════════════════════════════════════════════
 // VERSION + UTILS
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260622-2159";
+const APP_VERSION = "20260622-2212";
 const $ = (id) => document.getElementById(id);
 const $$ = (sel, ctx) => Array.from((ctx||document).querySelectorAll(sel));
 
