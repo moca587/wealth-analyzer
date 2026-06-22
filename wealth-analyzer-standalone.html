@@ -766,6 +766,8 @@ input[type=date]{color-scheme:light}
 /* Holdings box mirrors the Proposal box grid 1:1 for visual parity */
 .pf-add{display:grid;grid-template-columns:90px 1.3fr 140px 130px 100px 90px 90px 110px 1.4fr auto;gap:8px;align-items:end;margin-top:10px}
 .pf-add input,.pf-add select{width:100%;font-size:12px}
+/* Alternatives add line: Type · Subcategory · Name · Value · Region · ER · Yield · Notes · buttons (no ticker, no class) */
+.pf-add-alt{grid-template-columns:120px 180px 1.3fr 100px 90px 90px 110px 1.4fr auto;margin-top:8px}
 /* ── AI Data Agent ── */
 .da-note{font-size:12px;color:var(--text2);line-height:1.55}
 .da-sec{margin-bottom:14px}
@@ -2666,10 +2668,7 @@ input[type=date]{color-scheme:light}
           <option value="mutual_fund">Mutual fund</option>
           <option value="stock">Stock</option>
           <option value="bond">Bond</option>
-          <option value="structured">Structured product</option>
           <option value="alternative">Alternative</option>
-          <option value="hedge_fund">Hedge fund</option>
-          <option value="private_equity">Private equity fund</option>
         </select>
       </div>
       <div class="fld"><label>Name</label><input id="pfName" placeholder="auto-fills from ticker"></div>
@@ -2716,6 +2715,39 @@ input[type=date]{color-scheme:light}
     <span id="pfAvStatus" style="display:none"></span>
     <div style="font-size:11px;color:var(--text3);margin-top:6px;line-height:1.5">Enter a ticker (VOO, AAPL), ISIN/UCIT number (IE00B3RBWM25), exchange symbol (VUSA.L, IWDA.AS), or fund name to search. Data fills automatically from Yahoo Finance &amp; OpenFIGI — no key needed. <strong>API keys for enhanced data are managed in the <a href="admin.html" target="_blank" style="color:var(--gold)">Admin → API Keys tab</a></strong> and auto-checked every 2 minutes.</div>
     <div id="pfPerf" style="display:none"></div>
+
+    <!-- Alternatives add line — private equity / hedge fund / structured (no ticker; class is set from type, subcategory selectable) -->
+    <div class="slbl" style="margin-top:16px">Add alternative investment <span style="color:var(--text3);font-weight:400">— private equity, hedge funds &amp; structured products (no ticker)</span></div>
+    <div class="pf-add pf-add-alt">
+      <div class="fld"><label>Type</label>
+        <select id="pfAltType" onchange="updateAltSubcats()">
+          <option value="private_equity">Private equity fund</option>
+          <option value="hedge_fund">Hedge fund</option>
+          <option value="structured">Structured product</option>
+        </select>
+      </div>
+      <div class="fld"><label>Subcategory</label>
+        <select id="pfAltSubcat"></select>
+      </div>
+      <div class="fld"><label>Name</label><input id="pfAltName" placeholder="fund / product name"></div>
+      <div class="fld"><label>Value ($)</label><input type="number" id="pfAltVal" placeholder="0" min="0" step="100"></div>
+      <div class="fld"><label>Region</label>
+        <select id="pfAltRegion">
+          <option value="us">US</option>
+          <option value="dev_intl">Dev Intl</option>
+          <option value="emerging">EM</option>
+          <option value="global">Global</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+      <div class="fld"><label>Expense Ratio %</label><input type="number" id="pfAltEr" placeholder="0" min="0" max="10" step="0.01"></div>
+      <div class="fld"><label>Yield %</label><input type="number" id="pfAltYld" placeholder="0" min="0" max="50" step="0.01"></div>
+      <div class="fld"><label>Notes</label><input id="pfAltNote" placeholder="optional note"></div>
+      <div style="display:flex;gap:6px;margin-top:2px">
+        <button id="pfAltAddBtn" class="btn-secondary" style="flex:1" onclick="addAltInvestment()">Add alternative</button>
+        <button id="pfAltCancelBtn" class="btn-secondary" onclick="cancelEditAltInvestment()" style="display:none;color:var(--text3)">✕ Cancel</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -3477,7 +3509,7 @@ input[type=date]{color-scheme:light}
 // ═══════════════════════════════════════════════════════════
 // VERSION — updated by build-standalone.pl on each build
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260622-2157";
+const APP_VERSION = "20260622-2159";
 
 // ═══════════════════════════════════════════════════════════
 // DATA
@@ -7380,7 +7412,7 @@ function applyCustom(){
 // ═══════════════════════════════════════════════════════════
 // PORTFOLIO (Holdings)
 // ═══════════════════════════════════════════════════════════
-let _editingInvId=null;
+let _editingInvId=null, _editingAltId=null;
 function addInvestment(){
   const name=val("pfName").trim(); const tkr=val("pfTkr").trim();
   const type=val("pfType"), cls=val("pfClass"), region=val("pfRegion");
@@ -7408,6 +7440,8 @@ function addInvestment(){
 }
 function editInvestment(id){
   const i=investments.find(x=>x.id===id); if(!i) return;
+  // Alternatives (private equity / hedge fund / structured) edit via the dedicated line
+  if(i.type==="private_equity"||i.type==="hedge_fund"||i.type==="structured"){ editAltInvestment(i); return; }
   $("pfName").value=i.name;
   $("pfTkr").value=i.tkr||"";
   const typeSel=$("pfType");
@@ -7434,9 +7468,67 @@ function cancelEditInvestment(){
 }
 function removeInvestment(id){
   if(_editingInvId===id) cancelEditInvestment();
+  if(_editingAltId===id) cancelEditAltInvestment();
   investments=investments.filter(i=>i.id!==id);
   renderInvestments(); renderPortfolioMetrics(); drawPortfolioPie();
   refreshTopMetrics();
+}
+
+// ── Alternatives line: private equity / hedge fund / structured product ──
+// No ticker; class is set from the type so it flows through the same CMA-based
+// return/risk math, allocation, comparison, simulation and report as any holding.
+// Subcategory is a descriptive label captured and displayed throughout.
+const ALT_SUBCATS = {
+  private_equity: ["Buyout / LBO","Venture capital","Growth equity","Secondaries","Fund-of-funds","Distressed / special situations","Private credit","Co-investment"],
+  hedge_fund:     ["Long/short equity","Global macro","Event-driven","Relative value / arbitrage","Managed futures (CTA)","Multi-strategy","Market neutral","Credit"],
+  structured:     ["Capital-protected note","Yield enhancement / reverse convertible","Participation / tracker","Autocallable","Credit-linked note","Leverage / warrant"]
+};
+function updateAltSubcats(selected){
+  const sel=$("pfAltSubcat"); if(!sel) return;
+  const opts=ALT_SUBCATS[val("pfAltType")]||[];
+  sel.innerHTML=opts.map(o=>`<option value="${o}">${o}</option>`).join("");
+  if(selected && opts.indexOf(selected)>=0) sel.value=selected;
+}
+function addAltInvestment(){
+  const type=val("pfAltType"), subcat=val("pfAltSubcat");
+  const name=val("pfAltName").trim(), v=num("pfAltVal",0), region=val("pfAltRegion");
+  const er=parseFloat(val("pfAltEr")), yld=parseFloat(val("pfAltYld")), note=val("pfAltNote").trim();
+  const cls=type; // private_equity / hedge_fund / structured map 1:1 to CMA asset classes
+  if(!name||v<=0){alert("Enter name and a positive value"); return;}
+  if(_editingAltId){
+    investments=investments.map(i=>i.id===_editingAltId
+      ? {...i,name,tkr:"",type,cls,subcat,region,val:v,er:isNaN(er)?null:er,yld:isNaN(yld)?null:yld,note}
+      : i);
+    _editingAltId=null;
+    $("pfAltAddBtn").textContent="Add alternative";
+    show("pfAltCancelBtn",false);
+  } else {
+    investments.push({id:"inv"+(++invSeq),name,tkr:"",type,cls,subcat,region,val:v,
+      er:isNaN(er)?null:er, yld:isNaN(yld)?null:yld, note});
+  }
+  ["pfAltName","pfAltVal","pfAltEr","pfAltYld","pfAltNote"].forEach(id=>{const el=$(id); if(el) el.value="";});
+  renderInvestments(); renderPortfolioMetrics(); drawPortfolioPie();
+  refreshTopMetrics();
+}
+function editAltInvestment(i){
+  const ts=$("pfAltType"); if(ts&&[...ts.options].some(o=>o.value===i.type)) ts.value=i.type;
+  updateAltSubcats(i.subcat);
+  $("pfAltName").value=i.name;
+  $("pfAltVal").value=i.val;
+  const reg=$("pfAltRegion"); if(reg&&[...reg.options].some(o=>o.value===i.region)) reg.value=i.region;
+  $("pfAltEr").value=i.er!=null?i.er:"";
+  $("pfAltYld").value=i.yld!=null?i.yld:"";
+  $("pfAltNote").value=i.note||"";
+  _editingAltId=i.id;
+  $("pfAltAddBtn").textContent="Save changes";
+  show("pfAltCancelBtn",true);
+  const btn=$("pfAltAddBtn"); if(btn) btn.scrollIntoView({behavior:"smooth",block:"nearest"});
+}
+function cancelEditAltInvestment(){
+  _editingAltId=null;
+  ["pfAltName","pfAltVal","pfAltEr","pfAltYld","pfAltNote"].forEach(id=>{const el=$(id); if(el) el.value="";});
+  const b=$("pfAltAddBtn"); if(b) b.textContent="Add alternative";
+  show("pfAltCancelBtn",false);
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -7859,7 +7951,7 @@ function renderInvestments(){
       <span class="pf-tag tt-${i.type}">${INV_TYPE_LABELS[i.type]||i.type}</span>
       <span class="pname">${i.name}</span>
       <span class="ptkr">${i.tkr||"—"}</span>
-      <span style="color:var(--text2)">${INV_CLASS_LABELS[i.cls]||i.cls}</span>
+      <span style="color:var(--text2)">${INV_CLASS_LABELS[i.cls]||i.cls}${i.subcat?` <span style="color:var(--text3)">· ${i.subcat}</span>`:""}</span>
       <span style="color:var(--text);font-variant-numeric:tabular-nums;font-weight:500">${fmtMoney(i.val)}</span>
       <span style="color:var(--text3)">${INV_REGION_LABELS[i.region]||i.region}</span>
       <span style="color:var(--text2);font-variant-numeric:tabular-nums">${er}</span>
@@ -7893,7 +7985,7 @@ function renderPortfolioMetrics(){
   setT("pf-er",wEr.toFixed(2)+"%");
   updatePortfolioFeeDisplay();
   // Risk score (simple: by class)
-  const riskByClass={equity:8,fixed_income:3,real_estate:6,commodity:7,cash:1,mixed:5,alternative:9};
+  const riskByClass={equity:8,fixed_income:3,real_estate:6,commodity:7,cash:1,mixed:5,alternative:9,private_equity:9,hedge_fund:6,structured:6};
   const wRisk=investments.reduce((s,i)=>s+(riskByClass[i.cls]||5)*i.val,0)/total;
   setT("pf-risk",wRisk.toFixed(1)+"/10");
   const fill=$("pf-risk-fill"); if(fill) fill.style.flex="0 0 "+(wRisk/10*100)+"%";
@@ -10461,7 +10553,7 @@ function renderProposalMetrics(){
   setT("pr-fee-sum",feePct>0?("-"+feePct.toFixed(2)+"% / yr"):"None");
   setT("pr-ret-net-sum",netRet.toFixed(2)+"%");
   updateProposalFeeDisplay();
-  const riskByClass={equity:8,fixed_income:3,real_estate:6,commodity:7,cash:1,mixed:5,alternative:9};
+  const riskByClass={equity:8,fixed_income:3,real_estate:6,commodity:7,cash:1,mixed:5,alternative:9,private_equity:9,hedge_fund:6,structured:6};
   const wRisk=proposals.reduce((s,p)=>s+(riskByClass[p.cls]||5)*p.alloc,0)/totalAlloc;
   setT("pr-risk",wRisk.toFixed(1)+"/10");
   const fill=$("pr-risk-fill"); if(fill) fill.style.flex="0 0 "+(wRisk/10*100)+"%";
@@ -15341,7 +15433,7 @@ async function generatePDFReport(){
         sectionH2("Portfolio Analysis ("+investments.length+" holdings)");
         const pfTot=portfolioInvestmentSeed();
         tbl(["Position","Ticker","Asset class","Value","Weight"],
-          investments.map(i=>[i.name||"—", i.tkr||"—", INV_CLASS_LABELS[i.cls]||i.cls,
+          investments.map(i=>[i.name||"—", i.tkr||"—", (INV_CLASS_LABELS[i.cls]||i.cls)+(i.subcat?" · "+i.subcat:""),
             fmt(i.val), pfTot>0?(i.val/pfTot*100).toFixed(1)+"%":"—"]));
         kv([["Total portfolio value",fmt(pfTot)]]);
       },
@@ -16527,6 +16619,7 @@ document.addEventListener("DOMContentLoaded",function(){
   // ── Feature flags: apply AI Portfolio Builder visibility (set in Admin Console).
   // Re-apply when the tab regains focus so an admin toggle reflects without a reload.
   try { applyAIBuilderFlag(); } catch(_){}
+  try { updateAltSubcats(); } catch(_){}   // populate the alternatives subcategory dropdown
   document.addEventListener("visibilitychange", function(){
     if(document.visibilityState === "visible"){ try { applyAIBuilderFlag(); } catch(_){} }
   });
