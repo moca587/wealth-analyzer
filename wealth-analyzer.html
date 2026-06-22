@@ -10257,21 +10257,28 @@ const FIGI_SUFFIX={
   'HN':'.HE','VX':'.VX','AV':'.VI','AU':'.AX','HK':'.HK','TK':'.T',
   'KS':'.KS','IN':'.BO','SI':'.SI','TW':'.TW','MX':'.MX','CN':'.SN'
 };
+// ISIN country prefix → preferred OpenFIGI exchCode (its liquid home listing, which
+// Yahoo covers well). Lets a non-US ISIN resolve to e.g. CHDVD.SW rather than a thin
+// US OTC grey-market line. US ISINs fall through to the US-listing preference below.
+const ISIN_CC_TO_EXCH={CH:'SW',GB:'LN',IE:'LN',DE:'GY',FR:'PA',NL:'NA',IT:'IM',ES:'SM',SE:'SS',NO:'OS',DK:'DC',FI:'HN',AT:'AV',BE:'BT',GR:'AT',JP:'TK',HK:'HK',AU:'AU',SG:'SI',KR:'KS',TW:'TW',IN:'IN',MX:'MX',CA:'CN'};
 
 // OpenFIGI: ISIN → {ticker, name, exchCode, securityType2}
 async function openFigiLookup(isin){
-  const r=await fetch('https://api.openfigi.com/v3/mapping',{
-    method:'POST',
-    headers:{'Content-Type':'text/json'},
-    body:JSON.stringify([{idType:'ID_ISIN',idValue:isin.toUpperCase()}])
-  });
-  if(!r.ok) throw new Error('OpenFIGI HTTP '+r.status);
-  const d=await r.json();
+  const url='https://api.openfigi.com/v3/mapping';
+  const opts={ method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify([{idType:'ID_ISIN',idValue:isin.toUpperCase()}]) };
+  let d=null;
+  try{ const r=await fetch(url,opts); if(r.ok) d=await r.json(); }catch(e){}
+  if(!d){ const r2=await fetch('https://corsproxy.io/?'+encodeURIComponent(url),opts); if(!r2.ok) throw new Error('OpenFIGI HTTP '+r2.status); d=await r2.json(); }   // OpenFIGI blocks direct browser calls (CORS) → proxy fallback
   const data=d[0]?.data;
   if(!data?.length) return null;
-  // Prefer a US listing; fall back to first result
+  // Prefer the ISIN's home exchange (best Yahoo coverage), then a US listing,
+  // then any Yahoo-supported exchange, then the first result.
+  const cc=(isin||'').slice(0,2).toUpperCase(), homeEx=ISIN_CC_TO_EXCH[cc];
   const usEx=['US','UN','UA','UF','UR','UT','UV'];
-  const hit=data.find(x=>usEx.includes(x.exchCode))||data[0];
+  const hit=(homeEx && data.find(x=>x.exchCode===homeEx))
+        || data.find(x=>usEx.includes(x.exchCode))
+        || data.find(x=>FIGI_SUFFIX[x.exchCode])
+        || data[0];
   return {ticker:(hit.ticker||'').trim(),name:(hit.name||'').trim(),exchCode:hit.exchCode||'',securityType:hit.securityType||'',securityType2:hit.securityType2||''};
 }
 
@@ -10387,6 +10394,15 @@ function mapQuoteTypeToVehicle(quoteType){
   const map={ETF:'etf',MUTUALFUND:'mutual_fund',EQUITY:'stock',FUTURE:'futures',OPTION:'alternative',CRYPTOCURRENCY:'alternative',INDEX:'alternative'};
   return map[(quoteType||'').toUpperCase()]||'alternative';
 }
+// Map OpenFIGI securityType/securityType2 → a Yahoo-style quoteType, so an ISIN-resolved
+// instrument still types correctly when Yahoo's own data is thin (e.g. ETP/Mutual Fund).
+function figiToQuoteType(fd){
+  const s=(((fd&&fd.securityType)||'')+' '+((fd&&fd.securityType2)||'')).toUpperCase();
+  if(s.includes('ETP')||s.includes('ETF')||s.includes('EXCHANGE TRADED')||s.includes('ETC')||s.includes('ETN')) return 'ETF';
+  if(s.includes('MUTUAL')||s.includes('OPEN-END')||s.includes('CLOSED-END')||s.includes('UNIT TRUST')||s.includes('SICAV')) return 'MUTUALFUND';
+  if(s.includes('COMMON')||s.includes('ORDINARY')||s.includes('PREFERRED')||s.includes('EQUITY')||s.includes('REIT')||s.includes('DEPOSITARY')) return 'EQUITY';
+  return '';
+}
 
 // Map Yahoo exchange/currency → our region
 function mapExchangeToRegion(exchange,currency){
@@ -10486,7 +10502,7 @@ async function fetchInstrumentLive(prefix){
 
     // ── Step 3: compile metadata ──────────────────────────────────────
     const name=(yahooMeta?.longName)||(yahooMeta?.shortName)||(searchHit?.longname)||(searchHit?.shortname)||(figiData?.name)||symbol;
-    const quoteType=(yahooMeta?.quoteType)||(yahooMeta?.instrumentType)||(searchHit?.quoteType)||(figiData?.securityType2?.includes('ETF')?'ETF':'')||'';
+    const quoteType=(yahooMeta?.quoteType)||(yahooMeta?.instrumentType)||(searchHit?.quoteType)||figiToQuoteType(figiData)||'';
     const exchange=(yahooMeta?.exchangeName)||(yahooMeta?.fullExchangeName)||(searchHit?.exchDisp)||(searchHit?.exchange)||'';
     const currency=yahooMeta?.currency||'';
     const sector=searchHit?.sector||'';
