@@ -2222,7 +2222,7 @@ input[type=date]{color-scheme:light}
           <option value="alternative">Alternative</option>
         </select>
       </div>
-      <div class="fld"><label>Name</label><input id="pfName" placeholder="auto-fills from ticker"></div>
+      <div class="fld"><label>Name</label><input id="pfName" placeholder="auto-fills from ticker" oninput="onPfNameInput()"></div>
       <div class="fld"><label>Ticker</label>
         <div style="display:flex;gap:4px;align-items:stretch">
           <input id="pfTkr" placeholder="Ticker / ISIN / fund name" oninput="applyHoldingTickerPrefill()" onblur="fetchInstrumentLive('pf')" onkeydown="if(event.key==='Enter'){event.preventDefault();fetchInstrumentLive('pf');}" style="flex:1;min-width:0">
@@ -10207,7 +10207,7 @@ function applyTickerPrefill(){
 function applyHoldingTickerPrefill(){
   const raw=(val("pfTkr")||"").trim().toUpperCase();
   const hint=$("pfTkrHint");
-  if(!raw){if(hint) hint.textContent=""; return;}
+  if(!raw){ resetHoldingForm(); return; }   // ticker cleared → wipe the form for a fresh lookup
   const t=TICKER_DB[raw];
   if(!t){
     if(hint){hint.textContent="No local reference for "+raw+" — will try Alpha Vantage on blur (if API key set).";hint.style.color="var(--text3)";}
@@ -10222,6 +10222,19 @@ function applyHoldingTickerPrefill(){
   if(t.yld!=null) $("pfYld").value=t.yld;
   if(hint){hint.textContent="Prefilled from "+raw+" ("+(INV_TYPE_LABELS[t.vehicle]||t.vehicle)+", "+(INV_CLASS_LABELS[t.cls]||t.cls)+") — live price/sector from ↻ AV on blur";hint.style.color="#1b6841";}
 }
+// Clear the entire Add Investment form (text fields, dropdowns, fetched performance
+// panel and saved metrics) so a freshly-entered ticker pulls correct name + data with
+// nothing stale carried over. Fired when the Name or Ticker is emptied.
+function resetHoldingForm(){
+  if(typeof _editingInvId!=="undefined" && _editingInvId) return;  // don't disrupt an in-progress edit
+  ["pfName","pfTkr","pfVal","pfEr","pfYld","pfNote"].forEach(id=>{const el=$(id); if(el) el.value="";});
+  ["pfType","pfClass","pfRegion"].forEach(id=>{const el=$(id); if(el) el.selectedIndex=0;});
+  setT("pfTkrHint","");
+  const st=$("pfAvStatus"); if(st) st.textContent="";
+  try{ renderFundPerf('pf',null); }catch(_){}
+  try{ _lastFundPerf=null; }catch(_){}
+}
+function onPfNameInput(){ if(!(val("pfName")||"").trim()) resetHoldingForm(); }
 // ═══════════════════════════════════════════════════════════
 // INSTRUMENT LOOKUP — unified ticker / ISIN / fund name search
 // Sources: OpenFIGI (no key), Yahoo Finance (no key), Finnhub (optional), Alpha Vantage (optional)
