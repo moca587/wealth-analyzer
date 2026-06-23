@@ -908,6 +908,7 @@ input[type=date]{color-scheme:light}
           <option value="lost_decade">Lost decade</option>
           <option value="crash_2008">2008 financial crisis replay</option>
           <option value="dot_com">Dot-com crash replay</option>   
+          <option value="stagflation">Stagflation</option>
         </select>
       </div>
 
@@ -1862,7 +1863,7 @@ input[type=date]{color-scheme:light}
 <div class="panel">
   
   <!-- Simulation Settings -->
-  <div class="ptitle">Simulation Settings</div>
+  <!-- <div class="ptitle">Simulation Settings</div>
   <div class="two-col">
     <div>
       <div class="frow"><label class="flbl">Projection years</label><input type="number" id="simYrs" value="20" min="5" max="40" step="1" class="w120"></div>
@@ -1881,7 +1882,6 @@ input[type=date]{color-scheme:light}
         </select>
       </div>
 
-      <!-- New: Stress scenario -->
       <div class="frow">
         <label class="flbl">Stress scenario</label>
         <select id="stressScenario" class="w200">
@@ -1932,6 +1932,11 @@ input[type=date]{color-scheme:light}
     </div>
   </div>
   <button class="btn-primary full" onclick="runSim()">▶ Run Monte Carlo Simulation</button>
+</div> -->
+
+<!-- Run Simulation button -->
+<div class="panel">
+    <button class="btn-primary full" onclick="runSim()">▶ Run Monte Carlo Simulation</button>
 </div>
 
 <div class="panel">
@@ -4604,6 +4609,81 @@ const INV_TYPE_LABELS={mutual_fund:"Mutual fund",etf:"ETF",stock:"Stock",bond:"B
 const INV_CLASS_LABELS={equity:"Equity",fixed_income:"Fixed income",real_estate:"Real estate",commodity:"Commodity",cash:"Cash / MM",mixed:"Mixed",alternative:"Alternatives",hedge_fund:"Hedge funds",private_equity:"Private equity",structured:"Structured products",crypto:"Crypto",other:"Other"};
 const INV_REGION_LABELS={us:"US",dev_intl:"Dev Intl",emerging:"EM",global:"Global",other:"Other"};
 const PROP_VEHICLE_LABELS={mutual_fund:"Mutual fund",etf:"ETF",stock:"Stock",bond:"Bond",alternative:"Alternative",structured:"Structured product",hedge_fund:"Hedge fund",private_equity:"Private equity fund",precious:"Precious metals",sma:"SMA",futures:"Futures"};
+
+// mu = expected annual return
+// sig = annual volatility (standard deviation)
+const ASSET_CLASS_MC = {
+  equity:         { mu: 0.075, sig: 0.18 },
+  fixed_income:   { mu: 0.040, sig: 0.07 },
+  real_estate:    { mu: 0.055, sig: 0.14 },
+  commodity:      { mu: 0.035, sig: 0.20 },
+  mixed:          { mu: 0.060, sig: 0.12 },
+  hedge_fund:     { mu: 0.055, sig: 0.10 },
+  private_equity: { mu: 0.090, sig: 0.25 },
+  structured:     { mu: 0.050, sig: 0.09 },
+  alternative:    { mu: 0.055, sig: 0.16 },
+  crypto:         { mu: 0.100, sig: 0.45 },
+  cash:           { mu: 0.020, sig: 0.01 },
+  other:          { mu: 0.050, sig: 0.12 }
+};
+
+// Takes all portfolio holdings and groups them by asset class
+function getAssetBucketsFromHoldings() {
+  const buckets = {};
+
+  investments.forEach(h => {
+    const cls = h.cls || "other";
+
+    // Do not include cash holdings in invested buckets
+    if (cls === "cash") return;
+
+    if (!buckets[cls]) buckets[cls] = 0;
+    buckets[cls] += Number(h.val || 0);
+  });
+
+  return buckets;
+}
+
+// Grows the asset buckets for each year 
+function growAssetBuckets(buckets, cgtDrag, y) {
+  const next = {};
+
+  Object.keys(buckets).forEach(cls => {
+    // get equity assumtions (mu, sig) for this asset class
+    const assumption = ASSET_CLASS_MC[cls] || ASSET_CLASS_MC.other;
+    // apply tax drag 
+    const muNet = assumption.mu * (1 - cgtDrag);
+    const sig = assumption.sig;
+
+    // adjust return/volatility if glidepath de-risking is on 
+    const gp = glidepathAdjust(muNet, sig, y);
+    // create one random yearly return for that asset class 
+    const r = (gp.mu - 0.5 * gp.sig * gp.sig) + gp.sig * boxMuller();
+
+    next[cls] = Math.max(0, buckets[cls] * Math.exp(r));
+  });
+
+  // return updated buckets after one year 
+  return next;
+}
+
+// adds up all bucket values and returns total portfolio value 
+function sumBuckets(buckets) {
+  return Object.values(buckets).reduce((a, b) => a + b, 0);
+}
+
+function scaleBucketsToTotal(buckets, newTotal) {
+  const oldTotal = sumBuckets(buckets);
+
+  if (oldTotal <= 0) return { mixed: Math.max(0, newTotal) };
+
+  const scaled = {};
+  Object.keys(buckets).forEach(cls => {
+    scaled[cls] = buckets[cls] * (newTotal / oldTotal);
+  });
+
+  return scaled;
+}
 
 // ═══════════════════════════════════════════════════════════════════
 // Distinct color palettes per pie chart so the three views are
@@ -11920,7 +12000,22 @@ function runMC(years,sims,muOverride,sigOverride){
 
   const paths=[]; // collection of Monte Carlo simulation results
   for(let s=0;s<sims;s++){
-    let cash=cashSeed, inv=investSeed, prop=propVal;
+    // let cash=cashSeed, inv=investSeed, prop=propVal;
+
+    // New: Asset Buckets
+    let cash = cashSeed;
+    let prop = propVal;
+
+    let assetBuckets = getAssetBucketsFromHoldings();
+
+    if (Object.keys(assetBuckets).length === 0) {
+      assetBuckets = { mixed: investSeed };
+    } else {
+      assetBuckets = scaleBucketsToTotal(assetBuckets, investSeed);
+    }
+
+    let inv = sumBuckets(assetBuckets);
+
     let retPot=retSeed; // retirement pool per simulation path
     let income=baseInc, expense=baseExp;
     let loanState=loans.map(l=>({bal:l.bal,rate:l.rate/100,yrs:l.yrs}));
@@ -11943,6 +12038,15 @@ function runMC(years,sims,muOverride,sigOverride){
     for(let y=0;y<=years;y++){
       const infY = scenarioInflation(y, inf);
       const returnShock = scenarioReturnShock(y);
+
+      // if (s === 0 && y <= 10) {
+      //   console.log("scenario test", {
+      //     scenario: val("stressScenario") || "base",
+      //     year: y,
+      //     infY,
+      //     returnShock
+      //   });
+      // }
 
       // age and retirement status 
       const age=c1Age0+y; 
@@ -12009,6 +12113,7 @@ function runMC(years,sims,muOverride,sigOverride){
       if(remaining<0){
         cash+=remaining;
         if(cash<0){inv+=cash; cash=0; if(inv<0) inv=0;}
+        assetBuckets = scaleBucketsToTotal(assetBuckets, inv);
       }
       // Goal outflows: deduct goal spending from liquid wealth (cash first, then investments)
       const goalOut=goalOutMap[cy0+y]||0;
@@ -12019,6 +12124,7 @@ function runMC(years,sims,muOverride,sigOverride){
         const fromInv=Math.min(Math.max(0,inv),still);
         inv-=fromInv;
         cash=Math.max(0,cash); inv=Math.max(0,inv);
+        assetBuckets = scaleBucketsToTotal(assetBuckets, inv);
       }
       // Portfolio rebalancing
       if(rebalFreq!=="none" && y>0){
@@ -12029,16 +12135,30 @@ function runMC(years,sims,muOverride,sigOverride){
           if(rebalFreq==="annual"||(rebalFreq==="threshold"&&drift>0.05)){
             inv=Math.max(0,targetInv);
             cash=Math.max(0,totalPort-inv);
+            assetBuckets = scaleBucketsToTotal(assetBuckets, inv);
           }
         }
       }
       // Random returns, or scenario shock overrides
       if(returnShock !== null){
-        inv = inv * (1 + returnShock);
+        // inv = inv * (1 + returnShock);
+        Object.keys(assetBuckets).forEach(cls => {
+          assetBuckets[cls] = Math.max(0, assetBuckets[cls] * (1 + returnShock));
+        });
+        inv = sumBuckets(assetBuckets);
       } else {
-        const gp_ = glidepathAdjust(muNet, sig, y);
-        const r = (gp_.mu - 0.5 * gp_.sig * gp_.sig) + gp_.sig * boxMuller();
-        inv = inv * Math.exp(r);
+        // const gp_ = glidepathAdjust(muNet, sig, y);
+        // const r = (gp_.mu - 0.5 * gp_.sig * gp_.sig) + gp_.sig * boxMuller();
+        // inv = inv * Math.exp(r);
+
+        // New: grow asset buckets
+        assetBuckets = growAssetBuckets(
+          assetBuckets,
+          cgtDrag,
+          y
+        );
+
+inv = sumBuckets(assetBuckets);
       }
 
       const propR=0.03+0.02*boxMuller();
