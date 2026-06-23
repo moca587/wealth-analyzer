@@ -2886,7 +2886,7 @@ input[type=date]{color-scheme:light}
           <option value="futures">Futures</option>
         </select>
       </div>
-      <div class="fld"><label>Name</label><input id="prName" placeholder="auto-fills from ticker"></div>
+      <div class="fld"><label>Name</label><input id="prName" placeholder="auto-fills from ticker" oninput="onPrNameInput()"></div>
       <div class="fld"><label>Ticker</label>
         <div style="display:flex;gap:4px;align-items:stretch">
           <input id="prTkr" placeholder="Ticker / ISIN / fund name" oninput="applyTickerPrefill()" onblur="fetchInstrumentLive('pr')" onkeydown="if(event.key==='Enter'){event.preventDefault();fetchInstrumentLive('pr');}" style="flex:1;min-width:0">
@@ -2918,6 +2918,7 @@ input[type=date]{color-scheme:light}
     <!-- API key inputs hidden — manage in admin → API Keys tab. Status span retained for any code that references it. -->
     <span id="prAvStatus" style="display:none"></span>
     <div style="font-size:11px;color:var(--text3);margin-top:6px;line-height:1.5">Enter a ticker (VOO, AGG, AAPL), ISIN/UCIT number (IE00B3RBWM25), exchange symbol (VUSA.L, IWDA.AS), or fund name to search. Name, type, class, region and yield fill automatically. Allocation % is always required. <strong>API keys for enhanced data are managed in the <a href="admin.html" target="_blank" style="color:var(--gold)">Admin → API Keys tab</a></strong> and auto-checked every 2 minutes.</div>
+    <div id="prPerf" style="display:none"></div>
   </div>
 </div>
 
@@ -3508,7 +3509,7 @@ input[type=date]{color-scheme:light}
 // ═══════════════════════════════════════════════════════════
 // VERSION — updated by build-standalone.pl on each build
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260622-2254";
+const APP_VERSION = "20260622-2311";
 
 // ═══════════════════════════════════════════════════════════
 // DATA
@@ -10454,9 +10455,11 @@ function addProposal(){
   const note=val("prNote").trim();
   if(!name||isNaN(alloc)||alloc<=0){alert("Enter name and allocation %"); return;}
   proposals.push({id:"pr"+(++propSeq),name,tkr,vehicle,cls,alloc,
-    exp:isNaN(exp)?null:exp,er:isNaN(er)?null:er,yld:isNaN(yld)?null:yld,note});
+    exp:isNaN(exp)?null:exp,er:isNaN(er)?null:er,yld:isNaN(yld)?null:yld,note,
+    metrics:(_lastFundPerf&&_lastFundPerf.tkr&&tkr&&_lastFundPerf.tkr===tkr.toUpperCase())?_lastFundPerf.metrics:null});
   ["prName","prTkr","prAlloc","prExp","prErIn","prYldIn","prNote"].forEach(id=>$(id).value="");
   setT("prTkrHint","");
+  try{ renderFundPerf('pr',null); }catch(_){}  _lastFundPerf=null;   // clear fetched-performance panel after add
   renderProposals(); renderProposalMetrics(); renderProposalBars(); drawProposalPie();
 }
 function removeProposal(id){
@@ -10639,7 +10642,7 @@ function drawProposalPie(){
 function applyTickerPrefill(){
   const raw=(val("prTkr")||"").trim().toUpperCase();
   const hint=$("prTkrHint");
-  if(!raw){if(hint) hint.textContent=""; return;}
+  if(!raw){ resetProposalForm(); return; }   // ticker cleared → wipe the form for a fresh lookup
   const t=TICKER_DB[raw];
   if(!t){
     if(hint){hint.textContent="No local reference for "+raw+" — fill manually or click ↻ AV.";hint.style.color="var(--text3)";}
@@ -10653,6 +10656,17 @@ function applyTickerPrefill(){
   if(t.yld!=null) $("prYldIn").value=t.yld;
   if(hint){hint.textContent="Prefilled from "+raw+" ("+(PROP_VEHICLE_LABELS[t.vehicle]||t.vehicle)+", "+(INV_CLASS_LABELS[t.cls]||t.cls)+")";hint.style.color="#1b6841";}
 }
+// Clear the Investment Proposal add form (fields, dropdowns, fetched performance)
+// so a freshly-entered ticker pulls correct data. Fired when Name or Ticker is emptied.
+function resetProposalForm(){
+  ["prName","prTkr","prAlloc","prExp","prErIn","prYldIn","prNote"].forEach(id=>{const el=$(id); if(el) el.value="";});
+  ["prVehicle","prClass"].forEach(id=>{const el=$(id); if(el) el.selectedIndex=0;});
+  setT("prTkrHint","");
+  const st=$("prAvStatus"); if(st) st.textContent="";
+  try{ renderFundPerf('pr',null); }catch(_){}
+  try{ _lastFundPerf=null; }catch(_){}
+}
+function onPrNameInput(){ if(!(val("prName")||"").trim()) resetProposalForm(); }
 function applyHoldingTickerPrefill(){
   const raw=(val("pfTkr")||"").trim().toUpperCase();
   const hint=$("pfTkrHint");
@@ -10997,15 +11011,13 @@ async function fetchInstrumentLive(prefix){
       if(expenseRatio!=null) $('prErIn').value=expenseRatio.toFixed(3);
     }
 
-    // ── Step 5b: fund performance (portfolio add only) — calendar-year + 1/3/5/10yr + since inception ──
-    if(prefix==='pf'){
-      try{
-        setStatus('Fetching performance history…');
-        const perf=await fetchFundPerformance(symbol);
-        renderFundPerf('pf', perf, name, symbol);
-        _lastFundPerf = perf ? {tkr:(($('pfTkr').value||symbol)||'').trim().toUpperCase(), metrics:perf} : null;
-      }catch(_){ try{ renderFundPerf('pf',null); }catch(__){} _lastFundPerf=null; }
-    }
+    // ── Step 5b: fund performance (Portfolio + Proposal) — calendar-year + 1/3/5/10yr + since inception ──
+    try{
+      setStatus('Fetching performance history…');
+      const perf=await fetchFundPerformance(symbol);
+      renderFundPerf(prefix, perf, name, symbol);
+      _lastFundPerf = perf ? {tkr:(($(prefix+'Tkr').value||symbol)||'').trim().toUpperCase(), metrics:perf} : null;
+    }catch(_){ try{ renderFundPerf(prefix,null); }catch(__){} _lastFundPerf=null; }
 
     // ── Step 6: status feedback ───────────────────────────────────────
     const detailParts=[
