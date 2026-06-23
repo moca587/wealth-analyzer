@@ -317,6 +317,21 @@ input[type=date]{color-scheme:light}
 /* Holdings box mirrors the Proposal box grid 1:1 for visual parity */
 .pf-add{display:grid;grid-template-columns:90px 1.3fr 140px 130px 100px 90px 90px 110px 1.4fr auto;gap:8px;align-items:end;margin-top:10px}
 .pf-add input,.pf-add select{width:100%;font-size:12px}
+/* ── AI Data Agent ── */
+.da-note{font-size:12px;color:var(--text2);line-height:1.55}
+.da-sec{margin-bottom:14px}
+.da-sec-h{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--gold);margin:12px 0 6px}
+.da-row{display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;padding:7px 9px;border:1px solid var(--border);border-radius:var(--rs);background:var(--bg3);margin-bottom:6px}
+.da-cell{display:flex;flex-direction:column;gap:2px;min-width:0}
+.da-fl{font-size:9px;text-transform:uppercase;letter-spacing:.05em;color:var(--text3)}
+.da-in{width:100%;font-size:12px}
+.da-src{cursor:help;color:var(--text3);font-size:12px;margin-left:4px}
+.da-modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:1000}
+.da-modal{position:fixed;inset:4% 3%;z-index:1001;background:var(--bg);border:1px solid var(--border);border-radius:var(--r);display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.5);overflow:hidden}
+.da-modal-h{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--border)}
+.da-modal-tools{display:flex;gap:8px;align-items:center;padding:10px 18px;border-bottom:1px solid var(--border)}
+.da-modal-body{flex:1;overflow:auto;padding:14px 18px}
+.da-modal-foot{display:flex;gap:10px;align-items:center;justify-content:flex-end;padding:12px 18px;border-top:1px solid var(--border)}
 .pf-add .fld,.pr-add .fld{display:flex;flex-direction:column;gap:3px;min-width:0}
 .pf-add .fld > label,.pr-add .fld > label{font-size:10px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.4px}
 .pf-row{display:grid;grid-template-columns:90px 1.5fr 80px 130px 100px 80px 80px 110px 1.4fr auto;gap:8px;align-items:center;padding:8px 10px;border-bottom:1px solid var(--border);font-size:12px}
@@ -2331,27 +2346,25 @@ input[type=date]{color-scheme:light}
 <div class="panel">
   <div class="ptitle" style="justify-content:space-between">
     <span>Holdings</span>
-    <button class="btn-secondary" onclick="openHoldingsUpload()" style="font-size:11px;padding:4px 10px">📄 Import from PDF / DOCX</button>
+    <button class="btn-secondary" onclick="openDataAgent()" style="font-size:11px;padding:4px 10px">✦ AI Data Agent</button>
   </div>
-  <!-- Import panel (hidden by default) -->
-  <div id="importPanel" style="display:none;background:var(--bg3);border:1px solid var(--border);border-radius:var(--rs);padding:14px 16px;margin-bottom:14px">
-    <div style="font-size:13px;font-weight:500;color:var(--text);margin-bottom:10px">Import holdings from document</div>
-    <div class="frow">
-      <label class="flbl">Select file <span style="color:var(--text3)">(PDF or DOCX)</span></label>
-      <input type="file" id="holdingsFile" accept=".pdf,.docx" style="font-size:12px;color:var(--text2)">
+  <!-- AI Data Agent panel (hidden by default) — reads any file, fills the whole app after review -->
+  <div id="aiAgentPanel" class="panel" style="display:none;background:var(--bg3);border:1px solid rgba(124,58,237,.28);margin-bottom:14px">
+    <div class="ptitle" style="margin:0 0 6px">✦ AI Data Agent</div>
+    <div class="da-note">Upload any client documents — brokerage &amp; bank statements, tax forms, <strong>photos &amp; screenshots</strong>, scanned PDFs, CSV / XLSX, or notes. The agent reads them (vision for images &amp; scans), extracts every data point it can across the whole profile, and shows you a review screen before anything is written to the app.</div>
+    <div class="frow" style="margin-top:8px">
+      <label class="flbl">Files <span style="color:var(--text3)">(any number, mixed types)</span></label>
+      <input type="file" id="aiAgentFiles" multiple onchange="renderAgentFileList()" accept=".pdf,.png,.jpg,.jpeg,.gif,.webp,.heic,.heif,.tiff,.tif,.bmp,.csv,.tsv,.txt,.docx,.xlsx,.xls,image/*" style="font-size:12px;color:var(--text2)">
     </div>
-    <div class="frow" style="margin-top:6px">
-      <label class="flbl">AI assistant key <span style="color:var(--text3)">(for smart parsing)</span></label>
-      <input type="password" id="aiKeyInput" placeholder="Paste key…  (optional — saved locally)" class="w220" oninput="saveAIKey()">
-    </div>
-    <div style="font-size:11px;color:var(--text3);margin:6px 0 10px">Without an API key the app uses pattern matching. With an AI key it reads the document intelligently. Your key is stored only in your browser.</div>
+    <div id="aiAgentFileList" style="margin:6px 0 8px"></div>
+    <div id="aiAgentKeyNote" style="font-size:11px;margin-bottom:8px"></div>
     <div style="display:flex;gap:8px;align-items:center">
-      <button class="btn-primary" onclick="parseHoldingsFile()">Parse & Import</button>
-      <button class="btn-secondary" onclick="show('importPanel',false)">Cancel</button>
-      <span id="importStatus" style="font-size:12px;color:var(--text3);margin-left:6px"></span>
+      <button class="btn-primary" onclick="runDataAgent()">Extract data</button>
+      <button class="btn-secondary" onclick="show('aiAgentPanel',false)">Cancel</button>
+      <span id="aiAgentStatus" style="font-size:12px;color:var(--text3);margin-left:6px"></span>
     </div>
   </div>
-  <input type="file" id="holdingsFileHidden" accept=".pdf,.docx" style="display:none">
+  <div id="aiReviewModal" style="display:none"></div>
   <div id="pfList"><div class="pf-empty">No investments added.</div></div>
   <div class="sdiv">
     <div class="slbl">Add Investment</div>
@@ -2742,7 +2755,7 @@ input[type=date]{color-scheme:light}
   <div class="cmp-grid" id="cmpParams">
     <div class="cmp-h cur">Current portfolio</div>
     <div class="cmp-h prop">Proposed portfolio</div>
-    <div class="cmp-h delta">Δ</div>
+    <div class="cmp-h delta">Variance</div>
     <div class="cmp-c"><span class="lbl">Run comparison to populate</span>—</div>
     <div class="cmp-c"><span class="lbl">&nbsp;</span>—</div>
     <div class="cmp-c">—</div>
@@ -7141,150 +7154,407 @@ function saveAIKey(){
   const v=$("aiKeyInput")?.value||"";
   if(v) localStorage.setItem("wa_ai_key",v);
 }
-function openHoldingsUpload(){
-  const panel=$("importPanel");
-  const showing=panel.style.display!=="none";
-  show("importPanel",!showing);
-  if(!showing){
-    const k=getAIKey(); if(k && $("aiKeyInput")) $("aiKeyInput").value=k;
-    setT("importStatus","");
-  }
-}
-async function extractPdfText(file){
-  if(typeof pdfjsLib==="undefined") throw new Error("PDF.js not loaded");
-  pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
-  const arr=await file.arrayBuffer();
-  const pdf=await pdfjsLib.getDocument({data:arr}).promise;
-  let text="";
-  for(let i=1;i<=Math.min(pdf.numPages,20);i++){
-    const page=await pdf.getPage(i);
-    const content=await page.getTextContent();
-    text+=content.items.map(s=>s.str).join(" ")+"\n";
-  }
-  return text;
-}
-async function extractDocxText(file){
-  const arr=await file.arrayBuffer();
-  const bytes=new Uint8Array(arr);
-  const dec=new TextDecoder("utf-8",{fatal:false});
-  const raw=dec.decode(bytes);
-  // DOCX is a ZIP — extract <w:t> text elements from embedded XML
-  const matches=raw.match(/<w:t(?:\s[^>]*)?>([^<]*)<\/w:t>/g)||[];
-  if(matches.length>0) return matches.map(m=>m.replace(/<[^>]+>/g,"")).join(" ");
-  // Fallback: strip all tags from raw content
-  return raw.replace(/<[^>]+>/g," ").replace(/\s+/g," ").substring(0,8000);
-}
-function parseHoldingsLocal(text){
-  // Pattern-based parser for common brokerage statement formats
-  const results=[];
-  const lines=text.split(/[\n\r]+/);
-  // Regex patterns
-  const tickerRe=/\b([A-Z]{1,5})\b/g;
-  const valueRe=/\$?([\d,]+(?:\.\d{2})?)/g;
-  // Common holding-line patterns: TICKER ... $VALUE or NAME (TICKER) ... VALUE
-  const holdingLine=/([A-Z][A-Za-z &.,'-]{2,50})\s+([A-Z]{1,5})\s+.*?([\d,]+\.?\d*)/;
-  const altLine=/([A-Z]{1,5})\s+([A-Za-z][A-Za-z &.,'-]{2,50})\s+.*?([\d,]+\.?\d*)/;
-  lines.forEach(line=>{
-    line=line.trim(); if(line.length<10) return;
-    let m=holdingLine.exec(line)||altLine.exec(line);
-    if(m){
-      const raw=parseFloat(m[3].replace(/,/g,""));
-      if(raw>=100&&raw<1e9){
-        results.push({name:m[1].trim()||m[2].trim(),tkr:m[2].length<=5?m[2]:"",val:raw,type:"stock",cls:"us_equity",region:"US"});
-      }
-    }
-  });
-  return results;
-}
-async function parseHoldingsWithAI(text,apiKey){
-  const prompt=`You are a financial data extractor. Below is text extracted from a brokerage statement or investment document.
+function openHoldingsUpload(){ openDataAgent(); }   // back-compat alias
+// ═══════════════════════════════════════════════════════════════════════════
+// AI DATA AGENT — reads ANY client file (photo, scan, PDF, DOCX, XLSX, CSV,
+// TXT, screenshot) with Claude vision + document understanding, extracts the
+// FULL household profile into a strict tool schema, and lets the advisor
+// review every row before it fills the app. Replaces the old holdings-only,
+// text-only importer (and fixes its us_equity/region + decimal-er/yld bugs).
+// ═══════════════════════════════════════════════════════════════════════════
+const AI_MODEL = "claude-opus-4-7";   // vision + PDF capable; the model the app already calls
+let _daExtraction = null;             // last normalized extraction (for the review modal)
 
-Extract every investment holding you can find. For each holding return a JSON array item with these exact fields:
-- name: full name of the holding
-- tkr: ticker symbol if present, else ""
-- val: current market value as a number (no $ or commas)
-- type: one of: etf, mutual_fund, stock, bond, alternative, precious, other
-- cls: one of: us_equity, intl_equity, fixed_income, real_estate, commodity, cash, alternative
-- region: one of: US, CA, GB, EU, JP, AP, EM, Global
-- er: expense ratio as a decimal (e.g. 0.0003) if mentioned, else null
-- yld: dividend/yield as a decimal (e.g. 0.018) if mentioned, else null
-- note: any useful note (e.g. "S&P 500 index fund"), else ""
+function _daEsc(s){ return String(s==null?"":s).replace(/[&<>"']/g,c=>({ "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;" }[c])); }
+function _daMoneyFmt(n){ try { return (typeof fmtMoney==="function") ? fmtMoney(n) : ("$"+Math.round(+n||0).toLocaleString()); } catch(_){ return "$"+(+n||0); } }
 
-Return ONLY a valid JSON array. No explanation. No markdown. Example: [{"name":"Vanguard S&P 500 ETF","tkr":"VOO","val":125000,"type":"etf","cls":"us_equity","region":"US","er":0.0003,"yld":0.014,"note":""}]
-
-Document text:
-${text.substring(0,6000)}`;
-  const resp=await fetch("https://api.anthropic.com/v1/messages",{
-    method:"POST",
-    headers:{"x-api-key":apiKey,"anthropic-version":"2023-06-01","content-type":"application/json","anthropic-dangerous-direct-browser-access":"true"},
-    body:JSON.stringify({model:"claude-opus-4-5",max_tokens:4096,messages:[{role:"user",content:prompt}]})
-  });
-  if(!resp.ok){const e=await resp.text(); throw new Error("AI service error: "+resp.status+" "+e);}
-  const data=await resp.json();
-  const content=data.content?.[0]?.text||"[]";
-  // Extract JSON array from response
-  const match=content.match(/\[[\s\S]*\]/);
-  if(!match) throw new Error("No JSON found in AI response");
-  return JSON.parse(match[0]);
+function openDataAgent(){
+  const p=$("aiAgentPanel"); if(!p) return;
+  const showing=p.style.display!=="none";
+  show("aiAgentPanel",!showing);
+  if(!showing){ setT("aiAgentStatus",""); daKeyNote(); renderAgentFileList(); }
 }
-async function parseHoldingsFile(){
-  const fileInput=$("holdingsFile");
-  const file=fileInput?.files?.[0];
-  if(!file){setT("importStatus","⚠ Please select a file first."); return;}
-  const status=$("importStatus");
-  status.textContent="Reading document…"; status.style.color="var(--text3)";
+function daKeyNote(){
+  const n=$("aiAgentKeyNote"); if(!n) return;
+  n.innerHTML = getAIKey()
+    ? '<span style="color:var(--green)">✓ AI key detected — vision document reading is enabled.</span>'
+    : '<span style="color:var(--amber)">⚠ No AI key set. The AI Data Agent needs your Claude API key (Settings → Data &amp; integrations, or Admin → API Keys) to read documents.</span>';
+}
+function renderAgentFileList(){
+  const el=$("aiAgentFileList"), inp=$("aiAgentFiles"); if(!el) return;
+  const files=inp&&inp.files?Array.from(inp.files):[];
+  el.innerHTML = files.length
+    ? files.map(f=>`<div style="font-size:11px;color:var(--text2);padding:2px 0">📄 ${_daEsc(f.name)} <span style="color:var(--text3)">(${(f.size/1024).toFixed(0)} KB)</span></div>`).join("")
+    : '<div style="font-size:11px;color:var(--text3)">No files selected yet.</div>';
+}
+
+// ── File readers ───────────────────────────────────────────────────────────
+function _daReadText(file){ return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(String(r.result||""));r.onerror=rej;r.readAsText(file);}); }
+function _daReadDataURL(file){ return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(String(r.result||""));r.onerror=rej;r.readAsDataURL(file);}); }
+function _daB64(dataURL){ const i=dataURL.indexOf(","); return i>=0?dataURL.slice(i+1):dataURL; }
+
+async function _daImageBlock(file){
+  // Re-encode via canvas — transcodes HEIC/TIFF/BMP (where the browser can decode)
+  // to PNG (the API only accepts png/jpeg/gif/webp) and downscales large images.
+  const MAXEDGE=1568;
   try{
-    let text="";
-    if(file.name.toLowerCase().endsWith(".pdf")){
-      text=await extractPdfText(file);
-    } else if(file.name.toLowerCase().endsWith(".docx")){
-      text=await extractDocxText(file);
-    } else {
-      setT("importStatus","⚠ Unsupported format. Use PDF or DOCX."); return;
+    const bmp=await createImageBitmap(file);
+    let w=bmp.width, h=bmp.height;
+    const scale=Math.min(1, MAXEDGE/Math.max(w,h));
+    w=Math.max(1,Math.round(w*scale)); h=Math.max(1,Math.round(h*scale));
+    const c=document.createElement("canvas"); c.width=w; c.height=h;
+    c.getContext("2d").drawImage(bmp,0,0,w,h);
+    return {type:"image",source:{type:"base64",media_type:"image/png",data:_daB64(c.toDataURL("image/png"))}};
+  }catch(e){
+    const mt=file.type||"";
+    if(/^image\/(png|jpeg|gif|webp)$/.test(mt)){
+      return {type:"image",source:{type:"base64",media_type:mt,data:_daB64(await _daReadDataURL(file))}};
     }
-    if(!text||text.trim().length<20){
-      setT("importStatus","⚠ Could not extract text from document."); return;
-    }
-    let parsed=[];
-    const key=getAIKey()||$("aiKeyInput")?.value||"";
-    if(key){
-      status.textContent="Analyzing with AI…";
-      parsed=await parseHoldingsWithAI(text,key);
-    } else {
-      status.textContent="Parsing with pattern matching…";
-      parsed=parseHoldingsLocal(text);
-    }
-    if(!parsed||parsed.length===0){
-      status.textContent="⚠ No holdings detected. Try a different file or add an AI key for smarter parsing.";
-      status.style.color="var(--amber)"; return;
-    }
-    // Import into investments array
-    let added=0;
-    parsed.forEach(h=>{
-      if(!h.name||!(h.val>0)) return;
-      investments.push({
-        id:"inv"+(++invSeq),
-        name:h.name||"Imported holding",
-        tkr:h.tkr||"",
-        type:h.type||"stock",
-        cls:h.cls||"us_equity",
-        region:h.region||"US",
-        val:parseFloat(h.val)||0,
-        er:h.er!=null?parseFloat(h.er):null,
-        yld:h.yld!=null?parseFloat(h.yld):null,
-        note:h.note||"Imported from "+file.name
-      });
-      added++;
-    });
-    renderInvestments(); renderPortfolioMetrics(); drawPortfolioPie(); refreshTopMetrics();
-    status.textContent="✓ Imported "+added+" holding"+(added!==1?"s":"")+" from "+file.name;
-    status.style.color="var(--green)";
-    if(fileInput) fileInput.value="";
-  } catch(e){
-    status.textContent="✗ "+e.message;
-    status.style.color="var(--red)";
-    console.error(e);
+    throw new Error("Could not read image "+file.name+" — try exporting it as JPG or PNG.");
   }
+}
+async function _daDocxText(file){
+  const raw=new TextDecoder("utf-8",{fatal:false}).decode(new Uint8Array(await file.arrayBuffer()));
+  const m=raw.match(/<w:t(?:\s[^>]*)?>([^<]*)<\/w:t>/g)||[];
+  if(m.length) return m.map(s=>s.replace(/<[^>]+>/g,"")).join(" ");
+  return raw.replace(/<[^>]+>/g," ").replace(/\s+/g," ").slice(0,12000);
+}
+let _daXlsxLoad=null;
+function _daEnsureXLSX(){
+  if(window.XLSX) return Promise.resolve(window.XLSX);
+  if(_daXlsxLoad) return _daXlsxLoad;
+  _daXlsxLoad=new Promise((res,rej)=>{
+    const s=document.createElement("script");
+    s.src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js";
+    s.onload=()=>res(window.XLSX); s.onerror=()=>rej(new Error("spreadsheet support could not load — export the sheet as CSV instead."));
+    document.head.appendChild(s);
+  });
+  return _daXlsxLoad;
+}
+async function _daXlsxText(file){
+  const XLSX=await _daEnsureXLSX();
+  const wb=XLSX.read(await file.arrayBuffer(),{type:"array"});
+  return wb.SheetNames.map(n=>"# Sheet: "+n+"\n"+XLSX.utils.sheet_to_csv(wb.Sheets[n])).join("\n\n");
+}
+async function fileToBlocks(file){
+  const name=file.name||"file", ext=(name.split(".").pop()||"").toLowerCase(), mt=file.type||"";
+  if(ext==="pdf" || mt==="application/pdf"){
+    if(file.size>20*1024*1024) throw new Error(name+" is over 20MB — please split it into smaller files (base64 encoding inflates the upload).");
+    return [{type:"document",source:{type:"base64",media_type:"application/pdf",data:_daB64(await _daReadDataURL(file))}}];
+  }
+  if(/^(png|jpe?g|gif|webp|heic|heif|tiff?|bmp)$/.test(ext) || /^image\//.test(mt)) return [await _daImageBlock(file)];
+  if(ext==="docx") return [{type:"text",text:"File "+name+":\n"+(await _daDocxText(file))}];
+  if(ext==="xlsx"||ext==="xls") return [{type:"text",text:"File "+name+":\n"+(await _daXlsxText(file))}];
+  // csv/txt/tsv/json/any text-ish
+  return [{type:"text",text:"File "+name+":\n"+((await _daReadText(file)).slice(0,30000))}];
+}
+
+// ── Extraction schema (enums generated LIVE from the app constants) ──────────
+function buildExtractionSchema(){
+  const E=a=>({type:["string","null"],enum:[...a,null]});
+  const num={type:["number","null"]}, str={type:["string","null"]};
+  const conf={type:["number","null"],description:"0-1 confidence this value is correct"};
+  const src={type:["string","null"],description:"short verbatim snippet from the source supporting this value"};
+  const invType=Object.keys(INV_TYPE_LABELS), invClass=Object.keys(INV_CLASS_LABELS),
+        invRegion=Object.keys(INV_REGION_LABELS), loanType=Object.keys(LOAN_LABELS),
+        countries=Object.keys(COUNTRY_ACCOUNTS);
+  return {
+    name:"submit_profile",
+    description:"Return every piece of household financial-planning data found in the documents.",
+    input_schema:{ type:"object", properties:{
+      household:{type:"array",items:{type:"object",properties:{
+        role:{type:"string",enum:["client1","client2","child"]},
+        first:str,last:str,dob:str,street:str,apt:str,city:str,state:str,postal:str,country:E(countries),
+        relationship:str,
+        riskTolerance:E(["very_conservative","conservative","moderately_conservative","moderate","moderately_aggressive","aggressive","very_aggressive"]),
+        timeHorizon:E(["1_5","5_10","10_15","15_plus"]),
+        confidence:conf,sourceQuote:src},required:["role"]}},
+      income:{type:"array",items:{type:"object",properties:{
+        who:{type:"string",enum:["client1","client2"]},primary:num,secondary:num,raisePct:num,confidence:conf,sourceQuote:src}}},
+      expenses:{type:"object",properties:{living:num,insurance:num,other:num,annualSavings:num,inflationPct:num,confidence:conf,sourceQuote:src}},
+      assets:{type:"array",items:{type:"object",properties:{
+        label:str,accountTypeHint:str,value:num,country:E(countries),ccy:str,propertyValue:num,otherValue:num,confidence:conf,sourceQuote:src}}},
+      liabilities:{type:"array",items:{type:"object",properties:{
+        type:E(loanType),label:str,balance:num,ratePct:num,years:num,confidence:conf,sourceQuote:src}}},
+      goals:{type:"array",items:{type:"object",properties:{
+        name:str,amount:num,homePrice:num,startYear:num,endYear:num,
+        category:E(["retirement","home","education","travel","emergency","business","wedding","car","health","legacy","other"]),
+        tier:E(["essential","important","aspirational","legacy"]),confidence:conf,sourceQuote:src}}},
+      holdings:{type:"array",items:{type:"object",properties:{
+        name:str,tkr:str,val:num,type:E(invType),cls:E(invClass),region:E(invRegion),
+        er:num,yld:num,note:str,confidence:conf,sourceQuote:src}}}
+    }, required:[] }
+  };
+}
+function _daInstruction(){
+  return "Extract a household financial profile from the attached documents (brokerage/bank statements, tax forms, screenshots, photos, spreadsheets, handwritten notes). "
+    +"Report ONLY values you can actually see — never guess or invent. Use the submit_profile tool. "
+    +"Money: plain numbers, no symbols/commas (1.2M -> 1200000, 500k -> 500000; parentheses mean negative). "
+    +"Expense ratios and yields as WHOLE PERCENT numbers (1.8% -> 1.8, 0.03% -> 0.03 — NOT 0.018). Loan and inflation rates as whole percent (6.5% -> 6.5). "
+    +"Dates as YYYY-MM-DD. Omit or null anything not present. For every classification use ONLY the allowed enum values; map each item to the closest one. "
+    +"Holdings classes ("+Object.keys(INV_CLASS_LABELS).join(", ")+"); holding types ("+Object.keys(INV_TYPE_LABELS).join(", ")+"); regions ("+Object.keys(INV_REGION_LABELS).join(", ")+"). "
+    +"Give a 0-1 confidence and a short sourceQuote for each value.";
+}
+
+// ── Claude call (forced tool_use → guaranteed structured object) ─────────────
+async function callClaudeExtract(content){
+  const key=getAIKey(); if(!key) throw new Error("No AI key set.");
+  const headers={ "x-api-key":key, "anthropic-version":"2023-06-01", "content-type":"application/json", "anthropic-dangerous-direct-browser-access":"true" };
+  const body={ model:AI_MODEL, max_tokens:8192, system:"You are a meticulous financial-document data-extraction engine. Never fabricate values.",
+    tools:[buildExtractionSchema()], tool_choice:{type:"tool",name:"submit_profile"},
+    messages:[{role:"user",content}] };
+  const r=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers,body:JSON.stringify(body)});
+  if(!r.ok){ const t=await r.text(); throw new Error("AI service "+r.status+": "+t.slice(0,300)); }
+  const data=await r.json();
+  const tu=(data.content||[]).find(b=>b.type==="tool_use");
+  if(!tu){ if(data.stop_reason==="max_tokens") throw new Error("Result was truncated — try fewer/smaller files."); throw new Error("The model returned no structured data."); }
+  return tu.input||{};
+}
+
+// ── Normalization (coerce to the app's exact vocabularies; defense in depth) ─
+function _daNum(x){ if(x==null) return null; if(typeof x==="number") return isFinite(x)?x:null;
+  let s=String(x).trim().replace(/[$,€£¥\s]/g,""); const neg=/^\(.*\)$/.test(s); s=s.replace(/[()]/g,"");
+  let mult=1; const m=s.match(/([kmb])$/i); if(m){ mult={k:1e3,m:1e6,b:1e9}[m[1].toLowerCase()]; s=s.slice(0,-1); }
+  const n=parseFloat(s); if(!isFinite(n)) return null; return (neg?-1:1)*n*mult; }
+function _daRate(x){ if(x==null) return null; const n=typeof x==="number"?x:parseFloat(String(x).replace(/[%\s]/g,"")); return isFinite(n)?n:null; }
+function _daYear(x){ if(x==null) return null; let n=parseInt(String(x).replace(/[^\d]/g,""),10); if(!isFinite(n)) return null; if(n<100) n+=2000; return (n>=1900&&n<=2200)?n:null; }
+function _daDate(x){ if(!x) return ""; const s=String(x).trim(); if(/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  const d=new Date(s); if(isNaN(d.getTime())) return "";
+  const p=n=>String(n).padStart(2,"0"); return d.getFullYear()+"-"+p(d.getMonth()+1)+"-"+p(d.getDate()); }   // local components — avoid UTC off-by-one
+const _DA_CLS_ALIAS={us_equity:"equity",intl_equity:"equity",international_equity:"equity",international:"equity",stocks:"equity",stock:"equity",equities:"equity",bonds:"fixed_income",bond:"fixed_income","fixed income":"fixed_income",reit:"real_estate","real estate":"real_estate",gold:"commodity",metals:"commodity",commodities:"commodity",btc:"crypto",bitcoin:"crypto",pe:"private_equity",hf:"hedge_fund",mm:"cash","money market":"cash"};
+const _DA_REGION_ALIAS={us:"us",usa:"us","united states":"us",ca:"dev_intl",canada:"dev_intl",gb:"dev_intl",uk:"dev_intl","united kingdom":"dev_intl",jp:"dev_intl",japan:"dev_intl",eu:"dev_intl",europe:"dev_intl",ap:"dev_intl",apac:"dev_intl",asia:"dev_intl",intl:"dev_intl",international:"dev_intl",developed:"dev_intl",em:"emerging","emerging markets":"emerging",emerging_markets:"emerging",world:"global"};
+const _DA_TYPE_ALIAS={"mutual fund":"mutual_fund",fund:"mutual_fund","exchange traded fund":"etf","exchange-traded fund":"etf",reit:"real_estate","private equity":"private_equity","hedge fund":"hedge_fund","structured product":"structured","precious metals":"precious"};
+const _DA_LOAN_ALIAS={mortgage:"mortgage_primary","primary mortgage":"mortgage_primary","home loan":"mortgage_primary","home mortgage":"mortgage_primary","first mortgage":"mortgage_primary","second mortgage":"mortgage_secondary","secondary mortgage":"mortgage_secondary","home equity":"heloc","home equity line":"heloc","auto loan":"auto","car loan":"auto","vehicle loan":"auto","personal loan":"personal","student loan":"student","student loans":"student","business loan":"business","credit card":"cc","credit cards":"cc","card":"cc","payday loan":"payday","line of credit":"personal","loc":"personal"};
+function _daKey(v,alias,LABELS,dflt){ if(v==null) return dflt; let k=String(v).trim().toLowerCase(); k=alias[k]||k.replace(/\s+/g,"_"); return (k in LABELS)?k:dflt; }
+function _daCountry(v){ if(!v) return null; const k=String(v).trim().toUpperCase(); if(k in COUNTRY_ACCOUNTS) return k;
+  const A={USA:"US","UNITED STATES":"US",UK:"GB","UNITED KINGDOM":"GB",ENGLAND:"GB",SWITZERLAND:"CH",GERMANY:"DE",JAPAN:"JP",CANADA:"CA",AUSTRALIA:"AU",SINGAPORE:"SG"}; return A[k]||(k in COUNTRY_ACCOUNTS?k:null); }
+function _daEnum(v,allowed,dflt){ if(v==null) return dflt; const k=String(v).trim().toLowerCase().replace(/\s+/g,"_"); return allowed.indexOf(k)>=0?k:dflt; }
+
+function normalizeExtraction(raw){
+  raw=raw||{};
+  const out={household:[],income:[],expenses:[],assets:[],liabilities:[],goals:[],holdings:[]};
+  const ok=c=>c==null?0.7:(+c||0);
+  (raw.household||[]).forEach(h=>{ out.household.push({ _ok:ok(h.confidence), _src:h.sourceQuote||"",
+    role:_daEnum(h.role,["client1","client2","child"],"client1"), first:h.first||"", last:h.last||"", dob:_daDate(h.dob),
+    street:h.street||"", city:h.city||"", state:h.state||"", postal:h.postal||"", country:_daCountry(h.country)||"",
+    relationship:h.relationship||"", riskTolerance:_daEnum(h.riskTolerance,["very_conservative","conservative","moderately_conservative","moderate","moderately_aggressive","aggressive","very_aggressive"],""),
+    timeHorizon:_daEnum(h.timeHorizon,["1_5","5_10","10_15","15_plus"],"") }); });
+  (raw.income||[]).forEach(i=>{ out.income.push({ _ok:ok(i.confidence), _src:i.sourceQuote||"",
+    who:_daEnum(i.who,["client1","client2"],"client1"), primary:_daNum(i.primary), secondary:_daNum(i.secondary), raisePct:_daRate(i.raisePct) }); });
+  if(raw.expenses && typeof raw.expenses==="object"){ const e=raw.expenses; out.expenses.push({ _ok:ok(e.confidence), _src:e.sourceQuote||"",
+    living:_daNum(e.living), insurance:_daNum(e.insurance), other:_daNum(e.other), annualSavings:_daNum(e.annualSavings), inflationPct:_daRate(e.inflationPct) }); }
+  (raw.assets||[]).forEach(a=>{ out.assets.push({ _ok:ok(a.confidence), _src:a.sourceQuote||"",
+    label:a.label||"", accountTypeHint:a.accountTypeHint||"", value:_daNum(a.value), country:_daCountry(a.country)||"",
+    ccy:a.ccy||"", propertyValue:_daNum(a.propertyValue), otherValue:_daNum(a.otherValue) }); });
+  (raw.liabilities||[]).forEach(l=>{ out.liabilities.push({ _ok:ok(l.confidence), _src:l.sourceQuote||"",
+    type:_daKey(l.type,_DA_LOAN_ALIAS,LOAN_LABELS,"other"), label:l.label||"", balance:_daNum(l.balance), ratePct:_daRate(l.ratePct), years:(l.years!=null?(parseInt(String(l.years).replace(/[^\d]/g,""),10)||null):null) }); });   // term length, NOT a calendar year
+  (raw.goals||[]).forEach(g=>{ out.goals.push({ _ok:ok(g.confidence), _src:g.sourceQuote||"",
+    name:g.name||"", amount:_daNum(g.amount), homePrice:_daNum(g.homePrice), startYear:_daYear(g.startYear), endYear:_daYear(g.endYear),
+    category:_daEnum(g.category,["retirement","home","education","travel","emergency","business","wedding","car","health","legacy","other"],"other"),
+    tier:_daEnum(g.tier,["essential","important","aspirational","legacy"],"important") }); });
+  (raw.holdings||[]).forEach(h=>{ out.holdings.push({ _ok:ok(h.confidence), _src:h.sourceQuote||"",
+    name:h.name||"", tkr:h.tkr||"", val:_daNum(h.val),
+    type:_daKey(h.type,_DA_TYPE_ALIAS,INV_TYPE_LABELS,"other"), cls:_daKey(h.cls,_DA_CLS_ALIAS,INV_CLASS_LABELS,"other"),
+    region:_daKey(h.region,_DA_REGION_ALIAS,INV_REGION_LABELS,"other"), er:_daRate(h.er), yld:_daRate(h.yld), note:h.note||"" }); });
+  return out;
+}
+
+// ── Main entry ───────────────────────────────────────────────────────────────
+async function runDataAgent(){
+  const st=$("aiAgentStatus");
+  if(!getAIKey()){ daKeyNote(); if(st){st.textContent="⚠ Add your AI key first."; st.style.color="var(--amber)";} return; }
+  const inp=$("aiAgentFiles"), files=inp&&inp.files?Array.from(inp.files):[];
+  if(!files.length){ if(st){st.textContent="⚠ Choose one or more files first."; st.style.color="var(--amber)";} return; }
+  try{
+    if(st){ st.textContent="Reading "+files.length+" file"+(files.length>1?"s":"")+"…"; st.style.color="var(--text3)"; }
+    const content=[];
+    for(const f of files){ try{ const blocks=await fileToBlocks(f); content.push({type:"text",text:"=== Source: "+f.name+" ==="}, ...blocks); }
+      catch(e){ content.push({type:"text",text:"=== Source: "+f.name+" (could not read: "+e.message+") ==="}); } }
+    content.push({type:"text",text:_daInstruction()});
+    if(st) st.textContent="Analyzing with AI…";
+    const raw=await callClaudeExtract(content);
+    _daExtraction=normalizeExtraction(raw);
+    const total=Object.keys(_daExtraction).reduce((s,k)=>s+_daExtraction[k].length,0);
+    if(!total){ if(st){st.textContent="No financial data detected — try a clearer file."; st.style.color="var(--amber)";} return; }
+    if(st){ st.textContent="✓ Extracted "+total+" item"+(total!==1?"s":"")+" — review below."; st.style.color="var(--green)"; }
+    renderReviewModal();
+  }catch(e){ if(st){ st.textContent="✗ "+e.message; st.style.color="var(--red)"; } console.error("[DataAgent]",e); }
+}
+
+// ── Review modal ─────────────────────────────────────────────────────────────
+function _daOpts(obj){ return Object.keys(obj).map(k=>({v:k,l:obj[k]})); }
+function _daSelect(dom,i,f,cur,opts){ return `<select data-dom="${dom}" data-i="${i}" data-f="${f}" class="da-in">`+
+  opts.map(o=>`<option value="${_daEsc(o.v)}"${o.v===cur?" selected":""}>${_daEsc(o.l)}</option>`).join("")+`</select>`; }
+function _daInput(dom,i,f,cur,type){ return `<input data-dom="${dom}" data-i="${i}" data-f="${f}" class="da-in" type="${type||"text"}" value="${cur==null?"":_daEsc(String(cur))}">`; }
+function _daPill(ok){ const c=ok>=0.8?"#1b6841":ok>=0.6?"#8a5a2b":"#a83232", b=ok>=0.8?"rgba(76,175,125,.15)":ok>=0.6?"rgba(212,149,106,.15)":"rgba(224,92,92,.15)"; return `<span style="font-size:10px;padding:1px 7px;border-radius:20px;background:${b};color:${c};font-weight:600">${Math.round(ok*100)}%</span>`; }
+function _daRow(dom,i,ok,src,cells,checked){
+  return `<div class="da-row"><label class="da-cell" style="flex:0 0 26px"><input type="checkbox" class="da-chk" data-dom="${dom}" data-i="${i}"${checked?" checked":""}></label>`
+    + cells.map(c=>`<span class="da-cell" style="${c.w||""}">${c.lbl?`<label class="da-fl">${c.lbl}</label>`:""}${c.html}</span>`).join("")
+    + `<span class="da-cell" style="flex:0 0 auto">${_daPill(ok)}${src?` <span class="da-src" title="${_daEsc(src)}">ⓘ</span>`:""}</span></div>`;
+}
+function renderReviewModal(){
+  const m=$("aiReviewModal"); if(!m||!_daExtraction) return;
+  const x=_daExtraction;
+  const REGS=_daOpts(INV_REGION_LABELS), TYPES=_daOpts(INV_TYPE_LABELS), CLSS=_daOpts(INV_CLASS_LABELS), LOANS=_daOpts(LOAN_LABELS);
+  const CTRY=Object.keys(COUNTRY_ACCOUNTS).map(k=>({v:k,l:(COUNTRY_ACCOUNTS[k].name||k)}));
+  const RISK=[["very_conservative","Very conservative"],["conservative","Conservative"],["moderately_conservative","Mod. conservative"],["moderate","Moderate"],["moderately_aggressive","Mod. aggressive"],["aggressive","Aggressive"],["very_aggressive","Very aggressive"]].map(a=>({v:a[0],l:a[1]}));
+  const HOR=[["1_5","1–5 yrs"],["5_10","5–10 yrs"],["10_15","10–15 yrs"],["15_plus","15+ yrs"]].map(a=>({v:a[0],l:a[1]}));
+  const ROLE=[["client1","Client 1"],["client2","Client 2"],["child","Child"]].map(a=>({v:a[0],l:a[1]}));
+  const WHO=[["client1","Client 1"],["client2","Client 2"]].map(a=>({v:a[0],l:a[1]}));
+  const GCAT=["retirement","home","education","travel","emergency","business","wedding","car","health","legacy","other"].map(v=>({v,l:v}));
+  const GTIER=["essential","important","aspirational","legacy"].map(v=>({v,l:v}));
+  const req=(c)=>c>=0.6;
+  let html="";
+  const section=(title,rows)=> rows.length?`<div class="da-sec"><div class="da-sec-h">${title} <span style="color:var(--text3);font-weight:400">(${rows.length})</span></div>${rows.join("")}</div>`:"";
+
+  html+=section("Household & clients", x.household.map((h,i)=>_daRow("household",i,h._ok,h._src,[
+    {html:_daSelect("household",i,"role",h.role,ROLE),w:"flex:0 0 90px"},
+    {lbl:"First",html:_daInput("household",i,"first",h.first),w:"flex:1"},
+    {lbl:"Last",html:_daInput("household",i,"last",h.last),w:"flex:1"},
+    {lbl:"DOB",html:_daInput("household",i,"dob",h.dob,"date"),w:"flex:0 0 130px"},
+    {lbl:"Country",html:_daSelect("household",i,"country",h.country,[{v:"",l:"—"}].concat(CTRY)),w:"flex:0 0 120px"},
+    {lbl:"Risk",html:_daSelect("household",i,"riskTolerance",h.riskTolerance,[{v:"",l:"—"}].concat(RISK)),w:"flex:0 0 130px"},
+    {lbl:"Horizon",html:_daSelect("household",i,"timeHorizon",h.timeHorizon,[{v:"",l:"—"}].concat(HOR)),w:"flex:0 0 100px"}
+  ],req(h._ok))));
+
+  html+=section("Income", x.income.map((r,i)=>_daRow("income",i,r._ok,r._src,[
+    {html:_daSelect("income",i,"who",r.who,WHO),w:"flex:0 0 90px"},
+    {lbl:"Primary $/yr",html:_daInput("income",i,"primary",r.primary,"number"),w:"flex:1"},
+    {lbl:"Secondary $/yr",html:_daInput("income",i,"secondary",r.secondary,"number"),w:"flex:1"},
+    {lbl:"Raise %",html:_daInput("income",i,"raisePct",r.raisePct,"number"),w:"flex:0 0 90px"}
+  ],req(r._ok))));
+
+  html+=section("Expenses", x.expenses.map((r,i)=>_daRow("expenses",i,r._ok,r._src,[
+    {lbl:"Living $/yr",html:_daInput("expenses",i,"living",r.living,"number"),w:"flex:1"},
+    {lbl:"Insurance $/yr",html:_daInput("expenses",i,"insurance",r.insurance,"number"),w:"flex:1"},
+    {lbl:"Other $/yr",html:_daInput("expenses",i,"other",r.other,"number"),w:"flex:1"},
+    {lbl:"Savings $/yr",html:_daInput("expenses",i,"annualSavings",r.annualSavings,"number"),w:"flex:1"},
+    {lbl:"Inflation %",html:_daInput("expenses",i,"inflationPct",r.inflationPct,"number"),w:"flex:0 0 90px"}
+  ],req(r._ok))));
+
+  html+=section("Assets / accounts", x.assets.map((a,i)=>_daRow("assets",i,a._ok,a._src,[
+    {lbl:"Label",html:_daInput("assets",i,"label",a.label),w:"flex:1.3"},
+    {lbl:"Account type (hint)",html:_daInput("assets",i,"accountTypeHint",a.accountTypeHint),w:"flex:1.3"},
+    {lbl:"Value",html:_daInput("assets",i,"value",a.value,"number"),w:"flex:1"},
+    {lbl:"Country",html:_daSelect("assets",i,"country",a.country||val("c1co")||"US",CTRY),w:"flex:0 0 120px"}
+  ],a.value>0&&req(a._ok))));
+
+  html+=section("Liabilities / loans", x.liabilities.map((l,i)=>_daRow("liabilities",i,l._ok,l._src,[
+    {lbl:"Type",html:_daSelect("liabilities",i,"type",l.type,LOANS),w:"flex:0 0 150px"},
+    {lbl:"Label",html:_daInput("liabilities",i,"label",l.label),w:"flex:1"},
+    {lbl:"Balance",html:_daInput("liabilities",i,"balance",l.balance,"number"),w:"flex:1"},
+    {lbl:"Rate %",html:_daInput("liabilities",i,"ratePct",l.ratePct,"number"),w:"flex:0 0 90px"},
+    {lbl:"Years",html:_daInput("liabilities",i,"years",l.years,"number"),w:"flex:0 0 80px"}
+  ],l.balance>0&&req(l._ok))));
+
+  html+=section("Goals", x.goals.map((g,i)=>_daRow("goals",i,g._ok,g._src,[
+    {lbl:"Name",html:_daInput("goals",i,"name",g.name),w:"flex:1.3"},
+    {lbl:"Amount $/yr",html:_daInput("goals",i,"amount",g.amount,"number"),w:"flex:1"},
+    {lbl:"Start yr",html:_daInput("goals",i,"startYear",g.startYear,"number"),w:"flex:0 0 90px"},
+    {lbl:"End yr",html:_daInput("goals",i,"endYear",g.endYear,"number"),w:"flex:0 0 90px"},
+    {lbl:"Category",html:_daSelect("goals",i,"category",g.category,GCAT),w:"flex:0 0 120px"},
+    {lbl:"Priority",html:_daSelect("goals",i,"tier",g.tier,GTIER),w:"flex:0 0 120px"}
+  ],g.amount>0&&req(g._ok))));
+
+  html+=section("Investment holdings", x.holdings.map((h,i)=>_daRow("holdings",i,h._ok,h._src,[
+    {lbl:"Name",html:_daInput("holdings",i,"name",h.name),w:"flex:1.4"},
+    {lbl:"Ticker",html:_daInput("holdings",i,"tkr",h.tkr),w:"flex:0 0 90px"},
+    {lbl:"Value",html:_daInput("holdings",i,"val",h.val,"number"),w:"flex:1"},
+    {lbl:"Type",html:_daSelect("holdings",i,"type",h.type,TYPES),w:"flex:0 0 120px"},
+    {lbl:"Class",html:_daSelect("holdings",i,"cls",h.cls,CLSS),w:"flex:0 0 130px"},
+    {lbl:"Region",html:_daSelect("holdings",i,"region",h.region,REGS),w:"flex:0 0 100px"},
+    {lbl:"ER %",html:_daInput("holdings",i,"er",h.er,"number"),w:"flex:0 0 70px"},
+    {lbl:"Yld %",html:_daInput("holdings",i,"yld",h.yld,"number"),w:"flex:0 0 70px"}
+  ],h.val>0&&req(h._ok))));
+
+  const total=Object.keys(x).reduce((s,k)=>s+x[k].length,0);
+  m.innerHTML=`<div class="da-modal-bg" onclick="closeReviewModal()"></div>
+    <div class="da-modal">
+      <div class="da-modal-h"><span class="ptitle" style="margin:0">Review extracted data — ${total} item${total!==1?"s":""}</span>
+        <button class="btn-x" onclick="closeReviewModal()">✕</button></div>
+      <div class="da-modal-tools"><button class="btn-secondary" onclick="daCheckAll(true)">Select all</button>
+        <button class="btn-secondary" onclick="daCheckAll(false)">Clear all</button>
+        <span style="font-size:11px;color:var(--text3);margin-left:auto">Untick anything wrong. Edit any value inline. Only checked rows are added (appended — your existing data is kept).</span></div>
+      <div class="da-modal-body">${html||'<div class="pf-empty">Nothing to review.</div>'}</div>
+      <div class="da-modal-foot"><span id="daApplyStatus" style="font-size:12px;color:var(--text3)"></span>
+        <button class="btn-secondary" onclick="closeReviewModal()">Cancel</button>
+        <button class="btn-primary" onclick="applyDataAgent()">✓ Apply selected</button></div>
+    </div>`;
+  m.style.display="block";
+}
+function closeReviewModal(){ const m=$("aiReviewModal"); if(m) m.style.display="none"; }
+function daCheckAll(v){ document.querySelectorAll("#aiReviewModal .da-chk").forEach(c=>c.checked=v); }
+function _daCollect(dom,i){ const o={}; document.querySelectorAll(`#aiReviewModal .da-in[data-dom="${dom}"][data-i="${i}"]`).forEach(el=>{ o[el.dataset.f]=el.value; }); return o; }
+function _daChecked(dom,i){ const c=document.querySelector(`#aiReviewModal .da-chk[data-dom="${dom}"][data-i="${i}"]`); return c&&c.checked; }
+function _daSet(id,v){ const el=$(id); if(el!=null && v!=null && v!=="") el.value=v; }
+function _daSetSel(id,v){ const el=$(id); if(el && v && [...el.options].some(o=>o.value===v)){ el.value=v; try{ el.dispatchEvent(new Event("change")); }catch(_){} return true; } return false; }
+function _daMatchAccount(country,hint){
+  const c=COUNTRY_ACCOUNTS[country]||COUNTRY_ACCOUNTS.US; if(!c) return {type:"other",group:"Other assets",liquid:true};
+  const h=String(hint||"").toLowerCase().trim(); let best=null;
+  if(h) c.groups.forEach(g=>g.accounts.forEach(a=>{ const hay=(a.value+" "+a.label).toLowerCase(); if(!best && (hay.indexOf(h)>=0||h.indexOf(a.value.toLowerCase())>=0)) best={type:a.value,group:g.group,liquid:a.liquid}; }));
+  if(best) return best;
+  c.groups.forEach(g=>g.accounts.forEach(a=>{ if(!best && /broker|taxable|securities|checking|current|savings|deposit/.test((a.value+a.label).toLowerCase())) best={type:a.value,group:g.group,liquid:a.liquid}; }));
+  if(best) return best;
+  const g0=c.groups[0], a0=g0&&g0.accounts[0]; return a0?{type:a0.value,group:g0.group,liquid:a0.liquid}:{type:"other",group:"Other assets",liquid:true};
+}
+function applyDataAgent(){
+  if(!_daExtraction) return;
+  const x=_daExtraction; let n=0; let needC2=false;
+  // figure out if any client2 row is selected (so we reveal client 2 first)
+  x.household.forEach((h,i)=>{ if(_daChecked("household",i) && _daCollect("household",i).role==="client2") needC2=true; });
+  x.income.forEach((r,i)=>{ if(_daChecked("income",i) && _daCollect("income",i).who==="client2") needC2=true; });
+  if(needC2 && typeof showC2==="function"){ try{ showC2(); }catch(_){} }
+
+  // Household
+  x.household.forEach((h,i)=>{ if(!_daChecked("household",i)) return; const r=_daCollect("household",i); n++;
+    if(r.role==="child"){ if(typeof children!=="undefined"){ children.push({id:"ch"+(++childSeq),first:r.first||"",last:r.last||"",dob:r.dob||""}); } return; }
+    const p=r.role==="client2"?"c2":"c1";
+    _daSet(p+"f",r.first); _daSet(p+"l",r.last); _daSet(p+"d",r.dob); _daSet(p+"ci",r.city); _daSet(p+"s1",r.street); _daSet(p+"zp",r.postal);
+    if(r.country) _daSetSel(p+"co",r.country);
+    if(r.state){ const stEl=$(p+"st"); if(stEl){ if(stEl.tagName==="SELECT"){ if([...stEl.options].some(o=>o.value===r.state)) stEl.value=r.state; } else stEl.value=r.state; } }
+    if(p==="c2" && r.relationship) _daSetSel("rel",r.relationship);
+    if(r.riskTolerance && _daSetSel(p+"r",r.riskTolerance)){ try{ if(typeof updateRisk==="function") updateRisk(p==="c2"?2:1); }catch(_){} }
+    if(r.timeHorizon && _daSetSel(p+"h",r.timeHorizon)){ try{ if(typeof updateHorizon==="function") updateHorizon(p==="c2"?2:1); }catch(_){} }
+  });
+
+  // Income
+  x.income.forEach((r0,i)=>{ if(!_daChecked("income",i)) return; const r=_daCollect("income",i); n++;
+    if(r.who==="client2"){ _daSet("inc1b",r.primary); _daSet("inc2b",r.secondary); } else { _daSet("inc1",r.primary); _daSet("inc2",r.secondary); }
+    if(r.raisePct) _daSet("raise",r.raisePct); });
+
+  // Expenses
+  x.expenses.forEach((r0,i)=>{ if(!_daChecked("expenses",i)) return; const r=_daCollect("expenses",i); n++;
+    _daSet("expL",r.living); _daSet("expI",r.insurance); _daSet("expO",r.other); _daSet("savAnnual",r.annualSavings);
+    if(r.inflationPct){ _daSet("inf",r.inflationPct); } });
+
+  // Assets
+  x.assets.forEach((a0,i)=>{ if(!_daChecked("assets",i)) return; const r=_daCollect("assets",i); const v=parseFloat(r.value); if(!(v>0)) return; n++;
+    const ctry=r.country||val("c1co")||"US"; const mk=_daMatchAccount(ctry,r.accountTypeHint);
+    assets.push({id:"a"+(++assetSeq),type:mk.type,group:mk.group,label:r.label||mk.type,baseLabel:r.label||mk.type,value:v,liquid:mk.liquid,country:ctry,note:(r.accountTypeHint?("AI: "+r.accountTypeHint):"Imported by AI Data Agent")}); });
+
+  // Liabilities
+  x.liabilities.forEach((l0,i)=>{ if(!_daChecked("liabilities",i)) return; const r=_daCollect("liabilities",i); const b=parseFloat(r.balance); if(!(b>0)) return; n++;
+    const t=(r.type in LOAN_LABELS)?r.type:"other";
+    loans.push({id:"l"+(++loanSeq),type:t,label:r.label||LOAN_LABELS[t]||t,bal:b,rate:parseFloat(r.ratePct)||0,yrs:parseInt(r.years,10)||0}); });
+
+  // Goals
+  x.goals.forEach((g0,i)=>{ if(!_daChecked("goals",i)) return; const r=_daCollect("goals",i); const amt=parseFloat(r.amount); if(!(amt>0)||!r.name) return; n++;
+    const sY=parseInt(r.startYear,10)||(typeof currentYear==="function"?currentYear():new Date().getFullYear());
+    let eY=parseInt(r.endYear,10); if(!eY||eY<sY) eY=sY+1;
+    goals.push({id:"g"+(++goalSeq),name:r.name,amt:amt,homePrice:(r.category==="home"?parseFloat(r.amount):undefined),startYear:sY,endYear:eY,cat:r.category||"other",tier:r.tier||"important"}); });
+
+  // Holdings
+  x.holdings.forEach((h0,i)=>{ if(!_daChecked("holdings",i)) return; const r=_daCollect("holdings",i); const v=parseFloat(r.val); if(!(v>0)||!r.name) return; n++;
+    investments.push({id:"inv"+(++invSeq),name:r.name,tkr:r.tkr||"",
+      type:(r.type in INV_TYPE_LABELS)?r.type:"other", cls:(r.cls in INV_CLASS_LABELS)?r.cls:"other", region:(r.region in INV_REGION_LABELS)?r.region:"other",
+      val:v, er:(r.er!==""&&r.er!=null&&isFinite(+r.er))?+r.er:null, yld:(r.yld!==""&&r.yld!=null&&isFinite(+r.yld))?+r.yld:null, note:"Imported by AI Data Agent"}); });
+
+  // Re-render everything affected
+  const safe=fn=>{ try{ if(typeof window[fn]==="function") window[fn](); }catch(e){ console.warn("[DataAgent] "+fn,e); } };
+  ["renderChildren","updateDisplays","updateIncTotal","updateExpTotal","updateTaxPanel","renderAssets","renderLoans","renderGoals","renderInvestments","renderPortfolioMetrics","drawPortfolioPie","refreshTopMetrics"].forEach(safe);
+  const stt=$("daApplyStatus"); if(stt){ stt.textContent="✓ Added "+n+" item"+(n!==1?"s":"")+" to the app."; stt.style.color="var(--green)"; }
+  const ast=$("aiAgentStatus"); if(ast){ ast.textContent="✓ Applied "+n+" item"+(n!==1?"s":"")+"."; ast.style.color="var(--green)"; }
+  try{ if(typeof _topStatus==="function") _topStatus("AI Data Agent added "+n+" item"+(n!==1?"s":"")); }catch(_){}
 }
 function renderInvestments(){
   const list=$("pfList"); if(!list) return;
@@ -13044,7 +13314,7 @@ function runComparison(){
   params.innerHTML = `
     <div class="cmp-h cur">Current portfolio</div>
     <div class="cmp-h prop">Proposed portfolio</div>
-    <div class="cmp-h delta">Δ</div>
+    <div class="cmp-h delta">Variance</div>
     <div class="cmp-c"><span class="lbl">Gross return</span>${(curGrossMu*100).toFixed(2)}%</div>
     <div class="cmp-c"><span class="lbl">Gross return</span>${(propGrossMu*100).toFixed(2)}%</div>
     ${d(propGrossMu,curGrossMu)}
