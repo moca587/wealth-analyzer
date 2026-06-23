@@ -317,6 +317,8 @@ input[type=date]{color-scheme:light}
 /* Holdings box mirrors the Proposal box grid 1:1 for visual parity */
 .pf-add{display:grid;grid-template-columns:90px 1.3fr 140px 130px 100px 90px 90px 110px 1.4fr auto;gap:8px;align-items:end;margin-top:10px}
 .pf-add input,.pf-add select{width:100%;font-size:12px}
+/* Alternatives add line: Type · Subcategory · Name · Value · Region · ER · Yield · Notes · buttons (no ticker, no class) */
+.pf-add-alt{grid-template-columns:120px 180px 1.3fr 100px 90px 90px 110px 1.4fr auto;margin-top:8px}
 /* ── AI Data Agent ── */
 .da-note{font-size:12px;color:var(--text2);line-height:1.55}
 .da-sec{margin-bottom:14px}
@@ -2375,13 +2377,10 @@ input[type=date]{color-scheme:light}
           <option value="mutual_fund">Mutual fund</option>
           <option value="stock">Stock</option>
           <option value="bond">Bond</option>
-          <option value="structured">Structured product</option>
           <option value="alternative">Alternative</option>
-          <option value="hedge_fund">Hedge fund</option>
-          <option value="private_equity">Private equity fund</option>
         </select>
       </div>
-      <div class="fld"><label>Name</label><input id="pfName" placeholder="auto-fills from ticker"></div>
+      <div class="fld"><label>Name</label><input id="pfName" placeholder="auto-fills from ticker" oninput="onPfNameInput()"></div>
       <div class="fld"><label>Ticker</label>
         <div style="display:flex;gap:4px;align-items:stretch">
           <input id="pfTkr" placeholder="Ticker / ISIN / fund name" oninput="applyHoldingTickerPrefill()" onblur="fetchInstrumentLive('pf')" onkeydown="if(event.key==='Enter'){event.preventDefault();fetchInstrumentLive('pf');}" style="flex:1;min-width:0">
@@ -2423,7 +2422,40 @@ input[type=date]{color-scheme:light}
     <div id="pfTkrHint" style="font-size:11px;color:var(--text3);margin-top:6px;min-height:14px"></div>
     <!-- API key inputs hidden — manage in admin → API Keys tab. Status span retained for any code that references it. -->
     <span id="pfAvStatus" style="display:none"></span>
-    <div style="font-size:11px;color:var(--text3);margin-top:6px;line-height:1.5">Enter a ticker (VOO, AAPL), ISIN/UCIT number (IE00B3RBWM25), exchange symbol (VUSA.L, IWDA.AS), or fund name to search. Data fills automatically from Yahoo Finance &amp; OpenFIGI — no key needed. <strong>API keys for enhanced data are managed in the <a href="admin.html" target="_blank" style="color:var(--gold)">Admin → API Keys tab</a></strong> and auto-checked every 2 minutes.</div>
+    <div id="pfPerf" style="display:none"></div>
+
+    <!-- Alternatives add line — private equity / hedge fund / structured (no ticker; class is set from type, subcategory selectable) -->
+    <div class="slbl" style="margin-top:16px">Add alternative investment <span style="color:var(--text3);font-weight:400">— private equity, hedge funds &amp; structured products (no ticker)</span></div>
+    <div class="pf-add pf-add-alt">
+      <div class="fld"><label>Type</label>
+        <select id="pfAltType" onchange="updateAltSubcats()">
+          <option value="private_equity">Private equity fund</option>
+          <option value="hedge_fund">Hedge fund</option>
+          <option value="structured">Structured product</option>
+        </select>
+      </div>
+      <div class="fld"><label>Subcategory</label>
+        <select id="pfAltSubcat"></select>
+      </div>
+      <div class="fld"><label>Name</label><input id="pfAltName" placeholder="fund / product name"></div>
+      <div class="fld"><label>Value ($)</label><input type="number" id="pfAltVal" placeholder="0" min="0" step="100"></div>
+      <div class="fld"><label>Region</label>
+        <select id="pfAltRegion">
+          <option value="us">US</option>
+          <option value="dev_intl">Dev Intl</option>
+          <option value="emerging">EM</option>
+          <option value="global">Global</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+      <div class="fld"><label>Expense Ratio %</label><input type="number" id="pfAltEr" placeholder="0" min="0" max="10" step="0.01"></div>
+      <div class="fld"><label>Yield %</label><input type="number" id="pfAltYld" placeholder="0" min="0" max="50" step="0.01"></div>
+      <div class="fld"><label>Notes</label><input id="pfAltNote" placeholder="optional note"></div>
+      <div style="display:flex;gap:6px;margin-top:2px">
+        <button id="pfAltAddBtn" class="btn-secondary" style="flex:1" onclick="addAltInvestment()">Add alternative</button>
+        <button id="pfAltCancelBtn" class="btn-secondary" onclick="cancelEditAltInvestment()" style="display:none;color:var(--text3)">✕ Cancel</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -2563,7 +2595,7 @@ input[type=date]{color-scheme:light}
           <option value="futures">Futures</option>
         </select>
       </div>
-      <div class="fld"><label>Name</label><input id="prName" placeholder="auto-fills from ticker"></div>
+      <div class="fld"><label>Name</label><input id="prName" placeholder="auto-fills from ticker" oninput="onPrNameInput()"></div>
       <div class="fld"><label>Ticker</label>
         <div style="display:flex;gap:4px;align-items:stretch">
           <input id="prTkr" placeholder="Ticker / ISIN / fund name" oninput="applyTickerPrefill()" onblur="fetchInstrumentLive('pr')" onkeydown="if(event.key==='Enter'){event.preventDefault();fetchInstrumentLive('pr');}" style="flex:1;min-width:0">
@@ -2595,6 +2627,7 @@ input[type=date]{color-scheme:light}
     <!-- API key inputs hidden — manage in admin → API Keys tab. Status span retained for any code that references it. -->
     <span id="prAvStatus" style="display:none"></span>
     <div style="font-size:11px;color:var(--text3);margin-top:6px;line-height:1.5">Enter a ticker (VOO, AGG, AAPL), ISIN/UCIT number (IE00B3RBWM25), exchange symbol (VUSA.L, IWDA.AS), or fund name to search. Name, type, class, region and yield fill automatically. Allocation % is always required. <strong>API keys for enhanced data are managed in the <a href="admin.html" target="_blank" style="color:var(--gold)">Admin → API Keys tab</a></strong> and auto-checked every 2 minutes.</div>
+    <div id="prPerf" style="display:none"></div>
   </div>
 </div>
 
@@ -7089,7 +7122,7 @@ function applyCustom(){
 // ═══════════════════════════════════════════════════════════
 // PORTFOLIO (Holdings)
 // ═══════════════════════════════════════════════════════════
-let _editingInvId=null;
+let _editingInvId=null, _editingAltId=null;
 function addInvestment(){
   const name=val("pfName").trim(); const tkr=val("pfTkr").trim();
   const type=val("pfType"), cls=val("pfClass"), region=val("pfRegion");
@@ -7106,15 +7139,19 @@ function addInvestment(){
     show("pfCancelBtn",false);
   } else {
     investments.push({id:"inv"+(++invSeq),name,tkr,type,cls,region,val:v,
-      er:isNaN(er)?null:er, yld:isNaN(yld)?null:yld, note});
+      er:isNaN(er)?null:er, yld:isNaN(yld)?null:yld, note,
+      metrics:(_lastFundPerf&&_lastFundPerf.tkr&&tkr&&_lastFundPerf.tkr===tkr.toUpperCase())?_lastFundPerf.metrics:null});
   }
   ["pfName","pfTkr","pfVal","pfEr","pfYld","pfNote"].forEach(id=>$(id).value="");
   setT("pfTkrHint","");
+  try{ renderFundPerf('pf',null); }catch(_){}  _lastFundPerf=null;   // clear the fetched-performance panel after add
   renderInvestments(); renderPortfolioMetrics(); drawPortfolioPie();
   refreshTopMetrics();
 }
 function editInvestment(id){
   const i=investments.find(x=>x.id===id); if(!i) return;
+  // Alternatives (private equity / hedge fund / structured) edit via the dedicated line
+  if(i.type==="private_equity"||i.type==="hedge_fund"||i.type==="structured"){ editAltInvestment(i); return; }
   $("pfName").value=i.name;
   $("pfTkr").value=i.tkr||"";
   const typeSel=$("pfType");
@@ -7141,9 +7178,67 @@ function cancelEditInvestment(){
 }
 function removeInvestment(id){
   if(_editingInvId===id) cancelEditInvestment();
+  if(_editingAltId===id) cancelEditAltInvestment();
   investments=investments.filter(i=>i.id!==id);
   renderInvestments(); renderPortfolioMetrics(); drawPortfolioPie();
   refreshTopMetrics();
+}
+
+// ── Alternatives line: private equity / hedge fund / structured product ──
+// No ticker; class is set from the type so it flows through the same CMA-based
+// return/risk math, allocation, comparison, simulation and report as any holding.
+// Subcategory is a descriptive label captured and displayed throughout.
+const ALT_SUBCATS = {
+  private_equity: ["Buyout / LBO","Venture capital","Growth equity","Secondaries","Fund-of-funds","Distressed / special situations","Private credit","Co-investment"],
+  hedge_fund:     ["Long/short equity","Global macro","Event-driven","Relative value / arbitrage","Managed futures (CTA)","Multi-strategy","Market neutral","Credit"],
+  structured:     ["Capital-protected note","Yield enhancement / reverse convertible","Participation / tracker","Autocallable","Credit-linked note","Leverage / warrant"]
+};
+function updateAltSubcats(selected){
+  const sel=$("pfAltSubcat"); if(!sel) return;
+  const opts=ALT_SUBCATS[val("pfAltType")]||[];
+  sel.innerHTML=opts.map(o=>`<option value="${o}">${o}</option>`).join("");
+  if(selected && opts.indexOf(selected)>=0) sel.value=selected;
+}
+function addAltInvestment(){
+  const type=val("pfAltType"), subcat=val("pfAltSubcat");
+  const name=val("pfAltName").trim(), v=num("pfAltVal",0), region=val("pfAltRegion");
+  const er=parseFloat(val("pfAltEr")), yld=parseFloat(val("pfAltYld")), note=val("pfAltNote").trim();
+  const cls=type; // private_equity / hedge_fund / structured map 1:1 to CMA asset classes
+  if(!name||v<=0){alert("Enter name and a positive value"); return;}
+  if(_editingAltId){
+    investments=investments.map(i=>i.id===_editingAltId
+      ? {...i,name,tkr:"",type,cls,subcat,region,val:v,er:isNaN(er)?null:er,yld:isNaN(yld)?null:yld,note}
+      : i);
+    _editingAltId=null;
+    $("pfAltAddBtn").textContent="Add alternative";
+    show("pfAltCancelBtn",false);
+  } else {
+    investments.push({id:"inv"+(++invSeq),name,tkr:"",type,cls,subcat,region,val:v,
+      er:isNaN(er)?null:er, yld:isNaN(yld)?null:yld, note});
+  }
+  ["pfAltName","pfAltVal","pfAltEr","pfAltYld","pfAltNote"].forEach(id=>{const el=$(id); if(el) el.value="";});
+  renderInvestments(); renderPortfolioMetrics(); drawPortfolioPie();
+  refreshTopMetrics();
+}
+function editAltInvestment(i){
+  const ts=$("pfAltType"); if(ts&&[...ts.options].some(o=>o.value===i.type)) ts.value=i.type;
+  updateAltSubcats(i.subcat);
+  $("pfAltName").value=i.name;
+  $("pfAltVal").value=i.val;
+  const reg=$("pfAltRegion"); if(reg&&[...reg.options].some(o=>o.value===i.region)) reg.value=i.region;
+  $("pfAltEr").value=i.er!=null?i.er:"";
+  $("pfAltYld").value=i.yld!=null?i.yld:"";
+  $("pfAltNote").value=i.note||"";
+  _editingAltId=i.id;
+  $("pfAltAddBtn").textContent="Save changes";
+  show("pfAltCancelBtn",true);
+  const btn=$("pfAltAddBtn"); if(btn) btn.scrollIntoView({behavior:"smooth",block:"nearest"});
+}
+function cancelEditAltInvestment(){
+  _editingAltId=null;
+  ["pfAltName","pfAltVal","pfAltEr","pfAltYld","pfAltNote"].forEach(id=>{const el=$(id); if(el) el.value="";});
+  const b=$("pfAltAddBtn"); if(b) b.textContent="Add alternative";
+  show("pfAltCancelBtn",false);
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -7566,7 +7661,7 @@ function renderInvestments(){
       <span class="pf-tag tt-${i.type}">${INV_TYPE_LABELS[i.type]||i.type}</span>
       <span class="pname">${i.name}</span>
       <span class="ptkr">${i.tkr||"—"}</span>
-      <span style="color:var(--text2)">${INV_CLASS_LABELS[i.cls]||i.cls}</span>
+      <span style="color:var(--text2)">${INV_CLASS_LABELS[i.cls]||i.cls}${i.subcat?` <span style="color:var(--text3)">· ${i.subcat}</span>`:""}</span>
       <span style="color:var(--text);font-variant-numeric:tabular-nums;font-weight:500">${fmtMoney(i.val)}</span>
       <span style="color:var(--text3)">${INV_REGION_LABELS[i.region]||i.region}</span>
       <span style="color:var(--text2);font-variant-numeric:tabular-nums">${er}</span>
@@ -7600,7 +7695,7 @@ function renderPortfolioMetrics(){
   setT("pf-er",wEr.toFixed(2)+"%");
   updatePortfolioFeeDisplay();
   // Risk score (simple: by class)
-  const riskByClass={equity:8,fixed_income:3,real_estate:6,commodity:7,cash:1,mixed:5,alternative:9};
+  const riskByClass={equity:8,fixed_income:3,real_estate:6,commodity:7,cash:1,mixed:5,alternative:9,private_equity:9,hedge_fund:6,structured:6};
   const wRisk=investments.reduce((s,i)=>s+(riskByClass[i.cls]||5)*i.val,0)/total;
   setT("pf-risk",wRisk.toFixed(1)+"/10");
   const fill=$("pf-risk-fill"); if(fill) fill.style.flex="0 0 "+(wRisk/10*100)+"%";
@@ -10070,9 +10165,11 @@ function addProposal(){
   const note=val("prNote").trim();
   if(!name||isNaN(alloc)||alloc<=0){alert("Enter name and allocation %"); return;}
   proposals.push({id:"pr"+(++propSeq),name,tkr,vehicle,cls,alloc,
-    exp:isNaN(exp)?null:exp,er:isNaN(er)?null:er,yld:isNaN(yld)?null:yld,note});
+    exp:isNaN(exp)?null:exp,er:isNaN(er)?null:er,yld:isNaN(yld)?null:yld,note,
+    metrics:(_lastFundPerf&&_lastFundPerf.tkr&&tkr&&_lastFundPerf.tkr===tkr.toUpperCase())?_lastFundPerf.metrics:null});
   ["prName","prTkr","prAlloc","prExp","prErIn","prYldIn","prNote"].forEach(id=>$(id).value="");
   setT("prTkrHint","");
+  try{ renderFundPerf('pr',null); }catch(_){}  _lastFundPerf=null;   // clear fetched-performance panel after add
   renderProposals(); renderProposalMetrics(); renderProposalBars(); drawProposalPie();
 }
 function removeProposal(id){
@@ -10168,7 +10265,7 @@ function renderProposalMetrics(){
   setT("pr-fee-sum",feePct>0?("-"+feePct.toFixed(2)+"% / yr"):"None");
   setT("pr-ret-net-sum",netRet.toFixed(2)+"%");
   updateProposalFeeDisplay();
-  const riskByClass={equity:8,fixed_income:3,real_estate:6,commodity:7,cash:1,mixed:5,alternative:9};
+  const riskByClass={equity:8,fixed_income:3,real_estate:6,commodity:7,cash:1,mixed:5,alternative:9,private_equity:9,hedge_fund:6,structured:6};
   const wRisk=proposals.reduce((s,p)=>s+(riskByClass[p.cls]||5)*p.alloc,0)/totalAlloc;
   setT("pr-risk",wRisk.toFixed(1)+"/10");
   const fill=$("pr-risk-fill"); if(fill) fill.style.flex="0 0 "+(wRisk/10*100)+"%";
@@ -10255,7 +10352,7 @@ function drawProposalPie(){
 function applyTickerPrefill(){
   const raw=(val("prTkr")||"").trim().toUpperCase();
   const hint=$("prTkrHint");
-  if(!raw){if(hint) hint.textContent=""; return;}
+  if(!raw){ resetProposalForm(); return; }   // ticker cleared → wipe the form for a fresh lookup
   const t=TICKER_DB[raw];
   if(!t){
     if(hint){hint.textContent="No local reference for "+raw+" — fill manually or click ↻ AV.";hint.style.color="var(--text3)";}
@@ -10269,10 +10366,21 @@ function applyTickerPrefill(){
   if(t.yld!=null) $("prYldIn").value=t.yld;
   if(hint){hint.textContent="Prefilled from "+raw+" ("+(PROP_VEHICLE_LABELS[t.vehicle]||t.vehicle)+", "+(INV_CLASS_LABELS[t.cls]||t.cls)+")";hint.style.color="#1b6841";}
 }
+// Clear the Investment Proposal add form (fields, dropdowns, fetched performance)
+// so a freshly-entered ticker pulls correct data. Fired when Name or Ticker is emptied.
+function resetProposalForm(){
+  ["prName","prTkr","prAlloc","prExp","prErIn","prYldIn","prNote"].forEach(id=>{const el=$(id); if(el) el.value="";});
+  ["prVehicle","prClass"].forEach(id=>{const el=$(id); if(el) el.selectedIndex=0;});
+  setT("prTkrHint","");
+  const st=$("prAvStatus"); if(st) st.textContent="";
+  try{ renderFundPerf('pr',null); }catch(_){}
+  try{ _lastFundPerf=null; }catch(_){}
+}
+function onPrNameInput(){ if(!(val("prName")||"").trim()) resetProposalForm(); }
 function applyHoldingTickerPrefill(){
   const raw=(val("pfTkr")||"").trim().toUpperCase();
   const hint=$("pfTkrHint");
-  if(!raw){if(hint) hint.textContent=""; return;}
+  if(!raw){ resetHoldingForm(); return; }   // ticker cleared → wipe the form for a fresh lookup
   const t=TICKER_DB[raw];
   if(!t){
     if(hint){hint.textContent="No local reference for "+raw+" — will try Alpha Vantage on blur (if API key set).";hint.style.color="var(--text3)";}
@@ -10287,6 +10395,19 @@ function applyHoldingTickerPrefill(){
   if(t.yld!=null) $("pfYld").value=t.yld;
   if(hint){hint.textContent="Prefilled from "+raw+" ("+(INV_TYPE_LABELS[t.vehicle]||t.vehicle)+", "+(INV_CLASS_LABELS[t.cls]||t.cls)+") — live price/sector from ↻ AV on blur";hint.style.color="#1b6841";}
 }
+// Clear the entire Add Investment form (text fields, dropdowns, fetched performance
+// panel and saved metrics) so a freshly-entered ticker pulls correct name + data with
+// nothing stale carried over. Fired when the Name or Ticker is emptied.
+function resetHoldingForm(){
+  if(typeof _editingInvId!=="undefined" && _editingInvId) return;  // don't disrupt an in-progress edit
+  ["pfName","pfTkr","pfVal","pfEr","pfYld","pfNote"].forEach(id=>{const el=$(id); if(el) el.value="";});
+  ["pfType","pfClass","pfRegion"].forEach(id=>{const el=$(id); if(el) el.selectedIndex=0;});
+  setT("pfTkrHint","");
+  const st=$("pfAvStatus"); if(st) st.textContent="";
+  try{ renderFundPerf('pf',null); }catch(_){}
+  try{ _lastFundPerf=null; }catch(_){}
+}
+function onPfNameInput(){ if(!(val("pfName")||"").trim()) resetHoldingForm(); }
 // ═══════════════════════════════════════════════════════════
 // INSTRUMENT LOOKUP — unified ticker / ISIN / fund name search
 // Sources: OpenFIGI (no key), Yahoo Finance (no key), Finnhub (optional), Alpha Vantage (optional)
@@ -10309,42 +10430,113 @@ const FIGI_SUFFIX={
   'HN':'.HE','VX':'.VX','AV':'.VI','AU':'.AX','HK':'.HK','TK':'.T',
   'KS':'.KS','IN':'.BO','SI':'.SI','TW':'.TW','MX':'.MX','CN':'.SN'
 };
+// ISIN country prefix → preferred OpenFIGI exchCode (its liquid home listing, which
+// Yahoo covers well). Lets a non-US ISIN resolve to e.g. CHDVD.SW rather than a thin
+// US OTC grey-market line. US ISINs fall through to the US-listing preference below.
+const ISIN_CC_TO_EXCH={CH:'SW',GB:'LN',IE:'LN',DE:'GY',FR:'PA',NL:'NA',IT:'IM',ES:'SM',SE:'SS',NO:'OS',DK:'DC',FI:'HN',AT:'AV',BE:'BT',GR:'AT',JP:'TK',HK:'HK',AU:'AU',SG:'SI',KR:'KS',TW:'TW',IN:'IN',MX:'MX',CA:'CN'};
 
 // OpenFIGI: ISIN → {ticker, name, exchCode, securityType2}
 async function openFigiLookup(isin){
-  const r=await fetch('https://api.openfigi.com/v3/mapping',{
-    method:'POST',
-    headers:{'Content-Type':'text/json'},
-    body:JSON.stringify([{idType:'ID_ISIN',idValue:isin.toUpperCase()}])
-  });
-  if(!r.ok) throw new Error('OpenFIGI HTTP '+r.status);
-  const d=await r.json();
+  const url='https://api.openfigi.com/v3/mapping';
+  const opts={ method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify([{idType:'ID_ISIN',idValue:isin.toUpperCase()}]) };
+  let d=null;
+  try{ const r=await fetch(url,opts); if(r.ok) d=await r.json(); }catch(e){}
+  if(!d){ const r2=await fetch('https://corsproxy.io/?'+encodeURIComponent(url),opts); if(!r2.ok) throw new Error('OpenFIGI HTTP '+r2.status); d=await r2.json(); }   // OpenFIGI blocks direct browser calls (CORS) → proxy fallback
   const data=d[0]?.data;
   if(!data?.length) return null;
-  // Prefer a US listing; fall back to first result
+  // Prefer the ISIN's home exchange (best Yahoo coverage), then a US listing,
+  // then any Yahoo-supported exchange, then the first result.
+  const cc=(isin||'').slice(0,2).toUpperCase(), homeEx=ISIN_CC_TO_EXCH[cc];
   const usEx=['US','UN','UA','UF','UR','UT','UV'];
-  const hit=data.find(x=>usEx.includes(x.exchCode))||data[0];
+  const hit=(homeEx && data.find(x=>x.exchCode===homeEx))
+        || data.find(x=>usEx.includes(x.exchCode))
+        || data.find(x=>FIGI_SUFFIX[x.exchCode])
+        || data[0];
   return {ticker:(hit.ticker||'').trim(),name:(hit.name||'').trim(),exchCode:hit.exchCode||'',securityType:hit.securityType||'',securityType2:hit.securityType2||''};
 }
 
 // Yahoo Finance search: query → array of {symbol, shortname, longname, quoteType, exchange, exchDisp}
 async function yahooSearchInstr(query){
   const url=`https://query1.finance.yahoo.com/v1/finance/search?q=${encodeURIComponent(query)}&quotesCount=6&newsCount=0&enableFuzzyQuery=false`;
-  const r=await fetch(url);
-  if(!r.ok) throw new Error('Yahoo search HTTP '+r.status);
-  const d=await r.json();
+  let d=null;
+  try{ const r=await fetch(url); if(r.ok) d=await r.json(); }catch(e){}
+  if(!d){ const r2=await fetch("https://corsproxy.io/?"+encodeURIComponent(url)); if(!r2.ok) throw new Error('Yahoo search HTTP '+r2.status); d=await r2.json(); }   // CORS fallback
   return d?.finance?.result?.quotes||[];
 }
 
 // Yahoo Finance chart v8: returns meta with name, quoteType, exchange, currency, price, yield
 async function yahooChartMeta(symbol){
-  try{
-    const url=`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1d&range=1d&includePrePost=false`;
-    const r=await fetch(url);
-    if(!r.ok) return null;
-    const d=await r.json();
-    return d?.chart?.result?.[0]?.meta||null;
-  }catch(e){return null;}
+  const url=`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1d&range=1d&includePrePost=false`;
+  let d=null;
+  try{ const r=await fetch(url); if(r.ok) d=await r.json(); }catch(e){}
+  if(!d){ try{ const r2=await fetch("https://corsproxy.io/?"+encodeURIComponent(url)); if(r2.ok) d=await r2.json(); }catch(e){} }   // CORS fallback
+  return d?.chart?.result?.[0]?.meta||null;
+}
+
+// Total-return performance from Yahoo: per-calendar-year returns, trailing 1/3/5/10yr
+// (annualized) and since-inception. Uses the v8 chart endpoint's adjusted close (= total
+// return, dividends reinvested) — same source as yahooChartMeta — with a corsproxy fallback.
+// Returns null on failure. Figures track Morningstar closely; methodology may differ slightly.
+async function fetchFundPerformance(symbol){
+  if(!symbol) return null;
+  const url=`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1mo&range=max`;
+  let d=null;
+  try{ const r=await fetch(url); if(r.ok) d=await r.json(); }catch(e){}
+  if(!d){ try{ const r2=await fetch("https://corsproxy.io/?"+encodeURIComponent(url)); if(r2.ok) d=await r2.json(); }catch(_){ } }
+  const res=d&&d.chart&&d.chart.result&&d.chart.result[0]; if(!res) return null;
+  const ts=res.timestamp||[];
+  const adj=(res.indicators&&res.indicators.adjclose&&res.indicators.adjclose[0]&&res.indicators.adjclose[0].adjclose)
+         || (res.indicators&&res.indicators.quote&&res.indicators.quote[0]&&res.indicators.quote[0].close) || [];
+  const pts=[];
+  for(let i=0;i<ts.length;i++){ const p=adj[i]; if(p!=null&&isFinite(p)&&p>0) pts.push({d:new Date(ts[i]*1000), p:p}); }
+  if(pts.length<2) return null;
+  const first=pts[0], last=pts[pts.length-1], nowP=last.p, nowD=last.d;
+  const cagr=(p0,p1,y)=> (p0>0&&p1>0&&y>0)? (Math.pow(p1/p0,1/y)-1)*100 : null;
+  const simple=(p0,p1)=> (p0>0&&p1>0)? (p1/p0-1)*100 : null;
+  const priceYearsAgo=y=>{ const t=new Date(nowD.getTime()); t.setFullYear(t.getFullYear()-y); let best=null;
+    for(let i=0;i<pts.length;i++){ if(pts[i].d<=t) best=pts[i].p; else break; } return best; };
+  const round=v=>v==null?null:+v.toFixed(2);
+  const p1=priceYearsAgo(1), p3=priceYearsAgo(3), p5=priceYearsAgo(5), p10=priceYearsAgo(10);
+  const incYrs=(nowD-first.d)/(365.25*24*3600*1000);
+  // calendar-year total returns from year-end closes; current (partial) year reported as YTD
+  const yearEnd={}; pts.forEach(pt=>{ yearEnd[pt.d.getFullYear()]=pt.p; });
+  const yrs=Object.keys(yearEnd).map(Number).sort((a,b)=>a-b), curYear=nowD.getFullYear();
+  const calendar=[]; let ytd=null;
+  for(let i=1;i<yrs.length;i++){ const y=yrs[i], r=simple(yearEnd[yrs[i-1]],yearEnd[y]); if(r==null) continue;
+    if(y===curYear) ytd=round(r); else calendar.push({year:y, ret:round(r)}); }
+  return {
+    r1y:round(p1!=null?simple(p1,nowP):null), r3y:round(p3!=null?cagr(p3,nowP,3):null),
+    r5y:round(p5!=null?cagr(p5,nowP,5):null), r10y:round(p10!=null?cagr(p10,nowP,10):null),
+    sinceInception:round(incYrs>=1?cagr(first.p,nowP,incYrs):simple(first.p,nowP)),
+    inceptionYear:first.d.getFullYear(), ytd:ytd, calendar:calendar.slice(-12),
+    asOf:nowD.toISOString().slice(0,10), source:"Yahoo Finance (total return)"
+  };
+}
+// Holds the most-recently fetched performance so addInvestment can save it onto the holding.
+let _lastFundPerf=null;
+function _perfCell(lbl,v){
+  const c=v==null?"var(--text3)":(v>=0?"#1b6841":"#a83232");
+  const t=v==null?"—":(v>=0?"+":"")+v.toFixed(1)+"%";
+  return `<div style="text-align:center"><div style="font-size:9px;text-transform:uppercase;letter-spacing:.05em;color:var(--text3)">${lbl}</div><div style="font-size:14px;font-weight:700;color:${c};font-variant-numeric:tabular-nums">${t}</div></div>`;
+}
+function renderFundPerf(prefix, perf, name, symbol){
+  const host=$(prefix+'Perf'); if(!host) return;
+  if(!perf){ host.style.display="none"; host.innerHTML=""; return; }
+  const avg=[["1Y",perf.r1y],["3Y",perf.r3y],["5Y",perf.r5y],["10Y",perf.r10y],["Since "+(perf.inceptionYear||"incep."),perf.sinceInception],["YTD",perf.ytd]]
+    .map(a=>_perfCell(a[0],a[1])).join("");
+  const cal=(perf.calendar||[]).map(c=>{ const col=c.ret==null?"var(--text3)":(c.ret>=0?"#1b6841":"#a83232");
+    return `<div style="text-align:center;min-width:46px"><div style="font-size:9px;color:var(--text3)">${c.year}</div><div style="font-size:11px;font-weight:600;color:${col};font-variant-numeric:tabular-nums">${c.ret==null?"—":(c.ret>=0?"+":"")+c.ret.toFixed(1)+"%"}</div></div>`; }).join("");
+  host.innerHTML=
+    `<div style="margin-top:10px;padding:12px 14px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--rs)">
+       <div style="display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:6px;margin-bottom:8px">
+         <span style="font-size:12px;font-weight:600;color:var(--text)">Fund performance — ${escapeForHTML(name||symbol||"")}${symbol?` <span style="color:var(--text3)">(${escapeForHTML(symbol)})</span>`:""}</span>
+         <span style="font-size:10px;color:var(--text3)">Yahoo total return · as of ${escapeForHTML(perf.asOf||"")}</span>
+       </div>
+       <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-bottom:10px">${avg}</div>
+       ${cal?`<div style="font-size:9px;text-transform:uppercase;letter-spacing:.05em;color:var(--text3);margin-bottom:4px">Calendar-year total return</div><div style="display:flex;gap:10px;flex-wrap:wrap">${cal}</div>`:""}
+       <div style="font-size:10px;color:var(--text3);margin-top:8px;line-height:1.4">Annualized averages (1Y is the simple 1-year return). Computed from Yahoo total-return history; tracks Morningstar closely, methodology may differ. Saved with the holding when you click Add.</div>
+     </div>`;
+  host.style.display="";
 }
 
 // Finnhub key helpers
@@ -10374,6 +10566,15 @@ async function finnhubProfile(symbol,isEtf,key){
 function mapQuoteTypeToVehicle(quoteType){
   const map={ETF:'etf',MUTUALFUND:'mutual_fund',EQUITY:'stock',FUTURE:'futures',OPTION:'alternative',CRYPTOCURRENCY:'alternative',INDEX:'alternative'};
   return map[(quoteType||'').toUpperCase()]||'alternative';
+}
+// Map OpenFIGI securityType/securityType2 → a Yahoo-style quoteType, so an ISIN-resolved
+// instrument still types correctly when Yahoo's own data is thin (e.g. ETP/Mutual Fund).
+function figiToQuoteType(fd){
+  const s=(((fd&&fd.securityType)||'')+' '+((fd&&fd.securityType2)||'')).toUpperCase();
+  if(s.includes('ETP')||s.includes('ETF')||s.includes('EXCHANGE TRADED')||s.includes('ETC')||s.includes('ETN')) return 'ETF';
+  if(s.includes('MUTUAL')||s.includes('OPEN-END')||s.includes('CLOSED-END')||s.includes('UNIT TRUST')||s.includes('SICAV')) return 'MUTUALFUND';
+  if(s.includes('COMMON')||s.includes('ORDINARY')||s.includes('PREFERRED')||s.includes('EQUITY')||s.includes('REIT')||s.includes('DEPOSITARY')) return 'EQUITY';
+  return '';
 }
 
 // Map Yahoo exchange/currency → our region
@@ -10474,7 +10675,7 @@ async function fetchInstrumentLive(prefix){
 
     // ── Step 3: compile metadata ──────────────────────────────────────
     const name=(yahooMeta?.longName)||(yahooMeta?.shortName)||(searchHit?.longname)||(searchHit?.shortname)||(figiData?.name)||symbol;
-    const quoteType=(yahooMeta?.quoteType)||(searchHit?.quoteType)||(figiData?.securityType2?.includes('ETF')?'ETF':'')||'';
+    const quoteType=(yahooMeta?.quoteType)||(yahooMeta?.instrumentType)||(searchHit?.quoteType)||figiToQuoteType(figiData)||'';
     const exchange=(yahooMeta?.exchangeName)||(yahooMeta?.fullExchangeName)||(searchHit?.exchDisp)||(searchHit?.exchange)||'';
     const currency=yahooMeta?.currency||'';
     const sector=searchHit?.sector||'';
@@ -10519,6 +10720,14 @@ async function fetchInstrumentLive(prefix){
       if(fhDivYield!=null) $('prYldIn').value=fhDivYield.toFixed(2);
       if(expenseRatio!=null) $('prErIn').value=expenseRatio.toFixed(3);
     }
+
+    // ── Step 5b: fund performance (Portfolio + Proposal) — calendar-year + 1/3/5/10yr + since inception ──
+    try{
+      setStatus('Fetching performance history…');
+      const perf=await fetchFundPerformance(symbol);
+      renderFundPerf(prefix, perf, name, symbol);
+      _lastFundPerf = perf ? {tkr:(($(prefix+'Tkr').value||symbol)||'').trim().toUpperCase(), metrics:perf} : null;
+    }catch(_){ try{ renderFundPerf(prefix,null); }catch(__){} _lastFundPerf=null; }
 
     // ── Step 6: status feedback ───────────────────────────────────────
     const detailParts=[
@@ -15287,7 +15496,7 @@ async function generatePDFReport(){
         sectionH2("Portfolio Analysis ("+investments.length+" holdings)");
         const pfTot=portfolioInvestmentSeed();
         tbl(["Position","Ticker","Asset class","Value","Weight"],
-          investments.map(i=>[i.name||"—", i.tkr||"—", INV_CLASS_LABELS[i.cls]||i.cls,
+          investments.map(i=>[i.name||"—", i.tkr||"—", (INV_CLASS_LABELS[i.cls]||i.cls)+(i.subcat?" · "+i.subcat:""),
             fmt(i.val), pfTot>0?(i.val/pfTot*100).toFixed(1)+"%":"—"]));
         kv([["Total portfolio value",fmt(pfTot)]]);
       },
@@ -16473,6 +16682,7 @@ document.addEventListener("DOMContentLoaded",function(){
   // ── Feature flags: apply AI Portfolio Builder visibility (set in Admin Console).
   // Re-apply when the tab regains focus so an admin toggle reflects without a reload.
   try { applyAIBuilderFlag(); } catch(_){}
+  try { updateAltSubcats(); } catch(_){}   // populate the alternatives subcategory dropdown
   document.addEventListener("visibilitychange", function(){
     if(document.visibilityState === "visible"){ try { applyAIBuilderFlag(); } catch(_){} }
   });
