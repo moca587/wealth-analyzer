@@ -12015,7 +12015,7 @@ function runMC(years,sims,muOverride,sigOverride){
       assetBuckets = scaleBucketsToTotal(assetBuckets, investSeed);
     }
 
-    let inv = sumBuckets(assetBuckets);
+    let inv = sumBuckets(assetBuckets); // grow only investments
 
     let retPot=retSeed; // retirement pool per simulation path
     let income=baseInc, expense=baseExp;
@@ -12088,7 +12088,7 @@ function runMC(years,sims,muOverride,sigOverride){
       loanState.forEach(l=>{
         if(l.bal<=0) return;
         const m=l.rate>0&&l.yrs>0? l.bal*((l.rate/12)*Math.pow(1+l.rate/12,l.yrs*12))/(Math.pow(1+l.rate/12,l.yrs*12)-1)*12 : l.bal/Math.max(l.yrs,1);
-        const interest=l.bal*l.rate;
+        const interest=l.bal*l.rate; // interest for the year 
         const principal=Math.max(0, m-interest);
         l.bal=Math.max(0,l.bal-principal);
         l.yrs=Math.max(0,l.yrs-1);
@@ -12162,8 +12162,15 @@ function runMC(years,sims,muOverride,sigOverride){
 inv = sumBuckets(assetBuckets);
       }
 
-      const propR=0.03+0.02*boxMuller();
-      prop=prop*(1+propR);
+      // const propR=0.03+0.02*boxMuller();
+      // prop=prop*(1+propR);
+
+      // log-normalized 
+      const propMu = 0.03;
+      const propSig = 0.02;
+      const propLogR = (propMu - 0.5 * propSig * propSig) + propSig * boxMuller();
+      prop = prop * Math.exp(propLogR);
+      
       if(!retired) income*=(1+raise);
       expense*=(1+infY);
       const debtTotal=loanState.reduce((s,l)=>s+l.bal,0);
