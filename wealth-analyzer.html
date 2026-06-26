@@ -6614,13 +6614,13 @@ function renderInsurances(){
     return `<div class="loan-item">
       <div class="item-row">
         <span class="lbadge">${INS_TYPE_LABELS[p.type]||p.type}</span>
-        <span style="font-weight:500;flex:1">${p.label}</span>
+        <span style="font-weight:500;flex:1">${_daEsc(p.label)}</span>
         <span style="font-variant-numeric:tabular-nums;font-weight:500">${p.ben?fmtMoneyFull(p.ben):"—"}</span>
         <button class="btn-x" style="font-size:10px;padding:2px 7px;color:var(--text3);border:1px solid var(--border);border-radius:3px" onclick="editInsurance('${p.id}')">✎</button>
         <button class="btn-x" onclick="delInsurance('${p.id}')">✕</button>
       </div>
       <div class="item-meta">
-        <span>Insured: ${who} • ${benLbl}${p.benef?" • → "+p.benef:""}</span>
+        <span>Insured: ${who} • ${benLbl}${p.benef?" • → "+_daEsc(p.benef):""}</span>
         <span>${p.cash?"Cash value: "+fmtMoneyFull(p.cash)+" • ":""}Premium: ${fmtMoneyFull(p.prem||0)}/yr</span>
       </div>
     </div>`;
@@ -6701,7 +6701,7 @@ function renderEquityGrants(){
     return `<div class="loan-item">
       <div class="item-row">
         <span class="lbadge">${EQ_KIND_LABELS[g.kind]||g.kind}</span>
-        <span style="font-weight:500;flex:1">${g.label}${g.tkr?" · "+g.tkr:""}</span>
+        <span style="font-weight:500;flex:1">${_daEsc(g.label)}${g.tkr?" · "+_daEsc(g.tkr):""}</span>
         <span style="font-variant-numeric:tabular-nums;font-weight:500">${fmtMoneyFull(itm)}</span>
         <button class="btn-x" style="font-size:10px;padding:2px 7px;color:var(--text3);border:1px solid var(--border);border-radius:3px" onclick="editEquityGrant('${g.id}')">✎</button>
         <button class="btn-x" onclick="delEquityGrant('${g.id}')">✕</button>
@@ -6733,8 +6733,8 @@ function renderBeneficiaries(){
   const list=$("benList"); if(!list) return;
   if(beneficiaries.length===0){list.innerHTML='<div class="empty">No beneficiaries added.</div>'; return;}
   list.innerHTML=beneficiaries.map(b=>`<div class="item-row" style="padding:6px 0;border-bottom:1px solid var(--border)">
-    <span style="font-weight:600">${b.name}</span>
-    <span style="color:var(--text3);font-size:12px;flex:1">${b.rel}</span>
+    <span style="font-weight:600">${_daEsc(b.name)}</span>
+    <span style="color:var(--text3);font-size:12px;flex:1">${_daEsc(b.rel)}</span>
     <span style="font-variant-numeric:tabular-nums;font-weight:600">${(+b.share||0).toFixed(0)}%</span>
     <button class="btn-x" onclick="delBeneficiary('${b.id}')">✕</button>
   </div>`).join("");
