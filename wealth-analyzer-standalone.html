@@ -2317,6 +2317,19 @@ input[type=date]{color-scheme:light}
   </div>
 </div>
 
+<!-- Retirement Drawdown — decumulation Monte Carlo (will the money last?) -->
+<div class="panel">
+  <div class="ptitle">Retirement Drawdown — will your money last?</div>
+  <div style="font-size:12px;color:var(--text3);line-height:1.6;margin-bottom:10px">A decumulation simulation: from your retirement age, each year withdraws your retirement spending (net of pensions &amp; Social Security), the portfolio earns a random return, and we count how often it lasts to your planning age — capturing <strong style="color:var(--text2)">sequence-of-returns risk</strong> (a poor market early in retirement does lasting damage). The whole investable pool is exposed to market risk here.</div>
+  <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-bottom:12px">
+    <label class="flbl" style="min-width:0">Plan through age</label>
+    <input type="number" id="rdPlanAge" value="90" min="70" max="110" step="1" class="w120">
+    <button class="btn-primary" onclick="runRetirementDrawdown()">▶ Run drawdown analysis</button>
+    <span id="rdStatus" style="font-size:12px;color:var(--text3)"></span>
+  </div>
+  <div id="rdResults"><div class="pf-empty">Set your retirement age, spending, and pensions above, then run the drawdown analysis.</div></div>
+</div>
+
 <div class="panel" id="goalResults" style="display:none">
   <div class="ptitle">Goal Analysis</div>
   <div id="goalResultList"></div>
@@ -3535,7 +3548,7 @@ input[type=date]{color-scheme:light}
 // ═══════════════════════════════════════════════════════════
 // VERSION — updated by build-standalone.pl on each build
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260626-1420";
+const APP_VERSION = "20260626-1439";
 
 // ═══════════════════════════════════════════════════════════
 // DATA
@@ -12269,6 +12282,117 @@ function runMC(years,sims,muOverride,sigOverride){
   }
   return paths;
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// RETIREMENT DRAWDOWN — decumulation Monte Carlo (will the money last?)
+// Self-contained: accumulates to retirement, then withdraws spending net of
+// pensions each year with the WHOLE investable pool exposed to market risk, so
+// sequence-of-returns risk is captured. Reports a plan-success probability and
+// how long funds last in poor markets. Does not touch the main runMC engine.
+// ═══════════════════════════════════════════════════════════════════════════
+function _drawdownSeed(){
+  const retSeed=retirementAccountSeed();
+  const totalAcc=totalAccountValue();
+  const pfCash=portfolioCashSeed(), pfInvested=portfolioInvestedSeed();
+  const liquidAcc=Math.max(0, totalAcc-retSeed);
+  const pfTotal=pfInvested+pfCash;
+  let investSeed, cashSeed;
+  if(investments.length>0 && !pfLinkedAccountId){
+    const extraAcc=Math.max(0,liquidAcc-pfTotal);
+    investSeed=pfInvested; cashSeed=pfCash+extraAcc;
+  } else {
+    const totalSeed=liquidAcc+pfInvested;
+    investSeed=Math.max(pfInvested, totalSeed*0.3);
+    cashSeed=Math.max(0, totalSeed-investSeed)+pfCash;
+  }
+  return Math.max(0, investSeed+cashSeed+retSeed);
+}
+function runRetirementDrawdown(){
+  const st=$("rdStatus");
+  const c1Age=ageFromDOB(val("c1d"))||40;
+  const retAge=Math.max(c1Age, num("retAge",65));
+  const planAge=Math.max(retAge+1, num("rdPlanAge",90));
+  const sims=Math.min(2000, Math.max(300, parseInt(val("simN")||"1000",10)));
+  const inf=num("inf",3.8)/100, sav=num("savAnnual",0), retSpend=num("retSpend",60000);
+  const P=getActiveSimulationParams(); const mu=P.mu, sig=P.sig;
+  const penSrc=val("penSrc")||"auto", penAnn=num("penAnnual",0), penStart=num("penStartAge",67), penCola=val("penCola")||"full";
+  const showC2=$("c2card")&&$("c2card").style.display!=="none";
+  const penSrc2=showC2?(val("penSrc2")||"auto"):"none", penAnn2=penSrc2==="none"?0:num("penAnnual2",0), penStart2=num("penStartAge2",67), penCola2=val("penCola2")||"full";
+  const c2Age=ageFromDOB(val("c2d"))||c1Age;
+  const seed=_drawdownSeed();
+  const yrs=planAge-c1Age, retIdx=Math.max(0,retAge-c1Age);
+  if(st){ st.textContent="Running "+sims+" paths…"; st.style.color="var(--text3)"; }
+  const bands=Array.from({length:yrs+1},()=>[]);
+  const lastAges=[]; let successes=0;
+  for(let s=0;s<sims;s++){
+    let port=seed, depAge=null;
+    for(let y=0;y<=yrs;y++){
+      const age=c1Age+y, c2AgeY=c2Age+y, retired=age>=retAge;
+      if(!retired){ port+=sav; }
+      else {
+        const pen=calcPension(penSrc,penAnn,penStart,penCola,age,inf)+(showC2?calcPension(penSrc2,penAnn2,penStart2,penCola2,c2AgeY,inf):0);
+        const wd=Math.max(0, retSpend*Math.pow(1+inf,y)-pen);
+        port-=wd;
+        if(port<=0 && depAge===null){ depAge=age; port=0; }
+      }
+      if(port>0){ const r=(mu-0.5*sig*sig)+sig*boxMuller(); port=port*Math.exp(r); if(port<0)port=0; }
+      bands[y].push(port/Math.pow(1+inf,y));   // store in today's money for the chart
+    }
+    lastAges.push(depAge===null?planAge:depAge);
+    if(depAge===null) successes++;
+  }
+  const pctl=(arr,p)=>{ const a=arr.slice().sort((x,y)=>x-y); return a.length?a[Math.max(0,Math.min(a.length-1,Math.round(p/100*(a.length-1))))]:0; };
+  const pen0=calcPension(penSrc,penAnn,penStart,penCola,retAge,inf)+(showC2?calcPension(penSrc2,penAnn2,penStart2,penCola2,(c2Age+retIdx),inf):0);
+  const need0=retSpend*Math.pow(1+inf,retIdx);
+  renderRetirementDrawdown({
+    successPct:successes/sims*100, sims, retAge, planAge,
+    lastAge10:pctl(lastAges,10), lastAge25:pctl(lastAges,25), lastAge50:pctl(lastAges,50),
+    need0, pen0, wd0:Math.max(0,need0-pen0), seed,
+    band:bands.map((c,y)=>({age:c1Age+y, p10:pctl(c,10), p50:pctl(c,50), p90:pctl(c,90)})).filter(b=>b.age>=retAge)
+  });
+  if(st){ st.textContent="✓ "+sims+" paths"; st.style.color="var(--green)"; }
+}
+function renderRetirementDrawdown(s){
+  const host=$("rdResults"); if(!host) return;
+  const col=s.successPct>=85?"#1b6841":s.successPct>=70?"#8a5a2b":"#a83232";
+  const lab=s.successPct>=85?"Strong":s.successPct>=70?"Borderline":"At risk";
+  const b=s.band; let svg="";
+  if(b.length>1){
+    const W=620,H=170,padL=8,padR=8,padT=10,padB=18;
+    const maxV=Math.max(1, ...b.map(x=>x.p90));
+    const X=i=>padL+(i/(b.length-1))*(W-padL-padR);
+    const Y=v=>padT+(1-v/maxV)*(H-padT-padB);
+    const top=b.map((x,i)=>X(i).toFixed(1)+","+Y(x.p90).toFixed(1)).join(" ");
+    const bot=b.map((x,i)=>({i:b.length-1-i})).map(o=>X(o.i).toFixed(1)+","+Y(b[o.i].p10).toFixed(1)).join(" ");
+    const mid=b.map((x,i)=>X(i).toFixed(1)+","+Y(x.p50).toFixed(1)).join(" ");
+    svg=`<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;background:var(--bg3);border:1px solid var(--border);border-radius:var(--rs)" role="img" aria-label="Retirement portfolio value through drawdown">
+      <polygon points="${top} ${bot}" fill="rgba(0,87,184,.14)" stroke="none"/>
+      <polyline points="${mid}" fill="none" stroke="#c9a96e" stroke-width="2"/>
+      <text x="${padL}" y="${H-5}" font-size="9" style="fill:#9aa3b2">age ${b[0].age}</text>
+      <text x="${W-padR}" y="${H-5}" font-size="9" text-anchor="end" style="fill:#9aa3b2">age ${b[b.length-1].age}</text>
+    </svg>`;
+  }
+  const ageOrPlus=(a)=>a>=s.planAge?(s.planAge+"+"):("age "+a);
+  host.innerHTML=`
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:12px">
+      <div class="pf-mc"><div class="pf-mc-lbl">Plan success</div><div class="pf-mc-val" style="color:${col}">${s.successPct.toFixed(0)}% <span style="font-size:12px;font-weight:600">${lab}</span></div></div>
+      <div class="pf-mc"><div class="pf-mc-lbl">Funds last to (median)</div><div class="pf-mc-val">${s.lastAge50>=s.planAge?(s.planAge+"+"):("age "+s.lastAge50)}</div></div>
+      <div class="pf-mc"><div class="pf-mc-lbl">Poor markets (10th pct)</div><div class="pf-mc-val">${ageOrPlus(s.lastAge10)}</div></div>
+    </div>
+    <div style="font-size:12px;color:var(--text2);line-height:1.7;margin-bottom:10px">
+      In <strong>${s.successPct.toFixed(0)}%</strong> of ${s.sims.toLocaleString()} simulated markets, your portfolio funds retirement spending from age ${s.retAge} through age ${s.planAge}.
+      ${s.successPct<99?`In the unluckiest 10% of outcomes — a poor market early in retirement (<em>sequence-of-returns risk</em>) — funds last to about <strong>${ageOrPlus(s.lastAge10)}</strong>.`:`The plan holds up even in poor markets.`}
+    </div>
+    <div style="font-size:11px;color:var(--text3);margin-bottom:6px">Portfolio value through retirement (today's money) — median line, 10th–90th percentile band:</div>
+    ${svg}
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:12px">
+      <div class="pf-mc"><div class="pf-mc-lbl">First-year spending</div><div class="pf-mc-val" style="font-size:15px">${fmtMoney(s.need0)}</div></div>
+      <div class="pf-mc"><div class="pf-mc-lbl">Pensions / Social Security</div><div class="pf-mc-val" style="font-size:15px;color:#1b6841">${fmtMoney(s.pen0)}</div></div>
+      <div class="pf-mc"><div class="pf-mc-lbl">From portfolio</div><div class="pf-mc-val" style="font-size:15px">${fmtMoney(s.wd0)}</div></div>
+    </div>
+    <div style="font-size:10px;color:var(--text3);margin-top:10px;line-height:1.5">Decumulation model: the whole investable pool (${fmtMoney(s.seed)} today) is exposed to market risk and drawn down for spending net of pensions. Nominal returns; portfolio values shown in today's money. Educational projection — not advice.</div>`;
+}
+window.runRetirementDrawdown=runRetirementDrawdown;
 function percentileAt(paths,yearIdx,p){
   const arr=paths.map(pp=>pp[yearIdx]).sort((a,b)=>a-b);
   const i=Math.max(0,Math.min(arr.length-1,Math.floor(p/100*arr.length)));
