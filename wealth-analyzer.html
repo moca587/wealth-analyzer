@@ -15387,6 +15387,127 @@ async function generatePDFReport(){
       tbl(["Item","Value"],rows,{columnStyles:{0:{fontStyle:"bold",cellWidth:CW*0.45}}});
     }
 
+    // ── Fan Chart: draws a time-series wealth fan using jsPDF primitives ──
+function drawFanChart(){
+  if(!lastSimPaths || lastSimPaths.length === 0) return;
+  const chartW = CW;       // full column width
+  const chartH = 55;       // mm tall
+  const chartX = M;
+  const chartY = y;
+
+  checkY(chartH + 12);
+
+  // Compute percentile series at every year
+  const numYrs = lastSimYrs;
+  const years  = Array.from({length: numYrs + 1}, (_, i) => i);
+  const p10 = years.map(i => percentileAt(lastSimPaths, i, 10));
+  const p25 = years.map(i => percentileAt(lastSimPaths, i, 25));
+  const p50 = years.map(i => percentileAt(lastSimPaths, i, 50));
+  const p75 = years.map(i => percentileAt(lastSimPaths, i, 75));
+  const p90 = years.map(i => percentileAt(lastSimPaths, i, 90));
+
+  // Axis bounds
+  const allVals = [...p10, ...p90];
+  const minV = Math.min(...allVals);
+  const maxV = Math.max(...allVals);
+  const padV = (maxV - minV) * 0.05;
+  const lo = Math.max(0, minV - padV);
+  const hi = maxV + padV;
+
+  // Map helpers
+  const mx = (yr)  => chartX + (yr / numYrs) * chartW;
+  const my = (val) => chartY + chartH - ((val - lo) / (hi - lo)) * chartH;
+
+  // Draw axes
+  doc.setDrawColor(180); doc.setLineWidth(0.25);
+  doc.line(chartX, chartY, chartX, chartY + chartH);           // Y axis
+  doc.line(chartX, chartY + chartH, chartX + chartW, chartY + chartH); // X axis
+
+  // Y-axis tick labels (5 ticks)
+  doc.setFont("helvetica","normal"); doc.setFontSize(6); doc.setTextColor(120);
+  for(let t = 0; t <= 4; t++){
+    const val = lo + (hi - lo) * (t / 4);
+    const yy  = my(val);
+    doc.setDrawColor(220); doc.setLineWidth(0.1);
+    doc.line(chartX, yy, chartX + chartW, yy); // gridline
+    doc.text(fmt(val), chartX - 1, yy + 1, {align:"right"});
+  }
+
+  // X-axis tick labels (every 5 yrs, or every 2 if horizon ≤ 15)
+  const step = numYrs > 15 ? 5 : 2;
+  const cy2  = (typeof currentYear === "function") ? currentYear() : new Date().getFullYear();
+  for(let yr = 0; yr <= numYrs; yr += step){
+    const xx = mx(yr);
+    doc.setTextColor(120);
+    doc.text((cy2 + yr).toString(), xx, chartY + chartH + 4, {align:"center"});
+  }
+
+  // Helper to build a closed polygon path for two series (upper + lower reversed)
+  function fillBand(upper, lower, r, g, b, alpha){
+    // jsPDF path commands
+    doc.setFillColor(r, g, b);
+    doc.saveGraphicsState && doc.saveGraphicsState();
+    // Build polygon points: left-to-right along upper, right-to-left along lower
+    const pts = [];
+    for(let i = 0; i <= numYrs; i++) pts.push([mx(i), my(upper[i])]);
+    for(let i = numYrs; i >= 0; i--) pts.push([mx(i), my(lower[i])]);
+    // Draw filled polygon using lines()
+    const [sx, sy] = pts[0];
+    doc.lines(
+      pts.slice(1).map(([px, py]) => [px - pts[pts.indexOf([px,py])-1]?.[0] ?? sx, py - pts[pts.indexOf([px,py])-1]?.[1] ?? sy]),
+      sx, sy, [1,1], "F"
+    );
+    doc.restoreGraphicsState && doc.restoreGraphicsState();
+  }
+
+  // jsPDF's lines() is awkward for this; use moveTo/lineTo style instead:
+  function fillBandDirect(upper, lower, r, g, b){
+    doc.setFillColor(r, g, b);
+    doc.setDrawColor(r, g, b);
+    const pts = [];
+    for(let i = 0; i <= numYrs; i++) pts.push([mx(i), my(upper[i])]);
+    for(let i = numYrs; i >= 0; i--) pts.push([mx(i), my(lower[i])]);
+    // Build lines array for jsPDF: [[dx,dy], ...]
+    const moves = [];
+    for(let i = 1; i < pts.length; i++){
+      moves.push([pts[i][0]-pts[i-1][0], pts[i][1]-pts[i-1][1]]);
+    }
+    doc.setLineWidth(0);
+    doc.lines(moves, pts[0][0], pts[0][1], [1,1], "F", true);
+  }
+
+  // Outer band: p10–p90 (light blue)
+  fillBandDirect(p90, p10, 193, 220, 245);
+  // Inner band: p25–p75 (medium blue)
+  fillBandDirect(p75, p25, 91, 155, 213);
+
+  // Median line
+  doc.setDrawColor(...ac); doc.setLineWidth(0.6);
+  for(let i = 1; i <= numYrs; i++){
+    doc.line(mx(i-1), my(p50[i-1]), mx(i), my(p50[i]));
+  }
+
+  // Legend
+  y = chartY + chartH + 8;
+  const legendItems = [
+    {label:"10th–90th percentile", r:193, g:220, b:245},
+    {label:"25th–75th percentile", r:91,  g:155, b:213},
+  ];
+  let lx = chartX;
+  legendItems.forEach(({label,r,g,b})=>{
+    doc.setFillColor(r,g,b); doc.rect(lx,y-2.5,7,3,"F");
+    doc.setFont("helvetica","normal"); doc.setFontSize(6.5); doc.setTextColor(80);
+    doc.text(label, lx+8.5, y);
+    lx += 55;
+  });
+  doc.setDrawColor(...ac); doc.setLineWidth(0.6);
+  doc.line(lx, y-1, lx+7, y-1);
+  doc.setFontSize(6.5); doc.setTextColor(80);
+  doc.text("Median (50th)", lx+8.5, y);
+  y += 6;
+  doc.setTextColor(40); doc.setFont("helvetica","normal"); doc.setFontSize(fsz);
+}
+
     function para(txt,color=[80,80,80]){
       checkY(8);
       doc.setFontSize(8); doc.setTextColor(...color); doc.setFont(undefined,"normal");
@@ -15976,6 +16097,9 @@ async function generatePDFReport(){
             ["Volatility (σ)",(params.sig*100).toFixed(1)+"% / yr"],
             ["Inflation assumption",num("inf",3.8).toFixed(1)+"% / yr"],
           ]);
+
+          drawFanChart();
+
           checkY(40);
           tbl(["Percentile","Nominal wealth","Real (inflation-adj.)","vs Median"],
             [10,25,50,75,90].map(p=>{
