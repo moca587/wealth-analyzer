@@ -3046,6 +3046,12 @@ input[type=date]{color-scheme:light}
           <option value="letter">US Letter (8.5 × 11 in)</option>
         </select>
       </div>
+      <div class="frow"><label class="flbl">Orientation</label>
+        <select id="rptOrient" class="w180">
+          <option value="landscape" selected>Landscape (wide)</option>
+          <option value="portrait">Portrait (tall)</option>
+        </select>
+      </div>
       <div class="frow"><label class="flbl">Accent colour</label>
         <select id="rptTheme" class="w180">
           <option value="blue" selected>Midnight blue</option>
@@ -15264,7 +15270,8 @@ async function generatePDFReport(){
       return fmtMoneyFull(n);
     }
 
-    const doc=new jsPDF({orientation:"portrait",unit:"mm",format:pageSize});
+    const orient=(val("rptOrient")||"landscape")==="portrait"?"portrait":"landscape";
+    const doc=new jsPDF({orientation:orient,unit:"mm",format:pageSize});
     const pw=doc.internal.pageSize.getWidth();
     const ph=doc.internal.pageSize.getHeight();
     const M=18;                        // margin
