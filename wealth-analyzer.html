@@ -407,6 +407,11 @@ input[type=date]{color-scheme:light}
 .pv-precious{background:rgba(212,165,55,.15);color:#8a6914;border:1px solid rgba(212,165,55,.35)}
 .pv-sma{background:rgba(139,109,206,.12);color:#5b4791;border:1px solid rgba(139,109,206,.3)}
 .pv-futures{background:rgba(232,99,168,.12);color:#9c2868;border:1px solid rgba(232,99,168,.3)}
+.pv-private_equity{background:rgba(49,46,129,.12);color:#312e81;border:1px solid rgba(49,46,129,.3)}
+.pv-hedge_fund{background:rgba(14,116,144,.12);color:#0e7490;border:1px solid rgba(14,116,144,.3)}
+.pv-structured{background:rgba(139,109,206,.12);color:#5b4791;border:1px solid rgba(139,109,206,.3)}
+/* Proposal alternatives add line: Type · Subcategory · Name · Weight · Exp Return · ER · Yield · Rationale · button (no ticker, no class) */
+.pr-add-alt{grid-template-columns:120px 180px 1.3fr 100px 100px 90px 110px 1.4fr auto;margin-top:8px}
 .alloc-status{padding:8px 14px;border-radius:var(--rs);font-size:12px;font-weight:500;display:inline-block;margin-left:10px}
 .alloc-ok{background:rgba(76,175,125,.12);color:#1b6841;border:1px solid rgba(76,175,125,.3)}
 .alloc-warn{background:rgba(212,149,106,.12);color:#8a5a2b;border:1px solid rgba(212,149,106,.3)}
@@ -2429,9 +2434,6 @@ input[type=date]{color-scheme:light}
           <option value="stock">Stock</option>
           <option value="bond">Bond</option>
           <option value="alternative">Alternative</option>
-          <option value="structured">Structured product</option>
-          <option value="hedge_fund">Hedge fund</option>
-          <option value="private_equity">Private equity fund</option>
           <option value="precious">Precious metals</option>
           <option value="sma">SMA</option>
           <option value="futures">Futures</option>
@@ -2464,6 +2466,30 @@ input[type=date]{color-scheme:light}
       <div class="fld"><label>Yield %</label><input type="number" id="prYldIn" placeholder="0" min="0" max="50" step="0.01"></div>
       <div class="fld"><label>Rationale</label><input id="prNote" placeholder="optional note"></div>
       <button class="btn-secondary" onclick="addProposal()">Add</button>
+    </div>
+
+    <!-- Alternatives add line — private equity / hedge fund / structured (no ticker; class set from type, subcategory selectable) -->
+    <div class="slbl" style="margin-top:16px">Add alternative position <span style="color:var(--text3);font-weight:400">— private equity, hedge funds &amp; structured products (no ticker)</span></div>
+    <div class="pr-add pr-add-alt">
+      <div class="fld"><label>Type</label>
+        <select id="prAltType" onchange="updateProposalAltSubcats()">
+          <option value="private_equity">Private equity fund</option>
+          <option value="hedge_fund">Hedge fund</option>
+          <option value="structured">Structured product</option>
+        </select>
+      </div>
+      <div class="fld"><label>Subcategory</label>
+        <select id="prAltSubcat"></select>
+      </div>
+      <div class="fld"><label>Name</label><input id="prAltName" placeholder="fund / product name"></div>
+      <div class="fld"><label>Weight %</label><input type="number" id="prAltAlloc" placeholder="0" min="0" max="100" step="0.1"></div>
+      <div class="fld"><label>10yr Exp Return %</label><input type="number" id="prAltExp" placeholder="0" step="0.1"></div>
+      <div class="fld"><label>Expense Ratio %</label><input type="number" id="prAltEr" placeholder="0" min="0" max="10" step="0.01"></div>
+      <div class="fld"><label>Yield %</label><input type="number" id="prAltYld" placeholder="0" min="0" max="50" step="0.01"></div>
+      <div class="fld"><label>Rationale</label><input id="prAltNote" placeholder="optional note"></div>
+      <div style="display:flex;gap:6px;margin-top:2px">
+        <button id="prAltAddBtn" class="btn-secondary" style="flex:1" onclick="addAltProposal()">Add alternative</button>
+      </div>
     </div>
     <div id="prTkrHint" style="font-size:11px;color:var(--text3);margin-top:6px;min-height:14px"></div>
     <!-- API key inputs hidden — manage in admin → API Keys tab. Status span retained for any code that references it. -->
@@ -9998,6 +10024,27 @@ function syncProposalClient(){
   }
   setT("prHHSnap",snap);
 }
+// Proposal alternatives line — private equity / hedge fund / structured (no ticker;
+// class set from type, subcategory selectable). Mirrors the Portfolio alt line.
+function updateProposalAltSubcats(selected){
+  const sel=$("prAltSubcat"); if(!sel) return;
+  const opts=ALT_SUBCATS[val("prAltType")]||[];
+  sel.innerHTML=opts.map(o=>`<option value="${o}">${o}</option>`).join("");
+  if(selected && opts.indexOf(selected)>=0) sel.value=selected;
+}
+function addAltProposal(){
+  const vehicle=val("prAltType"), subcat=val("prAltSubcat");
+  const name=val("prAltName").trim();
+  const alloc=parseFloat(val("prAltAlloc"));
+  const exp=parseFloat(val("prAltExp")), er=parseFloat(val("prAltEr")), yld=parseFloat(val("prAltYld"));
+  const note=val("prAltNote").trim();
+  const cls=vehicle; // private_equity / hedge_fund / structured map 1:1 to CMA asset classes
+  if(!name||isNaN(alloc)||alloc<=0){alert("Enter name and allocation %"); return;}
+  proposals.push({id:"pr"+(++propSeq),name,tkr:"",vehicle,cls,subcat,alloc,
+    exp:isNaN(exp)?null:exp,er:isNaN(er)?null:er,yld:isNaN(yld)?null:yld,note,metrics:null});
+  ["prAltName","prAltAlloc","prAltExp","prAltEr","prAltYld","prAltNote"].forEach(id=>{const el=$(id); if(el) el.value="";});
+  renderProposals(); renderProposalMetrics(); renderProposalBars(); drawProposalPie();
+}
 function addProposal(){
   const name=val("prName").trim(); const tkr=val("prTkr").trim();
   const vehicle=val("prVehicle"), cls=val("prClass");
@@ -10048,7 +10095,7 @@ function renderProposals(){
       <span class="pv-tag pv-${p.vehicle}">${PROP_VEHICLE_LABELS[p.vehicle]||p.vehicle}</span>
       <span class="prname">${p.name}</span>
       <span style="color:var(--text3);font-size:11px">${p.tkr||"—"}</span>
-      <span style="color:var(--text2)">${INV_CLASS_LABELS[p.cls]||p.cls}</span>
+      <span style="color:var(--text2)">${INV_CLASS_LABELS[p.cls]||p.cls}${p.subcat?` <span style="color:var(--text3)">· ${p.subcat}</span>`:""}</span>
       <span style="color:var(--text);font-variant-numeric:tabular-nums;font-weight:600">${p.alloc.toFixed(1)}%${target>0?'<br><span style="font-size:10px;color:var(--text3);font-weight:400">'+fmtMoney(dollar)+'</span>':''}</span>
       <span style="color:var(--text2);font-variant-numeric:tabular-nums">${p.exp!=null?p.exp.toFixed(1)+"%":"—"}</span>
       <span style="color:var(--text2);font-variant-numeric:tabular-nums">${p.er!=null?p.er.toFixed(2)+"%":"—"}</span>
@@ -16209,6 +16256,7 @@ document.addEventListener("DOMContentLoaded",function(){
   // Re-apply when the tab regains focus so an admin toggle reflects without a reload.
   try { applyAIBuilderFlag(); } catch(_){}
   try { updateAltSubcats(); } catch(_){}   // populate the alternatives subcategory dropdown
+  try { updateProposalAltSubcats(); } catch(_){}   // same for the proposal alternatives line
   document.addEventListener("visibilitychange", function(){
     if(document.visibilityState === "visible"){ try { applyAIBuilderFlag(); } catch(_){} }
   });
