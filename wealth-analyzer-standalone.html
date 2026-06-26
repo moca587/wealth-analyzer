@@ -856,6 +856,11 @@ input[type=date]{color-scheme:light}
 .pv-precious{background:rgba(212,165,55,.15);color:#8a6914;border:1px solid rgba(212,165,55,.35)}
 .pv-sma{background:rgba(139,109,206,.12);color:#5b4791;border:1px solid rgba(139,109,206,.3)}
 .pv-futures{background:rgba(232,99,168,.12);color:#9c2868;border:1px solid rgba(232,99,168,.3)}
+.pv-private_equity{background:rgba(49,46,129,.12);color:#312e81;border:1px solid rgba(49,46,129,.3)}
+.pv-hedge_fund{background:rgba(14,116,144,.12);color:#0e7490;border:1px solid rgba(14,116,144,.3)}
+.pv-structured{background:rgba(139,109,206,.12);color:#5b4791;border:1px solid rgba(139,109,206,.3)}
+/* Proposal alternatives add line: Type · Subcategory · Name · Weight · Exp Return · ER · Yield · Rationale · button (no ticker, no class) */
+.pr-add-alt{grid-template-columns:120px 180px 1.3fr 100px 100px 90px 110px 1.4fr auto;margin-top:8px}
 .alloc-status{padding:8px 14px;border-radius:var(--rs);font-size:12px;font-weight:500;display:inline-block;margin-left:10px}
 .alloc-ok{background:rgba(76,175,125,.12);color:#1b6841;border:1px solid rgba(76,175,125,.3)}
 .alloc-warn{background:rgba(212,149,106,.12);color:#8a5a2b;border:1px solid rgba(212,149,106,.3)}
@@ -2312,6 +2317,25 @@ input[type=date]{color-scheme:light}
   </div>
 </div>
 
+<!-- Retirement Drawdown — decumulation Monte Carlo (will the money last?) -->
+<div class="panel">
+  <div class="ptitle">Retirement Drawdown — will your money last?</div>
+  <div style="font-size:12px;color:var(--text3);line-height:1.6;margin-bottom:10px">A decumulation simulation: from your retirement age, each year withdraws your retirement spending (net of pensions &amp; Social Security), the portfolio earns a random return, and we count how often it lasts to your planning age — capturing <strong style="color:var(--text2)">sequence-of-returns risk</strong> (a poor market early in retirement does lasting damage). The whole investable pool is exposed to market risk here.</div>
+  <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-bottom:12px">
+    <label class="flbl" style="min-width:0">Plan through age</label>
+    <input type="number" id="rdPlanAge" value="90" min="70" max="110" step="1" class="w120">
+    <button class="btn-primary" onclick="runRetirementDrawdown()">▶ Run drawdown analysis</button>
+    <span id="rdStatus" style="font-size:12px;color:var(--text3)"></span>
+  </div>
+  <div id="rdResults"><div class="pf-empty">Set your retirement age, spending, and pensions above, then run the drawdown analysis.</div></div>
+  <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-top:14px;padding-top:12px;border-top:1px solid var(--border)">
+    <label class="flbl" style="min-width:0">How much can I safely spend? Target confidence %</label>
+    <input type="number" id="rdTarget" value="85" min="50" max="99" step="5" class="w120">
+    <button class="btn-secondary" onclick="solveSustainableSpend()">Find sustainable spending</button>
+  </div>
+  <div id="rdSustain"></div>
+</div>
+
 <div class="panel" id="goalResults" style="display:none">
   <div class="ptitle">Goal Analysis</div>
   <div id="goalResultList"></div>
@@ -2878,9 +2902,6 @@ input[type=date]{color-scheme:light}
           <option value="stock">Stock</option>
           <option value="bond">Bond</option>
           <option value="alternative">Alternative</option>
-          <option value="structured">Structured product</option>
-          <option value="hedge_fund">Hedge fund</option>
-          <option value="private_equity">Private equity fund</option>
           <option value="precious">Precious metals</option>
           <option value="sma">SMA</option>
           <option value="futures">Futures</option>
@@ -2913,6 +2934,30 @@ input[type=date]{color-scheme:light}
       <div class="fld"><label>Yield %</label><input type="number" id="prYldIn" placeholder="0" min="0" max="50" step="0.01"></div>
       <div class="fld"><label>Rationale</label><input id="prNote" placeholder="optional note"></div>
       <button class="btn-secondary" onclick="addProposal()">Add</button>
+    </div>
+
+    <!-- Alternatives add line — private equity / hedge fund / structured (no ticker; class set from type, subcategory selectable) -->
+    <div class="slbl" style="margin-top:16px">Add alternative position <span style="color:var(--text3);font-weight:400">— private equity, hedge funds &amp; structured products (no ticker)</span></div>
+    <div class="pr-add pr-add-alt">
+      <div class="fld"><label>Type</label>
+        <select id="prAltType" onchange="updateProposalAltSubcats()">
+          <option value="private_equity">Private equity fund</option>
+          <option value="hedge_fund">Hedge fund</option>
+          <option value="structured">Structured product</option>
+        </select>
+      </div>
+      <div class="fld"><label>Subcategory</label>
+        <select id="prAltSubcat"></select>
+      </div>
+      <div class="fld"><label>Name</label><input id="prAltName" placeholder="fund / product name"></div>
+      <div class="fld"><label>Weight %</label><input type="number" id="prAltAlloc" placeholder="0" min="0" max="100" step="0.1"></div>
+      <div class="fld"><label>10yr Exp Return %</label><input type="number" id="prAltExp" placeholder="0" step="0.1"></div>
+      <div class="fld"><label>Expense Ratio %</label><input type="number" id="prAltEr" placeholder="0" min="0" max="10" step="0.01"></div>
+      <div class="fld"><label>Yield %</label><input type="number" id="prAltYld" placeholder="0" min="0" max="50" step="0.01"></div>
+      <div class="fld"><label>Rationale</label><input id="prAltNote" placeholder="optional note"></div>
+      <div style="display:flex;gap:6px;margin-top:2px">
+        <button id="prAltAddBtn" class="btn-secondary" style="flex:1" onclick="addAltProposal()">Add alternative</button>
+      </div>
     </div>
     <div id="prTkrHint" style="font-size:11px;color:var(--text3);margin-top:6px;min-height:14px"></div>
     <!-- API key inputs hidden — manage in admin → API Keys tab. Status span retained for any code that references it. -->
@@ -3509,7 +3554,7 @@ input[type=date]{color-scheme:light}
 // ═══════════════════════════════════════════════════════════
 // VERSION — updated by build-standalone.pl on each build
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260622-2311";
+const APP_VERSION = "20260626-1450";
 
 // ═══════════════════════════════════════════════════════════
 // DATA
@@ -10447,6 +10492,27 @@ function syncProposalClient(){
   }
   setT("prHHSnap",snap);
 }
+// Proposal alternatives line — private equity / hedge fund / structured (no ticker;
+// class set from type, subcategory selectable). Mirrors the Portfolio alt line.
+function updateProposalAltSubcats(selected){
+  const sel=$("prAltSubcat"); if(!sel) return;
+  const opts=ALT_SUBCATS[val("prAltType")]||[];
+  sel.innerHTML=opts.map(o=>`<option value="${o}">${o}</option>`).join("");
+  if(selected && opts.indexOf(selected)>=0) sel.value=selected;
+}
+function addAltProposal(){
+  const vehicle=val("prAltType"), subcat=val("prAltSubcat");
+  const name=val("prAltName").trim();
+  const alloc=parseFloat(val("prAltAlloc"));
+  const exp=parseFloat(val("prAltExp")), er=parseFloat(val("prAltEr")), yld=parseFloat(val("prAltYld"));
+  const note=val("prAltNote").trim();
+  const cls=vehicle; // private_equity / hedge_fund / structured map 1:1 to CMA asset classes
+  if(!name||isNaN(alloc)||alloc<=0){alert("Enter name and allocation %"); return;}
+  proposals.push({id:"pr"+(++propSeq),name,tkr:"",vehicle,cls,subcat,alloc,
+    exp:isNaN(exp)?null:exp,er:isNaN(er)?null:er,yld:isNaN(yld)?null:yld,note,metrics:null});
+  ["prAltName","prAltAlloc","prAltExp","prAltEr","prAltYld","prAltNote"].forEach(id=>{const el=$(id); if(el) el.value="";});
+  renderProposals(); renderProposalMetrics(); renderProposalBars(); drawProposalPie();
+}
 function addProposal(){
   const name=val("prName").trim(); const tkr=val("prTkr").trim();
   const vehicle=val("prVehicle"), cls=val("prClass");
@@ -10497,7 +10563,7 @@ function renderProposals(){
       <span class="pv-tag pv-${p.vehicle}">${PROP_VEHICLE_LABELS[p.vehicle]||p.vehicle}</span>
       <span class="prname">${p.name}</span>
       <span style="color:var(--text3);font-size:11px">${p.tkr||"—"}</span>
-      <span style="color:var(--text2)">${INV_CLASS_LABELS[p.cls]||p.cls}</span>
+      <span style="color:var(--text2)">${INV_CLASS_LABELS[p.cls]||p.cls}${p.subcat?` <span style="color:var(--text3)">· ${p.subcat}</span>`:""}</span>
       <span style="color:var(--text);font-variant-numeric:tabular-nums;font-weight:600">${p.alloc.toFixed(1)}%${target>0?'<br><span style="font-size:10px;color:var(--text3);font-weight:400">'+fmtMoney(dollar)+'</span>':''}</span>
       <span style="color:var(--text2);font-variant-numeric:tabular-nums">${p.exp!=null?p.exp.toFixed(1)+"%":"—"}</span>
       <span style="color:var(--text2);font-variant-numeric:tabular-nums">${p.er!=null?p.er.toFixed(2)+"%":"—"}</span>
@@ -12222,6 +12288,169 @@ function runMC(years,sims,muOverride,sigOverride){
   }
   return paths;
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// RETIREMENT DRAWDOWN — decumulation Monte Carlo (will the money last?)
+// Self-contained: accumulates to retirement, then withdraws spending net of
+// pensions each year with the WHOLE investable pool exposed to market risk, so
+// sequence-of-returns risk is captured. Reports a plan-success probability and
+// how long funds last in poor markets. Does not touch the main runMC engine.
+// ═══════════════════════════════════════════════════════════════════════════
+function _drawdownSeed(){
+  const retSeed=retirementAccountSeed();
+  const totalAcc=totalAccountValue();
+  const pfCash=portfolioCashSeed(), pfInvested=portfolioInvestedSeed();
+  const liquidAcc=Math.max(0, totalAcc-retSeed);
+  const pfTotal=pfInvested+pfCash;
+  let investSeed, cashSeed;
+  if(investments.length>0 && !pfLinkedAccountId){
+    const extraAcc=Math.max(0,liquidAcc-pfTotal);
+    investSeed=pfInvested; cashSeed=pfCash+extraAcc;
+  } else {
+    const totalSeed=liquidAcc+pfInvested;
+    investSeed=Math.max(pfInvested, totalSeed*0.3);
+    cashSeed=Math.max(0, totalSeed-investSeed)+pfCash;
+  }
+  return Math.max(0, investSeed+cashSeed+retSeed);
+}
+function runRetirementDrawdown(){
+  const st=$("rdStatus");
+  const c1Age=ageFromDOB(val("c1d"))||40;
+  const retAge=Math.max(c1Age, num("retAge",65));
+  const planAge=Math.max(retAge+1, num("rdPlanAge",90));
+  const sims=Math.min(2000, Math.max(300, parseInt(val("simN")||"1000",10)));
+  const inf=num("inf",3.8)/100, sav=num("savAnnual",0), retSpend=num("retSpend",60000);
+  const P=getActiveSimulationParams(); const mu=P.mu, sig=P.sig;
+  const penSrc=val("penSrc")||"auto", penAnn=num("penAnnual",0), penStart=num("penStartAge",67), penCola=val("penCola")||"full";
+  const showC2=$("c2card")&&$("c2card").style.display!=="none";
+  const penSrc2=showC2?(val("penSrc2")||"auto"):"none", penAnn2=penSrc2==="none"?0:num("penAnnual2",0), penStart2=num("penStartAge2",67), penCola2=val("penCola2")||"full";
+  const c2Age=ageFromDOB(val("c2d"))||c1Age;
+  const seed=_drawdownSeed();
+  const yrs=planAge-c1Age, retIdx=Math.max(0,retAge-c1Age);
+  if(st){ st.textContent="Running "+sims+" paths…"; st.style.color="var(--text3)"; }
+  const bands=Array.from({length:yrs+1},()=>[]);
+  const lastAges=[]; let successes=0;
+  for(let s=0;s<sims;s++){
+    let port=seed, depAge=null;
+    for(let y=0;y<=yrs;y++){
+      const age=c1Age+y, c2AgeY=c2Age+y, retired=age>=retAge;
+      if(!retired){ port+=sav; }
+      else {
+        const pen=calcPension(penSrc,penAnn,penStart,penCola,age,inf)+(showC2?calcPension(penSrc2,penAnn2,penStart2,penCola2,c2AgeY,inf):0);
+        const wd=Math.max(0, retSpend*Math.pow(1+inf,y)-pen);
+        port-=wd;
+        if(port<=0 && depAge===null){ depAge=age; port=0; }
+      }
+      if(port>0){ const r=(mu-0.5*sig*sig)+sig*boxMuller(); port=port*Math.exp(r); if(port<0)port=0; }
+      bands[y].push(port/Math.pow(1+inf,y));   // store in today's money for the chart
+    }
+    lastAges.push(depAge===null?planAge:depAge);
+    if(depAge===null) successes++;
+  }
+  const pctl=(arr,p)=>{ const a=arr.slice().sort((x,y)=>x-y); return a.length?a[Math.max(0,Math.min(a.length-1,Math.round(p/100*(a.length-1))))]:0; };
+  const pen0=calcPension(penSrc,penAnn,penStart,penCola,retAge,inf)+(showC2?calcPension(penSrc2,penAnn2,penStart2,penCola2,(c2Age+retIdx),inf):0);
+  const need0=retSpend*Math.pow(1+inf,retIdx);
+  renderRetirementDrawdown({
+    successPct:successes/sims*100, sims, retAge, planAge,
+    lastAge10:pctl(lastAges,10), lastAge25:pctl(lastAges,25), lastAge50:pctl(lastAges,50),
+    need0, pen0, wd0:Math.max(0,need0-pen0), seed,
+    band:bands.map((c,y)=>({age:c1Age+y, p10:pctl(c,10), p50:pctl(c,50), p90:pctl(c,90)})).filter(b=>b.age>=retAge)
+  });
+  if(st){ st.textContent="✓ "+sims+" paths"; st.style.color="var(--green)"; }
+}
+function renderRetirementDrawdown(s){
+  const host=$("rdResults"); if(!host) return;
+  const col=s.successPct>=85?"#1b6841":s.successPct>=70?"#8a5a2b":"#a83232";
+  const lab=s.successPct>=85?"Strong":s.successPct>=70?"Borderline":"At risk";
+  const b=s.band; let svg="";
+  if(b.length>1){
+    const W=620,H=170,padL=8,padR=8,padT=10,padB=18;
+    const maxV=Math.max(1, ...b.map(x=>x.p90));
+    const X=i=>padL+(i/(b.length-1))*(W-padL-padR);
+    const Y=v=>padT+(1-v/maxV)*(H-padT-padB);
+    const top=b.map((x,i)=>X(i).toFixed(1)+","+Y(x.p90).toFixed(1)).join(" ");
+    const bot=b.map((x,i)=>({i:b.length-1-i})).map(o=>X(o.i).toFixed(1)+","+Y(b[o.i].p10).toFixed(1)).join(" ");
+    const mid=b.map((x,i)=>X(i).toFixed(1)+","+Y(x.p50).toFixed(1)).join(" ");
+    svg=`<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;background:var(--bg3);border:1px solid var(--border);border-radius:var(--rs)" role="img" aria-label="Retirement portfolio value through drawdown">
+      <polygon points="${top} ${bot}" fill="rgba(0,87,184,.14)" stroke="none"/>
+      <polyline points="${mid}" fill="none" stroke="#c9a96e" stroke-width="2"/>
+      <text x="${padL}" y="${H-5}" font-size="9" style="fill:#9aa3b2">age ${b[0].age}</text>
+      <text x="${W-padR}" y="${H-5}" font-size="9" text-anchor="end" style="fill:#9aa3b2">age ${b[b.length-1].age}</text>
+    </svg>`;
+  }
+  const ageOrPlus=(a)=>a>=s.planAge?(s.planAge+"+"):("age "+a);
+  host.innerHTML=`
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:12px">
+      <div class="pf-mc"><div class="pf-mc-lbl">Plan success</div><div class="pf-mc-val" style="color:${col}">${s.successPct.toFixed(0)}% <span style="font-size:12px;font-weight:600">${lab}</span></div></div>
+      <div class="pf-mc"><div class="pf-mc-lbl">Funds last to (median)</div><div class="pf-mc-val">${s.lastAge50>=s.planAge?(s.planAge+"+"):("age "+s.lastAge50)}</div></div>
+      <div class="pf-mc"><div class="pf-mc-lbl">Poor markets (10th pct)</div><div class="pf-mc-val">${ageOrPlus(s.lastAge10)}</div></div>
+    </div>
+    <div style="font-size:12px;color:var(--text2);line-height:1.7;margin-bottom:10px">
+      In <strong>${s.successPct.toFixed(0)}%</strong> of ${s.sims.toLocaleString()} simulated markets, your portfolio funds retirement spending from age ${s.retAge} through age ${s.planAge}.
+      ${s.successPct<99?`In the unluckiest 10% of outcomes — a poor market early in retirement (<em>sequence-of-returns risk</em>) — funds last to about <strong>${ageOrPlus(s.lastAge10)}</strong>.`:`The plan holds up even in poor markets.`}
+    </div>
+    <div style="font-size:11px;color:var(--text3);margin-bottom:6px">Portfolio value through retirement (today's money) — median line, 10th–90th percentile band:</div>
+    ${svg}
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:12px">
+      <div class="pf-mc"><div class="pf-mc-lbl">First-year spending</div><div class="pf-mc-val" style="font-size:15px">${fmtMoney(s.need0)}</div></div>
+      <div class="pf-mc"><div class="pf-mc-lbl">Pensions / Social Security</div><div class="pf-mc-val" style="font-size:15px;color:#1b6841">${fmtMoney(s.pen0)}</div></div>
+      <div class="pf-mc"><div class="pf-mc-lbl">From portfolio</div><div class="pf-mc-val" style="font-size:15px">${fmtMoney(s.wd0)}</div></div>
+    </div>
+    <div style="font-size:10px;color:var(--text3);margin-top:10px;line-height:1.5">Decumulation model: the whole investable pool (${fmtMoney(s.seed)} today) is exposed to market risk and drawn down for spending net of pensions. Nominal returns; portfolio values shown in today's money. Educational projection — not advice.</div>`;
+}
+window.runRetirementDrawdown=runRetirementDrawdown;
+
+// Sustainable-spending solver — back-calculates the max annual retirement spend
+// that meets a target plan-success confidence. Binary search over spend, reusing
+// the same decumulation model as runRetirementDrawdown.
+function solveSustainableSpend(){
+  const st=$("rdStatus");
+  const c1Age=ageFromDOB(val("c1d"))||40;
+  const retAge=Math.max(c1Age, num("retAge",65));
+  const planAge=Math.max(retAge+1, num("rdPlanAge",90));
+  const inf=num("inf",3.8)/100, sav=num("savAnnual",0);
+  const P=getActiveSimulationParams(); const mu=P.mu, sig=P.sig;
+  const penSrc=val("penSrc")||"auto", penAnn=num("penAnnual",0), penStart=num("penStartAge",67), penCola=val("penCola")||"full";
+  const showC2=$("c2card")&&$("c2card").style.display!=="none";
+  const penSrc2=showC2?(val("penSrc2")||"auto"):"none", penAnn2=penSrc2==="none"?0:num("penAnnual2",0), penStart2=num("penStartAge2",67), penCola2=val("penCola2")||"full";
+  const c2Age=ageFromDOB(val("c2d"))||c1Age;
+  const seed=_drawdownSeed();
+  const yrs=planAge-c1Age;
+  const target=Math.max(50,Math.min(99,num("rdTarget",85)));
+  if(st){ st.textContent="Solving sustainable spending…"; st.style.color="var(--text3)"; }
+  function success(spend,sims){
+    let ok=0;
+    for(let s=0;s<sims;s++){
+      let port=seed, dead=false;
+      for(let y=0;y<=yrs;y++){
+        const age=c1Age+y, retired=age>=retAge;
+        if(!retired){ port+=sav; }
+        else {
+          const pen=calcPension(penSrc,penAnn,penStart,penCola,age,inf)+(showC2?calcPension(penSrc2,penAnn2,penStart2,penCola2,c2Age+y,inf):0);
+          port-=Math.max(0, spend*Math.pow(1+inf,y)-pen);
+          if(port<=0){ dead=true; break; }
+        }
+        if(port>0){ const r=(mu-0.5*sig*sig)+sig*boxMuller(); port=port*Math.exp(r); if(port<0)port=0; }
+      }
+      if(!dead) ok++;
+    }
+    return ok/sims*100;
+  }
+  let lo=0, hi=Math.max(seed*0.2, num("retSpend",60000)*4, 80000);
+  for(let g=0; g<7 && success(hi,300)>=target; g++){ hi*=1.6; }   // expand until hi is infeasible
+  for(let it=0; it<16; it++){ const mid=(lo+hi)/2; if(success(mid,500)>=target) lo=mid; else hi=mid; }
+  renderSustainable({sustain:lo, target, cur:num("retSpend",60000)});
+  if(st){ st.textContent="✓ solved"; st.style.color="var(--green)"; }
+}
+function renderSustainable(s){
+  const host=$("rdSustain"); if(!host) return;
+  const delta=s.sustain-s.cur, dc=delta>=0?"#1b6841":"#a83232";
+  host.innerHTML=`<div style="margin-top:12px;padding:12px 14px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--rs)">
+    <div style="font-size:13px;color:var(--text);line-height:1.7">At <strong>${s.target.toFixed(0)}%</strong> confidence, your portfolio can sustain about <strong style="color:var(--gold);font-size:16px">${fmtMoney(s.sustain)}/yr</strong> of retirement spending (today's money, net of pensions/Social Security).</div>
+    <div style="font-size:12px;color:var(--text2);margin-top:4px">Your planned spending is ${fmtMoney(s.cur)}/yr — <span style="color:${dc};font-weight:600">${delta>=0?"+":""}${fmtMoney(delta)}/yr ${delta>=0?"of headroom":"above the sustainable level"}</span>.</div>
+  </div>`;
+}
+window.solveSustainableSpend=solveSustainableSpend;
 function percentileAt(paths,yearIdx,p){
   const arr=paths.map(pp=>pp[yearIdx]).sort((a,b)=>a-b);
   const i=Math.max(0,Math.min(arr.length-1,Math.floor(p/100*arr.length)));
@@ -16658,6 +16887,7 @@ document.addEventListener("DOMContentLoaded",function(){
   // Re-apply when the tab regains focus so an admin toggle reflects without a reload.
   try { applyAIBuilderFlag(); } catch(_){}
   try { updateAltSubcats(); } catch(_){}   // populate the alternatives subcategory dropdown
+  try { updateProposalAltSubcats(); } catch(_){}   // same for the proposal alternatives line
   document.addEventListener("visibilitychange", function(){
     if(document.visibilityState === "visible"){ try { applyAIBuilderFlag(); } catch(_){} }
   });
