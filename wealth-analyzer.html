@@ -15733,18 +15733,38 @@ function drawFanChart(){
         doc.addImage(logoData, fmtSig, cx, cy, w, h, undefined, "NONE");
       } catch(e){ console.warn("logo render failed:", e); }
     }
-    // Brand line (firm, small caps) top-left + optional logo
+    // ── Original PWI emblem (vector growth-monogram) — drawn on the cover when
+    //    no custom logo is uploaded. Entirely original; no third-party marks. ──
+    const drawPwiEmblem=(rightX, topY, size)=>{
+      const x=rightX-size, y=topY, r=size*0.16;
+      doc.setFillColor(...ac); doc.roundedRect(x,y,size,size,r,r,"F");
+      const padX=size*0.18, padB=size*0.20, baseY=y+size-padB, usable=size-padX*2, n=4, gap=usable/n, bw=gap*0.52;
+      const hs=[0.32,0.50,0.68,0.88];
+      for(let i=0;i<n;i++){ const bx=x+padX+gap*i+(gap-bw)/2, bh=(size-padB-y-size*0.16)*hs[i];
+        doc.setFillColor(255,255,255);
+        try{ doc.setGState(new doc.GState({opacity:0.30+0.18*i})); }catch(_){}
+        doc.rect(bx,baseY-bh,bw,bh,"F"); }
+      try{ doc.setGState(new doc.GState({opacity:1})); }catch(_){}
+      doc.setDrawColor(255,255,255); doc.setLineWidth(size*0.045); doc.setLineCap("round");
+      const x1=x+size-padX, y1=y+size*0.30; doc.line(x+padX, baseY-size*0.10, x1, y1);
+      doc.setFillColor(255,255,255); const ah=size*0.13;
+      doc.triangle(x1,y1, x1-ah,y1+ah*0.35, x1-ah*0.35,y1+ah, "F");
+      doc.setLineCap("butt");
+    };
+    // Brand line (firm, small caps) top-left + logo / default emblem top-right
     doc.setFont("times","normal"); doc.setFontSize(10.5); doc.setTextColor(...ac);
     doc.text((rFirm||"Private Wealth Intelligence").toUpperCase(), M, 22);
     if(logoData && logoPos === "cover_top"){
       _addLogoImage(pw/2 - 20, 11, 40, 12);
     } else if(logoData && (logoPos === "cover_corner" || logoPos === "header_last")){
       _addLogoImage(pw - M - 18, 13, 16, 8);   // small top-right corner mark
+    } else if(!logoData){
+      drawPwiEmblem(pw - M, 12, 24);           // default original brand mark
     }
     // Thin rule under the brand
     doc.setDrawColor(...ac); doc.setLineWidth(0.4); doc.line(M,26,pw-M,26);
-    // Large serif title (dark ink on white)
-    doc.setFont("times","bold"); doc.setFontSize(26); doc.setTextColor(28,40,60);
+    // Large serif title in brand blue
+    doc.setFont("times","bold"); doc.setFontSize(26); doc.setTextColor(...ac);
     const wrappedTitle=doc.splitTextToSize(rTitle,CW);
     let _ty=44;
     wrappedTitle.forEach((line)=>{ doc.text(line,M,_ty); _ty+=11.5; });
