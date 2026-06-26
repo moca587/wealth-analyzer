@@ -901,7 +901,7 @@ input[type=date]{color-scheme:light}
 
       <div class="frow">
         <label class="flbl">Stress scenario</label>
-        <select id="stressScenario" class="w200">
+        <select id="stressScenario" class="w200" onchange="runSim()">
           <option value="base" selected>Base case</option>
           <option value="high_inflation">High inflation</option>
           <option value="market_crash">Market crash</option>
@@ -1940,6 +1940,10 @@ input[type=date]{color-scheme:light}
     <button class="btn-primary full" onclick="runSim()">▶ Run Monte Carlo Simulation</button>
 </div>
 
+<div style="margin:10px 0 14px;text-align:center;font-size:12px;color:var(--text3);">
+  Monte Carlo settings are available in the <strong>Settings</strong> panel.
+</div>
+
 <div class="panel">
   <div class="ptitle section-dropdown open" onclick="toggleDropdown('mcChartBody')" style="margin:0">
     What could your wealth look like? <span class="dropdown-hint">click to toggle</span>
@@ -2000,7 +2004,7 @@ input[type=date]{color-scheme:light}
   >
     <div>
       <div style="font-weight:700;margin-bottom:8px">
-        ⚠️ Downside Path Analysis
+        Downside Path Analysis
       </div>
 
       <div id="downsideAnalysis">
@@ -2010,7 +2014,7 @@ input[type=date]{color-scheme:light}
 
     <div>
       <div style="font-weight:700;margin-bottom:8px">
-        🚀 Upside Path Analysis
+        Upside Path Analysis
       </div>
 
       <div id="upsideAnalysis">
@@ -10644,10 +10648,20 @@ async function finnhubProfile(symbol,isEtf,key){
 }
 
 // Map Yahoo quoteType → our vehicle string
+// function mapQuoteTypeToVehicle(quoteType){
+//   const map={ETF:'etf',MUTUALFUND:'mutual_fund',EQUITY:'stock',FUTURE:'futures',OPTION:'alternative',CRYPTOCURRENCY:'alternative',INDEX:'alternative'};
+//   return map[(quoteType||'').toUpperCase()]||'alternative';
+// }
 function mapQuoteTypeToVehicle(quoteType){
+  const q=(quoteType||'').toUpperCase();
   const map={ETF:'etf',MUTUALFUND:'mutual_fund',EQUITY:'stock',FUTURE:'futures',OPTION:'alternative',CRYPTOCURRENCY:'alternative',INDEX:'alternative'};
-  return map[(quoteType||'').toUpperCase()]||'alternative';
+  if(map[q]) return map[q];
+  if(q.includes('EQUITY')||q.includes('STOCK')||q.includes('COMMON')||q.includes('SHARE')) return 'stock';
+  if(q.includes('ETF')||q.includes('ETP')||q.includes('FUND')) return 'etf';
+  if(q.includes('BOND')||q.includes('FIXED')||q.includes('DEBT')) return 'bond';
+  return 'stock';
 }
+
 // Map OpenFIGI securityType/securityType2 → a Yahoo-style quoteType, so an ISIN-resolved
 // instrument still types correctly when Yahoo's own data is thin (e.g. ETP/Mutual Fund).
 function figiToQuoteType(fd){
@@ -10789,8 +10803,13 @@ async function fetchInstrumentLive(prefix){
 
     if(prefix==='pf'){
       const pfTypes=['etf','mutual_fund','stock','bond','structured','alternative'];
-      if(pfTypes.includes(vehicle)) $('pfType').value=vehicle;
-      $('pfClass').value=assetClass;
+
+      // if(pfTypes.includes(vehicle)) $('pfType').value=vehicle;
+      // $('pfClass').value=assetClass;
+      const dbEntry=TICKER_DB[symbol.toUpperCase()];
+      if(pfTypes.includes(vehicle)) $('pfType').value=(dbEntry?.vehicle&&pfTypes.includes(dbEntry.vehicle))?dbEntry.vehicle:vehicle;
+      $('pfClass').value=dbEntry?.cls||assetClass;
+
       $('pfRegion').value=region;
       if(fhDivYield!=null) $('pfYld').value=fhDivYield.toFixed(2);
       if(expenseRatio!=null) $('pfEr').value=expenseRatio.toFixed(3);
@@ -12450,7 +12469,17 @@ function redrawChart(paths){
 
   // Starting wealth = year-0 value. Already in today's dollars — do NOT deflate.
   // Deflation only applies to future end-of-horizon values to convert them to real terms.
-  const startNW=paths[0][0];
+  // const startNW=paths[0][0];
+
+  const startNW =
+  totalAccountValue()
+  + portfolioCashSeed()
+  + portfolioInvestedSeed()
+  + num("aProp", 0)
+  + num("aOther", 0)
+  + insuranceCashValue()
+  - loans.reduce((s, l) => s + (+l.bal || 0), 0);
+
   const endValues=SCENARIOS.map(s=>deflate(percentileAt(paths,yrs,s.pct)));
   const startDeflated=startNW; // year-0 NW is current dollars; no deflation adjustment
 
@@ -12687,7 +12716,7 @@ function renderDownsideAnalysis(paths){
       </div>
 
       <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:12px">
-        <div style="font-size:11px;color:var(--text3);text-transform:uppercase;font-weight:700">Worst downside wealth</div>
+        <div style="font-size:11px;color:var(--text3);text-transform:uppercase;font-weight:700">Lowest simulated wealth</div>
         <div style="font-size:20px;font-weight:800">${fmtMoney(worstEndingWealth)}</div>
       </div>
 
@@ -12732,7 +12761,7 @@ function renderUpsideAnalysis(paths){
       </div>
 
       <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:12px">
-        <div style="font-size:11px;color:var(--text3);text-transform:uppercase;font-weight:700">Best upside wealth</div>
+        <div style="font-size:11px;color:var(--text3);text-transform:uppercase;font-weight:700">Highest simulated wealth</div>
         <div style="font-size:20px;font-weight:800">${fmtMoney(bestEndingWealth)}</div>
       </div>
 
