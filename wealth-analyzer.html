@@ -1879,6 +1879,12 @@ input[type=date]{color-scheme:light}
     <span id="rdStatus" style="font-size:12px;color:var(--text3)"></span>
   </div>
   <div id="rdResults"><div class="pf-empty">Set your retirement age, spending, and pensions above, then run the drawdown analysis.</div></div>
+  <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-top:14px;padding-top:12px;border-top:1px solid var(--border)">
+    <label class="flbl" style="min-width:0">How much can I safely spend? Target confidence %</label>
+    <input type="number" id="rdTarget" value="85" min="50" max="99" step="5" class="w120">
+    <button class="btn-secondary" onclick="solveSustainableSpend()">Find sustainable spending</button>
+  </div>
+  <div id="rdSustain"></div>
 </div>
 
 <div class="panel" id="goalResults" style="display:none">
@@ -11944,6 +11950,58 @@ function renderRetirementDrawdown(s){
     <div style="font-size:10px;color:var(--text3);margin-top:10px;line-height:1.5">Decumulation model: the whole investable pool (${fmtMoney(s.seed)} today) is exposed to market risk and drawn down for spending net of pensions. Nominal returns; portfolio values shown in today's money. Educational projection — not advice.</div>`;
 }
 window.runRetirementDrawdown=runRetirementDrawdown;
+
+// Sustainable-spending solver — back-calculates the max annual retirement spend
+// that meets a target plan-success confidence. Binary search over spend, reusing
+// the same decumulation model as runRetirementDrawdown.
+function solveSustainableSpend(){
+  const st=$("rdStatus");
+  const c1Age=ageFromDOB(val("c1d"))||40;
+  const retAge=Math.max(c1Age, num("retAge",65));
+  const planAge=Math.max(retAge+1, num("rdPlanAge",90));
+  const inf=num("inf",3.8)/100, sav=num("savAnnual",0);
+  const P=getActiveSimulationParams(); const mu=P.mu, sig=P.sig;
+  const penSrc=val("penSrc")||"auto", penAnn=num("penAnnual",0), penStart=num("penStartAge",67), penCola=val("penCola")||"full";
+  const showC2=$("c2card")&&$("c2card").style.display!=="none";
+  const penSrc2=showC2?(val("penSrc2")||"auto"):"none", penAnn2=penSrc2==="none"?0:num("penAnnual2",0), penStart2=num("penStartAge2",67), penCola2=val("penCola2")||"full";
+  const c2Age=ageFromDOB(val("c2d"))||c1Age;
+  const seed=_drawdownSeed();
+  const yrs=planAge-c1Age;
+  const target=Math.max(50,Math.min(99,num("rdTarget",85)));
+  if(st){ st.textContent="Solving sustainable spending…"; st.style.color="var(--text3)"; }
+  function success(spend,sims){
+    let ok=0;
+    for(let s=0;s<sims;s++){
+      let port=seed, dead=false;
+      for(let y=0;y<=yrs;y++){
+        const age=c1Age+y, retired=age>=retAge;
+        if(!retired){ port+=sav; }
+        else {
+          const pen=calcPension(penSrc,penAnn,penStart,penCola,age,inf)+(showC2?calcPension(penSrc2,penAnn2,penStart2,penCola2,c2Age+y,inf):0);
+          port-=Math.max(0, spend*Math.pow(1+inf,y)-pen);
+          if(port<=0){ dead=true; break; }
+        }
+        if(port>0){ const r=(mu-0.5*sig*sig)+sig*boxMuller(); port=port*Math.exp(r); if(port<0)port=0; }
+      }
+      if(!dead) ok++;
+    }
+    return ok/sims*100;
+  }
+  let lo=0, hi=Math.max(seed*0.2, num("retSpend",60000)*4, 80000);
+  for(let g=0; g<7 && success(hi,300)>=target; g++){ hi*=1.6; }   // expand until hi is infeasible
+  for(let it=0; it<16; it++){ const mid=(lo+hi)/2; if(success(mid,500)>=target) lo=mid; else hi=mid; }
+  renderSustainable({sustain:lo, target, cur:num("retSpend",60000)});
+  if(st){ st.textContent="✓ solved"; st.style.color="var(--green)"; }
+}
+function renderSustainable(s){
+  const host=$("rdSustain"); if(!host) return;
+  const delta=s.sustain-s.cur, dc=delta>=0?"#1b6841":"#a83232";
+  host.innerHTML=`<div style="margin-top:12px;padding:12px 14px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--rs)">
+    <div style="font-size:13px;color:var(--text);line-height:1.7">At <strong>${s.target.toFixed(0)}%</strong> confidence, your portfolio can sustain about <strong style="color:var(--gold);font-size:16px">${fmtMoney(s.sustain)}/yr</strong> of retirement spending (today's money, net of pensions/Social Security).</div>
+    <div style="font-size:12px;color:var(--text2);margin-top:4px">Your planned spending is ${fmtMoney(s.cur)}/yr — <span style="color:${dc};font-weight:600">${delta>=0?"+":""}${fmtMoney(delta)}/yr ${delta>=0?"of headroom":"above the sustainable level"}</span>.</div>
+  </div>`;
+}
+window.solveSustainableSpend=solveSustainableSpend;
 function percentileAt(paths,yearIdx,p){
   const arr=paths.map(pp=>pp[yearIdx]).sort((a,b)=>a-b);
   const i=Math.max(0,Math.min(arr.length-1,Math.floor(p/100*arr.length)));
