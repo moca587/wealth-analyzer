@@ -2653,6 +2653,7 @@ input[type=date]{color-scheme:light}
   <div style="font-size:11px;color:var(--text3);line-height:1.6;padding:8px 12px;background:var(--bg3);border-radius:var(--rs);border:1px solid var(--border)">
     <strong style="color:var(--text2)">Score methodology:</strong> 100 = all growth assets in Roth/ISA/TFSA (fully tax-free). Tax-deferred accounts score 70% (gains grow untaxed but withdrawals are taxed as income). Taxable accounts score 0%. Annual drag = taxable balance × portfolio return × 25% assumed marginal rate. Shortfall cost-basis logic: when a cash-flow shortfall occurs, the engine assumes the gap is funded from a taxable account at 100% cost basis, adding a tax cost of shortfall × effective rate.
   </div>
+  <div id="te-order" style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border)"></div>
 </div>
 
 <!-- Mean-Variance Optimization / Efficient Frontier -->
@@ -3686,6 +3687,9 @@ input[type=date]{color-scheme:light}
       <div class="frow"><label class="flbl">Annual potential wealth</label>
         <select id="rptIncPotWealth" class="w180"><option value="yes" selected>Yes (if simulated)</option><option value="no">No</option></select>
       </div>
+      <div class="frow"><label class="flbl">Tax buckets &amp; withdrawal order</label>
+        <select id="rptIncTaxBuckets" class="w180"><option value="yes" selected>Yes (if assets added)</option><option value="no">No</option></select>
+      </div>
       <div class="frow"><label class="flbl">Required minimum withdrawals</label>
         <select id="rptIncRMD" class="w180"><option value="yes" selected>Yes (if country has a rule)</option><option value="no">No</option></select>
       </div>
@@ -3744,7 +3748,7 @@ input[type=date]{color-scheme:light}
 // ═══════════════════════════════════════════════════════════
 // VERSION — updated by build-standalone.pl on each build
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260627-1411";
+const APP_VERSION = "20260627-1422";
 
 // ═══════════════════════════════════════════════════════════
 // DATA
@@ -14912,6 +14916,26 @@ function buildReportHtml(){
   }
 
   // --- Estate transfer summary section ---
+  let taxBucketsSection="";
+  if((val("rptIncTaxBuckets")||"yes")!=="no" && typeof computeWithdrawalOrder==="function"){
+    try{
+      const w=computeWithdrawalOrder();
+      if(w && w.t.total>0){ const t=w.t, pc=v=>t.total>0?Math.round(v/t.total*100)+"%":"—";
+        taxBucketsSection=`<h2>Tax buckets &amp; withdrawal order</h2>
+        <p>Your wealth grouped by how it is taxed, with a tax-efficient order in which to draw on it during retirement. Asset-location score ${t.score}/100.</p>
+        <table><tr><th>Tax bucket</th><th>Balance</th><th>Share</th></tr>
+        <tr><td>Tax-free (Roth / ISA / TFSA / NISA)</td><td>${fmtMoneyFull(t.taxFree)}</td><td>${pc(t.taxFree)}</td></tr>
+        <tr><td>Tax-deferred (401k / IRA / RRSP / pension)</td><td>${fmtMoneyFull(t.taxDeferred)}</td><td>${pc(t.taxDeferred)}</td></tr>
+        <tr><td>Taxable (brokerage / cash / other)</td><td>${fmtMoneyFull(t.taxable)}</td><td>${pc(t.taxable)}</td></tr>
+        <tr><th>Total</th><th>${fmtMoneyFull(t.total)}</th><th>100%</th></tr></table>
+        <p><strong>Recommended withdrawal order:</strong></p>
+        <ol>${w.order.map(o=>`<li><strong>${o.step}.</strong> ${o.detail}</li>`).join("")}</ol>
+        ${w.notes.length?`<p style="color:#a06a10">${w.notes.map(n=>"• "+n).join("<br>")}</p>`:""}
+        <p style="font-size:11px;color:#666">General sequencing guidance, not personal tax advice — confirm with a tax professional.</p>`;
+      }
+    }catch(_){ taxBucketsSection=""; }
+  }
+
   let rmdSection="";
   if((val("rptIncRMD")||"yes")!=="no" && typeof computeRMDSchedule==="function"){
     try{
@@ -15045,6 +15069,7 @@ function buildReportHtml(){
   ${potWealthSection}
   ${cfSection}
   ${cmaSection}
+  ${taxBucketsSection}
   ${rmdSection}
   ${estateSection}
   ${glossarySection}
@@ -15398,7 +15423,7 @@ function gbRenderCMA(weights, port){
 // ═══════════════════════════════════════════════════════════════════
 // PDF REPORT — custom content + page ordering
 // ═══════════════════════════════════════════════════════════════════
-const RPT_DEFAULT_ORDER = ["exec","about","hh","inc","equity","assets","insurance","goals","strategies","port","factsheets","sim","fund","goalfunding","lifestyle","wealthframework","potentialwealth","rmd","estate","cf","educharts","cma","method","glossary","disc"];
+const RPT_DEFAULT_ORDER = ["exec","about","hh","inc","equity","assets","insurance","goals","strategies","port","factsheets","sim","fund","goalfunding","lifestyle","wealthframework","potentialwealth","rmd","taxbuckets","estate","cf","educharts","cma","method","glossary","disc"];
 const RPT_SECTION_LABELS = {
   exec:            "Executive Summary",
   about:           "About the Client (custom)",
@@ -15418,6 +15443,7 @@ const RPT_SECTION_LABELS = {
   wealthframework: "Wealth Allocation Framework",
   potentialwealth: "Annual Potential Wealth",
   rmd:             "Required Minimum Withdrawals",
+  taxbuckets:      "Tax Buckets & Withdrawal Order",
   estate:          "Estate Transfer Summary",
   cf:              "Cash-Flow Projection",
   cma:             "Capital Market Assumptions",
@@ -16429,6 +16455,7 @@ function drawFanChart(){
       wealthframework:() => val("rptIncWealthFw") !== "no",
       potentialwealth:() => val("rptIncPotWealth") !== "no" && lastSimPaths && lastSimPaths.length > 0,
       rmd:            () => val("rptIncRMD") !== "no" && (typeof rmdRuleFor==="function") && rmdRuleFor(val("c1co")).kind !== "none" && (typeof retirementAccountSeed==="function") && retirementAccountSeed() > 0,
+      taxbuckets:     () => val("rptIncTaxBuckets") !== "no" && (typeof computeWithdrawalOrder==="function") && (function(){ try{ return computeWithdrawalOrder().t.total > 0; }catch(_){ return false; } })(),
       estate:         () => val("rptIncEstate") !== "no" && (beneficiaries.length > 0 || insuranceDeathBenefit() > 0),
       cma:            () => val("rptIncCMA") !== "no",
       cf:             () => val("rptIncCF") !== "no",
@@ -16954,6 +16981,27 @@ function drawFanChart(){
         }
         tbl(["Year","Age","Conservative (80%)","Expected (50%)","Optimistic (30%)"], rows);
       },
+      // ─── TAX BUCKETS & WITHDRAWAL ORDER ──
+      taxbuckets: () => {
+        if(val("rptIncTaxBuckets") === "no") return;
+        let w; try{ w=computeWithdrawalOrder(); }catch(e){ return; }
+        if(!w || !(w.t.total>0)) return;
+        newPage();
+        sectionH2("Tax Buckets & Withdrawal Order");
+        const t=w.t, pc=v=>t.total>0?Math.round(v/t.total*100)+"%":"—";
+        para("Your wealth grouped by how it is taxed, with a tax-efficient order in which to draw on it during retirement.");
+        tbl(["Tax bucket","Balance","Share"],[
+          ["Tax-free (Roth / ISA / TFSA / NISA)", fmt(t.taxFree), pc(t.taxFree)],
+          ["Tax-deferred (401k / IRA / RRSP / pension)", fmt(t.taxDeferred), pc(t.taxDeferred)],
+          ["Taxable (brokerage / cash / other)", fmt(t.taxable), pc(t.taxable)],
+          ["Total", fmt(t.total), "100%"]
+        ]);
+        para("Asset-location score: "+t.score+"/100 (100 = all growth assets sheltered from tax).");
+        para("Recommended withdrawal order in retirement:");
+        w.order.forEach((o,i)=>para((i+1)+".  "+o.step+" — "+o.detail, [60,70,85]));
+        if(w.notes.length){ para("Observations:"); w.notes.forEach(n=>para("-  "+n, [150,110,40])); }
+        para("General sequencing guidance, not personal tax advice — bracket management, benefit thresholds and estate goals can change the optimal order. Confirm with a tax professional.", [120,120,120]);
+      },
       // ─── REQUIRED MINIMUM WITHDRAWALS (RMD / RRIF / min pension) ──
       rmd: () => {
         if(val("rptIncRMD") === "no") return;
@@ -17281,7 +17329,40 @@ function renderTaxEfficiency(){
   // Shortfall cost-basis: estimate from last CF run or use 0
   const shortfallTax=Math.max(0,t.taxable*0.01*0.25); // placeholder 1% shortfall assumption
   setT("te-shortfall",shortfallTax>0?fmtMoney(shortfallTax):"None");
+  try{ renderWithdrawalOrder(); }catch(_){}
 }
+
+// ── Tax-bucket withdrawal-order guidance (country-aware) ────────────────────
+const TAXFREE_VEHICLE={US:"Roth IRA / HSA",CA:"TFSA",GB:"ISA",AU:"superannuation (concessionally taxed in retirement)",EU:"a local tax-free wrapper",CH:"Pillar 3a",JP:"NISA / iDeCo",SG:"SRS",HK:"MPF top-ups",CN:"a tax-advantaged pension account",TW:"a labour-pension voluntary account",KR:"an ISA",IN:"PPF / ELSS",ID:"a pension fund",MX:"a personal retirement account (PPR)",BR:"PGBL / VGBL",SA:"a retirement savings plan",ZA:"a Tax-Free Savings Account",OTHER:"a tax-free account"};
+function taxFreeVehicleName(cc){ return TAXFREE_VEHICLE[cc] || ((typeof EUROZONE_MEMBERS!=="undefined"&&EUROZONE_MEMBERS.has(cc))?"a local tax-free wrapper":"a tax-free account"); }
+function computeWithdrawalOrder(){
+  const t=calcTaxEfficiency();
+  const cc=val("c1co")||"US";
+  const rmd=(typeof rmdRuleFor==="function")?rmdRuleFor(cc):{kind:"none",startAge:73};
+  const free=taxFreeVehicleName(cc);
+  const order=[];
+  if(rmd.kind!=="none") order.push({step:"Required minimums first",detail:"Take any mandatory withdrawal from tax-deferred accounts ("+rmd.kind.toUpperCase()+", from age "+rmd.startAge+") — it is compulsory and taxed as income whether or not you need it."});
+  order.push({step:"Then taxable accounts",detail:"Spend from taxable brokerage and cash next — gains are taxed only when realised (often at lower capital-gains rates), and drawing these first lets the sheltered accounts keep compounding."});
+  order.push({step:"Then tax-deferred",detail:"Draw tax-deferred retirement accounts next — withdrawals are taxed as ordinary income, so size them to stay within lower tax brackets where you can."});
+  order.push({step:"Tax-free last",detail:"Leave "+free+" until last (or for heirs) so the longest-compounding, tax-free money keeps growing untaxed."});
+  const fp=t.total>0?t.taxFree/t.total:0, dp=t.total>0?t.taxDeferred/t.total:0, xp=t.total>0?t.taxable/t.total:0;
+  const notes=[];
+  if(t.total>0 && fp<0.10) notes.push("Low tax-free share ("+(fp*100).toFixed(0)+"%). Building "+free+" adds flexibility to manage future tax brackets.");
+  if(dp>0.70) notes.push("Heavily tax-deferred ("+(dp*100).toFixed(0)+"%). This concentrates future taxable income and larger required minimums — consider converting to tax-free in low-income years.");
+  if(t.total>0 && xp>0.85) notes.push("Mostly taxable ("+(xp*100).toFixed(0)+"%). Using available tax-advantaged accounts could reduce the ongoing tax drag shown above.");
+  return {t, order, notes, free, rmd, cc};
+}
+function renderWithdrawalOrder(){
+  const host=$("te-order"); if(!host) return;
+  let w; try{ w=computeWithdrawalOrder(); }catch(_){ host.innerHTML=""; return; }
+  if(!w || w.t.total<=0){ host.innerHTML=""; return; }
+  let h='<div style="font-weight:600;color:var(--text2);font-size:13px;margin-bottom:8px">Recommended withdrawal order in retirement</div>';
+  h+='<ol style="margin:0 0 10px 18px;padding:0;font-size:12px;color:var(--text2);line-height:1.65">'+w.order.map(o=>'<li style="margin-bottom:5px"><strong style="color:var(--text)">'+_daEsc(o.step)+'.</strong> '+_daEsc(o.detail)+'</li>').join('')+'</ol>';
+  if(w.notes.length) h+='<div style="font-size:11px;color:var(--amber);line-height:1.6;margin-bottom:6px">'+w.notes.map(n=>'• '+_daEsc(n)).join('<br>')+'</div>';
+  h+='<div style="font-size:10px;color:var(--text3)">General sequencing guidance, not personal tax advice — bracket management, benefit thresholds and estate goals can change the optimal order. Confirm with a tax professional.</div>';
+  host.innerHTML=h;
+}
+window.computeWithdrawalOrder=computeWithdrawalOrder;
 
 // ═══════════════════════════════════════════════════════════
 // MEAN-VARIANCE OPTIMIZATION — EFFICIENT FRONTIER
