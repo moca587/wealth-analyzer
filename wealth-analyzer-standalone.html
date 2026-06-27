@@ -783,6 +783,10 @@ input[type=date]{color-scheme:light}
 .da-modal-tools{display:flex;gap:8px;align-items:center;padding:10px 18px;border-bottom:1px solid var(--border)}
 .da-modal-body{flex:1;overflow:auto;padding:14px 18px}
 .da-modal-foot{display:flex;gap:10px;align-items:center;justify-content:flex-end;padding:12px 18px;border-top:1px solid var(--border)}
+.si-prev{width:100%;border-collapse:collapse;font-size:12px}
+.si-prev th,.si-prev td{border:1px solid var(--border);padding:4px 8px;text-align:left;color:var(--text2)}
+.si-prev th{color:var(--text3);font-weight:600}
+.si-map-row{display:flex;gap:10px;align-items:center;margin-bottom:6px}
 .pf-add .fld,.pr-add .fld{display:flex;flex-direction:column;gap:3px;min-width:0}
 .pf-add .fld > label,.pr-add .fld > label{font-size:10px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.4px}
 .pf-row{display:grid;grid-template-columns:90px 1.5fr 80px 130px 100px 80px 80px 110px 1.4fr auto;gap:8px;align-items:center;padding:8px 10px;border-bottom:1px solid var(--border);font-size:12px}
@@ -2854,7 +2858,10 @@ input[type=date]{color-scheme:light}
 <div class="panel">
   <div class="ptitle" style="justify-content:space-between">
     <span>Holdings</span>
-    <button class="btn-secondary" onclick="openDataAgent()" style="font-size:11px;padding:4px 10px">✦ AI Data Agent</button>
+    <span style="display:flex;gap:8px">
+      <button class="btn-secondary" onclick="openStatementImporter()" style="font-size:11px;padding:4px 10px">⭳ Import statement</button>
+      <button class="btn-secondary" onclick="openDataAgent()" style="font-size:11px;padding:4px 10px">✦ AI Data Agent</button>
+    </span>
   </div>
   <!-- AI Data Agent panel (hidden by default) — reads any file, fills the whole app after review -->
   <div id="aiAgentPanel" class="panel" style="display:none;background:var(--bg3);border:1px solid rgba(124,58,237,.28);margin-bottom:14px">
@@ -2872,7 +2879,23 @@ input[type=date]{color-scheme:light}
       <span id="aiAgentStatus" style="font-size:12px;color:var(--text3);margin-left:6px"></span>
     </div>
   </div>
+  <!-- Statement Importer panel (hidden by default) — deterministic CSV/OFX/QFX parse, no AI key -->
+  <div id="siPanel" class="panel" style="display:none;background:var(--bg3);border:1px solid rgba(76,175,125,.28);margin-bottom:14px">
+    <div class="ptitle" style="margin:0 0 6px">⭳ Import statement (CSV / OFX / QFX)</div>
+    <div class="da-note">Import a bank or brokerage statement directly — <strong>no AI key needed</strong>. Reads CSV exports, OFX, and QFX (Quicken) files, lets you map the columns, and shows the same review screen before anything is added. For photos, PDFs, or unusual files, use the AI Data Agent instead.</div>
+    <div class="frow" style="margin-top:8px">
+      <label class="flbl">Files <span style="color:var(--text3)">(CSV, OFX, QFX, XLSX)</span></label>
+      <input type="file" id="siFiles" multiple onchange="siRenderFileList()" accept=".csv,.tsv,.txt,.ofx,.qfx,.xls,.xlsx" style="font-size:12px;color:var(--text2)">
+    </div>
+    <div id="siFileList" style="margin:6px 0 8px"></div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <button class="btn-primary" onclick="siRun()">Parse &amp; map</button>
+      <button class="btn-secondary" onclick="show('siPanel',false)">Cancel</button>
+      <span id="siStatus" style="font-size:12px;color:var(--text3);margin-left:6px"></span>
+    </div>
+  </div>
   <div id="aiReviewModal" style="display:none"></div>
+  <div id="siMapModal" style="display:none"></div>
   <div id="pfList"><div class="pf-empty">No investments added.</div></div>
   <div class="sdiv">
     <div class="slbl">Add Investment</div>
@@ -3672,6 +3695,9 @@ input[type=date]{color-scheme:light}
       <div class="frow"><label class="flbl">Plan strategies summary</label>
         <select id="rptIncStrategies" class="w180"><option value="yes" selected>Yes</option><option value="no">No</option></select>
       </div>
+      <div class="frow"><label class="flbl">Investment Policy Statement</label>
+        <select id="rptIncIPS" class="w180"><option value="yes" selected>Yes</option><option value="no">No</option></select>
+      </div>
       <div class="frow"><label class="flbl">Portfolio detail</label>
         <select id="rptIncPort" class="w180"><option value="yes" selected>Yes (if holdings added)</option><option value="no">No</option></select>
       </div>
@@ -3762,7 +3788,7 @@ input[type=date]{color-scheme:light}
 // ═══════════════════════════════════════════════════════════
 // VERSION — updated by build-standalone.pl on each build
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260627-1549";
+const APP_VERSION = "20260627-1619";
 
 // ═══════════════════════════════════════════════════════════
 // DATA
@@ -7109,14 +7135,14 @@ function renderAssets(){
       html += `<div class="asset-item">
         <div class="item-row">
           <span class="abadge" style="background:${gc.bg};color:${gc.text};border:1px solid ${gc.border}">${a.baseLabel||a.type}</span>
-          <span style="font-weight:500;flex:1">${a.label}</span>
+          <span style="font-weight:500;flex:1">${_daEsc(a.label)}</span>
           <span style="font-variant-numeric:tabular-nums;font-weight:500">${fmtMoneyFull(a.value,ccyObj.sym)}</span>
           ${liqBadge}
           ${ageBadge}
           <button class="btn-x" style="font-size:10px;padding:2px 7px;color:var(--text3);border:1px solid var(--border);border-radius:3px" onclick="editAsset('${a.id}')">✎</button>
           <button class="btn-x" onclick="delAsset('${a.id}')">✕</button>
         </div>
-        ${a.note?`<div class="item-meta"><span>${a.note}</span></div>`:""}
+        ${a.note?`<div class="item-meta"><span>${_daEsc(a.note)}</span></div>`:""}
       </div>`;
     });
   });
@@ -7209,7 +7235,7 @@ function renderLoans(){
     return `<div class="loan-item">
       <div class="item-row">
         <span class="lbadge">${LOAN_LABELS[l.type]||l.type}</span>
-        <span style="font-weight:500;flex:1">${l.label}</span>
+        <span style="font-weight:500;flex:1">${_daEsc(l.label)}</span>
         <span style="font-variant-numeric:tabular-nums;font-weight:500">${fmtMoneyFull(l.bal)}</span>
         <button class="btn-x" style="font-size:10px;padding:2px 7px;color:var(--text3);border:1px solid var(--border);border-radius:3px" onclick="editLoan('${l.id}')">✎</button>
         <button class="btn-x" onclick="delLoan('${l.id}')">✕</button>
@@ -7568,7 +7594,7 @@ function renderGoals(){
       <span class="goal-icon" style="background:${icon.bg};color:${icon.color}" title="${icon.label}">${icon.emoji}</span>
       <span class="gtag tcat" style="background:${icon.bg};color:${icon.color};border-color:${icon.bg}">${icon.label.toLowerCase()}</span>
       <span class="gtag ${tierClass}">${g.tier||"important"}</span>
-      <span style="flex:1;font-weight:600;color:var(--text)">${g.name}</span>
+      <span style="flex:1;font-weight:600;color:var(--text)">${_daEsc(g.name)}</span>
       <span style="font-variant-numeric:tabular-nums;font-weight:600">${amtDisplay}${extraNote}</span>
       <span style="font-size:11px;color:var(--text3)">${g.startYear}–${g.endYear} <span style="color:var(--text2)">(${fmtMoney(g.amt*years)} total)</span></span>
       <button class="btn-secondary" style="padding:2px 8px;font-size:11px" onclick="editGoal('${g.id}')">Edit</button>
@@ -8446,6 +8472,427 @@ function applyDataAgent(){
   const ast=$("aiAgentStatus"); if(ast){ ast.textContent="✓ Applied "+n+" item"+(n!==1?"s":"")+"."; ast.style.color="var(--green)"; }
   try{ if(typeof _topStatus==="function") _topStatus("AI Data Agent added "+n+" item"+(n!==1?"s":"")); }catch(_){}
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   STANDARD STATEMENT IMPORTER (CSV / OFX / QFX) — deterministic, no-LLM.
+   Produces the SAME _daExtraction shape as the AI Data Agent and reuses
+   renderReviewModal() + applyDataAgent() for review & commit (zero new
+   apply code). CSV files get a column-mapping step; OFX/QFX self-describe.
+   ═══════════════════════════════════════════════════════════════════ */
+let _siState=null;     // active CSV mapping state
+let _siAccum=null;     // merged _daExtraction-shaped accumulator across files
+let _siQueue=[];       // pending CSV files awaiting Stage-1 mapping
+let _siCcySeen=null;   // currencies detected (for the FX warning)
+let _siSkipped=0;      // positions dropped for missing value (surfaced to the user)
+
+function _siEmpty(){ return {household:[],income:[],expenses:[],assets:[],liabilities:[],goals:[],holdings:[]}; }
+function _siMerge(a,b){ Object.keys(a).forEach(k=>{ a[k]=a[k].concat(b[k]||[]); }); return a; }
+function siStatus(msg,color){ const s=$("siStatus"); if(s){ s.textContent=msg||""; s.style.color=color||"var(--text3)"; } }
+
+function openStatementImporter(){
+  const p=$("siPanel"); if(!p) return;
+  const showing=p.style.display!=="none" && p.style.display!=="";
+  show("siPanel",!showing);
+  if(!showing){ siStatus(""); siRenderFileList(); }
+}
+function siRenderFileList(){
+  const host=$("siFileList"); if(!host) return;
+  const inp=$("siFiles"), files=inp&&inp.files?Array.from(inp.files):[];
+  host.innerHTML = files.length ? files.map(f=>`<div style="font-size:12px;color:var(--text2)">• ${_daEsc(f.name)} <span style="color:var(--text3)">(${(f.size/1024).toFixed(0)} KB)</span></div>`).join("") : "";
+}
+
+// ── Encoding-aware text reader (BOM + OFX CHARSET sniff) ──────────────
+async function siReadDecoded(file){
+  let buf; try{ buf=await file.arrayBuffer(); }catch(_){ return await _daReadText(file); }
+  let label="utf-8";
+  const head=new Uint8Array(buf.slice(0,4));
+  if(head[0]===0xFF&&head[1]===0xFE) label="utf-16le";
+  else if(head[0]===0xFE&&head[1]===0xFF) label="utf-16be";
+  let text;
+  try{ text=new TextDecoder(label,{fatal:false}).decode(buf); }
+  catch(_){ try{ text=new TextDecoder("utf-8",{fatal:false}).decode(buf); }catch(__){ text=""; } }
+  if(/CHARSET:1252|ENCODING:(?:USASCII|CP1252)/i.test(text.slice(0,400))){
+    try{ text=new TextDecoder("windows-1252",{fatal:false}).decode(buf); }catch(_){}
+  }
+  return text.replace(/^﻿/,"");
+}
+function siDetectFormat(name,text){
+  const head=text.slice(0,2000);
+  if(/<OFX>/i.test(head) || /^\s*OFXHEADER:/im.test(head) || /<\?OFX/i.test(head)) return "ofx";
+  const ext=(String(name).split(".").pop()||"").toLowerCase();
+  if(["csv","tsv","txt"].includes(ext)) return "csv";
+  if(["xls","xlsx"].includes(ext)) return "xlsx";
+  if(/[,;\t|].*\n/.test(head)) return "csv";
+  return "unknown";
+}
+
+// ── Locale-aware number parse → falls back to _daNum for K/M/B ────────
+function siNum(str,decimalMark){
+  if(str==null) return null;
+  let s=String(str).trim(); if(!s) return null;
+  if(/[kmb]\s*$/i.test(s) && /^[\s$€£¥]*[\d.,]+\s*[kmb]\s*$/i.test(s)){ const d=_daNum(str); if(d!=null) return d; }
+  let neg=false;
+  if(/^\(.*\)$/.test(s)){ neg=true; s=s.slice(1,-1); }
+  if(/(^\s*-)|(\bDR\b)|(-\s*$)/i.test(s)) neg=true;
+  if(/\bCR\b/i.test(s)) neg=false;
+  s=s.replace(/[^\d.,]/g,"");
+  if(!s) return null;
+  const mark=decimalMark||"auto";
+  const hasDot=s.indexOf(".")>=0, hasComma=s.indexOf(",")>=0;
+  if(mark==="comma" || (mark==="auto" && hasDot && hasComma && s.lastIndexOf(",")>s.lastIndexOf("."))){
+    s=s.replace(/\./g,"").replace(/,/g,".");
+  } else if(mark==="period" || (mark==="auto" && hasDot && hasComma)){
+    s=s.replace(/,/g,"");
+  } else if(mark==="auto" && hasComma && !hasDot){
+    const m=s.match(/,(\d+)$/);
+    if(m && m[1].length<=2 && (s.match(/,/g)||[]).length===1) s=s.replace(",",".");
+    else s=s.replace(/,/g,"");
+  } else {
+    s=s.replace(/,/g,"");
+  }
+  let v=parseFloat(s);
+  if(!isFinite(v)){ const d=_daNum(str); return d; }
+  return neg?-v:v;
+}
+
+// ── CSV tokenizer (RFC-4180) + delimiter / header detection ──────────
+function siSplitCSV(line,delim){
+  const out=[]; let cur="",q=false;
+  for(let i=0;i<line.length;i++){
+    const c=line[i];
+    if(q){ if(c==='"'){ if(line[i+1]==='"'){ cur+='"'; i++; } else q=false; } else cur+=c; }
+    else { if(c==='"') q=true; else if(c===delim){ out.push(cur); cur=""; } else cur+=c; }
+  }
+  out.push(cur);
+  return out.map(s=>s.trim());
+}
+function siDelimiter(lines){
+  const cands=[",",";","\t","|"]; let best=",",bestScore=-1;
+  cands.forEach(d=>{
+    const counts=lines.slice(0,20).map(l=>siSplitCSV(l,d).length).filter(n=>n>1);
+    if(!counts.length) return;
+    const freq={}; counts.forEach(n=>freq[n]=(freq[n]||0)+1);
+    let modeN=0,modeC=0; Object.entries(freq).forEach(([n,c])=>{ if(c>modeC){modeC=c;modeN=+n;} });
+    const score=modeN*modeC;
+    if(score>bestScore){ bestScore=score; best=d; }
+  });
+  return best;
+}
+const _SI_HEADER_KW=["symbol","ticker","cusip","isin","description","security","name","fund","holding","quantity","qty","shares","units","price","nav","value","market","amount","balance","account","class","category","type","currency","ccy","cost"];
+// Split into logical records, honoring quotes so an embedded newline inside a
+// quoted field does NOT break the record (RFC-4180).
+function siSplitRecords(text){
+  const recs=[]; let cur="",q=false;
+  for(let i=0;i<text.length;i++){
+    const c=text[i];
+    if(c==='"'){ cur+=c; if(q && text[i+1]==='"'){ cur+='"'; i++; } else q=!q; continue; }
+    if(!q && (c==='\n'||c==='\r')){ if(c==='\r'&&text[i+1]==='\n') i++; recs.push(cur); cur=""; }
+    else cur+=c;
+  }
+  if(cur.length) recs.push(cur);
+  return recs.filter(r=>r.trim().length>0);
+}
+function siParseCSVtable(text,delimOpt,headerRowOpt){
+  const nonEmpty=siSplitRecords(text);
+  const delim=delimOpt||siDelimiter(nonEmpty);
+  let headerRow=headerRowOpt;
+  if(headerRow==null){
+    let bestI=0,bestScore=-1;
+    for(let i=0;i<Math.min(15,nonEmpty.length);i++){
+      const cells=siSplitCSV(nonEmpty[i],delim); if(cells.length<2) continue;
+      const lc=cells.map(c=>c.toLowerCase());
+      const kw=lc.filter(c=>_SI_HEADER_KW.some(k=>c.indexOf(k)>=0)).length;
+      const nonNum=cells.filter(c=>c && siNum(c)==null).length;
+      const score=kw*3 + nonNum + cells.length*0.1;
+      if(kw>=2 && score>bestScore){ bestScore=score; bestI=i; }
+    }
+    headerRow=bestI;
+  }
+  headerRow=Math.max(0,Math.min(headerRow, Math.max(0,nonEmpty.length-1)));
+  const headers=siSplitCSV(nonEmpty[headerRow]||"",delim);
+  const rows=[];
+  for(let i=headerRow+1;i<nonEmpty.length;i++){
+    let cells=siSplitCSV(nonEmpty[i],delim);
+    if(cells.every(c=>!c)) continue;
+    while(cells.length<headers.length) cells.push("");
+    if(cells.length>headers.length) cells=cells.slice(0,headers.length);
+    rows.push(cells);
+  }
+  return {headers,rows,delim,headerRow};
+}
+const _SI_FIELD_KW={
+  tkr:["symbol","ticker","cusip","isin","sedol","security id","securityid"],
+  name:["description","security name","security","name","fund","holding","investment"],
+  qty:["quantity","qty","shares","units","no of shares","nominal"],
+  price:["last price","market price","unit price","price","nav","close"],
+  val:["market value","current value","mkt value","position value","value","amount","balance","total"],
+  cost:["cost basis","book value","cost"],
+  acct:["account name","account number","account","acct","registration"],
+  cls:["asset class","class","category","sector","type"],
+  ccy:["currency","ccy","curr"]
+};
+function siGuessMapping(headers){
+  const map={};
+  const norm=headers.map(h=>String(h).toLowerCase().replace(/[^a-z0-9 ]/g," ").replace(/\s+/g," ").trim());
+  Object.keys(_SI_FIELD_KW).forEach(field=>{
+    let bestIdx=-1,bestScore=0;
+    norm.forEach((h,idx)=>{
+      if(!h) return;
+      _SI_FIELD_KW[field].forEach(kw=>{
+        let sc=0; if(h===kw) sc=10; else if(h.indexOf(kw)>=0) sc=5+kw.length*0.1;
+        if(sc>bestScore && !Object.values(map).includes(idx)){ bestScore=sc; bestIdx=idx; }
+      });
+    });
+    if(bestIdx>=0) map[field]=bestIdx;
+  });
+  return map;
+}
+function siGuessRowKind(map){
+  if(map.tkr!=null || map.qty!=null) return "holdings";
+  if(map.val!=null && map.acct!=null) return "assets";
+  return "holdings";
+}
+
+// ── OFX / QFX parser (one tolerant leaf reader for SGML + XML) ────────
+function siDecodeEntities(s){
+  return String(s==null?"":s)
+    .replace(/&amp;/gi,"&").replace(/&lt;/gi,"<").replace(/&gt;/gi,">")
+    .replace(/&apos;/gi,"'").replace(/&quot;/gi,'"')
+    .replace(/&#(\d+);/g,(m,n)=>{ try{ return String.fromCharCode(+n); }catch(_){ return ""; } }).trim();
+}
+function siTag(block,tag){ const m=block.match(new RegExp("<"+tag+">([^<\\r\\n]*)","i")); return m?siDecodeEntities(m[1]):""; }
+function siParseOFX(text){
+  const out=_siEmpty();
+  const curdef=(siTag(text,"CURDEF")||"").toUpperCase();
+  if(curdef) (_siCcySeen=_siCcySeen||new Set()).add(curdef);
+  // Security list: UNIQUEID → {name, tkr, kind}
+  const sec={};
+  const infoRe=/<(STOCKINFO|MFINFO|DEBTINFO|OTHERINFO|OPTINFO)>([\s\S]*?)(?=<(?:STOCKINFO|MFINFO|DEBTINFO|OTHERINFO|OPTINFO|\/SECLIST)>|$)/gi;
+  let im; while((im=infoRe.exec(text))){
+    const kind=im[1].toUpperCase(), blk=im[2], uid=siTag(blk,"UNIQUEID");
+    if(uid) sec[uid]={name:siTag(blk,"SECNAME"), tkr:siTag(blk,"TICKER"), kind};
+  }
+  // Positions
+  const posRe=/<(POSSTOCK|POSMF|POSBOND|POSOPT|POSOTHER)>([\s\S]*?)(?=<(?:POSSTOCK|POSMF|POSBOND|POSOPT|POSOTHER|\/INVPOSLIST)>|$)/gi;
+  const typeMap={POSMF:"mutual_fund",POSSTOCK:"stock",POSBOND:"bond",POSOPT:"other",POSOTHER:"other"};
+  const clsByKind={STOCKINFO:"equity",MFINFO:"mixed",DEBTINFO:"fixed_income",OTHERINFO:"other",OPTINFO:"other"};
+  let pm; while((pm=posRe.exec(text))){
+    const ptag=pm[1].toUpperCase(), blk=pm[2];
+    const uid=siTag(blk,"UNIQUEID");
+    const units=siNum(siTag(blk,"UNITS"),"auto"), price=siNum(siTag(blk,"UNITPRICE"),"auto");
+    let v=siNum(siTag(blk,"MKTVAL"),"auto"); const hadMkt=!!siTag(blk,"MKTVAL");
+    if(v==null && units!=null && price!=null) v=units*price;
+    if(v==null || !(v>0)){ _siSkipped++; continue; }
+    const info=sec[uid]||{};
+    const type=typeMap[ptag]||"other";
+    const cls=info.kind?(clsByKind[info.kind]||"other"):(type==="bond"?"fixed_income":type==="stock"?"equity":"other");
+    out.holdings.push({_ok:hadMkt?0.9:0.6,_src:("OFX "+ptag+" "+(uid||"")).trim(),
+      name:info.name||info.tkr||uid||"Position", tkr:info.tkr||(uid&&uid.length<=6?uid:""),
+      val:v, type, cls, region:"other", er:null, yld:null, note:""});
+  }
+  // Brokerage cash
+  const availcash=siNum(siTag(text,"AVAILCASH"),"auto");
+  if(availcash!=null && availcash>0){
+    out.assets.push({_ok:0.9,_src:"OFX INVBAL AVAILCASH",label:"Brokerage cash",accountTypeHint:"Brokerage cash",
+      value:availcash,country:val("c1co")||"US",ccy:curdef,propertyValue:null,otherValue:null});
+  }
+  // Bank / credit-card ledger balance (single-statement common case)
+  const isInv=/<INVSTMTRS>|<INVACCTFROM>|<POSSTOCK>|<POSMF>/i.test(text);
+  const isCC=/<CCSTMTRS>|<CCACCTFROM>/i.test(text);
+  const isBank=/<STMTRS>|<BANKACCTFROM>/i.test(text);
+  function balAfter(tagOpen){ const idx=text.search(new RegExp(tagOpen,"i")); if(idx<0) return null; return siNum(siTag(text.slice(idx,idx+300),"BALAMT"),"auto"); }
+  if(isCC){
+    const bal=balAfter("<LEDGERBAL>");
+    if(bal!=null && Math.abs(bal)>0) out.liabilities.push({_ok:0.8,_src:"OFX CCSTMTRS balance",type:"cc",label:"Credit card",balance:Math.abs(bal),ratePct:null,years:null});
+  } else if(isBank && !isInv){
+    const bal=balAfter("<LEDGERBAL>"); const at=(siTag(text,"ACCTTYPE")||"CHECKING").toUpperCase();
+    if(bal!=null && bal>0) out.assets.push({_ok:0.9,_src:"OFX LEDGERBAL ("+at+")",label:at.charAt(0)+at.slice(1).toLowerCase()+" account",accountTypeHint:at,value:bal,country:val("c1co")||"US",ccy:curdef,propertyValue:null,otherValue:null});
+  }
+  return out;
+}
+
+// ── Dispatch / queue ─────────────────────────────────────────────────
+async function siRun(){
+  const inp=$("siFiles"), files=inp&&inp.files?Array.from(inp.files):[];
+  if(!files.length){ siStatus("⚠ Choose one or more files first.","var(--amber)"); return; }
+  _siAccum=_siEmpty(); _siQueue=[]; _siCcySeen=new Set(); _siSkipped=0;
+  siStatus("Reading "+files.length+" file"+(files.length>1?"s":"")+"…");
+  for(const f of files){
+    try{
+      let text=await siReadDecoded(f);
+      let fmt=siDetectFormat(f.name,text);
+      if(fmt==="xlsx"){ try{ text=await _daXlsxText(f); fmt="csv"; }catch(e){ siStatus("✗ Couldn't read "+f.name+" as a spreadsheet.","var(--red)"); continue; } }
+      if(fmt==="ofx") _siMerge(_siAccum, siParseOFX(text));
+      else if(fmt==="csv") _siQueue.push({name:f.name,text});
+      else siStatus("✗ "+f.name+": unrecognized format — try the AI Data Agent.","var(--amber)");
+    }catch(e){ console.warn("[Importer]",e); siStatus("✗ "+f.name+": "+e.message,"var(--red)"); }
+  }
+  if(_siQueue.length) siProcessNextCSV(); else siFinishImport();
+}
+function siProcessNextCSV(){
+  const job=_siQueue.shift(); if(!job){ siFinishImport(); return; }
+  const t=siParseCSVtable(job.text);
+  _siState={fileName:job.name, rawText:job.text, headers:t.headers, rows:t.rows, delim:t.delim, _lastDelim:t.delim,
+    headerRow:t.headerRow, decimal:"auto", ccy:COUNTRY_CURRENCIES[val("c1co")]||CURRENT_CCY};
+  _siState.mapping=siGuessMapping(t.headers);
+  _siState.rowKind=siGuessRowKind(_siState.mapping);
+  siRenderMapModal();
+}
+function siFinishImport(){
+  siDedupe(_siAccum);
+  const total=Object.keys(_siAccum).reduce((s,k)=>s+_siAccum[k].length,0);
+  if(!total){ siStatus("No positions or balances detected. Try the AI Data Agent for non-standard files.","var(--amber)"); return; }
+  _daExtraction=_siAccum;
+  const foreign=_siCcySeen?[..._siCcySeen].filter(c=>c&&c!==CURRENT_CCY):[];
+  let msg="✓ Parsed "+total+" row"+(total!==1?"s":"")+" — review below.";
+  if(_siSkipped>0) msg+=" "+_siSkipped+" position"+(_siSkipped!==1?"s":"")+" skipped (no value found).";
+  if(foreign.length) msg+=" ⚠ Amounts in "+foreign.join("/")+" shown as-is (not FX-converted).";
+  siStatus(msg, (foreign.length||_siSkipped>0)?"var(--amber)":"var(--green)");
+  renderReviewModal();
+}
+
+// ── CSV → extraction (uses the active mapping in _siState) ────────────
+function siBuildExtraction(){
+  const st=_siState; const out=_siEmpty(); if(!st) return out;
+  const m=st.mapping||{}, kind=st.rowKind, dec=st.decimal||"auto";
+  const ccy=st.ccy||COUNTRY_CURRENCIES[val("c1co")]||CURRENT_CCY;
+  const cell=(row,f)=> (m[f]!=null && m[f]>=0) ? (row[m[f]]||"") : "";
+  st.rows.forEach(row=>{
+    const nameRaw=cell(row,"name")||cell(row,"acct"), tkr=cell(row,"tkr");
+    if(!nameRaw && !tkr) return;
+    // skip subtotal/total rows (exact label match, so a real "Total Bond Market" fund survives)
+    const _lbl=(nameRaw||tkr||"").trim().toLowerCase();
+    if(/^(total|totals|sub-?total|grand total|portfolio total|account total|cash total)$/.test(_lbl)) return;
+    let v=siNum(cell(row,"val"),dec);
+    const qty=siNum(cell(row,"qty"),dec), price=siNum(cell(row,"price"),dec);
+    let inferred=false;
+    if((v==null||v===0) && qty!=null && price!=null){ v=qty*price; inferred=true; }
+    if(v==null || !(v>0)) return;
+    if(kind==="assets"){
+      out.assets.push({_ok:0.85,_src:st.fileName+": "+row.join(" | "),label:nameRaw||tkr||"Account",
+        accountTypeHint:cell(row,"cls")||nameRaw,value:v,country:val("c1co")||"US",ccy,propertyValue:null,otherValue:null});
+    } else {
+      const clsCell=cell(row,"cls");
+      let cls=clsCell?_daKey(clsCell,_DA_CLS_ALIAS,INV_CLASS_LABELS,"other"):"other";
+      let type="other"; const hay=(nameRaw+" "+tkr+" "+clsCell).toLowerCase();
+      if(/\betf\b/.test(hay)){ type="etf"; if(cls==="other") cls="equity"; }
+      else if(/bond|treasury|t-bill|t-note|fixed income|gilt|debenture/.test(hay)){ type="bond"; if(cls==="other") cls="fixed_income"; }
+      else if(/reit/.test(hay)){ type="stock"; cls="real_estate"; }
+      else if(/fund|index|mutual/.test(hay)){ type="mutual_fund"; if(cls==="other") cls="equity"; }
+      else if(/money market|mmf|sweep|\bcash\b/.test(hay)){ type="cash"; cls="cash"; }
+      else if(tkr){ type="stock"; if(cls==="other") cls="equity"; }
+      out.holdings.push({_ok:inferred?0.6:0.85,_src:st.fileName+": "+row.join(" | "),
+        name:nameRaw||tkr,tkr:tkr||"",val:v,type,cls,region:"other",er:null,yld:null,note:""});
+    }
+  });
+  return out;
+}
+function _siNormKey(s){ return String(s||"").toLowerCase().replace(/[^a-z0-9]/g,""); }
+function siDedupe(merged){
+  const invKeys=new Set();
+  (typeof investments!=="undefined"?investments:[]).forEach(i=>{ if(i.tkr) invKeys.add("t:"+_siNormKey(i.tkr)); if(i.name) invKeys.add("n:"+_siNormKey(i.name)); });
+  merged.holdings.forEach(h=>{
+    const k1=h.tkr?("t:"+_siNormKey(h.tkr)):null, k2="n:"+_siNormKey(h.name);
+    if((k1&&invKeys.has(k1))||(h.name&&invKeys.has(k2))){ h._ok=0.5; h._src="Possible duplicate of an existing holding — "+h._src; }
+  });
+  const asKeys=new Set();
+  (typeof assets!=="undefined"?assets:[]).forEach(a=>{ asKeys.add(_siNormKey(a.label)+"|"+(a.country||"")); });
+  merged.assets.forEach(a=>{ if(asKeys.has(_siNormKey(a.label)+"|"+(a.country||""))){ a._ok=0.5; a._src="Possible duplicate of an existing account — "+a._src; } });
+  return merged;
+}
+
+// ── Stage-1 column-mapping modal ─────────────────────────────────────
+function _siColSelect(f,selIdx){
+  const opts=['<option value="-1"'+(selIdx==null||selIdx<0?" selected":"")+'>— ignore —</option>']
+    .concat(_siState.headers.map((h,idx)=>`<option value="${idx}"${idx===selIdx?" selected":""}>${_daEsc(h||("Column "+(idx+1)))}</option>`));
+  return `<select class="da-in si-mapsel" data-f="${f}" onchange="siOnMapChange()" style="flex:1">${opts.join("")}</select>`;
+}
+function siRenderMapModal(){
+  const mm=$("siMapModal"); if(!mm||!_siState) return;
+  const st=_siState;
+  const delimName={",":"comma",";":"semicolon","\t":"tab","|":"pipe"}[st.delim]||"comma";
+  const ccyOpts=Object.keys(CURRENCIES).map(c=>`<option value="${c}"${c===st.ccy?" selected":""}>${c}</option>`).join("");
+  const fields=[["name","Name / description"],["tkr","Ticker / CUSIP"],["qty","Quantity"],["price","Price"],["val","Market value"],["cost","Cost basis (not imported)"],["acct","Account name"],["cls","Asset class"],["ccy","Currency column"]];
+  mm.innerHTML=`<div class="da-modal-bg" onclick="siCloseMap()"></div>
+  <div class="da-modal">
+    <div class="da-modal-h"><span class="ptitle" style="margin:0">Map columns — ${_daEsc(st.fileName)}</span><button class="btn-x" onclick="siCloseMap()">✕</button></div>
+    <div class="da-modal-tools" style="flex-wrap:wrap;gap:14px">
+      <label class="da-fl">Delimiter <select class="da-in" onchange="siSetDelim(this.value)" style="width:120px"><option value="comma"${delimName==="comma"?" selected":""}>Comma ,</option><option value="semicolon"${delimName==="semicolon"?" selected":""}>Semicolon ;</option><option value="tab"${delimName==="tab"?" selected":""}>Tab</option><option value="pipe"${delimName==="pipe"?" selected":""}>Pipe |</option></select></label>
+      <label class="da-fl">Header row # <input class="da-in" type="number" min="1" value="${(st.headerRow||0)+1}" onchange="siSetHeaderRow(this.value)" style="width:70px"></label>
+      <label class="da-fl">Decimal mark <select class="da-in" data-c="decimal" onchange="siOnMapChange()" style="width:120px"><option value="auto"${st.decimal==="auto"?" selected":""}>Auto</option><option value="period"${st.decimal==="period"?" selected":""}>Period .</option><option value="comma"${st.decimal==="comma"?" selected":""}>Comma ,</option></select></label>
+      <label class="da-fl">Currency <select class="da-in" data-c="ccy" onchange="siOnMapChange()" style="width:90px">${ccyOpts}</select></label>
+      <label class="da-fl">Rows are <span style="display:inline-flex;gap:12px;margin-left:6px">
+        <label style="font-size:12px;color:var(--text2)"><input type="radio" name="sikind" value="holdings"${st.rowKind!=="assets"?" checked":""} onchange="siOnMapChange()"> Holdings</label>
+        <label style="font-size:12px;color:var(--text2)"><input type="radio" name="sikind" value="assets"${st.rowKind==="assets"?" checked":""} onchange="siOnMapChange()"> Accounts</label>
+      </span></label>
+    </div>
+    <div class="da-modal-body">
+      <div class="da-sec"><div class="da-sec-h">Column mapping</div>
+        ${fields.map(f=>`<div class="si-map-row"><label class="da-fl" style="flex:0 0 170px">${f[1]}</label>${_siColSelect(f[0],st.mapping[f[0]]!=null?st.mapping[f[0]]:-1)}</div>`).join("")}
+      </div>
+      <div class="da-sec"><div class="da-sec-h">Preview (first 5 rows)</div><div class="si-preview"></div></div>
+    </div>
+    <div class="da-modal-foot">
+      <span class="si-need" style="font-size:12px;color:var(--amber);margin-right:auto">Map a Market value column (or Quantity + Price) to continue.</span>
+      <button class="btn-secondary" onclick="siCloseMap()">Cancel</button>
+      <button class="btn-primary si-continue" onclick="siCommitMapping()">Continue to review →</button>
+    </div>
+  </div>`;
+  mm.style.display="block";
+  siRenderPreview();
+}
+function siCloseMap(){ const mm=$("siMapModal"); if(mm){ mm.style.display="none"; mm.innerHTML=""; } _siQueue=[]; siStatus("Import cancelled.","var(--text3)"); }
+function siReadMapControls(){
+  const st=_siState; if(!st) return;
+  const dec=document.querySelector("#siMapModal [data-c=decimal]"); if(dec) st.decimal=dec.value;
+  const ccy=document.querySelector("#siMapModal [data-c=ccy]"); if(ccy) st.ccy=ccy.value;
+  const kind=document.querySelector("#siMapModal input[name=sikind]:checked"); if(kind) st.rowKind=kind.value;
+  const map={}; document.querySelectorAll("#siMapModal .si-mapsel").forEach(sel=>{ const idx=parseInt(sel.value,10); if(idx>=0) map[sel.dataset.f]=idx; });
+  st.mapping=map;
+}
+function siOnMapChange(){ siRenderPreview(); }
+function siSetDelim(v){ _siState.delim={comma:",",semicolon:";",tab:"\t",pipe:"|"}[v]||","; _siReparse(); }
+function siSetHeaderRow(v){ _siReparse(Math.max(1,parseInt(v,10)||1)-1); }
+function _siReparse(headerRow){
+  const st=_siState; if(!st) return;
+  const t=siParseCSVtable(st.rawText, st.delim, headerRow!=null?headerRow:st.headerRow);
+  st.headers=t.headers; st.rows=t.rows; st.headerRow=t.headerRow; st.delim=t.delim;
+  st.mapping=siGuessMapping(t.headers); st.rowKind=siGuessRowKind(st.mapping);
+  siRenderMapModal();
+}
+function siRenderPreview(){
+  siReadMapControls();
+  const st=_siState; const ext=siBuildExtraction();
+  const arr = st.rowKind==="assets"? ext.assets : ext.holdings;
+  const prev=arr.slice(0,5);
+  let html;
+  if(st.rowKind==="assets"){
+    html=`<table class="si-prev"><tr><th>Label</th><th>Account type hint</th><th>Value</th></tr>`+
+      prev.map(a=>`<tr><td>${_daEsc(a.label)}</td><td>${_daEsc(a.accountTypeHint)}</td><td>${fmtMoney(a.value)}</td></tr>`).join("")+`</table>`;
+  } else {
+    html=`<table class="si-prev"><tr><th>Name</th><th>Ticker</th><th>Value</th><th>Type</th><th>Class</th></tr>`+
+      prev.map(h=>`<tr><td>${_daEsc(h.name)}</td><td>${_daEsc(h.tkr)}</td><td>${fmtMoney(h.val)}</td><td>${_daEsc(INV_TYPE_LABELS[h.type]||h.type)}</td><td>${_daEsc(INV_CLASS_LABELS[h.cls]||h.cls)}</td></tr>`).join("")+`</table>`;
+  }
+  const host=document.querySelector("#siMapModal .si-preview"); if(host) host.innerHTML = arr.length? html : '<div class="pf-empty">No rows parsed with the current mapping.</div>';
+  const need = st.rowKind==="assets"? (st.mapping.val!=null) : (st.mapping.val!=null || (st.mapping.qty!=null && st.mapping.price!=null));
+  const cont=document.querySelector("#siMapModal .si-continue"); if(cont){ cont.disabled=!need; cont.style.opacity=need?"1":".5"; }
+  const hint=document.querySelector("#siMapModal .si-need"); if(hint) hint.style.display=need?"none":"inline";
+}
+function siCommitMapping(){
+  siReadMapControls();
+  const st=_siState;
+  const need = st.rowKind==="assets"? (st.mapping.val!=null) : (st.mapping.val!=null || (st.mapping.qty!=null && st.mapping.price!=null));
+  if(!need) return;
+  if(st.ccy && st.ccy!==CURRENT_CCY) (_siCcySeen=_siCcySeen||new Set()).add(st.ccy);
+  _siMerge(_siAccum, siBuildExtraction());
+  const mm=$("siMapModal"); if(mm){ mm.style.display="none"; mm.innerHTML=""; }
+  if(_siQueue.length) siProcessNextCSV(); else siFinishImport();
+}
+// Expose handlers referenced from inline onclick/onchange
+window.openStatementImporter=openStatementImporter; window.siRenderFileList=siRenderFileList; window.siRun=siRun;
+window.siSetDelim=siSetDelim; window.siSetHeaderRow=siSetHeaderRow; window.siOnMapChange=siOnMapChange;
+window.siCommitMapping=siCommitMapping; window.siCloseMap=siCloseMap;
+
 function renderInvestments(){
   const list=$("pfList"); if(!list) return;
   if(investments.length===0){list.innerHTML='<div class="pf-empty">No investments added.</div>'; return;}
@@ -8454,14 +8901,14 @@ function renderInvestments(){
     const yld=i.yld!=null?i.yld.toFixed(2)+"%":"—";
     return `<div class="pf-row">
       <span class="pf-tag tt-${i.type}">${INV_TYPE_LABELS[i.type]||i.type}</span>
-      <span class="pname">${i.name}</span>
+      <span class="pname">${_daEsc(i.name)}</span>
       <span class="ptkr">${i.tkr||"—"}</span>
       <span style="color:var(--text2)">${INV_CLASS_LABELS[i.cls]||i.cls}${i.subcat?` <span style="color:var(--text3)">· ${i.subcat}</span>`:""}</span>
       <span style="color:var(--text);font-variant-numeric:tabular-nums;font-weight:500">${fmtMoney(i.val)}</span>
       <span style="color:var(--text3)">${INV_REGION_LABELS[i.region]||i.region}</span>
       <span style="color:var(--text2);font-variant-numeric:tabular-nums">${er}</span>
       <span style="color:var(--text2);font-variant-numeric:tabular-nums">${yld}</span>
-      <span class="pnote">${i.note||"—"}</span>
+      <span class="pnote">${_daEsc(i.note||"—")}</span>
       <button class="btn-x" style="font-size:10px;padding:2px 7px;color:var(--text3);border:1px solid var(--border);border-radius:3px" onclick="editInvestment('${i.id}')">✎</button>
       <button class="btn-x" onclick="removeInvestment('${i.id}')">✕</button>
     </div>`;
@@ -14845,6 +15292,183 @@ function renderWhatIf(){
 }
 
 // ═══════════════════════════════════════════════════════════
+// INVESTMENT POLICY STATEMENT (IPS) — shared compute layer
+// Both renderers (HTML preview + jsPDF) consume computeIPS() so the
+// document is identical across outputs. Original framework based on the
+// CFA-style objectives/constraints model; no third-party content.
+// ═══════════════════════════════════════════════════════════
+const IPS_RISK_ORDER = ["very_conservative","conservative","moderately_conservative","moderate","moderately_aggressive","aggressive","very_aggressive"];
+// Strategic (policy) asset allocation by governing risk profile — target % per bucket.
+// Consistent with the stylised allocations used elsewhere (gbAssetClassWeights fallback).
+const IPS_SAA = {
+  very_conservative:      {equity:15, fixed_income:58, real_assets:4, alternatives:3, cash:20},
+  conservative:           {equity:28, fixed_income:54, real_assets:5, alternatives:5, cash:8},
+  moderately_conservative:{equity:40, fixed_income:45, real_assets:6, alternatives:5, cash:4},
+  moderate:               {equity:55, fixed_income:30, real_assets:7, alternatives:6, cash:2},
+  moderately_aggressive:  {equity:68, fixed_income:18, real_assets:7, alternatives:5, cash:2},
+  aggressive:             {equity:80, fixed_income:9,  real_assets:6, alternatives:4, cash:1},
+  very_aggressive:        {equity:90, fixed_income:3,  real_assets:3, alternatives:3, cash:1}
+};
+// IPS bucket → display label, role, and the CMA key used for expected return/risk.
+const IPS_BUCKETS = [
+  {key:"equity",       label:"Global Equity",       cma:"equity",       role:"Long-term growth engine"},
+  {key:"fixed_income", label:"Fixed Income",        cma:"fixed_income", role:"Income & volatility dampener"},
+  {key:"real_assets",  label:"Real Assets / REITs", cma:"real_estate",  role:"Inflation hedge & diversification"},
+  {key:"alternatives", label:"Alternatives",        cma:"alternative",  role:"Non-correlated return sources"},
+  {key:"cash",         label:"Cash & Equivalents",  cma:"cash",         role:"Liquidity & reserve"}
+];
+// 5/25 rule: tolerance = max(5 pts absolute, 25% of target).
+function ipsRange(t){ const tol=Math.max(5, 0.25*t); return {tol, min:Math.max(0,Math.round(t-tol)), max:Math.min(100,Math.round(t+tol))}; }
+
+function computeIPS(){
+  // ── Parties ──
+  const c1 = ((val("c1f")||"")+" "+(val("c1l")||"")).trim() || "Client 1";
+  const showC2 = $("c2card") && $("c2card").style.display!=="none";
+  const c2 = showC2 ? (((val("c2f")||"")+" "+(val("c2l")||"")).trim() || "Client 2") : null;
+  const country = COUNTRY_ACCOUNTS[val("c1co")]?.name || "—";
+
+  // ── Willingness: stated risk profile (blended across clients) ──
+  const r1 = val("c1r") || "moderate";
+  let idx = IPS_RISK_ORDER.indexOf(r1); if(idx<0) idx=3;
+  if(showC2){ let i2 = IPS_RISK_ORDER.indexOf(val("c2r")||r1); if(i2<0) i2=3; idx = Math.round((idx+i2)/2); }
+  const willKey = IPS_RISK_ORDER[idx];
+
+  // ── Ability: capacity to take risk, derived from horizon / reserves / savings ──
+  const a1 = ageFromDOB(val("c1d")) || 40;
+  const retAge = num("retAge",65);
+  const yrsToRet = Math.max(0, retAge - a1);
+  const investable = (typeof totalAccountValue==="function" ? totalAccountValue() : 0);
+  const exp = (typeof getTotalExpenses==="function" ? getTotalExpenses() : 0);
+  const sav = num("savAnnual",0);
+  let liquidVal=0; assets.forEach(a=>{ if(a.liquid) liquidVal += (+a.value||0); });
+  const liquidPct = investable>0 ? liquidVal/investable : 0;
+  const cy = (typeof currentYear==="function") ? currentYear() : new Date().getFullYear();
+  let nearTermNeed=0; goals.forEach(g=>{ if((g.startYear-cy)<=3 && g.startYear>=cy) nearTermNeed += (+g.amt||0); });
+  let abilityScore = 3;
+  if(yrsToRet>=20) abilityScore += 2; else if(yrsToRet>=10) abilityScore += 1; else if(yrsToRet<5) abilityScore -= 2;
+  if(sav>0 && exp>0 && sav/Math.max(1,exp) >= 0.2) abilityScore += 1;
+  if(exp>0 && investable/Math.max(1,exp) >= 20) abilityScore += 1; else if(exp>0 && investable/Math.max(1,exp) < 5) abilityScore -= 1;
+  abilityScore = Math.max(0, Math.min(6, abilityScore));
+  const abilityKey = IPS_RISK_ORDER[abilityScore];
+
+  // ── Policy profile: the more conservative of willingness vs ability ──
+  const policyIdx = Math.min(IPS_RISK_ORDER.indexOf(willKey), IPS_RISK_ORDER.indexOf(abilityKey));
+  const policyKey = IPS_RISK_ORDER[policyIdx];
+
+  // ── Strategic allocation + policy ranges ──
+  const saa = IPS_SAA[policyKey] || IPS_SAA.moderate;
+  const allocRows = IPS_BUCKETS.map(b=>{ const t=saa[b.key]||0; const r=ipsRange(t); return {key:b.key, label:b.label, role:b.role, target:t, min:r.min, max:r.max}; });
+
+  // ── Policy portfolio expected return / risk via shared CMA engine ──
+  const wCMA = {}; IPS_BUCKETS.forEach(b=>{ wCMA[b.cma] = (saa[b.key]||0)/100; });
+  let port = {arithMu:0.07, geoMu:0.065, sigma:0.12};
+  try { port = gbPortfolioRisk(wCMA); } catch(_){}
+  const inflation = num("inf", CMA_INFLATION)/100;
+  const realGeo = (port.geoMu - inflation) / (1 + inflation);
+
+  // ── Current allocation (mapped into IPS buckets) for drift ──
+  let curW = null, driftRows = null, rebalanceNeeded = false;
+  try {
+    const raw = gbAssetClassWeights(); // fractions, CMA keys
+    const buck = {equity:0, fixed_income:0, real_assets:0, alternatives:0, cash:0};
+    Object.entries(raw).forEach(([k,w])=>{
+      if(k==="equity") buck.equity += w;
+      else if(k==="fixed_income" || k==="structured") buck.fixed_income += w;
+      else if(k==="cash") buck.cash += w;
+      else if(k==="real_estate" || k==="commodity") buck.real_assets += w;
+      else if(k==="mixed"){ buck.equity += w*0.6; buck.fixed_income += w*0.4; }
+      else buck.alternatives += w; // alternative, hedge_fund, private_equity, crypto
+    });
+    const tot = Object.values(buck).reduce((s,x)=>s+x,0);
+    if(tot>0){ Object.keys(buck).forEach(k=> buck[k] = buck[k]/tot*100); curW = buck; }
+  } catch(_){}
+  if(curW){
+    driftRows = IPS_BUCKETS.map(b=>{
+      const t=saa[b.key]||0, c=curW[b.key]||0, d=c-t, tol=Math.max(5,0.25*t), breach=Math.abs(d)>tol+1e-9;
+      if(breach) rebalanceNeeded = true;
+      return {key:b.key, label:b.label, target:t, current:c, drift:d, breach};
+    });
+  }
+
+  // ── Concentrated positions (> 20% of portfolio) ──
+  let concentrated = [];
+  try {
+    const totInv = investments.reduce((s,i)=>s+(+i.val||0),0);
+    if(totInv>0) investments.forEach(i=>{ const p=(+i.val||0)/totInv; if(p>0.20) concentrated.push({name:i.name||i.tkr||"position", pct:p*100}); });
+  } catch(_){}
+
+  // ── Taxes & goal funding ──
+  let effTax=0; try { const inc=getGrossIncome(); const tax=computeIncomeTax(inc); effTax = inc>0 ? tax/inc : 0; } catch(_){}
+  let fundingRatio=null; try { if(goals.length){ fundingRatio = computeGoalFundingStatus().overallRatio; } } catch(_){}
+
+  return {
+    c1, c2, country, willKey, abilityKey, policyKey,
+    a1, retAge, yrsToRet, investable, exp, sav, liquidPct, nearTermNeed,
+    allocRows, port, inflation, realGeo, curW, driftRows, rebalanceNeeded,
+    concentrated, reserveLo: exp*0.5, reserveHi: exp*1.0, effTax, fundingRatio
+  };
+}
+
+// HTML renderer for the report-preview path.
+function ipsHtmlSection(d){
+  const RP = k => RISK_PROFILES[k]?.label || k;
+  const M = fmtMoneyFull;
+  const pct = v => v.toFixed(0)+"%";
+  const h3 = t => `<h3 style="color:#1e40af;margin:18px 0 6px;font-size:14px;border-bottom:1px solid #cdd8ee;padding-bottom:3px">${t}</h3>`;
+  let html = `<h2 style="page-break-before:always">Investment Policy Statement</h2>
+  <p>This Investment Policy Statement ("IPS") establishes the objectives, constraints, strategic asset allocation and governance policies agreed for the management of the household portfolio. It is a working framework to keep the portfolio aligned with the client's goals and risk tolerance and to provide a disciplined, repeatable basis for decisions and review. It does not grant discretionary authority and is not a contract.</p>
+  <table>
+    <tr><th style="width:35%">Client(s)</th><td>${d.c1}${d.c2?" &amp; "+d.c2:""}</td></tr>
+    <tr><th>Jurisdiction</th><td>${d.country}</td></tr>
+    <tr><th>Effective date</th><td>${new Date().toLocaleDateString()}</td></tr>
+    <tr><th>Review cadence</th><td>At least annually, and upon material life or market events</td></tr>
+  </table>`;
+  html += h3("1 &middot; Investment objectives");
+  html += `<p>The household is in a primarily <strong>${d.yrsToRet>0?"accumulation":"decumulation"}</strong> phase${d.yrsToRet>0?` (~${d.yrsToRet} years to the planned retirement age of ${d.retAge})`:""}. The strategic allocation set out below carries an expected long-term return of <strong>${(d.port.geoMu*100).toFixed(1)}%</strong> per year (geometric, nominal) with estimated volatility of <strong>${(d.port.sigma*100).toFixed(1)}%</strong>. After assumed inflation of ${(d.inflation*100).toFixed(1)}%, the expected <em>real</em> return is approximately <strong>${(d.realGeo*100).toFixed(1)}%</strong> per year.${d.fundingRatio!=null?` Current analysis indicates stated goals are approximately <strong>${Math.round(d.fundingRatio*100)}%</strong> funded on a present-value basis.`:""}</p>`;
+  html += h3("2 &middot; Risk tolerance");
+  html += `<table><tr><th>Dimension</th><th>Assessment</th></tr>
+    <tr><td><strong>Willingness</strong> (stated preference)</td><td>${RP(d.willKey)}</td></tr>
+    <tr><td><strong>Ability</strong> (financial capacity)</td><td>${RP(d.abilityKey)} — from time horizon, savings rate and reserve depth</td></tr>
+    <tr><td><strong>Policy risk profile</strong> (governing)</td><td><strong>${RP(d.policyKey)}</strong></td></tr></table>
+    <p>Where willingness and ability diverge, this IPS adopts the more conservative of the two, consistent with prudent practice. The policy risk profile drives the strategic asset allocation below.</p>`;
+  html += h3("3 &middot; Constraints");
+  html += `<table><tr><th style="width:22%">Dimension</th><th>Policy</th></tr>
+    <tr><td>Time horizon</td><td>${d.yrsToRet>0?`~${d.yrsToRet} years to retirement (age ${d.retAge}), followed by a multi-decade decumulation horizon.`:`In or near decumulation; horizon spans the remaining retirement period.`}</td></tr>
+    <tr><td>Liquidity</td><td>Maintain a cash reserve of roughly 6–12 months' expenses (≈ ${M(d.reserveLo)}–${M(d.reserveHi)}). Goals due within three years are funded from cash and short-dated fixed income${d.nearTermNeed>0?` (near-term need ≈ ${M(d.nearTermNeed)}/yr)`:""}. Current liquid assets: ${(d.liquidPct*100).toFixed(0)}% of investable wealth.</td></tr>
+    <tr><td>Taxes</td><td>Jurisdiction: ${d.country}. Estimated effective tax rate ${(d.effTax*100).toFixed(0)}%. Prioritise tax-advantaged accounts; apply asset location (income-producing assets in sheltered accounts) and harvest losses where appropriate.</td></tr>
+    <tr><td>Legal / regulatory</td><td>Investments are managed under the laws of ${d.country}. This IPS is a planning framework, not a discretionary mandate; the client retains decision authority.</td></tr>
+    <tr><td>Unique circumstances</td><td>${d.concentrated.length?`Concentrated holdings flagged: ${d.concentrated.map(c=>c.name+" ("+c.pct.toFixed(0)+"%)").join(", ")} — each exceeds 20% of the portfolio and warrants a diversification plan. `:""}Held-away assets, ESG/values preferences and other constraints to be recorded here as applicable.</td></tr></table>`;
+  html += h3("4 &middot; Strategic asset allocation (policy)");
+  html += `<table><tr><th>Asset class</th><th>Target</th><th>Policy range</th><th>Role</th></tr>
+    ${d.allocRows.map(r=>`<tr><td>${r.label}</td><td>${pct(r.target)}</td><td>${r.min}%–${r.max}%</td><td>${r.role}</td></tr>`).join("")}
+    <tr><th>Total</th><th>100%</th><th></th><th></th></tr></table>
+    <p>Policy portfolio: expected return ${(d.port.geoMu*100).toFixed(1)}% (geometric), volatility ${(d.port.sigma*100).toFixed(1)}%. Ranges follow the 5/25 rule (±5 percentage points or ±25% of target, whichever is greater).</p>`;
+  html += h3("5 &middot; Current allocation &amp; rebalancing policy");
+  if(d.driftRows){
+    html += `<table><tr><th>Asset class</th><th>Policy</th><th>Current</th><th>Drift</th><th>Status</th></tr>
+      ${d.driftRows.map(r=>`<tr><td>${r.label}</td><td>${pct(r.target)}</td><td>${r.current.toFixed(0)}%</td><td>${r.drift>=0?"+":""}${r.drift.toFixed(0)} pts</td><td>${r.breach?'<strong style="color:#a83232">Rebalance</strong>':'<span style="color:#1b6841">Within band</span>'}</td></tr>`).join("")}</table>
+      <p>${d.rebalanceNeeded?"One or more classes are outside their policy band — rebalancing is indicated.":"All classes are within their policy bands — no rebalancing required at this time."}</p>`;
+  } else {
+    html += `<p>No portfolio holdings have been entered, so current-versus-policy drift cannot be shown. Once holdings are recorded, this section compares them against the policy targets above.</p>`;
+  }
+  html += `<p><strong>Rebalancing policy.</strong> Rebalance whenever any asset class deviates from its target by more than 5 percentage points (absolute) or 25% (relative), whichever is greater; otherwise review at least annually. Direct new contributions and withdrawals to underweight and overweight classes respectively to minimise turnover and realised tax.</p>`;
+  html += h3("6 &middot; Monitoring &amp; review");
+  html += `<p>Performance is assessed against a blended benchmark weighted to the policy allocation, evaluated over a full market cycle (typically three to five years) rather than any single year. The portfolio and this IPS are reviewed at least annually and upon material changes to circumstances, goals, or market regime.</p>`;
+  html += h3("7 &middot; Roles &amp; responsibilities");
+  html += `<table><tr><th style="width:22%">Party</th><th>Responsibilities</th></tr>
+    <tr><td>Client(s)</td><td>Provide complete and accurate information; fund the plan; approve the policy and any changes; give timely notice of material changes in circumstances.</td></tr>
+    <tr><td>Adviser / preparer</td><td>Implement and monitor the portfolio within this policy; report results; recommend changes to allocation or policy as circumstances warrant; disclose material conflicts of interest.</td></tr></table>`;
+  html += h3("8 &middot; Acknowledgement");
+  html += `<p>The undersigned acknowledge that they have reviewed and agree to this Investment Policy Statement.</p>
+    <table><tr><th>Signature</th><th>Name</th><th>Date</th></tr>
+      <tr><td style="height:34px"></td><td>${d.c1}</td><td></td></tr>
+      ${d.c2?`<tr><td style="height:34px"></td><td>${d.c2}</td><td></td></tr>`:""}
+      <tr><td style="height:34px"></td><td>Adviser</td><td></td></tr></table>
+    <p style="font-size:10px;color:#666">This IPS is a planning framework generated from client-supplied data and long-term capital market assumptions. It is not investment, tax, or legal advice. Expected returns are estimates and not guarantees; actual results will differ.</p>`;
+  return html;
+}
+
+// ═══════════════════════════════════════════════════════════
 // PDF REPORT (basic HTML preview / jsPDF text dump)
 // ═══════════════════════════════════════════════════════════
 function buildReportHtml(){
@@ -14915,7 +15539,7 @@ function buildReportHtml(){
       const rows=goals.map(g=>{
         const row=Array.from(fundEl.querySelectorAll("[data-gid='"+g.id+"']"));
         const pct=row.length?row[0].querySelector(".grs-pct")?.textContent||"—":"—";
-        return `<tr><td>${g.name}</td><td>${fmtMoneyFull(g.amt)}/yr</td><td>${g.startYear}–${g.endYear}</td><td>${pct}</td></tr>`;
+        return `<tr><td>${_daEsc(g.name)}</td><td>${fmtMoneyFull(g.amt)}/yr</td><td>${g.startYear}–${g.endYear}</td><td>${pct}</td></tr>`;
       }).join("");
       fundSection=`<h2>Goal success probability</h2><table><tr><th>Goal</th><th>Annual amount</th><th>Year range</th><th>Success probability</th></tr>${rows}</table>`;
     } else if(goals.length>0){
@@ -15106,8 +15730,14 @@ function buildReportHtml(){
     portSection=`<h2>Portfolio (${investments.length} holdings)</h2>
     <p>Total value: ${fmtMoneyFull(portfolioInvestmentSeed())}</p>
     <table><tr><th>Position</th><th>Ticker</th><th>Class</th><th>Value</th></tr>
-    ${investments.map(i=>`<tr><td>${i.name}</td><td>${i.tkr||"—"}</td><td>${INV_CLASS_LABELS[i.cls]||i.cls}</td><td>${fmtMoneyFull(i.val)}</td></tr>`).join("")}
+    ${investments.map(i=>`<tr><td>${_daEsc(i.name)}</td><td>${_daEsc(i.tkr||"—")}</td><td>${INV_CLASS_LABELS[i.cls]||i.cls}</td><td>${fmtMoneyFull(i.val)}</td></tr>`).join("")}
     </table>`;
+  }
+
+  // --- Investment Policy Statement section ---
+  let ipsSection="";
+  if((val("rptIncIPS")||"yes")!=="no"){
+    try{ ipsSection=ipsHtmlSection(computeIPS()); }catch(e){ ipsSection=""; }
   }
 
   // --- Disclaimer text by level ---
@@ -15142,21 +15772,22 @@ function buildReportHtml(){
 
   <h2>Assets (${assets.length})</h2>
   <table><tr><th>Account</th><th>Type</th><th>Value</th><th>Liquid</th><th>Withdraw age</th></tr>
-  ${assets.map(a=>`<tr><td>${a.label}</td><td>${a.baseLabel||a.type}</td><td>${fmtMoneyFull(a.value)}</td><td>${a.liquid?"Yes":"No"}</td><td>${a.withdrawAge!=null?fmtAge(a.withdrawAge):"—"}</td></tr>`).join("")}
+  ${assets.map(a=>`<tr><td>${_daEsc(a.label)}</td><td>${_daEsc(a.baseLabel||a.type)}</td><td>${fmtMoneyFull(a.value)}</td><td>${a.liquid?"Yes":"No"}</td><td>${a.withdrawAge!=null?fmtAge(a.withdrawAge):"—"}</td></tr>`).join("")}
   ${num("aProp",0)>0?`<tr><td>Property / Real estate</td><td>Real estate</td><td>${fmtMoneyFull(num("aProp",0))}</td><td>No</td><td>—</td></tr>`:""}
   ${num("aOther",0)>0?`<tr><td>Other assets</td><td>Miscellaneous</td><td>${fmtMoneyFull(num("aOther",0))}</td><td>No</td><td>—</td></tr>`:""}
   </table>
 
   <h2>Loans (${loans.length})</h2>
   <table><tr><th>Loan</th><th>Balance</th><th>Rate</th><th>Years</th><th>Monthly</th></tr>
-  ${loans.map(l=>`<tr><td>${l.label}</td><td>${fmtMoneyFull(l.bal)}</td><td>${l.rate.toFixed(2)}%</td><td>${l.yrs}</td><td>${fmtMoneyFull(loanMonthly(l))}</td></tr>`).join("")}
+  ${loans.map(l=>`<tr><td>${_daEsc(l.label)}</td><td>${fmtMoneyFull(l.bal)}</td><td>${l.rate.toFixed(2)}%</td><td>${l.yrs}</td><td>${fmtMoneyFull(loanMonthly(l))}</td></tr>`).join("")}
   </table>
 
   <h2>Goals (${goals.length})</h2>
   <table><tr><th>Goal</th><th>Amount</th><th>Year range</th><th>Category</th><th>Tier</th></tr>
-  ${goals.map(g=>`<tr><td>${g.name}</td><td>${fmtMoneyFull(g.amt)}/yr (${fmtMoneyFull(g.amt*Math.max(1,g.endYear-g.startYear+1))} total)</td><td>${g.startYear}–${g.endYear}</td><td>${g.cat}</td><td>${g.tier}</td></tr>`).join("")}
+  ${goals.map(g=>`<tr><td>${_daEsc(g.name)}</td><td>${fmtMoneyFull(g.amt)}/yr (${fmtMoneyFull(g.amt*Math.max(1,g.endYear-g.startYear+1))} total)</td><td>${g.startYear}–${g.endYear}</td><td>${g.cat}</td><td>${g.tier}</td></tr>`).join("")}
   </table>
 
+  ${ipsSection}
   ${insSection}
   ${portSection}
   ${simSection}
@@ -15522,7 +16153,7 @@ function gbRenderCMA(weights, port){
 // ═══════════════════════════════════════════════════════════════════
 // PDF REPORT — custom content + page ordering
 // ═══════════════════════════════════════════════════════════════════
-const RPT_DEFAULT_ORDER = ["exec","about","hh","inc","equity","assets","insurance","goals","strategies","port","factsheets","sim","fund","goalfunding","lifestyle","wealthframework","potentialwealth","rmd","taxbuckets","roth","estate","cf","educharts","cma","method","glossary","disc"];
+const RPT_DEFAULT_ORDER = ["exec","about","hh","inc","equity","assets","insurance","goals","strategies","ips","port","factsheets","sim","fund","goalfunding","lifestyle","wealthframework","potentialwealth","rmd","taxbuckets","roth","estate","cf","educharts","cma","method","glossary","disc"];
 const RPT_SECTION_LABELS = {
   exec:            "Executive Summary",
   about:           "About the Client (custom)",
@@ -15533,6 +16164,7 @@ const RPT_SECTION_LABELS = {
   insurance:       "Insurance Inventory",
   goals:           "Goals & Retirement Plan",
   strategies:      "Plan Strategies",
+  ips:             "Investment Policy Statement",
   port:            "Portfolio Analysis",
   factsheets:      "Investment Fact Sheets",
   sim:             "Monte Carlo Projection",
@@ -16546,6 +17178,7 @@ function drawFanChart(){
       insurance:  () => val("rptIncInsurance") !== "no" && insurances.length > 0,
       goals:      () => val("rptIncGoals") !== "no",
       strategies: () => val("rptIncStrategies") !== "no",
+      ips:        () => val("rptIncIPS") !== "no",
       port:       () => val("rptIncPort") !== "no" && investments.length > 0,
       factsheets: () => wantFactsheets && factPositions.length > 0,
       sim:            () => val("rptIncSim") !== "no",
@@ -16790,6 +17423,75 @@ function drawFanChart(){
         if(typeof insurances !== "undefined" && insurances.length > 0)
           bullets.push("Protection — " + insurances.length + " polic" + (insurances.length>1?"ies":"y") + " in force with " + fmt(insuranceDeathBenefit()) + " total life cover; premiums " + fmt(insurancePremiumAnnual()) + "/yr.");
         bullets.forEach(b => para("•  " + b, [50,50,50]));
+      },
+      // ─── INVESTMENT POLICY STATEMENT ──
+      ips: () => {
+        if(val("rptIncIPS") === "no") return;
+        let d; try{ d = computeIPS(); }catch(e){ return; }
+        const RP = k => RISK_PROFILES[k]?.label || k;
+        function sub(t){ checkY(11); doc.setFont("times","bold"); doc.setFontSize(fsz+1.5); doc.setTextColor(...ac); doc.text(t, M, y); y+=4.8; doc.setFont("helvetica","normal"); doc.setTextColor(40); doc.setFontSize(fsz); }
+        newPage();                         // formal document begins on its own page
+        sectionH2("Investment Policy Statement");
+        para('This Investment Policy Statement ("IPS") establishes the objectives, constraints, strategic asset allocation and governance policies agreed for the management of the household portfolio. It is a working framework — not a contract — and grants no discretionary authority.');
+        kv([
+          ["Client(s)", d.c1 + (d.c2?" & "+d.c2:"")],
+          ["Jurisdiction", d.country],
+          ["Effective date", new Date().toLocaleDateString()],
+          ["Review cadence", "At least annually, and on material life or market events"]
+        ]);
+        sub("1. Investment objectives");
+        para((d.yrsToRet>0?`The household is in a primarily accumulation phase (~${d.yrsToRet} years to retirement at age ${d.retAge}). `:`The household is in or near decumulation. `)+
+          `The strategic allocation carries an expected long-term return of ${(d.port.geoMu*100).toFixed(1)}% per year (geometric, nominal) with estimated volatility of ${(d.port.sigma*100).toFixed(1)}%. After ${(d.inflation*100).toFixed(1)}% inflation, the expected real return is about ${(d.realGeo*100).toFixed(1)}% per year.`+
+          (d.fundingRatio!=null?` Stated goals are approximately ${Math.round(d.fundingRatio*100)}% funded on a present-value basis.`:""));
+        sub("2. Risk tolerance");
+        tbl(["Dimension","Assessment"],[
+          ["Willingness (stated)", RP(d.willKey)],
+          ["Ability (capacity)", RP(d.abilityKey)],
+          ["Policy profile (governing)", RP(d.policyKey)]
+        ],{columnStyles:{0:{fontStyle:"bold",cellWidth:CW*0.4}}});
+        para("Where willingness and ability diverge, this IPS adopts the more conservative of the two. The policy profile drives the strategic allocation.");
+        sub("3. Constraints");
+        tbl(["Dimension","Policy"],[
+          ["Time horizon", d.yrsToRet>0?`~${d.yrsToRet} yrs to retirement (age ${d.retAge}), then a multi-decade decumulation horizon.`:`In or near decumulation; horizon spans the remaining retirement period.`],
+          ["Liquidity", `Cash reserve ~6-12 months' expenses (${fmt(d.reserveLo)}-${fmt(d.reserveHi)}). Goals due within 3 yrs funded from cash/short fixed income${d.nearTermNeed>0?` (near-term need ~${fmt(d.nearTermNeed)}/yr)`:""}. Current liquid: ${(d.liquidPct*100).toFixed(0)}% of investable.`],
+          ["Taxes", `Jurisdiction ${d.country}; estimated effective rate ${(d.effTax*100).toFixed(0)}%. Use tax-advantaged accounts first; apply asset location and loss harvesting.`],
+          ["Legal/regulatory", `Managed under the laws of ${d.country}. A planning framework, not a discretionary mandate; the client retains decision authority.`],
+          ["Unique circumstances", (d.concentrated.length?`Concentrated holdings: ${d.concentrated.map(c=>c.name+" ("+c.pct.toFixed(0)+"%)").join(", ")} (each >20% of portfolio). `:"")+"Held-away assets and ESG/values preferences recorded as applicable."]
+        ],{columnStyles:{0:{fontStyle:"bold",cellWidth:CW*0.22}}});
+        sub("4. Strategic asset allocation (policy)");
+        tbl(["Asset class","Target","Policy range","Role"],
+          d.allocRows.map(r=>[r.label, r.target+"%", r.min+"%-"+r.max+"%", r.role]).concat([["Total","100%","",""]]));
+        para(`Policy portfolio: expected return ${(d.port.geoMu*100).toFixed(1)}% (geometric), volatility ${(d.port.sigma*100).toFixed(1)}%. Ranges follow the 5/25 rule (±5 pts or ±25% of target, whichever is greater).`);
+        sub("5. Current allocation & rebalancing");
+        if(d.driftRows){
+          tbl(["Asset class","Policy","Current","Drift","Status"],
+            d.driftRows.map(r=>[r.label, r.target+"%", r.current.toFixed(0)+"%", (r.drift>=0?"+":"")+r.drift.toFixed(0)+" pts", r.breach?"Rebalance":"Within band"]));
+          para(d.rebalanceNeeded?"One or more classes are outside their policy band - rebalancing is indicated.":"All classes are within their policy bands - no rebalancing required at this time.");
+        } else {
+          para("No portfolio holdings entered; current-versus-policy drift will appear once holdings are recorded.");
+        }
+        para("Rebalancing policy: rebalance when any class deviates from target by more than 5 percentage points or 25% (relative), whichever is greater; otherwise review at least annually. Direct new cash flows to underweight classes to limit turnover and tax.");
+        sub("6. Monitoring & review");
+        para("Performance is assessed against a blended benchmark weighted to the policy allocation, over a full market cycle (3-5 years). The IPS is reviewed at least annually and upon material changes to circumstances, goals or market regime.");
+        sub("7. Roles & responsibilities");
+        tbl(["Party","Responsibilities"],[
+          ["Client(s)","Provide complete, accurate information; fund the plan; approve the policy and changes; give timely notice of material changes."],
+          ["Adviser/preparer","Implement and monitor within policy; report results; recommend changes; disclose material conflicts of interest."]
+        ],{columnStyles:{0:{fontStyle:"bold",cellWidth:CW*0.22}}});
+        sub("8. Acknowledgement");
+        para("The undersigned acknowledge that they have reviewed and agree to this Investment Policy Statement.");
+        const sigParties = [d.c1]; if(d.c2) sigParties.push(d.c2); sigParties.push("Adviser");
+        doc.setDrawColor(120); doc.setLineWidth(0.3);
+        sigParties.forEach(p=>{
+          checkY(16); y+=9;
+          doc.line(M, y, M+70, y);              // signature line
+          doc.line(pw-M-42, y, pw-M, y);        // date line
+          doc.setFontSize(7.5); doc.setTextColor(90);
+          doc.text(p, M, y+4); doc.text("Date", pw-M-42, y+4);
+          doc.setTextColor(40); doc.setFontSize(fsz);
+          y+=6;
+        });
+        para("This IPS is a planning framework generated from client-supplied data and long-term capital market assumptions. It is not investment, tax, or legal advice. Expected returns are estimates, not guarantees; actual results will differ.", [120,120,120]);
       },
       // ─── PORTFOLIO ──
       port: () => {
