@@ -16210,28 +16210,59 @@ function drawFanChart(){
         let st;
         try { st = computeGoalFundingStatus(); }
         catch(e){ para("Goal funding analysis unavailable — define goals and run the analysis."); return; }
-        para("Funding status compares the present value (PV) of each goal's inflation-adjusted cash flows — grossed up for tax — against the assets and future savings allocated to it in priority order. Each goal is discounted at a return adjusted to its confidence level (Essential 95%, Important 75%, Aspirational 55%).");
-        const ov = (st.overallRatio*100).toFixed(0);
-        kv([
-          ["Overall funding ratio",        ov+"%"],
-          ["Total goal cost (PV)",         fmt(st.totalGoalPV)],
-          ["Funded (PV)",                  fmt(st.totalFundedPV)],
-          ["Shortfall (PV)",               fmt(Math.max(0, st.totalGoalPV - st.totalFundedPV))],
-          ["Portfolio geometric return",   (st.port.geoMu*100).toFixed(2)+"% / yr"],
-          ["Portfolio volatility (σ)",     (st.port.sigma*100).toFixed(2)+"% / yr"],
-        ]);
-        checkY(40);
-        const tierLbl = {essential:"Essential", important:"Important", aspirational:"Aspirational"};
-        tbl(["Goal","Tier / conf.","Period","Cost (PV)","Funded (PV)","Funded %"],
-          st.rows.map(r=>[
-            r.name,
-            (tierLbl[r.tier]||r.tier)+" / "+r.conf+"%",
-            r.period,
-            fmt(r.goalCostPV),
-            fmt(r.fundedPV),
-            Math.round(r.ratio*100)+"%"
-          ]));
-        para("Funding ratios above 100% indicate the goal is fully funded with surplus; ratios below indicate a present-value shortfall to be closed through additional savings, return, or a revised goal.", [120,120,120]);
+        para("This overview compares the present-value (PV) cost of your goals — grossed up for tax — against the assets and future savings allocated to them in priority order. Each goal is discounted at a return matched to its confidence level (Essential 95%, Important 75%, Aspirational 55%).");
+        // institutional two-column layout: assets-vs-goals stacked bar + per-goal cards
+        const _ink=[28,40,60], _mut=[95,105,120], _grid=[225,228,234], _gray=[238,240,243];
+        const _green=[27,104,65], _amber=[180,120,40], _red=[168,50,50];
+        const tierLbl={essential:"ESSENTIAL",important:"IMPORTANT",aspirational:"ASPIRATIONAL"};
+        const statBar=(x,w,yy,label,value)=>{ doc.setFillColor(..._gray); doc.rect(x,yy,w,8,"F");
+          doc.setDrawColor(...ac); doc.setLineWidth(0.6); doc.line(x,yy,x,yy+8);
+          doc.setFont("helvetica","bold"); doc.setFontSize(8.5); doc.setTextColor(70,80,95); doc.text(String(label).toUpperCase(),x+3,yy+5.4);
+          doc.setTextColor(..._ink); doc.text(value,x+w-3,yy+5.4,{align:"right"}); };
+        const fundingPill=(rightX,cyy,pct)=>{ const col=pct>=0.85?_green:pct>=0.6?_amber:_red;
+          doc.setFontSize(7.5); doc.setFont("helvetica","bold"); const txt=Math.round(pct*100)+"% FUNDED";
+          const w=doc.getTextWidth(txt)+7,h=5.4,x=rightX-w; doc.setFillColor(...col); doc.roundedRect(x,cyy-h+1.2,w,h,1.2,1.2,"F");
+          doc.setTextColor(255,255,255); doc.text(txt,x+w/2,cyy,{align:"center"}); };
+        const drawStacked=(x,y0,w,h,bars,maxV)=>{ const baseY=y0+h,n=bars.length,gap=w/n,bw=Math.min(gap*0.5,34);
+          doc.setDrawColor(..._grid); doc.setLineWidth(0.2); doc.setFontSize(6.5); doc.setTextColor(150);
+          for(let g=0;g<=4;g++){ const gy=baseY-(h-4)*g/4,v=maxV*g/4; doc.line(x,gy,x+w,gy); doc.text("$"+Math.round(v/1000).toLocaleString()+"k",x-2,gy+1.5,{align:"right"}); }
+          doc.setDrawColor(170); doc.setLineWidth(0.4); doc.line(x,baseY,x+w,baseY);
+          bars.forEach((b,i)=>{ const bx=x+gap*i+(gap-bw)/2; let acc=0;
+            b.segs.forEach(s=>{ if(!(s.value>0))return; const sh=(s.value/maxV)*(h-4),ty=baseY-acc-sh;
+              doc.setFillColor(...s.color); doc.rect(bx,ty,bw,sh,"F");
+              if(s.value/maxV>0.07){ doc.setFontSize(6.3); doc.setTextColor(255,255,255); doc.setFont("helvetica","normal"); doc.text(s.label,bx+bw/2,ty+sh/2+1,{align:"center"}); } acc+=sh; });
+            doc.setFont("helvetica","bold"); doc.setFontSize(8); doc.setTextColor(..._ink); doc.text(b.name,bx+bw/2,baseY+5,{align:"center"});
+            doc.setFont("helvetica","normal"); doc.setFontSize(7.5); doc.setTextColor(..._mut); doc.text(fmt(b.total),bx+bw/2,baseY+9.5,{align:"center"}); }); };
+        const colGap=10, leftW=CW*0.46, rX=M+leftW+colGap, rW=CW-leftW-colGap, topY=y;
+        const goalAmt=st.rows.reduce((s,r)=>s+(r.goalCostPV-r.taxOnGoal),0), taxAmt=st.rows.reduce((s,r)=>s+r.taxOnGoal,0);
+        const curA=st.rows.reduce((s,r)=>s+r.currentAssets,0), futS=st.rows.reduce((s,r)=>s+r.futureSavingsPV,0);
+        const assetsTotal=curA+futS, goalsTotal=goalAmt+taxAmt, maxV=Math.max(1,Math.ceil(Math.max(assetsTotal,goalsTotal)*1.08/100000)*100000);
+        statBar(M,leftW,topY,"Estimated cost of your goals",fmt(st.totalGoalPV));
+        drawStacked(M+16, topY+12, leftW-20, 74, [
+          {name:"Assets",total:assetsTotal,segs:[{label:"Current assets",value:curA,color:ac},{label:"Future income / savings",value:futS,color:[120,170,230]}]},
+          {name:"Goals",total:goalsTotal,segs:[
+            {label:"Essential goals",value:st.rows.filter(r=>r.tier==="essential").reduce((s,r)=>s+(r.goalCostPV-r.taxOnGoal),0),color:[60,75,95]},
+            {label:"Important & other",value:st.rows.filter(r=>r.tier!=="essential").reduce((s,r)=>s+(r.goalCostPV-r.taxOnGoal),0),color:[150,160,175]},
+            {label:"Estimated taxes",value:taxAmt,color:[120,170,230]}]}
+        ], maxV);
+        const coX=M+16+(leftW-20)/2-18, coY=topY+34;
+        doc.setFillColor(255,255,255); doc.setDrawColor(...ac); doc.setLineWidth(0.4); doc.roundedRect(coX,coY,36,14,1.5,1.5,"FD");
+        doc.setFont("helvetica","bold"); doc.setFontSize(7); doc.setTextColor(..._mut); doc.text("FUNDING RATIO",coX+18,coY+5,{align:"center"});
+        doc.setFontSize(15); doc.setTextColor(...ac); doc.text((st.overallRatio*100).toFixed(0)+"%",coX+18,coY+11.5,{align:"center"});
+        statBar(rX,rW,topY,"Goals",st.rows.length+(st.rows.length===1?" goal":" goals"));
+        let cyR=topY+12;
+        st.rows.forEach(r=>{ const cardH=28;
+          if(cyR+cardH>ph-16){ newPage(); cyR=y; }
+          doc.setDrawColor(..._grid); doc.setLineWidth(0.3); doc.setFillColor(252,253,254); doc.roundedRect(rX,cyR,rW,cardH,1.5,1.5,"FD");
+          doc.setFont("helvetica","bold"); doc.setFontSize(7); doc.setTextColor(..._mut); doc.text(tierLbl[r.tier]||String(r.tier).toUpperCase(),rX+4,cyR+6);
+          doc.setFontSize(11); doc.setTextColor(..._ink); doc.text(r.name,rX+4,cyR+12);
+          fundingPill(rX+rW-4,cyR+7,r.ratio);
+          [["Goal amount (PV)",fmt(r.goalCostPV)],["Funded — assets + future savings",fmt(r.fundedPV)],["Shortfall",fmt(Math.max(0,r.goalCostPV-r.fundedPV))]].forEach((rr,k)=>{
+            const ry=cyR+17+k*4.4; doc.setFont("helvetica","normal"); doc.setFontSize(8); doc.setTextColor(70,80,95); doc.text(rr[0],rX+4,ry);
+            doc.setTextColor(..._ink); doc.setFont("helvetica","bold"); doc.text(rr[1],rX+rW-4,ry,{align:"right"}); });
+          cyR+=cardH+4; });
+        y=Math.max(topY+12+74+14, cyR)+2;
+        para("Funding ratios at or above 100% indicate a fully funded goal; lower ratios indicate a present-value shortfall to close through added savings, return, or a revised goal. Hypothetical and not guaranteed.", [120,120,120]);
       },
       // ─── POTENTIALLY ACHIEVABLE LIFESTYLE (80/50/30 confidence) ──
       lifestyle: () => {
