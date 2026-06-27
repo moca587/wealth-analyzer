@@ -2066,6 +2066,17 @@ input[type=date]{color-scheme:light}
   <div id="rmdResults"><div class="pf-empty">Set your country (Household tab) and retirement accounts, then project the schedule.</div></div>
 </div>
 
+<!-- Roth-style conversion window (country-aware) -->
+<div class="panel">
+  <div class="ptitle">Roth-Style Conversion Window</div>
+  <div style="font-size:12px;color:var(--text3);line-height:1.6;margin-bottom:10px">Converting tax-deferred savings to a <strong style="color:var(--text2)">tax-free</strong> account in low-income years — the gap between retiring and when mandatory withdrawals or pensions begin — locks in today's lower tax rate and shrinks future required withdrawals. This sizes that window from your retirement pool, using your country's equivalent mechanism (or flags where none exists). Illustrative — not tax advice.</div>
+  <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-bottom:12px">
+    <button class="btn-primary" onclick="runRothConversion()">▶ Analyze conversion window</button>
+    <span id="rothStatus" style="font-size:12px;color:var(--text3)"></span>
+  </div>
+  <div id="rothResults"><div class="pf-empty">Set your country, retirement age, and retirement accounts, then analyze.</div></div>
+</div>
+
 <div class="panel" id="goalResults" style="display:none">
   <div class="ptitle">Goal Analysis</div>
   <div id="goalResultList"></div>
@@ -3240,6 +3251,9 @@ input[type=date]{color-scheme:light}
       </div>
       <div class="frow"><label class="flbl">Tax buckets &amp; withdrawal order</label>
         <select id="rptIncTaxBuckets" class="w180"><option value="yes" selected>Yes (if assets added)</option><option value="no">No</option></select>
+      </div>
+      <div class="frow"><label class="flbl">Roth-style conversion window</label>
+        <select id="rptIncRoth" class="w180"><option value="yes" selected>Yes (if applicable)</option><option value="no">No</option></select>
       </div>
       <div class="frow"><label class="flbl">Required minimum withdrawals</label>
         <select id="rptIncRMD" class="w180"><option value="yes" selected>Yes (if country has a rule)</option><option value="no">No</option></select>
@@ -4746,6 +4760,70 @@ function renderRMDSchedule(s){
   host.innerHTML=h;
 }
 window.runRMDSchedule=runRMDSchedule; window.computeRMDSchedule=computeRMDSchedule;
+
+// ── Roth-style conversion (tax-deferred → tax-free) per country (illustrative) ──
+// avail: true (direct equivalent), "partial" (analogous strategy), false (none).
+const COUNTRY_ROTH = {
+  US:   {avail:true,      name:"Roth conversion", note:"Convert a Traditional IRA/401(k) to a Roth IRA, paying income tax now so future growth and withdrawals are tax-free — most valuable in low-income years before RMDs and Social Security begin."},
+  CA:   {avail:"partial", name:"RRSP meltdown",   note:"No direct Roth conversion, but an 'RRSP meltdown' draws from the RRSP in low-income years and re-homes it in a TFSA — paying tax now to move money into a tax-free account."},
+  GB:   {avail:"partial", name:"Pension lump sum → ISA", note:"No Roth conversion. A pension's 25% tax-free lump sum can be sheltered in an ISA; drawing taxable pension in low-income years can also reduce future higher-rate exposure."},
+  AU:   {avail:"partial", name:"Super re-contribution", note:"No Roth conversion, but a withdrawal-and-re-contribution strategy can convert the taxable component of super to a tax-free component — chiefly to cut death-benefits tax for non-dependants."},
+  CH:   {avail:"partial", name:"Pillar 3a staggering", note:"No Roth conversion, but staggering withdrawals across several Pillar 3a accounts in different years lowers the one-off withdrawal tax."},
+  KR:   {avail:"partial", name:"Pension savings account", note:"No Roth conversion; pension savings accounts give a contribution credit and lower tax on annuitised withdrawals."},
+  BR:   {avail:"partial", name:"PGBL vs VGBL choice", note:"No Roth conversion, but choosing VGBL (after-tax; only growth taxed) over PGBL (deductible; fully taxed) at the outset is the analogous decision."},
+  EU:   {avail:false,     name:"—", note:"No broad Roth-style conversion; varies by member state — some allow tax-free lump-sum pension options. Confirm locally."},
+  JP:   {avail:false,     name:"—", note:"No Roth conversion; NISA contributions are already after-tax and grow tax-free, separate from iDeCo."},
+  SG:   {avail:false,     name:"—", note:"No Roth conversion. SRS gives tax-deferred contributions with a 50% taxable-withdrawal concession from the retirement age."},
+  HK:   {avail:false,     name:"—", note:"No Roth conversion; MPF benefits are generally tax-free on withdrawal already."},
+  CN:   {avail:false,     name:"—", note:"No Roth-style conversion mechanism."},
+  TW:   {avail:false,     name:"—", note:"No Roth-style conversion mechanism."},
+  IN:   {avail:false,     name:"—", note:"No Roth conversion; PPF and ELSS are already tax-exempt on qualifying withdrawals (EEE)."},
+  ID:   {avail:false,     name:"—", note:"No Roth-style conversion mechanism."},
+  MX:   {avail:false,     name:"—", note:"No Roth conversion; personal retirement plans (PPR) give a deduction with taxable withdrawals."},
+  SA:   {avail:false,     name:"—", note:"No Roth-style conversion mechanism."},
+  ZA:   {avail:false,     name:"—", note:"No Roth conversion; the Tax-Free Savings Account is funded with after-tax money and grows tax-free within annual/lifetime limits."},
+  OTHER:{avail:false,     name:"—", note:"No country selected, or no Roth-style conversion modelled."}
+};
+function rothMechanismFor(cc){ if(COUNTRY_ROTH[cc]) return COUNTRY_ROTH[cc]; if(typeof EUROZONE_MEMBERS!=="undefined" && EUROZONE_MEMBERS.has(cc)) return COUNTRY_ROTH.EU; return COUNTRY_ROTH.OTHER; }
+function computeRothConversion(){
+  const cc=val("c1co")||"US";
+  const mech=rothMechanismFor(cc);
+  const a1=(typeof ageFromDOB==="function"?ageFromDOB(val("c1d")):55)||55;
+  const retAge=num("retAge",65);
+  const rmd=(typeof rmdRuleFor==="function")?rmdRuleFor(cc):{kind:"none",startAge:73};
+  const forcedAge=rmd.kind!=="none" ? rmd.startAge : Math.max(retAge+1, num("penStartAge",67));
+  const windowStart=Math.max(retAge, a1);
+  const windowEnd=Math.max(windowStart, forcedAge);
+  const windowYears=Math.max(0, windowEnd-windowStart);
+  const deferredPool=(typeof retirementAccountSeed==="function")?retirementAccountSeed():0;
+  let effTax=0.22; try{ const inc=getGrossIncome(); effTax=inc>0?Math.min(0.45,Math.max(0.10,computeIncomeTax(inc)/inc)):0.22; }catch(_){}
+  const windowTax=Math.max(0.10, effTax*0.75);   // lower bracket during the low-income window
+  const annualConv=windowYears>0 ? deferredPool/windowYears : 0;
+  const totalConverted=Math.min(deferredPool, annualConv*windowYears);
+  return {cc, mech, a1, retAge, forcedAge, windowStart, windowEnd, windowYears, deferredPool, annualConv, effTax, windowTax, totalConverted, taxPerYear:annualConv*windowTax, totalTax:totalConverted*windowTax};
+}
+function runRothConversion(){
+  const st=$("rothStatus"); if(st){ st.textContent="Analyzing…"; st.style.color="var(--text3)"; }
+  try{ renderRothConversion(computeRothConversion()); }catch(e){ if(st){ st.textContent="✗ "+e.message; st.style.color="var(--red)"; } return; }
+  if(st){ st.textContent="✓ done"; st.style.color="var(--green)"; }
+}
+function renderRothConversion(s){
+  const host=$("rothResults"); if(!host) return;
+  const cn=(COUNTRY_ACCOUNTS[val("c1co")]&&COUNTRY_ACCOUNTS[val("c1co")].name)||"Your country";
+  const box=(msg)=>'<div style="font-size:13px;color:var(--text2);line-height:1.7;padding:12px 14px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--rs)">'+msg+'</div>';
+  if(s.mech.avail===false){ host.innerHTML=box('<strong>'+_daEsc(cn)+' — no Roth-style conversion.</strong><br>'+_daEsc(s.mech.note)); return; }
+  if(!(s.deferredPool>0)){ host.innerHTML=box('<strong>'+_daEsc(cn)+' — '+_daEsc(s.mech.name)+'.</strong><br>'+_daEsc(s.mech.note)+'<br><span style="color:var(--text3)">No tax-deferred retirement pool detected — add retirement accounts to model a conversion.</span>'); return; }
+  if(s.windowYears<=0){ host.innerHTML=box('<strong>'+_daEsc(cn)+' — '+_daEsc(s.mech.name)+'.</strong><br>'+_daEsc(s.mech.note)+'<br><span style="color:var(--amber)">No low-income conversion window: your retirement age ('+s.retAge+') is at or after the mandatory-withdrawal age ('+s.forcedAge+'). Conversions are most useful in the gap between the two.</span>'); return; }
+  const card=(l,v)=>'<div class="mc"><div class="mc-lbl">'+l+'</div><div class="mc-val" style="font-size:16px">'+v+'</div></div>';
+  let h='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:12px">';
+  h+=card("Conversion window","age "+s.windowStart+"–"+s.windowEnd+" ("+s.windowYears+" yrs)")+card("Suggested / yr",fmtMoney(s.annualConv))+card("Tax / yr (~"+(s.windowTax*100).toFixed(0)+"%)",fmtMoney(s.taxPerYear))+card("Total converted",fmtMoney(s.totalConverted));
+  h+='</div>';
+  h+='<div style="font-size:12px;color:var(--text2);line-height:1.7;margin-bottom:8px"><strong>'+_daEsc(cn)+' — '+_daEsc(s.mech.name)+(s.mech.avail==="partial"?' (analogous strategy)':'')+'.</strong> '+_daEsc(s.mech.note)+'</div>';
+  h+='<div style="font-size:12px;color:var(--text2);line-height:1.7">Spreading your '+fmtMoney(s.deferredPool)+' tax-deferred pool across the '+s.windowYears+'-year window (~'+fmtMoney(s.annualConv)+'/yr) moves it into the tax-free bucket at an estimated '+(s.windowTax*100).toFixed(0)+'% rate (~'+fmtMoney(s.totalTax)+' total tax) — instead of leaving it to grow the tax-deferred balance and force larger, higher-rate required withdrawals later.</div>';
+  h+='<div style="font-size:10px;color:var(--text3);margin-top:8px">Illustrative, level-conversion estimate — not tax advice. The optimal amount depends on filling specific tax brackets, benefit/credit thresholds and your other income. Confirm with a tax professional.</div>';
+  host.innerHTML=h;
+}
+window.runRothConversion=runRothConversion; window.computeRothConversion=computeRothConversion;
 
 
 // ═══════════════════════════════════════════════════════════
@@ -14467,6 +14545,26 @@ function buildReportHtml(){
   }
 
   // --- Estate transfer summary section ---
+  let rothSection="";
+  if((val("rptIncRoth")||"yes")!=="no" && typeof computeRothConversion==="function"){
+    try{
+      const s=computeRothConversion();
+      if(s && s.mech.avail!==false && s.deferredPool>0 && s.windowYears>0){
+        const cn=(COUNTRY_ACCOUNTS[val("c1co")]&&COUNTRY_ACCOUNTS[val("c1co")].name)||"";
+        rothSection=`<h2>Roth-style conversion window</h2>
+        <p style="font-size:12px;color:#555">${cn?cn+" — ":""}${s.mech.name}${s.mech.avail==="partial"?" (analogous strategy)":""}. ${s.mech.note}</p>
+        <table>
+        <tr><th>Low-income window</th><td>age ${s.windowStart}–${s.windowEnd} (${s.windowYears} years)</td></tr>
+        <tr><th>Tax-deferred pool today</th><td>${fmtMoneyFull(s.deferredPool)}</td></tr>
+        <tr><th>Suggested level conversion / yr</th><td>${fmtMoneyFull(s.annualConv)}</td></tr>
+        <tr><th>Estimated tax rate in window</th><td>${(s.windowTax*100).toFixed(0)}%</td></tr>
+        <tr><th>Total converted over window</th><td>${fmtMoneyFull(s.totalConverted)}</td></tr>
+        <tr><th>Estimated total tax</th><td>${fmtMoneyFull(s.totalTax)}</td></tr></table>
+        <p>Spreading the tax-deferred pool across the window moves it into the tax-free bucket at an estimated ${(s.windowTax*100).toFixed(0)}% rate, rather than leaving it to grow the tax-deferred balance and force larger, higher-rate required withdrawals later. <em>Illustrative — not tax advice.</em></p>`;
+      }
+    }catch(_){ rothSection=""; }
+  }
+
   let taxBucketsSection="";
   if((val("rptIncTaxBuckets")||"yes")!=="no" && typeof computeWithdrawalOrder==="function"){
     try{
@@ -14621,6 +14719,7 @@ function buildReportHtml(){
   ${cfSection}
   ${cmaSection}
   ${taxBucketsSection}
+  ${rothSection}
   ${rmdSection}
   ${estateSection}
   ${glossarySection}
@@ -14974,7 +15073,7 @@ function gbRenderCMA(weights, port){
 // ═══════════════════════════════════════════════════════════════════
 // PDF REPORT — custom content + page ordering
 // ═══════════════════════════════════════════════════════════════════
-const RPT_DEFAULT_ORDER = ["exec","about","hh","inc","equity","assets","insurance","goals","strategies","port","factsheets","sim","fund","goalfunding","lifestyle","wealthframework","potentialwealth","rmd","taxbuckets","estate","cf","educharts","cma","method","glossary","disc"];
+const RPT_DEFAULT_ORDER = ["exec","about","hh","inc","equity","assets","insurance","goals","strategies","port","factsheets","sim","fund","goalfunding","lifestyle","wealthframework","potentialwealth","rmd","taxbuckets","roth","estate","cf","educharts","cma","method","glossary","disc"];
 const RPT_SECTION_LABELS = {
   exec:            "Executive Summary",
   about:           "About the Client (custom)",
@@ -14995,6 +15094,7 @@ const RPT_SECTION_LABELS = {
   potentialwealth: "Annual Potential Wealth",
   rmd:             "Required Minimum Withdrawals",
   taxbuckets:      "Tax Buckets & Withdrawal Order",
+  roth:            "Roth-Style Conversion Window",
   estate:          "Estate Transfer Summary",
   cf:              "Cash-Flow Projection",
   cma:             "Capital Market Assumptions",
@@ -16007,6 +16107,7 @@ function drawFanChart(){
       potentialwealth:() => val("rptIncPotWealth") !== "no" && lastSimPaths && lastSimPaths.length > 0,
       rmd:            () => val("rptIncRMD") !== "no" && (typeof rmdRuleFor==="function") && rmdRuleFor(val("c1co")).kind !== "none" && (typeof retirementAccountSeed==="function") && retirementAccountSeed() > 0,
       taxbuckets:     () => val("rptIncTaxBuckets") !== "no" && (typeof computeWithdrawalOrder==="function") && (function(){ try{ return computeWithdrawalOrder().t.total > 0; }catch(_){ return false; } })(),
+      roth:           () => val("rptIncRoth") !== "no" && (typeof computeRothConversion==="function") && (function(){ try{ const r=computeRothConversion(); return r.mech.avail!==false && r.deferredPool>0 && r.windowYears>0; }catch(_){ return false; } })(),
       estate:         () => val("rptIncEstate") !== "no" && (beneficiaries.length > 0 || insuranceDeathBenefit() > 0),
       cma:            () => val("rptIncCMA") !== "no",
       cf:             () => val("rptIncCF") !== "no",
@@ -16531,6 +16632,27 @@ function drawFanChart(){
           ]);
         }
         tbl(["Year","Age","Conservative (80%)","Expected (50%)","Optimistic (30%)"], rows);
+      },
+      // ─── ROTH-STYLE CONVERSION WINDOW ──
+      roth: () => {
+        if(val("rptIncRoth") === "no") return;
+        let s; try{ s=computeRothConversion(); }catch(e){ return; }
+        if(!s || s.mech.avail===false || !(s.deferredPool>0) || s.windowYears<=0) return;
+        newPage();
+        const cn=(COUNTRY_ACCOUNTS[val("c1co")]&&COUNTRY_ACCOUNTS[val("c1co")].name)||"";
+        sectionH2("Roth-Style Conversion Window");
+        para((cn?cn+" - ":"")+s.mech.name+(s.mech.avail==="partial"?" (analogous strategy)":"")+". "+s.mech.note);
+        kv([
+          ["Low-income window", "age "+s.windowStart+"-"+s.windowEnd+"  ("+s.windowYears+" years)"],
+          ["Tax-deferred pool today", fmt(s.deferredPool)],
+          ["Suggested level conversion / yr", fmt(s.annualConv)],
+          ["Estimated tax rate in window", (s.windowTax*100).toFixed(0)+"%"],
+          ["Estimated tax / yr", fmt(s.taxPerYear)],
+          ["Total converted over window", fmt(s.totalConverted)],
+          ["Estimated total tax", fmt(s.totalTax)],
+        ]);
+        para("Spreading the tax-deferred pool across the low-income window moves it into the tax-free bucket at an estimated "+(s.windowTax*100).toFixed(0)+"% rate, rather than leaving it to grow the tax-deferred balance and force larger, higher-rate required withdrawals later.");
+        para("Illustrative, level-conversion estimate - not tax advice. The optimal amount depends on filling specific tax brackets, benefit/credit thresholds and other income. Confirm with a tax professional.", [120,120,120]);
       },
       // ─── TAX BUCKETS & WITHDRAWAL ORDER ──
       taxbuckets: () => {
