@@ -2055,6 +2055,17 @@ input[type=date]{color-scheme:light}
   <div id="rdSustain"></div>
 </div>
 
+<!-- Required Minimum Withdrawals (RMD / RRIF / min pension) — country-aware -->
+<div class="panel">
+  <div class="ptitle">Required Minimum Withdrawals</div>
+  <div style="font-size:12px;color:var(--text3);line-height:1.6;margin-bottom:10px">Many countries force a minimum annual withdrawal from tax-deferred retirement accounts once you reach a set age — the US <strong style="color:var(--text2)">RMD</strong>, Canada's <strong style="color:var(--text2)">RRIF minimum</strong>, Australia's <strong style="color:var(--text2)">minimum pension drawdown</strong>. This projects that mandatory schedule from your retirement pool and estimates the tax it triggers, using your household country's rule. Illustrative — not tax advice.</div>
+  <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-bottom:12px">
+    <button class="btn-primary" onclick="runRMDSchedule()">▶ Project minimum withdrawals</button>
+    <span id="rmdStatus" style="font-size:12px;color:var(--text3)"></span>
+  </div>
+  <div id="rmdResults"><div class="pf-empty">Set your country (Household tab) and retirement accounts, then project the schedule.</div></div>
+</div>
+
 <div class="panel" id="goalResults" style="display:none">
   <div class="ptitle">Goal Analysis</div>
   <div id="goalResultList"></div>
@@ -3225,6 +3236,9 @@ input[type=date]{color-scheme:light}
       </div>
       <div class="frow"><label class="flbl">Annual potential wealth</label>
         <select id="rptIncPotWealth" class="w180"><option value="yes" selected>Yes (if simulated)</option><option value="no">No</option></select>
+      </div>
+      <div class="frow"><label class="flbl">Required minimum withdrawals</label>
+        <select id="rptIncRMD" class="w180"><option value="yes" selected>Yes (if country has a rule)</option><option value="no">No</option></select>
       </div>
       <div class="frow"><label class="flbl">Estate transfer summary</label>
         <select id="rptIncEstate" class="w180"><option value="yes" selected>Yes (if beneficiaries/insurance)</option><option value="no">No</option></select>
@@ -4659,6 +4673,75 @@ function renderEstateRegimeNote(){
   const reg=estateRegimeFor(val("c1co")); const cn=(COUNTRY_ACCOUNTS[val("c1co")]&&COUNTRY_ACCOUNTS[val("c1co")].name)||"your country";
   host.innerHTML='<strong style="color:var(--text2)">'+_daEsc(cn)+' — '+(ESTATE_BASIS_LABEL[reg.basis]||reg.basis)+'.</strong> '+_daEsc(reg.note)+' <em style="color:var(--text3)">Illustrative ~2024 default; editable above. Verify with a local advisor — this is not tax advice.</em>';
 }
+
+// ── Mandatory retirement-withdrawal rules per country (illustrative, ~2024) ──
+// kind: rmd (US, IRS Uniform Lifetime Table), rrif (Canada), minpension (Australia),
+// none (no statutory minimum). Educational defaults — verify locally; not tax advice.
+const COUNTRY_RMD = {
+  US:   {kind:"rmd",        startAge:73, note:"Required Minimum Distributions from tax-deferred accounts (Traditional IRA / 401(k)) begin at age 73 (SECURE 2.0), using the IRS Uniform Lifetime Table. Roth IRAs are exempt during the owner's lifetime."},
+  CA:   {kind:"rrif",       startAge:72, note:"An RRSP must convert to a RRIF by the end of the year you turn 71; CRA-prescribed minimum withdrawals then begin (age 72), rising with age."},
+  GB:   {kind:"none",       startAge:0,  note:"No mandatory drawdown since the 2015 pension freedoms — you choose when and how much to draw from a defined-contribution pension."},
+  AU:   {kind:"minpension", startAge:60, note:"Account-based pensions carry a minimum annual drawdown that rises with age (4% under 65 up to 14% at 95+) once in the retirement phase."},
+  EU:   {kind:"none",       startAge:0,  note:"Varies by member state and product; many DC pensions have no fixed minimum drawdown. Confirm the specific country and scheme."},
+  CH:   {kind:"none",       startAge:0,  note:"Pillar 2 / 3a are usually drawn as a lump sum or annuity at retirement; no annual RMD-style minimum."},
+  JP:   {kind:"none",       startAge:0,  note:"iDeCo / corporate DC pensions are drawn as a lump sum or scheduled instalments by ~age 75; no annual minimum like RMDs."},
+  OTHER:{kind:"none",       startAge:0,  note:"No country selected, or no statutory minimum-withdrawal rule is modelled. Use the drawdown analysis above to set your own withdrawals."}
+};
+function rmdRuleFor(cc){ if(COUNTRY_RMD[cc]) return COUNTRY_RMD[cc]; if(typeof EUROZONE_MEMBERS!=="undefined" && EUROZONE_MEMBERS.has(cc)) return COUNTRY_RMD.EU; return COUNTRY_RMD.OTHER; }
+// Required-minimum fraction by rule + age. Reuses the canonical factor tables
+// (IRS_ULT, RRIF_RATES, auSuperRate) defined later in the script.
+function mandatoryWithdrawalFrac(kind, age){
+  if(kind==="rmd"){ if(age<73) return 0; const d=IRS_ULT[Math.min(120,age)]; return d?1/d:0; }
+  if(kind==="rrif"){ if(age<71) return 0; return (RRIF_RATES[Math.min(94,age)]||20)/100; }
+  if(kind==="minpension"){ return (typeof auSuperRate==="function"?auSuperRate(age):0)/100; }
+  return 0;
+}
+// Project the mandatory-withdrawal schedule from the tax-deferred retirement pool.
+function computeRMDSchedule(){
+  const rule=rmdRuleFor(val("c1co"));
+  const base=(typeof retirementAccountSeed==="function")?retirementAccountSeed():0;
+  const a1=(typeof ageFromDOB==="function"?ageFromDOB(val("c1d")):40)||40;
+  const planAge=Math.max((rule.startAge||73)+1, num("rdPlanAge",90));
+  const growth=(typeof RET_POOL_MU!=="undefined")?RET_POOL_MU:0.035;
+  let effTax=0.22; try{ const inc=getGrossIncome(); effTax=inc>0?Math.min(0.45,Math.max(0.10,computeIncomeTax(inc)/inc)):0.22; }catch(_){}
+  const cy=(typeof currentYear==="function")?currentYear():new Date().getFullYear();
+  const rows=[]; let bal=base, totalW=0, totalTax=0;
+  if(rule.kind==="none" || !(base>0)) return {rule,base,a1,planAge,growth,effTax,rows,totalW:0,totalTax:0};
+  for(let age=a1; age<rule.startAge; age++){ bal*=(1+growth); }   // grow to the start age
+  for(let age=rule.startAge; age<=planAge; age++){
+    const frac=mandatoryWithdrawalFrac(rule.kind, age), w=bal*frac, tax=w*effTax;
+    rows.push({age, year:cy+(age-a1), startBal:bal, frac, withdrawal:w, taxEst:tax, endBal:Math.max(0,bal-w)});
+    totalW+=w; totalTax+=tax; bal=Math.max(0,bal-w)*(1+growth);
+  }
+  return {rule,base,a1,planAge,growth,effTax,rows,totalW,totalTax};
+}
+function runRMDSchedule(){
+  const st=$("rmdStatus"); if(st){ st.textContent="Projecting…"; st.style.color="var(--text3)"; }
+  let s; try{ s=computeRMDSchedule(); }catch(e){ if(st){ st.textContent="✗ "+e.message; st.style.color="var(--red)"; } return; }
+  renderRMDSchedule(s);
+  if(st){ st.textContent="✓ done"; st.style.color="var(--green)"; }
+}
+function renderRMDSchedule(s){
+  const host=$("rmdResults"); if(!host) return;
+  const cn=(COUNTRY_ACCOUNTS[val("c1co")]&&COUNTRY_ACCOUNTS[val("c1co")].name)||"Your country";
+  const kindLbl={rmd:"US Required Minimum Distributions",rrif:"Canada RRIF minimum",minpension:"Australia minimum pension drawdown",none:"No statutory minimum"}[s.rule.kind]||s.rule.kind;
+  if(s.rule.kind==="none" || !s.rows.length){
+    host.innerHTML='<div style="font-size:13px;color:var(--text2);line-height:1.7;padding:12px 14px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--rs)"><strong>'+_daEsc(cn)+' — '+kindLbl+'.</strong><br>'+_daEsc(s.rule.note)+(!(s.base>0)?'<br><span style="color:var(--text3)">No tax-deferred retirement pool detected — add retirement accounts to model a schedule.</span>':'')+'</div>';
+    return;
+  }
+  const step=s.rows.length>20?5:1;
+  const shown=s.rows.filter((r,i)=>i%step===0 || i===s.rows.length-1);
+  const card=(l,v)=>'<div class="mc"><div class="mc-lbl">'+l+'</div><div class="mc-val" style="font-size:16px">'+v+'</div></div>';
+  let h='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:12px">';
+  h+=card("Rule",kindLbl)+card("Starts at age",s.rule.startAge)+card("Total required (to "+s.planAge+")",fmtMoney(s.totalW))+card("Est. tax on withdrawals",fmtMoney(s.totalTax));
+  h+='</div>';
+  h+='<div style="font-size:11px;color:var(--text3);line-height:1.6;margin-bottom:10px">'+_daEsc(cn)+': '+_daEsc(s.rule.note)+' Pool projected at '+(s.growth*100).toFixed(1)+'%/yr; tax estimated at '+(s.effTax*100).toFixed(0)+'% effective. Illustrative — not tax advice.</div>';
+  h+='<div style="overflow:auto"><table style="width:100%;border-collapse:collapse;font-size:12px"><tr style="color:var(--text3);text-align:left"><th style="padding:4px 8px">Age</th><th>Year</th><th>Pool (start)</th><th>Required %</th><th>Withdrawal</th><th>Est. tax</th><th>Pool (end)</th></tr>';
+  h+=shown.map(r=>'<tr style="border-top:1px solid var(--border)"><td style="padding:4px 8px">'+r.age+'</td><td>'+r.year+'</td><td>'+fmtMoney(r.startBal)+'</td><td>'+(r.frac*100).toFixed(2)+'%</td><td>'+fmtMoney(r.withdrawal)+'</td><td>'+fmtMoney(r.taxEst)+'</td><td>'+fmtMoney(r.endBal)+'</td></tr>').join('');
+  h+='</table></div>';
+  host.innerHTML=h;
+}
+window.runRMDSchedule=runRMDSchedule; window.computeRMDSchedule=computeRMDSchedule;
 
 
 // ═══════════════════════════════════════════════════════════
@@ -14380,6 +14463,24 @@ function buildReportHtml(){
   }
 
   // --- Estate transfer summary section ---
+  let rmdSection="";
+  if((val("rptIncRMD")||"yes")!=="no" && typeof computeRMDSchedule==="function"){
+    try{
+      const s=computeRMDSchedule();
+      if(s.rule.kind!=="none" && s.rows.length){
+        const cn=(COUNTRY_ACCOUNTS[val("c1co")]&&COUNTRY_ACCOUNTS[val("c1co")].name)||"";
+        const kindLbl={rmd:"US Required Minimum Distributions",rrif:"Canada RRIF minimum",minpension:"Australia minimum pension drawdown"}[s.rule.kind]||s.rule.kind;
+        const step=s.rows.length>22?5:1;
+        const shown=s.rows.filter((r,i)=>i%step===0||i===s.rows.length-1);
+        rmdSection=`<h2>Required minimum withdrawals</h2>
+        <p style="font-size:12px;color:#555">${cn?cn+" — ":""}${kindLbl}. ${s.rule.note} Pool projected at ${(s.growth*100).toFixed(1)}%/yr; tax estimated at ${(s.effTax*100).toFixed(0)}% effective. <em>Illustrative — not tax advice.</em></p>
+        <p>Mandatory from age <strong>${s.rule.startAge}</strong> · tax-deferred pool today ${fmtMoneyFull(s.base)} · total required to age ${s.planAge} <strong>${fmtMoneyFull(s.totalW)}</strong> · estimated tax ${fmtMoneyFull(s.totalTax)}.</p>
+        <table><tr><th>Age</th><th>Year</th><th>Pool (start)</th><th>Required %</th><th>Withdrawal</th><th>Est. tax</th><th>Pool (end)</th></tr>
+        ${shown.map(r=>`<tr><td>${r.age}</td><td>${r.year}</td><td>${fmtMoneyFull(r.startBal)}</td><td>${(r.frac*100).toFixed(2)}%</td><td>${fmtMoneyFull(r.withdrawal)}</td><td>${fmtMoneyFull(r.taxEst)}</td><td>${fmtMoneyFull(r.endBal)}</td></tr>`).join("")}</table>`;
+      }
+    }catch(_){ rmdSection=""; }
+  }
+
   let estateSection="";
   if((val("rptIncEstate")||"yes")!=="no" && (beneficiaries.length>0 || insuranceDeathBenefit()>0)){
     try{
@@ -14495,6 +14596,7 @@ function buildReportHtml(){
   ${potWealthSection}
   ${cfSection}
   ${cmaSection}
+  ${rmdSection}
   ${estateSection}
   ${glossarySection}
 
@@ -14847,7 +14949,7 @@ function gbRenderCMA(weights, port){
 // ═══════════════════════════════════════════════════════════════════
 // PDF REPORT — custom content + page ordering
 // ═══════════════════════════════════════════════════════════════════
-const RPT_DEFAULT_ORDER = ["exec","about","hh","inc","equity","assets","insurance","goals","strategies","port","factsheets","sim","fund","goalfunding","lifestyle","wealthframework","potentialwealth","estate","cf","educharts","cma","method","glossary","disc"];
+const RPT_DEFAULT_ORDER = ["exec","about","hh","inc","equity","assets","insurance","goals","strategies","port","factsheets","sim","fund","goalfunding","lifestyle","wealthframework","potentialwealth","rmd","estate","cf","educharts","cma","method","glossary","disc"];
 const RPT_SECTION_LABELS = {
   exec:            "Executive Summary",
   about:           "About the Client (custom)",
@@ -14866,6 +14968,7 @@ const RPT_SECTION_LABELS = {
   lifestyle:       "Potentially Achievable Lifestyle",
   wealthframework: "Wealth Allocation Framework",
   potentialwealth: "Annual Potential Wealth",
+  rmd:             "Required Minimum Withdrawals",
   estate:          "Estate Transfer Summary",
   cf:              "Cash-Flow Projection",
   cma:             "Capital Market Assumptions",
@@ -15876,6 +15979,7 @@ function drawFanChart(){
       lifestyle:      () => val("rptIncLifestyle") !== "no",
       wealthframework:() => val("rptIncWealthFw") !== "no",
       potentialwealth:() => val("rptIncPotWealth") !== "no" && lastSimPaths && lastSimPaths.length > 0,
+      rmd:            () => val("rptIncRMD") !== "no" && (typeof rmdRuleFor==="function") && rmdRuleFor(val("c1co")).kind !== "none" && (typeof retirementAccountSeed==="function") && retirementAccountSeed() > 0,
       estate:         () => val("rptIncEstate") !== "no" && (beneficiaries.length > 0 || insuranceDeathBenefit() > 0),
       cma:            () => val("rptIncCMA") !== "no",
       cf:             () => val("rptIncCF") !== "no",
@@ -16400,6 +16504,30 @@ function drawFanChart(){
           ]);
         }
         tbl(["Year","Age","Conservative (80%)","Expected (50%)","Optimistic (30%)"], rows);
+      },
+      // ─── REQUIRED MINIMUM WITHDRAWALS (RMD / RRIF / min pension) ──
+      rmd: () => {
+        if(val("rptIncRMD") === "no") return;
+        let s; try{ s=computeRMDSchedule(); }catch(e){ return; }
+        if(s.rule.kind==="none" || !s.rows.length) return;
+        newPage();
+        const cn=(COUNTRY_ACCOUNTS[val("c1co")]&&COUNTRY_ACCOUNTS[val("c1co")].name)||"";
+        const kindLbl={rmd:"US Required Minimum Distributions",rrif:"Canada RRIF minimum",minpension:"Australia minimum pension drawdown"}[s.rule.kind]||s.rule.kind;
+        sectionH2("Required Minimum Withdrawals");
+        para((cn?cn+" - ":"")+kindLbl+". "+s.rule.note+" Pool projected at "+(s.growth*100).toFixed(1)+"%/yr; tax estimated at "+(s.effTax*100).toFixed(0)+"% effective. Illustrative - not tax advice.");
+        kv([
+          ["Rule", kindLbl],
+          ["Mandatory from age", String(s.rule.startAge)],
+          ["Tax-deferred pool (today)", fmt(s.base)],
+          ["Total required withdrawals (to age "+s.planAge+")", fmt(s.totalW)],
+          ["Estimated tax on those withdrawals", fmt(s.totalTax)],
+        ]);
+        checkY(30);
+        const step=s.rows.length>22?5:1;
+        const shown=s.rows.filter((r,i)=>i%step===0 || i===s.rows.length-1);
+        tbl(["Age","Year","Pool (start)","Required %","Withdrawal","Est. tax","Pool (end)"],
+          shown.map(r=>[r.age, r.year, fmt(r.startBal), (r.frac*100).toFixed(2)+"%", fmt(r.withdrawal), fmt(r.taxEst), fmt(r.endBal)]));
+        para("Required minimum withdrawals are forced taxable distributions; they need not be spent, but the tax is due whether or not the funds are needed. Roth-type accounts are generally exempt. Confirm current factors with a tax professional.", [120,120,120]);
       },
       // ─── ESTATE TRANSFER SUMMARY (lite) ──
       estate: () => {
