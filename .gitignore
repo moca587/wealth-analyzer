@@ -11,7 +11,10 @@ node_modules/
 .env.local
 .env.*.local
 
-# Confidential reference material - never publish (NDA + third-party copyright)
+# macOS Finder junk
+.DS_Store
+
+# Confidential reference material — never publish (NDA + third-party copyright)
 NDA_Wealth_Analyzer_Petros_Diamantogiannis.pdf
 Merrill_Lynch_Investment_and_Retirement_Planning_May_8_2020.pdf
 Morgan Stanley PWA Sample.pdf
