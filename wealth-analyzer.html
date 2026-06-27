@@ -1054,7 +1054,7 @@ input[type=date]{color-scheme:light}
   </div>
   <div class="nav-grp-label">Portfolio</div>
   <div class="nav-item" data-tab="portfolio" onclick="showTab('portfolio',this)">
-    <svg viewBox="0 0 16 16" fill="currentColor"><path d="M2 2h12v3H2V2zm0 4.5h5.5v7.5H2V6.5zm6.5 0H14v3H8.5v-3zm0 4H14v3.5H8.5v-3.5z"/></svg>Portfolio
+    <svg viewBox="0 0 16 16" fill="currentColor"><path d="M2 2h12v3H2V2zm0 4.5h5.5v7.5H2V6.5zm6.5 0H14v3H8.5v-3zm0 4H14v3.5H8.5v-3.5z"/></svg>Current Portfolio
   </div>
   <div class="nav-item" data-tab="proposal" onclick="showTab('proposal',this)">
     <svg viewBox="0 0 16 16" fill="currentColor"><path d="M3 1h7l3 3v11a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1zm6.5 1v3h3l-3-3zM4.5 7h7v1h-7V7zm0 2.5h7v1h-7v-1zm0 2.5h5v1h-5v-1z"/></svg>Investment Proposal
@@ -1562,6 +1562,37 @@ input[type=date]{color-scheme:light}
     <div style="font-size:11px;color:var(--text3)">Business interests, collectibles, receivables, or any other asset not captured above.</div>
   </div>
 
+  <!-- ─── Equity Compensation — grouped with real estate / other assets ─── -->
+  <div class="sdiv">
+    <div class="slbl section-dropdown" onclick="toggleDropdown('equityBody')">
+      Equity Compensation — Options &amp; RSUs <span class="dropdown-hint">click to expand</span>
+    </div>
+    <div class="dropdown-body" id="equityBody">
+      <div style="font-size:12px;color:var(--text3);margin:10px 0 12px;line-height:1.5">Track stock options and restricted stock units. Tranches vest in equal annual amounts; <strong style="color:var(--text2)">vesting proceeds flow into income</strong> (and are taxed) in both the cash-flow projection and the Monte Carlo simulation.</div>
+      <div id="eqList"><div class="empty">No grants added.</div></div>
+      <div class="sdiv">
+        <div class="slbl">Add Grant</div>
+        <div class="frow"><label class="flbl">Grant type</label>
+          <select id="eqkind" class="w200">
+            <option value="rsu">RSU — restricted stock units</option>
+            <option value="nqso">NQSO — non-qualified options</option>
+            <option value="iso">ISO — incentive options</option>
+          </select>
+        </div>
+        <div class="frow"><label class="flbl">Company / ticker</label><input id="eqtkr" placeholder="e.g. AAPL" class="w140"></div>
+        <div class="frow"><label class="flbl">Number of shares</label><input type="number" id="eqshares" placeholder="0" step="100" class="w140"></div>
+        <div class="frow" id="eqstrikeRow"><label class="flbl">Strike price (options)</label><input type="number" id="eqstrike" placeholder="0" step="0.01" class="w140"></div>
+        <div class="frow"><label class="flbl">Current share price</label><input type="number" id="eqprice" placeholder="0" step="0.01" class="w140"></div>
+        <div class="frow"><label class="flbl">Assumed share growth %/yr</label><input type="number" id="eqgrowth" value="8" step="0.5" class="w120"></div>
+        <div class="frow"><label class="flbl">First vesting year</label><input type="number" id="eqstart" placeholder="2027" step="1" class="w120"></div>
+        <div class="frow"><label class="flbl">Vesting period (years)</label><input type="number" id="eqyears" value="4" step="1" class="w120"></div>
+        <div class="frow"><label class="flbl">Label (optional)</label><input id="eqlbl" placeholder="e.g. 2026 refresh grant" class="w200"></div>
+        <button id="eqAddBtn" class="btn-secondary full" onclick="addEquityGrant()">+ Add Grant</button>
+        <button id="eqCancelBtn" class="btn-secondary full" onclick="cancelEditEquityGrant()" style="display:none;margin-top:4px;color:var(--text3)">✕ Cancel edit</button>
+      </div>
+    </div>
+  </div>
+
   <div class="sdiv">
     <div class="slbl section-dropdown" onclick="toggleDropdown('invParamsBody')">
       Investment Parameters <span class="dropdown-hint">click to expand</span>
@@ -1613,37 +1644,6 @@ input[type=date]{color-scheme:light}
   </div>
 </div>
 
-<!-- ─── Equity Compensation (moved from Income; collapsible) ─── -->
-<div class="panel" id="equityPanel">
-  <div class="ptitle section-dropdown" onclick="toggleDropdown('equityBody')">
-    Equity Compensation — Options &amp; RSUs <span class="dropdown-hint">click to expand</span>
-    <span class="ptitle-line"></span>
-  </div>
-  <div class="dropdown-body" id="equityBody">
-    <div style="font-size:12px;color:var(--text3);margin:10px 0 12px;line-height:1.5">Track stock options and restricted stock units. Tranches vest in equal annual amounts; <strong style="color:var(--text2)">vesting proceeds flow into income</strong> (and are taxed) in both the cash-flow projection and the Monte Carlo simulation.</div>
-    <div id="eqList"><div class="empty">No grants added.</div></div>
-    <div class="sdiv">
-      <div class="slbl">Add Grant</div>
-      <div class="frow"><label class="flbl">Grant type</label>
-        <select id="eqkind" class="w200">
-          <option value="rsu">RSU — restricted stock units</option>
-          <option value="nqso">NQSO — non-qualified options</option>
-          <option value="iso">ISO — incentive options</option>
-        </select>
-      </div>
-      <div class="frow"><label class="flbl">Company / ticker</label><input id="eqtkr" placeholder="e.g. AAPL" class="w140"></div>
-      <div class="frow"><label class="flbl">Number of shares</label><input type="number" id="eqshares" placeholder="0" step="100" class="w140"></div>
-      <div class="frow" id="eqstrikeRow"><label class="flbl">Strike price (options)</label><input type="number" id="eqstrike" placeholder="0" step="0.01" class="w140"></div>
-      <div class="frow"><label class="flbl">Current share price</label><input type="number" id="eqprice" placeholder="0" step="0.01" class="w140"></div>
-      <div class="frow"><label class="flbl">Assumed share growth %/yr</label><input type="number" id="eqgrowth" value="8" step="0.5" class="w120"></div>
-      <div class="frow"><label class="flbl">First vesting year</label><input type="number" id="eqstart" placeholder="2027" step="1" class="w120"></div>
-      <div class="frow"><label class="flbl">Vesting period (years)</label><input type="number" id="eqyears" value="4" step="1" class="w120"></div>
-      <div class="frow"><label class="flbl">Label (optional)</label><input id="eqlbl" placeholder="e.g. 2026 refresh grant" class="w200"></div>
-      <button id="eqAddBtn" class="btn-secondary full" onclick="addEquityGrant()">+ Add Grant</button>
-      <button id="eqCancelBtn" class="btn-secondary full" onclick="cancelEditEquityGrant()" style="display:none;margin-top:4px;color:var(--text3)">✕ Cancel edit</button>
-    </div>
-  </div>
-</div>
 </div>
 
 <!-- ═══ LIABILITIES ═══ -->
@@ -2303,7 +2303,7 @@ input[type=date]{color-scheme:light}
 
 <!-- Summary -->
 <div class="panel">
-  <div class="ptitle">Portfolio Summary</div>
+  <div class="ptitle">Current Portfolio Summary</div>
   <div class="pf-summary" id="pfSummary">
     <div class="pf-mc"><div class="pf-mc-lbl">Total value<span class="info-ic">i<span class="info-pop"><strong>Total value</strong> — the sum of all holding values in this portfolio. When non-zero, it seeds the Monte Carlo investment pool and its asset-class mix overrides the risk-profile return assumptions.</span></span></div><div class="pf-mc-val" id="pf-total">$0</div></div>
     <div class="pf-mc"><div class="pf-mc-lbl">Holdings<span class="info-ic">i<span class="info-pop"><strong>Holdings</strong> — the number of distinct positions entered. More positions usually means more diversification, but quality of mix matters more than count.</span></span></div><div class="pf-mc-val" id="pf-count">0</div></div>
@@ -2861,6 +2861,7 @@ input[type=date]{color-scheme:light}
 <!-- Parameter side-by-side -->
 <div class="panel">
   <div class="ptitle">Return & Risk Profile</div>
+  <div style="font-size:12px;color:var(--text3);margin-bottom:12px;line-height:1.6">This is the <strong style="color:var(--text2)">forward-looking expected</strong> return — the long-run average implied by each portfolio's asset-class mix (capital-market assumptions). It will <strong style="color:var(--text2)">not</strong> equal the <em>Average Annualized Return</em> box below, which shows <strong style="color:var(--text2)">historical trailing</strong> returns (what the funds actually returned over the past 1/3/5/10 years). Expected ≠ trailing by design — one looks forward, the other looks back.</div>
   <div class="cmp-grid" id="cmpParams">
     <div class="cmp-h cur">Current portfolio</div>
     <div class="cmp-h prop">Proposed portfolio</div>
@@ -14590,7 +14591,7 @@ function runComparison(){
 
   // Render parameters comparison — gross return, fee, net return, volatility
   const params=$("cmpParams");
-  const d=(a,b,inv=false)=>{const v=a-b; const pos=inv?v<0:v>0; return `<div class="cmp-c ${v>0.00001?'delta-pos':v<-0.00001?'delta-neg':'delta-neu'}">${v>=0?'+':''}${(v*100).toFixed(2)}%</div>`;};
+  const d=(a,b,inv=false)=>{const v=a-b; const eq=Math.abs(v)<=0.00001; return `<div class="cmp-c ${eq?'delta-neu':(v>0?'delta-pos':'delta-neg')}">${eq?'0.00%':((v>=0?'+':'')+(v*100).toFixed(2)+'%')}</div>`;};
   params.innerHTML = `
     <div class="cmp-h cur">Current portfolio</div>
     <div class="cmp-h prop">Proposed portfolio</div>
@@ -14600,13 +14601,13 @@ function runComparison(){
     ${d(propGrossMu,curGrossMu)}
     <div class="cmp-c"><span class="lbl">Advisory fee</span>${curFee>0?(curFee*100).toFixed(2)+"%" : "None"}</div>
     <div class="cmp-c"><span class="lbl">Advisory fee</span>${propFee>0?(propFee*100).toFixed(2)+"%" : "None"}</div>
-    <div class="cmp-c ${propFee<curFee?'delta-pos':propFee>curFee?'delta-neg':'delta-neu'}">${propFee===curFee?"—":((propFee-curFee)*100>=0?'+':'')+((propFee-curFee)*100).toFixed(2)+"%"}</div>
+    <div class="cmp-c ${propFee<curFee?'delta-pos':propFee>curFee?'delta-neg':'delta-neu'}">${propFee===curFee?"0.00%":((propFee-curFee)*100>=0?'+':'')+((propFee-curFee)*100).toFixed(2)+"%"}</div>
     <div class="cmp-c"><span class="lbl">Net return</span><strong>${(curParams.mu*100).toFixed(2)}%</strong></div>
     <div class="cmp-c"><span class="lbl">Net return</span><strong>${(propMu*100).toFixed(2)}%</strong></div>
     ${d(propMu,curParams.mu)}
     <div class="cmp-c"><span class="lbl">Volatility</span>${(curParams.sig*100).toFixed(2)}%</div>
     <div class="cmp-c"><span class="lbl">Volatility</span>${(propSig*100).toFixed(2)}%</div>
-    <div class="cmp-c ${propSig<curParams.sig?'delta-pos':propSig>curParams.sig?'delta-neg':'delta-neu'}">${((propSig-curParams.sig)*100>=0?'+':'')}${((propSig-curParams.sig)*100).toFixed(2)}%</div>
+    <div class="cmp-c ${propSig<curParams.sig?'delta-pos':propSig>curParams.sig?'delta-neg':'delta-neu'}">${Math.abs(propSig-curParams.sig)<=0.00001?'0.00%':(((propSig-curParams.sig)*100>=0?'+':'')+((propSig-curParams.sig)*100).toFixed(2)+'%')}</div>
   `;
   // Allocation diff bars
   const aggCur={}, aggProp={};
