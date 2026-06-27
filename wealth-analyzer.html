@@ -1378,32 +1378,7 @@ input[type=date]{color-scheme:light}
 
 </div>
 
-<!-- ─── Equity compensation (part of the Income tab) ─── -->
-<div class="panel" id="equityPanel">
-  <div class="ptitle">Equity Compensation — Options &amp; RSUs</div>
-  <div style="font-size:12px;color:var(--text3);margin-bottom:12px;line-height:1.5">Track stock options and restricted stock units. Tranches vest in equal annual amounts; <strong style="color:var(--text2)">vesting proceeds flow into income</strong> (and are taxed) in both the cash-flow projection and the Monte Carlo simulation.</div>
-  <div id="eqList"><div class="empty">No grants added.</div></div>
-  <div class="sdiv">
-    <div class="slbl">Add Grant</div>
-    <div class="frow"><label class="flbl">Grant type</label>
-      <select id="eqkind" class="w200">
-        <option value="rsu">RSU — restricted stock units</option>
-        <option value="nqso">NQSO — non-qualified options</option>
-        <option value="iso">ISO — incentive options</option>
-      </select>
-    </div>
-    <div class="frow"><label class="flbl">Company / ticker</label><input id="eqtkr" placeholder="e.g. AAPL" class="w140"></div>
-    <div class="frow"><label class="flbl">Number of shares</label><input type="number" id="eqshares" placeholder="0" step="100" class="w140"></div>
-    <div class="frow" id="eqstrikeRow"><label class="flbl">Strike price (options)</label><input type="number" id="eqstrike" placeholder="0" step="0.01" class="w140"></div>
-    <div class="frow"><label class="flbl">Current share price</label><input type="number" id="eqprice" placeholder="0" step="0.01" class="w140"></div>
-    <div class="frow"><label class="flbl">Assumed share growth %/yr</label><input type="number" id="eqgrowth" value="8" step="0.5" class="w120"></div>
-    <div class="frow"><label class="flbl">First vesting year</label><input type="number" id="eqstart" placeholder="2027" step="1" class="w120"></div>
-    <div class="frow"><label class="flbl">Vesting period (years)</label><input type="number" id="eqyears" value="4" step="1" class="w120"></div>
-    <div class="frow"><label class="flbl">Label (optional)</label><input id="eqlbl" placeholder="e.g. 2026 refresh grant" class="w200"></div>
-    <button id="eqAddBtn" class="btn-secondary full" onclick="addEquityGrant()">+ Add Grant</button>
-    <button id="eqCancelBtn" class="btn-secondary full" onclick="cancelEditEquityGrant()" style="display:none;margin-top:4px;color:var(--text3)">✕ Cancel edit</button>
-  </div>
-</div>
+<!-- Equity Compensation panel relocated to the Assets tab -->
 </div>
 
 <!-- ═══ EXPENSES ═══ -->
@@ -1635,6 +1610,38 @@ input[type=date]{color-scheme:light}
     </table>
     <div style="font-size:10px;color:var(--text3);margin-top:6px;font-style:italic">Long-run historical approximations. The portfolio tab auto-weights these by holding value when positions are entered. Override the fields above to use your own capital market assumptions.</div>
     </div><!-- /invParamsBody -->
+  </div>
+</div>
+
+<!-- ─── Equity Compensation (moved from Income; collapsible) ─── -->
+<div class="panel" id="equityPanel">
+  <div class="ptitle section-dropdown" onclick="toggleDropdown('equityBody')">
+    Equity Compensation — Options &amp; RSUs <span class="dropdown-hint">click to expand</span>
+    <span class="ptitle-line"></span>
+  </div>
+  <div class="dropdown-body" id="equityBody">
+    <div style="font-size:12px;color:var(--text3);margin:10px 0 12px;line-height:1.5">Track stock options and restricted stock units. Tranches vest in equal annual amounts; <strong style="color:var(--text2)">vesting proceeds flow into income</strong> (and are taxed) in both the cash-flow projection and the Monte Carlo simulation.</div>
+    <div id="eqList"><div class="empty">No grants added.</div></div>
+    <div class="sdiv">
+      <div class="slbl">Add Grant</div>
+      <div class="frow"><label class="flbl">Grant type</label>
+        <select id="eqkind" class="w200">
+          <option value="rsu">RSU — restricted stock units</option>
+          <option value="nqso">NQSO — non-qualified options</option>
+          <option value="iso">ISO — incentive options</option>
+        </select>
+      </div>
+      <div class="frow"><label class="flbl">Company / ticker</label><input id="eqtkr" placeholder="e.g. AAPL" class="w140"></div>
+      <div class="frow"><label class="flbl">Number of shares</label><input type="number" id="eqshares" placeholder="0" step="100" class="w140"></div>
+      <div class="frow" id="eqstrikeRow"><label class="flbl">Strike price (options)</label><input type="number" id="eqstrike" placeholder="0" step="0.01" class="w140"></div>
+      <div class="frow"><label class="flbl">Current share price</label><input type="number" id="eqprice" placeholder="0" step="0.01" class="w140"></div>
+      <div class="frow"><label class="flbl">Assumed share growth %/yr</label><input type="number" id="eqgrowth" value="8" step="0.5" class="w120"></div>
+      <div class="frow"><label class="flbl">First vesting year</label><input type="number" id="eqstart" placeholder="2027" step="1" class="w120"></div>
+      <div class="frow"><label class="flbl">Vesting period (years)</label><input type="number" id="eqyears" value="4" step="1" class="w120"></div>
+      <div class="frow"><label class="flbl">Label (optional)</label><input id="eqlbl" placeholder="e.g. 2026 refresh grant" class="w200"></div>
+      <button id="eqAddBtn" class="btn-secondary full" onclick="addEquityGrant()">+ Add Grant</button>
+      <button id="eqCancelBtn" class="btn-secondary full" onclick="cancelEditEquityGrant()" style="display:none;margin-top:4px;color:var(--text3)">✕ Cancel edit</button>
+    </div>
   </div>
 </div>
 </div>
@@ -14445,65 +14452,40 @@ function renderReturnHorizon(curMu, curSig, propMu, propSig){
   const benchExpEl = $("benchmarkExplain");
   if(benchExpEl) benchExpEl.innerHTML = '<strong style="color:var(--amber)">Benchmark: ' + bench.label + '</strong> — ' + bench.note + ' Auto-selected based on the dominant asset class across your Current + Proposed allocations.';
 
-  // Helper: weighted trailing returns from a position list. Returns
-  // {r1y, r3y, r5y, r10y} or null if no metric data available.
-  function weightedTrailing(positions, weightField){
+  // Per-position trailing returns, blended by weight. For EACH position we use,
+  // in priority: its stored per-fund trailing metrics → the fund universe →
+  // the asset-class historical trailing returns (CLASS_TRAILING). A position is
+  // NEVER filled with a flat expected return, so each horizon stays genuinely
+  // different and every holding is sourced from its proper field. This makes
+  // Current = Portfolio-tab holdings and Proposed = Investment-Proposal
+  // positions, field-for-field.
+  function blendTrailing(positions, weightField){
     if(!positions || positions.length === 0) return null;
     const W = positions.reduce((s,p) => s + (+p[weightField] || 0), 0);
     if(W <= 0) return null;
-    const get = (p, key, fallback) => {
-      const m = p.metrics || {};
-      if(m[key] != null) return m[key];
-      // Fund universe lookup as secondary fallback
-      const tk = p.ticker || p.tkr;
-      if(tk && Array.isArray(AI_FUND_UNIVERSE)){
-        const f = AI_FUND_UNIVERSE.find(x => x.tkr === tk);
-        if(f && f[key] != null) return f[key];
-      }
-      return fallback;
-    };
-    let any = false;
-    const out = {};
-    ["r1y","r3y","r5y","r10y"].forEach(k => {
-      const fallback = (curMu*100); // not used unless every position lacks data
-      const wsum = positions.reduce((s,p) => {
-        const v = get(p, k, null);
-        if(v != null) any = true;
-        return s + ((v != null ? v : fallback) * (+p[weightField] || 0));
-      }, 0);
-      out[k] = wsum / W;
-    });
-    return any ? out : null;
-  }
-
-  // Estimate horizon returns from a portfolio's asset-class composition using
-  // historical per-class trailing returns. Returns {r1y,r3y,r5y,r10y} (%) or null.
-  function classBlendTrailing(positions, weightFn){
-    if(!positions || positions.length === 0) return null;
-    let W = 0; const agg = {};
-    positions.forEach(p => { const w = +weightFn(p) || 0; if(w <= 0) return; W += w; const k = effClass(p); agg[k] = (agg[k]||0) + w; });
-    if(W <= 0) return null;
+    let anyActual = false;
     const out = {r1y:0, r3y:0, r5y:0, r10y:0};
-    Object.entries(agg).forEach(([k,w]) => {
-      const t = CLASS_TRAILING[k] || CLASS_TRAILING.other;
-      const frac = w / W;
-      out.r1y += t.r1y*frac; out.r3y += t.r3y*frac; out.r5y += t.r5y*frac; out.r10y += t.r10y*frac;
+    positions.forEach(p => {
+      const w = (+p[weightField] || 0); if(w <= 0) return;
+      const m = p.metrics || {};
+      const tk = p.ticker || p.tkr;
+      const fund = (tk && Array.isArray(AI_FUND_UNIVERSE)) ? AI_FUND_UNIVERSE.find(x => x.tkr === tk) : null;
+      const ct = CLASS_TRAILING[effClass(p)] || CLASS_TRAILING.other;
+      ["r1y","r3y","r5y","r10y"].forEach(k => {
+        let v;
+        if(m[k] != null){ v = +m[k]; anyActual = true; }
+        else if(fund && fund[k] != null){ v = +fund[k]; anyActual = true; }
+        else v = ct[k];                       // asset-class trailing, not flat μ
+        out[k] += v * w / W;
+      });
     });
-    return out;
+    return {vals: out, anyActual};
   }
   const muToTrail = mu => ({r1y:mu*100, r3y:mu*100, r5y:mu*100, r10y:mu*100});
-
-  // Compute trailing returns for both portfolios:
-  //   1. prefer actual per-fund trailing metrics,
-  //   2. else estimate from the asset-class composition (differs per horizon),
-  //   3. else (empty portfolio) fall back to the deterministic μ.
-  const curTrail  = weightedTrailing(investments.map(i => ({ticker:i.tkr, val:i.val, metrics:i.metrics})), "val");
-  const propTrail = weightedTrailing(proposals, "alloc");
-  const curBlend  = classBlendTrailing(investments, i => i.val);
-  const propBlend = classBlendTrailing(proposals,   p => p.alloc);
-
-  const cur   = curTrail  || curBlend  || muToTrail(curMu);
-  const prop  = propTrail || propBlend || muToTrail(propMu);
+  const curB  = blendTrailing(investments, "val");
+  const propB = blendTrailing(proposals, "alloc");
+  const cur   = curB  ? curB.vals  : muToTrail(curMu);
+  const prop  = propB ? propB.vals : muToTrail(propMu);
   const benchAnn = bench.annRet * 100; // benchmark μ in %
   const bt = bench.t || {r1y:benchAnn, r3y:benchAnn, r5y:benchAnn, r10y:benchAnn};
   const benchRow = { r1y:bt.r1y, r3y:bt.r3y, r5y:bt.r5y, r10y:bt.r10y };
@@ -14525,7 +14507,7 @@ function renderReturnHorizon(curMu, curSig, propMu, propSig){
   });
 
   // Row 1: Current portfolio
-  const curSrc = curTrail ? "Trailing actual" : (curBlend ? "Asset-class est." : "Expected μ");
+  const curSrc = curB ? (curB.anyActual ? "Per-holding trailing" : "Asset-class trailing") : "Expected μ";
   html += labelCell("Current Portfolio", curSrc, "var(--accent)");
   html += cellNum(cur.r1y);
   html += cellNum(cur.r3y);
@@ -14533,7 +14515,7 @@ function renderReturnHorizon(curMu, curSig, propMu, propSig){
   html += cellNum(cur.r10y);
 
   // Row 2: Proposed portfolio
-  const propSrc = propTrail ? "Trailing actual" : (propBlend ? "Asset-class est." : "Expected μ");
+  const propSrc = propB ? (propB.anyActual ? "Per-holding trailing" : "Asset-class trailing") : "Expected μ";
   html += labelCell("Proposed Portfolio", propSrc, "#7c3aed");
   html += cellNum(prop.r1y, "var(--green)");
   html += cellNum(prop.r3y, "var(--green)");
