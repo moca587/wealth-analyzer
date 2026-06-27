@@ -1244,6 +1244,7 @@ input[type=date]{color-scheme:light}
     if(p){ p.classList.add('open'); p.setAttribute('aria-hidden','false'); }
     // refresh the API-key summary pill (full grid renders when the section is expanded)
     try{ if(window.renderMdKeysGrid) window.renderMdKeysGrid(); }catch(_){}
+    try{ if(window.applyMcParamsState) window.applyMcParamsState(); }catch(_){}
   }
   function closeSettings(){
     var o=document.getElementById('settingsOverlay'), p=document.getElementById('settingsPanel');
@@ -1334,8 +1335,11 @@ input[type=date]{color-scheme:light}
 
     <!-- Monte Carlo (inside settings) -->
     <div class="set-sec">
-  <div class="set-sec-h">Monte Carlo</div>
-
+  <div onclick="toggleMcParams()" style="cursor:pointer;user-select:none;display:flex;align-items:center;justify-content:space-between;gap:10px">
+    <div class="set-sec-h" style="margin:0">Monte Carlo <span style="font-size:11px;font-weight:500;color:var(--text3)">— simulations, bands, stress &amp; rebalancing</span></div>
+    <span id="mcParamsCaret" style="font-size:13px;color:var(--text3);transition:transform .2s;transform:rotate(-90deg)">▼</span>
+  </div>
+  <div id="mcParamsBody" style="display:none;padding-top:12px">
   <div class="two-col">
     <div>
       <div class="frow"><label class="flbl">Projection years</label><input type="number" id="simYrs" value="20" min="5" max="40" step="1" class="w120"></div>
@@ -1408,6 +1412,7 @@ input[type=date]{color-scheme:light}
 
       <div id="bdesc" class="band-desc"></div>
     </div>
+  </div>
   </div>
 </div>
 
@@ -3788,7 +3793,7 @@ input[type=date]{color-scheme:light}
 // ═══════════════════════════════════════════════════════════
 // VERSION — updated by build-standalone.pl on each build
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260627-1619";
+const APP_VERSION = "20260627-2313";
 
 // ═══════════════════════════════════════════════════════════
 // DATA
@@ -6373,6 +6378,18 @@ function toggleMdKeys(){
   const open = (function(){ try { return localStorage.getItem("wa_md_keys_open") === "1"; } catch(_) { return false; } })();
   try { localStorage.setItem("wa_md_keys_open", open ? "0" : "1"); } catch(_){}
   applyMdKeysState();
+}
+function toggleMcParams(){
+  const open = (function(){ try { return localStorage.getItem("wa_mc_params_open") === "1"; } catch(_) { return false; } })();
+  try { localStorage.setItem("wa_mc_params_open", open ? "0" : "1"); } catch(_){}
+  applyMcParamsState();
+}
+function applyMcParamsState(){
+  const open = (function(){ try { return localStorage.getItem("wa_mc_params_open") === "1"; } catch(_) { return false; } })();
+  const body = document.getElementById("mcParamsBody");
+  const caret = document.getElementById("mcParamsCaret");
+  if(body) body.style.display = open ? "block" : "none";
+  if(caret) caret.style.transform = open ? "rotate(0deg)" : "rotate(-90deg)";
 }
 function applyMdKeysState(){
   const open = (function(){ try { return localStorage.getItem("wa_md_keys_open") === "1"; } catch(_) { return false; } })();
@@ -10616,7 +10633,7 @@ function buildExpandedRationale(p, fund, simpleBrief, rec){
   if(m.yld != null && m.yld >= 4) whyBits.push(`Distributes <strong>${m.yld.toFixed(1)}% in yield</strong> — meaningful regular cash flow if you reinvest or use it for income.`);
   // Default catch-all if nothing matched
   if(whyBits.length === 0){
-    whyBits.push(simplifyRationale(p.rationale || ""));
+    whyBits.push(escapeForHTML(simplifyRationale(p.rationale || "")));
   }
   const why = whyBits.join(" ");
 
@@ -11026,16 +11043,16 @@ function renderAIGenResult(rec, brief){
     h += `<div style="background:${isUcits?'linear-gradient(135deg,#fff7ed,#fef3c7)':'linear-gradient(135deg,#ecfdf5,#d1fae5)'};border-left:4px solid ${isUcits?'#f59e0b':'#10b981'};border-radius:6px;padding:12px 16px;margin-bottom:14px;display:flex;gap:12px;align-items:flex-start">
       <div style="font-size:22px;flex-shrink:0">${isUcits?'🇪🇺':'🇺🇸'}</div>
       <div style="flex:1">
-        <div style="font-size:12px;font-weight:700;color:${isUcits?'#92400e':'#065f46'};margin-bottom:3px">Regulatory wrapper: ${rec.domicilePolicy.label}</div>
-        <div style="font-size:11.5px;line-height:1.55;color:var(--text2)">${rec.domicilePolicy.note}</div>
-        <div style="font-size:10.5px;color:var(--text3);margin-top:5px">Client country: <strong>${(rec.universeFiltered?.country||"US")}</strong> · Eligible universe: <strong>${rec.universeFiltered?.eligible||0}</strong> of <strong>${rec.universeFiltered?.total||0}</strong> funds</div>
+        <div style="font-size:12px;font-weight:700;color:${isUcits?'#92400e':'#065f46'};margin-bottom:3px">Regulatory wrapper: ${escapeForHTML(rec.domicilePolicy.label)}</div>
+        <div style="font-size:11.5px;line-height:1.55;color:var(--text2)">${escapeForHTML(rec.domicilePolicy.note)}</div>
+        <div style="font-size:10.5px;color:var(--text3);margin-top:5px">Client country: <strong>${escapeForHTML(rec.universeFiltered?.country||"US")}</strong> · Eligible universe: <strong>${rec.universeFiltered?.eligible||0}</strong> of <strong>${rec.universeFiltered?.total||0}</strong> funds</div>
       </div>
     </div>`;
   }
   // Executive summary
   h += `<div style="background:linear-gradient(135deg,#f8f7ff,#fff);border-left:4px solid #7c3aed;border-radius:6px;padding:14px 18px;margin-bottom:14px">
     <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.10em;color:#7c3aed;margin-bottom:6px">🎯 Executive Summary</div>
-    <div style="font-size:13.5px;line-height:1.65;color:var(--text)">${rec.summary || ""}</div>
+    <div style="font-size:13.5px;line-height:1.65;color:var(--text)">${escapeForHTML(rec.summary || "")}</div>
   </div>`;
   // KPIs — full portfolio metrics
   const pm = rec.portfolioMetrics || {};
@@ -11082,8 +11099,8 @@ function renderAIGenResult(rec, brief){
       const expanded = buildExpandedRationale(p, fund, brief, rec);
       h += `<div class="ai-pos-card" tabindex="0" style="position:relative;border-left:3px solid #7c3aed;padding:11px 14px;margin-bottom:10px;background:rgba(124,58,237,.03);border-radius:0 6px 6px 0;transition:background .2s,box-shadow .2s;cursor:pointer">
         <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:4px;flex-wrap:wrap">
-          <strong style="font-size:14px">${p.ticker}</strong>
-          <span style="color:var(--text3);font-size:11.5px">${m.name||fund?.name||""}${m.sponsor||fund?.sponsor?' · '+(m.sponsor||fund.sponsor):''}${flags?' · <span style="background:rgba(124,58,237,.1);color:#7c3aed;padding:1px 6px;border-radius:3px;font-size:10px;font-weight:600">'+flags+'</span>':''}</span>
+          <strong style="font-size:14px">${escapeForHTML(p.ticker)}</strong>
+          <span style="color:var(--text3);font-size:11.5px">${escapeForHTML(m.name||fund?.name||"")}${m.sponsor||fund?.sponsor?' · '+escapeForHTML(m.sponsor||fund.sponsor):''}${flags?' · <span style="background:rgba(124,58,237,.1);color:#7c3aed;padding:1px 6px;border-radius:3px;font-size:10px;font-weight:600">'+flags+'</span>':''}</span>
           <span style="margin-left:auto;font-size:13px;font-weight:700;color:#7c3aed">${p.weight.toFixed(1)}%</span>
         </div>
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(78px,1fr));gap:5px;margin:7px 0;padding:7px;background:rgba(0,0,0,.025);border-radius:5px;font-size:10.5px">
@@ -11121,19 +11138,19 @@ function renderAIGenResult(rec, brief){
   if(rec.researchCitations?.length){
     h += `<div style="background:rgba(0,87,184,.04);border-radius:6px;padding:12px 16px;margin-bottom:10px">
       <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--gold);margin-bottom:6px">📚 Research Citations</div>
-      <ul style="margin:0;padding-left:18px;font-size:12px;color:var(--text2);line-height:1.7">${rec.researchCitations.map(c => `<li>${c}</li>`).join("")}</ul>
+      <ul style="margin:0;padding-left:18px;font-size:12px;color:var(--text2);line-height:1.7">${rec.researchCitations.map(c => `<li>${escapeForHTML(c)}</li>`).join("")}</ul>
     </div>`;
   }
   // Risks
   if(rec.risks?.length){
     h += `<div style="background:rgba(227,24,55,.04);border-left:3px solid var(--red);border-radius:0 6px 6px 0;padding:12px 16px;margin-bottom:10px">
       <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--red);margin-bottom:6px">⚠ Key Risks</div>
-      <ul style="margin:0;padding-left:18px;font-size:12px;color:var(--text2);line-height:1.7">${rec.risks.map(r => `<li>${r}</li>`).join("")}</ul>
+      <ul style="margin:0;padding-left:18px;font-size:12px;color:var(--text2);line-height:1.7">${rec.risks.map(r => `<li>${escapeForHTML(r)}</li>`).join("")}</ul>
     </div>`;
   }
   // Rebalancing
   if(rec.rebalancingGuidance){
-    h += `<div style="font-size:12px;color:var(--text2);padding:10px 14px;background:var(--bg3);border-radius:6px;line-height:1.6"><strong style="color:var(--text)">🔄 Rebalancing:</strong> ${rec.rebalancingGuidance}</div>`;
+    h += `<div style="font-size:12px;color:var(--text2);padding:10px 14px;background:var(--bg3);border-radius:6px;line-height:1.6"><strong style="color:var(--text)">🔄 Rebalancing:</strong> ${escapeForHTML(rec.rebalancingGuidance)}</div>`;
   }
   $("aiGenResultBody").innerHTML = h;
 }
@@ -13750,6 +13767,11 @@ function computeGoalFundingStatus(){
   const prioOrder = {essential:0, important:1, aspirational:2};
   const sorted = [...goals].sort((a,b)=>(prioOrder[a.tier]??1)-(prioOrder[b.tier]??1) || a.startYear-b.startYear);
   let remainingAssets = liquidAssets, totalGoalPV=0, totalFundedPV=0;
+  // Shared future-savings budget (PV of the savings stream to retirement), drawn
+  // down across goals in priority order so the same dollars aren't double-counted.
+  const maxSavingsYears = Math.max(0, retAge - a1);
+  let remainingSavings = 0;
+  for(let n=1;n<=maxSavingsYears;n++){ remainingSavings += annualSavings / Math.pow(1+port.geoMu, n); }
   const rows = [];
   sorted.forEach(g => {
     const tier = g.tier || "important";
@@ -13765,11 +13787,15 @@ function computeGoalFundingStatus(){
     }
     const taxOnGoal = goalPV * effTax * 0.6;
     const goalCostPV = goalPV + taxOnGoal;
+    // savings reachable within THIS goal's horizon (cap), then drawn from the shared budget
     const savingsYears = Math.max(0, Math.min(retAge - a1, yrsToEnd));
-    let futureSavingsPV = 0;
-    for(let n=1;n<=savingsYears;n++){ futureSavingsPV += annualSavings / Math.pow(1+discRate, n); }
+    let savingsReachable = 0;
+    for(let n=1;n<=savingsYears;n++){ savingsReachable += annualSavings / Math.pow(1+discRate, n); }
     const assetsForThisGoal = Math.min(remainingAssets, goalCostPV);
     remainingAssets = Math.max(0, remainingAssets - assetsForThisGoal);
+    const unfunded = Math.max(0, goalCostPV - assetsForThisGoal);
+    const futureSavingsPV = Math.min(remainingSavings, savingsReachable, unfunded);
+    remainingSavings = Math.max(0, remainingSavings - futureSavingsPV);
     const fundedPV = Math.min(goalCostPV, assetsForThisGoal + futureSavingsPV);
     const ratio = goalCostPV>0 ? fundedPV/goalCostPV : 1;
     totalGoalPV += goalCostPV; totalFundedPV += fundedPV;
@@ -17855,7 +17881,8 @@ function drawFanChart(){
         if(val("rptIncEstate") === "no" || (beneficiaries.length === 0 && insuranceDeathBenefit() <= 0)) return;
         checkY(40);
         sectionH2("Estate Transfer Summary");
-        const e = computeEstate();
+        let e; try{ e = computeEstate(); }catch(_){ return; }
+        if(!e) return;
         para(e.fromProjection
           ? "A simplified estimate of what transfers at the end of the projection, using the median Monte Carlo net worth plus life-insurance death benefits."
           : "A simplified estimate based on current net worth plus life-insurance death benefits (run the simulation for a projected figure).");
