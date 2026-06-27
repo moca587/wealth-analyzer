@@ -1,5 +1,10 @@
 {
+<<<<<<< HEAD
   "version": "20260627-1422",
   "builtAt": "2026-06-27T14:22:25",
+=======
+  "version": "20260626-2239",
+  "builtAt": "2026-06-26T22:39:26",
+>>>>>>> origin/claude/data-imports
   "channel": "production"
 }

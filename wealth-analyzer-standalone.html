@@ -783,6 +783,10 @@ input[type=date]{color-scheme:light}
 .da-modal-tools{display:flex;gap:8px;align-items:center;padding:10px 18px;border-bottom:1px solid var(--border)}
 .da-modal-body{flex:1;overflow:auto;padding:14px 18px}
 .da-modal-foot{display:flex;gap:10px;align-items:center;justify-content:flex-end;padding:12px 18px;border-top:1px solid var(--border)}
+.si-prev{width:100%;border-collapse:collapse;font-size:12px}
+.si-prev th,.si-prev td{border:1px solid var(--border);padding:4px 8px;text-align:left;color:var(--text2)}
+.si-prev th{color:var(--text3);font-weight:600}
+.si-map-row{display:flex;gap:10px;align-items:center;margin-bottom:6px}
 .pf-add .fld,.pr-add .fld{display:flex;flex-direction:column;gap:3px;min-width:0}
 .pf-add .fld > label,.pr-add .fld > label{font-size:10px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.4px}
 .pf-row{display:grid;grid-template-columns:90px 1.5fr 80px 130px 100px 80px 80px 110px 1.4fr auto;gap:8px;align-items:center;padding:8px 10px;border-bottom:1px solid var(--border);font-size:12px}
@@ -2843,7 +2847,10 @@ input[type=date]{color-scheme:light}
 <div class="panel">
   <div class="ptitle" style="justify-content:space-between">
     <span>Holdings</span>
-    <button class="btn-secondary" onclick="openDataAgent()" style="font-size:11px;padding:4px 10px">✦ AI Data Agent</button>
+    <span style="display:flex;gap:8px">
+      <button class="btn-secondary" onclick="openStatementImporter()" style="font-size:11px;padding:4px 10px">⭳ Import statement</button>
+      <button class="btn-secondary" onclick="openDataAgent()" style="font-size:11px;padding:4px 10px">✦ AI Data Agent</button>
+    </span>
   </div>
   <!-- AI Data Agent panel (hidden by default) — reads any file, fills the whole app after review -->
   <div id="aiAgentPanel" class="panel" style="display:none;background:var(--bg3);border:1px solid rgba(124,58,237,.28);margin-bottom:14px">
@@ -2861,7 +2868,23 @@ input[type=date]{color-scheme:light}
       <span id="aiAgentStatus" style="font-size:12px;color:var(--text3);margin-left:6px"></span>
     </div>
   </div>
+  <!-- Statement Importer panel (hidden by default) — deterministic CSV/OFX/QFX parse, no AI key -->
+  <div id="siPanel" class="panel" style="display:none;background:var(--bg3);border:1px solid rgba(76,175,125,.28);margin-bottom:14px">
+    <div class="ptitle" style="margin:0 0 6px">⭳ Import statement (CSV / OFX / QFX)</div>
+    <div class="da-note">Import a bank or brokerage statement directly — <strong>no AI key needed</strong>. Reads CSV exports, OFX, and QFX (Quicken) files, lets you map the columns, and shows the same review screen before anything is added. For photos, PDFs, or unusual files, use the AI Data Agent instead.</div>
+    <div class="frow" style="margin-top:8px">
+      <label class="flbl">Files <span style="color:var(--text3)">(CSV, OFX, QFX, XLSX)</span></label>
+      <input type="file" id="siFiles" multiple onchange="siRenderFileList()" accept=".csv,.tsv,.txt,.ofx,.qfx,.xls,.xlsx" style="font-size:12px;color:var(--text2)">
+    </div>
+    <div id="siFileList" style="margin:6px 0 8px"></div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <button class="btn-primary" onclick="siRun()">Parse &amp; map</button>
+      <button class="btn-secondary" onclick="show('siPanel',false)">Cancel</button>
+      <span id="siStatus" style="font-size:12px;color:var(--text3);margin-left:6px"></span>
+    </div>
+  </div>
   <div id="aiReviewModal" style="display:none"></div>
+  <div id="siMapModal" style="display:none"></div>
   <div id="pfList"><div class="pf-empty">No investments added.</div></div>
   <div class="sdiv">
     <div class="slbl">Add Investment</div>
@@ -3748,7 +3771,11 @@ input[type=date]{color-scheme:light}
 // ═══════════════════════════════════════════════════════════
 // VERSION — updated by build-standalone.pl on each build
 // ═══════════════════════════════════════════════════════════
+<<<<<<< HEAD
 const APP_VERSION = "20260627-1422";
+=======
+const APP_VERSION = "20260626-2239";
+>>>>>>> origin/claude/data-imports
 
 // ═══════════════════════════════════════════════════════════
 // DATA
@@ -7031,14 +7058,14 @@ function renderAssets(){
       html += `<div class="asset-item">
         <div class="item-row">
           <span class="abadge" style="background:${gc.bg};color:${gc.text};border:1px solid ${gc.border}">${a.baseLabel||a.type}</span>
-          <span style="font-weight:500;flex:1">${a.label}</span>
+          <span style="font-weight:500;flex:1">${_daEsc(a.label)}</span>
           <span style="font-variant-numeric:tabular-nums;font-weight:500">${fmtMoneyFull(a.value,ccyObj.sym)}</span>
           ${liqBadge}
           ${ageBadge}
           <button class="btn-x" style="font-size:10px;padding:2px 7px;color:var(--text3);border:1px solid var(--border);border-radius:3px" onclick="editAsset('${a.id}')">✎</button>
           <button class="btn-x" onclick="delAsset('${a.id}')">✕</button>
         </div>
-        ${a.note?`<div class="item-meta"><span>${a.note}</span></div>`:""}
+        ${a.note?`<div class="item-meta"><span>${_daEsc(a.note)}</span></div>`:""}
       </div>`;
     });
   });
@@ -7131,7 +7158,7 @@ function renderLoans(){
     return `<div class="loan-item">
       <div class="item-row">
         <span class="lbadge">${LOAN_LABELS[l.type]||l.type}</span>
-        <span style="font-weight:500;flex:1">${l.label}</span>
+        <span style="font-weight:500;flex:1">${_daEsc(l.label)}</span>
         <span style="font-variant-numeric:tabular-nums;font-weight:500">${fmtMoneyFull(l.bal)}</span>
         <button class="btn-x" style="font-size:10px;padding:2px 7px;color:var(--text3);border:1px solid var(--border);border-radius:3px" onclick="editLoan('${l.id}')">✎</button>
         <button class="btn-x" onclick="delLoan('${l.id}')">✕</button>
@@ -7490,7 +7517,7 @@ function renderGoals(){
       <span class="goal-icon" style="background:${icon.bg};color:${icon.color}" title="${icon.label}">${icon.emoji}</span>
       <span class="gtag tcat" style="background:${icon.bg};color:${icon.color};border-color:${icon.bg}">${icon.label.toLowerCase()}</span>
       <span class="gtag ${tierClass}">${g.tier||"important"}</span>
-      <span style="flex:1;font-weight:600;color:var(--text)">${g.name}</span>
+      <span style="flex:1;font-weight:600;color:var(--text)">${_daEsc(g.name)}</span>
       <span style="font-variant-numeric:tabular-nums;font-weight:600">${amtDisplay}${extraNote}</span>
       <span style="font-size:11px;color:var(--text3)">${g.startYear}–${g.endYear} <span style="color:var(--text2)">(${fmtMoney(g.amt*years)} total)</span></span>
       <button class="btn-secondary" style="padding:2px 8px;font-size:11px" onclick="editGoal('${g.id}')">Edit</button>
@@ -8368,6 +8395,427 @@ function applyDataAgent(){
   const ast=$("aiAgentStatus"); if(ast){ ast.textContent="✓ Applied "+n+" item"+(n!==1?"s":"")+"."; ast.style.color="var(--green)"; }
   try{ if(typeof _topStatus==="function") _topStatus("AI Data Agent added "+n+" item"+(n!==1?"s":"")); }catch(_){}
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   STANDARD STATEMENT IMPORTER (CSV / OFX / QFX) — deterministic, no-LLM.
+   Produces the SAME _daExtraction shape as the AI Data Agent and reuses
+   renderReviewModal() + applyDataAgent() for review & commit (zero new
+   apply code). CSV files get a column-mapping step; OFX/QFX self-describe.
+   ═══════════════════════════════════════════════════════════════════ */
+let _siState=null;     // active CSV mapping state
+let _siAccum=null;     // merged _daExtraction-shaped accumulator across files
+let _siQueue=[];       // pending CSV files awaiting Stage-1 mapping
+let _siCcySeen=null;   // currencies detected (for the FX warning)
+let _siSkipped=0;      // positions dropped for missing value (surfaced to the user)
+
+function _siEmpty(){ return {household:[],income:[],expenses:[],assets:[],liabilities:[],goals:[],holdings:[]}; }
+function _siMerge(a,b){ Object.keys(a).forEach(k=>{ a[k]=a[k].concat(b[k]||[]); }); return a; }
+function siStatus(msg,color){ const s=$("siStatus"); if(s){ s.textContent=msg||""; s.style.color=color||"var(--text3)"; } }
+
+function openStatementImporter(){
+  const p=$("siPanel"); if(!p) return;
+  const showing=p.style.display!=="none" && p.style.display!=="";
+  show("siPanel",!showing);
+  if(!showing){ siStatus(""); siRenderFileList(); }
+}
+function siRenderFileList(){
+  const host=$("siFileList"); if(!host) return;
+  const inp=$("siFiles"), files=inp&&inp.files?Array.from(inp.files):[];
+  host.innerHTML = files.length ? files.map(f=>`<div style="font-size:12px;color:var(--text2)">• ${_daEsc(f.name)} <span style="color:var(--text3)">(${(f.size/1024).toFixed(0)} KB)</span></div>`).join("") : "";
+}
+
+// ── Encoding-aware text reader (BOM + OFX CHARSET sniff) ──────────────
+async function siReadDecoded(file){
+  let buf; try{ buf=await file.arrayBuffer(); }catch(_){ return await _daReadText(file); }
+  let label="utf-8";
+  const head=new Uint8Array(buf.slice(0,4));
+  if(head[0]===0xFF&&head[1]===0xFE) label="utf-16le";
+  else if(head[0]===0xFE&&head[1]===0xFF) label="utf-16be";
+  let text;
+  try{ text=new TextDecoder(label,{fatal:false}).decode(buf); }
+  catch(_){ try{ text=new TextDecoder("utf-8",{fatal:false}).decode(buf); }catch(__){ text=""; } }
+  if(/CHARSET:1252|ENCODING:(?:USASCII|CP1252)/i.test(text.slice(0,400))){
+    try{ text=new TextDecoder("windows-1252",{fatal:false}).decode(buf); }catch(_){}
+  }
+  return text.replace(/^﻿/,"");
+}
+function siDetectFormat(name,text){
+  const head=text.slice(0,2000);
+  if(/<OFX>/i.test(head) || /^\s*OFXHEADER:/im.test(head) || /<\?OFX/i.test(head)) return "ofx";
+  const ext=(String(name).split(".").pop()||"").toLowerCase();
+  if(["csv","tsv","txt"].includes(ext)) return "csv";
+  if(["xls","xlsx"].includes(ext)) return "xlsx";
+  if(/[,;\t|].*\n/.test(head)) return "csv";
+  return "unknown";
+}
+
+// ── Locale-aware number parse → falls back to _daNum for K/M/B ────────
+function siNum(str,decimalMark){
+  if(str==null) return null;
+  let s=String(str).trim(); if(!s) return null;
+  if(/[kmb]\s*$/i.test(s) && /^[\s$€£¥]*[\d.,]+\s*[kmb]\s*$/i.test(s)){ const d=_daNum(str); if(d!=null) return d; }
+  let neg=false;
+  if(/^\(.*\)$/.test(s)){ neg=true; s=s.slice(1,-1); }
+  if(/(^\s*-)|(\bDR\b)|(-\s*$)/i.test(s)) neg=true;
+  if(/\bCR\b/i.test(s)) neg=false;
+  s=s.replace(/[^\d.,]/g,"");
+  if(!s) return null;
+  const mark=decimalMark||"auto";
+  const hasDot=s.indexOf(".")>=0, hasComma=s.indexOf(",")>=0;
+  if(mark==="comma" || (mark==="auto" && hasDot && hasComma && s.lastIndexOf(",")>s.lastIndexOf("."))){
+    s=s.replace(/\./g,"").replace(/,/g,".");
+  } else if(mark==="period" || (mark==="auto" && hasDot && hasComma)){
+    s=s.replace(/,/g,"");
+  } else if(mark==="auto" && hasComma && !hasDot){
+    const m=s.match(/,(\d+)$/);
+    if(m && m[1].length<=2 && (s.match(/,/g)||[]).length===1) s=s.replace(",",".");
+    else s=s.replace(/,/g,"");
+  } else {
+    s=s.replace(/,/g,"");
+  }
+  let v=parseFloat(s);
+  if(!isFinite(v)){ const d=_daNum(str); return d; }
+  return neg?-v:v;
+}
+
+// ── CSV tokenizer (RFC-4180) + delimiter / header detection ──────────
+function siSplitCSV(line,delim){
+  const out=[]; let cur="",q=false;
+  for(let i=0;i<line.length;i++){
+    const c=line[i];
+    if(q){ if(c==='"'){ if(line[i+1]==='"'){ cur+='"'; i++; } else q=false; } else cur+=c; }
+    else { if(c==='"') q=true; else if(c===delim){ out.push(cur); cur=""; } else cur+=c; }
+  }
+  out.push(cur);
+  return out.map(s=>s.trim());
+}
+function siDelimiter(lines){
+  const cands=[",",";","\t","|"]; let best=",",bestScore=-1;
+  cands.forEach(d=>{
+    const counts=lines.slice(0,20).map(l=>siSplitCSV(l,d).length).filter(n=>n>1);
+    if(!counts.length) return;
+    const freq={}; counts.forEach(n=>freq[n]=(freq[n]||0)+1);
+    let modeN=0,modeC=0; Object.entries(freq).forEach(([n,c])=>{ if(c>modeC){modeC=c;modeN=+n;} });
+    const score=modeN*modeC;
+    if(score>bestScore){ bestScore=score; best=d; }
+  });
+  return best;
+}
+const _SI_HEADER_KW=["symbol","ticker","cusip","isin","description","security","name","fund","holding","quantity","qty","shares","units","price","nav","value","market","amount","balance","account","class","category","type","currency","ccy","cost"];
+// Split into logical records, honoring quotes so an embedded newline inside a
+// quoted field does NOT break the record (RFC-4180).
+function siSplitRecords(text){
+  const recs=[]; let cur="",q=false;
+  for(let i=0;i<text.length;i++){
+    const c=text[i];
+    if(c==='"'){ cur+=c; if(q && text[i+1]==='"'){ cur+='"'; i++; } else q=!q; continue; }
+    if(!q && (c==='\n'||c==='\r')){ if(c==='\r'&&text[i+1]==='\n') i++; recs.push(cur); cur=""; }
+    else cur+=c;
+  }
+  if(cur.length) recs.push(cur);
+  return recs.filter(r=>r.trim().length>0);
+}
+function siParseCSVtable(text,delimOpt,headerRowOpt){
+  const nonEmpty=siSplitRecords(text);
+  const delim=delimOpt||siDelimiter(nonEmpty);
+  let headerRow=headerRowOpt;
+  if(headerRow==null){
+    let bestI=0,bestScore=-1;
+    for(let i=0;i<Math.min(15,nonEmpty.length);i++){
+      const cells=siSplitCSV(nonEmpty[i],delim); if(cells.length<2) continue;
+      const lc=cells.map(c=>c.toLowerCase());
+      const kw=lc.filter(c=>_SI_HEADER_KW.some(k=>c.indexOf(k)>=0)).length;
+      const nonNum=cells.filter(c=>c && siNum(c)==null).length;
+      const score=kw*3 + nonNum + cells.length*0.1;
+      if(kw>=2 && score>bestScore){ bestScore=score; bestI=i; }
+    }
+    headerRow=bestI;
+  }
+  headerRow=Math.max(0,Math.min(headerRow, Math.max(0,nonEmpty.length-1)));
+  const headers=siSplitCSV(nonEmpty[headerRow]||"",delim);
+  const rows=[];
+  for(let i=headerRow+1;i<nonEmpty.length;i++){
+    let cells=siSplitCSV(nonEmpty[i],delim);
+    if(cells.every(c=>!c)) continue;
+    while(cells.length<headers.length) cells.push("");
+    if(cells.length>headers.length) cells=cells.slice(0,headers.length);
+    rows.push(cells);
+  }
+  return {headers,rows,delim,headerRow};
+}
+const _SI_FIELD_KW={
+  tkr:["symbol","ticker","cusip","isin","sedol","security id","securityid"],
+  name:["description","security name","security","name","fund","holding","investment"],
+  qty:["quantity","qty","shares","units","no of shares","nominal"],
+  price:["last price","market price","unit price","price","nav","close"],
+  val:["market value","current value","mkt value","position value","value","amount","balance","total"],
+  cost:["cost basis","book value","cost"],
+  acct:["account name","account number","account","acct","registration"],
+  cls:["asset class","class","category","sector","type"],
+  ccy:["currency","ccy","curr"]
+};
+function siGuessMapping(headers){
+  const map={};
+  const norm=headers.map(h=>String(h).toLowerCase().replace(/[^a-z0-9 ]/g," ").replace(/\s+/g," ").trim());
+  Object.keys(_SI_FIELD_KW).forEach(field=>{
+    let bestIdx=-1,bestScore=0;
+    norm.forEach((h,idx)=>{
+      if(!h) return;
+      _SI_FIELD_KW[field].forEach(kw=>{
+        let sc=0; if(h===kw) sc=10; else if(h.indexOf(kw)>=0) sc=5+kw.length*0.1;
+        if(sc>bestScore && !Object.values(map).includes(idx)){ bestScore=sc; bestIdx=idx; }
+      });
+    });
+    if(bestIdx>=0) map[field]=bestIdx;
+  });
+  return map;
+}
+function siGuessRowKind(map){
+  if(map.tkr!=null || map.qty!=null) return "holdings";
+  if(map.val!=null && map.acct!=null) return "assets";
+  return "holdings";
+}
+
+// ── OFX / QFX parser (one tolerant leaf reader for SGML + XML) ────────
+function siDecodeEntities(s){
+  return String(s==null?"":s)
+    .replace(/&amp;/gi,"&").replace(/&lt;/gi,"<").replace(/&gt;/gi,">")
+    .replace(/&apos;/gi,"'").replace(/&quot;/gi,'"')
+    .replace(/&#(\d+);/g,(m,n)=>{ try{ return String.fromCharCode(+n); }catch(_){ return ""; } }).trim();
+}
+function siTag(block,tag){ const m=block.match(new RegExp("<"+tag+">([^<\\r\\n]*)","i")); return m?siDecodeEntities(m[1]):""; }
+function siParseOFX(text){
+  const out=_siEmpty();
+  const curdef=(siTag(text,"CURDEF")||"").toUpperCase();
+  if(curdef) (_siCcySeen=_siCcySeen||new Set()).add(curdef);
+  // Security list: UNIQUEID → {name, tkr, kind}
+  const sec={};
+  const infoRe=/<(STOCKINFO|MFINFO|DEBTINFO|OTHERINFO|OPTINFO)>([\s\S]*?)(?=<(?:STOCKINFO|MFINFO|DEBTINFO|OTHERINFO|OPTINFO|\/SECLIST)>|$)/gi;
+  let im; while((im=infoRe.exec(text))){
+    const kind=im[1].toUpperCase(), blk=im[2], uid=siTag(blk,"UNIQUEID");
+    if(uid) sec[uid]={name:siTag(blk,"SECNAME"), tkr:siTag(blk,"TICKER"), kind};
+  }
+  // Positions
+  const posRe=/<(POSSTOCK|POSMF|POSBOND|POSOPT|POSOTHER)>([\s\S]*?)(?=<(?:POSSTOCK|POSMF|POSBOND|POSOPT|POSOTHER|\/INVPOSLIST)>|$)/gi;
+  const typeMap={POSMF:"mutual_fund",POSSTOCK:"stock",POSBOND:"bond",POSOPT:"other",POSOTHER:"other"};
+  const clsByKind={STOCKINFO:"equity",MFINFO:"mixed",DEBTINFO:"fixed_income",OTHERINFO:"other",OPTINFO:"other"};
+  let pm; while((pm=posRe.exec(text))){
+    const ptag=pm[1].toUpperCase(), blk=pm[2];
+    const uid=siTag(blk,"UNIQUEID");
+    const units=siNum(siTag(blk,"UNITS"),"auto"), price=siNum(siTag(blk,"UNITPRICE"),"auto");
+    let v=siNum(siTag(blk,"MKTVAL"),"auto"); const hadMkt=!!siTag(blk,"MKTVAL");
+    if(v==null && units!=null && price!=null) v=units*price;
+    if(v==null || !(v>0)){ _siSkipped++; continue; }
+    const info=sec[uid]||{};
+    const type=typeMap[ptag]||"other";
+    const cls=info.kind?(clsByKind[info.kind]||"other"):(type==="bond"?"fixed_income":type==="stock"?"equity":"other");
+    out.holdings.push({_ok:hadMkt?0.9:0.6,_src:("OFX "+ptag+" "+(uid||"")).trim(),
+      name:info.name||info.tkr||uid||"Position", tkr:info.tkr||(uid&&uid.length<=6?uid:""),
+      val:v, type, cls, region:"other", er:null, yld:null, note:""});
+  }
+  // Brokerage cash
+  const availcash=siNum(siTag(text,"AVAILCASH"),"auto");
+  if(availcash!=null && availcash>0){
+    out.assets.push({_ok:0.9,_src:"OFX INVBAL AVAILCASH",label:"Brokerage cash",accountTypeHint:"Brokerage cash",
+      value:availcash,country:val("c1co")||"US",ccy:curdef,propertyValue:null,otherValue:null});
+  }
+  // Bank / credit-card ledger balance (single-statement common case)
+  const isInv=/<INVSTMTRS>|<INVACCTFROM>|<POSSTOCK>|<POSMF>/i.test(text);
+  const isCC=/<CCSTMTRS>|<CCACCTFROM>/i.test(text);
+  const isBank=/<STMTRS>|<BANKACCTFROM>/i.test(text);
+  function balAfter(tagOpen){ const idx=text.search(new RegExp(tagOpen,"i")); if(idx<0) return null; return siNum(siTag(text.slice(idx,idx+300),"BALAMT"),"auto"); }
+  if(isCC){
+    const bal=balAfter("<LEDGERBAL>");
+    if(bal!=null && Math.abs(bal)>0) out.liabilities.push({_ok:0.8,_src:"OFX CCSTMTRS balance",type:"cc",label:"Credit card",balance:Math.abs(bal),ratePct:null,years:null});
+  } else if(isBank && !isInv){
+    const bal=balAfter("<LEDGERBAL>"); const at=(siTag(text,"ACCTTYPE")||"CHECKING").toUpperCase();
+    if(bal!=null && bal>0) out.assets.push({_ok:0.9,_src:"OFX LEDGERBAL ("+at+")",label:at.charAt(0)+at.slice(1).toLowerCase()+" account",accountTypeHint:at,value:bal,country:val("c1co")||"US",ccy:curdef,propertyValue:null,otherValue:null});
+  }
+  return out;
+}
+
+// ── Dispatch / queue ─────────────────────────────────────────────────
+async function siRun(){
+  const inp=$("siFiles"), files=inp&&inp.files?Array.from(inp.files):[];
+  if(!files.length){ siStatus("⚠ Choose one or more files first.","var(--amber)"); return; }
+  _siAccum=_siEmpty(); _siQueue=[]; _siCcySeen=new Set(); _siSkipped=0;
+  siStatus("Reading "+files.length+" file"+(files.length>1?"s":"")+"…");
+  for(const f of files){
+    try{
+      let text=await siReadDecoded(f);
+      let fmt=siDetectFormat(f.name,text);
+      if(fmt==="xlsx"){ try{ text=await _daXlsxText(f); fmt="csv"; }catch(e){ siStatus("✗ Couldn't read "+f.name+" as a spreadsheet.","var(--red)"); continue; } }
+      if(fmt==="ofx") _siMerge(_siAccum, siParseOFX(text));
+      else if(fmt==="csv") _siQueue.push({name:f.name,text});
+      else siStatus("✗ "+f.name+": unrecognized format — try the AI Data Agent.","var(--amber)");
+    }catch(e){ console.warn("[Importer]",e); siStatus("✗ "+f.name+": "+e.message,"var(--red)"); }
+  }
+  if(_siQueue.length) siProcessNextCSV(); else siFinishImport();
+}
+function siProcessNextCSV(){
+  const job=_siQueue.shift(); if(!job){ siFinishImport(); return; }
+  const t=siParseCSVtable(job.text);
+  _siState={fileName:job.name, rawText:job.text, headers:t.headers, rows:t.rows, delim:t.delim, _lastDelim:t.delim,
+    headerRow:t.headerRow, decimal:"auto", ccy:COUNTRY_CURRENCIES[val("c1co")]||CURRENT_CCY};
+  _siState.mapping=siGuessMapping(t.headers);
+  _siState.rowKind=siGuessRowKind(_siState.mapping);
+  siRenderMapModal();
+}
+function siFinishImport(){
+  siDedupe(_siAccum);
+  const total=Object.keys(_siAccum).reduce((s,k)=>s+_siAccum[k].length,0);
+  if(!total){ siStatus("No positions or balances detected. Try the AI Data Agent for non-standard files.","var(--amber)"); return; }
+  _daExtraction=_siAccum;
+  const foreign=_siCcySeen?[..._siCcySeen].filter(c=>c&&c!==CURRENT_CCY):[];
+  let msg="✓ Parsed "+total+" row"+(total!==1?"s":"")+" — review below.";
+  if(_siSkipped>0) msg+=" "+_siSkipped+" position"+(_siSkipped!==1?"s":"")+" skipped (no value found).";
+  if(foreign.length) msg+=" ⚠ Amounts in "+foreign.join("/")+" shown as-is (not FX-converted).";
+  siStatus(msg, (foreign.length||_siSkipped>0)?"var(--amber)":"var(--green)");
+  renderReviewModal();
+}
+
+// ── CSV → extraction (uses the active mapping in _siState) ────────────
+function siBuildExtraction(){
+  const st=_siState; const out=_siEmpty(); if(!st) return out;
+  const m=st.mapping||{}, kind=st.rowKind, dec=st.decimal||"auto";
+  const ccy=st.ccy||COUNTRY_CURRENCIES[val("c1co")]||CURRENT_CCY;
+  const cell=(row,f)=> (m[f]!=null && m[f]>=0) ? (row[m[f]]||"") : "";
+  st.rows.forEach(row=>{
+    const nameRaw=cell(row,"name")||cell(row,"acct"), tkr=cell(row,"tkr");
+    if(!nameRaw && !tkr) return;
+    // skip subtotal/total rows (exact label match, so a real "Total Bond Market" fund survives)
+    const _lbl=(nameRaw||tkr||"").trim().toLowerCase();
+    if(/^(total|totals|sub-?total|grand total|portfolio total|account total|cash total)$/.test(_lbl)) return;
+    let v=siNum(cell(row,"val"),dec);
+    const qty=siNum(cell(row,"qty"),dec), price=siNum(cell(row,"price"),dec);
+    let inferred=false;
+    if((v==null||v===0) && qty!=null && price!=null){ v=qty*price; inferred=true; }
+    if(v==null || !(v>0)) return;
+    if(kind==="assets"){
+      out.assets.push({_ok:0.85,_src:st.fileName+": "+row.join(" | "),label:nameRaw||tkr||"Account",
+        accountTypeHint:cell(row,"cls")||nameRaw,value:v,country:val("c1co")||"US",ccy,propertyValue:null,otherValue:null});
+    } else {
+      const clsCell=cell(row,"cls");
+      let cls=clsCell?_daKey(clsCell,_DA_CLS_ALIAS,INV_CLASS_LABELS,"other"):"other";
+      let type="other"; const hay=(nameRaw+" "+tkr+" "+clsCell).toLowerCase();
+      if(/\betf\b/.test(hay)){ type="etf"; if(cls==="other") cls="equity"; }
+      else if(/bond|treasury|t-bill|t-note|fixed income|gilt|debenture/.test(hay)){ type="bond"; if(cls==="other") cls="fixed_income"; }
+      else if(/reit/.test(hay)){ type="stock"; cls="real_estate"; }
+      else if(/fund|index|mutual/.test(hay)){ type="mutual_fund"; if(cls==="other") cls="equity"; }
+      else if(/money market|mmf|sweep|\bcash\b/.test(hay)){ type="cash"; cls="cash"; }
+      else if(tkr){ type="stock"; if(cls==="other") cls="equity"; }
+      out.holdings.push({_ok:inferred?0.6:0.85,_src:st.fileName+": "+row.join(" | "),
+        name:nameRaw||tkr,tkr:tkr||"",val:v,type,cls,region:"other",er:null,yld:null,note:""});
+    }
+  });
+  return out;
+}
+function _siNormKey(s){ return String(s||"").toLowerCase().replace(/[^a-z0-9]/g,""); }
+function siDedupe(merged){
+  const invKeys=new Set();
+  (typeof investments!=="undefined"?investments:[]).forEach(i=>{ if(i.tkr) invKeys.add("t:"+_siNormKey(i.tkr)); if(i.name) invKeys.add("n:"+_siNormKey(i.name)); });
+  merged.holdings.forEach(h=>{
+    const k1=h.tkr?("t:"+_siNormKey(h.tkr)):null, k2="n:"+_siNormKey(h.name);
+    if((k1&&invKeys.has(k1))||(h.name&&invKeys.has(k2))){ h._ok=0.5; h._src="Possible duplicate of an existing holding — "+h._src; }
+  });
+  const asKeys=new Set();
+  (typeof assets!=="undefined"?assets:[]).forEach(a=>{ asKeys.add(_siNormKey(a.label)+"|"+(a.country||"")); });
+  merged.assets.forEach(a=>{ if(asKeys.has(_siNormKey(a.label)+"|"+(a.country||""))){ a._ok=0.5; a._src="Possible duplicate of an existing account — "+a._src; } });
+  return merged;
+}
+
+// ── Stage-1 column-mapping modal ─────────────────────────────────────
+function _siColSelect(f,selIdx){
+  const opts=['<option value="-1"'+(selIdx==null||selIdx<0?" selected":"")+'>— ignore —</option>']
+    .concat(_siState.headers.map((h,idx)=>`<option value="${idx}"${idx===selIdx?" selected":""}>${_daEsc(h||("Column "+(idx+1)))}</option>`));
+  return `<select class="da-in si-mapsel" data-f="${f}" onchange="siOnMapChange()" style="flex:1">${opts.join("")}</select>`;
+}
+function siRenderMapModal(){
+  const mm=$("siMapModal"); if(!mm||!_siState) return;
+  const st=_siState;
+  const delimName={",":"comma",";":"semicolon","\t":"tab","|":"pipe"}[st.delim]||"comma";
+  const ccyOpts=Object.keys(CURRENCIES).map(c=>`<option value="${c}"${c===st.ccy?" selected":""}>${c}</option>`).join("");
+  const fields=[["name","Name / description"],["tkr","Ticker / CUSIP"],["qty","Quantity"],["price","Price"],["val","Market value"],["cost","Cost basis (not imported)"],["acct","Account name"],["cls","Asset class"],["ccy","Currency column"]];
+  mm.innerHTML=`<div class="da-modal-bg" onclick="siCloseMap()"></div>
+  <div class="da-modal">
+    <div class="da-modal-h"><span class="ptitle" style="margin:0">Map columns — ${_daEsc(st.fileName)}</span><button class="btn-x" onclick="siCloseMap()">✕</button></div>
+    <div class="da-modal-tools" style="flex-wrap:wrap;gap:14px">
+      <label class="da-fl">Delimiter <select class="da-in" onchange="siSetDelim(this.value)" style="width:120px"><option value="comma"${delimName==="comma"?" selected":""}>Comma ,</option><option value="semicolon"${delimName==="semicolon"?" selected":""}>Semicolon ;</option><option value="tab"${delimName==="tab"?" selected":""}>Tab</option><option value="pipe"${delimName==="pipe"?" selected":""}>Pipe |</option></select></label>
+      <label class="da-fl">Header row # <input class="da-in" type="number" min="1" value="${(st.headerRow||0)+1}" onchange="siSetHeaderRow(this.value)" style="width:70px"></label>
+      <label class="da-fl">Decimal mark <select class="da-in" data-c="decimal" onchange="siOnMapChange()" style="width:120px"><option value="auto"${st.decimal==="auto"?" selected":""}>Auto</option><option value="period"${st.decimal==="period"?" selected":""}>Period .</option><option value="comma"${st.decimal==="comma"?" selected":""}>Comma ,</option></select></label>
+      <label class="da-fl">Currency <select class="da-in" data-c="ccy" onchange="siOnMapChange()" style="width:90px">${ccyOpts}</select></label>
+      <label class="da-fl">Rows are <span style="display:inline-flex;gap:12px;margin-left:6px">
+        <label style="font-size:12px;color:var(--text2)"><input type="radio" name="sikind" value="holdings"${st.rowKind!=="assets"?" checked":""} onchange="siOnMapChange()"> Holdings</label>
+        <label style="font-size:12px;color:var(--text2)"><input type="radio" name="sikind" value="assets"${st.rowKind==="assets"?" checked":""} onchange="siOnMapChange()"> Accounts</label>
+      </span></label>
+    </div>
+    <div class="da-modal-body">
+      <div class="da-sec"><div class="da-sec-h">Column mapping</div>
+        ${fields.map(f=>`<div class="si-map-row"><label class="da-fl" style="flex:0 0 170px">${f[1]}</label>${_siColSelect(f[0],st.mapping[f[0]]!=null?st.mapping[f[0]]:-1)}</div>`).join("")}
+      </div>
+      <div class="da-sec"><div class="da-sec-h">Preview (first 5 rows)</div><div class="si-preview"></div></div>
+    </div>
+    <div class="da-modal-foot">
+      <span class="si-need" style="font-size:12px;color:var(--amber);margin-right:auto">Map a Market value column (or Quantity + Price) to continue.</span>
+      <button class="btn-secondary" onclick="siCloseMap()">Cancel</button>
+      <button class="btn-primary si-continue" onclick="siCommitMapping()">Continue to review →</button>
+    </div>
+  </div>`;
+  mm.style.display="block";
+  siRenderPreview();
+}
+function siCloseMap(){ const mm=$("siMapModal"); if(mm){ mm.style.display="none"; mm.innerHTML=""; } _siQueue=[]; siStatus("Import cancelled.","var(--text3)"); }
+function siReadMapControls(){
+  const st=_siState; if(!st) return;
+  const dec=document.querySelector("#siMapModal [data-c=decimal]"); if(dec) st.decimal=dec.value;
+  const ccy=document.querySelector("#siMapModal [data-c=ccy]"); if(ccy) st.ccy=ccy.value;
+  const kind=document.querySelector("#siMapModal input[name=sikind]:checked"); if(kind) st.rowKind=kind.value;
+  const map={}; document.querySelectorAll("#siMapModal .si-mapsel").forEach(sel=>{ const idx=parseInt(sel.value,10); if(idx>=0) map[sel.dataset.f]=idx; });
+  st.mapping=map;
+}
+function siOnMapChange(){ siRenderPreview(); }
+function siSetDelim(v){ _siState.delim={comma:",",semicolon:";",tab:"\t",pipe:"|"}[v]||","; _siReparse(); }
+function siSetHeaderRow(v){ _siReparse(Math.max(1,parseInt(v,10)||1)-1); }
+function _siReparse(headerRow){
+  const st=_siState; if(!st) return;
+  const t=siParseCSVtable(st.rawText, st.delim, headerRow!=null?headerRow:st.headerRow);
+  st.headers=t.headers; st.rows=t.rows; st.headerRow=t.headerRow; st.delim=t.delim;
+  st.mapping=siGuessMapping(t.headers); st.rowKind=siGuessRowKind(st.mapping);
+  siRenderMapModal();
+}
+function siRenderPreview(){
+  siReadMapControls();
+  const st=_siState; const ext=siBuildExtraction();
+  const arr = st.rowKind==="assets"? ext.assets : ext.holdings;
+  const prev=arr.slice(0,5);
+  let html;
+  if(st.rowKind==="assets"){
+    html=`<table class="si-prev"><tr><th>Label</th><th>Account type hint</th><th>Value</th></tr>`+
+      prev.map(a=>`<tr><td>${_daEsc(a.label)}</td><td>${_daEsc(a.accountTypeHint)}</td><td>${fmtMoney(a.value)}</td></tr>`).join("")+`</table>`;
+  } else {
+    html=`<table class="si-prev"><tr><th>Name</th><th>Ticker</th><th>Value</th><th>Type</th><th>Class</th></tr>`+
+      prev.map(h=>`<tr><td>${_daEsc(h.name)}</td><td>${_daEsc(h.tkr)}</td><td>${fmtMoney(h.val)}</td><td>${_daEsc(INV_TYPE_LABELS[h.type]||h.type)}</td><td>${_daEsc(INV_CLASS_LABELS[h.cls]||h.cls)}</td></tr>`).join("")+`</table>`;
+  }
+  const host=document.querySelector("#siMapModal .si-preview"); if(host) host.innerHTML = arr.length? html : '<div class="pf-empty">No rows parsed with the current mapping.</div>';
+  const need = st.rowKind==="assets"? (st.mapping.val!=null) : (st.mapping.val!=null || (st.mapping.qty!=null && st.mapping.price!=null));
+  const cont=document.querySelector("#siMapModal .si-continue"); if(cont){ cont.disabled=!need; cont.style.opacity=need?"1":".5"; }
+  const hint=document.querySelector("#siMapModal .si-need"); if(hint) hint.style.display=need?"none":"inline";
+}
+function siCommitMapping(){
+  siReadMapControls();
+  const st=_siState;
+  const need = st.rowKind==="assets"? (st.mapping.val!=null) : (st.mapping.val!=null || (st.mapping.qty!=null && st.mapping.price!=null));
+  if(!need) return;
+  if(st.ccy && st.ccy!==CURRENT_CCY) (_siCcySeen=_siCcySeen||new Set()).add(st.ccy);
+  _siMerge(_siAccum, siBuildExtraction());
+  const mm=$("siMapModal"); if(mm){ mm.style.display="none"; mm.innerHTML=""; }
+  if(_siQueue.length) siProcessNextCSV(); else siFinishImport();
+}
+// Expose handlers referenced from inline onclick/onchange
+window.openStatementImporter=openStatementImporter; window.siRenderFileList=siRenderFileList; window.siRun=siRun;
+window.siSetDelim=siSetDelim; window.siSetHeaderRow=siSetHeaderRow; window.siOnMapChange=siOnMapChange;
+window.siCommitMapping=siCommitMapping; window.siCloseMap=siCloseMap;
+
 function renderInvestments(){
   const list=$("pfList"); if(!list) return;
   if(investments.length===0){list.innerHTML='<div class="pf-empty">No investments added.</div>'; return;}
@@ -8376,14 +8824,14 @@ function renderInvestments(){
     const yld=i.yld!=null?i.yld.toFixed(2)+"%":"—";
     return `<div class="pf-row">
       <span class="pf-tag tt-${i.type}">${INV_TYPE_LABELS[i.type]||i.type}</span>
-      <span class="pname">${i.name}</span>
+      <span class="pname">${_daEsc(i.name)}</span>
       <span class="ptkr">${i.tkr||"—"}</span>
       <span style="color:var(--text2)">${INV_CLASS_LABELS[i.cls]||i.cls}${i.subcat?` <span style="color:var(--text3)">· ${i.subcat}</span>`:""}</span>
       <span style="color:var(--text);font-variant-numeric:tabular-nums;font-weight:500">${fmtMoney(i.val)}</span>
       <span style="color:var(--text3)">${INV_REGION_LABELS[i.region]||i.region}</span>
       <span style="color:var(--text2);font-variant-numeric:tabular-nums">${er}</span>
       <span style="color:var(--text2);font-variant-numeric:tabular-nums">${yld}</span>
-      <span class="pnote">${i.note||"—"}</span>
+      <span class="pnote">${_daEsc(i.note||"—")}</span>
       <button class="btn-x" style="font-size:10px;padding:2px 7px;color:var(--text3);border:1px solid var(--border);border-radius:3px" onclick="editInvestment('${i.id}')">✎</button>
       <button class="btn-x" onclick="removeInvestment('${i.id}')">✕</button>
     </div>`;
@@ -14837,7 +15285,7 @@ function buildReportHtml(){
       const rows=goals.map(g=>{
         const row=Array.from(fundEl.querySelectorAll("[data-gid='"+g.id+"']"));
         const pct=row.length?row[0].querySelector(".grs-pct")?.textContent||"—":"—";
-        return `<tr><td>${g.name}</td><td>${fmtMoneyFull(g.amt)}/yr</td><td>${g.startYear}–${g.endYear}</td><td>${pct}</td></tr>`;
+        return `<tr><td>${_daEsc(g.name)}</td><td>${fmtMoneyFull(g.amt)}/yr</td><td>${g.startYear}–${g.endYear}</td><td>${pct}</td></tr>`;
       }).join("");
       fundSection=`<h2>Goal success probability</h2><table><tr><th>Goal</th><th>Annual amount</th><th>Year range</th><th>Success probability</th></tr>${rows}</table>`;
     } else if(goals.length>0){
@@ -15008,7 +15456,7 @@ function buildReportHtml(){
     portSection=`<h2>Portfolio (${investments.length} holdings)</h2>
     <p>Total value: ${fmtMoneyFull(portfolioInvestmentSeed())}</p>
     <table><tr><th>Position</th><th>Ticker</th><th>Class</th><th>Value</th></tr>
-    ${investments.map(i=>`<tr><td>${i.name}</td><td>${i.tkr||"—"}</td><td>${INV_CLASS_LABELS[i.cls]||i.cls}</td><td>${fmtMoneyFull(i.val)}</td></tr>`).join("")}
+    ${investments.map(i=>`<tr><td>${_daEsc(i.name)}</td><td>${_daEsc(i.tkr||"—")}</td><td>${INV_CLASS_LABELS[i.cls]||i.cls}</td><td>${fmtMoneyFull(i.val)}</td></tr>`).join("")}
     </table>`;
   }
 
@@ -15044,19 +15492,19 @@ function buildReportHtml(){
 
   <h2>Assets (${assets.length})</h2>
   <table><tr><th>Account</th><th>Type</th><th>Value</th><th>Liquid</th><th>Withdraw age</th></tr>
-  ${assets.map(a=>`<tr><td>${a.label}</td><td>${a.baseLabel||a.type}</td><td>${fmtMoneyFull(a.value)}</td><td>${a.liquid?"Yes":"No"}</td><td>${a.withdrawAge!=null?fmtAge(a.withdrawAge):"—"}</td></tr>`).join("")}
+  ${assets.map(a=>`<tr><td>${_daEsc(a.label)}</td><td>${_daEsc(a.baseLabel||a.type)}</td><td>${fmtMoneyFull(a.value)}</td><td>${a.liquid?"Yes":"No"}</td><td>${a.withdrawAge!=null?fmtAge(a.withdrawAge):"—"}</td></tr>`).join("")}
   ${num("aProp",0)>0?`<tr><td>Property / Real estate</td><td>Real estate</td><td>${fmtMoneyFull(num("aProp",0))}</td><td>No</td><td>—</td></tr>`:""}
   ${num("aOther",0)>0?`<tr><td>Other assets</td><td>Miscellaneous</td><td>${fmtMoneyFull(num("aOther",0))}</td><td>No</td><td>—</td></tr>`:""}
   </table>
 
   <h2>Loans (${loans.length})</h2>
   <table><tr><th>Loan</th><th>Balance</th><th>Rate</th><th>Years</th><th>Monthly</th></tr>
-  ${loans.map(l=>`<tr><td>${l.label}</td><td>${fmtMoneyFull(l.bal)}</td><td>${l.rate.toFixed(2)}%</td><td>${l.yrs}</td><td>${fmtMoneyFull(loanMonthly(l))}</td></tr>`).join("")}
+  ${loans.map(l=>`<tr><td>${_daEsc(l.label)}</td><td>${fmtMoneyFull(l.bal)}</td><td>${l.rate.toFixed(2)}%</td><td>${l.yrs}</td><td>${fmtMoneyFull(loanMonthly(l))}</td></tr>`).join("")}
   </table>
 
   <h2>Goals (${goals.length})</h2>
   <table><tr><th>Goal</th><th>Amount</th><th>Year range</th><th>Category</th><th>Tier</th></tr>
-  ${goals.map(g=>`<tr><td>${g.name}</td><td>${fmtMoneyFull(g.amt)}/yr (${fmtMoneyFull(g.amt*Math.max(1,g.endYear-g.startYear+1))} total)</td><td>${g.startYear}–${g.endYear}</td><td>${g.cat}</td><td>${g.tier}</td></tr>`).join("")}
+  ${goals.map(g=>`<tr><td>${_daEsc(g.name)}</td><td>${fmtMoneyFull(g.amt)}/yr (${fmtMoneyFull(g.amt*Math.max(1,g.endYear-g.startYear+1))} total)</td><td>${g.startYear}–${g.endYear}</td><td>${g.cat}</td><td>${g.tier}</td></tr>`).join("")}
   </table>
 
   ${insSection}
