@@ -2428,6 +2428,14 @@ input[type=date]{color-scheme:light}
     <div style="font-size:12px;color:var(--text3);margin-bottom:12px">
       Estimated sustainable annual retirement spending in today's dollars.
     </div>
+    <div class="chart-wrap" style="height:300px"><canvas id="simLifestyleCandle" role="img" aria-label="Candlestick chart of achievable annual lifestyle by retirement age"></canvas></div>
+    <div style="font-size:11px;color:var(--text3);margin:8px 2px 16px;text-align:center;line-height:1.8">
+      Each candle is the range of sustainable annual spending if you retired at that age (today's dollars).
+      <span style="display:inline-block;width:10px;height:10px;background:var(--green);border-radius:2px;vertical-align:middle;margin:0 3px 0 10px"></span>box = 80%→30% likelihood&nbsp;·
+      <span style="display:inline-block;width:2px;height:12px;background:var(--green);vertical-align:middle;margin:0 4px 0 10px"></span>whiskers = 90%→10%&nbsp;·
+      <span style="display:inline-block;width:12px;height:2px;background:#fff;vertical-align:middle;margin:0 4px 0 10px"></span>line = expected (50%).
+      Candles turn <span style="color:var(--amber);font-weight:600">amber</span> when the expected case no longer covers your current annual expenses.
+    </div>
     <div id="simLifestyle">
       Run the simulation to estimate sustainable retirement spending.
     </div>
@@ -2594,15 +2602,6 @@ input[type=date]{color-scheme:light}
     Each goal priced in present-value terms and discounted at a risk-adjusted rate matched to its priority (Essential 95% / Important 75% / Aspirational 55% confidence), grossed for tax, then compared to your funding sources. This complements the probabilistic goal-success rates above with the institutional <strong>Funding Ratio</strong> metric. Uses the capital-market-assumption covariance engine.
   </div>
   <div id="simFunding"><div class="pf-empty">Run the simulation to populate funding ratios.</div></div>
-</div>
-
-<!-- Potentially Achievable Lifestyle (3 confidence levels) -->
-<div class="panel" id="simLifestylePanel">
-  <div class="ptitle">Potentially Achievable Annual Lifestyle</div>
-  <div style="font-size:12px;color:var(--text3);margin-bottom:14px;line-height:1.6">
-    Estimated sustainable annual retirement spending (today's dollars) that lasts to age 90, under three confidence levels — <strong>80%</strong> conservative floor, <strong>50%</strong> expected, <strong>30%</strong> optimistic.
-  </div>
-  <div id="simLifestyle"><div class="pf-empty">Run the simulation to populate.</div></div>
 </div>
 
 <!-- Retirement Number (Actuarial) -->
@@ -3764,7 +3763,7 @@ input[type=date]{color-scheme:light}
 // ═══════════════════════════════════════════════════════════
 // VERSION — updated by build-standalone.pl on each build
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260627-2353";
+const APP_VERSION = "20260628-0047";
 
 // ═══════════════════════════════════════════════════════════
 // DATA
@@ -13721,7 +13720,109 @@ function renderSimLifestyle(){
   });
   h += '</div>';
   host.innerHTML = h;
+  try{ renderSimLifestyleCandles(); }catch(e){ console.warn('renderSimLifestyleCandles:', e); }
 }
+
+// ─── Achievable Annual Lifestyle candlestick (range by retirement age) ───
+// One candle per retirement age from now to the target retirement age. Uses the
+// SAME engine (gbReturnAtConfidence) as the three cards, so the candle at the
+// target retirement age matches them exactly: box = 80%→30% likelihood
+// (conservative→optimistic), whiskers = 90%→10%, white tick = expected (50%).
+// Candles turn amber when the expected case no longer covers current expenses.
+let simLifestyleCandleObj = null;
+function renderSimLifestyleCandles(){
+  const canvas = document.getElementById("simLifestyleCandle");
+  if(!canvas || typeof Chart === "undefined") return;
+  const port = gbPortfolioRisk(gbAssetClassWeights());
+  const inflation = num("inf", CMA_INFLATION) / 100;
+  const a1 = (typeof ageFromDOB==="function" ? ageFromDOB(val("c1d")) : 0) || 40;
+  const retAge = num("retAge", 65);
+  const investable = (typeof totalAccountValue==="function" ? totalAccountValue() : 0) + (typeof portfolioInvestmentSeed==="function" ? portfolioInvestmentSeed() : 0);
+  const annualSavings = num("savAnnual", 0);
+  const target = (typeof getTotalExpenses==="function" ? getTotalExpenses() : 0);
+
+  // sustainable annual spend (today's $) if you retired at `retireAge`, at confidence `confP`
+  const spendAt = (retireAge, confP) => {
+    const yrsAccum = Math.max(0, retireAge - a1);
+    const yearsInRet = Math.max(1, 90 - retireAge);
+    const r = gbReturnAtConfidence(port.geoMu, port.sigma, Math.max(1, yrsAccum), confP);
+    let w = investable;
+    for(let y=0;y<yrsAccum;y++){ w = w*(1+r) + annualSavings; }
+    const realRate = (r - inflation)/(1+inflation);
+    return Math.max(0, Math.abs(realRate) < 1e-6 ? w/yearsInRet : w*realRate/(1 - Math.pow(1+realRate,-yearsInRet)));
+  };
+
+  // one candle per retirement age (cap to ~40 candles for readability)
+  const startAge = a1;   // candles always start at the client's current age (never a past retirement age)
+  const endAge = Math.max(retAge, a1+1);
+  const span = endAge - startAge;
+  const stepA = span > 40 ? Math.ceil(span/40) : 1;
+  const ages = [];
+  for(let ag=startAge; ag<=endAge; ag+=stepA) ages.push(ag);
+  if(ages[ages.length-1] !== endAge) ages.push(endAge);
+
+  const p90=ages.map(a=>spendAt(a,90)), p80=ages.map(a=>spendAt(a,80)),
+        p50=ages.map(a=>spendAt(a,50)), p30=ages.map(a=>spendAt(a,30)),
+        p10=ages.map(a=>spendAt(a,10));
+
+  const cy = (typeof currentYear==="function") ? currentYear() : new Date().getFullYear();
+  const css = getComputedStyle(document.documentElement);
+  const green = (css.getPropertyValue('--green')||'').trim() || '#00875a';
+  const amber = (css.getPropertyValue('--amber')||'').trim() || '#f59e0b';
+  const colors = p50.map(v => (target>0 && v < target) ? amber : green);
+  const bodyData = ages.map((_,i)=>[Math.min(p80[i],p30[i]), Math.max(p80[i],p30[i])]);
+
+  if(simLifestyleCandleObj){ try{ simLifestyleCandleObj.destroy(); }catch(_){} }
+
+  // custom plugin: whiskers (90→10) + caps + expected (50%) tick on each body
+  const whiskers = {
+    id:'lifestyleWhiskers',
+    afterDatasetsDraw(chart){
+      const meta = chart.getDatasetMeta(0); if(!meta || !meta.data) return;
+      const ctx = chart.ctx, ys = chart.scales.y; ctx.save();
+      meta.data.forEach((bar,i)=>{
+        const x = bar.x, half = (bar.width||10)/2;
+        const yHi = ys.getPixelForValue(p10[i]), yLo = ys.getPixelForValue(p90[i]), yMed = ys.getPixelForValue(p50[i]);
+        ctx.strokeStyle = colors[i]; ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.moveTo(x,yHi); ctx.lineTo(x,yLo); ctx.stroke();              // wick
+        ctx.beginPath();                                                                   // caps
+        ctx.moveTo(x-half*0.45,yHi); ctx.lineTo(x+half*0.45,yHi);
+        ctx.moveTo(x-half*0.45,yLo); ctx.lineTo(x+half*0.45,yLo); ctx.stroke();
+        ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(x-half,yMed); ctx.lineTo(x+half,yMed); ctx.stroke();   // expected tick
+      });
+      ctx.restore();
+    }
+  };
+
+  simLifestyleCandleObj = new Chart(canvas, {
+    type:'bar',
+    data:{ labels: ages, datasets:[{ label:'Achievable lifestyle', data: bodyData, backgroundColor: colors, borderWidth:0, borderRadius:2, barPercentage:0.6, categoryPercentage:0.9 }] },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      interaction:{mode:'index', intersect:false},
+      layout:{padding:{top:8}},
+      plugins:{
+        legend:{display:false},
+        tooltip:{ callbacks:{
+          title: items => { const i=items[0].dataIndex; return 'Retire at age '+ages[i]+'  (≈ '+(cy+Math.max(0,ages[i]-a1))+')'; },
+          label: () => '',
+          afterBody: items => { const i=items[0].dataIndex; return [
+            'Optimistic (30%):    '+fmtMoney(p30[i])+'/yr',
+            'Expected (50%):      '+fmtMoney(p50[i])+'/yr',
+            'Conservative (80%):  '+fmtMoney(p80[i])+'/yr',
+            'Full range:  '+fmtMoney(p90[i])+' – '+fmtMoney(p10[i]) ]; }
+        }}
+      },
+      scales:{
+        x:{ title:{display:true,text:'Retirement age',color:'#8a8f98',font:{size:11}}, ticks:{maxTicksLimit:14,color:'#8a8f98'}, grid:{display:false} },
+        y:{ ticks:{callback:v=>fmtMoney(v),color:'#8a8f98'}, grid:{color:'rgba(255,255,255,0.06)'}, beginAtZero:false, suggestedMin:0, suggestedMax:(Math.max.apply(null,p10)||1)*1.06 }
+      }
+    },
+    plugins:[whiskers]
+  });
+}
+window.renderSimLifestyleCandles = renderSimLifestyleCandles;
 
 // ─── Annual Potential Wealth to age 90 — chart + table at 80/50/30% likelihood ───
 // Deterministic projection using the SAME confidence engine (gbReturnAtConfidence)
@@ -16662,6 +16763,11 @@ async function generatePDFReport(){
     const M=18;                        // margin
     const CW=pw-M*2;                   // content width
     let y=M;
+    // Deferred page-break: re-armed after every section so each major section
+    // starts on a fresh page (cleaner, more-spacious layout). Consumed by the
+    // first newPage()/sectionH2() a section calls — disabled sections that return
+    // early never consume it, so no blank pages are produced.
+    let _pendingPage=false;
 
     // ── Sanitize text: jsPDF's built-in fonts only render WinAnsi (Latin-1).
     // Map common non-Latin1 glyphs (σ, true minus, ≈, arrows, ≤/≥) to ASCII so
@@ -16704,6 +16810,7 @@ async function generatePDFReport(){
     }
     function newPage(){
       doc.addPage();
+      _pendingPage=false;   // a page break just happened; clear any deferred request
       // Small logo top-right corner when "header_all" or "header_last" is set
       let _hdrLogo = false, _ldH = "", _lpH = "cover_top";
       try {
@@ -16730,24 +16837,25 @@ async function generatePDFReport(){
     function checkY(need=20){if(y+need>ph-14) newPage();}
 
     function sectionH2(title){
+      if(_pendingPage){ _pendingPage=false; newPage(); }   // start each major section on its own page
       checkY(18);
-      y+=3;
+      y+=4;
       if(hdrStyle==="filled"){
         // Subtle institutional band: thin accent fill behind a serif title
         // doc.setFillColor(...acL);
         // doc.rect(M,y-5,CW,9.5,"F");
 
         doc.setFont("times", "bold");
-        doc.setFontSize(13);
+        doc.setFontSize(14);
         doc.setTextColor(...ac);
         doc.text(title, M, y);
 
-        y += 2.5;
+        y += 2.8;
         doc.setDrawColor(...ac);
         doc.setLineWidth(0.4);
         doc.line(M, y, pw - M, y);
 
-        y += 6;
+        y += 7.5;
 
         // doc.setDrawColor(...ac); doc.setLineWidth(0.4); doc.line(M,y-5,M,y+4.5); // accent edge
         // doc.setFont("times","bold"); doc.setFontSize(12.5); doc.setTextColor(...ac);
@@ -16946,6 +17054,90 @@ function drawFanChart(){
   y += 6;
   doc.setTextColor(40); doc.setFont("helvetica","normal"); doc.setFontSize(fsz);
 }
+
+    // ── Wealth projection line chart (80/50/30% to age 90) — mirrors the app's
+    //    "What could your wealth look like?" chart, drawn natively in the report's
+    //    clean white style. Same deterministic engine (gbReturnAtConfidence). ──
+    function drawWealthLineChart(){
+      const port = gbPortfolioRisk(gbAssetClassWeights());
+      const a1 = ageFromDOB(val("c1d")) || 40;
+      const retAge = num("retAge",65);
+      const investable = (typeof totalAccountValue==="function"?totalAccountValue():0) + (typeof portfolioInvestmentSeed==="function"?portfolioInvestmentSeed():0);
+      const savings = num("savAnnual",0);
+      const cyr = (typeof currentYear==="function")?currentYear():new Date().getFullYear();
+      const yrs = Math.max(1, 90 - a1);
+      const confs = [{p:80,c:[27,104,65],lbl:"80% likelihood (conservative)"},{p:50,c:ac,lbl:"50% likelihood (expected)"},{p:30,c:[124,58,237],lbl:"30% likelihood (optimistic)"}];
+      const series = confs.map(cf=>{ const r=gbReturnAtConfidence(port.geoMu,port.sigma,yrs,cf.p); const pts=[]; let w=investable;
+        for(let i=0;i<=yrs;i++){ pts.push(Math.max(0,w)); w=w*(1+r)+((a1+i)<retAge?savings:0); } return {cf,pts}; });
+      const ch=64; checkY(ch+26);
+      const cx=M+15, plotW=CW-15, cy0=y;
+      const hi=(Math.max.apply(null, series.flatMap(s=>s.pts))*1.06)||1, lo=0;
+      const mx=i=>cx+(i/yrs)*plotW, my=v=>cy0+ch-((v-lo)/(hi-lo))*ch;
+      doc.setFontSize(6.5);
+      for(let t=0;t<=4;t++){ const v=lo+(hi-lo)*t/4, gy=my(v); doc.setDrawColor(228,231,236); doc.setLineWidth(0.15); doc.line(cx,gy,cx+plotW,gy); doc.setTextColor(110,118,130); doc.text(fmtMoney(v),cx-2,gy+1,{align:"right"}); }
+      for(let i=0;i<=yrs;i+=10){ const xx=mx(i); doc.setTextColor(110,118,130); doc.setFontSize(6.5); doc.text(String(cyr+i),xx,cy0+ch+4,{align:"center"}); doc.setTextColor(170); doc.setFontSize(5.6); doc.text("age "+(a1+i),xx,cy0+ch+7.6,{align:"center"}); }
+      doc.setDrawColor(170); doc.setLineWidth(0.3); doc.line(cx,cy0,cx,cy0+ch); doc.line(cx,cy0+ch,cx+plotW,cy0+ch);
+      // soft cone fill between 80% (lower) and 30% (upper)
+      const up=series[2].pts, dn=series[0].pts, pts=[];
+      for(let i=0;i<=yrs;i++) pts.push([mx(i),my(up[i])]);
+      for(let i=yrs;i>=0;i--) pts.push([mx(i),my(dn[i])]);
+      const mv=[]; for(let i=1;i<pts.length;i++) mv.push([pts[i][0]-pts[i-1][0],pts[i][1]-pts[i-1][1]]);
+      doc.setFillColor(225,234,248); doc.setLineWidth(0); doc.lines(mv,pts[0][0],pts[0][1],[1,1],"F",true);
+      series.forEach(s=>{ doc.setDrawColor.apply(doc,s.cf.c); doc.setLineWidth(0.7); for(let i=1;i<=yrs;i++) doc.line(mx(i-1),my(s.pts[i-1]),mx(i),my(s.pts[i])); });
+      const rx=mx(Math.max(0,retAge-a1)); doc.setDrawColor(150); doc.setLineWidth(0.3); doc.setLineDashPattern([1,1],0); doc.line(rx,cy0,rx,cy0+ch); doc.setLineDashPattern([],0); doc.setFontSize(6); doc.setTextColor(120); doc.text("retirement",rx+1,cy0+4);
+      y=cy0+ch+11;
+      let lx=cx; doc.setFontSize(7); series.forEach(s=>{ doc.setDrawColor.apply(doc,s.cf.c); doc.setLineWidth(1.1); doc.line(lx,y-1.2,lx+7,y-1.2); doc.setTextColor(70); doc.text(s.cf.lbl,lx+9,y); lx+=Math.min(95,plotW/3); });
+      y+=7; doc.setTextColor(40); doc.setFont("helvetica","normal"); doc.setFontSize(fsz);
+    }
+
+    // ── Achievable-lifestyle candlestick (range by retirement age) — mirrors the
+    //    app's candlestick: box = 80%->30% likelihood, whiskers = 90%->10%, white
+    //    tick = expected (50%), green/amber by whether the expected case covers
+    //    current expenses. Same engine as renderSimLifestyleCandles(). ──
+    function drawLifestyleCandles(){
+      const port = gbPortfolioRisk(gbAssetClassWeights());
+      const inflation = num("inf",CMA_INFLATION)/100;
+      const a1 = ageFromDOB(val("c1d")) || 40;
+      const retAge = num("retAge",65);
+      const investable = (typeof totalAccountValue==="function"?totalAccountValue():0)+(typeof portfolioInvestmentSeed==="function"?portfolioInvestmentSeed():0);
+      const savings = num("savAnnual",0);
+      const expenses = (typeof getTotalExpenses==="function"?getTotalExpenses():0);
+      const spendAt=(rA,cP)=>{ const acc=Math.max(0,rA-a1), inret=Math.max(1,90-rA); const r=gbReturnAtConfidence(port.geoMu,port.sigma,Math.max(1,acc),cP);
+        let w=investable; for(let i=0;i<acc;i++) w=w*(1+r)+savings; const rr=(r-inflation)/(1+inflation);
+        return Math.max(0, Math.abs(rr)<1e-6 ? w/inret : w*rr/(1-Math.pow(1+rr,-inret))); };
+      const startAge=a1, endAge=Math.max(retAge,a1+1);   // start at current age, never a past retirement age
+      const span=endAge-startAge, stepA=span>40?Math.ceil(span/40):1, ages=[];
+      for(let a=startAge;a<=endAge;a+=stepA) ages.push(a);
+      if(ages[ages.length-1]!==endAge) ages.push(endAge);
+      const P=p=>ages.map(a=>spendAt(a,p));
+      const p90=P(90),p80=P(80),p50=P(50),p30=P(30),p10=P(10);
+      const ch=64; checkY(ch+28);
+      const cx=M+15, plotW=CW-15, cy0=y;
+      const hi=(Math.max.apply(null,p10)*1.06)||1, lo=0;
+      const my=v=>cy0+ch-((v-lo)/(hi-lo))*ch;
+      const n=ages.length, slot=plotW/n, bw=Math.min(slot*0.55,9);
+      doc.setFontSize(6.5);
+      for(let t=0;t<=4;t++){ const v=lo+(hi-lo)*t/4, gy=my(v); doc.setDrawColor(228,231,236); doc.setLineWidth(0.15); doc.line(cx,gy,cx+plotW,gy); doc.setTextColor(110,118,130); doc.text(fmtMoney(v),cx-2,gy+1,{align:"right"}); }
+      doc.setDrawColor(170); doc.setLineWidth(0.3); doc.line(cx,cy0,cx,cy0+ch); doc.line(cx,cy0+ch,cx+plotW,cy0+ch);
+      const lblEvery=Math.max(1,Math.ceil(ages.length/12));
+      ages.forEach((a,i)=>{ if(i%lblEvery===0 || i===ages.length-1){ const xx=cx+slot*i+slot/2; doc.setTextColor(110,118,130); doc.setFontSize(6.5); doc.text(String(a),xx,cy0+ch+4.5,{align:"center"}); } });
+      doc.setFontSize(7); doc.setTextColor(110,118,130); doc.text("Retirement age",cx+plotW/2,cy0+ch+9,{align:"center"});
+      const GREEN=[0,135,90], AMBER=[211,135,30];
+      ages.forEach((a,i)=>{ const xc=cx+slot*i+slot/2; const col=(expenses>0&&p50[i]<expenses)?AMBER:GREEN;
+        const yHi=my(p10[i]),yLo=my(p90[i]),yMed=my(p50[i]),yB=my(Math.min(p80[i],p30[i])),yT=my(Math.max(p80[i],p30[i]));
+        doc.setDrawColor.apply(doc,col); doc.setLineWidth(0.5); doc.line(xc,yHi,xc,yLo);
+        doc.setLineWidth(0.4); doc.line(xc-bw*0.28,yHi,xc+bw*0.28,yHi); doc.line(xc-bw*0.28,yLo,xc+bw*0.28,yLo);
+        doc.setFillColor.apply(doc,col); doc.rect(xc-bw/2,yT,bw,Math.max(0.4,yB-yT),"F");
+        doc.setDrawColor(255,255,255); doc.setLineWidth(0.7); doc.line(xc-bw/2,yMed,xc+bw/2,yMed); });
+      if(expenses>0){ const ey=my(expenses); if(ey>cy0&&ey<cy0+ch){ doc.setDrawColor(190,90,40); doc.setLineWidth(0.4); doc.setLineDashPattern([1.5,1.2],0); doc.line(cx,ey,cx+plotW,ey); doc.setLineDashPattern([],0); doc.setFontSize(6); doc.setTextColor(190,90,40); doc.text("current expenses "+fmt(expenses),cx+plotW,ey-1.5,{align:"right"}); } }
+      y=cy0+ch+13;
+      let lx=cx; doc.setFontSize(7); doc.setTextColor(70);
+      doc.setFillColor(0,135,90); doc.rect(lx,y-2.6,4,3.4,"F"); doc.text("box = 80%->30%",lx+5.5,y); lx+=46;
+      doc.setDrawColor(110,118,130); doc.setLineWidth(0.6); doc.line(lx+1.5,y-3,lx+1.5,y+0.4); doc.text("whiskers = 90%->10%",lx+5.5,y); lx+=54;
+      doc.setDrawColor(120); doc.setLineWidth(0.8); doc.line(lx,y-1.3,lx+4,y-1.3); doc.text("line = expected (50%)",lx+5.5,y); lx+=50;
+      if(expenses>0){ doc.setDrawColor(190,90,40); doc.setLineWidth(0.4); doc.setLineDashPattern([1.5,1.2],0); doc.line(lx,y-1.3,lx+4,y-1.3); doc.setLineDashPattern([],0); doc.text("current expenses",lx+5.5,y); }
+      y+=7; doc.setTextColor(40); doc.setFont("helvetica","normal"); doc.setFontSize(fsz);
+    }
 
     function para(txt,color=[80,80,80]){
       checkY(8);
@@ -17727,14 +17919,16 @@ function drawFanChart(){
         if(val("rptIncLifestyle") === "no") return;
         newPage();
         sectionH2("Potentially Achievable Lifestyle");
-        para("This estimates the sustainable inflation-adjusted annual spending your portfolio could support throughout retirement (to age 90), at three confidence levels. Higher confidence assumes a more conservative return; lower confidence assumes more favourable markets.");
+        para("This estimates the sustainable inflation-adjusted annual spending your portfolio could support throughout retirement (to age 90), at three confidence levels. Higher confidence assumes a more conservative return; lower confidence assumes more favourable markets. Each candle below shows the range of achievable spending if you retired at that age.");
+        // candlestick — mirrors the app's achievable-lifestyle chart
+        drawLifestyleCandles();
         const weights = gbAssetClassWeights();
         const port = gbPortfolioRisk(weights);
         const inflation = num("inf", CMA_INFLATION)/100;
         const a1 = ageFromDOB(val("c1d")) || 40;
         const retAge = num("retAge", 65);
         const yrsToRet = Math.max(1, retAge - a1);
-        const investable = (typeof totalAccountValue==="function" ? totalAccountValue() : 0);
+        const investable = (typeof totalAccountValue==="function" ? totalAccountValue() : 0) + (typeof portfolioInvestmentSeed==="function" ? portfolioInvestmentSeed() : 0);
         const annualSavings = num("savAnnual", 0);
         const yearsInRet = Math.max(1, 90 - retAge);
         const confs = [
@@ -17782,35 +17976,24 @@ function drawFanChart(){
       // ─── ANNUAL POTENTIAL WEALTH (year-by-year at confidence bands) ──
       potentialwealth: () => {
         if(val("rptIncPotWealth") === "no") return;
-        checkY(40);
         sectionH2("Annual Potential Wealth");
-        if(!(lastSimPaths && lastSimPaths.length>0)){
-          para("Run the simulation to populate the potential-wealth projection.");
-          return;
-        }
-        para("Projected portfolio value year by year at three confidence levels. The 80% column is a conservative floor (80% of simulated paths exceed it); the 30% column is an optimistic outcome (only 30% exceed it). Values are nominal.");
-        const yrs = lastSimYrs;
-        const cy  = (typeof currentYear==="function") ? currentYear() : new Date().getFullYear();
-        const a1  = ageFromDOB(val("c1d")) || 40;
+        para("Projected portfolio value each year from today to age 90, in today's money, at three likelihood levels — 80% is a conservative floor (80% chance of doing at least this well), 50% is the expected path and 30% is an optimistic outcome. The shaded cone spans the conservative-to-optimistic range.");
+        // chart — mirrors the app's deterministic projection
+        drawWealthLineChart();
+        // table on the same deterministic engine, so chart, table and app all agree
+        const port = gbPortfolioRisk(gbAssetClassWeights());
+        const a1 = ageFromDOB(val("c1d")) || 40;
+        const retAge = num("retAge",65);
+        const investable = (typeof totalAccountValue==="function"?totalAccountValue():0)+(typeof portfolioInvestmentSeed==="function"?portfolioInvestmentSeed():0);
+        const savings = num("savAnnual",0);
+        const cy = (typeof currentYear==="function") ? currentYear() : new Date().getFullYear();
+        const yrs = Math.max(1, 90 - a1);
+        const ser = [80,50,30].map(p=>{ const r=gbReturnAtConfidence(port.geoMu,port.sigma,yrs,p); const pts=[]; let w=investable;
+          for(let i=0;i<=yrs;i++){ pts.push(Math.max(0,w)); w=w*(1+r)+((a1+i)<retAge?savings:0); } return pts; });
         const step = yrs > 30 ? 5 : (yrs > 15 ? 2 : 1);
         const rows = [];
-        for(let yI=0; yI<=yrs; yI+=step){
-          rows.push([
-            (cy+yI).toString(),
-            (a1+yI).toString(),
-            fmt(percentileAt(lastSimPaths, yI, 20)),
-            fmt(percentileAt(lastSimPaths, yI, 50)),
-            fmt(percentileAt(lastSimPaths, yI, 70)),
-          ]);
-        }
-        if((yrs % step) !== 0){
-          rows.push([
-            (cy+yrs).toString(), (a1+yrs).toString(),
-            fmt(percentileAt(lastSimPaths, yrs, 20)),
-            fmt(percentileAt(lastSimPaths, yrs, 50)),
-            fmt(percentileAt(lastSimPaths, yrs, 70)),
-          ]);
-        }
+        for(let i=0;i<=yrs;i+=step){ rows.push([String(cy+i),String(a1+i),fmt(ser[0][i]),fmt(ser[1][i]),fmt(ser[2][i])]); }
+        if((yrs % step) !== 0){ rows.push([String(cy+yrs),String(a1+yrs),fmt(ser[0][yrs]),fmt(ser[1][yrs]),fmt(ser[2][yrs])]); }
         tbl(["Year","Age","Conservative (80%)","Expected (50%)","Optimistic (30%)"], rows);
       },
       // ─── ROTH-STYLE CONVERSION WINDOW ──
@@ -18069,9 +18252,11 @@ function drawFanChart(){
 
     // ═══ Iterate the user-defined section order ═══
     // (saved via the Page Order panel in the PDF Report tab — drag ↑↓ to reorder)
+    _pendingPage = true;   // first content section starts on a fresh page after the cover
     userOrder.forEach(k => {
       try { SECTIONS[k] && SECTIONS[k](); }
       catch(e){ console.warn("PDF section '"+k+"' failed:", e); }
+      _pendingPage = true;   // re-arm: the next rendering section starts on its own page
     });
 
     // ── Small logo bottom-right on the LAST page (when "header_last" is selected) ──
