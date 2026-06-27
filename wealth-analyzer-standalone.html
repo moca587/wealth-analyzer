@@ -3306,10 +3306,23 @@ input[type=date]{color-scheme:light}
   <button class="btn-primary" onclick="runComparison()" style="margin-top:12px">Refresh comparison</button>
 </div>
 
-<!-- Parameter side-by-side -->
+<!-- Unified Past vs Expected returns (headline visual) -->
 <div class="panel">
-  <div class="ptitle">Return & Risk Profile</div>
-  <div style="font-size:12px;color:var(--text3);margin-bottom:12px;line-height:1.6">This is the <strong style="color:var(--text2)">forward-looking expected</strong> return — the long-run average implied by each portfolio's asset-class mix (capital-market assumptions). It will <strong style="color:var(--text2)">not</strong> equal the <em>Average Annualized Return</em> box below, which shows <strong style="color:var(--text2)">historical trailing</strong> returns (what the funds actually returned over the past 1/3/5/10 years). Expected ≠ trailing by design — one looks forward, the other looks back.</div>
+  <div class="ptitle">Portfolio Returns — Past vs Expected</div>
+  <div style="font-size:12px;color:var(--text3);margin-bottom:6px;line-height:1.6">The <strong style="color:#5b9bd5">same two portfolios</strong>, shown two ways. <strong style="color:var(--text2)">Left of “today”</strong> is what the funds actually returned (annualized) over each past period; <strong style="color:var(--text2)">right of “today”</strong> is the long-run return this mix is <em>expected</em> to average, net of fees. They differ because the future isn’t a replay of the past.</div>
+  <div class="chart-wrap" style="height:300px"><canvas id="cmpReturnsChart" role="img" aria-label="Past trailing returns versus long-run expected return, current versus proposed portfolio"></canvas></div>
+  <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text3);margin-top:8px;padding:0 4px">
+    <span>◀ looking back · actual returns</span>
+    <span style="color:#7c3aed">looking forward · expected ▶</span>
+  </div>
+  <div id="cmpReturnsSubstats" style="margin-top:12px"></div>
+</div>
+
+<!-- Parameter side-by-side (detailed figures, collapsible) -->
+<div class="panel">
+  <div class="ptitle section-dropdown" onclick="toggleDropdown('rrpBody')">Return &amp; Risk Profile — detailed figures <span class="dropdown-hint">click to expand</span><span class="ptitle-line"></span></div>
+  <div class="dropdown-body" id="rrpBody">
+  <div style="font-size:12px;color:var(--text3);margin:8px 0 12px;line-height:1.6">Gross return, advisory fee, net return and volatility for each portfolio. These are the <strong style="color:var(--text2)">forward-looking expected</strong> figures (the same numbers shown on the right of the chart above) — not historical trailing returns.</div>
   <div class="cmp-grid" id="cmpParams">
     <div class="cmp-h cur">Current portfolio</div>
     <div class="cmp-h prop">Proposed portfolio</div>
@@ -3317,6 +3330,7 @@ input[type=date]{color-scheme:light}
     <div class="cmp-c"><span class="lbl">Run comparison to populate</span>—</div>
     <div class="cmp-c"><span class="lbl">&nbsp;</span>—</div>
     <div class="cmp-c">—</div>
+  </div>
   </div>
 </div>
 
@@ -3341,9 +3355,10 @@ input[type=date]{color-scheme:light}
   </div>
 </div>
 
-<!-- Total return horizon comparison — clean 4-row by 4-column grid -->
+<!-- Total return horizon comparison — clean 4-row by 4-column grid (collapsible detail) -->
 <div class="panel">
-  <div class="ptitle">Average Annualized Return — 1Y / 3Y / 5Y / 10Y</div>
+  <div class="ptitle section-dropdown" onclick="toggleDropdown('aarBody')">Average Annualized Return — 1Y / 3Y / 5Y / 10Y — detailed table <span class="dropdown-hint">click to expand</span><span class="ptitle-line"></span></div>
+  <div class="dropdown-body" id="aarBody">
   <div style="font-size:12px;color:var(--text3);margin-bottom:14px;line-height:1.6">Average annualized return at each horizon. Uses the actual trailing returns of each fund where known (AI-built portfolios), otherwise estimates each horizon from the historical trailing returns of your asset-class mix (so 1Y / 3Y / 5Y / 10Y genuinely differ). The <strong id="benchmarkLabel" style="color:var(--text2)">benchmark</strong> tracks an appropriate index over the same period — auto-selected based on your asset mix.</div>
   <div id="cmpReturnHorizon" style="display:grid;grid-template-columns:170px repeat(4,1fr);gap:6px;background:var(--bg3);padding:10px;border-radius:8px">
     <!-- Header row -->
@@ -3355,6 +3370,7 @@ input[type=date]{color-scheme:light}
     <div style="grid-column:1/-1;text-align:center;color:var(--text3);padding:18px;font-size:13px">Run comparison to populate.</div>
   </div>
   <div id="benchmarkExplain" style="font-size:11px;color:var(--text3);margin-top:10px;padding:8px 12px;background:rgba(245,158,11,.07);border-left:3px solid var(--amber);border-radius:4px;line-height:1.6"></div>
+  </div>
 </div>
 
 <!-- Goal success comparison -->
@@ -3763,7 +3779,7 @@ input[type=date]{color-scheme:light}
 // ═══════════════════════════════════════════════════════════
 // VERSION — updated by build-standalone.pl on each build
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260628-0047";
+const APP_VERSION = "20260628-0105";
 
 // ═══════════════════════════════════════════════════════════
 // DATA
@@ -15116,7 +15132,69 @@ function renderReturnHorizon(curMu, curSig, propMu, propSig){
   html += dCell(prop.r10y - cur.r10y);
 
   $("cmpReturnHorizon").innerHTML = html;
+  try{ renderReturnsUnified(cur, prop, curMu, propMu, curSig, propSig); }catch(e){ console.warn("renderReturnsUnified:", e); }
 }
+
+// ── Unified "Past vs Expected" returns visual — headline of the comparison tab. ──
+// Same two portfolios as the detail tables below: actual trailing returns (10/5/3/1yr)
+// on the left of a "today" divider, long-run expected return on the right.
+let cmpReturnsChartObj = null;
+function renderReturnsUnified(cur, prop, curMu, propMu, curSig, propSig){
+  const sub = $("cmpReturnsSubstats");
+  const CUR = "#5b9bd5", PROP = "#7c3aed";
+  if(sub){
+    const curFee = (typeof getPortfolioAdvisoryFeePct==="function") ? getPortfolioAdvisoryFeePct() : 0;
+    const propFee = (typeof getProposalAdvisoryFeePct==="function") ? getProposalAdvisoryFeePct() : 0;
+    const line = (name,col,mu,fee,sig) =>
+      '<div style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text2);margin:3px 0">'
+      + '<span style="width:10px;height:10px;border-radius:2px;background:'+col+';flex:0 0 auto"></span>'
+      + '<strong style="color:'+col+'">'+name+'</strong>&nbsp;expected <strong>'+(mu*100).toFixed(1)+'%</strong>/yr net'
+      + (fee>0 ? ' (after '+(fee*100).toFixed(2)+'% fee)' : '')
+      + ' · volatility '+(sig*100).toFixed(0)+'%</div>';
+    sub.innerHTML = '<div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:10px 12px">'
+      + '<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);margin-bottom:6px">Expected (long-run) — net of fees</div>'
+      + line("Current", CUR, curMu, curFee, curSig) + line("Proposed", PROP, propMu, propFee, propSig) + '</div>';
+  }
+  const canvas = $("cmpReturnsChart");
+  if(!canvas || typeof Chart === "undefined") return;
+  const labels = ["10 yr","5 yr","3 yr","1 yr","Expected"];
+  const curData  = [cur.r10y,  cur.r5y,  cur.r3y,  cur.r1y,  curMu*100];
+  const propData = [prop.r10y, prop.r5y, prop.r3y, prop.r1y, propMu*100];
+  const isExp = i => i===4;                     // last category = forward-looking expected
+  const mk = (solid, tint) => ({ bg:(_,i)=> isExp(i) ? tint : solid, bw:(_,i)=> isExp(i) ? 1.5 : 0 });
+  const c = mk(CUR, "rgba(91,155,213,0.22)"), p = mk(PROP, "rgba(124,58,237,0.22)");
+  if(cmpReturnsChartObj){ try{ cmpReturnsChartObj.destroy(); }catch(_){} }
+  const todayDivider = { id:"cmpTodayDivider", beforeDatasetsDraw(chart){
+    const a = chart.chartArea, x = chart.scales.x; if(!a || !x) return; const ctx = chart.ctx;
+    const xp = x.getPixelForValue(3.5);
+    ctx.save();
+    ctx.fillStyle = "rgba(124,58,237,0.07)"; ctx.fillRect(xp, a.top, a.right - xp, a.bottom - a.top);
+    ctx.strokeStyle = "rgba(255,255,255,0.30)"; ctx.setLineDash([4,3]); ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(xp, a.top); ctx.lineTo(xp, a.bottom); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle = "rgba(255,255,255,0.55)"; ctx.font = "700 9px sans-serif"; ctx.textAlign = "center";
+    ctx.fillText("TODAY", xp, a.top - 3);
+    ctx.restore();
+  }};
+  cmpReturnsChartObj = new Chart(canvas, {
+    type:"bar",
+    data:{ labels, datasets:[
+      { label:"Current",  data:curData,  backgroundColor:curData.map(c.bg),  borderColor:CUR,  borderWidth:curData.map(c.bw),  borderRadius:3, maxBarThickness:30 },
+      { label:"Proposed", data:propData, backgroundColor:propData.map(p.bg), borderColor:PROP, borderWidth:propData.map(p.bw), borderRadius:3, maxBarThickness:30 }
+    ]},
+    options:{ responsive:true, maintainAspectRatio:false, layout:{padding:{top:14}},
+      plugins:{
+        legend:{ display:true, labels:{ boxWidth:12, font:{size:11}, color:"#9aa0a6" } },
+        tooltip:{ callbacks:{ label:ctx => ctx.dataset.label+": "+(+ctx.parsed.y).toFixed(2)+"%"+(ctx.dataIndex===4?" (expected, long-run)":" (trailing)") } }
+      },
+      scales:{
+        x:{ grid:{display:false}, ticks:{ color:"#8a8f98", font:{size:11} } },
+        y:{ grid:{color:"rgba(255,255,255,0.06)"}, ticks:{ color:"#8a8f98", callback:v=>v+"%" } }
+      }
+    },
+    plugins:[todayDivider]
+  });
+}
+window.renderReturnsUnified = renderReturnsUnified;
 
 function runComparison(){
   if(investments.length===0 && proposals.length===0){
