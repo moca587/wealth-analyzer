@@ -1640,7 +1640,7 @@ input[type=date]{color-scheme:light}
         <div class="ag ag3">
           <div><div class="albl">State / Province / Canton</div><select id="c1st" class="fw" onchange="syncTaxState()"></select></div>
           <div><div class="albl">Postal code</div><input id="c1zp" placeholder="ZIP" class="fw" oninput="onZipChange('c1')"></div>
-          <div><div class="albl">Country</div><select id="c1co" class="fw" onchange="syncAssetCountry();onCurrencyCountryChange();onEuCountryToggle()"></select></div>
+          <div><div class="albl">Country</div><select id="c1co" class="fw" onchange="syncAssetCountry();onCurrencyCountryChange();onEuCountryToggle();if(typeof syncEstateRegime==='function')syncEstateRegime()"></select></div>
         </div>
         <!-- Eurozone country selector — only visible when EU is chosen -->
         <div class="ag ag3" id="c1euRow" style="display:none;margin-top:8px;padding:10px 12px;background:rgba(0,87,184,.04);border:1px solid rgba(0,87,184,.15);border-radius:6px">
@@ -3445,10 +3445,12 @@ input[type=date]{color-scheme:light}
   </div>
   <div class="dropdown-body" id="estateBody">
     <div style="font-size:12px;color:var(--text3);margin:10px 0;line-height:1.6">A simplified look at what transfers to your beneficiaries at the end of the projection: median projected net worth plus life-insurance death benefits, less a configurable estate tax. Run the simulation first.</div>
-    <div style="display:flex;gap:18px;flex-wrap:wrap;margin-bottom:12px">
-      <div class="frow" style="margin:0"><label class="flbl">Estate tax exemption</label><input type="number" id="estExemption" value="13610000" step="100000" class="w160" oninput="renderEstate()"></div>
-      <div class="frow" style="margin:0"><label class="flbl">Estate tax rate %</label><input type="number" id="estRate" value="40" step="1" min="0" max="80" class="w120" oninput="renderEstate()"></div>
+    <div style="display:flex;gap:18px;flex-wrap:wrap;margin-bottom:8px;align-items:flex-end">
+      <div class="frow" style="margin:0"><label class="flbl">Estate tax exemption</label><input type="number" id="estExemption" value="13610000" step="100000" class="w160" oninput="this.dataset.userset='1';renderEstate()"></div>
+      <div class="frow" style="margin:0"><label class="flbl">Estate tax rate %</label><input type="number" id="estRate" value="40" step="1" min="0" max="80" class="w120" oninput="this.dataset.userset='1';renderEstate()"></div>
+      <button class="btn-secondary" onclick="syncEstateRegime(true)" style="padding:7px 14px">↺ Use country defaults</button>
     </div>
+    <div id="estRegimeNote" style="font-size:11px;color:var(--text3);line-height:1.6;margin-bottom:12px;padding:8px 10px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--rs)"></div>
     <div class="sdiv">
       <div class="slbl">Beneficiaries</div>
       <div id="benList"><div class="empty">No beneficiaries added.</div></div>
@@ -3728,7 +3730,7 @@ input[type=date]{color-scheme:light}
 // ═══════════════════════════════════════════════════════════
 // VERSION — updated by build-standalone.pl on each build
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260627-0005";
+const APP_VERSION = "20260627-1358";
 
 // ═══════════════════════════════════════════════════════════
 // DATA
@@ -5065,6 +5067,47 @@ const COUNTRY_CURRENCIES={
 // Eurozone member detection — used for region/inflation sub-picker prefill
 const EUROZONE_MEMBERS = new Set(["EU","AT","BE","CY","HR","EE","FI","FR","DE","GR","IE","IT","LV","LT","LU","MT","NL","PT","SK","SI","ES"]);
 let CURRENT_CCY="USD";
+
+// ── Country estate / inheritance tax regimes (illustrative, ~2024) ──────────
+// exUSD = approximate exemption in USD-equivalent; rate = top marginal %.
+// EDUCATIONAL DEFAULTS ONLY — laws change and vary by state/canton/heir/relationship;
+// every value is editable in the Estate panel. Not tax or legal advice.
+const COUNTRY_ESTATE = {
+  US:   {basis:"estate",      exUSD:13610000, rate:40, spousal:true,  note:"Federal estate tax — 2024 exemption $13.61M, top rate 40%, unlimited marital deduction. Some states levy their own estate or inheritance tax."},
+  CA:   {basis:"deemed",      exUSD:0,        rate:0,  spousal:true,  note:"No estate or inheritance tax. A deemed disposition triggers capital-gains tax at death instead (deferred on transfers to a spouse)."},
+  GB:   {basis:"inheritance", exUSD:410000,   rate:40, spousal:true,  note:"Inheritance tax — £325k nil-rate band (plus up to £175k residence band), 40% above. Transfers to a spouse or civil partner are exempt."},
+  AU:   {basis:"none",        exUSD:0,        rate:0,  spousal:true,  note:"No inheritance or estate tax. Capital-gains tax may apply when inherited assets are later sold."},
+  CH:   {basis:"inheritance", exUSD:0,        rate:0,  spousal:true,  note:"Cantonal inheritance tax — varies by canton. Spouses are exempt everywhere and direct descendants in most cantons; other heirs face rates up to ~50%."},
+  EU:   {basis:"inheritance", exUSD:450000,   rate:30, spousal:true,  note:"Varies widely by member state. Illustrative (Germany): child allowance ~€400k, progressive 7–30%; spouses largely exempt. Confirm the specific country."},
+  JP:   {basis:"inheritance", exUSD:230000,   rate:55, spousal:true,  note:"Inheritance tax — basic exemption ¥30M + ¥6M per heir; progressive up to 55%. A generous spousal credit applies."},
+  SG:   {basis:"none",        exUSD:0,        rate:0,  spousal:true,  note:"Estate duty abolished in 2008 — no inheritance or estate tax."},
+  HK:   {basis:"none",        exUSD:0,        rate:0,  spousal:true,  note:"Estate duty abolished in 2006 — no inheritance or estate tax."},
+  CN:   {basis:"none",        exUSD:0,        rate:0,  spousal:true,  note:"No inheritance tax is currently levied."},
+  TW:   {basis:"estate",      exUSD:420000,   rate:20, spousal:true,  note:"Estate tax — exemption ~NT$13.33M; progressive 10–20%. Spousal and dependant deductions apply."},
+  KR:   {basis:"inheritance", exUSD:0,        rate:50, spousal:true,  note:"Inheritance tax — progressive up to 50% (among the world's highest). Spouse deduction up to ₩3bn plus lump-sum deductions."},
+  IN:   {basis:"none",        exUSD:0,        rate:0,  spousal:true,  note:"No inheritance or estate tax (abolished 1985). Income earned on inherited assets remains taxable."},
+  ID:   {basis:"none",        exUSD:0,        rate:0,  spousal:true,  note:"No inheritance tax; inherited assets are generally not taxed as income."},
+  MX:   {basis:"none",        exUSD:0,        rate:0,  spousal:true,  note:"No federal inheritance tax. Inheritances are generally exempt from income tax for residents if properly reported."},
+  BR:   {basis:"inheritance", exUSD:0,        rate:8,  spousal:false, note:"State-level ITCMD on inheritances and gifts — up to 8% (varies by state). No national spousal exemption."},
+  SA:   {basis:"none",        exUSD:0,        rate:0,  spousal:true,  note:"No inheritance or estate tax. Estates pass under Sharia rules; Zakat (~2.5%) applies to wealth annually, not at death."},
+  ZA:   {basis:"estate",      exUSD:185000,   rate:20, spousal:true,  note:"Estate duty — R3.5M abatement; 20% up to R30M and 25% above. Bequests to a spouse are exempt."},
+  OTHER:{basis:"unknown",     exUSD:0,        rate:0,  spousal:true,  note:"No country selected — enter the exemption and rate for the applicable jurisdiction."}
+};
+const ESTATE_BASIS_LABEL = {estate:"Estate tax (levied on the estate)", inheritance:"Inheritance tax (levied on what each heir receives)", none:"No estate or inheritance tax", deemed:"No estate tax — capital gains at death", unknown:"Set manually"};
+function estateRegimeFor(cc){ if(COUNTRY_ESTATE[cc]) return COUNTRY_ESTATE[cc]; if(typeof EUROZONE_MEMBERS!=="undefined" && EUROZONE_MEMBERS.has(cc)) return COUNTRY_ESTATE.EU; return COUNTRY_ESTATE.OTHER; }
+// exemption converted from USD-equivalent into the app's display currency
+function estateExemptionDisplay(reg){ const fx=(CURRENCIES[CURRENT_CCY]&&CURRENCIES[CURRENT_CCY].fxToUSD)||1; return Math.round((reg.exUSD||0)/fx); }
+// Apply the selected country's estate regime into the editable inputs (preset-style).
+function syncEstateRegime(force){
+  const reg=estateRegimeFor(val("c1co")); const exEl=$("estExemption"), rtEl=$("estRate");
+  if(exEl&&rtEl&&(force || !exEl.dataset.userset)){ exEl.value=estateExemptionDisplay(reg); rtEl.value=reg.rate; if(force){ delete exEl.dataset.userset; } }
+  renderEstateRegimeNote(); if(typeof renderEstate==="function") renderEstate();
+}
+function renderEstateRegimeNote(){
+  const host=$("estRegimeNote"); if(!host) return;
+  const reg=estateRegimeFor(val("c1co")); const cn=(COUNTRY_ACCOUNTS[val("c1co")]&&COUNTRY_ACCOUNTS[val("c1co")].name)||"your country";
+  host.innerHTML='<strong style="color:var(--text2)">'+_daEsc(cn)+' — '+(ESTATE_BASIS_LABEL[reg.basis]||reg.basis)+'.</strong> '+_daEsc(reg.note)+' <em style="color:var(--text3)">Illustrative ~2024 default; editable above. Verify with a local advisor — this is not tax advice.</em>';
+}
 
 
 // ═══════════════════════════════════════════════════════════
@@ -7208,10 +7251,12 @@ function computeEstate(){
   const tax=taxable*rate;
   const net=gross-tax;
   const totalShare=beneficiaries.reduce((s,b)=>s+(+b.share||0),0);
-  return {medianNW,baseNW,death,gross,exemption,rate,taxable,tax,net,totalShare,fromProjection:medianNW!=null};
+  const regime=(typeof estateRegimeFor==="function")?estateRegimeFor(val("c1co")):null;
+  return {medianNW,baseNW,death,gross,exemption,rate,taxable,tax,net,totalShare,fromProjection:medianNW!=null,regime,country:(COUNTRY_ACCOUNTS[val("c1co")]&&COUNTRY_ACCOUNTS[val("c1co")].name)||""};
 }
 function renderEstate(){
   const host=$("estateResult"); if(!host) return;
+  try{ renderEstateRegimeNote(); }catch(_){}
   const e=computeEstate();
   let h='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:12px">';
   h+='<div class="mc"><div class="mc-lbl">'+(e.fromProjection?"Median projected estate":"Current net worth")+'</div><div class="mc-val" style="font-size:16px">'+fmtMoney(e.baseNW)+'</div></div>';
@@ -14790,7 +14835,8 @@ function buildReportHtml(){
       const e=computeEstate();
       const rowsB=beneficiaries.map(b=>`<tr><td>${b.name}</td><td>${b.rel}</td><td>${(+b.share||0).toFixed(0)}%</td><td>${fmtMoneyFull(e.net*(+b.share||0)/100)}</td></tr>`).join("");
       estateSection=`<h2>Estate transfer summary</h2>
-      <p>${e.fromProjection?"Median projected estate":"Current net worth"}: ${fmtMoneyFull(e.baseNW)} + life insurance ${fmtMoneyFull(e.death)} − estate tax ${fmtMoneyFull(e.tax)} = <strong>${fmtMoneyFull(e.net)}</strong> to beneficiaries.</p>
+      ${e.regime?`<p style="font-size:12px;color:#555"><strong>${e.country||"Jurisdiction"} — ${(({estate:"Estate tax",inheritance:"Inheritance tax",none:"No estate/inheritance tax",deemed:"No estate tax (capital gains at death)",unknown:"Set manually"})[e.regime.basis]||e.regime.basis)}.</strong> ${e.regime.note} <em>Illustrative ~2024 default, editable in the app — not tax advice; confirm with a local advisor.</em></p>`:""}
+      <p>${e.fromProjection?"Median projected estate":"Current net worth"}: ${fmtMoneyFull(e.baseNW)} + life insurance ${fmtMoneyFull(e.death)} − estate tax ${fmtMoneyFull(e.tax)} (exemption ${fmtMoneyFull(e.exemption)}, ${(e.rate*100).toFixed(0)}%) = <strong>${fmtMoneyFull(e.net)}</strong> to beneficiaries.</p>
       ${beneficiaries.length?`<table><tr><th>Beneficiary</th><th>Relationship</th><th>Share</th><th>Receives</th></tr>${rowsB}</table>`:""}`;
     }catch(_){ estateSection=""; }
   }
@@ -16813,6 +16859,10 @@ function drawFanChart(){
         para(e.fromProjection
           ? "A simplified estimate of what transfers at the end of the projection, using the median Monte Carlo net worth plus life-insurance death benefits."
           : "A simplified estimate based on current net worth plus life-insurance death benefits (run the simulation for a projected figure).");
+        if(e.regime){
+          const blab={estate:"Estate tax (on the estate)",inheritance:"Inheritance tax (on what heirs receive)",none:"No estate or inheritance tax",deemed:"No estate tax - capital gains at death",unknown:"Set manually"}[e.regime.basis]||e.regime.basis;
+          para((e.country?e.country+" - ":"")+blab+". "+e.regime.note+" Illustrative ~2024 default, editable in the app - not tax advice.", [90,100,115]);
+        }
         kv([
           [e.fromProjection?"Median projected estate":"Current net worth", fmt(e.baseNW)],
           ["Life insurance death benefits", fmt(e.death)],
