@@ -2165,7 +2165,7 @@ input[type=date]{color-scheme:light}
 <div class="panel" id="retNumPanel">
   <div class="ptitle">Your Personal Retirement Number</div>
   <div style="font-size:12px;color:var(--text3);margin-bottom:14px;line-height:1.6">
-    The lump-sum you would theoretically need today to purchase an inflation-adjusted annuity from a highly-rated issuer — funding your retirement income from your target retirement age through age 98. Calculated using a <strong style="color:var(--text2)">6.8% discount rate</strong> and your configured inflation assumption, based on standard actuarial present-value formulas.
+    The lump-sum you would theoretically need today to purchase an inflation-adjusted annuity from a highly-rated issuer — funding your retirement income from your target retirement age through age <span id="rn-end-age" style="color:var(--text2);font-weight:600">98</span> (a longevity horizon set from your residence country's life expectancy). Calculated using a <strong style="color:var(--text2)">6.8% discount rate</strong> and your configured inflation assumption, based on standard actuarial present-value formulas.
   </div>
   <div class="rn-hero" id="rnHero">
     <div class="rn-card"><div class="rn-lbl">Retirement Number</div><div class="rn-val" id="rn-target">—</div><div class="rn-sub">lump sum needed at retirement</div></div>
@@ -2174,7 +2174,7 @@ input[type=date]{color-scheme:light}
     <div class="rn-card"><div class="rn-lbl">Funding Gap / Surplus</div><div class="rn-val" id="rn-gap">—</div><div class="rn-sub" id="rn-gap-sub">vs. present-value target</div></div>
   </div>
   <div style="font-size:11px;color:var(--text3);line-height:1.6;padding:8px 12px;background:var(--bg3);border-radius:var(--rs);border:1px solid var(--border)">
-    <strong style="color:var(--text2)">Formula:</strong> PV = AnnualSpend × [1 − (1 + realRate)<sup>−n</sup>] / realRate, where realRate = (discountRate − inflation) / (1 + inflation) and n = years from retirement age to 98. The result is then discounted back to today at the nominal discount rate. Annuity pricing assumes a 6.8% discount rate with your configured inflation rate (default 3.8%). Run the simulation or update expenses to refresh.
+    <strong style="color:var(--text2)">Formula:</strong> PV = AnnualSpend × [1 − (1 + realRate)<sup>−n</sup>] / realRate, where realRate = (discountRate − inflation) / (1 + inflation) and n = years from retirement age to age <span id="rn-end-age2">98</span>. The result is then discounted back to today at the nominal discount rate. Annuity pricing assumes a 6.8% discount rate with your configured inflation rate (default 3.8%). Run the simulation or update expenses to refresh.
   </div>
 </div>
 
@@ -6745,6 +6745,7 @@ function syncAssetCountry(){
   onCurrencyCountryChange();
   // Pension auto — income-based estimate (replacement rate × income, capped), per country
   refreshPensionEstimates();
+  try{ if(typeof renderRetirementNumber==="function") renderRetirementNumber(); }catch(_){}  // country-adjusted longevity horizon
   // Tax country + state dropdown
   $("taxCountry").value=COUNTRY_ACCOUNTS[c]?.name||c;
   refreshStateDropdown(c);
@@ -18204,7 +18205,13 @@ function calcRetirementNumber(){
   const age=ageFromDOB(val("c1d"))||40;
   const retAge=num("retAge",65);
   const yearsToRet=Math.max(0,retAge-age);
-  const yearsInRet=Math.max(0,98-retAge);
+  // Planning horizon adjusted per residence country: a longevity buffer over the
+  // country's life expectancy, floored at 98 so it never under-provisions and only
+  // extends for the longest-lived countries (e.g. Switzerland, Japan, Hong Kong).
+  const _c=val("c1co")||"US";
+  const _le=(typeof PENSION_DEFAULTS!=="undefined"&&PENSION_DEFAULTS[_c]&&PENSION_DEFAULTS[_c].lifeExp)||80;
+  const planAge=Math.max(98, Math.round(_le)+15);
+  const yearsInRet=Math.max(0,planAge-retAge);
   const discountRate=0.068; // 6.8% hypothetical annuity pricing rate
   const inf=num("inf",3.8)/100;
   const realRate=(discountRate-inf)/(1+inf);
@@ -18220,10 +18227,11 @@ function calcRetirementNumber(){
   }
   // Discount pvAtRet back to today at nominal discount rate
   const pvToday=pvAtRet/Math.pow(1+discountRate,yearsToRet);
-  return{pvAtRet,pvToday,yearsToRet,yearsInRet,annualSpend:baseSpend,discountRate,inf};
+  return{pvAtRet,pvToday,yearsToRet,yearsInRet,annualSpend:baseSpend,discountRate,inf,planAge};
 }
 function renderRetirementNumber(){
   const r=calcRetirementNumber();
+  setT("rn-end-age", r.planAge); setT("rn-end-age2", r.planAge);   // country-adjusted planning horizon
   const acctVal=totalAccountValue();
   let pfAdj=0;
   const hasPortfolio=investments.length>0;
