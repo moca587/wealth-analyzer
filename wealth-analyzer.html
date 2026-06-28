@@ -16722,6 +16722,12 @@ async function generatePDFReport(){
     };
     const ac=THEMES[themeKey]||THEMES.blue;   // accent RGB array
     const acL=[Math.min(255,ac[0]+170),Math.min(255,ac[1]+170),Math.min(255,ac[2]+170)]; // light tint
+    // Merrill-style header/footer + section-bar palette (light tint band, deep text)
+    const acBar=[Math.round(ac[0]+(255-ac[0])*0.86), Math.round(ac[1]+(255-ac[1])*0.86), Math.round(ac[2]+(255-ac[2])*0.86)]; // pale band fill
+    const acBar2=[Math.round(ac[0]+(255-ac[0])*0.93), Math.round(ac[1]+(255-ac[1])*0.93), Math.round(ac[2]+(255-ac[2])*0.93)]; // fainter band (sub-rows)
+    const acDark=[Math.round(ac[0]*0.5), Math.round(ac[1]*0.5), Math.round(ac[2]*0.5)]; // deep accent for band text
+    const rptDateStr=new Date().toLocaleDateString(undefined,{year:"numeric",month:"long",day:"numeric"});
+    const TOTPG_TOKEN="{nbpg}";   // replaced with the real page total via putTotalPages()
 
     const CONFID_LABELS={confidential:"CONFIDENTIAL",restricted:"STRICTLY RESTRICTED",internal:"INTERNAL USE ONLY",none:""};
     const confidLabel=CONFID_LABELS[confidTxt]||"";
@@ -16744,6 +16750,7 @@ async function generatePDFReport(){
     // first newPage()/sectionH2() a section calls — disabled sections that return
     // early never consume it, so no blank pages are produced.
     let _pendingPage=false;
+    let currentSectionTitle="";   // shown as the bold page title in the running header
 
     // ── Sanitize text: jsPDF's built-in fonts only render WinAnsi (Latin-1).
     // Map common non-Latin1 glyphs (σ, true minus, ≈, arrows, ≤/≥) to ASCII so
@@ -16794,68 +16801,49 @@ async function generatePDFReport(){
         _lpH = localStorage.getItem("wa_rpt_logo_pos") || "cover_top";
         _hdrLogo = !!_ldH && (_lpH === "header_all" || _lpH === "header_last");
       } catch(_){}
-      // ── Institutional running header: doc title (left) · firm or logo (right) + thin rule ──
-      doc.setFont("times","normal"); doc.setFontSize(7.5); doc.setTextColor(140);
-      doc.text(val("rptTitle")||"Wealth Analysis", M, 10);
-      if(!(_hdrLogo && placeLogo(_ldH, pw - M, 3, 11, 5.5, "top"))){
-        doc.text(val("rptFirm")||"Private Wealth Intelligence", pw-M, 10, {align:"right"});
-      }
-      doc.setDrawColor(...ac); doc.setLineWidth(0.4); doc.line(M, 12.5, pw-M, 12.5);
-      y = 19;
-      // ── Footer: thin rule + title (left) · confidential (center) · page (right) ──
-      doc.setDrawColor(215); doc.setLineWidth(0.3); doc.line(M, ph-11, pw-M, ph-11);
-      doc.setFont("times","normal"); doc.setFontSize(7); doc.setTextColor(150);
-      doc.text(val("rptTitle")||"Wealth Report",M,ph-6.5);
-      doc.text("Page "+doc.internal.getNumberOfPages(),pw-M,ph-6.5,{align:"right"});
-      if(confidLabel){doc.text(confidLabel,pw/2,ph-6.5,{align:"center"});}
+      // ── Institutional page header: client (gray) over section title (bold) · firm/logo right · full rule ──
+      doc.setFont("helvetica","normal"); doc.setFontSize(9); doc.setTextColor(130,138,150);
+      doc.text(rFor||"", M, 9.5);
+      doc.setFont("helvetica","bold"); doc.setFontSize(14.5); doc.setTextColor(35,45,60);
+      doc.splitTextToSize(currentSectionTitle||rTitle||"", CW-46).slice(0,1).forEach(l=>doc.text(l, M, 17.6));
+      // right side — uploaded logo above the firm name (logo only when "header_all"); firm name always
+      let _rfY = 10.5;
+      if(_hdrLogo && placeLogo(_ldH, pw - M, 4, 34, 8.5, "top")){ _rfY = 17; }
+      doc.setFont("helvetica","bold"); doc.setFontSize(9.5); doc.setTextColor(...ac);
+      doc.text(rFirm||"Private Wealth Intelligence", pw-M, _rfY, {align:"right"});
+      doc.setDrawColor(55,65,80); doc.setLineWidth(0.5); doc.line(M, 20.6, pw-M, 20.6);
+      y = 27;
+      // Footer (prepared-by · confidential · date | page) is stamped in one final
+      // pass at the end, so every page can show "<n> of <total>".
       doc.setTextColor(40); doc.setFont("helvetica","normal");
     }
     function checkY(need=20){if(y+need>ph-14) newPage();}
 
+    const _normTitle = s => String(s||"").toLowerCase().replace(/[^a-z0-9]+/g,"");
+    // Filled brand-tint band used for in-page sub-sections (Assets, Liabilities, Goals…).
+    // Mirrors the reference report's section bands, in the firm's accent colour.
+    function subBar(title, opts){
+      opts = opts || {};
+      checkY(14);
+      y += 3;
+      const barH = 8.2;
+      doc.setFillColor.apply(doc, opts.fill || acBar);
+      doc.rect(M, y-5.6, CW, barH, "F");
+      doc.setFillColor(...ac); doc.rect(M, y-5.6, 1.5, barH, "F");   // left accent edge
+      doc.setFont("helvetica","bold"); doc.setFontSize(opts.size||11); doc.setTextColor.apply(doc, opts.color || acDark);
+      doc.text(title, M+4.5, y);
+      if(opts.right!=null){ doc.setFont("helvetica","bold"); doc.text(String(opts.right), pw-M-3, y, {align:"right"}); }
+      y += barH - 0.4;
+      doc.setFont("helvetica","normal"); doc.setTextColor(40); doc.setFontSize(fsz);
+    }
     function sectionH2(title){
       if(_pendingPage){ _pendingPage=false; newPage(); }   // start each major section on its own page
-      checkY(18);
-      y+=4;
-      if(hdrStyle==="filled"){
-        // Subtle institutional band: thin accent fill behind a serif title
-        // doc.setFillColor(...acL);
-        // doc.rect(M,y-5,CW,9.5,"F");
-
-        doc.setFont("times", "bold");
-        doc.setFontSize(14);
-        doc.setTextColor(...ac);
-        doc.text(title, M, y);
-
-        y += 2.8;
-        doc.setDrawColor(...ac);
-        doc.setLineWidth(0.4);
-        doc.line(M, y, pw - M, y);
-
-        y += 7.5;
-
-        // doc.setDrawColor(...ac); doc.setLineWidth(0.4); doc.line(M,y-5,M,y+4.5); // accent edge
-        // doc.setFont("times","bold"); doc.setFontSize(12.5); doc.setTextColor(...ac);
-        // doc.text(title,M+3,y+1.5);
-        // y+=9;
-      } else if(hdrStyle==="box"){
-        doc.setDrawColor(...ac); doc.setLineWidth(0.4);
-        doc.rect(M,y-5,CW,9.5);
-        doc.setFont("times","bold"); doc.setFontSize(12.5); doc.setTextColor(...ac);
-        doc.text(title,M+3,y+1.5);
-        y+=9;
-      } else {
-        // Default institutional: serif title with a thin accent rule beneath
-        doc.setFont("times","bold"); doc.setFontSize(13); doc.setTextColor(...ac);
-        doc.text(title,M,y);
-        y+=2.5;
-        doc.setDrawColor(...ac); doc.setLineWidth(0.5);
-        doc.line(M,y,pw-M,y);
-        y+=0.8;
-        doc.setDrawColor(...acL); doc.setLineWidth(0.3);
-        doc.line(M,y,pw-M,y); // subtle double-rule
-        y+=5;
+      // The running header already prints the section's title — don't repeat it in-body.
+      if(_normTitle(title) === _normTitle(currentSectionTitle)){
+        y += 1.5; doc.setFont("helvetica","normal"); doc.setTextColor(40); doc.setFontSize(fsz); return;
       }
-      doc.setFont("helvetica","normal"); doc.setTextColor(40); doc.setFontSize(fsz);
+      checkY(16);
+      subBar(title);
     }
 
     function tbl(head, rows, opts = {}) {
@@ -17509,26 +17497,28 @@ function drawFanChart(){
       glossary:       () => val("rptIncGlossary") !== "no",
       disc:       () => val("rptDiscLvl") !== "none" || !!(function(){ try { return (localStorage.getItem("wa_rpt_custom_disc")||"").trim(); } catch(_) { return ""; } })()
     };
+    function rptLabelFor(k){
+      let label = RPT_SECTION_LABELS[k] || k;
+      if(k === "about")           label = "About the Client";
+      if(k === "factsheets")      label = "Investment Vehicle Fact Sheets";
+      if(k === "port")            label = "Portfolio Analysis";
+      if(k === "sim")             label = "Monte Carlo Projection";
+      if(k === "fund")            label = "Goal Success Probability";
+      if(k === "goalfunding")     label = "Goal Funding Status";
+      if(k === "lifestyle")       label = "Potentially Achievable Lifestyle";
+      if(k === "wealthframework") label = "Wealth Allocation Framework";
+      if(k === "potentialwealth") label = "Annual Potential Wealth";
+      if(k === "cma")             label = "Capital Market Assumptions";
+      if(k === "cf")              label = "Cash-Flow Projection";
+      if(k === "method")          label = "Methodology & Assumptions";
+      if(k === "glossary")        label = "Glossary of Terms";
+      if(k === "disc")            label = "Disclosures";
+      return label;
+    }
     const tocItems = [];
     userOrder.forEach(k => {
       if(SECTION_PREDS[k] && SECTION_PREDS[k]()){
-        let label = RPT_SECTION_LABELS[k] || k;
-        // Tweak labels for special cases
-        if(k === "about")           label = "About the Client";
-        if(k === "factsheets")      label = "Investment Vehicle Fact Sheets";
-        if(k === "port")            label = "Portfolio Analysis";
-        if(k === "sim")             label = "Monte Carlo Projection";
-        if(k === "fund")            label = "Goal Success Probability";
-        if(k === "goalfunding")     label = "Goal Funding Status";
-        if(k === "lifestyle")       label = "Potentially Achievable Lifestyle";
-        if(k === "wealthframework") label = "Wealth Allocation Framework";
-        if(k === "potentialwealth") label = "Annual Potential Wealth";
-        if(k === "cma")             label = "Capital Market Assumptions";
-        if(k === "cf")              label = "Cash-Flow Projection";
-        if(k === "method")          label = "Methodology & Assumptions";
-        if(k === "glossary")        label = "Glossary of Terms";
-        if(k === "disc")            label = "Disclosures";
-        tocItems.push(label);
+        tocItems.push(rptLabelFor(k));
       }
     });
     doc.setFont(undefined,"normal"); doc.setTextColor(60);
@@ -17538,10 +17528,125 @@ function drawFanChart(){
       doc.text((i+1)+".  "+t,M+6,y);
       y+=5.5;
     });
-    // Footer on cover
-    doc.setFontSize(7); doc.setTextColor(160);
-    doc.text("Page 1",pw-M,ph-8,{align:"right"});
-    if(confidLabel) doc.text(confidLabel,pw/2,ph-8,{align:"center"});
+    // Cover footer is stamped in the final footer pass (below), like every other page.
+
+    // ── Native pie chart (filled slices via drawWedge) ──
+    function drawPieChart(cx, cy, R, segs){
+      const list = (segs||[]).filter(s=>s.value>0);
+      const total = list.reduce((s,b)=>s+b.value,0)||1;
+      let a0=-Math.PI/2;
+      list.forEach((b,i)=>{
+        const a1=a0+(b.value/total)*Math.PI*2;
+        drawWedge(cx,cy,R,a0,a1,b.color||CHART_PALETTE[i%CHART_PALETTE.length]);
+        a0=a1;
+      });
+      doc.setDrawColor(255,255,255); doc.setLineWidth(0.5); doc.circle(cx,cy,R,"S");
+      return total;
+    }
+    // Legend beside a pie: swatch · label · amount · % of total. Returns the next y.
+    function pieLegend(x, yTop, w, segs){
+      const list = (segs||[]).filter(s=>s.value>0);
+      const total = list.reduce((s,b)=>s+b.value,0)||1;
+      let yy = yTop;
+      doc.setFont("helvetica","bold"); doc.setFontSize(7); doc.setTextColor(110);
+      doc.text("Amount", x+w-22, yy, {align:"right"});
+      doc.text("%", x+w, yy, {align:"right"});
+      yy += 1.6; doc.setDrawColor(220); doc.setLineWidth(0.2); doc.line(x, yy, x+w, yy); yy += 4;
+      list.forEach((b,i)=>{
+        const col=b.color||CHART_PALETTE[i%CHART_PALETTE.length];
+        doc.setFillColor.apply(doc,col); doc.rect(x, yy-2.6, 3, 3, "F");
+        doc.setFont("helvetica","normal"); doc.setFontSize(7.3); doc.setTextColor(60);
+        doc.splitTextToSize(b.label, w-40).slice(0,1).forEach(l=>doc.text(l, x+5, yy));
+        doc.setTextColor(40); doc.text(fmt(b.value), x+w-22, yy, {align:"right"});
+        doc.setTextColor(120); doc.text(Math.round(b.value/total*100)+"%", x+w, yy, {align:"right"});
+        yy += 5.6;
+      });
+      return yy;
+    }
+    // ── Net Worth Statement: two-column Assets | Liabilities, tinted totals ──
+    function drawNetWorthStatement(){
+      const propV=num("aProp",0), otherV=num("aOther",0);
+      const insCash=(typeof insuranceCashValue==="function")?insuranceCashValue():0;
+      const liquidAssets=assets.filter(a=>a.liquid), lockedAssets=assets.filter(a=>!a.liquid);
+      const sum=arr=>arr.reduce((s,a)=>s+(a.value||0),0);
+      const colGap=12, colW=(CW-colGap)/2, Lx=M, Rx=M+colW+colGap;
+      const colBar=(cx,yy,title)=>{ const h=7.6; doc.setFillColor.apply(doc,acBar); doc.rect(cx,yy-5.2,colW,h,"F"); doc.setFillColor(...ac); doc.rect(cx,yy-5.2,1.4,h,"F"); doc.setFont("helvetica","bold"); doc.setFontSize(10); doc.setTextColor.apply(doc,acDark); doc.text(title,cx+3.8,yy); return yy+h+2.5; };
+      const row=(cx,yy,label,value,o)=>{ o=o||{}; doc.setFont("helvetica",o.bold?"bold":"normal"); doc.setFontSize(o.bold?8.3:8); doc.setTextColor.apply(doc, o.bold?[45,52,64]:[0,87,184]); doc.text(label,cx+(o.indent||0),yy); if(value!=null){ doc.setTextColor.apply(doc, o.bold?[45,52,64]:[70,76,86]); doc.text(value,cx+colW-1,yy,{align:"right"}); } return yy+(o.gap||4.8); };
+      const subtot=(cx,yy,label,value)=>{ doc.setDrawColor(205); doc.setLineWidth(0.2); doc.line(cx+2,yy-2.6,cx+colW,yy-2.6); return row(cx,yy+1.4,label,value,{bold:true,indent:2,gap:6.4}); };
+      let Ly=y, Ry=y;
+      // ASSETS column
+      Ly=colBar(Lx,Ly,"Assets");
+      if(propV>0||otherV>0||insCash>0){
+        Ly=row(Lx,Ly,"Personal Assets",null,{bold:true});
+        if(propV>0)  Ly=row(Lx,Ly,"Property / Real estate",fmt(propV),{indent:4});
+        if(otherV>0) Ly=row(Lx,Ly,"Other assets",fmt(otherV),{indent:4});
+        if(insCash>0)Ly=row(Lx,Ly,"Insurance cash value",fmt(insCash),{indent:4});
+        Ly=subtot(Lx,Ly,"Total Personal Assets",fmt(propV+otherV+insCash));
+      }
+      if(liquidAssets.length){
+        Ly=row(Lx,Ly,"Portfolio Assets",null,{bold:true});
+        liquidAssets.forEach(a=>{ Ly=row(Lx,Ly,a.label||a.baseLabel||a.type,fmt(a.value),{indent:4}); });
+        Ly=subtot(Lx,Ly,"Total Portfolio Assets",fmt(sum(liquidAssets)));
+      }
+      if(lockedAssets.length){
+        Ly=row(Lx,Ly,"Retirement & Locked Assets",null,{bold:true});
+        lockedAssets.forEach(a=>{ Ly=row(Lx,Ly,a.label||a.baseLabel||a.type,fmt(a.value),{indent:4}); });
+        Ly=subtot(Lx,Ly,"Total Retirement & Locked",fmt(sum(lockedAssets)));
+      }
+      if(!assets.length && propV<=0 && otherV<=0 && insCash<=0) Ly=row(Lx,Ly,"No assets entered.",null,{});
+      // LIABILITIES column
+      Ry=colBar(Rx,Ry,"Liabilities");
+      if(loans.length){
+        loans.forEach(l=>{ Ry=row(Rx,Ry,l.label||"Loan",fmt(l.bal),{}); });
+        Ry=subtot(Rx,Ry,"Total Liabilities",fmt(debtTot));
+      } else { Ry=row(Rx,Ry,"No liabilities.",null,{}); }
+      // bottom totals
+      let by=Math.max(Ly,Ry)+3; const tH=8.6;
+      doc.setFillColor.apply(doc,acBar); doc.rect(Lx,by-5.8,colW,tH,"F");
+      doc.setFont("helvetica","bold"); doc.setFontSize(10); doc.setTextColor.apply(doc,acDark);
+      doc.text("Total Assets",Lx+3.8,by); doc.text(fmt(totA),Lx+colW-1,by,{align:"right"});
+      doc.setFillColor.apply(doc,acBar); doc.rect(Rx,by-5.8,colW,tH,"F");
+      doc.text("Total Liabilities",Rx+3.8,by); doc.text("("+fmt(debtTot)+")",Rx+colW-1,by,{align:"right"});
+      by+=tH+3;
+      doc.setFillColor(...ac); doc.rect(M,by-5.9,CW,9.2,"F");
+      doc.setFont("helvetica","bold"); doc.setFontSize(11.5); doc.setTextColor(255,255,255);
+      doc.text("Net Worth",M+4,by); doc.text(fmt(nw),pw-M-4,by,{align:"right"});
+      y=by+10; doc.setTextColor(40); doc.setFont("helvetica","normal");
+    }
+    // ── Net Worth Summary: bar (Assets/Liabilities/Net Worth) + asset & liability pies ──
+    function drawNetWorthSummary(){
+      const chartW=CW*0.40, chartX=M, chartY=y+4, chartH=66;
+      drawBarChart(chartX, chartY, chartW, chartH, [
+        {label:"Assets",value:totA,color:[0,164,166]},
+        {label:"Liabilities",value:debtTot,color:[211,135,30]},
+        {label:"Net Worth",value:Math.max(0,nw),color:[0,87,184]}
+      ], {fmtVal:"money"});
+      doc.setFont("helvetica","italic"); doc.setFontSize(6.6); doc.setTextColor(150);
+      doc.text("$ value", chartX, chartY-1.5);
+      const Rx=M+chartW+14, Rw=CW-chartW-14;
+      const propV=num("aProp",0), otherV=num("aOther",0);
+      const insCash=(typeof insuranceCashValue==="function")?insuranceCashValue():0;
+      const liq=assets.filter(a=>a.liquid).reduce((s,a)=>s+(a.value||0),0);
+      const lok=assets.filter(a=>!a.liquid).reduce((s,a)=>s+(a.value||0),0);
+      const aSegs=[
+        {label:"Portfolio (liquid)",value:liq,color:[0,164,166]},
+        {label:"Retirement & locked",value:lok,color:[0,87,184]},
+        {label:"Property / real estate",value:propV,color:[124,58,237]},
+        {label:"Other & insurance",value:otherV+insCash,color:[120,128,140]}
+      ];
+      const pieR=15, pcx=Rx+pieR, lgX=Rx+pieR*2+8, lgW=Rw-(pieR*2+8);
+      let py=chartY+2;
+      doc.setFont("helvetica","bold"); doc.setFontSize(9); doc.setTextColor.apply(doc,acDark); doc.text("Assets",Rx,py);
+      drawPieChart(pcx, py+pieR+3, pieR, aSegs);
+      pieLegend(lgX, py+4, lgW, aSegs);
+      let py2=py+pieR*2+14;
+      doc.setFont("helvetica","bold"); doc.setFontSize(9); doc.setTextColor.apply(doc,acDark); doc.text("Liabilities",Rx,py2);
+      const lSegs = loans.length ? loans.map((l,i)=>({label:l.label||("Loan "+(i+1)),value:l.bal,color:CHART_PALETTE[(i+5)%CHART_PALETTE.length]}))
+                                 : [{label:"No liabilities",value:1,color:[210,214,220]}];
+      drawPieChart(pcx, py2+pieR+3, pieR, lSegs);
+      pieLegend(lgX, py2+4, lgW, lSegs);
+      y=Math.max(chartY+chartH, py2+pieR*2+8)+6; doc.setTextColor(40); doc.setFont("helvetica","normal");
+    }
 
     // ═══════════════════════════════════════════════════════════════════
     // Each report section lives in its own closure inside this map. We
@@ -17651,6 +17756,17 @@ function drawFanChart(){
       // ─── ASSETS & LIABILITIES ──
       assets: () => {
         if(val("rptIncAssets") === "no") return;
+        // Page 1 — Net Worth Statement (two-column)
+        currentSectionTitle = "Net Worth Statement";
+        newPage();
+        drawNetWorthStatement();
+        // Page 2 — Net Worth Summary (bar + asset/liability pies)
+        currentSectionTitle = "Net Worth Summary";
+        newPage();
+        drawNetWorthSummary();
+        // Page 3+ — detailed holdings & liabilities
+        currentSectionTitle = "Assets & Liabilities";
+        newPage();
         checkY(30);
         sectionH2("Assets");
         if(assets.length>0){
@@ -18348,6 +18464,7 @@ function drawFanChart(){
     // (saved via the Page Order panel in the PDF Report tab — drag ↑↓ to reorder)
     _pendingPage = true;   // first content section starts on a fresh page after the cover
     userOrder.forEach(k => {
+      currentSectionTitle = rptLabelFor(k);   // drives the bold title in each page's running header
       try { SECTIONS[k] && SECTIONS[k](); }
       catch(e){ console.warn("PDF section '"+k+"' failed:", e); }
       _pendingPage = true;   // re-arm: the next rendering section starts on its own page
@@ -18362,7 +18479,22 @@ function drawFanChart(){
       }
     } catch(_){}
 
-    // ── Footer on page 1 (cover) already done; add footer stub to any remaining pages
+    // ── Footer pass: stamp every page now that the total is known ──
+    try {
+      const _tot = doc.internal.getNumberOfPages();
+      for(let _p=1; _p<=_tot; _p++){
+        doc.setPage(_p);
+        doc.setDrawColor(205); doc.setLineWidth(0.3); doc.line(M, ph-11, pw-M, ph-11);
+        doc.setFont("helvetica","bold"); doc.setFontSize(7); doc.setTextColor(95);
+        doc.text("Prepared by:", M, ph-6.5);
+        const _w = doc.getTextWidth("Prepared by: ");
+        doc.setFont("helvetica","normal"); doc.setTextColor(120);
+        doc.text(rBy||"", M+_w, ph-6.5);
+        doc.text("Date: "+rptDateStr+"     |     "+_p+" of "+_tot, pw-M, ph-6.5, {align:"right"});
+        if(confidLabel){ doc.setFont("helvetica","bold"); doc.setTextColor(...ac); doc.text(confidLabel, pw/2, ph-6.5, {align:"center"}); }
+      }
+      doc.setTextColor(40); doc.setFont("helvetica","normal");
+    } catch(e){ console.warn("footer pass failed:", e); }
     // ── SAVE ─────────────────────────────────────────────────────────────────
     const fname=(rTitle||"wealth-report").replace(/[^a-zA-Z0-9_-]/g,"_").replace(/_+/g,"_")+"_"+new Date().toISOString().slice(0,10)+".pdf";
     doc.save(fname);
