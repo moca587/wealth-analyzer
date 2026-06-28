@@ -213,6 +213,7 @@ textarea{font-family:var(--fm);font-size:12px;width:100%;min-height:70px;resize:
   <div class="nav" data-tab="constants"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M2 3h12v2H2zm0 4h12v2H2zm0 4h12v2H2z"/></svg>Constants Editor</div>
   <div class="nav" data-tab="market"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M1 13l4-6 3 3 3-5 4 8z"/></svg>Market Data</div>
   <div class="nav" data-tab="taxdb"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M2 2h12v2H2zm1 3h10v8a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1zm2 2v1h6V7zm0 3v1h6v-1zm0 3v1h4v-1z"/></svg>Tax Database</div>
+  <div class="nav" data-tab="taxaccuracy"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M14 3.5l-8 8-4-4L3.4 6.1 6 8.7l6.6-6.6z"/></svg>Tax Data Accuracy<span class="nav-new" style="background:linear-gradient(135deg,#00875a,#0057b8)">NEW</span></div>
   <div class="nav" data-tab="keys"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M10 2a4 4 0 100 8 4 4 0 000-8zM2 14l5-5 1 1-5 5z"/></svg>API Keys</div>
 
   <div class="grp">System</div>
@@ -933,6 +934,24 @@ Citations:<br>
   </div>
 </div>
 
+<!-- ─── TAX DATA ACCURACY ─── -->
+<div class="tab" id="tab-taxaccuracy">
+  <div class="hero">
+    <h1>✅ Tax Data Accuracy</h1>
+    <p>Tracks the income-tax dataset the client app actually uses — coverage, the official source authority per country, tax year, automated sanity checks, and your manual verification status. The dataset syncs live from the main app via shared browser storage.</p>
+  </div>
+  <div class="panel">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:10px">
+      <div class="ptitle" style="margin:0">Coverage &amp; verification</div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <span id="taxAccSummary" style="font-size:11px;color:var(--ink3)"></span>
+        <button class="btn-ghost" data-action="renderTaxAccuracy" style="font-size:12px;padding:8px 14px">↻ Refresh</button>
+      </div>
+    </div>
+    <div id="taxAccBody"></div>
+  </div>
+</div>
+
 <!-- ─── KEYS ─── -->
 <div class="tab" id="tab-keys">
   <div class="hero">
@@ -1166,6 +1185,7 @@ function showTab(name){
     else if(name==="profiles") renderProfileTab();
     else if(name==="market") {/* no-op */}
     else if(name==="taxdb") renderTaxDb();
+    else if(name==="taxaccuracy") renderTaxAccuracy();
     else if(name==="keys") renderKeys();
     else if(name==="logs") renderLogs();
   } catch(e){
@@ -4154,6 +4174,73 @@ function renderBrackets(brackets){
       return `<tr><td class="num">${b.t.toLocaleString()}</td><td class="num">${top?top.toLocaleString():'∞'}</td><td class="num"><strong>${b.r}%</strong></td></tr>`;
     }).join("") + '</tbody></table>';
 }
+// ─── TAX DATA ACCURACY ─────────────────────────────────────────────
+// Reads the live tax registry the client app persists to localStorage
+// (wa_tax_registry) and tracks per-country manual verification status
+// (wa_tax_verify). Read-only view + manual sign-off workflow; no scrape.
+function _taxVerifyMap(){ try{ return JSON.parse(localStorage.getItem("wa_tax_verify")||"{}")||{}; }catch(_){ return {}; } }
+function _taxRegistry(){ try{ return JSON.parse(localStorage.getItem("wa_tax_registry")||"null"); }catch(_){ return null; } }
+function taxAccVerify(el){
+  if(!el) return; const code=el.dataset.code; if(!code) return;
+  const m=_taxVerifyMap();
+  m[code] = (m[code]==="verified") ? "review" : "verified";
+  try{ localStorage.setItem("wa_tax_verify", JSON.stringify(m)); }catch(_){}
+  addLog("info","Tax data "+code+" marked "+m[code]);
+  renderTaxAccuracy();
+}
+window.taxAccVerify = taxAccVerify;
+function _taxSanity(c){
+  const issues=[];
+  if(!c.currency || !/^[A-Z]{3}$/.test(c.currency)) issues.push("currency");
+  if(!(c.bandCount>0)) issues.push("no bands");
+  if(!(typeof c.topRate==="number") || c.topRate<0 || c.topRate>60) issues.push("top rate range");
+  if(!c.source || !/^https?:\/\//.test((c.source||{}).url||"")) issues.push("source link");
+  if(!c.source || !(c.source||{}).taxYear) issues.push("tax year");
+  return issues;
+}
+function renderTaxAccuracy(){
+  const body=$("taxAccBody"); if(!body) return;
+  const reg=_taxRegistry();
+  if(!reg || !Array.isArray(reg.countries) || !reg.countries.length){
+    body.innerHTML = '<div class="code" style="background:#7c2d12;line-height:1.8">No tax dataset synced yet.<br>Open the client app once — it writes the dataset to shared browser storage — then click <strong>Refresh</strong>.<br><a href="wealth-analyzer.html" target="_blank" style="color:#fff;text-decoration:underline">Open client app &rarr;</a></div>';
+    { const _s=$("taxAccSummary"); if(_s) _s.textContent=""; }
+    return;
+  }
+  const vmap=_taxVerifyMap();
+  const rows=reg.countries.slice().sort((a,b)=>String(a.name||a.code).localeCompare(String(b.name||b.code)));
+  let verified=0, review=0, problems=0;
+  const trs=rows.map(c=>{
+    const issues=_taxSanity(c); if(issues.length) problems++;
+    const status = vmap[c.code]==="verified" ? "verified" : "review";
+    if(status==="verified") verified++; else review++;
+    const chk = issues.length
+      ? '<span style="color:var(--amber)" title="'+escapeHtml(issues.join(", "))+'">&#9888; '+issues.length+'</span>'
+      : '<span style="color:var(--green)">&#10003; ok</span>';
+    const stBadge = status==="verified"
+      ? '<span style="color:var(--green);font-weight:600">&#10003; verified</span>'
+      : '<span style="color:var(--amber);font-weight:600">&#9679; needs review</span>';
+    const src = c.source||{};
+    const link = src.url ? '<a href="'+escapeHtml(src.url)+'" target="_blank" style="color:var(--blue)">'+escapeHtml(src.authority||"source")+'</a>' : (src.authority?escapeHtml(src.authority):'—');
+    return '<tr>'
+      +'<td>'+escapeHtml(c.name||c.code)+' <span style="color:var(--ink3)">'+escapeHtml(c.code)+'</span></td>'
+      +'<td class="num">'+escapeHtml(c.currency||'—')+'</td>'
+      +'<td class="num"><strong>'+(typeof c.topRate==="number"?c.topRate+'%':'—')+'</strong></td>'
+      +'<td class="num">'+(c.bandCount||0)+'</td>'
+      +'<td class="num">'+escapeHtml(src.taxYear||'—')+'</td>'
+      +'<td>'+link+'</td>'
+      +'<td>'+chk+'</td>'
+      +'<td>'+stBadge+'</td>'
+      +'<td><button class="btn-ghost" data-action="taxAccVerify" data-code="'+escapeHtml(c.code)+'" style="font-size:11px;padding:5px 10px">'+(status==="verified"?"Unverify":"Mark verified")+'</button></td>'
+      +'</tr>';
+  }).join("");
+  body.innerHTML =
+    '<table class="tbl"><thead><tr><th>Country</th><th class="num">Ccy</th><th class="num">Top rate</th><th class="num">Bands</th><th class="num">Tax yr</th><th>Official source</th><th>Sanity</th><th>Status</th><th>Action</th></tr></thead><tbody>'
+    + trs + '</tbody></table>'
+    + '<div style="font-size:11px;color:var(--ink3);margin-top:10px;line-height:1.7">Synced '+escapeHtml(reg.generatedAt||"")+(reg.appVersion?(" &middot; client v"+escapeHtml(reg.appVersion)):"")+'. Brackets are national/federal; sub-national tax is noted separately in the client app. <strong>Verify each country against its official source link before relying on it.</strong></div>';
+  { const _s=$("taxAccSummary"); if(_s) _s.innerHTML = reg.countries.length+" countries &middot; "+verified+" verified &middot; "+review+" need review &middot; "+problems+" flagged"; }
+}
+window.renderTaxAccuracy = renderTaxAccuracy;
+
 function testZip(){
   const zip = $("zipTest").value.trim();
   const inc = +$("zipInc").value || 100000;
