@@ -1760,7 +1760,7 @@ input[type=date]{color-scheme:light}
         </div>
         <div>
           <div class="frow"><label class="flbl">COLA<span class="info-ic">i<span class="info-pop"><strong>Cost-of-Living Adjustment.</strong> How a pension/Social-Security benefit keeps pace with inflation over time. <strong>Full</strong>: rises with inflation each year (preserves purchasing power). <strong>Partial</strong>: rises at 50% of inflation (slowly loses value). <strong>None</strong>: fixed nominal amount — purchasing power erodes every year.</span></span></label>
-            <select id="penCola" class="w200">
+            <select id="penCola" class="w200" onchange="markColaEdited()">
               <option value="full" selected>Full COLA — adjusts each year</option>
               <option value="partial">Partial — 50% of inflation</option>
               <option value="none">None — fixed nominal</option>
@@ -1799,7 +1799,7 @@ input[type=date]{color-scheme:light}
         </div>
         <div>
           <div class="frow"><label class="flbl">COLA<span class="info-ic">i<span class="info-pop"><strong>Cost-of-Living Adjustment.</strong> How a pension/Social-Security benefit keeps pace with inflation over time. <strong>Full</strong>: rises with inflation each year (preserves purchasing power). <strong>Partial</strong>: rises at 50% of inflation (slowly loses value). <strong>None</strong>: fixed nominal amount — purchasing power erodes every year.</span></span></label>
-            <select id="penCola2" class="w200">
+            <select id="penCola2" class="w200" onchange="markCola2Edited()">
               <option value="full" selected>Full COLA — adjusts each year</option>
               <option value="partial">Partial — 50% of inflation</option>
               <option value="none">None — fixed nominal</option>
@@ -2165,7 +2165,7 @@ input[type=date]{color-scheme:light}
 <div class="panel" id="retNumPanel">
   <div class="ptitle">Your Personal Retirement Number</div>
   <div style="font-size:12px;color:var(--text3);margin-bottom:14px;line-height:1.6">
-    The lump-sum you would theoretically need today to purchase an inflation-adjusted annuity from a highly-rated issuer — funding your retirement income from your target retirement age through age 98. Calculated using a <strong style="color:var(--text2)">6.8% discount rate</strong> and your configured inflation assumption, based on standard actuarial present-value formulas.
+    The lump-sum you would theoretically need today to purchase an inflation-adjusted annuity from a highly-rated issuer — funding your retirement income from your target retirement age through age <span id="rn-end-age" style="color:var(--text2);font-weight:600">98</span> (a longevity horizon set from your residence country's life expectancy). Calculated using a <strong style="color:var(--text2)">6.8% discount rate</strong> and your configured inflation assumption, based on standard actuarial present-value formulas.
   </div>
   <div class="rn-hero" id="rnHero">
     <div class="rn-card"><div class="rn-lbl">Retirement Number</div><div class="rn-val" id="rn-target">—</div><div class="rn-sub">lump sum needed at retirement</div></div>
@@ -2174,7 +2174,7 @@ input[type=date]{color-scheme:light}
     <div class="rn-card"><div class="rn-lbl">Funding Gap / Surplus</div><div class="rn-val" id="rn-gap">—</div><div class="rn-sub" id="rn-gap-sub">vs. present-value target</div></div>
   </div>
   <div style="font-size:11px;color:var(--text3);line-height:1.6;padding:8px 12px;background:var(--bg3);border-radius:var(--rs);border:1px solid var(--border)">
-    <strong style="color:var(--text2)">Formula:</strong> PV = AnnualSpend × [1 − (1 + realRate)<sup>−n</sup>] / realRate, where realRate = (discountRate − inflation) / (1 + inflation) and n = years from retirement age to 98. The result is then discounted back to today at the nominal discount rate. Annuity pricing assumes a 6.8% discount rate with your configured inflation rate (default 3.8%). Run the simulation or update expenses to refresh.
+    <strong style="color:var(--text2)">Formula:</strong> PV = AnnualSpend × [1 − (1 + realRate)<sup>−n</sup>] / realRate, where realRate = (discountRate − inflation) / (1 + inflation) and n = years from retirement age to age <span id="rn-end-age2">98</span>. The result is then discounted back to today at the nominal discount rate. Annuity pricing assumes a 6.8% discount rate with your configured inflation rate (default 3.8%). Run the simulation or update expenses to refresh.
   </div>
 </div>
 
@@ -3181,7 +3181,12 @@ input[type=date]{color-scheme:light}
 
 <!-- ── Page Order ────────────────────────────────────────────── -->
 <div class="panel">
-  <div class="ptitle">Page Order <span style="font-size:11px;font-weight:500;color:var(--text3);margin-left:8px">— drag the ↑↓ buttons to reorder</span></div>
+  <style>
+  .rpt-ord-item{position:relative}
+  .rpt-ord-prev{display:none;position:absolute;left:0;top:calc(100% + 3px);z-index:60;width:300px;max-width:82vw;background:var(--bg2);border:1px solid var(--accent);border-radius:8px;padding:10px 12px;box-shadow:0 10px 28px rgba(0,0,0,.4)}
+  .rpt-ord-item:hover .rpt-ord-prev{display:block}
+  </style>
+  <div class="ptitle">Page Order <span style="font-size:11px;font-weight:500;color:var(--text3);margin-left:8px">— drag the ↑↓ buttons to reorder · hover a page name to preview what's on it</span></div>
   <div id="rptOrderList" style="display:flex;flex-direction:column;gap:6px"></div>
   <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
     <button type="button" class="btn-secondary" onclick="resetRptOrder()" style="font-size:11px;padding:6px 12px">↺ Reset to default order</button>
@@ -3216,7 +3221,8 @@ input[type=date]{color-scheme:light}
 
 <!-- ── Section Toggles ───────────────────────────────────────── -->
 <div class="panel">
-  <div class="ptitle">Sections to Include</div>
+  <div class="ptitle section-dropdown" onclick="toggleDropdown('rptSectionsBody')">Sections to Include <span class="dropdown-hint">click to expand</span><span class="ptitle-line"></span></div>
+  <div class="dropdown-body" id="rptSectionsBody">
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:0 28px">
     <div>
       <div class="frow"><label class="flbl">Executive summary</label>
@@ -3309,6 +3315,7 @@ input[type=date]{color-scheme:light}
         </select>
       </div>
     </div>
+  </div>
   </div>
 </div>
 
@@ -5024,27 +5031,65 @@ const REGION_COLORS={
 };
 
 // Pension defaults by country (approximate annual benefit USD-equivalent + start age)
+// Public / 1st-pillar state pension by residence country. The annual benefit is
+// estimated from the person's income: earnings-related schemes use
+// min(income x repl%, cap); FLAT schemes (flat:true) pay a fixed amount (cap),
+// independent of income. cap is in LOCAL currency; cap:0 = no ceiling. age =
+// statutory claiming age. lifeExp = national life expectancy. Authored + verified.
 const PENSION_DEFAULTS={
-  US:{name:"Social Security",annual:22000,age:67},
-  CA:{name:"CPP/QPP + OAS",annual:18000,age:65},
-  GB:{name:"State Pension",annual:14000,age:66},
-  AU:{name:"Age Pension",annual:18000,age:67},
-  CH:{name:"AHV/AVS",annual:25000,age:65},
-  EU:{name:"State pension",annual:18000,age:66},
-  JP:{name:"Kokumin/Kosei Nenkin",annual:16000,age:65},
-  SG:{name:"CPF LIFE",annual:14000,age:65},
-  HK:{name:"MPF + OAA",annual:8000,age:65},
-  CN:{name:"Basic pension",annual:6000,age:60},
-  TW:{name:"National Pension",annual:7000,age:65},
-  KR:{name:"NPS",annual:9000,age:63},
-  IN:{name:"NPS / EPF",annual:5000,age:60},
-  ID:{name:"BPJS Pensiun",annual:3500,age:57},
-  MX:{name:"AFORE / IMSS",annual:6000,age:65},
-  BR:{name:"INSS",annual:7000,age:65},
-  SA:{name:"GOSI",annual:12000,age:60},
-  ZA:{name:"State old-age grant",annual:1700,age:60},
-  OTHER:{name:"State pension",annual:10000,age:66},
+  US:{name:"Social Security",                  repl:40, cap:48216,    age:67, lifeExp:79.0},
+  CA:{name:"CPP + OAS",                        repl:39, cap:17926,    age:65, lifeExp:82.0},
+  GB:{name:"New State Pension",      flat:true, repl:100, cap:11973,   age:66, lifeExp:81.3},
+  AU:{name:"Age Pension",            flat:true, repl:100, cap:30646,   age:67, lifeExp:83.3},
+  CH:{name:"AHV/AVS (1st pillar)",             repl:24, cap:30240,    age:65, lifeExp:84.0},
+  EU:{name:"State pension (avg)",              repl:45, cap:0,        age:66, lifeExp:81.0},
+  JP:{name:"Kosei/Kokumin Nenkin",            repl:32, cap:2900000,  age:65, lifeExp:84.5},
+  SG:{name:"CPF LIFE",                         repl:38, cap:30000,    age:65, lifeExp:83.7},
+  HK:{name:"Old Age Living Allowance", flat:true, repl:100, cap:54000, age:65, lifeExp:85.5},
+  CN:{name:"Urban Employees' Basic Pension",  repl:45, cap:120000,   age:63, lifeExp:78.6},
+  TW:{name:"Labor Insurance + Labor Pension", repl:33, cap:350000,   age:65, lifeExp:80.4},
+  KR:{name:"National Pension (NPS)",          repl:31, cap:30000000, age:63, lifeExp:83.6},
+  IN:{name:"EPS (EPFO)",                       repl:20, cap:90000,    age:58, lifeExp:72.0},
+  ID:{name:"BPJS Jaminan Pensiun",            repl:15, cap:60000000, age:59, lifeExp:68.3},
+  MX:{name:"IMSS / AFORE + Garantizada",      repl:30, cap:201000,   age:65, lifeExp:75.1},
+  BR:{name:"INSS (RGPS)",                      repl:70, cap:98000,    age:65, lifeExp:75.9},
+  SA:{name:"GOSI",                             repl:65, cap:0,        age:60, lifeExp:79.7},
+  ZA:{name:"Older Persons Grant",   flat:true, repl:100, cap:26520,   age:60, lifeExp:65.3},
+  DE:{name:"Gesetzliche Rentenversicherung",  repl:43, cap:39600,    age:67, lifeExp:81.1},
+  FR:{name:"Regime general (CNAV)",           repl:50, cap:23550,    age:64, lifeExp:83.0},
+  IT:{name:"Pensione di vecchiaia (INPS)",    repl:76, cap:0,        age:67, lifeExp:84.1},
+  ES:{name:"Pension de jubilacion",           repl:80, cap:45746,    age:66, lifeExp:84.0},
+  NL:{name:"AOW",                    flat:true, repl:100, cap:20500,   age:67, lifeExp:81.9},
+  BE:{name:"Pension legale",                  repl:47, cap:33000,    age:66, lifeExp:82.5},
+  IE:{name:"State Pension (Contributory)", flat:true, repl:100, cap:15044, age:66, lifeExp:82.4},
+  PT:{name:"Pensao de velhice (Seg. Social)", repl:74, cap:0,        age:66, lifeExp:82.4},
+  AT:{name:"Statutory pension (ASVG)",        repl:74, cap:49980,    age:65, lifeExp:82.0},
+  GR:{name:"EFKA pension",                     repl:81, cap:35000,    age:67, lifeExp:81.8},
+  PL:{name:"Emerytura (ZUS)",                  repl:29, cap:0,        age:65, lifeExp:78.6},
+  SE:{name:"Inkomstpension",                   repl:53, cap:360000,   age:66, lifeExp:83.7},
+  NO:{name:"Folketrygden",                     repl:51, cap:350000,   age:67, lifeExp:83.3},
+  DK:{name:"Folkepension",           flat:true, repl:100, cap:86400,   age:67, lifeExp:82.3},
+  FI:{name:"Tyoelake (TyEL)",                  repl:58, cap:0,        age:65, lifeExp:82.4},
+  NZ:{name:"NZ Super",               flat:true, repl:100, cap:27926,   age:65, lifeExp:82.5},
+  IL:{name:"Bituach Leumi old-age",  flat:true, repl:100, cap:31250,   age:67, lifeExp:82.7},
+  AE:{name:"GPSSA (nationals)",                repl:100, cap:1200000, age:60, lifeExp:79.2},
+  TH:{name:"SSO Old-Age Pension",             repl:20, cap:73500,    age:55, lifeExp:76.9},
+  MY:{name:"EPF (KWSP)",                       repl:30, cap:0,        age:60, lifeExp:76.7},
+  NG:{name:"Contributory Pension Scheme",     repl:40, cap:0,        age:60, lifeExp:53.6},
+  TR:{name:"SGK old-age pension",             repl:75, cap:1600000,  age:60, lifeExp:78.6},
+  OTHER:{name:"State pension",                 repl:35, cap:0,        age:66, lifeExp:80.0},
 };
+// Per-country COLA / indexation of the public pension (how the benefit grows once
+// it starts): full = price/wage-indexed (real value ~constant), partial =
+// under-indexes / lags, none = fixed nominal. Classified + verified per country.
+const PENSION_COLA={
+  full:["US","CA","GB","AU","NZ","DE","FR","IT","ES","NL","BE","CH","AT","PT","PL","SE","NO","DK","JP","KR","BR","ZA","IL"],
+  partial:["IE","GR","FI","HK","CN","TW","ID","MX","NG","TR"],
+  none:["SG","IN","TH","MY","AE","SA"]
+};
+Object.keys(PENSION_COLA).forEach(k=>PENSION_COLA[k].forEach(c=>{ if(PENSION_DEFAULTS[c]) PENSION_DEFAULTS[c].cola=k; }));
+if(PENSION_DEFAULTS.EU) PENSION_DEFAULTS.EU.cola="full";
+if(PENSION_DEFAULTS.OTHER) PENSION_DEFAULTS.OTHER.cola="full";
 
 const LIFESTYLE_NOTES={
   frugal:"Basic needs covered, minimal travel. ~50% of working-life expenses.",
@@ -5890,6 +5935,8 @@ let lastSimPaths=null; let lastSimYrs=null;
 let _taxUserEdited=false;
 let _penEdited=false;
 let _pen2Edited=false;
+let _colaEdited=false;
+let _cola2Edited=false;
 let _ccyManual=false;
 let _chartReal=true;
 
@@ -6364,6 +6411,7 @@ function updateIncTotal(){
   updateTaxPanel();
   updateSavingsPanel();
   if(typeof updateExpSurplusLink==="function") updateExpSurplusLink();
+  try{ if(typeof refreshPensionEstimates==="function") refreshPensionEstimates(); }catch(_){}  // income-based state-pension estimate
   refreshTopMetrics();
 }
 function getTotalExpenses(){
@@ -6708,13 +6756,9 @@ function syncAssetCountry(){
   const c=$("c1co").value;
   if($("acountry").value!==c){ $("acountry").value=c; refreshAssetTypes(); }
   onCurrencyCountryChange();
-  // Pension auto
-  if(!_penEdited){
-    const p=PENSION_DEFAULTS[c]||PENSION_DEFAULTS.OTHER;
-    $("penAnnual").value=p.annual;
-    $("penStartAge").value=p.age;
-    setT("penNote","Auto from "+(COUNTRY_ACCOUNTS[c]?.name||c)+": "+p.name+" ≈ "+fmtMoney(p.annual)+"/yr starting age "+p.age);
-  }
+  // Pension auto — income-based estimate (replacement rate × income, capped), per country
+  refreshPensionEstimates();
+  try{ if(typeof renderRetirementNumber==="function") renderRetirementNumber(); }catch(_){}  // country-adjusted longevity horizon
   // Tax country + state dropdown
   $("taxCountry").value=COUNTRY_ACCOUNTS[c]?.name||c;
   refreshStateDropdown(c);
@@ -7346,27 +7390,68 @@ function calcPension(src,annual,startAge,cola,age,inf){
   if(cola==="partial") return annual*Math.pow(1+inf*0.5,yrs);
   return annual;
 }
+// ── Income-based state-pension estimate (per residence country) ─────────────
+// Estimate = min(income × public replacement-rate, country benefit cap). Falls
+// back to the legacy flat amount for any country still on the old data shape.
+function clientIncomeFor(which){ return which===2 ? (num("inc1b",0)+num("inc2b",0)) : (num("inc1",0)+num("inc2",0)); }
+function estStatePension(country, income){
+  const p=PENSION_DEFAULTS[country]||PENSION_DEFAULTS.OTHER;
+  if(p.flat) return Math.round(p.cap||p.annual||0);   // flat (non-earnings-related) pension — income-independent
+  if(typeof p.repl==="number"){
+    const cap=(p.cap&&p.cap>0)?p.cap:Infinity;
+    return Math.round(Math.min(Math.max(0,income)*(p.repl/100), cap));
+  }
+  return Math.round(p.annual||0);
+}
+function _penNote(c,p,est){
+  const cn=(COUNTRY_ACCOUNTS[c]&&COUNTRY_ACCOUNTS[c].name)||c;
+  const cap=(p.cap&&p.cap>0)?p.cap:Infinity;
+  const capped=isFinite(cap)&&est>=Math.round(cap);
+  const basis=p.flat ? "flat benefit"
+    : (typeof p.repl==="number" ? ("~"+Math.round(p.repl)+"% of income"+(capped?" (at cap)":"")) : "estimate");
+  return "Auto — "+cn+" "+(p.name||"state pension")+": "+basis+" ≈ "+fmtMoney(est)+"/yr from age "+(p.age||67);
+}
+function refreshPensionEstimates(){
+  // client 1 — benefit amount + claiming age
+  if(!_penEdited && (val("penSrc")||"auto")==="auto"){
+    const c=val("c1co")||"US", p=PENSION_DEFAULTS[c]||PENSION_DEFAULTS.OTHER, est=estStatePension(c, clientIncomeFor(1));
+    if($("penAnnual")) $("penAnnual").value=est;
+    if($("penStartAge")) $("penStartAge").value=p.age||67;
+    setT("penNote", _penNote(c,p,est));
+  }
+  // client 1 — COLA / indexation (auto unless the user changed it)
+  if(!_colaEdited && (val("penSrc")||"auto")==="auto" && $("penCola")){
+    const p=PENSION_DEFAULTS[val("c1co")||"US"]||PENSION_DEFAULTS.OTHER; $("penCola").value=p.cola||"full";
+  }
+  // client 2 — benefit amount + claiming age
+  if($("penAnnual2") && !_pen2Edited && (val("penSrc2")||"auto")==="auto"){
+    const c=val("c2co")||val("c1co")||"US", p=PENSION_DEFAULTS[c]||PENSION_DEFAULTS.OTHER, est=estStatePension(c, clientIncomeFor(2));
+    $("penAnnual2").value=est;
+    if($("penStartAge2")) $("penStartAge2").value=p.age||67;
+    setT("penNote2", _penNote(c,p,est));
+  }
+  // client 2 — COLA / indexation
+  if($("penCola2") && !_cola2Edited && (val("penSrc2")||"auto")==="auto"){
+    const p=PENSION_DEFAULTS[val("c2co")||val("c1co")||"US"]||PENSION_DEFAULTS.OTHER; $("penCola2").value=p.cola||"full";
+  }
+}
+window.refreshPensionEstimates=refreshPensionEstimates;
 function onPensionSourceChange(){
   const m=$("penSrc").value;
-  if(m==="auto"){_penEdited=false; syncAssetCountry();}
+  if(m==="auto"){_penEdited=false; _colaEdited=false; refreshPensionEstimates();}
   if(m==="none"){$("penAnnual").value=0;}
 }
 function markPenEdited(){_penEdited=true;}
+function markColaEdited(){_colaEdited=true;}
+function markCola2Edited(){_cola2Edited=true;}
+window.markColaEdited=markColaEdited; window.markCola2Edited=markCola2Edited;
 function onPensionSource2Change(){
   const m=$("penSrc2").value;
-  if(m==="auto"){_pen2Edited=false; syncC2Pension();}
+  if(m==="auto"){_pen2Edited=false; _cola2Edited=false; syncC2Pension();}
   if(m==="none" && $("penAnnual2")) $("penAnnual2").value=0;
 }
 function markPen2Edited(){_pen2Edited=true;}
-function syncC2Pension(){
-  if(_pen2Edited) return;
-  const src=val("penSrc2")||"auto"; if(src!=="auto") return;
-  const c=val("c2co")||"US";
-  const p=PENSION_DEFAULTS[c]||PENSION_DEFAULTS.OTHER;
-  if($("penAnnual2")) $("penAnnual2").value=p.annual;
-  if($("penStartAge2")) $("penStartAge2").value=p.age;
-  setT("penNote2","Auto from "+(COUNTRY_ACCOUNTS[c]?.name||c)+": "+p.name+" ≈ "+fmtMoney(p.annual)+"/yr starting age "+p.age);
-}
+function syncC2Pension(){ refreshPensionEstimates(); }
 
 // ═══════════════════════════════════════════════════════════
 // TAX
@@ -16152,6 +16237,38 @@ const RPT_SECTION_LABELS = {
   disc:            "Disclosures"
 };
 
+// Short "what's on this page" blurbs — shown as a hover preview in the Page Order list.
+const RPT_SECTION_DESC = {
+  exec:            "Headline metrics — net worth, monthly surplus, projected median wealth, goal-success rate and household risk.",
+  about:           "Your custom 'About the client' narrative.",
+  hh:              "Client(s) and dependants — names, ages and residence.",
+  inc:             "Gross income, expenses and the income-tax breakdown (brackets, child benefits, net).",
+  equity:          "Stock options and RSUs — grants, vesting and projected value.",
+  assets:          "Accounts and holdings by type, plus loans/liabilities and net worth.",
+  insurance:       "Life and other policies — cover, premiums and cash value.",
+  goals:           "Each goal with target year, cost and priority, plus retirement parameters.",
+  strategies:      "Plain-language summary of the plan's key strategies.",
+  ips:             "Investment Policy Statement — objectives, constraints and target allocation.",
+  port:            "Current holdings, weights, expected return and risk.",
+  factsheets:      "One fact sheet per proposal position — returns, risk and fees.",
+  sim:             "Monte Carlo projection — percentile fan chart and outcome table.",
+  fund:            "Probability of reaching each goal.",
+  goalfunding:     "Present-value funding ratio per goal — assets and savings vs cost.",
+  lifestyle:       "Sustainable annual spending by retirement age (bar chart + table).",
+  wealthframework: "Personal / Market / Aspirational bucket allocation.",
+  potentialwealth: "Projected portfolio value each year to age 90 (chart + table).",
+  rmd:             "Required minimum withdrawal schedule and estimated tax.",
+  taxbuckets:      "Tax-free / deferred / taxable mix and the recommended withdrawal order.",
+  roth:            "Low-income years where a Roth-style conversion may pay off.",
+  estate:          "Estate / inheritance tax estimate and net to beneficiaries.",
+  cf:              "Year-by-year cash-flow projection.",
+  cma:             "Per-asset-class return, risk and correlation assumptions.",
+  method:          "How the projections are built, plus key caveats.",
+  educharts:       "The investor-education charts you selected, one per page.",
+  glossary:        "Definitions of the terms used in the report.",
+  disc:            "Important disclosures and disclaimers."
+};
+
 // ─── Supplemental glossary — original definitions of the terms this report
 // actually uses (modelled on the structure of institutional PWA glossaries).
 const RPT_GLOSSARY = [
@@ -16485,11 +16602,13 @@ function renderRptOrderList(){
   let h = "";
   order.forEach((key, idx) => {
     const label = RPT_SECTION_LABELS[key] || key;
-    h += '<div data-key="'+key+'" style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--bg3);border:1px solid var(--border);border-radius:6px">';
+    const desc = RPT_SECTION_DESC[key] || "This section of the report.";
+    h += '<div class="rpt-ord-item" data-key="'+key+'" style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--bg3);border:1px solid var(--border);border-radius:6px">';
     h += '<span style="font-size:11px;color:var(--text3);min-width:18px">' + (idx+1) + '.</span>';
-    h += '<span style="flex:1;font-size:13px;color:var(--text)">' + label + '</span>';
+    h += '<span class="rpt-ord-name" style="flex:1;font-size:13px;color:var(--text);cursor:help">' + label + '</span>';
     h += '<button type="button" onclick="moveRptSection(\''+key+'\',-1)" '+(idx===0?'disabled':'')+' style="background:#fff;border:1px solid var(--border);width:28px;height:28px;border-radius:5px;cursor:pointer;font-size:14px;line-height:1">↑</button>';
     h += '<button type="button" onclick="moveRptSection(\''+key+'\',1)" '+(idx===order.length-1?'disabled':'')+' style="background:#fff;border:1px solid var(--border);width:28px;height:28px;border-radius:5px;cursor:pointer;font-size:14px;line-height:1">↓</button>';
+    h += '<div class="rpt-ord-prev"><div style="font-size:12px;font-weight:700;color:var(--accent);margin-bottom:4px">'+(idx+1)+'. '+label+'</div><div style="font-size:11.5px;color:var(--text2);line-height:1.55">'+desc+'</div></div>';
     h += '</div>';
   });
   host.innerHTML = h;
@@ -18112,7 +18231,13 @@ function calcRetirementNumber(){
   const age=ageFromDOB(val("c1d"))||40;
   const retAge=num("retAge",65);
   const yearsToRet=Math.max(0,retAge-age);
-  const yearsInRet=Math.max(0,98-retAge);
+  // Planning horizon adjusted per residence country: a longevity buffer over the
+  // country's life expectancy, floored at 98 so it never under-provisions and only
+  // extends for the longest-lived countries (e.g. Switzerland, Japan, Hong Kong).
+  const _c=val("c1co")||"US";
+  const _le=(typeof PENSION_DEFAULTS!=="undefined"&&PENSION_DEFAULTS[_c]&&PENSION_DEFAULTS[_c].lifeExp)||80;
+  const planAge=Math.max(98, Math.round(_le)+15);
+  const yearsInRet=Math.max(0,planAge-retAge);
   const discountRate=0.068; // 6.8% hypothetical annuity pricing rate
   const inf=num("inf",3.8)/100;
   const realRate=(discountRate-inf)/(1+inf);
@@ -18128,10 +18253,11 @@ function calcRetirementNumber(){
   }
   // Discount pvAtRet back to today at nominal discount rate
   const pvToday=pvAtRet/Math.pow(1+discountRate,yearsToRet);
-  return{pvAtRet,pvToday,yearsToRet,yearsInRet,annualSpend:baseSpend,discountRate,inf};
+  return{pvAtRet,pvToday,yearsToRet,yearsInRet,annualSpend:baseSpend,discountRate,inf,planAge};
 }
 function renderRetirementNumber(){
   const r=calcRetirementNumber();
+  setT("rn-end-age", r.planAge); setT("rn-end-age2", r.planAge);   // country-adjusted planning horizon
   const acctVal=totalAccountValue();
   let pfAdj=0;
   const hasPortfolio=investments.length>0;
