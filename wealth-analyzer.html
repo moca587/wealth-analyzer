@@ -5291,6 +5291,79 @@ const STATE_TAX={
   ID:{label:"Province",note:"Indonesia has no separate provincial income tax.",items:[
     {v:"ALL",l:"All provinces — national rates",r:0}
   ]},
+  DE:{label:"State",note:"No state income tax; optional church tax (8-9% of tax) and the employer Kommunalsteuer are not personal income taxes.",items:[
+    {v:"ALL",l:"National only",r:0}
+  ]},
+  FR:{label:"Region",note:"No regional/communal income tax; local government is funded by property taxes.",items:[
+    {v:"ALL",l:"National only",r:0}
+  ]},
+  IT:{label:"Region + Municipality",note:"Regional surcharge (addizionale) 1.23-3.33% plus a municipal surcharge up to ~0.9%, on top of national IRPEF (% of income).",items:[
+    {v:"AVG",l:"Typical (regional ~1.7% + municipal ~0.8%)",r:2.5},
+    {v:"LB",l:"Lombardia",r:1.73},{v:"VN",l:"Veneto",r:1.23},{v:"ER",l:"Emilia-Romagna",r:1.93},
+    {v:"LZ",l:"Lazio",r:3.33},{v:"CM",l:"Campania",r:3.33}
+  ]},
+  ES:{label:"Autonomous community",note:"The autonomic IRPF scale is ALREADY folded into the combined national brackets shown here — applying a community add-on again would double-count.",items:[
+    {v:"ALL",l:"Included in national brackets",r:0}
+  ]},
+  NL:{label:"Region",note:"No provincial/municipal income tax; Box 1/2/3 are purely national.",items:[
+    {v:"ALL",l:"National only",r:0}
+  ]},
+  BE:{label:"Municipality",note:"Municipal surcharge (~0-9% of the tax due, avg ~7%) is roughly ~2.5% of income on top of federal tax.",items:[
+    {v:"AVG",l:"National average municipal surcharge",r:2.5},
+    {v:"BRU",l:"Brussels",r:2.3},{v:"ANT",l:"Antwerpen",r:2.7},{v:"LIE",l:"Liege (higher)",r:3.0},{v:"KNK",l:"Knokke-Heist (0%)",r:0}
+  ]},
+  IE:{label:"Region",note:"No regional/municipal income tax; income tax, USC and PRSI are all national.",items:[
+    {v:"ALL",l:"National only",r:0}
+  ]},
+  PT:{label:"Region",note:"Mainland has no municipal income tax; Madeira/Azores apply reduced (not added) national rates.",items:[
+    {v:"ALL",l:"National only",r:0}
+  ]},
+  AT:{label:"State",note:"No Land or municipal personal income tax; the employer Kommunalsteuer (~3%) is not a personal income tax.",items:[
+    {v:"ALL",l:"National only",r:0}
+  ]},
+  GR:{label:"Region",note:"No regional/municipal personal income tax.",items:[
+    {v:"ALL",l:"National only",r:0}
+  ]},
+  PL:{label:"Region",note:"No separate regional/municipal personal income tax; municipalities get a share of national PIT.",items:[
+    {v:"ALL",l:"National only",r:0}
+  ]},
+  SE:{label:"Municipality",note:"Municipal income tax (~29-35% of income, avg ~32%) is the main tax, on top of the 0/20% national scale.",items:[
+    {v:"AVG",l:"National average",r:32.37},
+    {v:"STO",l:"Stockholm",r:29.82},{v:"GBG",l:"Goteborg",r:32.6},{v:"MLM",l:"Malmo",r:32.41},
+    {v:"UPP",l:"Uppsala",r:32.85},{v:"UME",l:"Umea",r:33.4}
+  ]},
+  NO:{label:"Municipality",note:"Municipal/county tax is already included in the flat 22% ordinary-income rate — no separate add-on.",items:[
+    {v:"ALL",l:"Included in the 22% national rate",r:0}
+  ]},
+  DK:{label:"Municipality",note:"Municipal income tax (~22-26% of income, avg ~25%) on top of the national bottom/top tax.",items:[
+    {v:"AVG",l:"National average",r:25.07},
+    {v:"CPH",l:"Kobenhavn",r:23.5},{v:"AAR",l:"Aarhus",r:24.52},{v:"ODE",l:"Odense",r:25.3},{v:"AAL",l:"Aalborg",r:25.4}
+  ]},
+  FI:{label:"Municipality",note:"Municipal income tax (~4.7-10.9%, avg ~7.5% after the 2023 reform) on top of the national scale.",items:[
+    {v:"AVG",l:"National average",r:7.5},
+    {v:"HEL",l:"Helsinki",r:5.3},{v:"TAM",l:"Tampere",r:7.6},{v:"TUR",l:"Turku",r:7.53},{v:"OUL",l:"Oulu",r:7.4}
+  ]},
+  NZ:{label:"Region",note:"No regional/municipal income tax; councils are funded by property rates.",items:[
+    {v:"ALL",l:"National only",r:0}
+  ]},
+  IL:{label:"Region",note:"No regional/municipal income tax; municipalities levy Arnona (property), not income tax.",items:[
+    {v:"ALL",l:"National only",r:0}
+  ]},
+  AE:{label:"Emirate",note:"No personal income tax at federal or emirate level.",items:[
+    {v:"ALL",l:"National only (no tax)",r:0}
+  ]},
+  TH:{label:"Province",note:"No provincial/municipal personal income tax.",items:[
+    {v:"ALL",l:"National only",r:0}
+  ]},
+  MY:{label:"State",note:"No state personal income tax; income tax is federal.",items:[
+    {v:"ALL",l:"National only",r:0}
+  ]},
+  NG:{label:"State",note:"PIT is administered BY the states but uses the same national PITA bands — no separate state add-on.",items:[
+    {v:"ALL",l:"National PITA bands (state-administered)",r:0}
+  ]},
+  TR:{label:"Province",note:"No provincial/municipal personal income tax.",items:[
+    {v:"ALL",l:"National only",r:0}
+  ]},
   OTHER:{label:"Region",note:"No subnational tax data available. Use manual flat rate if needed.",items:[
     {v:"ALL",l:"Not available — use manual override",r:0}
   ]},
@@ -7344,8 +7417,19 @@ function persistTaxRegistry(){
       const b=TAX_BRACKETS[c], bands=b.bands||[];
       const top=bands.length?bands[bands.length-1][1]:null;
       const src=(typeof TAX_SOURCES!=="undefined"&&TAX_SOURCES[c])||{};
+      const st=(typeof STATE_TAX!=="undefined" && STATE_TAX[c]) || null;
+      let sub=null;
+      if(st){
+        const items=(st.items||[]).map(i=>({name:i.l, rate:i.r}));
+        const rates=items.map(i=>i.rate);
+        sub={ label:st.label||"Sub-national", hasSub: rates.some(r=>r>0),
+              repRate: items.length?items[0].rate:0, maxRate: rates.length?Math.max.apply(null,rates):0,
+              count: items.filter(i=>i.rate>0).length, note:st.note||"", items };
+      }
+      // bands keep Infinity as the top cap; JSON.stringify writes it as null (= no upper bound)
       return {code:c, name:b.name||c, currency:b.sym||"", topRate:top, bandCount:bands.length,
-              note:src.note||"", source:{authority:src.authority||"", url:src.url||"", taxYear:src.taxYear||""}};
+              bands: bands, note:src.note||"",
+              source:{authority:src.authority||"", url:src.url||"", taxYear:src.taxYear||""}, sub};
     });
     const reg={ generatedAt:new Date().toISOString().slice(0,16).replace("T"," "),
                 appVersion:(typeof APP_VERSION!=="undefined"?APP_VERSION:""), countries };
