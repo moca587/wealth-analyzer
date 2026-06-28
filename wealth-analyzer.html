@@ -1760,7 +1760,7 @@ input[type=date]{color-scheme:light}
         </div>
         <div>
           <div class="frow"><label class="flbl">COLA<span class="info-ic">i<span class="info-pop"><strong>Cost-of-Living Adjustment.</strong> How a pension/Social-Security benefit keeps pace with inflation over time. <strong>Full</strong>: rises with inflation each year (preserves purchasing power). <strong>Partial</strong>: rises at 50% of inflation (slowly loses value). <strong>None</strong>: fixed nominal amount — purchasing power erodes every year.</span></span></label>
-            <select id="penCola" class="w200">
+            <select id="penCola" class="w200" onchange="markColaEdited()">
               <option value="full" selected>Full COLA — adjusts each year</option>
               <option value="partial">Partial — 50% of inflation</option>
               <option value="none">None — fixed nominal</option>
@@ -1799,7 +1799,7 @@ input[type=date]{color-scheme:light}
         </div>
         <div>
           <div class="frow"><label class="flbl">COLA<span class="info-ic">i<span class="info-pop"><strong>Cost-of-Living Adjustment.</strong> How a pension/Social-Security benefit keeps pace with inflation over time. <strong>Full</strong>: rises with inflation each year (preserves purchasing power). <strong>Partial</strong>: rises at 50% of inflation (slowly loses value). <strong>None</strong>: fixed nominal amount — purchasing power erodes every year.</span></span></label>
-            <select id="penCola2" class="w200">
+            <select id="penCola2" class="w200" onchange="markCola2Edited()">
               <option value="full" selected>Full COLA — adjusts each year</option>
               <option value="partial">Partial — 50% of inflation</option>
               <option value="none">None — fixed nominal</option>
@@ -5079,6 +5079,17 @@ const PENSION_DEFAULTS={
   TR:{name:"SGK old-age pension",             repl:75, cap:1600000,  age:60, lifeExp:78.6},
   OTHER:{name:"State pension",                 repl:35, cap:0,        age:66, lifeExp:80.0},
 };
+// Per-country COLA / indexation of the public pension (how the benefit grows once
+// it starts): full = price/wage-indexed (real value ~constant), partial =
+// under-indexes / lags, none = fixed nominal. Classified + verified per country.
+const PENSION_COLA={
+  full:["US","CA","GB","AU","NZ","DE","FR","IT","ES","NL","BE","CH","AT","PT","PL","SE","NO","DK","JP","KR","BR","ZA","IL"],
+  partial:["IE","GR","FI","HK","CN","TW","ID","MX","NG","TR"],
+  none:["SG","IN","TH","MY","AE","SA"]
+};
+Object.keys(PENSION_COLA).forEach(k=>PENSION_COLA[k].forEach(c=>{ if(PENSION_DEFAULTS[c]) PENSION_DEFAULTS[c].cola=k; }));
+if(PENSION_DEFAULTS.EU) PENSION_DEFAULTS.EU.cola="full";
+if(PENSION_DEFAULTS.OTHER) PENSION_DEFAULTS.OTHER.cola="full";
 
 const LIFESTYLE_NOTES={
   frugal:"Basic needs covered, minimal travel. ~50% of working-life expenses.",
@@ -5924,6 +5935,8 @@ let lastSimPaths=null; let lastSimYrs=null;
 let _taxUserEdited=false;
 let _penEdited=false;
 let _pen2Edited=false;
+let _colaEdited=false;
+let _cola2Edited=false;
 let _ccyManual=false;
 let _chartReal=true;
 
@@ -7399,29 +7412,42 @@ function _penNote(c,p,est){
   return "Auto — "+cn+" "+(p.name||"state pension")+": "+basis+" ≈ "+fmtMoney(est)+"/yr from age "+(p.age||67);
 }
 function refreshPensionEstimates(){
+  // client 1 — benefit amount + claiming age
   if(!_penEdited && (val("penSrc")||"auto")==="auto"){
     const c=val("c1co")||"US", p=PENSION_DEFAULTS[c]||PENSION_DEFAULTS.OTHER, est=estStatePension(c, clientIncomeFor(1));
     if($("penAnnual")) $("penAnnual").value=est;
     if($("penStartAge")) $("penStartAge").value=p.age||67;
     setT("penNote", _penNote(c,p,est));
   }
+  // client 1 — COLA / indexation (auto unless the user changed it)
+  if(!_colaEdited && (val("penSrc")||"auto")==="auto" && $("penCola")){
+    const p=PENSION_DEFAULTS[val("c1co")||"US"]||PENSION_DEFAULTS.OTHER; $("penCola").value=p.cola||"full";
+  }
+  // client 2 — benefit amount + claiming age
   if($("penAnnual2") && !_pen2Edited && (val("penSrc2")||"auto")==="auto"){
     const c=val("c2co")||val("c1co")||"US", p=PENSION_DEFAULTS[c]||PENSION_DEFAULTS.OTHER, est=estStatePension(c, clientIncomeFor(2));
     $("penAnnual2").value=est;
     if($("penStartAge2")) $("penStartAge2").value=p.age||67;
     setT("penNote2", _penNote(c,p,est));
   }
+  // client 2 — COLA / indexation
+  if($("penCola2") && !_cola2Edited && (val("penSrc2")||"auto")==="auto"){
+    const p=PENSION_DEFAULTS[val("c2co")||val("c1co")||"US"]||PENSION_DEFAULTS.OTHER; $("penCola2").value=p.cola||"full";
+  }
 }
 window.refreshPensionEstimates=refreshPensionEstimates;
 function onPensionSourceChange(){
   const m=$("penSrc").value;
-  if(m==="auto"){_penEdited=false; refreshPensionEstimates();}
+  if(m==="auto"){_penEdited=false; _colaEdited=false; refreshPensionEstimates();}
   if(m==="none"){$("penAnnual").value=0;}
 }
 function markPenEdited(){_penEdited=true;}
+function markColaEdited(){_colaEdited=true;}
+function markCola2Edited(){_cola2Edited=true;}
+window.markColaEdited=markColaEdited; window.markCola2Edited=markCola2Edited;
 function onPensionSource2Change(){
   const m=$("penSrc2").value;
-  if(m==="auto"){_pen2Edited=false; syncC2Pension();}
+  if(m==="auto"){_pen2Edited=false; _cola2Edited=false; syncC2Pension();}
   if(m==="none" && $("penAnnual2")) $("penAnnual2").value=0;
 }
 function markPen2Edited(){_pen2Edited=true;}
