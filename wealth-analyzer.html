@@ -850,6 +850,10 @@ input[type=date]{color-scheme:light}
   </div>
   <div style="display:flex;align-items:center;gap:12px">
     <span id="topbarStatus" style="font-size:11px;color:var(--green);font-weight:600;min-width:90px;text-align:right"></span>
+    <button class="btn-secondary" onclick="uploadDocument()" title="Upload any client document — the AI agent reads it and fills your data fields after review" style="display:inline-flex;align-items:center;gap:6px;padding:8px 16px">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+      Upload Document
+    </button>
     <button class="btn-primary" onclick="runSim()">
       <svg width="11" height="11" viewBox="0 0 16 16" fill="currentColor"><path d="M4 2l10 6-10 6z"/></svg>
       Run Simulation
@@ -2394,7 +2398,7 @@ input[type=date]{color-scheme:light}
     <div class="da-note">Upload any client documents — brokerage &amp; bank statements, tax forms, <strong>photos &amp; screenshots</strong>, scanned PDFs, CSV / XLSX, or notes. The agent reads them (vision for images &amp; scans), extracts every data point it can across the whole profile, and shows you a review screen before anything is written to the app.</div>
     <div class="frow" style="margin-top:8px">
       <label class="flbl">Files <span style="color:var(--text3)">(any number, mixed types)</span></label>
-      <input type="file" id="aiAgentFiles" multiple onchange="renderAgentFileList()" accept=".pdf,.png,.jpg,.jpeg,.gif,.webp,.heic,.heif,.tiff,.tif,.bmp,.csv,.tsv,.txt,.docx,.xlsx,.xls,image/*" style="font-size:12px;color:var(--text2)">
+      <input type="file" id="aiAgentFiles" multiple onchange="onAgentFilesChange()" accept=".pdf,.png,.jpg,.jpeg,.gif,.webp,.heic,.heif,.tiff,.tif,.bmp,.csv,.tsv,.txt,.docx,.xlsx,.xls,image/*" style="font-size:12px;color:var(--text2)">
     </div>
     <div id="aiAgentFileList" style="margin:6px 0 8px"></div>
     <div id="aiAgentKeyNote" style="font-size:11px;margin-bottom:8px"></div>
@@ -7638,12 +7642,35 @@ let _daExtraction = null;             // last normalized extraction (for the rev
 function _daEsc(s){ return String(s==null?"":s).replace(/[&<>"']/g,c=>({ "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;" }[c])); }
 function _daMoneyFmt(n){ try { return (typeof fmtMoney==="function") ? fmtMoney(n) : ("$"+Math.round(+n||0).toLocaleString()); } catch(_){ return "$"+(+n||0); } }
 
+// When true, choosing files auto-runs extraction (top-bar "Upload Document" flow).
+let _topbarUploadFlow = false;
 function openDataAgent(){
   const p=$("aiAgentPanel"); if(!p) return;
+  _topbarUploadFlow = false;   // manual open = manual "Extract data"
   const showing=p.style.display!=="none";
   show("aiAgentPanel",!showing);
   if(!showing){ setT("aiAgentStatus",""); daKeyNote(); renderAgentFileList(); }
 }
+// Top-bar "Upload Document" — reuse the AI Data Agent: jump to its panel, open the
+// file chooser, and (because _topbarUploadFlow is set) auto-extract once files are
+// chosen. The agent reads any file type and, after a review screen, writes the
+// values into the appropriate fields across the app.
+function uploadDocument(){
+  try{ showTab("portfolio", document.querySelector('.nav-item[data-tab="portfolio"]')); }catch(_){}
+  try{ show("aiAgentPanel", true); daKeyNote(); renderAgentFileList(); setT("aiAgentStatus",""); }catch(_){}
+  const p=$("aiAgentPanel"); if(p){ try{ p.scrollIntoView({behavior:"smooth",block:"center"}); }catch(_){} }
+  _topbarUploadFlow = true;
+  const inp=$("aiAgentFiles");
+  if(inp){ try{ inp.value=""; inp.click(); }catch(_){} }   // file dialog opens within this click gesture
+}
+// File-input change handler: refresh the list, and auto-extract when launched from the top bar.
+function onAgentFilesChange(){
+  const auto=_topbarUploadFlow; _topbarUploadFlow=false;
+  renderAgentFileList();
+  if(auto){ const inp=$("aiAgentFiles"); if(inp&&inp.files&&inp.files.length){ try{ runDataAgent(); }catch(_){} } }
+}
+window.uploadDocument = uploadDocument;
+window.onAgentFilesChange = onAgentFilesChange;
 function daKeyNote(){
   const n=$("aiAgentKeyNote"); if(!n) return;
   n.innerHTML = getAIKey()
