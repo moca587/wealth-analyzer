@@ -5031,26 +5031,53 @@ const REGION_COLORS={
 };
 
 // Pension defaults by country (approximate annual benefit USD-equivalent + start age)
+// Public / 1st-pillar state pension by residence country. The annual benefit is
+// estimated from the person's income: earnings-related schemes use
+// min(income x repl%, cap); FLAT schemes (flat:true) pay a fixed amount (cap),
+// independent of income. cap is in LOCAL currency; cap:0 = no ceiling. age =
+// statutory claiming age. lifeExp = national life expectancy. Authored + verified.
 const PENSION_DEFAULTS={
-  US:{name:"Social Security",annual:22000,age:67},
-  CA:{name:"CPP/QPP + OAS",annual:18000,age:65},
-  GB:{name:"State Pension",annual:14000,age:66},
-  AU:{name:"Age Pension",annual:18000,age:67},
-  CH:{name:"AHV/AVS",annual:25000,age:65},
-  EU:{name:"State pension",annual:18000,age:66},
-  JP:{name:"Kokumin/Kosei Nenkin",annual:16000,age:65},
-  SG:{name:"CPF LIFE",annual:14000,age:65},
-  HK:{name:"MPF + OAA",annual:8000,age:65},
-  CN:{name:"Basic pension",annual:6000,age:60},
-  TW:{name:"National Pension",annual:7000,age:65},
-  KR:{name:"NPS",annual:9000,age:63},
-  IN:{name:"NPS / EPF",annual:5000,age:60},
-  ID:{name:"BPJS Pensiun",annual:3500,age:57},
-  MX:{name:"AFORE / IMSS",annual:6000,age:65},
-  BR:{name:"INSS",annual:7000,age:65},
-  SA:{name:"GOSI",annual:12000,age:60},
-  ZA:{name:"State old-age grant",annual:1700,age:60},
-  OTHER:{name:"State pension",annual:10000,age:66},
+  US:{name:"Social Security",                  repl:40, cap:60480,    age:67, lifeExp:77.5},
+  CA:{name:"CPP + OAS",                        repl:40, cap:25400,    age:65, lifeExp:82.0},
+  GB:{name:"New State Pension",      flat:true, repl:100, cap:11973,   age:66, lifeExp:81.3},
+  AU:{name:"Age Pension",            flat:true, repl:100, cap:29874,   age:67, lifeExp:83.3},
+  CH:{name:"AHV/AVS (1st pillar)",             repl:24, cap:30240,    age:65, lifeExp:84.0},
+  EU:{name:"State pension (avg)",              repl:45, cap:0,        age:66, lifeExp:81.0},
+  JP:{name:"Kosei/Kokumin Nenkin",            repl:36, cap:2900000,  age:65, lifeExp:84.5},
+  SG:{name:"CPF LIFE",                         repl:38, cap:30000,    age:65, lifeExp:83.7},
+  HK:{name:"MPF + Old Age Living Allowance",  repl:23, cap:120000,   age:65, lifeExp:85.5},
+  CN:{name:"Urban Employees' Basic Pension",  repl:45, cap:120000,   age:60, lifeExp:78.6},
+  TW:{name:"Labor Insurance + Labor Pension", repl:33, cap:350000,   age:65, lifeExp:80.4},
+  KR:{name:"National Pension (NPS)",          repl:31, cap:18000000, age:63, lifeExp:83.6},
+  IN:{name:"EPS (EPFO)",                       repl:20, cap:90000,    age:58, lifeExp:70.4},
+  ID:{name:"BPJS Jaminan Pensiun",            repl:30, cap:60000000, age:59, lifeExp:68.3},
+  MX:{name:"IMSS / AFORE + Garantizada",      repl:30, cap:420000,   age:65, lifeExp:75.1},
+  BR:{name:"INSS (RGPS)",                      repl:70, cap:100000,   age:65, lifeExp:75.9},
+  SA:{name:"GOSI",                             repl:65, cap:540000,   age:60, lifeExp:78.7},
+  ZA:{name:"Older Persons Grant",   flat:true, repl:100, cap:27840,   age:60, lifeExp:65.3},
+  DE:{name:"Gesetzliche Rentenversicherung",  repl:43, cap:39600,    age:67, lifeExp:81.2},
+  FR:{name:"Regime general (CNAV)",           repl:50, cap:23194,    age:64, lifeExp:82.5},
+  IT:{name:"Pensione di vecchiaia (INPS)",    repl:76, cap:0,        age:67, lifeExp:83.0},
+  ES:{name:"Pension de jubilacion",           repl:80, cap:45864,    age:65, lifeExp:83.3},
+  NL:{name:"AOW",                    flat:true, repl:100, cap:17000,   age:67, lifeExp:81.7},
+  BE:{name:"Pension legale",                  repl:47, cap:32000,    age:66, lifeExp:81.9},
+  IE:{name:"State Pension (Contributory)", flat:true, repl:100, cap:15044, age:66, lifeExp:82.4},
+  PT:{name:"Pensao de velhice (Seg. Social)", repl:74, cap:60000,    age:66, lifeExp:82.4},
+  AT:{name:"Statutory pension (ASVG)",        repl:76, cap:49980,    age:65, lifeExp:81.3},
+  GR:{name:"EFKA pension",                     repl:80, cap:35000,    age:67, lifeExp:81.8},
+  PL:{name:"Emerytura (ZUS)",                  repl:40, cap:120000,   age:65, lifeExp:78.6},
+  SE:{name:"Inkomstpension",                   repl:53, cap:360000,   age:67, lifeExp:83.1},
+  NO:{name:"Folketrygden",                     repl:48, cap:350000,   age:67, lifeExp:83.2},
+  DK:{name:"Folkepension",           flat:true, repl:100, cap:90000,   age:67, lifeExp:81.9},
+  FI:{name:"Tyoelake (TyEL)",                  repl:57, cap:0,        age:65, lifeExp:81.9},
+  NZ:{name:"NZ Super",               flat:true, repl:100, cap:26800,   age:65, lifeExp:82.5},
+  IL:{name:"Bituach Leumi old-age",  flat:true, repl:100, cap:38400,   age:67, lifeExp:82.7},
+  AE:{name:"GPSSA (nationals)",                repl:20, cap:1200000,  age:60, lifeExp:79.2},
+  TH:{name:"SSO Old-Age Pension",             repl:20, cap:54000,    age:55, lifeExp:76.9},
+  MY:{name:"EPF (KWSP)",                       repl:30, cap:60000,    age:60, lifeExp:76.7},
+  NG:{name:"Contributory Pension Scheme",     repl:40, cap:0,        age:60, lifeExp:53.6},
+  TR:{name:"SGK old-age pension",             repl:75, cap:540000,   age:65, lifeExp:78.6},
+  OTHER:{name:"State pension",                 repl:35, cap:0,        age:66, lifeExp:80.0},
 };
 
 const LIFESTYLE_NOTES={
@@ -6371,6 +6398,7 @@ function updateIncTotal(){
   updateTaxPanel();
   updateSavingsPanel();
   if(typeof updateExpSurplusLink==="function") updateExpSurplusLink();
+  try{ if(typeof refreshPensionEstimates==="function") refreshPensionEstimates(); }catch(_){}  // income-based state-pension estimate
   refreshTopMetrics();
 }
 function getTotalExpenses(){
@@ -6715,13 +6743,8 @@ function syncAssetCountry(){
   const c=$("c1co").value;
   if($("acountry").value!==c){ $("acountry").value=c; refreshAssetTypes(); }
   onCurrencyCountryChange();
-  // Pension auto
-  if(!_penEdited){
-    const p=PENSION_DEFAULTS[c]||PENSION_DEFAULTS.OTHER;
-    $("penAnnual").value=p.annual;
-    $("penStartAge").value=p.age;
-    setT("penNote","Auto from "+(COUNTRY_ACCOUNTS[c]?.name||c)+": "+p.name+" ≈ "+fmtMoney(p.annual)+"/yr starting age "+p.age);
-  }
+  // Pension auto — income-based estimate (replacement rate × income, capped), per country
+  refreshPensionEstimates();
   // Tax country + state dropdown
   $("taxCountry").value=COUNTRY_ACCOUNTS[c]?.name||c;
   refreshStateDropdown(c);
@@ -7353,9 +7376,45 @@ function calcPension(src,annual,startAge,cola,age,inf){
   if(cola==="partial") return annual*Math.pow(1+inf*0.5,yrs);
   return annual;
 }
+// ── Income-based state-pension estimate (per residence country) ─────────────
+// Estimate = min(income × public replacement-rate, country benefit cap). Falls
+// back to the legacy flat amount for any country still on the old data shape.
+function clientIncomeFor(which){ return which===2 ? (num("inc1b",0)+num("inc2b",0)) : (num("inc1",0)+num("inc2",0)); }
+function estStatePension(country, income){
+  const p=PENSION_DEFAULTS[country]||PENSION_DEFAULTS.OTHER;
+  if(p.flat) return Math.round(p.cap||p.annual||0);   // flat (non-earnings-related) pension — income-independent
+  if(typeof p.repl==="number"){
+    const cap=(p.cap&&p.cap>0)?p.cap:Infinity;
+    return Math.round(Math.min(Math.max(0,income)*(p.repl/100), cap));
+  }
+  return Math.round(p.annual||0);
+}
+function _penNote(c,p,est){
+  const cn=(COUNTRY_ACCOUNTS[c]&&COUNTRY_ACCOUNTS[c].name)||c;
+  const cap=(p.cap&&p.cap>0)?p.cap:Infinity;
+  const capped=isFinite(cap)&&est>=Math.round(cap);
+  const basis=p.flat ? "flat benefit"
+    : (typeof p.repl==="number" ? ("~"+Math.round(p.repl)+"% of income"+(capped?" (at cap)":"")) : "estimate");
+  return "Auto — "+cn+" "+(p.name||"state pension")+": "+basis+" ≈ "+fmtMoney(est)+"/yr from age "+(p.age||67);
+}
+function refreshPensionEstimates(){
+  if(!_penEdited && (val("penSrc")||"auto")==="auto"){
+    const c=val("c1co")||"US", p=PENSION_DEFAULTS[c]||PENSION_DEFAULTS.OTHER, est=estStatePension(c, clientIncomeFor(1));
+    if($("penAnnual")) $("penAnnual").value=est;
+    if($("penStartAge")) $("penStartAge").value=p.age||67;
+    setT("penNote", _penNote(c,p,est));
+  }
+  if($("penAnnual2") && !_pen2Edited && (val("penSrc2")||"auto")==="auto"){
+    const c=val("c2co")||val("c1co")||"US", p=PENSION_DEFAULTS[c]||PENSION_DEFAULTS.OTHER, est=estStatePension(c, clientIncomeFor(2));
+    $("penAnnual2").value=est;
+    if($("penStartAge2")) $("penStartAge2").value=p.age||67;
+    setT("penNote2", _penNote(c,p,est));
+  }
+}
+window.refreshPensionEstimates=refreshPensionEstimates;
 function onPensionSourceChange(){
   const m=$("penSrc").value;
-  if(m==="auto"){_penEdited=false; syncAssetCountry();}
+  if(m==="auto"){_penEdited=false; refreshPensionEstimates();}
   if(m==="none"){$("penAnnual").value=0;}
 }
 function markPenEdited(){_penEdited=true;}
@@ -7365,15 +7424,7 @@ function onPensionSource2Change(){
   if(m==="none" && $("penAnnual2")) $("penAnnual2").value=0;
 }
 function markPen2Edited(){_pen2Edited=true;}
-function syncC2Pension(){
-  if(_pen2Edited) return;
-  const src=val("penSrc2")||"auto"; if(src!=="auto") return;
-  const c=val("c2co")||"US";
-  const p=PENSION_DEFAULTS[c]||PENSION_DEFAULTS.OTHER;
-  if($("penAnnual2")) $("penAnnual2").value=p.annual;
-  if($("penStartAge2")) $("penStartAge2").value=p.age;
-  setT("penNote2","Auto from "+(COUNTRY_ACCOUNTS[c]?.name||c)+": "+p.name+" ≈ "+fmtMoney(p.annual)+"/yr starting age "+p.age);
-}
+function syncC2Pension(){ refreshPensionEstimates(); }
 
 // ═══════════════════════════════════════════════════════════
 // TAX
