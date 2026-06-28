@@ -3785,7 +3785,7 @@ input[type=date]{color-scheme:light}
 // ═══════════════════════════════════════════════════════════
 // VERSION — updated by build-standalone.pl on each build
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260628-1459";
+const APP_VERSION = "20260628-1502";
 
 // ═══════════════════════════════════════════════════════════
 // DATA
@@ -11592,24 +11592,8 @@ function renderProposalSourceBanner(){
     + 'border-radius:6px;font-size:11.5px;font-weight:600;cursor:pointer;flex-shrink:0">'
     + 'Use household risk profile</button>'
     + '</div>';
-  } else if(proposals && proposals.length > 0){
-    // Proposal exists but flag is off — show a subtle prompt to switch
-    host.style.display = "block";
-    host.innerHTML =
-      '<div style="display:flex;align-items:center;gap:12px;padding:10px 14px;'
-    + 'background:rgba(0,87,184,.04);border:1px solid rgba(0,87,184,.15);'
-    + 'border-radius:8px;margin-bottom:14px;font-size:12px;color:var(--text2)">'
-    + '<div style="font-size:18px;flex-shrink:0">📋</div>'
-    + '<div style="flex:1">'
-    + 'Simulation is using your <strong>household risk profile</strong> ('+info.detail+'). '
-    + 'You have ' + proposals.length + ' proposal positions — apply them to the simulation?'
-    + '</div>'
-    + '<button onclick="switchSimSourceToProposal()" '
-    + 'style="background:var(--gold);color:#fff;border:none;padding:6px 12px;'
-    + 'border-radius:6px;font-size:11.5px;font-weight:600;cursor:pointer;flex-shrink:0">'
-    + 'Use proposal portfolio</button>'
-    + '</div>';
   } else {
+    // Not proposal-driven — no banner (the "apply proposals?" prompt was removed).
     host.style.display = "none";
     host.innerHTML = "";
   }
@@ -15381,9 +15365,9 @@ function renderReturnsUnified(cur, prop, curMu, propMu, curSig, propSig){
   }
   const canvas = $("cmpReturnsChart");
   if(!canvas || typeof Chart === "undefined") return;
-  const labels = ["10 yr","5 yr","3 yr","1 yr","Expected"];
-  const curData  = [cur.r10y,  cur.r5y,  cur.r3y,  cur.r1y,  curMu*100];
-  const propData = [prop.r10y, prop.r5y, prop.r3y, prop.r1y, propMu*100];
+  const labels = ["1 yr","3 yr","5 yr","10 yr","Expected"];
+  const curData  = [cur.r1y,  cur.r3y,  cur.r5y,  cur.r10y,  curMu*100];
+  const propData = [prop.r1y, prop.r3y, prop.r5y, prop.r10y, propMu*100];
   const isExp = i => i===4;                     // last category = forward-looking expected
   const mk = (solid, tint) => ({ bg:(_,i)=> isExp(i) ? tint : solid, bw:(_,i)=> isExp(i) ? 1.5 : 0 });
   const c = mk(CUR, "rgba(91,155,213,0.22)"), p = mk(PROP, "rgba(124,58,237,0.22)");
