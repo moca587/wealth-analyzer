@@ -1091,7 +1091,7 @@ function toggleQuestionnairePreview(){
 // ═══════════════════════════════════════════════════════════
 // VERSION + UTILS
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260628-0105";
+const APP_VERSION = "20260628-1404";
 const $ = (id) => document.getElementById(id);
 const $$ = (sel, ctx) => Array.from((ctx||document).querySelectorAll(sel));
 
@@ -5973,8 +5973,8 @@ function startLivePoll(){
       }
     } catch(_){} finally { polling = false; }
   }
-  setTimeout(check, 3000);
-  setInterval(check, 15000);
+  setTimeout(check, 3000);                 // one check shortly after load
+  setInterval(check, 15 * 60 * 1000);      // then every 15 minutes (was 15s — too aggressive)
   document.addEventListener("visibilitychange", () => { if(document.visibilityState === "visible") check(); });
 }
 
