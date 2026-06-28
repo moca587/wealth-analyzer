@@ -912,7 +912,7 @@ Citations:<br>
 <div class="tab" id="tab-taxdb">
   <div class="hero">
     <h1>🏛 Tax Database</h1>
-    <p>Browse income tax brackets for 9 countries — federal + state/province/canton + major cities. Auto-detection from ZIP code wired into the main app.</p>
+    <p>Browse income tax for all 39 supported countries — national/federal brackets + representative regional/state/municipal tax, synced live from the client app. US ZIP auto-detection is wired into the main app (below).</p>
   </div>
   <div class="panel">
     <div class="ptitle">ZIP Lookup</div>
@@ -1110,7 +1110,7 @@ function toggleQuestionnairePreview(){
 // ═══════════════════════════════════════════════════════════
 // VERSION + UTILS
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260628-1440";
+const APP_VERSION = "20260628-1452";
 const $ = (id) => document.getElementById(id);
 const $$ = (sel, ctx) => Array.from((ctx||document).querySelectorAll(sel));
 
@@ -2918,7 +2918,8 @@ function renderDashboard(){
   h += kpiCard("AI Assistant",aiKey?"Connected":"Not set",aiKey?"":"Set in API Keys tab","tone-"+(aiKey?"green":"red"));
   h += kpiCard("Research Sources",RESEARCH_PROVIDERS.length+" available","Refresh in Research tab");
   h += kpiCard("Fund Universe",FUND_UNIVERSE.length+" vehicles","Curated institutional-quality");
-  h += kpiCard("Tax Countries",Object.keys(LOCAL_TAX).length,"+ all 50 US states");
+  const _taxReg=(function(){try{return JSON.parse(localStorage.getItem("wa_tax_registry")||"null");}catch(_){return null;}})();
+  h += kpiCard("Tax Countries",(_taxReg&&_taxReg.countries)?_taxReg.countries.length:Object.keys(LOCAL_TAX).length,"national + sub-national");
   $("dashKpis").innerHTML = h;
 
   // Provider status — grouped by data class
@@ -4154,34 +4155,54 @@ async function testAllProviders(){
 // ═══════════════════════════════════════════════════════════
 // TAX DB
 // ═══════════════════════════════════════════════════════════
+// The Tax Database browser reads the live 39-country registry the client app
+// persists (wa_tax_registry): national/federal bands + representative sub-national.
+function _regCountry(cc){ const reg=_taxRegistry(); if(!reg) return null; return (reg.countries||[]).find(c=>c.code===cc)||null; }
 function renderTaxDb(){
-  // Country dropdown
-  const cc = $("txCountry");
-  if(cc && cc.options.length === 0){
-    cc.innerHTML = Object.keys(LOCAL_TAX).map(k => `<option value="${k}">${COUNTRY_NAMES[k]||k}</option>`).join("");
+  const reg=_taxRegistry();
+  const cc=$("txCountry");
+  if(!reg || !reg.countries || !reg.countries.length){
+    if(cc) cc.innerHTML='<option value="">— sync the client app first —</option>';
+    if($("taxFedBrackets")) $("taxFedBrackets").innerHTML='<div class="code" style="background:#7c2d12;line-height:1.7">No tax dataset synced. Open the client app once (it writes the dataset to shared storage), then reopen this tab.</div>';
+    if($("taxStateBrackets")) $("taxStateBrackets").innerHTML='';
+    return;
+  }
+  if(cc){
+    const rows=reg.countries.slice().sort((a,b)=>String(a.name).localeCompare(String(b.name)));
+    const prev=cc.value;
+    cc.innerHTML=rows.map(c=>`<option value="${c.code}">${escapeHtml(c.name)} (${c.code})</option>`).join("");
+    if(prev && rows.some(c=>c.code===prev)) cc.value=prev;
   }
   renderTaxStateDropdown();
 }
-function changeTxCountry(){
-  renderTaxStateDropdown();
-}
+function changeTxCountry(){ renderTaxStateDropdown(); }
 function renderTaxStateDropdown(){
-  const cc = $("txCountry").value;
-  const ss = $("txState");
-  const cd = LOCAL_TAX[cc];
-  if(!cd){ ss.innerHTML = ''; return; }
-  ss.innerHTML = Object.entries(cd.states).map(([k,v]) => `<option value="${k}">${v.name}</option>`).join("");
+  const c=_regCountry($("txCountry").value); const ss=$("txState");
+  if(ss){
+    const items=(c&&c.sub&&c.sub.items)?c.sub.items:[];
+    ss.innerHTML=items.length ? items.map((it,i)=>`<option value="${i}">${escapeHtml(it.name)}${it.rate>0?(" ("+it.rate+"%)"):""}</option>`).join("") : '<option value="">National only</option>';
+  }
   renderTaxBracket();
 }
+function _fmtRegBands(bands){
+  if(!bands||!bands.length) return '<div style="color:var(--ink3);padding:14px">No bracket data</div>';
+  return '<table class="tbl"><thead><tr><th>Income up to</th><th class="num">Marginal rate</th></tr></thead><tbody>'+
+    bands.map(b=>{ const up=(b[0]==null)?'∞':Number(b[0]).toLocaleString(); return `<tr><td class="num">${up}</td><td class="num"><strong>${b[1]}%</strong></td></tr>`; }).join("")+'</tbody></table>';
+}
 function renderTaxBracket(){
-  const cc = $("txCountry").value;
-  const ss = $("txState").value;
-  const cd = LOCAL_TAX[cc]; if(!cd) return;
-  $("taxFedBrackets").innerHTML = `<h3 style="font-size:13px;margin-bottom:8px;color:var(--blue)">Federal — ${COUNTRY_NAMES[cc]||cc}</h3>` + renderBrackets(cd.federal.brackets);
-  const s = cd.states[ss];
-  if(s){
-    $("taxStateBrackets").innerHTML = `<h3 style="font-size:13px;margin-bottom:8px;color:var(--green)">${escapeHtml(s.name)}</h3>` + renderBrackets(s.brackets);
-  } else $("taxStateBrackets").innerHTML = '';
+  const c=_regCountry($("txCountry").value); if(!c) return;
+  const src=c.source||{};
+  $("taxFedBrackets").innerHTML = `<h3 style="font-size:13px;margin-bottom:8px;color:var(--blue)">National / federal — ${escapeHtml(c.name)} <span style="color:var(--ink3);font-weight:400">(${escapeHtml(src.taxYear||"")}${c.currency?(", "+escapeHtml(c.currency)):""})</span></h3>` + _fmtRegBands(c.bands)
+    + (src.url?`<div style="font-size:11px;margin-top:6px"><a href="${escapeHtml(src.url)}" target="_blank" style="color:var(--blue)">${escapeHtml(src.authority||"official source")}</a></div>`:"");
+  const sub=c.sub||null;
+  if(sub && sub.hasSub){
+    $("taxStateBrackets").innerHTML = `<h3 style="font-size:13px;margin:14px 0 8px;color:var(--green)">${escapeHtml(sub.label)} — representative effective add-on (% of income)</h3>`
+      + '<table class="tbl"><thead><tr><th>'+escapeHtml(sub.label)+'</th><th class="num">Add-on rate</th></tr></thead><tbody>'
+      + sub.items.map(it=>`<tr><td>${escapeHtml(it.name)}</td><td class="num"><strong>${it.rate}%</strong></td></tr>`).join("")+'</tbody></table>'
+      + (sub.note?`<div style="font-size:11px;color:var(--ink3);margin-top:8px;line-height:1.6">${escapeHtml(sub.note)}</div>`:"");
+  } else {
+    $("taxStateBrackets").innerHTML = `<div style="font-size:12px;color:var(--ink3);margin-top:14px;padding:10px 12px;background:rgba(0,0,0,.03);border-radius:6px">No separate regional/state/municipal income tax — national rates only.${sub&&sub.note?(" "+escapeHtml(sub.note)):""}</div>`;
+  }
 }
 function renderBrackets(brackets){
   if(!brackets||brackets.length===0) return '<div style="color:var(--ink3);padding:14px">No income tax / flat 0%</div>';
@@ -4238,11 +4259,18 @@ function renderTaxAccuracy(){
       : '<span style="color:var(--amber);font-weight:600">&#9679; needs review</span>';
     const src = c.source||{};
     const link = src.url ? '<a href="'+escapeHtml(src.url)+'" target="_blank" style="color:var(--blue)">'+escapeHtml(src.authority||"source")+'</a>' : (src.authority?escapeHtml(src.authority):'—');
+    const sub=c.sub||null;
+    const subCell = sub
+      ? (sub.hasSub
+          ? escapeHtml(sub.label)+' <span style="color:var(--ink3)">~'+sub.repRate+'%'+(sub.maxRate>sub.repRate?(' (max '+sub.maxRate+'%)'):'')+'</span>'
+          : '<span style="color:var(--ink3)">national only</span>')
+      : '<span style="color:var(--ink3)">—</span>';
     return '<tr>'
       +'<td>'+escapeHtml(c.name||c.code)+' <span style="color:var(--ink3)">'+escapeHtml(c.code)+'</span></td>'
       +'<td class="num">'+escapeHtml(c.currency||'—')+'</td>'
       +'<td class="num"><strong>'+(typeof c.topRate==="number"?c.topRate+'%':'—')+'</strong></td>'
       +'<td class="num">'+(c.bandCount||0)+'</td>'
+      +'<td>'+subCell+'</td>'
       +'<td class="num">'+escapeHtml(src.taxYear||'—')+'</td>'
       +'<td>'+link+'</td>'
       +'<td>'+chk+'</td>'
@@ -4251,9 +4279,9 @@ function renderTaxAccuracy(){
       +'</tr>';
   }).join("");
   body.innerHTML =
-    '<table class="tbl"><thead><tr><th>Country</th><th class="num">Ccy</th><th class="num">Top rate</th><th class="num">Bands</th><th class="num">Tax yr</th><th>Official source</th><th>Sanity</th><th>Status</th><th>Action</th></tr></thead><tbody>'
+    '<table class="tbl"><thead><tr><th>Country</th><th class="num">Ccy</th><th class="num">Top rate</th><th class="num">Bands</th><th>Sub-national (regional/state/municipal)</th><th class="num">Tax yr</th><th>Official source</th><th>Sanity</th><th>Status</th><th>Action</th></tr></thead><tbody>'
     + trs + '</tbody></table>'
-    + '<div style="font-size:11px;color:var(--ink3);margin-top:10px;line-height:1.7">Synced '+escapeHtml(reg.generatedAt||"")+(reg.appVersion?(" &middot; client v"+escapeHtml(reg.appVersion)):"")+'. Brackets are national/federal; sub-national tax is noted separately in the client app. <strong>Verify each country against its official source link before relying on it.</strong></div>';
+    + '<div style="font-size:11px;color:var(--ink3);margin-top:10px;line-height:1.7">Synced '+escapeHtml(reg.generatedAt||"")+(reg.appVersion?(" &middot; client v"+escapeHtml(reg.appVersion)):"")+'. Top rate &amp; bands are the national/federal scale; the Sub-national column shows representative regional/state/municipal income tax (“~” = effective add-on; many countries are national-only). <strong>Verify each country against its official source link before relying on it.</strong></div>';
   { const _s=$("taxAccSummary"); if(_s) _s.innerHTML = reg.countries.length+" countries &middot; "+verified+" verified &middot; "+review+" need review &middot; "+problems+" flagged"; }
 }
 window.renderTaxAccuracy = renderTaxAccuracy;
