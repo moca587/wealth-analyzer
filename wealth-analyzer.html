@@ -16326,9 +16326,15 @@ window.renderGlossaryViewer = renderGlossaryViewer;
 const EDU_CHARTS = [
   {
     id:"compounding",
+    type:"line",
     title:"The power of compounding",
     subtitle:"Growth of $500 invested every month over 30 years",
     fmtVal:"money",
+    xLabels:["Now","Yr 5","Yr 10","Yr 15","Yr 20","Yr 25","Yr 30"],
+    lines:(function(){
+      const defs=[{r:0.04,label:"4% / yr",color:[0,135,90]},{r:0.06,label:"6% / yr",color:[0,87,184]},{r:0.08,label:"8% / yr",color:[201,150,40]}];
+      return defs.map(d=>{ const m=d.r/12, points=[]; for(let yr=0; yr<=30; yr+=5){ const n=yr*12; points.push(n===0?0:Math.round(500*((Math.pow(1+m,n)-1)/m))); } return {label:d.label, color:d.color, points}; });
+    })(),
     bars:(function(){
       const fv=r=>{const m=r/12,n=360;return Math.round(500*((Math.pow(1+m,n)-1)/m));};
       return [{label:"4% / yr",value:fv(0.04)},{label:"6% / yr",value:fv(0.06)},{label:"8% / yr",value:fv(0.08)}];
@@ -16394,6 +16400,7 @@ const EDU_CHARTS = [
   },
   {
     id:"riskreturn",
+    type:"line",
     title:"Risk and return go together",
     subtitle:"Expected annual return by model allocation (higher return, higher volatility)",
     fmtVal:"pct",
@@ -16433,6 +16440,7 @@ const EDU_CHARTS = [
   },
   {
     id:"glidepath",
+    type:"area",
     title:"How your mix shifts as you near retirement",
     subtitle:"Illustrative growth-asset (stock) weighting across life stages",
     fmtVal:"pct",
@@ -16470,9 +16478,16 @@ const EDU_CHARTS = [
   },
   {
     id:"inflation",
+    type:"area",
     title:"What inflation does to your purchasing power",
     subtitle:"What $100,000 still buys over time at 3% annual inflation",
     fmtVal:"money",
+    area:(function(){
+      const pp=yrs=>Math.round(100000/Math.pow(1.03,yrs)/1000)*1000;
+      const points=[], xLabels=[];
+      for(let yr=0; yr<=30; yr+=5){ points.push(pp(yr)); xLabels.push(yr===0?"Today":("Yr "+yr)); }
+      return {points, xLabels, color:[205,70,70]};
+    })(),
     bars:(function(){
       const pp=yrs=>Math.round(100000/Math.pow(1.03,yrs)/1000)*1000;
       return [
@@ -16491,6 +16506,7 @@ const EDU_CHARTS = [
   },
   {
     id:"incomestack",
+    type:"donut",
     title:"Building your retirement paycheck",
     subtitle:"Illustrative annual retirement income by source, for a sample household",
     fmtVal:"money",
@@ -16547,6 +16563,9 @@ function toggleEduChart(id, on){
   if(!on) sel = sel.filter(x=>x!==id);
   try { localStorage.setItem("wa_rpt_educharts", sel.join(",")); } catch(_){}
 }
+function eduTypeLabel(t){
+  return ({line:"Line chart", area:"Area chart", donut:"Donut chart", emotioncycle:"Sentiment curve"})[t] || "Bar chart";
+}
 function renderEduChartPicker(){
   const host = document.getElementById("eduChartPicker");
   if(!host) return;
@@ -16557,6 +16576,7 @@ function renderEduChartPicker(){
       <span>
         <span style="font-size:13px;font-weight:600;color:var(--text)">${escapeForHTML(c.title)}</span>
         <span style="display:block;font-size:11px;color:var(--text3);margin-top:2px;line-height:1.4">${escapeForHTML(c.subtitle)}</span>
+        <span style="display:inline-block;margin-top:5px;font-size:9.5px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--gold);border:1px solid var(--border);border-radius:999px;padding:1px 8px">${eduTypeLabel(c.type)}</span>
       </span>
     </label>`).join("");
 }
@@ -17130,6 +17150,131 @@ function drawFanChart(){
         doc.splitTextToSize(b.label, gap-1.5).forEach((l,li)=>{ doc.text(l, bx+bw/2, baseY+3.4+li*2.9, {align:"center"}); });
       });
       doc.setTextColor(40);
+    }
+
+    // Native LINE chart — one or more series over shared x categories/time.
+    // Uses chart.lines [{label,color?,points:[…]}] + chart.xLabels; otherwise a
+    // single line is built from chart.bars (one value per category).
+    function drawLineChartEdu(x, by0, w, h, chart, opts){
+      opts = opts || {};
+      let series, xLabels;
+      if(chart.lines){ series = chart.lines; xLabels = chart.xLabels || []; }
+      else { series = [{label:"", points:(chart.bars||[]).map(b=>b.value)}]; xLabels = (chart.bars||[]).map(b=>b.label); }
+      const npts = Math.max.apply(null, series.map(s=>s.points.length).concat([1]));
+      const allV = series.reduce((a,s)=>a.concat(s.points), []);
+      const maxV = Math.max.apply(null, allV.concat([0.0001]));
+      const minV = Math.min.apply(null, allV.concat([maxV]));
+      const lo = Math.min(0, minV), hi = (maxV*1.08) || 1;
+      const gut = 12, px = x+gut, pw2 = w-gut, baseY = by0+h, plotH = h-6;
+      const xat = i => npts>1 ? px + (i/(npts-1))*pw2 : px+pw2/2;
+      const yat = v => baseY - ((v-lo)/((hi-lo)||1))*plotH;
+      doc.setFont("helvetica","normal"); doc.setFontSize(6);
+      for(let g=0; g<=4; g++){ const v = lo+(hi-lo)*g/4, gy = yat(v);
+        doc.setDrawColor(228); doc.setLineWidth(0.18); doc.line(px, gy, px+pw2, gy);
+        doc.setTextColor(155); doc.text(opts.fmtVal==="pct" ? (Math.round(v)+"%") : fmt(v), px-2, gy+1.1, {align:"right"}); }
+      doc.setDrawColor(170); doc.setLineWidth(0.4); doc.line(px, by0, px, baseY); doc.line(px, baseY, px+pw2, baseY);
+      // x category labels
+      doc.setTextColor(95); doc.setFontSize(6.2);
+      xLabels.forEach((lb,i)=>{ const xi = xat(i); doc.splitTextToSize(String(lb), Math.max(13, pw2/npts)).forEach((l,li)=>{ doc.text(l, xi, baseY+3.6+li*2.7, {align:"center"}); }); });
+      // series lines + point markers
+      series.forEach((s,si)=>{
+        const col = s.color || CHART_PALETTE[si % CHART_PALETTE.length];
+        doc.setDrawColor.apply(doc, col); doc.setLineWidth(1.0);
+        for(let i=1; i<s.points.length; i++){ doc.line(xat(i-1), yat(s.points[i-1]), xat(i), yat(s.points[i])); }
+        doc.setFillColor.apply(doc, col);
+        for(let i=0; i<s.points.length; i++){ doc.circle(xat(i), yat(s.points[i]), 0.7, "F"); }
+        if(series.length>1){ // multi-series: name each line at its end
+          doc.setFont("helvetica","bold"); doc.setFontSize(6.4); doc.setTextColor.apply(doc, col);
+          doc.text(s.label, xat(s.points.length-1)-0.5, yat(s.points[s.points.length-1])-1.8, {align:"right"});
+        }
+      });
+      if(series.length===1){ // single line: label every point value
+        const s = series[0], col = s.color || CHART_PALETTE[0];
+        doc.setFont("helvetica","bold"); doc.setFontSize(6.4); doc.setTextColor.apply(doc, col);
+        s.points.forEach((v,i)=>{ doc.text(opts.fmtVal==="pct" ? (v.toFixed(1)+"%") : fmt(v), xat(i), yat(v)-1.9, {align:"center"}); });
+      }
+      doc.setFont("helvetica","normal"); doc.setTextColor(40);
+    }
+
+    // Native AREA chart — a single series filled down to the baseline. Uses
+    // chart.area {points, xLabels, color?}; otherwise falls back to chart.bars.
+    function drawAreaChartEdu(x, by0, w, h, chart, opts){
+      opts = opts || {};
+      let points, xLabels, col;
+      if(chart.area){ points = chart.area.points; xLabels = chart.area.xLabels || []; col = chart.area.color || CHART_PALETTE[0]; }
+      else { points = (chart.bars||[]).map(b=>b.value); xLabels = (chart.bars||[]).map(b=>b.label); col = CHART_PALETTE[3]; }
+      const npts = points.length || 1;
+      const maxV = Math.max.apply(null, points.concat([0.0001]));
+      const lo = 0, hi = (maxV*1.1) || 1;
+      const gut = 12, px = x+gut, pw2 = w-gut, baseY = by0+h, plotH = h-6;
+      const xat = i => npts>1 ? px + (i/(npts-1))*pw2 : px+pw2/2;
+      const yat = v => baseY - ((v-lo)/((hi-lo)||1))*plotH;
+      doc.setFont("helvetica","normal"); doc.setFontSize(6);
+      for(let g=0; g<=4; g++){ const v = lo+(hi-lo)*g/4, gy = yat(v);
+        doc.setDrawColor(228); doc.setLineWidth(0.18); doc.line(px, gy, px+pw2, gy);
+        doc.setTextColor(155); doc.text(opts.fmtVal==="pct" ? (Math.round(v)+"%") : fmt(v), px-2, gy+1.1, {align:"right"}); }
+      doc.setDrawColor(170); doc.setLineWidth(0.4); doc.line(px, by0, px, baseY); doc.line(px, baseY, px+pw2, baseY);
+      // filled area polygon (top edge, then back along the baseline)
+      const poly = [];
+      for(let i=0; i<npts; i++) poly.push([xat(i), yat(points[i])]);
+      poly.push([xat(npts-1), baseY]); poly.push([xat(0), baseY]);
+      const mv = []; for(let i=1; i<poly.length; i++) mv.push([poly[i][0]-poly[i-1][0], poly[i][1]-poly[i-1][1]]);
+      const tint = c => [Math.round(c[0]+(255-c[0])*0.78), Math.round(c[1]+(255-c[1])*0.78), Math.round(c[2]+(255-c[2])*0.78)];
+      doc.setFillColor.apply(doc, tint(col)); doc.setLineWidth(0); doc.lines(mv, poly[0][0], poly[0][1], [1,1], "F", true);
+      // top line + markers
+      doc.setDrawColor.apply(doc, col); doc.setLineWidth(1.0);
+      for(let i=1; i<npts; i++) doc.line(xat(i-1), yat(points[i-1]), xat(i), yat(points[i]));
+      doc.setFillColor.apply(doc, col);
+      for(let i=0; i<npts; i++) doc.circle(xat(i), yat(points[i]), 0.7, "F");
+      // x labels
+      doc.setTextColor(95); doc.setFontSize(6.2);
+      xLabels.forEach((lb,i)=>{ const xi = xat(i); doc.splitTextToSize(String(lb), Math.max(13, pw2/npts)).forEach((l,li)=>{ doc.text(l, xi, baseY+3.6+li*2.7, {align:"center"}); }); });
+      // value labels — every point when few, else just the endpoints
+      doc.setFont("helvetica","bold"); doc.setFontSize(6.3); doc.setTextColor.apply(doc, col);
+      points.forEach((v,i)=>{ if(npts<=5 || i===0 || i===npts-1){ doc.text(opts.fmtVal==="pct" ? (v.toFixed(0)+"%") : fmt(v), xat(i), yat(v)-1.9, {align:"center"}); } });
+      doc.setFont("helvetica","normal"); doc.setTextColor(40);
+    }
+
+    // Native filled wedge (polygon fan) — one slice of a pie/donut.
+    function drawWedge(cx, cy, R, a0, a1, col){
+      const steps = Math.max(2, Math.ceil(Math.abs(a1-a0)/0.18));
+      const pts = [[cx, cy]];
+      for(let s=0; s<=steps; s++){ const a = a0+(a1-a0)*s/steps; pts.push([cx+Math.cos(a)*R, cy+Math.sin(a)*R]); }
+      const mv = []; for(let i=1; i<pts.length; i++) mv.push([pts[i][0]-pts[i-1][0], pts[i][1]-pts[i-1][1]]);
+      doc.setFillColor.apply(doc, col); doc.setLineWidth(0); doc.lines(mv, pts[0][0], pts[0][1], [1,1], "F", true);
+    }
+    // Native DONUT chart — chart.bars become slices, with a legend (value + share).
+    function drawDonutChartEdu(x, by0, w, h, chart, opts){
+      opts = opts || {};
+      const segs = (chart.bars||[]).filter(b=>b.value>0);
+      const total = segs.reduce((s,b)=>s+b.value, 0) || 1;
+      const R = Math.min(h*0.42, w*0.27), r = R*0.56;
+      const cx = x+R+2, cy = by0+h/2;
+      let a0 = -Math.PI/2;
+      segs.forEach((b,i)=>{
+        const a1 = a0 + (b.value/total)*Math.PI*2;
+        drawWedge(cx, cy, R, a0, a1, b.color || CHART_PALETTE[i % CHART_PALETTE.length]);
+        a0 = a1;
+      });
+      doc.setFillColor(255,255,255); doc.circle(cx, cy, r, "F"); // donut hole
+      doc.setFont("helvetica","normal"); doc.setFontSize(6.4); doc.setTextColor(120);
+      doc.text("Total", cx, cy-0.8, {align:"center"});
+      doc.setFont("helvetica","bold"); doc.setFontSize(7.3); doc.setTextColor(50);
+      doc.text(opts.fmtVal==="pct" ? (Math.round(total)+"%") : fmt(total), cx, cy+2.6, {align:"center"});
+      // legend to the right of the donut
+      const lx = cx+R+6, legW = Math.max(20, (x+w)-lx-1); let ly = by0+6;
+      segs.forEach((b,i)=>{
+        const col = b.color || CHART_PALETTE[i % CHART_PALETTE.length];
+        doc.setFillColor.apply(doc, col); doc.rect(lx, ly-2.6, 3.2, 3.2, "F");
+        doc.setFont("helvetica","normal"); doc.setFontSize(6.6); doc.setTextColor(60);
+        const labLines = doc.splitTextToSize(b.label, legW-5);
+        labLines.forEach((l,li)=> doc.text(l, lx+5, ly-0.3+li*3));
+        const val = opts.fmtVal==="pct" ? (b.value+"%") : fmt(b.value);
+        doc.setFont("helvetica","bold"); doc.setTextColor.apply(doc, col);
+        doc.text(val+"  ·  "+Math.round(b.value/total*100)+"%", lx+5, ly-0.3 + labLines.length*3 + 0.6);
+        ly += labLines.length*3 + 4.8;
+      });
+      doc.setFont("helvetica","normal"); doc.setTextColor(40);
     }
 
     // Original investor-sentiment curve (a market cycle felt as emotion). Custom
@@ -18121,7 +18266,11 @@ function drawFanChart(){
           } else {
             // Chart on the left (~56%), bullet explanation on the right (~40%)
             const chartW = CW*0.56, chartH = 74, chartX = M, chartY = y;
-            drawBarChart(chartX, chartY, chartW, chartH, c.bars, {fmtVal:c.fmtVal});
+            const ctype = c.type || "bars";
+            if(ctype === "line")       drawLineChartEdu(chartX, chartY, chartW, chartH, c, {fmtVal:c.fmtVal});
+            else if(ctype === "area")  drawAreaChartEdu(chartX, chartY, chartW, chartH, c, {fmtVal:c.fmtVal});
+            else if(ctype === "donut") drawDonutChartEdu(chartX, chartY, chartW, chartH, c, {fmtVal:c.fmtVal});
+            else                       drawBarChart(chartX, chartY, chartW, chartH, c.bars, {fmtVal:c.fmtVal});
             const ex = M + chartW + 8, ew = CW - chartW - 8;
             let ey = chartY + 6;
             doc.setFont("helvetica","normal"); doc.setFontSize(9); doc.setTextColor(55);
