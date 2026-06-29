@@ -13689,29 +13689,40 @@ window.renderSimLifestyleCandles = renderSimLifestyleCandles;
 // as the achievable-lifestyle box above, so the figures are consistent. 80% =
 // conservative floor (80% chance of doing better), 50% = expected, 30% = optimistic.
 let simWealthChartObj = null;
+
+// Renders "Annual Potential Wealth" chart on the simulation tab 
 function renderSimPotentialWealth(){
   const canvas = document.getElementById("simWealthChart");
   const tbl = document.getElementById("simPotWealthTbl");
   if(!canvas && !tbl) return;
-  const port = gbPortfolioRisk(gbAssetClassWeights());
+
   const a1 = (typeof ageFromDOB==="function" ? ageFromDOB(val("c1d")) : 0) || 40;
-  const retAge = num("retAge", 65);
-  const investable = (typeof totalAccountValue==="function" ? totalAccountValue() : 0) + (typeof portfolioInvestmentSeed==="function" ? portfolioInvestmentSeed() : 0);
-  const annualSavings = num("savAnnual", 0);
   const cy = (typeof currentYear==="function") ? currentYear() : new Date().getFullYear();
-  const yrs = Math.max(1, 90 - a1);
+
+  // ── Use lastSimPaths (same data as fan chart) if available ──
+  if(!lastSimPaths || lastSimPaths.length === 0){
+    if(tbl) tbl.innerHTML = '<div style="padding:12px;color:var(--text3);font-size:12px">Run the simulation to populate this chart.</div>';
+    return;
+  }
+
+  const yrs = lastSimYrs;
+  // const confs = [
+  //   {p:80, lbl:"80% likelihood (conservative)", c:"#1b6841"},
+  //   {p:50, lbl:"50% likelihood (expected)",     c:"#0057b8"},
+  //   {p:30, lbl:"30% likelihood (optimistic)",   c:"#7c3aed"}
+  // ];
   const confs = [
-    {p:80, lbl:"80% likelihood (conservative)", c:"#1b6841"},
-    {p:50, lbl:"50% likelihood (expected)",     c:"#0057b8"},
-    {p:30, lbl:"30% likelihood (optimistic)",   c:"#7c3aed"}
+    {p:band.high, lbl:band.high+"% likelihood (conservative)", c:"#1b6841"},
+    {p:band.mid,  lbl:band.mid+"% likelihood (expected)",      c:"#0057b8"},
+    {p:band.low,  lbl:band.low+"% likelihood (optimistic)",    c:"#7c3aed"}
   ];
+
   const labels = []; for(let y=0;y<=yrs;y++) labels.push(cy+y);
-  const series = confs.map(cf => {
-    const r = gbReturnAtConfidence(port.geoMu, port.sigma, yrs, cf.p);
-    const pts = []; let w = investable;
-    for(let y=0;y<=yrs;y++){ pts.push(Math.max(0, Math.round(w))); w = w*(1+r) + ((a1+y) < retAge ? annualSavings : 0); }
-    return {cf, r, pts};
-  });
+  const series = confs.map(cf => ({
+    cf,
+    pts: Array.from({length: yrs+1}, (_, i) => Math.round(percentileAt(lastSimPaths, i, cf.p)))
+  }));
+
   if(canvas && typeof Chart !== "undefined"){
     if(simWealthChartObj){ try{ simWealthChartObj.destroy(); }catch(_){} }
     simWealthChartObj = new Chart(canvas, {
@@ -13725,19 +13736,28 @@ function renderSimPotentialWealth(){
   }
   if(tbl){
     let rows = "";
-    for(let y=0;y<=yrs;y++){
+    const step = yrs > 20 ? 5 : 1;
+    for(let y=0;y<=yrs;y+=step){
       rows += '<tr style="border-top:1px solid var(--border)">'
         + '<td style="padding:4px 8px">'+(cy+y)+'</td><td style="padding:4px 8px">'+(a1+y)+'</td>'
         + '<td style="padding:4px 8px;text-align:right;color:#1b6841;font-variant-numeric:tabular-nums">'+fmtMoney(series[0].pts[y])+'</td>'
         + '<td style="padding:4px 8px;text-align:right;color:#0057b8;font-variant-numeric:tabular-nums">'+fmtMoney(series[1].pts[y])+'</td>'
         + '<td style="padding:4px 8px;text-align:right;color:#7c3aed;font-variant-numeric:tabular-nums">'+fmtMoney(series[2].pts[y])+'</td></tr>';
     }
+    if(yrs % step !== 0){
+      rows += '<tr style="border-top:1px solid var(--border)">'
+        + '<td style="padding:4px 8px">'+(cy+yrs)+'</td><td style="padding:4px 8px">'+(a1+yrs)+'</td>'
+        + '<td style="padding:4px 8px;text-align:right;color:#1b6841;font-variant-numeric:tabular-nums">'+fmtMoney(series[0].pts[yrs])+'</td>'
+        + '<td style="padding:4px 8px;text-align:right;color:#0057b8;font-variant-numeric:tabular-nums">'+fmtMoney(series[1].pts[yrs])+'</td>'
+        + '<td style="padding:4px 8px;text-align:right;color:#7c3aed;font-variant-numeric:tabular-nums">'+fmtMoney(series[2].pts[yrs])+'</td></tr>';
+    }
     tbl.innerHTML = '<div style="max-height:340px;overflow:auto"><table style="width:100%;border-collapse:collapse;font-size:12px">'
       + '<tr style="position:sticky;top:0;background:var(--bg2);color:var(--text3);text-align:left"><th style="padding:6px 8px">Year</th><th style="padding:6px 8px">Age</th>'
-      + '<th style="padding:6px 8px;text-align:right">80%</th><th style="padding:6px 8px;text-align:right">50%</th><th style="padding:6px 8px;text-align:right">30%</th></tr>'
+      + '<th style="padding:6px 8px;text-align:right">'+band.high+'%</th><th style="padding:6px 8px;text-align:right">'+band.mid+'%</th><th style="padding:6px 8px;text-align:right">'+band.low+'%</th></tr>'
       + rows + '</table></div>';
   }
 }
+
 window.renderSimPotentialWealth = renderSimPotentialWealth;
 
 // Shared funding-status computation (used by both Simulation tab + Goals-Based tab)
