@@ -17686,6 +17686,141 @@ function drawFanChart(){
       y=Math.max(chartY+chartH, py2+pieR*2+8)+6; doc.setTextColor(40); doc.setFont("helvetica","normal");
     }
 
+    // ── Efficient frontier (risk/return scatter) — mirrors the app's mvoChart ──
+    function drawEfficientFrontier(x, by0, w, h){
+      const allProfiles=[
+        {label:"Very Conservative", mu:3.5, sig:4,  rgb:[91,155,213]},
+        {label:"Conservative",      mu:4.5, sig:7,  rgb:[91,155,213]},
+        {label:"Mod. Conservative", mu:5.5, sig:9,  rgb:[76,175,125]},
+        {label:"Moderate",          mu:7.0, sig:12, rgb:[76,175,125]},
+        {label:"Mod. Aggressive",   mu:8.5, sig:15, rgb:[30,64,175]},
+        {label:"Aggressive",        mu:10.0,sig:18, rgb:[212,149,106]},
+        {label:"Very Aggressive",   mu:12.0,sig:22, rgb:[227,24,55]}
+      ];
+      let userMu=7, userSig=12;
+      try { const rp=getReturnParams(); if(rp){ userMu=(+rp.mu||0)*100; userSig=(+rp.sig||0)*100; } } catch(_){}
+      const pts=allProfiles.map(p=>({x:p.sig,y:p.mu})), n=pts.length;
+      const xm=pts.reduce((s,p)=>s+p.x,0)/n, ym=pts.reduce((s,p)=>s+p.y,0)/n;
+      const denom=pts.reduce((s,p)=>s+(p.x-xm)*(p.x-xm),0)||1;
+      const slope=pts.reduce((s,p)=>s+(p.x-xm)*(p.y-ym),0)/denom, intercept=ym-slope*xm;
+      const curve=[]; for(let s=2;s<=26;s+=0.5) curve.push({x:s,y:Math.max(0,slope*s+intercept)});
+      const X0=0,X1=28,Y0=0,Y1=15, gut=12, px=x+gut, pw2=w-gut, baseY=by0+h, plotH=h-6;
+      const mx=v=>px+((v-X0)/(X1-X0))*pw2, my=v=>baseY-((v-Y0)/(Y1-Y0))*plotH;
+      doc.setFont("helvetica","normal"); doc.setFontSize(6.5);
+      for(let v=Y0; v<=Y1; v+=3){ const gy=my(v); doc.setDrawColor(228,231,236); doc.setLineWidth(0.15); doc.line(px,gy,px+pw2,gy); doc.setTextColor(110,118,130); doc.text(v+"%", px-2, gy+1, {align:"right"}); }
+      for(let v=X0; v<=X1; v+=4){ const gx=mx(v); doc.setTextColor(110,118,130); doc.text(v+"%", gx, baseY+4, {align:"center"}); }
+      doc.setDrawColor(170); doc.setLineWidth(0.3); doc.line(px,by0,px,baseY); doc.line(px,baseY,px+pw2,baseY);
+      doc.setFontSize(7); doc.setTextColor(110,118,130);
+      doc.text("Volatility / Risk (σ %)", px+pw2/2, baseY+8.5, {align:"center"});
+      // frontier (dashed) — fit line through the profiles
+      doc.setDrawColor(176,200,232); doc.setLineWidth(0.6); doc.setLineDashPattern([1.2,1],0);
+      for(let i=1;i<curve.length;i++) doc.line(mx(curve[i-1].x),my(curve[i-1].y),mx(curve[i].x),my(curve[i].y));
+      doc.setLineDashPattern([],0);
+      // the 7 risk-profile dots
+      allProfiles.forEach(p=>{ doc.setFillColor.apply(doc,p.rgb); doc.setDrawColor(255,255,255); doc.setLineWidth(0.4); doc.circle(mx(p.sig),my(p.mu),1.6,"FD"); });
+      // your-profile dot on top
+      doc.setFillColor(0,87,184); doc.setDrawColor(0,39,118); doc.setLineWidth(0.6); doc.circle(mx(userSig),my(userMu),2.4,"FD");
+      doc.setFont("helvetica","bold"); doc.setFontSize(6.6); doc.setTextColor(0,57,118);
+      const lblX=Math.min(userSig+1.4, X1-9);
+      doc.text("Your profile  μ "+userMu.toFixed(1)+"% · σ "+userSig.toFixed(1)+"%", mx(lblX), my(userMu)-2.2, {align:"left"});
+      doc.setFont("helvetica","normal"); doc.setTextColor(40); doc.setFontSize(fsz);
+    }
+
+    // ── Grouped bar chart (two series over shared categories; supports negatives) ──
+    function drawReturnsGrouped(x, by0, w, h, groups, curData, propData){
+      const G=groups.length;
+      const allV=curData.concat(propData).map(v=>+v||0);
+      const maxV=Math.max.apply(null, allV.concat([0.0001])), minV=Math.min.apply(null, allV.concat([0]));
+      const lo=Math.min(0,minV)*1.08, hi=maxV*1.12||1;
+      const gut=12, px=x+gut, pw2=w-gut, baseY=by0+h, plotH=h-6;
+      const yat=v=>baseY-((v-lo)/((hi-lo)||1))*plotH;
+      doc.setFont("helvetica","normal"); doc.setFontSize(6.2);
+      for(let t=0;t<=4;t++){ const v=lo+(hi-lo)*t/4, gy=yat(v); doc.setDrawColor(228,231,236); doc.setLineWidth(0.15); doc.line(px,gy,px+pw2,gy); doc.setTextColor(110,118,130); doc.text(v.toFixed(0)+"%", px-2, gy+1, {align:"right"}); }
+      const gap=pw2/G, expX=px+gap*(G-1);
+      doc.setFillColor(244,246,250); doc.rect(expX, by0, gap, plotH, "F");   // shade the forward-looking group
+      const zy=yat(0); doc.setDrawColor(150); doc.setLineWidth(0.4); doc.line(px,zy,px+pw2,zy);
+      doc.setDrawColor(170); doc.setLineWidth(0.3); doc.line(px,by0,px,baseY);
+      const dual=Array.isArray(propData), colCur=[91,155,213], colProp=[124,58,237];
+      const bw=Math.min(gap*(dual?0.30:0.42),dual?12:18), innerGap=2.2;
+      for(let i=0;i<G;i++){
+        const gx0=dual ? px+gap*i+(gap-(2*bw+innerGap))/2 : px+gap*i+(gap-bw)/2, isExp=(i===G-1);
+        const barsHere = dual ? [{v:+curData[i]||0,bx:gx0,col:colCur},{v:+propData[i]||0,bx:gx0+bw+innerGap,col:colProp}]
+                              : [{v:+curData[i]||0,bx:gx0,col:colCur}];
+        barsHere.forEach(b=>{
+          const top=yat(Math.max(0,b.v)), bot=yat(Math.min(0,b.v)), bh=Math.max(0.4,bot-top);
+          if(isExp){ const tint=[Math.round(b.col[0]+(255-b.col[0])*0.6),Math.round(b.col[1]+(255-b.col[1])*0.6),Math.round(b.col[2]+(255-b.col[2])*0.6)];
+            doc.setFillColor.apply(doc,tint); doc.rect(b.bx,top,bw,bh,"F"); doc.setDrawColor.apply(doc,b.col); doc.setLineWidth(0.5); doc.rect(b.bx,top,bw,bh,"S"); }
+          else { doc.setFillColor.apply(doc,b.col); doc.rect(b.bx,top,bw,bh,"F"); }
+          doc.setFont("helvetica","bold"); doc.setFontSize(5.9); doc.setTextColor(Math.round(b.col[0]*0.75),Math.round(b.col[1]*0.75),Math.round(b.col[2]*0.75));
+          doc.text(b.v.toFixed(1)+"%", b.bx+bw/2, (b.v>=0?top-1.1:bot+3), {align:"center"});
+        });
+        doc.setFont("helvetica","normal"); doc.setFontSize(6.4); doc.setTextColor(90);
+        doc.text(groups[i], px+gap*i+gap/2, baseY+3.8, {align:"center"});
+      }
+      doc.setDrawColor(150); doc.setLineWidth(0.4); doc.setLineDashPattern([1,0.8],0); doc.line(expX,by0,expX,baseY); doc.setLineDashPattern([],0);
+      doc.setFont("helvetica","italic"); doc.setFontSize(5.7); doc.setTextColor(150);
+      doc.text("TODAY", expX, by0-1.1, {align:"center"});
+      doc.setFont("helvetica","normal"); doc.setTextColor(40); doc.setFontSize(fsz);
+    }
+    // Re-implements renderReturnHorizon's blendTrailing (local there) for report scope.
+    function blendTrailingPDF(positions, wf){
+      if(!positions || !positions.length) return null;
+      const W=positions.reduce((s,p)=>s+(+p[wf]||0),0); if(W<=0) return null;
+      let anyActual=false; const out={r1y:0,r3y:0,r5y:0,r10y:0};
+      positions.forEach(p=>{ const w=(+p[wf]||0); if(w<=0) return;
+        const m=p.metrics||{}, tk=p.ticker||p.tkr;
+        const fund=(tk && Array.isArray(AI_FUND_UNIVERSE))?AI_FUND_UNIVERSE.find(x=>x.tkr===tk):null;
+        const ct=CLASS_TRAILING[effClass(p)]||CLASS_TRAILING.other;
+        ["r1y","r3y","r5y","r10y"].forEach(k=>{ let v;
+          if(m[k]!=null){v=+m[k];anyActual=true;} else if(fund&&fund[k]!=null){v=+fund[k];anyActual=true;} else v=+ct[k]||0;
+          out[k]+=v*w/W; }); });
+      return {vals:out, anyActual};
+    }
+
+    // ── Net-worth-by-component stacked area over time — mirrors nwCompChart ──
+    function drawNetWorthComponents(){
+      if(!Array.isArray(lastCfComponents)||lastCfComponents.length<2) return false;
+      const D=lastCfComponents, N=D.length-1;
+      const cyr=(typeof currentYear==="function")?currentYear():new Date().getFullYear();
+      const insCV=(typeof insuranceCashValue==="function")?(+insuranceCashValue()||0):0;
+      const bands=[
+        {label:"Cash", col:[150,210,235], vals:D.map(d=>Math.max(0,+d.cash||0))},
+        {label:"Investments", col:[120,165,215], vals:D.map(d=>Math.max(0,+d.inv||0))},
+        {label:"Retirement pool", col:[120,200,185], vals:D.map(d=>Math.max(0,+d.retPot||0))},
+        {label:"Property & other", col:[165,168,225], vals:D.map(d=>Math.max(0,(+d.prop||0)+(+d.otherAssets||0)))}
+      ];
+      if(insCV>0) bands.push({label:"Insurance cash value", col:[245,205,140], vals:D.map(()=>insCV)});
+      const nwLine=D.map(d=>(+d.nw||0)+insCV);
+      const cum=[]; let prev=D.map(()=>0);
+      bands.forEach(b=>{ const top=b.vals.map((v,i)=>prev[i]+v); cum.push({col:b.col, lower:prev, upper:top}); prev=top; });
+      const stackTop=prev;
+      const hi=(Math.max.apply(null, stackTop.concat(nwLine).concat([1]))*1.06)||1, lo=0;
+      const ch=64; checkY(ch+30);
+      const cx=M+15, plotW=CW-15, cy0=y;
+      const mx=i=>cx+(i/N)*plotW, my=v=>cy0+ch-((v-lo)/((hi-lo)||1))*ch;
+      doc.setFont("helvetica","normal"); doc.setFontSize(6.5);
+      for(let t=0;t<=4;t++){ const v=lo+(hi-lo)*t/4, gy=my(v); doc.setDrawColor(228,231,236); doc.setLineWidth(0.15); doc.line(cx,gy,cx+plotW,gy); doc.setTextColor(110,118,130); doc.text(fmtMoney(v),cx-2,gy+1,{align:"right"}); }
+      const xstep=Math.max(1,Math.round(N/8));
+      for(let i=0;i<=N;i+=xstep){ const xx=mx(i); doc.setTextColor(110,118,130); doc.setFontSize(6.5); doc.text(String(cyr+(+D[i].y||i)),xx,cy0+ch+4,{align:"center"}); if(D[i].age!=null){ doc.setTextColor(170); doc.setFontSize(5.6); doc.text("age "+D[i].age,xx,cy0+ch+7.6,{align:"center"}); } }
+      doc.setDrawColor(170); doc.setLineWidth(0.3); doc.line(cx,cy0,cx,cy0+ch); doc.line(cx,cy0+ch,cx+plotW,cy0+ch);
+      cum.forEach(bd=>{
+        const poly=[];
+        for(let i=0;i<=N;i++) poly.push([mx(i),my(bd.upper[i])]);
+        for(let i=N;i>=0;i--) poly.push([mx(i),my(bd.lower[i])]);
+        const mv=[]; for(let i=1;i<poly.length;i++) mv.push([poly[i][0]-poly[i-1][0],poly[i][1]-poly[i-1][1]]);
+        doc.setFillColor.apply(doc,bd.col); doc.setLineWidth(0); doc.lines(mv,poly[0][0],poly[0][1],[1,1],"F",true);
+      });
+      doc.setDrawColor(22,33,62); doc.setLineWidth(0.7);
+      for(let i=1;i<=N;i++) doc.line(mx(i-1),my(nwLine[i-1]),mx(i),my(nwLine[i]));
+      y=cy0+ch+11;
+      let lx=cx, lyy=y; doc.setFont("helvetica","normal"); doc.setFontSize(6.6);
+      bands.forEach(b=>{ if(lx>cx+plotW-34){ lx=cx; lyy+=5; } doc.setFillColor.apply(doc,b.col); doc.rect(lx,lyy-2.6,3,3,"F"); doc.setTextColor(70); doc.text(b.label,lx+4.5,lyy); lx+=doc.getTextWidth(b.label)+12; });
+      if(lx>cx+plotW-30){ lx=cx; lyy+=5; }
+      doc.setDrawColor(22,33,62); doc.setLineWidth(1.1); doc.line(lx,lyy-1.2,lx+6,lyy-1.2); doc.setTextColor(70); doc.text("Net worth",lx+8,lyy);
+      y=lyy+7; doc.setTextColor(40); doc.setFont("helvetica","normal"); doc.setFontSize(fsz);
+      return true;
+    }
+
     // ═══════════════════════════════════════════════════════════════════
     // Each report section lives in its own closure inside this map. We
     // iterate over the user-defined order (saved in localStorage via the
@@ -17930,6 +18065,9 @@ function drawFanChart(){
         tbl(["Asset class","Target","Policy range","Role"],
           d.allocRows.map(r=>[r.label, r.target+"%", r.min+"%-"+r.max+"%", r.role]).concat([["Total","100%","",""]]));
         para(`Policy portfolio: expected return ${(d.port.geoMu*100).toFixed(1)}% (geometric), volatility ${(d.port.sigma*100).toFixed(1)}%. Ranges follow the 5/25 rule (±5 pts or ±25% of target, whichever is greater).`);
+        sub("Risk / return positioning (efficient frontier)");
+        para("Each dot is a model risk profile plotted by its expected return and volatility; the dashed line is the efficient-frontier fit. The highlighted dot is this household's policy positioning.", [110,118,130]);
+        try { checkY(82); drawEfficientFrontier(M, y, CW, 64); y += 64 + 6; } catch(e){ console.warn("efficient frontier failed:", e); }
         sub("5. Current allocation & rebalancing");
         if(d.driftRows){
           tbl(["Asset class","Policy","Current","Drift","Status"],
@@ -17971,6 +18109,31 @@ function drawFanChart(){
           investments.map(i=>[i.name||"—", i.tkr||"—", (INV_CLASS_LABELS[i.cls]||i.cls)+(i.subcat?" · "+i.subcat:""),
             fmt(i.val), pfTot>0?(i.val/pfTot*100).toFixed(1)+"%":"—"]));
         kv([["Total portfolio value",fmt(pfTot)]]);
+        // Portfolio Returns — Past vs Expected (Current vs Proposed)
+        try {
+          const curP=getEffectiveReturnParams(); const curMu=+curP.mu||0;
+          let propGrossMu=curMu+(+getPortfolioAdvisoryFeePct()||0);
+          if(proposals.length>0){ const m=computePortfolioMetrics(proposals,"alloc"); propGrossMu=+m.grossMu||propGrossMu; }
+          const propMu=Math.max(0, propGrossMu-(+getProposalAdvisoryFeePct()||0));
+          const curB=blendTrailingPDF(investments,"val");
+          const propB=blendTrailingPDF(proposals,"alloc");
+          const muT=mu=>({r1y:mu*100,r3y:mu*100,r5y:mu*100,r10y:mu*100});
+          const cur=curB?curB.vals:muT(curMu), prop=propB?propB.vals:muT(propMu);
+          const groups=["1 Yr","3 Yr","5 Yr","10 Yr","Expected"];
+          const curData=[cur.r1y,cur.r3y,cur.r5y,cur.r10y,curMu*100];
+          const hasProp=proposals.length>0;
+          const propData=hasProp?[prop.r1y,prop.r3y,prop.r5y,prop.r10y,propMu*100]:null;
+          checkY(76);
+          subBar("Portfolio Returns — Past vs Expected");
+          const anyActual=(curB&&curB.anyActual)||(propB&&propB.anyActual);
+          para(anyActual?"Trailing annualized returns blended per holding; the shaded group is the forward-looking long-run expectation, separated from the past by the TODAY line."
+                        :"Trailing returns estimated from asset-class history (no live fund performance fetched); the shaded group is the forward-looking expectation.", [110,118,130]);
+          drawReturnsGrouped(M, y, CW, 50, groups, curData, propData); y+=50+6;
+          doc.setFontSize(7); doc.setFont("helvetica","normal");
+          doc.setFillColor(91,155,213); doc.rect(M,y-2.6,3.4,3.4,"F"); doc.setTextColor(70); doc.text(hasProp?"Current portfolio":"Portfolio", M+5, y);
+          if(hasProp){ doc.setFillColor(124,58,237); doc.rect(M+46,y-2.6,3.4,3.4,"F"); doc.text("Proposed portfolio", M+51, y); }
+          y+=7; doc.setTextColor(40);
+        } catch(e){ console.warn("returns past-vs-expected failed:", e); }
       },
       // ─── INVESTMENT VEHICLE FACT SHEETS (Morningstar) ──
       factsheets: () => {
@@ -18346,6 +18509,14 @@ function drawFanChart(){
         checkY(30);
         const cfMode=val("rptIncCF");
         sectionH2("Cash-Flow Projection"+(cfMode==="summary"?" (5-year intervals)":""));
+        // Net-worth-by-component stacked area (when the projection has been run)
+        try {
+          if(Array.isArray(lastCfComponents) && lastCfComponents.length>1){
+            subBar("Net Worth by Component");
+            para("How total household net worth builds over time by source — cash, investments, the retirement pool and property — with liabilities netted out. The dark line is net worth.", [110,118,130]);
+            drawNetWorthComponents(); y+=2;
+          }
+        } catch(e){ console.warn("net-worth components failed:", e); }
         const cfBody=$("cfBody");
         if(cfBody&&cfBody.rows.length>1&&cfBody.rows[0].cells.length>3){
           const step=cfMode==="summary"?5:1;
