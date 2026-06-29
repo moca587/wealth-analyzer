@@ -12471,11 +12471,11 @@ function boxMuller(){
 function totalAccountValue(){
   // Exclude linked account when detailed holdings are entered (holdings already in portfolioInvestmentSeed)
   const excludeLinked=pfLinkedAccountId&&investments.length>0;
-  return assets.reduce((s,a)=>(excludeLinked&&a.id===pfLinkedAccountId)?s:s+a.value,0);
+  return assets.reduce((s,a)=>(excludeLinked&&a.id===pfLinkedAccountId)?s:s+(+a.value||0),0);
 }
 function liquidValue(){
   const excludeLinked=pfLinkedAccountId&&investments.length>0;
-  return assets.filter(a=>a.liquid&&!(excludeLinked&&a.id===pfLinkedAccountId)).reduce((s,a)=>s+a.value,0);
+  return assets.filter(a=>a.liquid&&!(excludeLinked&&a.id===pfLinkedAccountId)).reduce((s,a)=>s+(+a.value||0),0);
 }
 function refreshPortfolioAccountDropdown(){
   const sel=$("pfLinkedAccount"); if(!sel) return;
@@ -16733,13 +16733,14 @@ async function generatePDFReport(){
     const confidLabel=CONFID_LABELS[confidTxt]||"";
 
     function fmt(n){
+      if(!isFinite(+n)) n=0;   // a bad data value must never print "$NaN"
       if(numFmt==="k") return fmtMoneyFull(n).replace(/,\d{3}(?=,|$)/g,'').replace(/(\d+)(\d{3})$/,'$1k').replace(/[^0-9k$€£¥]/,'');
       if(numFmt==="m"&&Math.abs(n)>=1000000) return (CURRENCIES[CURRENT_CCY]||CURRENCIES.USD).sym.trim()+(n/1000000).toFixed(2)+"M";
       return fmtMoneyFull(n);
     }
 
     const orient=(val("rptOrient")||"landscape")==="portrait"?"portrait":"landscape";
-    const doc=new jsPDF({orientation:orient,unit:"mm",format:pageSize});
+    const doc=new jsPDF({orientation:orient,unit:"mm",format:pageSize,compress:true});
     const pw=doc.internal.pageSize.getWidth();
     const ph=doc.internal.pageSize.getHeight();
     const M=18;                        // margin
@@ -16770,6 +16771,27 @@ async function generatePDFReport(){
       };
     })();
 
+    // ── Sanitize geometry: a single bad data value (e.g. an account with a
+    // non-numeric balance) can make a coordinate NaN/Infinity, and jsPDF throws
+    // "Invalid arguments passed to jsPDF.rect/lines", which aborts a whole report
+    // section. Coerce every non-finite numeric argument (and the deltas inside
+    // doc.lines) to 0 so a chart degrades gracefully instead of taking the page
+    // (and the pages after it) down with it.
+    (function patchGeom(){
+      const fin = v => (typeof v === "number" && !isFinite(v)) ? 0 : v;
+      const wrapNums = fn => function(){ return fn.apply(this, Array.prototype.map.call(arguments, fin)); };
+      ["rect","line","circle","triangle","roundedRect","ellipse"].forEach(m=>{
+        if(typeof doc[m] === "function"){ const o = doc[m].bind(doc); doc[m] = wrapNums(o); }
+      });
+      if(typeof doc.lines === "function"){
+        const o = doc.lines.bind(doc);
+        doc.lines = function(lines, x, y, scale, style, closed){
+          const safe = Array.isArray(lines) ? lines.map(seg => Array.isArray(seg) ? seg.map(fin) : fin(seg)) : lines;
+          return o(safe, fin(x), fin(y), scale, style, closed);
+        };
+      }
+    })();
+
     // ── Helpers ───────────────────────────────────────────────────────────────
     // Crisp corner logo: preserves aspect ratio (no stretch) within a small box
     // and embeds losslessly (compression "NONE") so a high-res source stays sharp.
@@ -16785,10 +16807,13 @@ async function generatePDFReport(){
         if(h > maxH){ h = maxH; w = h*ar; }
         const x  = rightX - w;
         const yy = (vAnchor === "bottom") ? (edgeY - h) : edgeY;
-        doc.addImage(imgData, fmt, x, yy, w, h, undefined, "NONE");
+        // Stable alias "wa_logo" → jsPDF stores ONE image XObject and references
+        // it on every page (otherwise a header_all logo is re-embedded per page,
+        // ballooning the file and making it slow to scroll). FAST = deflated.
+        doc.addImage(imgData, fmt, x, yy, w, h, "wa_logo", "FAST");
         return true;
       } catch(_){
-        try { doc.addImage(imgData, "PNG", rightX-maxW, (vAnchor==="bottom"?edgeY-maxH:edgeY), maxW, maxH); return true; } catch(__){ return false; }
+        try { doc.addImage(imgData, "PNG", rightX-maxW, (vAnchor==="bottom"?edgeY-maxH:edgeY), maxW, maxH, "wa_logo", "FAST"); return true; } catch(__){ return false; }
       }
     }
     function newPage(){
@@ -17135,7 +17160,7 @@ function drawFanChart(){
         const vlabel = opts.fmtVal==="pct" ? (b.value.toFixed(1)+"%") : fmt(b.value);
         doc.text(vlabel, bx+bw/2, ty-1.5, {align:"center"});
         doc.setFont("helvetica","normal"); doc.setFontSize(6.6); doc.setTextColor(90);
-        doc.splitTextToSize(b.label, gap-1.5).forEach((l,li)=>{ doc.text(l, bx+bw/2, baseY+3.4+li*2.9, {align:"center"}); });
+        doc.splitTextToSize(String(b.label==null?"":b.label), gap-1.5).forEach((l,li)=>{ doc.text(l, bx+bw/2, baseY+3.4+li*2.9, {align:"center"}); });
       });
       doc.setTextColor(40);
     }
@@ -17345,7 +17370,7 @@ function drawFanChart(){
     const tax       = computeIncomeTax(inc);
     const exp       = getTotalExpenses();
     const totA      = totalAccountValue()+num("aProp",0)+num("aOther",0)+insuranceCashValue();
-    const debtTot   = loans.reduce((s,l)=>s+l.bal,0);
+    const debtTot   = loans.reduce((s,l)=>s+(+l.bal||0),0);
     const nw        = totA-debtTot;
     const sav       = num("savAnnual",0);
     const surplus   = inc-tax-exp-sav;
@@ -17392,7 +17417,7 @@ function drawFanChart(){
           if(h > maxH){ h = maxH; w = h*ar; }
         } catch(_){}
         const cx = x + (maxW - w)/2, cy = y + (maxH - h)/2;   // center within the box
-        doc.addImage(logoData, fmtSig, cx, cy, w, h, undefined, "NONE");
+        doc.addImage(logoData, fmtSig, cx, cy, w, h, "wa_logo", "FAST");   // shared alias → embedded once
       } catch(e){ console.warn("logo render failed:", e); }
     }
     // ── Original PWI emblem (vector growth-monogram) — drawn on the cover when
@@ -17545,8 +17570,14 @@ function drawFanChart(){
     }
     // Legend beside a pie: swatch · label · amount · % of total. Returns the next y.
     function pieLegend(x, yTop, w, segs){
-      const list = (segs||[]).filter(s=>s.value>0);
+      let list = (segs||[]).filter(s=>s.value>0);
       const total = list.reduce((s,b)=>s+b.value,0)||1;
+      // Clamp long lists so the legend can't run off the page (e.g. many loans).
+      if(list.length > 8){
+        const head = list.slice(0,7);
+        const tailV = list.slice(7).reduce((s,b)=>s+b.value,0);
+        list = head.concat([{label:"Other ("+(list.length-7)+")", value:tailV, color:[170,176,186]}]);
+      }
       let yy = yTop;
       doc.setFont("helvetica","bold"); doc.setFontSize(7); doc.setTextColor(110);
       doc.text("Amount", x+w-22, yy, {align:"right"});
@@ -17556,7 +17587,7 @@ function drawFanChart(){
         const col=b.color||CHART_PALETTE[i%CHART_PALETTE.length];
         doc.setFillColor.apply(doc,col); doc.rect(x, yy-2.6, 3, 3, "F");
         doc.setFont("helvetica","normal"); doc.setFontSize(7.3); doc.setTextColor(60);
-        doc.splitTextToSize(b.label, w-40).slice(0,1).forEach(l=>doc.text(l, x+5, yy));
+        doc.splitTextToSize(String(b.label==null?"":b.label), w-40).slice(0,1).forEach(l=>doc.text(l, x+5, yy));
         doc.setTextColor(40); doc.text(fmt(b.value), x+w-22, yy, {align:"right"});
         doc.setTextColor(120); doc.text(Math.round(b.value/total*100)+"%", x+w, yy, {align:"right"});
         yy += 5.6;
@@ -17566,12 +17597,12 @@ function drawFanChart(){
     // ── Net Worth Statement: two-column Assets | Liabilities, tinted totals ──
     function drawNetWorthStatement(){
       const propV=num("aProp",0), otherV=num("aOther",0);
-      const insCash=(typeof insuranceCashValue==="function")?insuranceCashValue():0;
+      const insCash=(typeof insuranceCashValue==="function")?(+insuranceCashValue()||0):0;
       const liquidAssets=assets.filter(a=>a.liquid), lockedAssets=assets.filter(a=>!a.liquid);
-      const sum=arr=>arr.reduce((s,a)=>s+(a.value||0),0);
+      const sum=arr=>arr.reduce((s,a)=>s+(+a.value||0),0);
       const colGap=12, colW=(CW-colGap)/2, Lx=M, Rx=M+colW+colGap;
       const colBar=(cx,yy,title)=>{ const h=7.6; doc.setFillColor.apply(doc,acBar); doc.rect(cx,yy-5.2,colW,h,"F"); doc.setFillColor(...ac); doc.rect(cx,yy-5.2,1.4,h,"F"); doc.setFont("helvetica","bold"); doc.setFontSize(10); doc.setTextColor.apply(doc,acDark); doc.text(title,cx+3.8,yy); return yy+h+2.5; };
-      const row=(cx,yy,label,value,o)=>{ o=o||{}; doc.setFont("helvetica",o.bold?"bold":"normal"); doc.setFontSize(o.bold?8.3:8); doc.setTextColor.apply(doc, o.bold?[45,52,64]:[0,87,184]); doc.text(label,cx+(o.indent||0),yy); if(value!=null){ doc.setTextColor.apply(doc, o.bold?[45,52,64]:[70,76,86]); doc.text(value,cx+colW-1,yy,{align:"right"}); } return yy+(o.gap||4.8); };
+      const row=(cx,yy,label,value,o)=>{ o=o||{}; doc.setFont("helvetica",o.bold?"bold":"normal"); doc.setFontSize(o.bold?8.3:8); doc.setTextColor.apply(doc, o.bold?[45,52,64]:[0,87,184]); doc.text(String(label==null?"":label),cx+(o.indent||0),yy); if(value!=null){ doc.setTextColor.apply(doc, o.bold?[45,52,64]:[70,76,86]); doc.text(String(value),cx+colW-1,yy,{align:"right"}); } return yy+(o.gap||4.8); };
       const subtot=(cx,yy,label,value)=>{ doc.setDrawColor(205); doc.setLineWidth(0.2); doc.line(cx+2,yy-2.6,cx+colW,yy-2.6); return row(cx,yy+1.4,label,value,{bold:true,indent:2,gap:6.4}); };
       let Ly=y, Ry=y;
       // ASSETS column
@@ -17615,25 +17646,32 @@ function drawFanChart(){
     }
     // ── Net Worth Summary: bar (Assets/Liabilities/Net Worth) + asset & liability pies ──
     function drawNetWorthSummary(){
+      const totAf=(+totA||0), debtAf=(+debtTot||0), nwf=(+nw||0);
+      if(!(totAf>0) && !(debtAf>0)){   // nothing to chart — show a clear note, not a blank page
+        doc.setFont("helvetica","italic"); doc.setFontSize(10); doc.setTextColor(120);
+        doc.text("No asset or liability data to chart yet.", M, y+12);
+        y+=22; doc.setTextColor(40); doc.setFont("helvetica","normal"); return;
+      }
       const chartW=CW*0.40, chartX=M, chartY=y+4, chartH=66;
       drawBarChart(chartX, chartY, chartW, chartH, [
-        {label:"Assets",value:totA,color:[0,164,166]},
-        {label:"Liabilities",value:debtTot,color:[211,135,30]},
-        {label:"Net Worth",value:Math.max(0,nw),color:[0,87,184]}
+        {label:"Assets",value:totAf,color:[0,164,166]},
+        {label:"Liabilities",value:debtAf,color:[211,135,30]},
+        {label:"Net Worth",value:Math.max(0,nwf),color:[0,87,184]}
       ], {fmtVal:"money"});
       doc.setFont("helvetica","italic"); doc.setFontSize(6.6); doc.setTextColor(150);
       doc.text("$ value", chartX, chartY-1.5);
       const Rx=M+chartW+14, Rw=CW-chartW-14;
       const propV=num("aProp",0), otherV=num("aOther",0);
-      const insCash=(typeof insuranceCashValue==="function")?insuranceCashValue():0;
-      const liq=assets.filter(a=>a.liquid).reduce((s,a)=>s+(a.value||0),0);
-      const lok=assets.filter(a=>!a.liquid).reduce((s,a)=>s+(a.value||0),0);
-      const aSegs=[
+      const insCash=(typeof insuranceCashValue==="function")?(+insuranceCashValue()||0):0;
+      const liq=assets.filter(a=>a.liquid).reduce((s,a)=>s+(+a.value||0),0);
+      const lok=assets.filter(a=>!a.liquid).reduce((s,a)=>s+(+a.value||0),0);
+      let aSegs=[
         {label:"Portfolio (liquid)",value:liq,color:[0,164,166]},
         {label:"Retirement & locked",value:lok,color:[0,87,184]},
         {label:"Property / real estate",value:propV,color:[124,58,237]},
         {label:"Other & insurance",value:otherV+insCash,color:[120,128,140]}
       ];
+      if(!aSegs.some(s=>s.value>0)) aSegs=[{label:"No assets",value:1,color:[210,214,220]}];
       const pieR=15, pcx=Rx+pieR, lgX=Rx+pieR*2+8, lgW=Rw-(pieR*2+8);
       let py=chartY+2;
       doc.setFont("helvetica","bold"); doc.setFontSize(9); doc.setTextColor.apply(doc,acDark); doc.text("Assets",Rx,py);
@@ -17641,7 +17679,7 @@ function drawFanChart(){
       pieLegend(lgX, py+4, lgW, aSegs);
       let py2=py+pieR*2+14;
       doc.setFont("helvetica","bold"); doc.setFontSize(9); doc.setTextColor.apply(doc,acDark); doc.text("Liabilities",Rx,py2);
-      const lSegs = loans.length ? loans.map((l,i)=>({label:l.label||("Loan "+(i+1)),value:l.bal,color:CHART_PALETTE[(i+5)%CHART_PALETTE.length]}))
+      const lSegs = loans.length ? loans.map((l,i)=>({label:String(l.label||("Loan "+(i+1))),value:(+l.bal||0),color:CHART_PALETTE[(i+5)%CHART_PALETTE.length]}))
                                  : [{label:"No liabilities",value:1,color:[210,214,220]}];
       drawPieChart(pcx, py2+pieR+3, pieR, lSegs);
       pieLegend(lgX, py2+4, lgW, lSegs);
@@ -17756,14 +17794,17 @@ function drawFanChart(){
       // ─── ASSETS & LIABILITIES ──
       assets: () => {
         if(val("rptIncAssets") === "no") return;
+        // Each page is independent: a failure on one must not drop the others.
         // Page 1 — Net Worth Statement (two-column)
         currentSectionTitle = "Net Worth Statement";
         newPage();
-        drawNetWorthStatement();
+        try { drawNetWorthStatement(); }
+        catch(e){ console.warn("Net Worth Statement failed:", e); doc.setFont("helvetica","italic"); doc.setTextColor(120); doc.text("Net Worth Statement unavailable for this data.", M, y+8); }
         // Page 2 — Net Worth Summary (bar + asset/liability pies)
         currentSectionTitle = "Net Worth Summary";
         newPage();
-        drawNetWorthSummary();
+        try { drawNetWorthSummary(); }
+        catch(e){ console.warn("Net Worth Summary failed:", e); doc.setFont("helvetica","italic"); doc.setTextColor(120); doc.text("Net Worth Summary unavailable for this data.", M, y+8); }
         // Page 3+ — detailed holdings & liabilities
         currentSectionTitle = "Assets & Liabilities";
         newPage();
@@ -18945,8 +18986,10 @@ function restoreProfile(p){
     "simYrs","simN","tgtEquity","rebalFreq","gpOn","gpYears","estExemption","estRate",
     "taxMode","taxFlat","cgtRate","cgtTurnover","taxApply","taxState","blow","bmid","bhigh"];
   FLD.forEach(id=>{if(f[id]!=null && $(id)) $(id).value=f[id];});
-  assets=p.assets||[]; assetSeq=p.assetSeq||assets.length;
-  loans=p.loans||[]; loanSeq=p.loanSeq||loans.length;
+  // Coerce values/labels so a loaded or imported profile can never carry a
+  // non-numeric balance or non-string label into the math or the PDF charts.
+  assets=(p.assets||[]).map(a=>({...a, value:(+a.value||0), label:String(a.label!=null?a.label:(a.baseLabel||a.type||"Account"))})); assetSeq=p.assetSeq||assets.length;
+  loans=(p.loans||[]).map(l=>({...l, bal:(+l.bal||0), rate:(+l.rate||0), yrs:(+l.yrs||0), label:String(l.label!=null?l.label:"Loan")})); loanSeq=p.loanSeq||loans.length;
   insurances=p.insurances||[]; insSeq=p.insSeq||insurances.length;
   equityComp=p.equityComp||[]; eqSeq=p.eqSeq||equityComp.length;
   beneficiaries=p.beneficiaries||[]; benSeq=p.benSeq||beneficiaries.length;
