@@ -16702,6 +16702,33 @@ function bindRptCustomFields(){
 }
 window.addEventListener("load", () => { try { bindRptCustomFields(); } catch(_){} });
 
+// Downscale a logo data URL to a max pixel dimension before embedding. A high-res
+// logo shown on every page forces the viewer to decode/rasterize the full image on
+// each page while scrolling (the main cause of a sluggish downloaded PDF). Scaling
+// it to roughly the printed size makes every page cheap to render. Async (image
+// load); returns the original data URL unchanged on any problem.
+function downscaleLogoDataUrl(dataUrl, maxPx){
+  return new Promise(resolve=>{
+    try{
+      if(!dataUrl || typeof dataUrl!=="string" || dataUrl.indexOf("data:image")!==0){ resolve(dataUrl); return; }
+      const img=new Image();
+      img.onload=function(){
+        try{
+          const W=img.naturalWidth||img.width||0, H=img.naturalHeight||img.height||0;
+          if(!W||!H){ resolve(dataUrl); return; }
+          const scale=Math.min(1, maxPx/Math.max(W,H));
+          if(scale>=1){ resolve(dataUrl); return; }            // already small enough
+          const w=Math.max(1,Math.round(W*scale)), h=Math.max(1,Math.round(H*scale));
+          const cv=document.createElement("canvas"); cv.width=w; cv.height=h;
+          cv.getContext("2d").drawImage(img,0,0,w,h);
+          resolve(cv.toDataURL("image/png"));                   // PNG keeps transparency
+        }catch(_){ resolve(dataUrl); }
+      };
+      img.onerror=function(){ resolve(dataUrl); };
+      img.src=dataUrl;
+    }catch(_){ resolve(dataUrl); }
+  });
+}
 async function generatePDFReport(){
   setT("rptStatus","Generating PDF…");
   try{
@@ -16752,6 +16779,7 @@ async function generatePDFReport(){
     // early never consume it, so no blank pages are produced.
     let _pendingPage=false;
     let currentSectionTitle="";   // shown as the bold page title in the running header
+    let _logoEmbed="";            // logo data URL, downscaled once below and reused on every page
 
     // ── Sanitize text: jsPDF's built-in fonts only render WinAnsi (Latin-1).
     // Map common non-Latin1 glyphs (σ, true minus, ≈, arrows, ≤/≥) to ASCII so
@@ -16822,7 +16850,7 @@ async function generatePDFReport(){
       // Small logo top-right corner when "header_all" or "header_last" is set
       let _hdrLogo = false, _ldH = "", _lpH = "cover_top";
       try {
-        _ldH = localStorage.getItem("wa_rpt_logo") || "";
+        _ldH = _logoEmbed;   // downscaled once → cheap to render on every page
         _lpH = localStorage.getItem("wa_rpt_logo_pos") || "cover_top";
         _hdrLogo = !!_ldH && (_lpH === "header_all" || _lpH === "header_last");
       } catch(_){}
@@ -17400,7 +17428,9 @@ function drawFanChart(){
     doc.setFillColor(...ac);
     doc.rect(0,0,pw,5,"F");
     // ─── Optional client/firm logo on cover ───
-    const logoData = (function(){ try { return localStorage.getItem("wa_rpt_logo") || ""; } catch(_) { return ""; } })();
+    _logoEmbed = (function(){ try { return localStorage.getItem("wa_rpt_logo") || ""; } catch(_) { return ""; } })();
+    try { _logoEmbed = await downscaleLogoDataUrl(_logoEmbed, 420); } catch(_){}
+    const logoData = _logoEmbed;
     const logoPos  = (function(){ try { return localStorage.getItem("wa_rpt_logo_pos") || "cover_top"; } catch(_) { return "cover_top"; } })();
     // Aspect-preserving (no stretch) + lossless ("NONE") embed, centered within the box → stays sharp.
     function _addLogoImage(x, y, maxW, maxH){
@@ -18684,7 +18714,7 @@ function drawFanChart(){
 
     // ── Small logo bottom-right on the LAST page (when "header_last" is selected) ──
     try {
-      const _ldL = localStorage.getItem("wa_rpt_logo") || "";
+      const _ldL = _logoEmbed;
       const _lpL = localStorage.getItem("wa_rpt_logo_pos") || "cover_top";
       if(_ldL && _lpL === "header_last"){
         placeLogo(_ldL, pw - M, ph - 14, 13, 6.5, "bottom");   // small, aspect-preserved, above the footer rule
