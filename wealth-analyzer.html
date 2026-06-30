@@ -1079,7 +1079,7 @@ input[type=date]{color-scheme:light}
     <span style="margin-left:auto;font-size:9px;font-weight:700;background:linear-gradient(135deg,#7c3aed,var(--gold));color:#fff;padding:2px 6px;border-radius:50px;pointer-events:none">NEW</span>
   </div>
 
-  <div class="nav-item" data-tab="recommendations" onclick="showTab('recommendations',this)">
+  <div class="nav-item" data-tab="recommendations" onclick="showTab('recommendations',this);runRecommendations()">
     <svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 1a1 1 0 01.894.553l1.382 2.764 3.05.444a1 1 0 01.554 1.705l-2.207 2.151.521 3.038a1 1 0 01-1.451 1.054L8 11.347l-2.723 1.362a1 1 0 01-1.451-1.054l.521-3.038-2.207-2.151a1 1 0 01.554-1.705l3.05-.444L7.106 1.553A1 1 0 018 1z"/></svg>Recommendations
   </div>
 
@@ -13680,6 +13680,7 @@ function renderSimLifestyle(){
   try{ renderSimLifestyleCandles(); }catch(e){ console.warn('renderSimLifestyleCandles:', e); }
 }
 
+// Checks portfolio concentration and flags issues
 function checkConcentration(){
   const flags = [];
   const totalVal = investments.reduce((s,h)=>s+(h.val||0),0);
@@ -13696,6 +13697,138 @@ function checkConcentration(){
     }
   });
   return flags;
+}
+
+// Checks savings rate and flags issues
+function checkSavingsRate(){
+  const flags = [];
+  const surplus = getNetSurplus();
+  const sav = num("savAnnual", 0);
+  const inc = getGrossIncome();
+  const savRate = inc > 0 ? sav / inc : 0;
+
+  // Negative surplus — spending more than earning
+  if(surplus < 0){
+    flags.push({
+      severity: "high",
+      title: `Household is running a deficit of ${fmtMoney(Math.abs(surplus))}/yr`,
+      detail: `After tax, expenses, and debt service, outflows exceed income by ${fmtMoney(Math.abs(surplus))} per year. Savings targets cannot be met from income — cash reserves are being depleted.`
+    });
+  }
+  // Savings target exceeds surplus
+  else if(sav > surplus){
+    flags.push({
+      severity: "medium",
+      title: `Savings target exceeds surplus by ${fmtMoney(sav - surplus)}/yr`,
+      detail: `The ${fmtMoney(sav)}/yr savings target cannot be fully funded from the ${fmtMoney(surplus)}/yr surplus. The shortfall will draw from existing cash reserves.`
+    });
+  }
+  // No savings configured
+  else if(sav <= 0){
+    flags.push({
+      severity: "medium",
+      title: `No annual savings target configured`,
+      detail: `Surplus of ${fmtMoney(surplus)}/yr is available but no savings amount is set. Wealth accumulation in the simulation relies entirely on investment returns.`
+    });
+  }
+  // Low savings rate — under 10%
+  else if(savRate < 0.10){
+    flags.push({
+      severity: "low",
+      title: `Savings rate is low at ${(savRate*100).toFixed(1)}% of gross income`,
+      detail: `A savings rate below 10% may be insufficient for long-term goals. General guidance suggests 15–20% for retirement adequacy, though this depends on age, goals, and existing wealth.`
+    });
+  }
+
+  return flags;
+}
+
+// Checks cash buffer and flags issues 
+function checkCashBuffer(){
+  const flags = [];
+  const monthlyExp = getTotalExpenses() / 12;
+  if(monthlyExp <= 0) return flags;
+
+  const liquidCash = assets
+    .filter(a => a.liquid && (a.type === "checking" || a.type === "savings" || a.type === "current" || a.type === "cash"))
+    .reduce((s,a) => s + (+a.value||0), 0); // coerce a.value into a number
+
+  const months = liquidCash / monthlyExp;
+
+  if(months < 3){
+    flags.push({
+      severity: "high",
+      title: `Cash buffer covers only ${months.toFixed(1)} months of expenses`,
+      detail: `Liquid cash of ${fmtMoney(liquidCash)} covers less than 3 months of expenses (${fmtMoney(getTotalExpenses())}/yr). A minimum 3–6 month buffer is recommended before investing additional funds.`
+    });
+  } else if(months < 6){
+    flags.push({
+      severity: "medium",
+      title: `Cash buffer covers ${months.toFixed(1)} months of expenses`,
+      detail: `Target is 6–12 months. Current liquid cash of ${fmtMoney(liquidCash)} is below the recommended minimum. Consider building reserves before increasing investment contributions.`
+    });
+  }
+
+  return flags;
+}
+
+// Checks goal funding status and flags issues
+function checkGoalFunding(){
+  const flags = [];
+  if(goals.length === 0) return flags;
+
+  let result;
+  try{ result = computeGoalFundingStatus(); }
+  catch(_){ return flags; }
+
+  result.rows.forEach(g => {
+    if(g.ratio < 1.0){
+      const shortfall = g.goalCostPV - g.fundedPV;
+      flags.push({
+        severity: g.tier === "essential" ? "high" : g.tier === "important" ? "medium" : "low",
+        title: `Goal "${g.name}" is only ${(g.ratio*100).toFixed(0)}% funded`,
+        detail: `Present-value shortfall of ${fmtMoney(shortfall)} (${g.period}, ${fmtMoney(g.annual)}/yr). Priority: ${g.tier}. Consider increasing savings, adjusting the goal amount, or extending the timeline.`
+      });
+    }
+  });
+
+  // Overall ratio flag if multiple goals and overall is weak
+  if(result.rows.length > 1 && result.overallRatio < 0.8){
+    flags.push({
+      severity: "medium",
+      title: `Overall goal funding ratio is ${(result.overallRatio*100).toFixed(0)}%`,
+      detail: `Across all ${result.rows.length} goals, ${fmtMoney(result.totalFundedPV)} of ${fmtMoney(result.totalGoalPV)} in present-value costs is funded. Review goal priorities and savings allocation.`
+    });
+  }
+
+  return flags;
+}
+
+// Driver to run recommendations
+function runRecommendations(){
+  const flags = [
+    ...checkConcentration(),
+    ...checkSavingsRate(),
+    ...checkCashBuffer(),
+    ...checkGoalFunding(),
+  ]; // combine into one flat array 
+
+  const order = {high:0, medium:1, low:2};
+  flags.sort((a,b)=>order[a.severity]-order[b.severity]);
+
+  const host = $("recList");
+  if(!host) return;
+  if(!flags.length){
+    host.innerHTML = '<div class="empty" style="color:var(--green)">✓ No issues flagged.</div>';
+    return;
+  }
+  const colors = {high:"#dc2626", medium:"#d97706", low:"#6b7280"};
+  host.innerHTML = flags.map(f=>`
+    <div style="background:var(--bg2);border:1px solid var(--border);border-left:4px solid ${colors[f.severity]};border-radius:8px;padding:14px 16px;margin-bottom:10px">
+      <div style="font-weight:700;font-size:13.5px;color:var(--text1);margin-bottom:4px">${f.title}</div>
+      <div style="font-size:12px;color:var(--text3);line-height:1.5">${f.detail}</div>
+    </div>
+  `).join("");
 }
 
 // ─── Achievable Annual Lifestyle — single-colour bar chart (by retirement age) ───
