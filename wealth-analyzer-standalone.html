@@ -3792,7 +3792,7 @@ input[type=date]{color-scheme:light}
 // ═══════════════════════════════════════════════════════════
 // VERSION — updated by build-standalone.pl on each build
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260629-2232";
+const APP_VERSION = "20260701-2047";
 
 // ═══════════════════════════════════════════════════════════
 // DATA
@@ -17906,11 +17906,12 @@ function drawFanChart(){
       doc.setFillColor(...ac); doc.roundedRect(x,y,size,size,r,r,"F");
       const padX=size*0.18, padB=size*0.20, baseY=y+size-padB, usable=size-padX*2, n=4, gap=usable/n, bw=gap*0.52;
       const hs=[0.32,0.50,0.68,0.88];
+      // Solid pre-blended tints instead of white-at-opacity, so the whole PDF
+      // contains ZERO transparency (Acrobat renders opaque content far faster).
       for(let i=0;i<n;i++){ const bx=x+padX+gap*i+(gap-bw)/2, bh=(size-padB-y-size*0.16)*hs[i];
-        doc.setFillColor(255,255,255);
-        try{ doc.setGState(new doc.GState({opacity:0.30+0.18*i})); }catch(_){}
+        const a=0.30+0.18*i;   // former opacity → blend white over the accent fill
+        doc.setFillColor(Math.round(ac[0]+(255-ac[0])*a), Math.round(ac[1]+(255-ac[1])*a), Math.round(ac[2]+(255-ac[2])*a));
         doc.rect(bx,baseY-bh,bw,bh,"F"); }
-      try{ doc.setGState(new doc.GState({opacity:1})); }catch(_){}
       doc.setDrawColor(255,255,255); doc.setLineWidth(size*0.045); doc.setLineCap("round");
       const x1=x+size-padX, y1=y+size*0.30; doc.line(x+padX, baseY-size*0.10, x1, y1);
       doc.setFillColor(255,255,255); const ah=size*0.13;
@@ -18417,6 +18418,7 @@ function drawFanChart(){
         // Page 2 — Net Worth Summary (bar + asset/liability pies)
         currentSectionTitle = "Net Worth Summary";
         newPage();
+        para("A visual summary of your balance sheet. The bar chart compares total assets, total liabilities and the resulting net worth. The two pie charts break down what your assets are made of and where your debts sit, so you can see your biggest concentrations at a glance.");
         try { drawNetWorthSummary(); }
         catch(e){ console.warn("Net Worth Summary failed:", e); doc.setFont("helvetica","italic"); doc.setTextColor(120); doc.text("Net Worth Summary unavailable for this data.", M, y+8); }
         // Page 3+ — detailed holdings & liabilities
@@ -18544,6 +18546,17 @@ function drawFanChart(){
         tbl(["Asset class","Target","Policy range","Role"],
           d.allocRows.map(r=>[r.label, r.target+"%", r.min+"%-"+r.max+"%", r.role]).concat([["Total","100%","",""]]));
         para(`Policy portfolio: expected return ${(d.port.geoMu*100).toFixed(1)}% (geometric), volatility ${(d.port.sigma*100).toFixed(1)}%. Ranges follow the 5/25 rule (±5 pts or ±25% of target, whichever is greater).`);
+        // Target-allocation donut (visualises the table above)
+        try {
+          const _seg = (d.allocRows||[]).filter(r=>(+r.target||0)>0).map((r,i)=>({label:String(r.label), value:+r.target||0, color:CHART_PALETTE[i%CHART_PALETTE.length]}));
+          if(_seg.length){
+            checkY(46);
+            para("The donut shows the target mix by asset class — the share of the portfolio each class is meant to hold.", [110,118,130]);
+            drawPieChart(M+18, y+17, 16, _seg);
+            pieLegend(M+44, y+3, CW-62, _seg);
+            y += 40;
+          }
+        } catch(e){ console.warn("allocation donut failed:", e); }
         sub("Risk / return positioning (efficient frontier)");
         para("Each dot is a model risk profile plotted by its expected return and volatility; the dashed line is the efficient-frontier fit. The highlighted dot is this household's policy positioning.", [110,118,130]);
         try { checkY(82); drawEfficientFrontier(M, y, CW, 64); y += 64 + 6; } catch(e){ console.warn("efficient frontier failed:", e); }
@@ -18613,6 +18626,47 @@ function drawFanChart(){
           if(hasProp){ doc.setFillColor(124,58,237); doc.rect(M+46,y-2.6,3.4,3.4,"F"); doc.text("Proposed portfolio", M+51, y); }
           y+=7; doc.setTextColor(40);
         } catch(e){ console.warn("returns past-vs-expected failed:", e); }
+        // ── Allocation pies: current portfolio (class / type / region) + current-vs-proposed ──
+        try {
+          const aggregate=(items,wKey,keyFn,labelFn)=>{
+            const m={}; items.forEach(it=>{ const w=+it[wKey]||0; if(w<=0) return; const k=keyFn(it)||"—"; m[k]=(m[k]||0)+w; });
+            return Object.keys(m).map((k,i)=>({label:String(labelFn(k)), value:m[k], color:CHART_PALETTE[i%CHART_PALETTE.length]}));
+          };
+          const clsOf=it=>(typeof effClass==="function"?effClass(it):it.cls);
+          const clsLbl=k=>(typeof INV_CLASS_LABELS!=="undefined"&&INV_CLASS_LABELS[k])||k;
+          const meaningful=s=>s.length>=2 || (s.length===1 && s[0].label!=="—" && s[0].label!=="other");
+          const byClass = aggregate(investments,"val", clsOf, clsLbl);
+          const byType  = aggregate(investments,"val", it=>it.type||it.vehicle, k=>k);
+          const byRegion= aggregate(investments,"val", it=>it.region, k=>k);
+          const cols=[{t:"By asset class",s:byClass},{t:"By type",s:byType},{t:"By region",s:byRegion}].filter(c=>meaningful(c.s));
+          if(cols.length){
+            checkY(64);
+            subBar("Current Portfolio Allocation");
+            para("How your current holdings are divided — by asset class, and (where recorded) by instrument type and region.", [110,118,130]);
+            const colW=CW/cols.length, pieR=Math.min(13, colW*0.16), rowY=y;
+            cols.forEach((c,ci)=>{ const cx0=M+colW*ci;
+              doc.setFont("helvetica","bold"); doc.setFontSize(8); doc.setTextColor.apply(doc,acDark); doc.text(c.t, cx0, rowY);
+              drawPieChart(cx0+pieR+1, rowY+pieR+5, pieR, c.s);
+              pieLegend(cx0+pieR*2+5, rowY+3, colW-(pieR*2+8), c.s);
+            });
+            y=rowY+pieR*2+18;
+          }
+          if(proposals.length){
+            const pByClass=aggregate(proposals,"alloc", clsOf, clsLbl);
+            if(meaningful(pByClass) && meaningful(byClass)){
+              checkY(60);
+              subBar("Current vs Proposed Allocation");
+              para("Your current asset-class mix beside the proposed mix, so the changes the proposal would make are easy to see.", [110,118,130]);
+              const colW=CW/2, pieR=15, rowY=y;
+              [{t:"Current",s:byClass},{t:"Proposed",s:pByClass}].forEach((c,ci)=>{ const cx0=M+colW*ci;
+                doc.setFont("helvetica","bold"); doc.setFontSize(8.5); doc.setTextColor.apply(doc,acDark); doc.text(c.t, cx0, rowY);
+                drawPieChart(cx0+pieR+1, rowY+pieR+5, pieR, c.s);
+                pieLegend(cx0+pieR*2+6, rowY+3, colW-(pieR*2+10), c.s);
+              });
+              y=rowY+pieR*2+16;
+            }
+          }
+        } catch(e){ console.warn("allocation pies failed:", e); }
       },
       // ─── INVESTMENT VEHICLE FACT SHEETS (Morningstar) ──
       factsheets: () => {
@@ -18710,7 +18764,7 @@ function drawFanChart(){
             ["Volatility (σ)",(params.sig*100).toFixed(1)+"% / yr"],
             ["Inflation assumption",num("inf",3.8).toFixed(1)+"% / yr"],
           ]);
-
+          para("The fan chart below runs thousands of randomized market scenarios and plots the range of outcomes over time. The dark line is the median (50th percentile) result; the shaded bands show the spread — the outer band is the 10th–90th percentile range, so there is roughly an 80% chance your wealth lands inside it. A wider fan means more uncertainty the further out you look.");
           drawFanChart();
 
           checkY(40);
