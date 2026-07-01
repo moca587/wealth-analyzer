@@ -12543,6 +12543,17 @@ function updateLinkedReconcile(){
 }
 function illiquidValue(){return assets.filter(a=>!a.liquid).reduce((s,a)=>s+a.value,0);}
 function portfolioInvestmentSeed(){return investments.reduce((s,i)=>s+i.val,0);}
+// De-duplicated investable assets (accounts + portfolio holdings), collapsing the three
+// linkage modes so unlinked holdings aren't counted twice. Mirrors refreshTopMetrics/runMC.
+// Use this instead of totalAccountValue()+portfolioInvestmentSeed() for projection seeds.
+function investableAssetsValue(){
+  const acctVal=totalAccountValue();
+  if(investments.length===0) return acctVal;                 // Mode A
+  if(pfLinkedAccountId) return acctVal+portfolioInvestmentSeed(); // Mode B (acctVal excludes linked)
+  // Mode C: portfolio overlaps asset accounts — only add value above the liquid pool
+  const liquidAcc=Math.max(0,acctVal-retirementAccountSeed());
+  return acctVal+Math.max(0,portfolioInvestmentSeed()-liquidAcc);
+}
 // Cash-class holdings earn 0% — kept flat in simulation
 function portfolioCashSeed(){return investments.filter(i=>i.cls==="cash").reduce((s,i)=>s+i.val,0);}
 function portfolioInvestedSeed(){return investments.filter(i=>i.cls!=="cash").reduce((s,i)=>s+i.val,0);}
@@ -13655,7 +13666,7 @@ function renderSimLifestyle(){
   const retAge = num("retAge", 65);
   const yrsToRet = Math.max(1, retAge - a1);
   const yearsInRet = Math.max(1, 90 - retAge);
-  const investable = (typeof totalAccountValue==="function" ? totalAccountValue() : 0) + (typeof portfolioInvestmentSeed==="function" ? portfolioInvestmentSeed() : 0);
+  const investable = (typeof investableAssetsValue==="function" ? investableAssetsValue() : 0);
   const annualSavings = num("savAnnual", 0);
   const confs = [{p:80,lbl:"Conservative (80%)",c:"var(--green)"},{p:50,lbl:"Expected (50%)",c:"var(--accent)"},{p:30,lbl:"Optimistic (30%)",c:"#7c3aed"}];
   let h = '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px">';
@@ -13852,7 +13863,7 @@ function renderSimLifestyleCandles(){
   const inflation = num("inf", CMA_INFLATION) / 100;
   const a1 = (typeof ageFromDOB==="function" ? ageFromDOB(val("c1d")) : 0) || 40;
   const retAge = num("retAge", 65);
-  const investable = (typeof totalAccountValue==="function" ? totalAccountValue() : 0) + (typeof portfolioInvestmentSeed==="function" ? portfolioInvestmentSeed() : 0);
+  const investable = (typeof investableAssetsValue==="function" ? investableAssetsValue() : 0);
   const annualSavings = num("savAnnual", 0);
   const target = (typeof getTotalExpenses==="function" ? getTotalExpenses() : 0);
 
@@ -13955,9 +13966,14 @@ function renderSimPotentialWealth(){
   ];
 
   const labels = []; for(let y=0;y<=yrs;y++) labels.push(cy+y);
+  // Percentile is inverted (100 - p) so an "X% likelihood" line is the value the plan
+  // is X% likely to AT LEAST reach: 80% → 20th percentile (conservative floor), 30% →
+  // 70th percentile (optimistic). This matches the PDF's gbReturnAtConfidence curves and
+  // the lifestyle candle. Values are deflated to today's money (label says inflation-adjusted).
+  const _inf = num("inf", (typeof CMA_INFLATION!=="undefined"?CMA_INFLATION:3.8)) / 100;
   const series = confs.map(cf => ({
     cf,
-    pts: Array.from({length: yrs+1}, (_, i) => Math.round(percentileAt(lastSimPaths, i, cf.p)))
+    pts: Array.from({length: yrs+1}, (_, i) => Math.round(percentileAt(lastSimPaths, i, 100 - cf.p) / Math.pow(1+_inf, i)))
   }));
 
   if(canvas && typeof Chart !== "undefined"){
@@ -14398,7 +14414,7 @@ function goalSuccessFromPaths(g, paths, yrs){
   return ok/paths.length*100;
 }
 function renderGoalAnalysis(paths,yrs){
-  if(goals.length===0){show("goalResults",false); return;}
+  if(goals.length===0){show("goalResults",false); setT("m-prob","—"); return;}
   show("goalResults",true);
   const html=goals.map(g=>{
     const totalAmt=g.amt*Math.max(1,g.endYear-g.startYear+1);
@@ -17348,7 +17364,7 @@ function drawFanChart(){
       const port = gbPortfolioRisk(gbAssetClassWeights());
       const a1 = ageFromDOB(val("c1d")) || 40;
       const retAge = num("retAge",65);
-      const investable = (typeof totalAccountValue==="function"?totalAccountValue():0) + (typeof portfolioInvestmentSeed==="function"?portfolioInvestmentSeed():0);
+      const investable = (typeof investableAssetsValue==="function"?investableAssetsValue():0);
       const savings = num("savAnnual",0);
       const cyr = (typeof currentYear==="function")?currentYear():new Date().getFullYear();
       const yrs = Math.max(1, 90 - a1);
@@ -17384,7 +17400,7 @@ function drawFanChart(){
       const inflation = num("inf",CMA_INFLATION)/100;
       const a1 = ageFromDOB(val("c1d")) || 40;
       const retAge = num("retAge",65);
-      const investable = (typeof totalAccountValue==="function"?totalAccountValue():0)+(typeof portfolioInvestmentSeed==="function"?portfolioInvestmentSeed():0);
+      const investable = (typeof investableAssetsValue==="function"?investableAssetsValue():0);
       const savings = num("savAnnual",0);
       const spendAt=(rA,cP)=>{ const acc=Math.max(0,rA-a1), inret=Math.max(1,90-rA); const r=gbReturnAtConfidence(port.geoMu,port.sigma,Math.max(1,acc),cP);
         let w=investable; for(let i=0;i<acc;i++) w=w*(1+r)+savings; const rr=(r-inflation)/(1+inflation);
@@ -19418,7 +19434,7 @@ function drawOverviewDonut(){
 // ═══════════════════════════════════════════════════════════
 // TOP-LEVEL METRICS
 // ═══════════════════════════════════════════════════════════
-function refreshTopMetrics(){
+function refreshTopMetrics(simPaths, simYrs){
   const hasPortfolio=investments.length>0;
   const acctVal=totalAccountValue(); // already excludes linked account when Mode B
   let pfAdj=0;
@@ -19437,7 +19453,9 @@ function refreshTopMetrics(){
   const debt=loans.reduce((s,l)=>s+l.bal,0);
   const netW=totA-debt;
   const annualSurplus=getNetSurplus();
-  const grossIncome=num("inc1",0)+num("inc2",0)+num("inc1b",0)+num("inc2b",0);
+  // Use getGrossIncome() (which zeroes hidden Client-2 income) so the denominator matches
+  // the numerator's basis and the Income-tab total — otherwise stale C2 income skews the rate.
+  const grossIncome=getGrossIncome();
   const savRate=grossIncome>0?(annualSurplus/grossIncome*100):0;
   const debtRatio=totA>0?(debt/totA*100):0;
   setT("m-nw",fmtMoney(netW));
@@ -19446,6 +19464,26 @@ function refreshTopMetrics(){
   setT("m-surplus",fmtMoney(annualSurplus/12)+"/mo");
   setT("m-savrate",grossIncome>0?savRate.toFixed(1)+"%":"—");
   setT("m-debtratio",totA>0?debtRatio.toFixed(1)+"%":"—");
+  // ── Projected Wealth (m-med) + Goal Success (m-prob) come from the Monte Carlo run ──
+  // When fresh sim paths are supplied (runSim / AI-apply), recompute both from them.
+  // When called bare (a plain input edit) after a prior run, dim them + add a tooltip so
+  // we never present a projection that no longer matches the current inputs.
+  const medEl=$("m-med"), probEl=$("m-prob");
+  if(Array.isArray(simPaths) && simPaths.length){
+    const yrsP=(simYrs!=null?simYrs:(simPaths[0].length-1));
+    try{ const _inf=num("inf",3.8)/100; const _mid=(typeof band!=="undefined"&&band&&band.mid)?band.mid:50;
+      setT("m-med",fmtMoney(percentileAt(simPaths,yrsP,_mid)/Math.pow(1+_inf,yrsP))); }catch(_){}
+    try{ if(typeof goals!=="undefined" && goals.length){
+        const avg=goals.reduce((s,g)=>s+(goalSuccessFromPaths(g,simPaths,yrsP)||0),0)/goals.length;
+        setT("m-prob",avg.toFixed(0)+"%");
+      } else { setT("m-prob","—"); } }catch(_){}
+    if(medEl){ medEl.style.opacity=""; medEl.title=""; }
+    if(probEl){ probEl.style.opacity=""; probEl.title=""; }
+  } else if(Array.isArray(lastSimPaths) && lastSimPaths.length){
+    const t="Inputs changed since the last simulation — re-run to update";
+    if(medEl){ medEl.style.opacity="0.45"; medEl.title=t; }
+    if(probEl && (probEl.textContent||"").trim()){ probEl.style.opacity="0.45"; probEl.title=t; }
+  }
   // As-of date
   const asOfEl=$("wh-asof-date");
   if(asOfEl){
