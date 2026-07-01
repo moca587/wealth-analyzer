@@ -1078,6 +1078,11 @@ input[type=date]{color-scheme:light}
     <svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 0a8 8 0 100 16A8 8 0 008 0zm0 3a5 5 0 110 10A5 5 0 018 3zm0 3a2 2 0 100 4 2 2 0 000-4z"/></svg>Goals-Based Analysis
     <span style="margin-left:auto;font-size:9px;font-weight:700;background:linear-gradient(135deg,#7c3aed,var(--gold));color:#fff;padding:2px 6px;border-radius:50px;pointer-events:none">NEW</span>
   </div>
+
+  <div class="nav-item" data-tab="recommendations" onclick="showTab('recommendations',this);runRecommendations()">
+    <svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 1a1 1 0 01.894.553l1.382 2.764 3.05.444a1 1 0 01.554 1.705l-2.207 2.151.521 3.038a1 1 0 01-1.451 1.054L8 11.347l-2.723 1.362a1 1 0 01-1.451-1.054l.521-3.038-2.207-2.151a1 1 0 01.554-1.705l3.05-.444L7.106 1.553A1 1 0 018 1z"/></svg>Recommendations
+  </div>
+
   <div class="nav-grp-label">Reports</div>
   <div class="nav-item" data-tab="report" onclick="showTab('report',this)">
     <svg viewBox="0 0 16 16" fill="currentColor"><path d="M3 1.5A1.5 1.5 0 0 1 4.5 0h5L13 3.5V14.5A1.5 1.5 0 0 1 11.5 16h-7A1.5 1.5 0 0 1 3 14.5v-13zM9 1v3h3L9 1zm-4 6.5h6v1H5v-1zM5 10h6v1H5v-1zm0 2.5h4v1H5v-1z"/></svg>PDF Report
@@ -3047,6 +3052,8 @@ input[type=date]{color-scheme:light}
     <div id="estRegimeNote" style="font-size:11px;color:var(--text3);line-height:1.6;margin-bottom:12px;padding:8px 10px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--rs)"></div>
     <div class="sdiv">
       <div class="slbl">Beneficiaries</div>
+
+      
       <div id="benList"><div class="empty">No beneficiaries added.</div></div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
         <input id="bname" placeholder="Name" class="w160">
@@ -3054,11 +3061,31 @@ input[type=date]{color-scheme:light}
         <input type="number" id="bshare" placeholder="Share %" min="0" max="100" step="1" class="w120">
         <button class="btn-secondary" onclick="addBeneficiary()" style="padding:7px 16px">+ Add</button>
       </div>
+      
     </div>
     <div id="estateResult" style="margin-top:14px"></div>
   </div>
 </div>
 </div>
+
+<!-- ═══ RECOMMENDATIONS ═══ -->
+<div class="tab" id="tab-recommendations">
+  <div class="panel" style="background:linear-gradient(135deg,#fff,#f0f7f2);border-left:4px solid #1b6841">
+    <div class="ptitle" style="border:none">Plan Recommendations</div>
+    <div style="font-size:12.5px;color:var(--text2);line-height:1.6">
+      Automated checks across your whole plan — concentration risk, IPS drift, cash buffer, goal funding, retirement success probability, and asset-location efficiency — surfaced here and ranked by severity.
+    </div>
+  </div>
+
+  <div class="panel" id="recPanel">
+    <div class="ptitle">Flags</div>
+    <div id="recList"><div class="empty">Coming soon.</div></div>
+  </div>
+</div>
+
+
+
+
 
 <!-- ═══ PDF REPORT ═══ -->
 <div class="tab" id="tab-report">
@@ -13277,6 +13304,39 @@ function _drawdownSeed(){
   }
   return Math.max(0, investSeed+cashSeed+retSeed);
 }
+
+// Simulate N retirement paths starting from `startWealth`, withdrawing `spend`/yr
+// (inflation-adjusted), and return the fraction of paths that survive to end of horizon.
+function _survivalProb(startWealth, spend, yearsInRet, mu, sig, inf, sims=300){
+  let successes = 0;
+  for(let s=0; s<sims; s++){
+    let port = startWealth;
+    let depleted = false;
+
+    for(let y=0; y<yearsInRet; y++){
+      const wd = spend * Math.pow(1+inf, y);
+      port -= wd;
+      if(port <= 0){ depleted = true; break; }
+      const r = (mu - 0.5*sig*sig) + sig*boxMuller();
+      port = port * Math.exp(r);
+    }
+    if(!depleted) successes++;
+  }
+  return successes / sims;
+}
+
+// Binary-search the spend level that hits `targetSuccessPct` survival probability.
+function _solveSustainableSpendMC(startWealth, yearsInRet, mu, sig, inf, targetSuccessPct, sims=300){
+  if(startWealth <= 0) return 0;
+  let lo = 0, hi = startWealth * 0.15;
+  for(let iter=0; iter<20; iter++){
+    const mid = (lo+hi)/2;
+    const p = _survivalProb(startWealth, mid, yearsInRet, mu, sig, inf, sims);
+    if(p >= targetSuccessPct/100) lo = mid; else hi = mid;
+  }
+  return lo;
+}
+
 function runRetirementDrawdown(){
   const st=$("rdStatus");
   const c1Age=ageFromDOB(val("c1d"))||40;
@@ -13591,24 +13651,184 @@ function renderSimLifestyle(){
   const annualSavings = num("savAnnual", 0);
   const confs = [{p:80,lbl:"Conservative (80%)",c:"var(--green)"},{p:50,lbl:"Expected (50%)",c:"var(--accent)"},{p:30,lbl:"Optimistic (30%)",c:"#7c3aed"}];
   let h = '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px">';
+
+  // confs.forEach(cf => {
+  //   const r = gbReturnAtConfidence(port.geoMu, port.sigma, yrsToRet, cf.p);
+  //   let wealth = investable;
+  //   for(let y=0;y<yrsToRet;y++){ wealth = wealth*(1+r) + annualSavings; }
+  //   const realRate = (r - inflation)/(1+inflation);
+  //   let spend;
+  //   if(Math.abs(realRate) < 1e-6) spend = wealth/yearsInRet;
+  //   else spend = wealth*realRate/(1 - Math.pow(1+realRate,-yearsInRet));
+  const P = getActiveSimulationParams();
   confs.forEach(cf => {
-    const r = gbReturnAtConfidence(port.geoMu, port.sigma, yrsToRet, cf.p);
-    let wealth = investable;
-    for(let y=0;y<yrsToRet;y++){ wealth = wealth*(1+r) + annualSavings; }
-    const realRate = (r - inflation)/(1+inflation);
-    let spend;
-    if(Math.abs(realRate) < 1e-6) spend = wealth/yearsInRet;
-    else spend = wealth*realRate/(1 - Math.pow(1+realRate,-yearsInRet));
+  // const wealth = (lastSimPaths && lastSimPaths.length) ? percentileAt(lastSimPaths, yrsToRet, cf.p) : investable;
+  const wealth = (lastSimPaths && lastSimPaths.length) ? percentileAt(lastSimPaths, yrsToRet, 100 - cf.p) : investable;
+  const spend = _solveSustainableSpendMC(wealth, yearsInRet, P.mu, P.sig, inflation, 90); // fixed 90% survival target
+  const r = P.mu; // for display only
+
     h += '<div style="background:var(--bg2);border:1px solid var(--border);border-top:3px solid '+cf.c+';border-radius:10px;padding:16px;text-align:center">';
     h += '<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);margin-bottom:8px">'+cf.lbl+'</div>';
     h += '<div style="font-size:28px;font-weight:800;color:'+cf.c+';letter-spacing:-.03em">'+fmtMoney(Math.max(0,spend))+'</div>';
     h += '<div style="font-size:11px;color:var(--text3);margin-top:4px">per year, to age 90</div>';
-    h += '<div style="font-size:10.5px;color:var(--text3);margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">Return '+(r*100).toFixed(1)+'%/yr · wealth at retirement '+fmtMoney(wealth)+'</div>';
+    // h += '<div style="font-size:10.5px;color:var(--text3);margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">Return '+(r*100).toFixed(1)+'%/yr · wealth at retirement '+fmtMoney(wealth)+'</div>';
+    h += '<div style="font-size:10.5px;color:var(--text3);margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">90% survival to 90 · wealth at retirement '+fmtMoney(wealth)+'</div>';
     h += '</div>';
   });
   h += '</div>';
   host.innerHTML = h;
   try{ renderSimLifestyleCandles(); }catch(e){ console.warn('renderSimLifestyleCandles:', e); }
+}
+
+// Checks portfolio concentration and flags issues
+function checkConcentration(){
+  const flags = [];
+  const totalVal = investments.reduce((s,h)=>s+(h.val||0),0);
+  if(totalVal <= 0) return flags;
+
+  investments.forEach(h=>{
+    const w = (h.val||0)/totalVal;
+    if(w > 0.20){
+      flags.push({
+        severity: w > 0.5 ? "high" : "medium",
+        title: `Concentration risk: ${h.tkr || h.name} is ${(w*100).toFixed(0)}% of portfolio`,
+        detail: `Holdings above 20% of the portfolio carry outsized single-position risk. Consider trimming over time, tax permitting.`
+      });
+    }
+  });
+  return flags;
+}
+
+// Checks savings rate and flags issues
+function checkSavingsRate(){
+  const flags = [];
+  const surplus = getNetSurplus();
+  const sav = num("savAnnual", 0);
+  const inc = getGrossIncome();
+  const savRate = inc > 0 ? sav / inc : 0;
+
+  // Negative surplus — spending more than earning
+  if(surplus < 0){
+    flags.push({
+      severity: "high",
+      title: `Household is running a deficit of ${fmtMoney(Math.abs(surplus))}/yr`,
+      detail: `After tax, expenses, and debt service, outflows exceed income by ${fmtMoney(Math.abs(surplus))} per year. Savings targets cannot be met from income — cash reserves are being depleted.`
+    });
+  }
+  // Savings target exceeds surplus
+  else if(sav > surplus){
+    flags.push({
+      severity: "medium",
+      title: `Savings target exceeds surplus by ${fmtMoney(sav - surplus)}/yr`,
+      detail: `The ${fmtMoney(sav)}/yr savings target cannot be fully funded from the ${fmtMoney(surplus)}/yr surplus. The shortfall will draw from existing cash reserves.`
+    });
+  }
+  // No savings configured
+  else if(sav <= 0){
+    flags.push({
+      severity: "medium",
+      title: `No annual savings target configured`,
+      detail: `Surplus of ${fmtMoney(surplus)}/yr is available but no savings amount is set. Wealth accumulation in the simulation relies entirely on investment returns.`
+    });
+  }
+  // Low savings rate — under 10%
+  else if(savRate < 0.10){
+    flags.push({
+      severity: "low",
+      title: `Savings rate is low at ${(savRate*100).toFixed(1)}% of gross income`,
+      detail: `A savings rate below 10% may be insufficient for long-term goals. General guidance suggests 15–20% for retirement adequacy, though this depends on age, goals, and existing wealth.`
+    });
+  }
+
+  return flags;
+}
+
+// Checks cash buffer and flags issues 
+function checkCashBuffer(){
+  const flags = [];
+  const monthlyExp = getTotalExpenses() / 12;
+  if(monthlyExp <= 0) return flags;
+
+  const liquidCash = assets
+    .filter(a => a.liquid && (a.type === "checking" || a.type === "savings" || a.type === "current" || a.type === "cash"))
+    .reduce((s,a) => s + (+a.value||0), 0); // coerce a.value into a number
+
+  const months = liquidCash / monthlyExp;
+
+  if(months < 3){
+    flags.push({
+      severity: "high",
+      title: `Cash buffer covers only ${months.toFixed(1)} months of expenses`,
+      detail: `Liquid cash of ${fmtMoney(liquidCash)} covers less than 3 months of expenses (${fmtMoney(getTotalExpenses())}/yr). A minimum 3–6 month buffer is recommended before investing additional funds.`
+    });
+  } else if(months < 6){
+    flags.push({
+      severity: "medium",
+      title: `Cash buffer covers ${months.toFixed(1)} months of expenses`,
+      detail: `Target is 6–12 months. Current liquid cash of ${fmtMoney(liquidCash)} is below the recommended minimum. Consider building reserves before increasing investment contributions.`
+    });
+  }
+
+  return flags;
+}
+
+// Checks goal funding status and flags issues
+function checkGoalFunding(){
+  const flags = [];
+  if(goals.length === 0) return flags;
+
+  let result;
+  try{ result = computeGoalFundingStatus(); }
+  catch(_){ return flags; }
+
+  result.rows.forEach(g => {
+    if(g.ratio < 1.0){
+      const shortfall = g.goalCostPV - g.fundedPV;
+      flags.push({
+        severity: g.tier === "essential" ? "high" : g.tier === "important" ? "medium" : "low",
+        title: `Goal "${g.name}" is only ${(g.ratio*100).toFixed(0)}% funded`,
+        detail: `Present-value shortfall of ${fmtMoney(shortfall)} (${g.period}, ${fmtMoney(g.annual)}/yr). Priority: ${g.tier}. Consider increasing savings, adjusting the goal amount, or extending the timeline.`
+      });
+    }
+  });
+
+  // Overall ratio flag if multiple goals and overall is weak
+  if(result.rows.length > 1 && result.overallRatio < 0.8){
+    flags.push({
+      severity: "medium",
+      title: `Overall goal funding ratio is ${(result.overallRatio*100).toFixed(0)}%`,
+      detail: `Across all ${result.rows.length} goals, ${fmtMoney(result.totalFundedPV)} of ${fmtMoney(result.totalGoalPV)} in present-value costs is funded. Review goal priorities and savings allocation.`
+    });
+  }
+
+  return flags;
+}
+
+// Driver to run recommendations
+function runRecommendations(){
+  const flags = [
+    ...checkConcentration(),
+    ...checkSavingsRate(),
+    ...checkCashBuffer(),
+    ...checkGoalFunding(),
+  ]; // combine into one flat array 
+
+  const order = {high:0, medium:1, low:2};
+  flags.sort((a,b)=>order[a.severity]-order[b.severity]);
+
+  const host = $("recList");
+  if(!host) return;
+  if(!flags.length){
+    host.innerHTML = '<div class="empty" style="color:var(--green)">✓ No issues flagged.</div>';
+    return;
+  }
+  const colors = {high:"#dc2626", medium:"#d97706", low:"#6b7280"};
+  host.innerHTML = flags.map(f=>`
+    <div style="background:var(--bg2);border:1px solid var(--border);border-left:4px solid ${colors[f.severity]};border-radius:8px;padding:14px 16px;margin-bottom:10px">
+      <div style="font-weight:700;font-size:13.5px;color:var(--text1);margin-bottom:4px">${f.title}</div>
+      <div style="font-size:12px;color:var(--text3);line-height:1.5">${f.detail}</div>
+    </div>
+  `).join("");
 }
 
 // ─── Achievable Annual Lifestyle — single-colour bar chart (by retirement age) ───
@@ -13629,14 +13849,23 @@ function renderSimLifestyleCandles(){
   const target = (typeof getTotalExpenses==="function" ? getTotalExpenses() : 0);
 
   // sustainable annual spend (today's $) if you retired at `retireAge`, at confidence `confP`
+  // const spendAt = (retireAge, confP) => {
+  //   const yrsAccum = Math.max(0, retireAge - a1);
+  //   const yearsInRet = Math.max(1, 90 - retireAge);
+  //   const r = gbReturnAtConfidence(port.geoMu, port.sigma, Math.max(1, yrsAccum), confP);
+  //   let w = investable;
+  //   for(let y=0;y<yrsAccum;y++){ w = w*(1+r) + annualSavings; }
+  //   const realRate = (r - inflation)/(1+inflation);
+  //   return Math.max(0, Math.abs(realRate) < 1e-6 ? w/yearsInRet : w*realRate/(1 - Math.pow(1+realRate,-yearsInRet)));
+  // };
+  const P = getActiveSimulationParams();
   const spendAt = (retireAge, confP) => {
     const yrsAccum = Math.max(0, retireAge - a1);
     const yearsInRet = Math.max(1, 90 - retireAge);
-    const r = gbReturnAtConfidence(port.geoMu, port.sigma, Math.max(1, yrsAccum), confP);
-    let w = investable;
-    for(let y=0;y<yrsAccum;y++){ w = w*(1+r) + annualSavings; }
-    const realRate = (r - inflation)/(1+inflation);
-    return Math.max(0, Math.abs(realRate) < 1e-6 ? w/yearsInRet : w*realRate/(1 - Math.pow(1+realRate,-yearsInRet)));
+    const wealth = (lastSimPaths && lastSimPaths.length)
+      ? percentileAt(lastSimPaths, Math.min(yrsAccum, lastSimYrs), 100 - confP)
+      : investable;
+    return _solveSustainableSpendMC(wealth, yearsInRet, P.mu, P.sig, inflation, 90, 100);
   };
 
   // one bar per retirement age (cap to ~40 for readability)
@@ -13689,29 +13918,40 @@ window.renderSimLifestyleCandles = renderSimLifestyleCandles;
 // as the achievable-lifestyle box above, so the figures are consistent. 80% =
 // conservative floor (80% chance of doing better), 50% = expected, 30% = optimistic.
 let simWealthChartObj = null;
+
+// Renders "Annual Potential Wealth" chart on the simulation tab 
 function renderSimPotentialWealth(){
   const canvas = document.getElementById("simWealthChart");
   const tbl = document.getElementById("simPotWealthTbl");
   if(!canvas && !tbl) return;
-  const port = gbPortfolioRisk(gbAssetClassWeights());
+
   const a1 = (typeof ageFromDOB==="function" ? ageFromDOB(val("c1d")) : 0) || 40;
-  const retAge = num("retAge", 65);
-  const investable = (typeof totalAccountValue==="function" ? totalAccountValue() : 0) + (typeof portfolioInvestmentSeed==="function" ? portfolioInvestmentSeed() : 0);
-  const annualSavings = num("savAnnual", 0);
   const cy = (typeof currentYear==="function") ? currentYear() : new Date().getFullYear();
-  const yrs = Math.max(1, 90 - a1);
+
+  // ── Use lastSimPaths (same data as fan chart) if available ──
+  if(!lastSimPaths || lastSimPaths.length === 0){
+    if(tbl) tbl.innerHTML = '<div style="padding:12px;color:var(--text3);font-size:12px">Run the simulation to populate this chart.</div>';
+    return;
+  }
+
+  const yrs = lastSimYrs;
+  // const confs = [
+  //   {p:80, lbl:"80% likelihood (conservative)", c:"#1b6841"},
+  //   {p:50, lbl:"50% likelihood (expected)",     c:"#0057b8"},
+  //   {p:30, lbl:"30% likelihood (optimistic)",   c:"#7c3aed"}
+  // ];
   const confs = [
-    {p:80, lbl:"80% likelihood (conservative)", c:"#1b6841"},
-    {p:50, lbl:"50% likelihood (expected)",     c:"#0057b8"},
-    {p:30, lbl:"30% likelihood (optimistic)",   c:"#7c3aed"}
+    {p:band.high, lbl:band.high+"% likelihood (conservative)", c:"#1b6841"},
+    {p:band.mid,  lbl:band.mid+"% likelihood (expected)",      c:"#0057b8"},
+    {p:band.low,  lbl:band.low+"% likelihood (optimistic)",    c:"#7c3aed"}
   ];
+
   const labels = []; for(let y=0;y<=yrs;y++) labels.push(cy+y);
-  const series = confs.map(cf => {
-    const r = gbReturnAtConfidence(port.geoMu, port.sigma, yrs, cf.p);
-    const pts = []; let w = investable;
-    for(let y=0;y<=yrs;y++){ pts.push(Math.max(0, Math.round(w))); w = w*(1+r) + ((a1+y) < retAge ? annualSavings : 0); }
-    return {cf, r, pts};
-  });
+  const series = confs.map(cf => ({
+    cf,
+    pts: Array.from({length: yrs+1}, (_, i) => Math.round(percentileAt(lastSimPaths, i, cf.p)))
+  }));
+
   if(canvas && typeof Chart !== "undefined"){
     if(simWealthChartObj){ try{ simWealthChartObj.destroy(); }catch(_){} }
     simWealthChartObj = new Chart(canvas, {
@@ -13725,19 +13965,28 @@ function renderSimPotentialWealth(){
   }
   if(tbl){
     let rows = "";
-    for(let y=0;y<=yrs;y++){
+    const step = yrs > 20 ? 5 : 1;
+    for(let y=0;y<=yrs;y+=step){
       rows += '<tr style="border-top:1px solid var(--border)">'
         + '<td style="padding:4px 8px">'+(cy+y)+'</td><td style="padding:4px 8px">'+(a1+y)+'</td>'
         + '<td style="padding:4px 8px;text-align:right;color:#1b6841;font-variant-numeric:tabular-nums">'+fmtMoney(series[0].pts[y])+'</td>'
         + '<td style="padding:4px 8px;text-align:right;color:#0057b8;font-variant-numeric:tabular-nums">'+fmtMoney(series[1].pts[y])+'</td>'
         + '<td style="padding:4px 8px;text-align:right;color:#7c3aed;font-variant-numeric:tabular-nums">'+fmtMoney(series[2].pts[y])+'</td></tr>';
     }
+    if(yrs % step !== 0){
+      rows += '<tr style="border-top:1px solid var(--border)">'
+        + '<td style="padding:4px 8px">'+(cy+yrs)+'</td><td style="padding:4px 8px">'+(a1+yrs)+'</td>'
+        + '<td style="padding:4px 8px;text-align:right;color:#1b6841;font-variant-numeric:tabular-nums">'+fmtMoney(series[0].pts[yrs])+'</td>'
+        + '<td style="padding:4px 8px;text-align:right;color:#0057b8;font-variant-numeric:tabular-nums">'+fmtMoney(series[1].pts[yrs])+'</td>'
+        + '<td style="padding:4px 8px;text-align:right;color:#7c3aed;font-variant-numeric:tabular-nums">'+fmtMoney(series[2].pts[yrs])+'</td></tr>';
+    }
     tbl.innerHTML = '<div style="max-height:340px;overflow:auto"><table style="width:100%;border-collapse:collapse;font-size:12px">'
       + '<tr style="position:sticky;top:0;background:var(--bg2);color:var(--text3);text-align:left"><th style="padding:6px 8px">Year</th><th style="padding:6px 8px">Age</th>'
-      + '<th style="padding:6px 8px;text-align:right">80%</th><th style="padding:6px 8px;text-align:right">50%</th><th style="padding:6px 8px;text-align:right">30%</th></tr>'
+      + '<th style="padding:6px 8px;text-align:right">'+band.high+'%</th><th style="padding:6px 8px;text-align:right">'+band.mid+'%</th><th style="padding:6px 8px;text-align:right">'+band.low+'%</th></tr>'
       + rows + '</table></div>';
   }
 }
+
 window.renderSimPotentialWealth = renderSimPotentialWealth;
 
 // Shared funding-status computation (used by both Simulation tab + Goals-Based tab)
