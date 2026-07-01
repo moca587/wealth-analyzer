@@ -2003,6 +2003,13 @@ input[type=date]{color-scheme:light}
     </div>
     </div>
 
+    <!-- Wealth Allocation Framework (kept here in the Simulation tab) -->
+    <div class="panel" id="simWealthFwPanel">
+      <div class="ptitle">Wealth Allocation Framework</div>
+      <div style="font-size:12px;color:var(--text3);margin-bottom:14px;line-height:1.6">Merrill's three-bucket framework organizes assets by risk-return role: <strong style="color:var(--green)">Personal</strong> (preserve lifestyle — residence, cash), <strong style="color:var(--accent)">Market</strong> (balance risk &amp; return — diversified equities/bonds), and <strong style="color:#7c3aed">Aspirational</strong> (idiosyncratic upside — concentrated stock, business, crypto, investment property).</div>
+      <div id="gbWealth"><div style="color:var(--text3);font-size:12px">Add assets to see your wealth allocation.</div></div>
+    </div>
+
     <!-- annual potential wealth table rendered below the achievable-lifestyle panel -->
 
     <!-- Fan chart -->
@@ -3011,19 +3018,8 @@ input[type=date]{color-scheme:light}
     <div id="gbGoals"></div>
   </div>
 
-  <!-- Potentially Achievable Lifestyle -->
-  <div class="panel" id="gbLifestylePanel" style="display:none">
-    <div class="ptitle">Potentially Achievable Annual Lifestyle</div>
-    <div style="font-size:12px;color:var(--text3);margin-bottom:14px;line-height:1.6">Estimated sustainable annual retirement spending (today's dollars) that lasts to age 90, under three confidence levels. <strong>80%</strong> is the conservative/pessimistic floor (returns below mean); <strong>30%</strong> is optimistic (returns above mean).</div>
-    <div id="gbLifestyle"></div>
-  </div>
-
-  <!-- Wealth Allocation Framework -->
-  <div class="panel" id="gbWealthPanel" style="display:none">
-    <div class="ptitle">Wealth Allocation Framework</div>
-    <div style="font-size:12px;color:var(--text3);margin-bottom:14px;line-height:1.6">Merrill's three-bucket framework organizes assets by risk-return role: <strong style="color:var(--green)">Personal</strong> (preserve lifestyle — residence, cash), <strong style="color:var(--accent)">Market</strong> (balance risk & return — diversified equities/bonds), and <strong style="color:#7c3aed">Aspirational</strong> (idiosyncratic upside — concentrated stock, business, crypto, investment property).</div>
-    <div id="gbWealth"></div>
-  </div>
+  <!-- Potentially Achievable Lifestyle and Wealth Allocation Framework now live
+       in the Simulation tab (kept out of here to avoid duplication). -->
 
   <!-- Capital Market Assumptions -->
   <div class="panel" id="gbCmaPanel" style="display:none">
@@ -13120,6 +13116,7 @@ function runMC(years,sims,muOverride,sigOverride){
     let income=baseInc, expense=baseExp;
     let loanState=loans.map(l=>({bal:l.bal,rate:l.rate/100,yrs:l.yrs}));
     const path=[];
+    let shortfallYr=-1;   // first year goal spending couldn't be met from liquid wealth (cash+investments)
 
     // Yearly loop. One iteration simulates one year of the client's life 
     // Updates the household's finances for one simulated year 
@@ -13223,6 +13220,8 @@ function runMC(years,sims,muOverride,sigOverride){
         const still=goalOut-fromCash;
         const fromInv=Math.min(Math.max(0,inv),still);
         inv-=fromInv;
+        // Liquidity shortfall: liquid wealth couldn't fully cover this year's goals.
+        if(shortfallYr<0 && (fromCash+fromInv) < goalOut-0.5) shortfallYr=y;
         cash=Math.max(0,cash); inv=Math.max(0,inv);
         assetBuckets = scaleBucketsToTotal(assetBuckets, inv);
       }
@@ -13275,6 +13274,7 @@ inv = sumBuckets(assetBuckets);
       const debtTotal=loanState.reduce((s,l)=>s+l.bal,0);
       path.push(cash+inv+prop+other+retPot-debtTotal);
     }
+    path._shortfallYr=shortfallYr;   // goal-liquidity marker for goalSuccessFromPaths
     paths.push(path);
   }
   return paths;
@@ -13599,6 +13599,7 @@ function runSim(){
   renderDownsideAnalysis(paths);
   renderUpsideAnalysis(paths);
   renderGoalAnalysis(paths,yrs);
+  try{ if(typeof gbRenderWealth==="function") gbRenderWealth(); }catch(_){}  // Wealth Allocation Framework panel (Simulation tab)
   renderCashFlow();
   renderFundingStatus(paths,yrs);
   refreshTopMetrics(paths,yrs);
@@ -14376,33 +14377,46 @@ function renderUpsideAnalysis(paths){
   `);
 }
 
+// Goal success = share of Monte Carlo paths in which the plan stays solvent
+// (net worth > 0) through the goal's target year. Goals are already deducted
+// from each path in runMC, so a path that can't afford its goals depletes to
+// <= 0 by then. Computed straight from the paths so the app and the PDF report
+// always agree (no DOM scraping).
+function goalSuccessFromPaths(g, paths, yrs){
+  if(!paths || !paths.length) return null;
+  const cy=(typeof currentYear==="function")?currentYear():new Date().getFullYear();
+  const relYr=Math.min(yrs, Math.max(0, (g.endYear||cy)-cy));
+  let ok=0;
+  if(paths[0] && typeof paths[0]._shortfallYr!=="undefined"){
+    // Preferred: liquid-based — a path funds this goal if no liquidity shortfall
+    // occurred at or before the goal's target year.
+    for(let i=0;i<paths.length;i++){ const sf=paths[i]._shortfallYr; if(sf<0 || sf>relYr) ok++; }
+  } else {
+    // Fallback: plan stays solvent (net worth > 0) through the goal's target year.
+    for(let i=0;i<paths.length;i++){ if((paths[i][relYr]||0) > 0) ok++; }
+  }
+  return ok/paths.length*100;
+}
 function renderGoalAnalysis(paths,yrs){
   if(goals.length===0){show("goalResults",false); return;}
   show("goalResults",true);
-  const cy=currentYear();
   const html=goals.map(g=>{
-    const relYr=Math.min(yrs,Math.max(0,g.endYear-cy));
     const totalAmt=g.amt*Math.max(1,g.endYear-g.startYear+1);
-    const ok=paths.filter(p=>p[relYr]>=totalAmt).length;
-    const prob=ok/paths.length*100;
+    const prob=goalSuccessFromPaths(g,paths,yrs)||0;
     const cls=prob>=80?"gp-hi":(prob>=50?"gp-md":"gp-lo");
     const icon=(typeof GOAL_ICONS!=="undefined"&&GOAL_ICONS[g.cat])||{emoji:"⭐",color:"#6b7280",bg:"rgba(107,114,128,.10)"};
-    return `<div class="goal-cmp" style="grid-template-columns:36px 1.2fr 80px 90px 90px 90px">
+    return `<div class="goal-cmp" data-gid="${g.id}" style="grid-template-columns:36px 1.2fr 80px 90px 90px 90px">
       <div class="goal-icon" style="background:${icon.bg};color:${icon.color};width:28px;height:28px;font-size:14px">${icon.emoji}</div>
       <div class="gnm">${g.name}</div>
       <div class="gyr">${g.endYear}</div>
       <div style="font-variant-numeric:tabular-nums">${fmtMoney(g.amt)}<span style="font-size:10px;color:var(--text3)">/yr</span></div>
-      <div class="gprob ${cls}">${prob.toFixed(0)}%</div>
+      <div class="gprob grs-pct ${cls}">${prob.toFixed(0)}%</div>
       <div class="gdelta" style="color:var(--text3)">${fmtMoney(totalAmt)} total</div>
     </div>`;
   }).join("");
   setH("goalResultList",html);
   // Top-line goal success = average across goals
-  const avg=goals.reduce((s,g)=>{
-    const relYr=Math.min(yrs,Math.max(0,g.endYear-cy));
-    const totalAmt=g.amt*Math.max(1,g.endYear-g.startYear+1);
-    return s+paths.filter(p=>p[relYr]>=totalAmt).length/paths.length;
-  },0)/goals.length*100;
+  const avg=goals.reduce((s,g)=>s+(goalSuccessFromPaths(g,paths,yrs)||0),0)/goals.length;
   setT("m-prob",avg.toFixed(0)+"%");
 }
 
@@ -15842,11 +15856,10 @@ function buildReportHtml(){
   // --- Funding status section ---
   let fundSection="";
   if(incFund==="yes"){
-    const fundEl=document.getElementById("goalResultList");
-    if(fundEl && fundEl.children.length>0 && goals.length>0){
+    if(lastSimPaths && lastSimPaths.length>0 && goals.length>0){
       const rows=goals.map(g=>{
-        const row=Array.from(fundEl.querySelectorAll("[data-gid='"+g.id+"']"));
-        const pct=row.length?row[0].querySelector(".grs-pct")?.textContent||"—":"—";
+        const p=(typeof goalSuccessFromPaths==="function")?goalSuccessFromPaths(g,lastSimPaths,lastSimYrs):null;
+        const pct=(p!=null)?Math.round(p)+"%":"—";
         return `<tr><td>${_daEsc(g.name)}</td><td>${fmtMoneyFull(g.amt)}/yr</td><td>${g.startYear}–${g.endYear}</td><td>${pct}</td></tr>`;
       }).join("");
       fundSection=`<h2>Goal success probability</h2><table><tr><th>Goal</th><th>Annual amount</th><th>Year range</th><th>Success probability</th></tr>${rows}</table>`;
@@ -16288,7 +16301,7 @@ function runGoalsBased(){
   gbRenderWealth();
   gbRenderCMA(weights, port);
 
-  ["gbOverallPanel","gbGoalsPanel","gbLifestylePanel","gbWealthPanel","gbCmaPanel"].forEach(id => {
+  ["gbOverallPanel","gbGoalsPanel","gbCmaPanel"].forEach(id => {
     const el = document.getElementById(id); if(el) el.style.display = "block";
   });
   if(status) status.innerHTML = '✓ <strong style="color:#1b6841">Analysis complete</strong> — portfolio μ ' + (port.geoMu*100).toFixed(2) + '% · σ ' + (port.sigma*100).toFixed(2) + '%';
@@ -18591,10 +18604,9 @@ function drawFanChart(){
         checkY(30);
         sectionH2("Goal Success Probability");
         if(lastSimPaths&&lastSimPaths.length>0){
-          const fundEl=$("goalResultList");
           const rows=goals.map(g=>{
-            const el=fundEl?fundEl.querySelector("[data-gid='"+g.id+"']"):null;
-            const pct=el?el.querySelector(".grs-pct")?.textContent||"—":"—";
+            const p=(typeof goalSuccessFromPaths==="function")?goalSuccessFromPaths(g,lastSimPaths,lastSimYrs):null;
+            const pct=(p!=null)?Math.round(p)+"%":"—";
             return [g.name, fmt(g.amt)+"/yr", g.startYear+"–"+g.endYear, pct];
           });
           tbl(["Goal","Annual amount","Years","Success probability"],rows);
@@ -19514,6 +19526,7 @@ function restoreProfile(p){
   renderAssets(); renderLoans(); renderInsurances(); renderEquityGrants(); renderBeneficiaries(); renderGoals(); renderChildren();
   renderInvestments(); renderProposals();
   try { if(typeof renderWhatIf==="function") renderWhatIf(); } catch(_){}
+  try { if(typeof gbRenderWealth==="function") gbRenderWealth(); } catch(_){}  // Wealth Allocation Framework (Simulation tab)
   refreshAssetTypes(); onRegion(); syncAssetCountry();
   // Re-apply state selections after dropdowns are populated
   if(f.c1st){const s=$("c1st"); if(s&&[...s.options].some(o=>o.value===f.c1st)) s.value=f.c1st;}
