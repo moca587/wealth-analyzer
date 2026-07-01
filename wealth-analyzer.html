@@ -13586,6 +13586,13 @@ function runSim(){
   const paths=runMC(yrs,sims);
 
   lastSimPaths=paths; lastSimYrs=yrs;
+  // Projected Wealth (median) — set here so the overview metric always updates,
+  // even if the bar-chart canvas (#mcChart) isn't present and redrawChart bails.
+  try {
+    const _inf=num("inf",3.8)/100;
+    const _mid=(typeof band!=="undefined" && band && band.mid) ? band.mid : 50;
+    setT("m-med", fmtMoney(percentileAt(paths,yrs,_mid)/Math.pow(1+_inf,yrs)));
+  } catch(_){}
   redrawChart(paths);
   drawFanChart(paths);
   renderSimLifestyle(); // new
@@ -19454,8 +19461,8 @@ function saveProfile(){
     v:"1.1",savedAt:new Date().toISOString(),
     fields,
     c2visible:$("c2card").style.display!=="none",
-    assets,loans,goals,children,investments,proposals,insurances,equityComp,beneficiaries,
-    assetSeq,loanSeq,goalSeq,childSeq,invSeq,propSeq,insSeq,eqSeq,benSeq,pfLinkedAccountId
+    assets,loans,goals,children,investments,proposals,insurances,equityComp,beneficiaries,whatIfScenarios,
+    assetSeq,loanSeq,goalSeq,childSeq,invSeq,propSeq,insSeq,eqSeq,benSeq,whatIfSeq,pfLinkedAccountId
   };
   const blob=new Blob([JSON.stringify(profile,null,2)],{type:"application/json"});
   const url=URL.createObjectURL(blob);
@@ -19501,10 +19508,12 @@ function restoreProfile(p){
   children=p.children||[]; childSeq=p.childSeq||children.length;
   investments=p.investments||[]; invSeq=p.invSeq||investments.length;
   proposals=p.proposals||[]; propSeq=p.propSeq||proposals.length;
+  whatIfScenarios=p.whatIfScenarios||[]; whatIfSeq=p.whatIfSeq||whatIfScenarios.length;
   pfLinkedAccountId=p.pfLinkedAccountId||"";
   if(p.c2visible) showC2(); else hideC2();
   renderAssets(); renderLoans(); renderInsurances(); renderEquityGrants(); renderBeneficiaries(); renderGoals(); renderChildren();
   renderInvestments(); renderProposals();
+  try { if(typeof renderWhatIf==="function") renderWhatIf(); } catch(_){}
   refreshAssetTypes(); onRegion(); syncAssetCountry();
   // Re-apply state selections after dropdowns are populated
   if(f.c1st){const s=$("c1st"); if(s&&[...s.options].some(o=>o.value===f.c1st)) s.value=f.c1st;}
