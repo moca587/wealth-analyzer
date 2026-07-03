@@ -4286,7 +4286,209 @@ OTHER:{flag:"🌍",name:"Other",groups:[
 {group:"Other",accounts:[
   {value:"crypto",label:"Cryptocurrency",note:"Digital assets.",liquid:true},
   {value:"other_asset",label:"Other asset",note:"Any other asset.",liquid:true}
-]}]}
+]}]},
+
+// ─── NORWAY ───────────────────────────────────────────────────────
+NO:{flag:"🇳🇴",name:"Norway",groups:[
+{group:"Banking",accounts:[
+  {value:"checking",label:"Bankkonto (checking)",note:"Standard account. Bankenes sikringsfond protects up to NOK 2M per bank.",liquid:true},
+  {value:"savings",label:"Sparekonto (savings)",note:"Interest-bearing savings account.",liquid:true},
+  {value:"bsu",label:"BSU (Boligsparing for ungdom)",note:"First-home savings for under-34s. Tax-deductible up to NOK 27,500/yr.",liquid:false}
+]},
+{group:"Pension",accounts:[
+  {value:"ips",label:"IPS (Individual Pension Savings)",note:"Tax-deductible up to NOK 15,000/yr. Locked until 62.",liquid:false,withdrawAge:62},
+  {value:"innskuddspensjon",label:"Innskuddspensjon (occupational DC)",note:"Employer defined-contribution pension.",liquid:false,withdrawAge:62},
+  {value:"nav_pension",label:"Alderspensjon / NAV (estimated annual)",note:"State pension from age 62 (flexible). Full benefit typically from 67.",liquid:false,withdrawAge:67}
+]},
+{group:"Investment & other",accounts:[
+  {value:"aksjesparekonto",label:"Aksjesparekonto (ASK)",note:"Equity savings account. CGT/dividends deferred until withdrawal.",liquid:true},
+  {value:"brokerage",label:"Verdipapirkonto (brokerage)",note:"Standard taxable investment account.",liquid:true},
+  {value:"crypto",label:"Cryptocurrency",note:"Taxed as capital income in Norway.",liquid:true},
+  {value:"other_asset",label:"Other asset",note:"Any other asset.",liquid:true}
+]}]},
+
+// ─── SWEDEN ───────────────────────────────────────────────────────
+SE:{flag:"🇸🇪",name:"Sweden",groups:[
+{group:"Banking",accounts:[
+  {value:"checking",label:"Lönekonto / transaktionskonto",note:"Standard account. Riksgälden deposit guarantee up to SEK 1,050,000.",liquid:true},
+  {value:"savings",label:"Sparkonto (savings)",note:"Interest-bearing savings.",liquid:true}
+]},
+{group:"Pension & tax-advantaged",accounts:[
+  {value:"ips",label:"IPS (Individuellt pensionssparande)",note:"Individual pension savings. Tax deduction up to SEK 35,000/yr.",liquid:false,withdrawAge:55},
+  {value:"itp",label:"ITP (occupational pension)",note:"White-collar occupational pension scheme.",liquid:false,withdrawAge:65},
+  {value:"isk",label:"ISK (Investeringssparkonto)",note:"Flat wealth-based tax (~0.375% of value/yr). No CGT on individual trades.",liquid:true},
+  {value:"kf",label:"KF (Kapitalförsäkring)",note:"Insurance wrapper. Similar tax treatment to ISK.",liquid:true},
+  {value:"allmän_pension",label:"Allmän pension / AP (estimated annual)",note:"State pension from age 63 (flexible).",liquid:false,withdrawAge:65}
+]},
+{group:"Investment & other",accounts:[
+  {value:"brokerage",label:"Värdepappersdepå (brokerage)",note:"Standard taxable account. 30% CGT on gains.",liquid:true},
+  {value:"crypto",label:"Cryptocurrency",note:"30% CGT in Sweden.",liquid:true},
+  {value:"other_asset",label:"Other asset",note:"Any other asset.",liquid:true}
+]}]},
+
+// ─── DENMARK ──────────────────────────────────────────────────────
+DK:{flag:"🇩🇰",name:"Denmark",groups:[
+{group:"Banking",accounts:[
+  {value:"checking",label:"Lønkonto (checking)",note:"Standard account. Garantifonden protects up to DKK 750,000.",liquid:true},
+  {value:"savings",label:"Opsparingskonto (savings)",note:"Interest-bearing savings.",liquid:true}
+]},
+{group:"Pension",accounts:[
+  {value:"ratepension",label:"Ratepension (annuity pension)",note:"Tax-deductible up to DKK 63,100/yr. Paid out over 10-30 years.",liquid:false,withdrawAge:63},
+  {value:"aldersopsparing",label:"Aldersopsparing (retirement savings)",note:"After-tax contributions. Tax-free withdrawals. Up to DKK 9,100/yr.",liquid:false,withdrawAge:63},
+  {value:"livrente",label:"Livrente (life annuity)",note:"Tax-deductible. Paid out for life from retirement age.",liquid:false,withdrawAge:63},
+  {value:"folkepension",label:"Folkepension (estimated annual)",note:"State pension from age 67.",liquid:false,withdrawAge:67}
+]},
+{group:"Investment & other",accounts:[
+  {value:"aktiesparekonto",label:"Aktiesparekonto",note:"Equity savings account. 17% flat tax on gains/dividends up to DKK 135,900.",liquid:true},
+  {value:"brokerage",label:"Værdipapirkonto (brokerage)",note:"Standard taxable account.",liquid:true},
+  {value:"crypto",label:"Cryptocurrency",note:"Taxed as personal income in Denmark.",liquid:true},
+  {value:"other_asset",label:"Other asset",note:"Any other asset.",liquid:true}
+]}]},
+
+// ─── POLAND ───────────────────────────────────────────────────────
+PL:{flag:"🇵🇱",name:"Poland",groups:[
+{group:"Banking",accounts:[
+  {value:"checking",label:"Rachunek bieżący (checking)",note:"Standard account. BFG (Bankowy Fundusz Gwarancyjny) protects up to €100,000.",liquid:true},
+  {value:"savings",label:"Konto oszczędnościowe (savings)",note:"Interest-bearing savings account.",liquid:true}
+]},
+{group:"Pension",accounts:[
+  {value:"ike",label:"IKE (Indywidualne Konto Emerytalne)",note:"Individual retirement account. Tax-free on withdrawal after 60. Limit ~PLN 23,472/yr.",liquid:false,withdrawAge:60},
+  {value:"ikze",label:"IKZE (Indywidualne Konto Zabezpieczenia Emerytalnego)",note:"Tax-deductible contributions. Limit ~PLN 9,388/yr.",liquid:false,withdrawAge:65},
+  {value:"ppk",label:"PPK (Pracownicze Plany Kapitałowe)",note:"Workplace pension. Employee 2%, employer 1.5% + state top-up.",liquid:false,withdrawAge:60},
+  {value:"zus_pension",label:"ZUS / Emerytura (estimated annual)",note:"State pension from age 60 (women) / 65 (men).",liquid:false,withdrawAge:65}
+]},
+{group:"Investment & other",accounts:[
+  {value:"brokerage",label:"Rachunek maklerski (brokerage)",note:"Standard taxable account. 19% Belka tax on capital gains.",liquid:true},
+  {value:"crypto",label:"Cryptocurrency",note:"19% Belka tax on crypto gains in Poland.",liquid:true},
+  {value:"other_asset",label:"Other asset",note:"Any other asset.",liquid:true}
+]}]},
+
+// ─── NEW ZEALAND ──────────────────────────────────────────────────
+NZ:{flag:"🇳🇿",name:"New Zealand",groups:[
+{group:"Banking",accounts:[
+  {value:"checking",label:"Cheque / transaction account",note:"Standard account. RBNZ deposit compensation up to NZD 100,000 (from 2025).",liquid:true},
+  {value:"savings",label:"Savings account",note:"Interest-bearing savings.",liquid:true},
+  {value:"term_deposit",label:"Term deposit",note:"Fixed-term at guaranteed rate.",liquid:false}
+]},
+{group:"KiwiSaver & pension",accounts:[
+  {value:"kiwisaver",label:"KiwiSaver",note:"Workplace retirement savings. 3% employee + 3% employer. Locked until 65.",liquid:false,withdrawAge:65},
+  {value:"nz_super",label:"NZ Superannuation (estimated annual)",note:"Universal pension from age 65. ~NZD 24,000/yr (single, living alone, 2024).",liquid:false,withdrawAge:65}
+]},
+{group:"Investment & other",accounts:[
+  {value:"brokerage",label:"Share brokerage account",note:"NZX equities. No CGT on shares (unless trader).",liquid:true},
+  {value:"pie_fund",label:"PIE fund (Portfolio Investment Entity)",note:"Tax capped at 28% on investment income.",liquid:true},
+  {value:"crypto",label:"Cryptocurrency",note:"Taxed as income if held for resale.",liquid:true},
+  {value:"other_asset",label:"Other asset",note:"Any other asset.",liquid:true}
+]}]},
+
+// ─── ISRAEL ───────────────────────────────────────────────────────
+IL:{flag:"🇮🇱",name:"Israel",groups:[
+{group:"Banking",accounts:[
+  {value:"checking",label:"Cheshbon Jai (current account)",note:"Standard account. DICF protects up to ILS 250,000.",liquid:true},
+  {value:"savings",label:"Pikkadon (term deposit)",note:"Fixed-term savings.",liquid:false},
+  {value:"savings_reg",label:"Cheshbon Chisachon (savings)",note:"Interest-bearing savings account.",liquid:true}
+]},
+{group:"Pension & provident",accounts:[
+  {value:"keren_pensia",label:"Keren Pensia (pension fund)",note:"Mandatory for employed. Defined benefit/contribution hybrid.",liquid:false,withdrawAge:67},
+  {value:"kupat_gemel",label:"Kupat Gemel (provident fund)",note:"Long-term savings. Tax-exempt on withdrawal after 15 years from age 60.",liquid:false,withdrawAge:60},
+  {value:"bituach_menahalim",label:"Bituach Menahalim (managers insurance)",note:"Executive insurance policy combining pension, disability and life cover.",liquid:false,withdrawAge:67},
+  {value:"old_age_bituach",label:"Old Age Insurance / Bituach Leumi (est. annual)",note:"National Insurance Institute pension from age 67 (men) / 65 (women).",liquid:false,withdrawAge:67}
+]},
+{group:"Investment & other",accounts:[
+  {value:"brokerage",label:"Cheshbon Niratim (brokerage)",note:"Standard taxable account. 25% CGT on gains.",liquid:true},
+  {value:"crypto",label:"Cryptocurrency",note:"25% CGT in Israel.",liquid:true},
+  {value:"other_asset",label:"Other asset",note:"Any other asset.",liquid:true}
+]}]},
+
+// ─── UAE ──────────────────────────────────────────────────────────
+AE:{flag:"🇦🇪",name:"United Arab Emirates",groups:[
+{group:"Banking",accounts:[
+  {value:"checking",label:"Current account",note:"Standard account. UAE Central Bank regulated.",liquid:true},
+  {value:"savings",label:"Savings account",note:"Interest-bearing deposit.",liquid:true},
+  {value:"fixed_deposit",label:"Fixed deposit",note:"Term deposit at guaranteed rate.",liquid:false}
+]},
+{group:"Retirement & end of service",accounts:[
+  {value:"gratuity",label:"End of Service Gratuity (EOSB)",note:"Statutory lump sum on leaving employment. ~21 days/yr for first 5 yrs, 30 days/yr after.",liquid:false},
+  {value:"difc_dews",label:"DIFC DEWS / GPSSA (workplace savings)",note:"DIFC Workplace Savings Plan or Abu Dhabi/federal pension for UAE nationals.",liquid:false,withdrawAge:60}
+]},
+{group:"Investment & other",accounts:[
+  {value:"brokerage",label:"Brokerage account (ADX / DFM)",note:"UAE stock exchange account. No CGT.",liquid:true},
+  {value:"crypto",label:"Cryptocurrency",note:"No income or CGT in UAE.",liquid:true},
+  {value:"other_asset",label:"Other asset",note:"Any other asset.",liquid:true}
+]}]},
+
+// ─── THAILAND ─────────────────────────────────────────────────────
+TH:{flag:"🇹🇭",name:"Thailand",groups:[
+{group:"Banking",accounts:[
+  {value:"checking",label:"Bัญชีกระแสรายวัน (current)",note:"Standard account. DPA protects up to THB 1M per bank.",liquid:true},
+  {value:"savings",label:"บัญชีออมทรัพย์ (savings)",note:"Interest-bearing savings account.",liquid:true},
+  {value:"fixed_deposit",label:"บัญชีเงินฝากประจำ (fixed deposit)",note:"Fixed-term deposit.",liquid:false}
+]},
+{group:"Pension & provident",accounts:[
+  {value:"provident_fund",label:"Provident Fund (กองทุนสำรองเลี้ยงชีพ)",note:"Employer-sponsored. Both employer and employee contribute.",liquid:false,withdrawAge:55},
+  {value:"rmf",label:"RMF (Retirement Mutual Fund)",note:"Tax-deductible up to 30% of income, max THB 500,000/yr.",liquid:false,withdrawAge:55},
+  {value:"ssf",label:"SSF (Super Savings Fund)",note:"Tax-deductible up to 30% of income, max THB 200,000/yr.",liquid:false,withdrawAge:10},
+  {value:"old_age_pension",label:"Old Age Pension / SSO (estimated annual)",note:"Social Security Office pension from age 55.",liquid:false,withdrawAge:55}
+]},
+{group:"Investment & other",accounts:[
+  {value:"brokerage",label:"บัญชีหลักทรัพย์ (brokerage)",note:"SET/MAI equities. No CGT in Thailand.",liquid:true},
+  {value:"lth_fund",label:"LTF (Long-Term Equity Fund)",note:"Tax-deductible equity fund. 7-year minimum hold.",liquid:false},
+  {value:"crypto",label:"Cryptocurrency",note:"15% WHT on crypto gains in Thailand.",liquid:true},
+  {value:"other_asset",label:"Other asset",note:"Any other asset.",liquid:true}
+]}]},
+
+// ─── MALAYSIA ─────────────────────────────────────────────────────
+MY:{flag:"🇲🇾",name:"Malaysia",groups:[
+{group:"Banking",accounts:[
+  {value:"checking",label:"Current account",note:"Standard account. PIDM protects up to MYR 250,000 per depositor.",liquid:true},
+  {value:"savings",label:"Savings account",note:"Interest-bearing savings.",liquid:true},
+  {value:"fixed_deposit",label:"Fixed deposit",note:"Fixed-term at guaranteed rate.",liquid:false}
+]},
+{group:"Pension & EPF",accounts:[
+  {value:"epf",label:"EPF (Employees Provident Fund)",note:"Mandatory. Employee 11%, employer 13% (age <60). Withdrawable at 55.",liquid:false,withdrawAge:55},
+  {value:"prs",label:"PRS (Private Retirement Scheme)",note:"Voluntary top-up retirement savings. Tax relief up to MYR 3,000/yr.",liquid:false,withdrawAge:55},
+  {value:"sspn",label:"SSPN (National Education Savings)",note:"Education savings. Tax relief up to MYR 8,000/yr.",liquid:false}
+]},
+{group:"Investment & other",accounts:[
+  {value:"brokerage",label:"CDS / brokerage account",note:"Bursa Malaysia equities. No CGT in Malaysia.",liquid:true},
+  {value:"amanah_saham",label:"Amanah Saham (ASB/ASN)",note:"Government-linked unit trust. High dividend, low risk.",liquid:true},
+  {value:"crypto",label:"Cryptocurrency",note:"No specific CGT; taxed as income if frequent trading.",liquid:true},
+  {value:"other_asset",label:"Other asset",note:"Any other asset.",liquid:true}
+]}]},
+
+// ─── NIGERIA ──────────────────────────────────────────────────────
+NG:{flag:"🇳🇬",name:"Nigeria",groups:[
+{group:"Banking",accounts:[
+  {value:"checking",label:"Current account",note:"Standard account. NDIC insures up to NGN 5M per depositor.",liquid:true},
+  {value:"savings",label:"Savings account",note:"Interest-bearing savings.",liquid:true},
+  {value:"fixed_deposit",label:"Fixed deposit",note:"Fixed-term deposit.",liquid:false}
+]},
+{group:"Pension",accounts:[
+  {value:"rsa",label:"RSA (Retirement Savings Account)",note:"Mandatory under CPS. Employee 8%, employer 10% of monthly emoluments.",liquid:false,withdrawAge:50},
+  {value:"vpf",label:"Voluntary Pension Fund (VPF)",note:"Additional voluntary contributions to RSA.",liquid:false,withdrawAge:50}
+]},
+{group:"Investment & other",accounts:[
+  {value:"brokerage",label:"CSCS / brokerage account",note:"NSE/NGX equities. CGT 10% on listed securities.",liquid:true},
+  {value:"crypto",label:"Cryptocurrency",note:"CBN has restricted crypto; use with caution.",liquid:true},
+  {value:"other_asset",label:"Other asset",note:"Any other asset.",liquid:true}
+]}]},
+
+// ─── TURKEY ───────────────────────────────────────────────────────
+TR:{flag:"🇹🇷",name:"Turkey",groups:[
+{group:"Banking",accounts:[
+  {value:"checking",label:"Vadesiz hesap (current)",note:"Standard account. SDIF protects up to TRY 400,000.",liquid:true},
+  {value:"savings",label:"Vadeli mevduat (savings/term deposit)",note:"Fixed-term savings account.",liquid:false},
+  {value:"tl_savings",label:"TL korumalı mevduat",note:"FX-protected TRY deposit scheme (KKM).",liquid:false}
+]},
+{group:"Pension",accounts:[
+  {value:"bes",label:"BES (Bireysel Emeklilik Sistemi)",note:"Private pension system. State contributes 25% of employee contributions. Access at 56.",liquid:false,withdrawAge:56},
+  {value:"oebs",label:"OKS (Auto-enrolment BES)",note:"Automatic workplace pension. Opt-out within 2 months.",liquid:false,withdrawAge:56}
+]},
+{group:"Investment & other",accounts:[
+  {value:"brokerage",label:"Yatırım hesabı (brokerage)",note:"BIST equities. 0% CGT on Turkish equities held >2 years.",liquid:true},
+  {value:"crypto",label:"Cryptocurrency",note:"No specific CGT law yet; subject to income tax.",liquid:true},
+  {value:"other_asset",label:"Other asset",note:"Any other asset.",liquid:true}
+]}]},
 
 };
 
@@ -6203,15 +6405,25 @@ window.toggleSimInputs = toggleSimInputs;
 // ═══════════════════════════════════════════════════════════
 // Grouped country dropdown — 39 countries organized into 5 buckets so the
 // list doesn't overwhelm the user. Each <optgroup> shows up as a section.
+// const COUNTRY_GROUPS = [
+//   {label:"🌎 North America",     codes:["US","CA","MX"]},
+//   {label:"🇪🇺 Euro zone",         codes:["EU","DE","FR","IT","ES","NL","BE","AT","IE","PT","LU","FI","GR","CY","HR","EE","LV","LT","SK","SI","MT"]},
+//   {label:"🇪🇺 Europe — non-euro", codes:["GB","CH"]},
+//   {label:"🌏 Asia / Pacific",    codes:["JP","SG","HK","CN","TW","KR","IN","ID","AU"]},
+//   {label:"🌍 Middle East / Africa",codes:["SA","ZA"]},
+//   {label:"🌐 Latin America",     codes:["BR"]},
+//   {label:"🌐 Other",             codes:["OTHER"]}
+// ];
 const COUNTRY_GROUPS = [
-  {label:"🌎 North America",     codes:["US","CA","MX"]},
-  {label:"🇪🇺 Euro zone",         codes:["EU","DE","FR","IT","ES","NL","BE","AT","IE","PT","LU","FI","GR","CY","HR","EE","LV","LT","SK","SI","MT"]},
-  {label:"🇪🇺 Europe — non-euro", codes:["GB","CH"]},
-  {label:"🌏 Asia / Pacific",    codes:["JP","SG","HK","CN","TW","KR","IN","ID","AU"]},
-  {label:"🌍 Middle East / Africa",codes:["SA","ZA"]},
-  {label:"🌐 Latin America",     codes:["BR"]},
-  {label:"🌐 Other",             codes:["OTHER"]}
+  {label:"🌎 North America",      codes:["US","CA","MX"]},
+  {label:"🇪🇺 Euro zone",          codes:["EU","DE","FR","IT","ES","NL","BE","AT","IE","PT","LU","FI","GR","CY","HR","EE","LV","LT","SK","SI","MT"]},
+  {label:"🇪🇺 Europe — non-euro",  codes:["GB","CH","SE","NO","DK","PL"]},
+  {label:"🌏 Asia / Pacific",     codes:["JP","SG","HK","CN","TW","KR","IN","ID","AU","NZ","TH","MY"]},
+  {label:"🌍 Middle East / Africa",codes:["SA","ZA","AE","NG","IL"]},
+  {label:"🌐 Latin America",      codes:["BR"]},
+  {label:"🌐 Other",              codes:["TR","OTHER"]}
 ];
+
 function popCountries(selectId,defaultVal){
   const sel=$(selectId); if(!sel) return;
   sel.innerHTML="";
