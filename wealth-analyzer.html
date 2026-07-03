@@ -630,6 +630,95 @@ input[type=date]{color-scheme:light}
 .rn-card .rn-val{font-size:22px;font-weight:700;color:var(--text);font-variant-numeric:tabular-nums}
 .rn-card .rn-sub{font-size:11px;color:var(--text3);margin-top:3px}
 .rn-gap-pos{color:var(--green)}.rn-gap-neg{color:var(--red)}
+
+/* ═══════════════════════════════════════════════════════════
+   WOW LAYER — private-banking polish
+   Deep-navy animated hero, glass stat cards, count-up numbers,
+   staggered panel entrances, button sheen, refined details.
+   All transform/opacity animations (GPU-cheap); fully disabled
+   under prefers-reduced-motion.
+   ═══════════════════════════════════════════════════════════ */
+@keyframes wowAurora{0%{transform:translate3d(-7%,-5%,0) scale(1)}50%{transform:translate3d(7%,5%,0) scale(1.18)}100%{transform:translate3d(-7%,-5%,0) scale(1)}}
+@keyframes wowSheen{0%{transform:translateX(-140%) skewX(-18deg)}100%{transform:translateX(260%) skewX(-18deg)}}
+@keyframes wowFadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+@keyframes wowPop{0%{transform:scale(1)}35%{transform:scale(1.05)}100%{transform:scale(1)}}
+@keyframes wowFlash{0%{box-shadow:0 0 0 0 rgba(255,205,100,0)}30%{box-shadow:0 0 0 6px rgba(255,205,100,.38)}100%{box-shadow:0 0 0 0 rgba(255,205,100,0)}}
+
+/* 1 · Hero — deep navy with a slow-drifting aurora and gold-lit net worth */
+.wealth-hero{position:relative;background:linear-gradient(128deg,#061735 0%,#0a2a5e 52%,#0d3f8a 100%);
+  box-shadow:0 22px 54px rgba(4,20,50,.38),0 2px 8px rgba(4,20,50,.22);animation:wowFadeUp .5s ease both}
+.wealth-hero::before{content:"";position:absolute;inset:-45%;pointer-events:none;
+  background:radial-gradient(38% 55% at 22% 30%,rgba(77,166,255,.30),transparent 62%),
+             radial-gradient(30% 45% at 78% 72%,rgba(212,175,95,.17),transparent 60%),
+             radial-gradient(26% 40% at 62% 15%,rgba(0,164,166,.15),transparent 60%);
+  animation:wowAurora 17s ease-in-out infinite}
+.wealth-hero>*{position:relative;z-index:1}
+.wealth-hero .wh-title{background:linear-gradient(93deg,#ffffff 0%,#bcd8ff 55%,#8fbaff 100%);-webkit-background-clip:text;background-clip:text}
+.wealth-hero .wh-sub{color:rgba(213,225,245,.74)}
+.wealth-hero .wh-amount-label{color:rgba(213,225,245,.60)}
+.wealth-hero .wh-amount{color:#fff;text-shadow:0 2px 22px rgba(77,166,255,.38)}
+.wealth-hero .wh-asof{color:rgba(213,225,245,.48)}
+.wealth-hero .wh-legend .wh-lbl{color:rgba(222,232,248,.82)}
+.wealth-hero .wh-legend .wh-lval{color:#fff}
+.wealth-hero .wh-stat{background:rgba(255,255,255,.07);border-color:rgba(255,255,255,.14);backdrop-filter:blur(12px)}
+.wealth-hero .wh-stat:hover{background:rgba(255,255,255,.13);border-color:rgba(255,255,255,.30);transform:translateY(-2px);box-shadow:0 10px 26px rgba(2,12,32,.38)}
+.wealth-hero .wh-stat-lbl{color:rgba(213,225,245,.62)}
+.wealth-hero .wh-stat-val{color:#fff}
+.wealth-hero .wh-stat-icon{background:rgba(255,255,255,.10)!important;color:#9cc4ff!important}
+.wealth-hero .wh-risk-chip{background:rgba(255,255,255,.10);color:#bcd8ff}
+.wealth-hero #m-prob{color:rgba(213,225,245,.72)!important}
+.wealth-hero .btn-secondary{background:rgba(255,255,255,.07);border-color:rgba(255,255,255,.26);color:#dfe9fa}
+.wealth-hero .btn-secondary:hover{background:rgba(255,255,255,.15);border-color:rgba(255,255,255,.45);color:#fff}
+.wealth-hero .wh-right{background:linear-gradient(165deg,rgba(255,255,255,.06),rgba(255,255,255,.015));border-left-color:rgba(255,255,255,.09)}
+.wealth-hero .wh-right-title{color:rgba(213,225,245,.60)}
+.wealth-hero .wh-donut-center *{color:#fff!important}
+.wealth-hero .wh-seg-lbl{color:rgba(222,232,248,.85)}
+.wealth-hero .wh-seg-pct{color:rgba(213,225,245,.62)}
+/* inline-styled helper text (e.g. donut empty state) must stay readable on navy */
+.wealth-hero .wh-right [style*="var(--text3)"],
+.wealth-hero .wh-left [style*="var(--text3)"]{color:rgba(213,225,245,.62)!important}
+
+/* 2 · Buttons — gradient depth + light sweep on hover */
+.btn-primary{position:relative;overflow:hidden;background:linear-gradient(135deg,#0069d9,#003d8f);
+  box-shadow:0 4px 14px rgba(0,87,184,.30);transition:transform .16s,box-shadow .16s,filter .16s}
+.btn-primary:hover{transform:translateY(-1px);box-shadow:0 9px 24px rgba(0,87,184,.42);filter:brightness(1.06)}
+.btn-primary:active{transform:translateY(0) scale(.97)}
+.btn-primary::after{content:"";position:absolute;top:0;bottom:0;left:0;width:45%;pointer-events:none;
+  background:linear-gradient(100deg,transparent,rgba(255,255,255,.38),transparent);transform:translateX(-140%) skewX(-18deg)}
+.btn-primary:hover::after{animation:wowSheen .8s ease}
+
+/* 3 · Panels — staggered entrance on every tab switch */
+.tab.active .panel{animation:wowFadeUp .38s cubic-bezier(.2,.7,.3,1) both}
+.tab.active .panel:nth-of-type(2){animation-delay:.05s}
+.tab.active .panel:nth-of-type(3){animation-delay:.10s}
+.tab.active .panel:nth-of-type(4){animation-delay:.15s}
+.tab.active .panel:nth-of-type(5){animation-delay:.20s}
+.tab.active .panel:nth-of-type(6){animation-delay:.25s}
+.tab.active .panel:nth-of-type(n+7){animation-delay:.30s}
+
+/* 4 · Sidebar — glide + soft active gradient */
+.nav-item{transition:all .18s cubic-bezier(.2,.7,.3,1)}
+.nav-item:hover{transform:translateX(2px)}
+.nav-item.active{background:linear-gradient(90deg,rgba(0,87,184,.10),rgba(0,87,184,.02))}
+
+/* 5 · Metric feedback — count-up pop + sim-complete gold flash */
+.wow-pop{animation:wowPop .5s cubic-bezier(.3,.7,.3,1)}
+.wow-flash{animation:wowFlash 1.1s ease}
+
+/* 6 · Refined details — scrollbar, selection, focus ring */
+*::-webkit-scrollbar{width:9px;height:9px}
+*::-webkit-scrollbar-track{background:transparent}
+*::-webkit-scrollbar-thumb{background:rgba(0,87,184,.18);border-radius:8px;border:2px solid transparent;background-clip:content-box}
+*::-webkit-scrollbar-thumb:hover{background:rgba(0,87,184,.38);border:2px solid transparent;background-clip:content-box}
+::selection{background:rgba(0,105,217,.20)}
+:focus-visible{outline:2px solid rgba(0,105,217,.55);outline-offset:2px}
+
+/* 7 · Accessibility — motion off when the OS asks for it */
+@media (prefers-reduced-motion: reduce){
+  .wealth-hero,.wealth-hero::before,.tab.active .panel,.wow-pop,.wow-flash,.btn-primary:hover::after{animation:none!important}
+  .tab.active .panel{opacity:1;transform:none}
+  .nav-item:hover,.wh-stat:hover,.btn-primary:hover{transform:none}
+}
 </style>
 </head>
 <body>
@@ -13866,6 +13955,14 @@ function runSim(){
   try { renderSimPotentialWealth(); } catch(e){ console.warn("renderSimPotentialWealth:", e); }
   try { renderClaimAge(); } catch(e){ console.warn("renderClaimAge:", e); }
   try { renderEstate(); } catch(e){ console.warn("renderEstate:", e); }
+  // WOW layer: brief gold flash on the freshly recomputed projection metrics
+  try{
+    ["m-med","m-prob"].forEach(id=>{
+      const el=document.getElementById(id); if(!el) return;
+      const card=el.closest(".wh-stat")||el;
+      card.classList.remove("wow-flash"); void card.offsetWidth; card.classList.add("wow-flash");
+    });
+  }catch(_){}
 }
 
 // ─── Goal Funding Status in the Simulation tab (PV, priority-weighted) ───
@@ -20674,6 +20771,59 @@ document.addEventListener("DOMContentLoaded",function(){
     });
   })();
 });
+
+// ═══════════════════════════════════════════════════════════
+// WOW layer — metric count-ups. Watches the headline metric
+// elements and animates numeric changes (e.g. $1.38M → $1.52M)
+// with an ease-out count, preserving prefix/suffix formatting.
+// Skips entirely under prefers-reduced-motion.
+// ═══════════════════════════════════════════════════════════
+(function(){
+  if(window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const IDS=["wh-donut-total","m-nw","m-assets","m-debt","m-surplus","m-savrate","m-debtratio","m-med","m-prob"];
+  const RX=/^([^0-9\-]*)(-?[\d,]+(?:\.\d+)?)(.*)$/;
+  function pop(el){ el.classList.remove("wow-pop"); void el.offsetWidth; el.classList.add("wow-pop"); }
+  function animateTo(el, prevText, newText){
+    const mN=RX.exec(newText);
+    if(!mN){ pop(el); return; }
+    const target=parseFloat(mN[2].replace(/,/g,""));
+    if(!isFinite(target)){ pop(el); return; }
+    let from=0;
+    const mP=RX.exec(prevText||"");
+    if(mP && mP[1]===mN[1] && mP[3]===mN[3]){
+      const p=parseFloat(mP[2].replace(/,/g,""));
+      if(isFinite(p)) from=p;
+    }
+    if(from===target){ return; }
+    const dec=(mN[2].split(".")[1]||"").length;
+    const useComma=mN[2].indexOf(",")>=0;
+    const t0=performance.now(), dur=650;
+    el.__wowAnim=true;
+    function frame(t){
+      const k=Math.min(1,(t-t0)/dur), e=1-Math.pow(1-k,3);   // ease-out cubic
+      const v=from+(target-from)*e;
+      let s=v.toFixed(dec);
+      if(useComma) s=(+s).toLocaleString(undefined,{minimumFractionDigits:dec,maximumFractionDigits:dec});
+      el.textContent=mN[1]+s+mN[3];
+      if(k<1) requestAnimationFrame(frame);
+      else { el.textContent=newText; el.__wowAnim=false; }
+    }
+    requestAnimationFrame(frame);
+    pop(el);
+  }
+  IDS.forEach(id=>{
+    const el=document.getElementById(id);
+    if(!el) return;
+    let last=el.textContent;
+    new MutationObserver(()=>{
+      if(el.__wowAnim) return;              // our own frames — ignore
+      const now=el.textContent;
+      if(now===last) return;
+      const prev=last; last=now;
+      animateTo(el, prev, now);
+    }).observe(el,{childList:true,characterData:true,subtree:true});
+  });
+})();
 </script>
 </body>
 </html>
