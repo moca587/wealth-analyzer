@@ -1346,7 +1346,7 @@ input[type=date]{color-scheme:light}
   <div id="mcParamsBody" style="display:none;padding-top:12px">
   <div class="two-col">
     <div>
-      <div class="frow"><label class="flbl">Projection years</label><input type="number" id="simYrs" value="20" min="5" max="40" step="1" class="w120"></div>
+      <div class="frow"><label class="flbl">Projection years</label><input type="number" id="simYrs" value="20" min="5" max="40" step="1" class="w120" oninput="refreshTopMetrics()"></div>
 
       <div class="frow"><label class="flbl">Glidepath de-risking</label>
         <select id="gpOn" class="w200" onchange="runSim()">
@@ -1358,7 +1358,7 @@ input[type=date]{color-scheme:light}
       <div class="frow"><label class="flbl">De-risk over final (years)</label><input type="number" id="gpYears" value="10" min="1" max="30" step="1" class="w120" onchange="runSim()"></div>
 
       <div class="frow"><label class="flbl">Simulations</label>
-        <select id="simN" class="w160">
+        <select id="simN" class="w160" onchange="refreshTopMetrics()">
           <option value="200">200 — fast</option>
           <option value="500" selected>500 — balanced</option>
           <option value="1000">1000 — precise</option>
@@ -1379,7 +1379,7 @@ input[type=date]{color-scheme:light}
       </div>
 
       <div class="frow" style="margin-top:8px"><label class="flbl">Portfolio rebalancing</label>
-        <select id="rebalFreq" class="w180">
+        <select id="rebalFreq" class="w180" onchange="refreshTopMetrics()">
           <option value="none" selected>None — static allocation</option>
           <option value="annual">Annual — rebalance every year</option>
           <option value="threshold">5% drift — rebalance on breach</option>
@@ -1387,7 +1387,7 @@ input[type=date]{color-scheme:light}
       </div>
 
       <div class="frow"><label class="flbl">Invested allocation %</label>
-        <input type="number" id="tgtEquity" value="60" min="0" max="100" step="5" class="w120">
+        <input type="number" id="tgtEquity" value="60" min="0" max="100" step="5" class="w120" oninput="refreshTopMetrics()">
         <span style="font-size:11px;color:var(--text3);margin-left:8px">remainder in cash</span>
       </div>
 
@@ -1523,7 +1523,7 @@ input[type=date]{color-scheme:light}
   <div class="nav-item" data-tab="simulation" onclick="showTab('simulation',this)">
     <svg viewBox="0 0 16 16" fill="currentColor"><path d="M1 12l4-5 3 3 3-4 4 5H1z"/></svg>Simulation
   </div>
-  <div class="nav-item" data-tab="goalsbased" onclick="showTab('goalsbased',this);runGoalsBased()">
+  <div class="nav-item" data-tab="goalsbased" onclick="showTab('goalsbased',this)">
     <svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 0a8 8 0 100 16A8 8 0 008 0zm0 3a5 5 0 110 10A5 5 0 018 3zm0 3a2 2 0 100 4 2 2 0 000-4z"/></svg>Goals-Based Analysis
     <span style="margin-left:auto;font-size:9px;font-weight:700;background:linear-gradient(135deg,#7c3aed,var(--gold));color:#fff;padding:2px 6px;border-radius:50px;pointer-events:none">NEW</span>
   </div>
@@ -1810,7 +1810,7 @@ input[type=date]{color-scheme:light}
   </div>
 
   <div style="border-top:1px solid var(--border);padding-top:12px">
-    <div class="frow"><label class="flbl">Annual raise % (both)</label><input type="number" id="raise" value="0" step="0.5" class="w120"></div>
+    <div class="frow"><label class="flbl">Annual raise % (both)</label><input type="number" id="raise" value="0" step="0.5" class="w120" oninput="refreshTopMetrics()"></div>
     <div id="inc-total-row" style="margin-top:8px;padding:10px 12px;background:var(--bg3);border-radius:var(--rs);border:1px solid var(--border)">
       <div style="font-size:11px;color:var(--text3);margin-bottom:4px">Household total income (live)</div>
       <div style="font-size:18px;font-weight:500;color:var(--gold)" id="inc-total">—</div>
@@ -1893,7 +1893,7 @@ input[type=date]{color-scheme:light}
       </select>
     </div>
     <div id="infEuNote" class="rnote-box" style="display:none"></div>
-    <div class="frow" style="margin-top:8px"><label class="flbl">Inflation rate %</label><input type="number" id="inf" value="3.8" step="0.1" class="w120"></div>
+    <div class="frow" style="margin-top:8px"><label class="flbl">Inflation rate %</label><input type="number" id="inf" value="3.8" step="0.1" class="w120" oninput="refreshTopMetrics()"></div>
   </div>
 </div>
 
@@ -2064,7 +2064,7 @@ input[type=date]{color-scheme:light}
     <div class="dropdown-body" id="invParamsBody">
     <div class="frow" style="margin-top:10px"><label class="flbl">Return mean %</label><input type="number" id="retM" value="7" step="0.5" class="w120"></div>
     <div class="frow"><label class="flbl">Return volatility %</label><input type="number" id="retV" value="12" step="0.5" class="w120"></div>
-    <div style="font-size:11px;color:var(--text3);margin-top:10px;margin-bottom:6px;font-style:italic">Reference assumptions — override above with your own capital market assumptions.</div>
+    <div style="font-size:11px;color:var(--text3);margin-top:10px;margin-bottom:6px;font-style:italic">Derived from the selected risk profiles (and portfolio holdings when entered). Editable as a manual override only when no risk profile is chosen on the Household tab.</div>
 
     <div style="font-size:11px;color:var(--text2);font-weight:600;letter-spacing:.05em;text-transform:uppercase;margin-bottom:6px">By risk profile</div>
     <table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:12px">
@@ -2183,10 +2183,10 @@ input[type=date]{color-scheme:light}
         </select>
       </div>
       <div id="retLifeNote" class="rnote"></div>
-      <div class="frow" style="margin-top:10px"><label class="flbl">Desired retirement age</label><input type="number" id="retAge" class="w120" placeholder="65" value="65" min="40" max="90"></div>
+      <div class="frow" style="margin-top:10px"><label class="flbl">Desired retirement age</label><input type="number" id="retAge" class="w120" placeholder="65" value="65" min="40" max="90" oninput="refreshTopMetrics()"></div>
     </div>
     <div>
-      <div class="frow"><label class="flbl">Annual retirement spending</label><input type="number" id="retSpend" class="w160" placeholder="60000" value="60000"></div>
+      <div class="frow"><label class="flbl">Annual retirement spending</label><input type="number" id="retSpend" class="w160" placeholder="60000" value="60000" oninput="refreshTopMetrics()"></div>
       <div class="frow"><label class="flbl">Retirement location</label><select id="retLoc" class="w200"></select></div>
       <div style="font-size:11px;color:var(--text3);margin-top:6px">Location can differ from your current country — cost of living varies.</div>
     </div>
@@ -2352,7 +2352,7 @@ input[type=date]{color-scheme:light}
   <div class="ptitle">Simulation Settings</div>
   <div class="two-col">
     <div>
-      <div class="frow"><label class="flbl">Projection years</label><input type="number" id="simYrs" value="20" min="5" max="40" step="1" class="w120"></div>
+      <div class="frow"><label class="flbl">Projection years</label><input type="number" id="simYrs" value="20" min="5" max="40" step="1" class="w120" oninput="refreshTopMetrics()"></div>
       <div class="frow"><label class="flbl">Glidepath de-risking</label>
         <select id="gpOn" class="w200" onchange="runSim()">
           <option value="no" selected>Off — static allocation</option>
@@ -2361,7 +2361,7 @@ input[type=date]{color-scheme:light}
       </div>
       <div class="frow"><label class="flbl">De-risk over final (years)</label><input type="number" id="gpYears" value="10" min="1" max="30" step="1" class="w120" onchange="runSim()"></div>
       <div class="frow"><label class="flbl">Simulations</label>
-        <select id="simN" class="w160">
+        <select id="simN" class="w160" onchange="refreshTopMetrics()">
           <option value="200">200 — fast</option>
           <option value="500" selected>500 — balanced</option>
           <option value="1000">1000 — precise</option>
@@ -2381,14 +2381,14 @@ input[type=date]{color-scheme:light}
       </div>
 
       <div class="frow" style="margin-top:8px"><label class="flbl">Portfolio rebalancing</label>
-        <select id="rebalFreq" class="w180">
+        <select id="rebalFreq" class="w180" onchange="refreshTopMetrics()">
           <option value="none" selected>None — static allocation</option>
           <option value="annual">Annual — rebalance every year</option>
           <option value="threshold">5% drift — rebalance on breach</option>
         </select>
       </div>
       <div class="frow"><label class="flbl">Invested allocation %</label>
-        <input type="number" id="tgtEquity" value="60" min="0" max="100" step="5" class="w120">
+        <input type="number" id="tgtEquity" value="60" min="0" max="100" step="5" class="w120" oninput="refreshTopMetrics()">
         <span style="font-size:11px;color:var(--text3);margin-left:8px">remainder in cash</span>
       </div>
 
@@ -2450,6 +2450,13 @@ input[type=date]{color-scheme:light}
     <div id="simLifestyle">
       Run the simulation to estimate sustainable retirement spending.
     </div>
+    </div>
+
+    <!-- Wealth Allocation Framework (kept here in the Simulation tab) -->
+    <div class="panel" id="simWealthFwPanel">
+      <div class="ptitle">Wealth Allocation Framework</div>
+      <div style="font-size:12px;color:var(--text3);margin-bottom:14px;line-height:1.6">Merrill's three-bucket framework organizes assets by risk-return role: <strong style="color:var(--green)">Personal</strong> (preserve lifestyle — residence, cash), <strong style="color:var(--accent)">Market</strong> (balance risk &amp; return — diversified equities/bonds), and <strong style="color:#7c3aed">Aspirational</strong> (idiosyncratic upside — concentrated stock, business, crypto, investment property).</div>
+      <div id="gbWealth"><div style="color:var(--text3);font-size:12px">Add assets to see your wealth allocation.</div></div>
     </div>
 
     <!-- annual potential wealth table rendered below the achievable-lifestyle panel -->
@@ -3460,19 +3467,8 @@ input[type=date]{color-scheme:light}
     <div id="gbGoals"></div>
   </div>
 
-  <!-- Potentially Achievable Lifestyle -->
-  <div class="panel" id="gbLifestylePanel" style="display:none">
-    <div class="ptitle">Potentially Achievable Annual Lifestyle</div>
-    <div style="font-size:12px;color:var(--text3);margin-bottom:14px;line-height:1.6">Estimated sustainable annual retirement spending (today's dollars) that lasts to age 90, under three confidence levels. <strong>80%</strong> is the conservative/pessimistic floor (returns below mean); <strong>30%</strong> is optimistic (returns above mean).</div>
-    <div id="gbLifestyle"></div>
-  </div>
-
-  <!-- Wealth Allocation Framework -->
-  <div class="panel" id="gbWealthPanel" style="display:none">
-    <div class="ptitle">Wealth Allocation Framework</div>
-    <div style="font-size:12px;color:var(--text3);margin-bottom:14px;line-height:1.6">Merrill's three-bucket framework organizes assets by risk-return role: <strong style="color:var(--green)">Personal</strong> (preserve lifestyle — residence, cash), <strong style="color:var(--accent)">Market</strong> (balance risk & return — diversified equities/bonds), and <strong style="color:#7c3aed">Aspirational</strong> (idiosyncratic upside — concentrated stock, business, crypto, investment property).</div>
-    <div id="gbWealth"></div>
-  </div>
+  <!-- Potentially Achievable Lifestyle and Wealth Allocation Framework now live
+       in the Simulation tab (kept out of here to avoid duplication). -->
 
   <!-- Capital Market Assumptions -->
   <div class="panel" id="gbCmaPanel" style="display:none">
@@ -3819,7 +3815,7 @@ input[type=date]{color-scheme:light}
 // ═══════════════════════════════════════════════════════════
 // VERSION — updated by build-standalone.pl on each build
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260701-2049";
+const APP_VERSION = "20260703-1438";
 
 // ═══════════════════════════════════════════════════════════
 // DATA
@@ -4739,7 +4735,209 @@ OTHER:{flag:"🌍",name:"Other",groups:[
 {group:"Other",accounts:[
   {value:"crypto",label:"Cryptocurrency",note:"Digital assets.",liquid:true},
   {value:"other_asset",label:"Other asset",note:"Any other asset.",liquid:true}
-]}]}
+]}]},
+
+// ─── NORWAY ───────────────────────────────────────────────────────
+NO:{flag:"🇳🇴",name:"Norway",groups:[
+{group:"Banking",accounts:[
+  {value:"checking",label:"Bankkonto (checking)",note:"Standard account. Bankenes sikringsfond protects up to NOK 2M per bank.",liquid:true},
+  {value:"savings",label:"Sparekonto (savings)",note:"Interest-bearing savings account.",liquid:true},
+  {value:"bsu",label:"BSU (Boligsparing for ungdom)",note:"First-home savings for under-34s. Tax-deductible up to NOK 27,500/yr.",liquid:false}
+]},
+{group:"Pension",accounts:[
+  {value:"ips",label:"IPS (Individual Pension Savings)",note:"Tax-deductible up to NOK 15,000/yr. Locked until 62.",liquid:false,withdrawAge:62},
+  {value:"innskuddspensjon",label:"Innskuddspensjon (occupational DC)",note:"Employer defined-contribution pension.",liquid:false,withdrawAge:62},
+  {value:"nav_pension",label:"Alderspensjon / NAV (estimated annual)",note:"State pension from age 62 (flexible). Full benefit typically from 67.",liquid:false,withdrawAge:67}
+]},
+{group:"Investment & other",accounts:[
+  {value:"aksjesparekonto",label:"Aksjesparekonto (ASK)",note:"Equity savings account. CGT/dividends deferred until withdrawal.",liquid:true},
+  {value:"brokerage",label:"Verdipapirkonto (brokerage)",note:"Standard taxable investment account.",liquid:true},
+  {value:"crypto",label:"Cryptocurrency",note:"Taxed as capital income in Norway.",liquid:true},
+  {value:"other_asset",label:"Other asset",note:"Any other asset.",liquid:true}
+]}]},
+
+// ─── SWEDEN ───────────────────────────────────────────────────────
+SE:{flag:"🇸🇪",name:"Sweden",groups:[
+{group:"Banking",accounts:[
+  {value:"checking",label:"Lönekonto / transaktionskonto",note:"Standard account. Riksgälden deposit guarantee up to SEK 1,050,000.",liquid:true},
+  {value:"savings",label:"Sparkonto (savings)",note:"Interest-bearing savings.",liquid:true}
+]},
+{group:"Pension & tax-advantaged",accounts:[
+  {value:"ips",label:"IPS (Individuellt pensionssparande)",note:"Individual pension savings. Tax deduction up to SEK 35,000/yr.",liquid:false,withdrawAge:55},
+  {value:"itp",label:"ITP (occupational pension)",note:"White-collar occupational pension scheme.",liquid:false,withdrawAge:65},
+  {value:"isk",label:"ISK (Investeringssparkonto)",note:"Flat wealth-based tax (~0.375% of value/yr). No CGT on individual trades.",liquid:true},
+  {value:"kf",label:"KF (Kapitalförsäkring)",note:"Insurance wrapper. Similar tax treatment to ISK.",liquid:true},
+  {value:"allmän_pension",label:"Allmän pension / AP (estimated annual)",note:"State pension from age 63 (flexible).",liquid:false,withdrawAge:65}
+]},
+{group:"Investment & other",accounts:[
+  {value:"brokerage",label:"Värdepappersdepå (brokerage)",note:"Standard taxable account. 30% CGT on gains.",liquid:true},
+  {value:"crypto",label:"Cryptocurrency",note:"30% CGT in Sweden.",liquid:true},
+  {value:"other_asset",label:"Other asset",note:"Any other asset.",liquid:true}
+]}]},
+
+// ─── DENMARK ──────────────────────────────────────────────────────
+DK:{flag:"🇩🇰",name:"Denmark",groups:[
+{group:"Banking",accounts:[
+  {value:"checking",label:"Lønkonto (checking)",note:"Standard account. Garantifonden protects up to DKK 750,000.",liquid:true},
+  {value:"savings",label:"Opsparingskonto (savings)",note:"Interest-bearing savings.",liquid:true}
+]},
+{group:"Pension",accounts:[
+  {value:"ratepension",label:"Ratepension (annuity pension)",note:"Tax-deductible up to DKK 63,100/yr. Paid out over 10-30 years.",liquid:false,withdrawAge:63},
+  {value:"aldersopsparing",label:"Aldersopsparing (retirement savings)",note:"After-tax contributions. Tax-free withdrawals. Up to DKK 9,100/yr.",liquid:false,withdrawAge:63},
+  {value:"livrente",label:"Livrente (life annuity)",note:"Tax-deductible. Paid out for life from retirement age.",liquid:false,withdrawAge:63},
+  {value:"folkepension",label:"Folkepension (estimated annual)",note:"State pension from age 67.",liquid:false,withdrawAge:67}
+]},
+{group:"Investment & other",accounts:[
+  {value:"aktiesparekonto",label:"Aktiesparekonto",note:"Equity savings account. 17% flat tax on gains/dividends up to DKK 135,900.",liquid:true},
+  {value:"brokerage",label:"Værdipapirkonto (brokerage)",note:"Standard taxable account.",liquid:true},
+  {value:"crypto",label:"Cryptocurrency",note:"Taxed as personal income in Denmark.",liquid:true},
+  {value:"other_asset",label:"Other asset",note:"Any other asset.",liquid:true}
+]}]},
+
+// ─── POLAND ───────────────────────────────────────────────────────
+PL:{flag:"🇵🇱",name:"Poland",groups:[
+{group:"Banking",accounts:[
+  {value:"checking",label:"Rachunek bieżący (checking)",note:"Standard account. BFG (Bankowy Fundusz Gwarancyjny) protects up to €100,000.",liquid:true},
+  {value:"savings",label:"Konto oszczędnościowe (savings)",note:"Interest-bearing savings account.",liquid:true}
+]},
+{group:"Pension",accounts:[
+  {value:"ike",label:"IKE (Indywidualne Konto Emerytalne)",note:"Individual retirement account. Tax-free on withdrawal after 60. Limit ~PLN 23,472/yr.",liquid:false,withdrawAge:60},
+  {value:"ikze",label:"IKZE (Indywidualne Konto Zabezpieczenia Emerytalnego)",note:"Tax-deductible contributions. Limit ~PLN 9,388/yr.",liquid:false,withdrawAge:65},
+  {value:"ppk",label:"PPK (Pracownicze Plany Kapitałowe)",note:"Workplace pension. Employee 2%, employer 1.5% + state top-up.",liquid:false,withdrawAge:60},
+  {value:"zus_pension",label:"ZUS / Emerytura (estimated annual)",note:"State pension from age 60 (women) / 65 (men).",liquid:false,withdrawAge:65}
+]},
+{group:"Investment & other",accounts:[
+  {value:"brokerage",label:"Rachunek maklerski (brokerage)",note:"Standard taxable account. 19% Belka tax on capital gains.",liquid:true},
+  {value:"crypto",label:"Cryptocurrency",note:"19% Belka tax on crypto gains in Poland.",liquid:true},
+  {value:"other_asset",label:"Other asset",note:"Any other asset.",liquid:true}
+]}]},
+
+// ─── NEW ZEALAND ──────────────────────────────────────────────────
+NZ:{flag:"🇳🇿",name:"New Zealand",groups:[
+{group:"Banking",accounts:[
+  {value:"checking",label:"Cheque / transaction account",note:"Standard account. RBNZ deposit compensation up to NZD 100,000 (from 2025).",liquid:true},
+  {value:"savings",label:"Savings account",note:"Interest-bearing savings.",liquid:true},
+  {value:"term_deposit",label:"Term deposit",note:"Fixed-term at guaranteed rate.",liquid:false}
+]},
+{group:"KiwiSaver & pension",accounts:[
+  {value:"kiwisaver",label:"KiwiSaver",note:"Workplace retirement savings. 3% employee + 3% employer. Locked until 65.",liquid:false,withdrawAge:65},
+  {value:"nz_super",label:"NZ Superannuation (estimated annual)",note:"Universal pension from age 65. ~NZD 24,000/yr (single, living alone, 2024).",liquid:false,withdrawAge:65}
+]},
+{group:"Investment & other",accounts:[
+  {value:"brokerage",label:"Share brokerage account",note:"NZX equities. No CGT on shares (unless trader).",liquid:true},
+  {value:"pie_fund",label:"PIE fund (Portfolio Investment Entity)",note:"Tax capped at 28% on investment income.",liquid:true},
+  {value:"crypto",label:"Cryptocurrency",note:"Taxed as income if held for resale.",liquid:true},
+  {value:"other_asset",label:"Other asset",note:"Any other asset.",liquid:true}
+]}]},
+
+// ─── ISRAEL ───────────────────────────────────────────────────────
+IL:{flag:"🇮🇱",name:"Israel",groups:[
+{group:"Banking",accounts:[
+  {value:"checking",label:"Cheshbon Jai (current account)",note:"Standard account. DICF protects up to ILS 250,000.",liquid:true},
+  {value:"savings",label:"Pikkadon (term deposit)",note:"Fixed-term savings.",liquid:false},
+  {value:"savings_reg",label:"Cheshbon Chisachon (savings)",note:"Interest-bearing savings account.",liquid:true}
+]},
+{group:"Pension & provident",accounts:[
+  {value:"keren_pensia",label:"Keren Pensia (pension fund)",note:"Mandatory for employed. Defined benefit/contribution hybrid.",liquid:false,withdrawAge:67},
+  {value:"kupat_gemel",label:"Kupat Gemel (provident fund)",note:"Long-term savings. Tax-exempt on withdrawal after 15 years from age 60.",liquid:false,withdrawAge:60},
+  {value:"bituach_menahalim",label:"Bituach Menahalim (managers insurance)",note:"Executive insurance policy combining pension, disability and life cover.",liquid:false,withdrawAge:67},
+  {value:"old_age_bituach",label:"Old Age Insurance / Bituach Leumi (est. annual)",note:"National Insurance Institute pension from age 67 (men) / 65 (women).",liquid:false,withdrawAge:67}
+]},
+{group:"Investment & other",accounts:[
+  {value:"brokerage",label:"Cheshbon Niratim (brokerage)",note:"Standard taxable account. 25% CGT on gains.",liquid:true},
+  {value:"crypto",label:"Cryptocurrency",note:"25% CGT in Israel.",liquid:true},
+  {value:"other_asset",label:"Other asset",note:"Any other asset.",liquid:true}
+]}]},
+
+// ─── UAE ──────────────────────────────────────────────────────────
+AE:{flag:"🇦🇪",name:"United Arab Emirates",groups:[
+{group:"Banking",accounts:[
+  {value:"checking",label:"Current account",note:"Standard account. UAE Central Bank regulated.",liquid:true},
+  {value:"savings",label:"Savings account",note:"Interest-bearing deposit.",liquid:true},
+  {value:"fixed_deposit",label:"Fixed deposit",note:"Term deposit at guaranteed rate.",liquid:false}
+]},
+{group:"Retirement & end of service",accounts:[
+  {value:"gratuity",label:"End of Service Gratuity (EOSB)",note:"Statutory lump sum on leaving employment. ~21 days/yr for first 5 yrs, 30 days/yr after.",liquid:false},
+  {value:"difc_dews",label:"DIFC DEWS / GPSSA (workplace savings)",note:"DIFC Workplace Savings Plan or Abu Dhabi/federal pension for UAE nationals.",liquid:false,withdrawAge:60}
+]},
+{group:"Investment & other",accounts:[
+  {value:"brokerage",label:"Brokerage account (ADX / DFM)",note:"UAE stock exchange account. No CGT.",liquid:true},
+  {value:"crypto",label:"Cryptocurrency",note:"No income or CGT in UAE.",liquid:true},
+  {value:"other_asset",label:"Other asset",note:"Any other asset.",liquid:true}
+]}]},
+
+// ─── THAILAND ─────────────────────────────────────────────────────
+TH:{flag:"🇹🇭",name:"Thailand",groups:[
+{group:"Banking",accounts:[
+  {value:"checking",label:"Bัญชีกระแสรายวัน (current)",note:"Standard account. DPA protects up to THB 1M per bank.",liquid:true},
+  {value:"savings",label:"บัญชีออมทรัพย์ (savings)",note:"Interest-bearing savings account.",liquid:true},
+  {value:"fixed_deposit",label:"บัญชีเงินฝากประจำ (fixed deposit)",note:"Fixed-term deposit.",liquid:false}
+]},
+{group:"Pension & provident",accounts:[
+  {value:"provident_fund",label:"Provident Fund (กองทุนสำรองเลี้ยงชีพ)",note:"Employer-sponsored. Both employer and employee contribute.",liquid:false,withdrawAge:55},
+  {value:"rmf",label:"RMF (Retirement Mutual Fund)",note:"Tax-deductible up to 30% of income, max THB 500,000/yr.",liquid:false,withdrawAge:55},
+  {value:"ssf",label:"SSF (Super Savings Fund)",note:"Tax-deductible up to 30% of income, max THB 200,000/yr.",liquid:false,withdrawAge:10},
+  {value:"old_age_pension",label:"Old Age Pension / SSO (estimated annual)",note:"Social Security Office pension from age 55.",liquid:false,withdrawAge:55}
+]},
+{group:"Investment & other",accounts:[
+  {value:"brokerage",label:"บัญชีหลักทรัพย์ (brokerage)",note:"SET/MAI equities. No CGT in Thailand.",liquid:true},
+  {value:"lth_fund",label:"LTF (Long-Term Equity Fund)",note:"Tax-deductible equity fund. 7-year minimum hold.",liquid:false},
+  {value:"crypto",label:"Cryptocurrency",note:"15% WHT on crypto gains in Thailand.",liquid:true},
+  {value:"other_asset",label:"Other asset",note:"Any other asset.",liquid:true}
+]}]},
+
+// ─── MALAYSIA ─────────────────────────────────────────────────────
+MY:{flag:"🇲🇾",name:"Malaysia",groups:[
+{group:"Banking",accounts:[
+  {value:"checking",label:"Current account",note:"Standard account. PIDM protects up to MYR 250,000 per depositor.",liquid:true},
+  {value:"savings",label:"Savings account",note:"Interest-bearing savings.",liquid:true},
+  {value:"fixed_deposit",label:"Fixed deposit",note:"Fixed-term at guaranteed rate.",liquid:false}
+]},
+{group:"Pension & EPF",accounts:[
+  {value:"epf",label:"EPF (Employees Provident Fund)",note:"Mandatory. Employee 11%, employer 13% (age <60). Withdrawable at 55.",liquid:false,withdrawAge:55},
+  {value:"prs",label:"PRS (Private Retirement Scheme)",note:"Voluntary top-up retirement savings. Tax relief up to MYR 3,000/yr.",liquid:false,withdrawAge:55},
+  {value:"sspn",label:"SSPN (National Education Savings)",note:"Education savings. Tax relief up to MYR 8,000/yr.",liquid:false}
+]},
+{group:"Investment & other",accounts:[
+  {value:"brokerage",label:"CDS / brokerage account",note:"Bursa Malaysia equities. No CGT in Malaysia.",liquid:true},
+  {value:"amanah_saham",label:"Amanah Saham (ASB/ASN)",note:"Government-linked unit trust. High dividend, low risk.",liquid:true},
+  {value:"crypto",label:"Cryptocurrency",note:"No specific CGT; taxed as income if frequent trading.",liquid:true},
+  {value:"other_asset",label:"Other asset",note:"Any other asset.",liquid:true}
+]}]},
+
+// ─── NIGERIA ──────────────────────────────────────────────────────
+NG:{flag:"🇳🇬",name:"Nigeria",groups:[
+{group:"Banking",accounts:[
+  {value:"checking",label:"Current account",note:"Standard account. NDIC insures up to NGN 5M per depositor.",liquid:true},
+  {value:"savings",label:"Savings account",note:"Interest-bearing savings.",liquid:true},
+  {value:"fixed_deposit",label:"Fixed deposit",note:"Fixed-term deposit.",liquid:false}
+]},
+{group:"Pension",accounts:[
+  {value:"rsa",label:"RSA (Retirement Savings Account)",note:"Mandatory under CPS. Employee 8%, employer 10% of monthly emoluments.",liquid:false,withdrawAge:50},
+  {value:"vpf",label:"Voluntary Pension Fund (VPF)",note:"Additional voluntary contributions to RSA.",liquid:false,withdrawAge:50}
+]},
+{group:"Investment & other",accounts:[
+  {value:"brokerage",label:"CSCS / brokerage account",note:"NSE/NGX equities. CGT 10% on listed securities.",liquid:true},
+  {value:"crypto",label:"Cryptocurrency",note:"CBN has restricted crypto; use with caution.",liquid:true},
+  {value:"other_asset",label:"Other asset",note:"Any other asset.",liquid:true}
+]}]},
+
+// ─── TURKEY ───────────────────────────────────────────────────────
+TR:{flag:"🇹🇷",name:"Turkey",groups:[
+{group:"Banking",accounts:[
+  {value:"checking",label:"Vadesiz hesap (current)",note:"Standard account. SDIF protects up to TRY 400,000.",liquid:true},
+  {value:"savings",label:"Vadeli mevduat (savings/term deposit)",note:"Fixed-term savings account.",liquid:false},
+  {value:"tl_savings",label:"TL korumalı mevduat",note:"FX-protected TRY deposit scheme (KKM).",liquid:false}
+]},
+{group:"Pension",accounts:[
+  {value:"bes",label:"BES (Bireysel Emeklilik Sistemi)",note:"Private pension system. State contributes 25% of employee contributions. Access at 56.",liquid:false,withdrawAge:56},
+  {value:"oebs",label:"OKS (Auto-enrolment BES)",note:"Automatic workplace pension. Opt-out within 2 months.",liquid:false,withdrawAge:56}
+]},
+{group:"Investment & other",accounts:[
+  {value:"brokerage",label:"Yatırım hesabı (brokerage)",note:"BIST equities. 0% CGT on Turkish equities held >2 years.",liquid:true},
+  {value:"crypto",label:"Cryptocurrency",note:"No specific CGT law yet; subject to income tax.",liquid:true},
+  {value:"other_asset",label:"Other asset",note:"Any other asset.",liquid:true}
+]}]},
 
 };
 
@@ -6218,10 +6416,12 @@ const ZIP_TO_CITY = (function(){
   return map;
 })();
 
-function updateBandReadText(){
-  setT("mcReadLow", band.low + "th");
-  setT("mcReadMid", band.mid + "th");
-  setT("mcReadHigh", band.high + "th");
+// Refresh everything that consumes `band` after a preset/custom change.
+// (The old updateBandReadText wrote to elements that no longer exist.)
+function bandChanged(){
+  if(Array.isArray(lastSimPaths) && lastSimPaths.length){
+    try{ refreshTopMetrics(lastSimPaths, lastSimYrs); }catch(_){}
+  }
 }
 
 // Lookup any 5-digit US ZIP → {state, city}. Returns null if unrecognised.
@@ -6523,7 +6723,7 @@ function renderMdKeysGrid(){
       : '<span style="font-size:12.5px;font-weight:600;color:var(--text)">' + k.n + '</span>';
     h += pill;
     h += '</div>';
-    h += '<input type="password" id="mdKey-'+k.id+'" placeholder="paste key…" value="'+escapeForHTML(v)+'" oninput="saveMdKey(\''+k.id+'\')" style="width:100%;font-family:var(--fm);font-size:11px;padding:6px 9px;border:1px solid var(--border);border-radius:5px;background:var(--bg2);color:var(--text)">';
+    h += '<input type="password" id="mdKey-'+k.id+'" placeholder="paste key…" value="'+escapeForHTML(v)+'" onchange="saveMdKey(\''+k.id+'\')" style="width:100%;font-family:var(--fm);font-size:11px;padding:6px 9px;border:1px solid var(--border);border-radius:5px;background:var(--bg2);color:var(--text)">';
     h += '<div style="font-size:10.5px;color:var(--text3);margin-top:4px">' + k.tip + '</div>';
     h += '</div>';
   });
@@ -6654,15 +6854,25 @@ window.toggleSimInputs = toggleSimInputs;
 // ═══════════════════════════════════════════════════════════
 // Grouped country dropdown — 39 countries organized into 5 buckets so the
 // list doesn't overwhelm the user. Each <optgroup> shows up as a section.
+// const COUNTRY_GROUPS = [
+//   {label:"🌎 North America",     codes:["US","CA","MX"]},
+//   {label:"🇪🇺 Euro zone",         codes:["EU","DE","FR","IT","ES","NL","BE","AT","IE","PT","LU","FI","GR","CY","HR","EE","LV","LT","SK","SI","MT"]},
+//   {label:"🇪🇺 Europe — non-euro", codes:["GB","CH"]},
+//   {label:"🌏 Asia / Pacific",    codes:["JP","SG","HK","CN","TW","KR","IN","ID","AU"]},
+//   {label:"🌍 Middle East / Africa",codes:["SA","ZA"]},
+//   {label:"🌐 Latin America",     codes:["BR"]},
+//   {label:"🌐 Other",             codes:["OTHER"]}
+// ];
 const COUNTRY_GROUPS = [
-  {label:"🌎 North America",     codes:["US","CA","MX"]},
-  {label:"🇪🇺 Euro zone",         codes:["EU","DE","FR","IT","ES","NL","BE","AT","IE","PT","LU","FI","GR","CY","HR","EE","LV","LT","SK","SI","MT"]},
-  {label:"🇪🇺 Europe — non-euro", codes:["GB","CH"]},
-  {label:"🌏 Asia / Pacific",    codes:["JP","SG","HK","CN","TW","KR","IN","ID","AU"]},
-  {label:"🌍 Middle East / Africa",codes:["SA","ZA"]},
-  {label:"🌐 Latin America",     codes:["BR"]},
-  {label:"🌐 Other",             codes:["OTHER"]}
+  {label:"🌎 North America",      codes:["US","CA","MX"]},
+  {label:"🇪🇺 Euro zone",          codes:["EU","DE","FR","IT","ES","NL","BE","AT","IE","PT","LU","FI","GR","CY","HR","EE","LV","LT","SK","SI","MT"]},
+  {label:"🇪🇺 Europe — non-euro",  codes:["GB","CH","SE","NO","DK","PL"]},
+  {label:"🌏 Asia / Pacific",     codes:["JP","SG","HK","CN","TW","KR","IN","ID","AU","NZ","TH","MY"]},
+  {label:"🌍 Middle East / Africa",codes:["SA","ZA","AE","NG","IL"]},
+  {label:"🌐 Latin America",      codes:["BR"]},
+  {label:"🌐 Other",              codes:["TR","OTHER"]}
 ];
+
 function popCountries(selectId,defaultVal){
   const sel=$(selectId); if(!sel) return;
   sel.innerHTML="";
@@ -6857,12 +7067,12 @@ function renderChildren(){
     const a=ageFromDOB(c.dob);
     return `<div class="child-card">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
-        <div style="display:flex;align-items:center;gap:6px"><div class="c-av avc">${(c.first[0]||"C").toUpperCase()}</div><span style="font-size:11px;color:var(--text3)" data-childage="${c.id}">${a!=null?"age "+a:""}</span></div>
+        <div style="display:flex;align-items:center;gap:6px"><div class="c-av avc">${_daEsc((c.first[0]||"C").toUpperCase())}</div><span style="font-size:11px;color:var(--text3)" data-childage="${c.id}">${a!=null?"age "+a:""}</span></div>
         <button class="btn-x" onclick="delChild('${c.id}')">✕</button>
       </div>
       <div style="display:grid;gap:5px">
-        <input placeholder="First" value="${c.first}" oninput="updChild('${c.id}','first',this.value)" style="font-size:12px;padding:5px 8px">
-        <input placeholder="Last" value="${c.last}" oninput="updChild('${c.id}','last',this.value)" style="font-size:12px;padding:5px 8px">
+        <input placeholder="First" value="${_daEsc(c.first)}" oninput="updChild('${c.id}','first',this.value)" style="font-size:12px;padding:5px 8px">
+        <input placeholder="Last" value="${_daEsc(c.last)}" oninput="updChild('${c.id}','last',this.value)" style="font-size:12px;padding:5px 8px">
         <input type="date" value="${c.dob}" oninput="updChild('${c.id}','dob',this.value)" style="font-size:12px;padding:5px 8px">
       </div>
     </div>`;
@@ -7467,7 +7677,10 @@ function delLoan(id){
 }
 function loanMonthly(loan){
   const r=loan.rate/100/12, n=loan.yrs*12;
-  if(n<=0||r<=0) return loan.bal/Math.max(n,1);
+  // No term entered (revolving debt): interest-only payment — never the old
+  // bal/1 fallback, which charged the ENTIRE balance every month.
+  if(n<=0) return r>0 ? loan.bal*r : loan.bal/120;
+  if(r<=0) return loan.bal/n;   // 0%-rate loan: straight-line over the term
   return loan.bal*(r*Math.pow(1+r,n))/(Math.pow(1+r,n)-1);
 }
 function sumDebtServiceAnnual(){return loans.reduce((s,l)=>s+loanMonthly(l)*12,0);}
@@ -7553,7 +7766,7 @@ function renderInsurances(){
         <button class="btn-x" onclick="delInsurance('${p.id}')">✕</button>
       </div>
       <div class="item-meta">
-        <span>Insured: ${who} • ${benLbl}${p.benef?" • → "+_daEsc(p.benef):""}</span>
+        <span>Insured: ${_daEsc(who)} • ${benLbl}${p.benef?" • → "+_daEsc(p.benef):""}</span>
         <span>${p.cash?"Cash value: "+fmtMoneyFull(p.cash)+" • ":""}Premium: ${fmtMoneyFull(p.prem||0)}/yr</span>
       </div>
     </div>`;
@@ -7702,7 +7915,7 @@ function renderEstate(){
   if(beneficiaries.length>0){
     h+='<table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr style="border-bottom:2px solid var(--border);text-align:right"><th style="text-align:left;padding:6px 8px">Beneficiary</th><th style="padding:6px 8px">Share</th><th style="padding:6px 8px">Receives</th></tr></thead><tbody>';
     beneficiaries.forEach(b=>{
-      h+='<tr style="border-bottom:1px solid var(--border);text-align:right"><td style="text-align:left;padding:6px 8px;font-weight:600">'+b.name+' <span style="color:var(--text3);font-weight:400">('+b.rel+')</span></td><td style="padding:6px 8px">'+(+b.share||0).toFixed(0)+'%</td><td style="padding:6px 8px;font-weight:600">'+fmtMoney(e.net*(+b.share||0)/100)+'</td></tr>';
+      h+='<tr style="border-bottom:1px solid var(--border);text-align:right"><td style="text-align:left;padding:6px 8px;font-weight:600">'+_daEsc(b.name)+' <span style="color:var(--text3);font-weight:400">('+_daEsc(b.rel)+')</span></td><td style="padding:6px 8px">'+(+b.share||0).toFixed(0)+'%</td><td style="padding:6px 8px;font-weight:600">'+fmtMoney(e.net*(+b.share||0)/100)+'</td></tr>';
     });
     if(e.totalShare!==100){
       h+='<tr style="text-align:right"><td style="text-align:left;padding:6px 8px;color:var(--amber);font-weight:600">'+(e.totalShare<100?"Unallocated":"Over-allocated")+'</td><td style="padding:6px 8px;color:var(--amber)">'+(100-e.totalShare).toFixed(0)+'%</td><td style="padding:6px 8px;color:var(--amber)">'+fmtMoney(e.net*(100-e.totalShare)/100)+'</td></tr>';
@@ -7758,7 +7971,9 @@ function updateHomeMortgageNote(){
   }
 }
 function addGoal(){
-  const n=val("gname"), s=num("gstart",currentYear()), e=num("gend",currentYear()+1);
+  const n=val("gname");
+  let s=num("gstart",currentYear()), e=num("gend",currentYear()+1);
+  if(e<s){ const t=s; s=e; e=t; }   // reversed years: swap — the engine skips goals with end<start
   const cat=val("gcat"), tier=val("gtier");
   let a=num("gamt",0), homePrice=null;
   if(!n||a<=0){alert("Enter goal name and amount"); return;}
@@ -8250,10 +8465,8 @@ function setBand(mode){
   else if(mode==="alternative"){band={low:40,mid:60,high:90};}
   else { applyCustom(); return; }
 
-  updateBandReadText();
-
   setT("bdesc","Showing "+band.low+"th / "+band.mid+"th / "+band.high+"th percentiles.");
-  if(lastSimPaths) redrawChart(lastSimPaths);
+  bandChanged();
 }
 function applyCustom(){
   const low = num("blow", 10);
@@ -8278,10 +8491,8 @@ function applyCustom(){
 
   band = { low, mid, high };
 
-  updateBandReadText();
-
   setT("bdesc","Custom: "+band.low+"/"+band.mid+"/"+band.high+"%");
-  if(lastSimPaths) redrawChart(lastSimPaths);
+  bandChanged();
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -9269,8 +9480,8 @@ function renderInvestments(){
     return `<div class="pf-row">
       <span class="pf-tag tt-${i.type}">${INV_TYPE_LABELS[i.type]||i.type}</span>
       <span class="pname">${_daEsc(i.name)}</span>
-      <span class="ptkr">${i.tkr||"—"}</span>
-      <span style="color:var(--text2)">${INV_CLASS_LABELS[i.cls]||i.cls}${i.subcat?` <span style="color:var(--text3)">· ${i.subcat}</span>`:""}</span>
+      <span class="ptkr">${_daEsc(i.tkr||"—")}</span>
+      <span style="color:var(--text2)">${INV_CLASS_LABELS[i.cls]||i.cls}${i.subcat?` <span style="color:var(--text3)">· ${_daEsc(i.subcat)}</span>`:""}</span>
       <span style="color:var(--text);font-variant-numeric:tabular-nums;font-weight:500">${fmtMoney(i.val)}</span>
       <span style="color:var(--text3)">${INV_REGION_LABELS[i.region]||i.region}</span>
       <span style="color:var(--text2);font-variant-numeric:tabular-nums">${er}</span>
@@ -10694,43 +10905,44 @@ async function runSimpleAIBuilder(){
   // Wait briefly for UI
   await new Promise(r => setTimeout(r, 100));
 
-  // Call the existing generator — it reads from main app state
-  // We'll intercept its result by reading lastAIGenResult after it finishes
+  // Call the existing generator — it reads from main app state.
+  // The promise ALWAYS resolves (success, API failure, or 30s timeout) so the
+  // risk/horizon overrides below are guaranteed to be restored — the old code
+  // hung forever on API failure and left the household profile overwritten.
+  let ok = false;
   await new Promise(resolve => {
     const oldRender = window.renderAIGenResult;
-    let captured = false;
+    let done = false;
+    const finish = () => { if(done) return; done = true; window.renderAIGenResult = oldRender; resolve(); };
     // Wrap renderAIGenResult to capture without showing the technical panel
     window.renderAIGenResult = function(rec, briefInfo){
       try { oldRender(rec, briefInfo); } catch(e){}
-      // Hide the original panel; show the simple panel instead
       const orig = document.getElementById("aiGenResult");
       if(orig) orig.style.display = "none";
-      if(!captured){
-        captured = true;
-        // Also force-override ESG into the rec
+      if(!ok){
+        ok = true;
         renderSimpleAIResult(rec, {amount:simpleAmount, risk:simpleRisk, horizon:simpleHorizon, esg:simpleESG});
-        resolve();
       }
+      finish();
     };
-    // Trigger the full pipeline
-    try {
-      runAIPortfolioGenerator();
-    } catch(e){
-      status.innerHTML = '<span style="color:var(--red)">✗ ' + e.message + '</span>';
-      window.renderAIGenResult = oldRender;
-      resolve();
-    }
-    // Restore renderAIGenResult after 30s as safety
-    setTimeout(() => { window.renderAIGenResult = oldRender; }, 30000);
+    // Trigger the full (async) pipeline
+    Promise.resolve()
+      .then(() => runAIPortfolioGenerator())
+      .then(() => { if(!ok){ status.innerHTML = '<span style="color:var(--red)">✗ Generation failed — check the AI key in admin → API Keys.</span>'; } finish(); })
+      .catch(e => { status.innerHTML = '<span style="color:var(--red)">✗ ' + e.message + '</span>'; finish(); });
+    // Safety net: never hang longer than 30s
+    setTimeout(() => { if(!ok) status.innerHTML = '<span style="color:var(--red)">✗ Timed out — please retry.</span>'; finish(); }, 30000);
   });
 
-  // Restore old form values
+  // Restore old form values (always runs now)
   if($("c1r") && oldRisk !== null) $("c1r").value = oldRisk || simpleRisk;
   if($("c1h") && oldHorizon !== null) $("c1h").value = oldHorizon || simpleHorizon;
 
-  resultPanel.style.display = "block";
-  resultPanel.scrollIntoView({behavior:"smooth", block:"start"});
-  status.innerHTML = '✓ <strong style="color:var(--green)">Done — see your portfolio below</strong>';
+  if(ok){
+    resultPanel.style.display = "block";
+    resultPanel.scrollIntoView({behavior:"smooth", block:"start"});
+    status.innerHTML = '✓ <strong style="color:var(--green)">Done — see your portfolio below</strong>';
+  }
 }
 
 // Render the simplified, average-user-friendly result
@@ -11819,14 +12031,14 @@ function renderProposals(){
     const dollar=target>0?p.alloc/100*target:0;
     return `<div class="pr-row">
       <span class="pv-tag pv-${p.vehicle}">${PROP_VEHICLE_LABELS[p.vehicle]||p.vehicle}</span>
-      <span class="prname">${p.name}</span>
-      <span style="color:var(--text3);font-size:11px">${p.tkr||"—"}</span>
-      <span style="color:var(--text2)">${INV_CLASS_LABELS[p.cls]||p.cls}${p.subcat?` <span style="color:var(--text3)">· ${p.subcat}</span>`:""}</span>
+      <span class="prname">${_daEsc(p.name)}</span>
+      <span style="color:var(--text3);font-size:11px">${_daEsc(p.tkr||"—")}</span>
+      <span style="color:var(--text2)">${INV_CLASS_LABELS[p.cls]||p.cls}${p.subcat?` <span style="color:var(--text3)">· ${_daEsc(p.subcat)}</span>`:""}</span>
       <span style="color:var(--text);font-variant-numeric:tabular-nums;font-weight:600">${p.alloc.toFixed(1)}%${target>0?'<br><span style="font-size:10px;color:var(--text3);font-weight:400">'+fmtMoney(dollar)+'</span>':''}</span>
       <span style="color:var(--text2);font-variant-numeric:tabular-nums">${p.exp!=null?p.exp.toFixed(1)+"%":"—"}</span>
       <span style="color:var(--text2);font-variant-numeric:tabular-nums">${p.er!=null?p.er.toFixed(2)+"%":"—"}</span>
       <span style="color:var(--text2);font-variant-numeric:tabular-nums">${p.yld!=null?p.yld.toFixed(2)+"%":"—"}</span>
-      <span class="prnote">${p.note||"—"}</span>
+      <span class="prnote">${_daEsc(p.note||"—")}</span>
       <button class="btn-x" onclick="removeProposal('${p.id}')">✕</button>
     </div>`;
   }).join("");
@@ -12996,6 +13208,17 @@ function updateLinkedReconcile(){
 }
 function illiquidValue(){return assets.filter(a=>!a.liquid).reduce((s,a)=>s+a.value,0);}
 function portfolioInvestmentSeed(){return investments.reduce((s,i)=>s+i.val,0);}
+// De-duplicated investable assets (accounts + portfolio holdings), collapsing the three
+// linkage modes so unlinked holdings aren't counted twice. Mirrors refreshTopMetrics/runMC.
+// Use this instead of totalAccountValue()+portfolioInvestmentSeed() for projection seeds.
+function investableAssetsValue(){
+  const acctVal=totalAccountValue();
+  if(investments.length===0) return acctVal;                 // Mode A
+  if(pfLinkedAccountId) return acctVal+portfolioInvestmentSeed(); // Mode B (acctVal excludes linked)
+  // Mode C: portfolio overlaps asset accounts — only add value above the liquid pool
+  const liquidAcc=Math.max(0,acctVal-retirementAccountSeed());
+  return acctVal+Math.max(0,portfolioInvestmentSeed()-liquidAcc);
+}
 // Cash-class holdings earn 0% — kept flat in simulation
 function portfolioCashSeed(){return investments.filter(i=>i.cls==="cash").reduce((s,i)=>s+i.val,0);}
 function portfolioInvestedSeed(){return investments.filter(i=>i.cls!=="cash").reduce((s,i)=>s+i.val,0);}
@@ -13569,6 +13792,7 @@ function runMC(years,sims,muOverride,sigOverride){
     let income=baseInc, expense=baseExp;
     let loanState=loans.map(l=>({bal:l.bal,rate:l.rate/100,yrs:l.yrs}));
     const path=[];
+    let shortfallYr=-1;   // first year goal spending couldn't be met from liquid wealth (cash+investments)
 
     // Yearly loop. One iteration simulates one year of the client's life 
     // Updates the household's finances for one simulated year 
@@ -13672,6 +13896,8 @@ function runMC(years,sims,muOverride,sigOverride){
         const still=goalOut-fromCash;
         const fromInv=Math.min(Math.max(0,inv),still);
         inv-=fromInv;
+        // Liquidity shortfall: liquid wealth couldn't fully cover this year's goals.
+        if(shortfallYr<0 && (fromCash+fromInv) < goalOut-0.5) shortfallYr=y;
         cash=Math.max(0,cash); inv=Math.max(0,inv);
         assetBuckets = scaleBucketsToTotal(assetBuckets, inv);
       }
@@ -13724,6 +13950,7 @@ inv = sumBuckets(assetBuckets);
       const debtTotal=loanState.reduce((s,l)=>s+l.bal,0);
       path.push(cash+inv+prop+other+retPot-debtTotal);
     }
+    path._shortfallYr=shortfallYr;   // goal-liquidity marker for goalSuccessFromPaths
     paths.push(path);
   }
   return paths;
@@ -13969,9 +14196,9 @@ function buildSimInputsSummary(){
   let html="";
   // Household
   html+=section("Household");
-  html+=row("Primary client",c1name,`Age ${ageFromDOB(val("c1d"))||"—"} · ${countryName}`);
-  if(c2shown) html+=row("Partner",c2name,`Age ${ageFromDOB(val("c2d"))||"—"}`);
-  if(children.length>0) html+=row("Children",children.length+" on file",children.map(c=>c.first||(c.dob?ageFromDOB(c.dob)+"yr":"")||"unnamed").filter(Boolean).join(", "));
+  html+=row("Primary client",_daEsc(c1name),`Age ${ageFromDOB(val("c1d"))||"—"} · ${countryName}`);
+  if(c2shown) html+=row("Partner",_daEsc(c2name),`Age ${ageFromDOB(val("c2d"))||"—"}`);
+  if(children.length>0) html+=row("Children",children.length+" on file",_daEsc(children.map(c=>c.first||(c.dob?ageFromDOB(c.dob)+"yr":"")||"unnamed").filter(Boolean).join(", ")));
   html+=row("Risk profile",riskLabel,horizLabel+" horizon");
 
   // Income & tax
@@ -14007,13 +14234,13 @@ function buildSimInputsSummary(){
     html+=section("Goals (deducted from simulation paths)");
     goals.forEach(g=>{
       const yrsSpan=Math.max(1,g.endYear-g.startYear+1);
-      html+=row(g.name,`${fmtMoney(g.amt)}/yr`,`${g.startYear}–${g.endYear} · total ${fmtMoney(g.amt*yrsSpan)}`);
+      html+=row(_daEsc(g.name),`${fmtMoney(g.amt)}/yr`,`${g.startYear}–${g.endYear} · total ${fmtMoney(g.amt*yrsSpan)}`);
     });
   }
   if(loans.length>0){
     html+=section("Loans (amortised in simulation)");
     loans.forEach(l=>{
-      html+=row(l.label,`${fmtMoney(l.bal)} bal.`,`${l.rate.toFixed(2)}% · ${l.yrs}yr remaining`);
+      html+=row(_daEsc(l.label),`${fmtMoney(l.bal)} bal.`,`${l.rate.toFixed(2)}% · ${l.yrs}yr remaining`);
     });
   }
 
@@ -14035,12 +14262,20 @@ function runSim(){
   const paths=runMC(yrs,sims);
 
   lastSimPaths=paths; lastSimYrs=yrs;
+  // Projected Wealth (median) — set here so the overview metric always updates,
+  // even if the bar-chart canvas (#mcChart) isn't present and redrawChart bails.
+  try {
+    const _inf=num("inf",3.8)/100;
+    const _mid=(typeof band!=="undefined" && band && band.mid) ? band.mid : 50;
+    setT("m-med", fmtMoney(percentileAt(paths,yrs,_mid)/Math.pow(1+_inf,yrs)));
+  } catch(_){}
   redrawChart(paths);
   drawFanChart(paths);
   renderSimLifestyle(); // new
-  renderDownsideAnalysis(paths);
-  renderUpsideAnalysis(paths);
+  // (renderDownsideAnalysis / renderUpsideAnalysis calls removed — their target
+  //  panels were removed from the Simulation tab, so the output went nowhere.)
   renderGoalAnalysis(paths,yrs);
+  try{ if(typeof gbRenderWealth==="function") gbRenderWealth(); }catch(_){}  // Wealth Allocation Framework panel (Simulation tab)
   renderCashFlow();
   renderFundingStatus(paths,yrs);
   refreshTopMetrics(paths,yrs);
@@ -14096,7 +14331,7 @@ function renderSimLifestyle(){
   const retAge = num("retAge", 65);
   const yrsToRet = Math.max(1, retAge - a1);
   const yearsInRet = Math.max(1, 90 - retAge);
-  const investable = (typeof totalAccountValue==="function" ? totalAccountValue() : 0) + (typeof portfolioInvestmentSeed==="function" ? portfolioInvestmentSeed() : 0);
+  const investable = (typeof investableAssetsValue==="function" ? investableAssetsValue() : 0);
   const annualSavings = num("savAnnual", 0);
   const confs = [{p:80,lbl:"Conservative (80%)",c:"var(--green)"},{p:50,lbl:"Expected (50%)",c:"var(--accent)"},{p:30,lbl:"Optimistic (30%)",c:"#7c3aed"}];
   let h = '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px">';
@@ -14274,8 +14509,8 @@ function runRecommendations(){
   const colors = {high:"#dc2626", medium:"#d97706", low:"#6b7280"};
   host.innerHTML = flags.map(f=>`
     <div style="background:var(--bg2);border:1px solid var(--border);border-left:4px solid ${colors[f.severity]};border-radius:8px;padding:14px 16px;margin-bottom:10px">
-      <div style="font-weight:700;font-size:13.5px;color:var(--text1);margin-bottom:4px">${f.title}</div>
-      <div style="font-size:12px;color:var(--text3);line-height:1.5">${f.detail}</div>
+      <div style="font-weight:700;font-size:13.5px;color:var(--text1);margin-bottom:4px">${_daEsc(f.title)}</div>
+      <div style="font-size:12px;color:var(--text3);line-height:1.5">${_daEsc(f.detail)}</div>
     </div>
   `).join("");
 }
@@ -14293,7 +14528,7 @@ function renderSimLifestyleCandles(){
   const inflation = num("inf", CMA_INFLATION) / 100;
   const a1 = (typeof ageFromDOB==="function" ? ageFromDOB(val("c1d")) : 0) || 40;
   const retAge = num("retAge", 65);
-  const investable = (typeof totalAccountValue==="function" ? totalAccountValue() : 0) + (typeof portfolioInvestmentSeed==="function" ? portfolioInvestmentSeed() : 0);
+  const investable = (typeof investableAssetsValue==="function" ? investableAssetsValue() : 0);
   const annualSavings = num("savAnnual", 0);
   const target = (typeof getTotalExpenses==="function" ? getTotalExpenses() : 0);
 
@@ -14389,27 +14624,52 @@ function renderSimPotentialWealth(){
   //   {p:50, lbl:"50% likelihood (expected)",     c:"#0057b8"},
   //   {p:30, lbl:"30% likelihood (optimistic)",   c:"#7c3aed"}
   // ];
+  // Fixed 80/50/30 likelihood levels — matching this panel's description and the
+  // identically-titled PDF chart. (The percentile band setting drives the fan
+  // chart, percentile table and Projected Wealth metric — a separate concept.)
   const confs = [
-    {p:band.high, lbl:band.high+"% likelihood (conservative)", c:"#1b6841"},
-    {p:band.mid,  lbl:band.mid+"% likelihood (expected)",      c:"#0057b8"},
-    {p:band.low,  lbl:band.low+"% likelihood (optimistic)",    c:"#7c3aed"}
+    {p:80, lbl:"80% likelihood (conservative)", c:"#1b6841"},
+    {p:50, lbl:"50% likelihood (expected)",     c:"#0057b8"},
+    {p:30, lbl:"30% likelihood (optimistic)",   c:"#7c3aed"}
   ];
 
   const labels = []; for(let y=0;y<=yrs;y++) labels.push(cy+y);
+  // Percentile is inverted (100 - p) so an "X% likelihood" line is the value the plan
+  // is X% likely to AT LEAST reach: 80% → 20th percentile (conservative floor), 30% →
+  // 70th percentile (optimistic). This matches the PDF's gbReturnAtConfidence curves and
+  // the lifestyle candle. Values are deflated to today's money (label says inflation-adjusted).
+  const _inf = num("inf", (typeof CMA_INFLATION!=="undefined"?CMA_INFLATION:3.8)) / 100;
   const series = confs.map(cf => ({
     cf,
-    pts: Array.from({length: yrs+1}, (_, i) => Math.round(percentileAt(lastSimPaths, i, cf.p)))
+    pts: Array.from({length: yrs+1}, (_, i) => Math.round(percentileAt(lastSimPaths, i, 100 - cf.p) / Math.pow(1+_inf, i)))
   }));
 
   if(canvas && typeof Chart !== "undefined"){
     if(simWealthChartObj){ try{ simWealthChartObj.destroy(); }catch(_){} }
+    const retIdx = num("retAge",65) - a1;   // x-index of the retirement year
+    // Dashed vertical marker at retirement age (mirrors the PDF chart)
+    const retMarker = { id:"retMarker", afterDatasetsDraw(chart){
+      if(retIdx<=0 || retIdx>=labels.length) return;
+      const xs=chart.scales.x, ys=chart.scales.y, px=xs.getPixelForValue(retIdx);
+      const g=chart.ctx; g.save();
+      g.strokeStyle="rgba(15,23,42,.35)"; g.setLineDash([4,3]); g.lineWidth=1;
+      g.beginPath(); g.moveTo(px,ys.top); g.lineTo(px,ys.bottom); g.stroke();
+      g.setLineDash([]); g.fillStyle="rgba(15,23,42,.55)"; g.font="10px DM Sans,sans-serif";
+      g.fillText("retirement", px+4, ys.top+10); g.restore();
+    }};
     simWealthChartObj = new Chart(canvas, {
       type:"line",
-      data:{ labels, datasets: series.map(s => ({ label:s.cf.lbl, data:s.pts, borderColor:s.cf.c, backgroundColor:"transparent", borderWidth:2, pointRadius:0, tension:0.15 })) },
+      data:{ labels, datasets: series.map((s,si) => ({ label:s.cf.lbl, data:s.pts, borderColor:s.cf.c,
+        // shaded uncertainty cone between the optimistic (top) and conservative (bottom) lines
+        fill: si===2 ? {target:0} : false,
+        backgroundColor: si===2 ? "rgba(0,87,184,0.06)" : "transparent",
+        borderWidth:2, pointRadius:0, tension:0.15 })) },
       options:{ responsive:true, maintainAspectRatio:false, interaction:{mode:"index", intersect:false},
         plugins:{ legend:{display:true, labels:{boxWidth:12, font:{size:11}}},
           tooltip:{callbacks:{ title:items=>"Year "+items[0].label+" · age "+(a1+(+items[0].label - cy)), label:c=>c.dataset.label+": "+fmtMoney(c.parsed.y) }} },
-        scales:{ x:{ticks:{maxTicksLimit:10}}, y:{ticks:{callback:v=>fmtMoney(v)}} } }
+        scales:{ x:{ticks:{maxTicksLimit:10}},
+          y:{ title:{display:true, text:"Today's dollars", font:{size:10}}, ticks:{callback:v=>fmtMoney(v)} } } },
+      plugins:[retMarker]
     });
   }
   if(tbl){
@@ -14431,7 +14691,7 @@ function renderSimPotentialWealth(){
     }
     tbl.innerHTML = '<div style="max-height:340px;overflow:auto"><table style="width:100%;border-collapse:collapse;font-size:12px">'
       + '<tr style="position:sticky;top:0;background:var(--bg2);color:var(--text3);text-align:left"><th style="padding:6px 8px">Year</th><th style="padding:6px 8px">Age</th>'
-      + '<th style="padding:6px 8px;text-align:right">'+band.high+'%</th><th style="padding:6px 8px;text-align:right">'+band.mid+'%</th><th style="padding:6px 8px;text-align:right">'+band.low+'%</th></tr>'
+      + '<th style="padding:6px 8px;text-align:right">80%</th><th style="padding:6px 8px;text-align:right">50%</th><th style="padding:6px 8px;text-align:right">30%</th></tr>'
       + rows + '</table></div>';
   }
 }
@@ -14449,7 +14709,10 @@ function computeGoalFundingStatus(){
   const effTax = (function(){
     try { const inc=getGrossIncome(); const tax=(typeof computeIncomeTax==="function")?computeIncomeTax(inc):0; return inc>0?Math.min(0.45,Math.max(0.10,tax/inc)):0.22; } catch(_){ return 0.22; }
   })();
-  const liquidAssets = (typeof totalAccountValue==="function" ? totalAccountValue() : 0);
+  // Mode A/B/C-aware: includes portfolio holdings (replacing the linked account in
+  // Mode B, de-duplicated against asset accounts in Mode C).
+  const liquidAssets = (typeof investableAssetsValue==="function" ? investableAssetsValue()
+    : (typeof totalAccountValue==="function" ? totalAccountValue() : 0));
   const annualSavings = num("savAnnual", 0);
   const prioOrder = {essential:0, important:1, aspirational:2};
   const sorted = [...goals].sort((a,b)=>(prioOrder[a.tier]??1)-(prioOrder[b.tier]??1) || a.startYear-b.startYear);
@@ -14818,33 +15081,46 @@ function renderUpsideAnalysis(paths){
   `);
 }
 
+// Goal success = share of Monte Carlo paths in which the plan stays solvent
+// (net worth > 0) through the goal's target year. Goals are already deducted
+// from each path in runMC, so a path that can't afford its goals depletes to
+// <= 0 by then. Computed straight from the paths so the app and the PDF report
+// always agree (no DOM scraping).
+function goalSuccessFromPaths(g, paths, yrs){
+  if(!paths || !paths.length) return null;
+  const cy=(typeof currentYear==="function")?currentYear():new Date().getFullYear();
+  const relYr=Math.min(yrs, Math.max(0, (g.endYear||cy)-cy));
+  let ok=0;
+  if(paths[0] && typeof paths[0]._shortfallYr!=="undefined"){
+    // Preferred: liquid-based — a path funds this goal if no liquidity shortfall
+    // occurred at or before the goal's target year.
+    for(let i=0;i<paths.length;i++){ const sf=paths[i]._shortfallYr; if(sf<0 || sf>relYr) ok++; }
+  } else {
+    // Fallback: plan stays solvent (net worth > 0) through the goal's target year.
+    for(let i=0;i<paths.length;i++){ if((paths[i][relYr]||0) > 0) ok++; }
+  }
+  return ok/paths.length*100;
+}
 function renderGoalAnalysis(paths,yrs){
-  if(goals.length===0){show("goalResults",false); return;}
+  if(goals.length===0){show("goalResults",false); setT("m-prob","—"); return;}
   show("goalResults",true);
-  const cy=currentYear();
   const html=goals.map(g=>{
-    const relYr=Math.min(yrs,Math.max(0,g.endYear-cy));
     const totalAmt=g.amt*Math.max(1,g.endYear-g.startYear+1);
-    const ok=paths.filter(p=>p[relYr]>=totalAmt).length;
-    const prob=ok/paths.length*100;
+    const prob=goalSuccessFromPaths(g,paths,yrs)||0;
     const cls=prob>=80?"gp-hi":(prob>=50?"gp-md":"gp-lo");
     const icon=(typeof GOAL_ICONS!=="undefined"&&GOAL_ICONS[g.cat])||{emoji:"⭐",color:"#6b7280",bg:"rgba(107,114,128,.10)"};
-    return `<div class="goal-cmp" style="grid-template-columns:36px 1.2fr 80px 90px 90px 90px">
+    return `<div class="goal-cmp" data-gid="${g.id}" style="grid-template-columns:36px 1.2fr 80px 90px 90px 90px">
       <div class="goal-icon" style="background:${icon.bg};color:${icon.color};width:28px;height:28px;font-size:14px">${icon.emoji}</div>
-      <div class="gnm">${g.name}</div>
+      <div class="gnm">${_daEsc(g.name)}</div>
       <div class="gyr">${g.endYear}</div>
       <div style="font-variant-numeric:tabular-nums">${fmtMoney(g.amt)}<span style="font-size:10px;color:var(--text3)">/yr</span></div>
-      <div class="gprob ${cls}">${prob.toFixed(0)}%</div>
+      <div class="gprob grs-pct ${cls}">${prob.toFixed(0)}%</div>
       <div class="gdelta" style="color:var(--text3)">${fmtMoney(totalAmt)} total</div>
     </div>`;
   }).join("");
   setH("goalResultList",html);
   // Top-line goal success = average across goals
-  const avg=goals.reduce((s,g)=>{
-    const relYr=Math.min(yrs,Math.max(0,g.endYear-cy));
-    const totalAmt=g.amt*Math.max(1,g.endYear-g.startYear+1);
-    return s+paths.filter(p=>p[relYr]>=totalAmt).length/paths.length;
-  },0)/goals.length*100;
+  const avg=goals.reduce((s,g)=>s+(goalSuccessFromPaths(g,paths,yrs)||0),0)/goals.length;
   setT("m-prob",avg.toFixed(0)+"%");
 }
 
@@ -14870,7 +15146,7 @@ function renderComponentsChart(){
   ];
   // property dataset should include "other assets"
   ds[3].data=lastCfComponents.map(d=>Math.max(0,(d.prop||0)+(d.otherAssets||0)));
-  if(insCV>0) ds.push({label:"Insurance cash value",data:lastCfComponents.map(()=>insCV),
+  if(insCV>0) ds.push({label:"Insurance cash value (held constant)",data:lastCfComponents.map(()=>insCV),
     backgroundColor:"rgba(245,158,11,.40)",borderColor:"rgba(245,158,11,.40)",borderWidth:1,pointRadius:0,fill:true,stack:"assets",tension:0});
   // net worth line (assets − liabilities + insurance cash value)
   ds.push({label:"Net worth",type:"line",data:lastCfComponents.map(d=>(d.nw||0)+insCV),
@@ -15377,7 +15653,7 @@ function renderCFComparison(niData,curData,propData,curMu,propMu,curParams,propP
       const propNW=hasProp?propData[relYr]?.nw||0:null;
       const d1=curNW-niNW, d2=hasProp?propNW-curNW:null;
       return `<div style="display:grid;grid-template-columns:${gcols};gap:5px 8px;align-items:start;padding:7px 4px;border-bottom:1px solid var(--border);font-size:12px">
-        <div class="cfc-gn">${g.name}<div class="cfc-gy" style="font-weight:400;margin-top:1px">${g.endYear}</div></div>
+        <div class="cfc-gn">${_daEsc(g.name)}<div class="cfc-gy" style="font-weight:400;margin-top:1px">${g.endYear}</div></div>
         <div class="cfc-gy">${g.endYear}</div>
         <div class="cfc-ga">${fmtMoney(totalAmt)}</div>
         ${tag(niNW,totalAmt,'var(--text3)')}
@@ -15425,7 +15701,7 @@ function renderFundingStatus(paths,yrs){
     else if(prob>=25){tag="At risk"; cls="fund-warn";}
     else{tag="Underfunded"; cls="fund-bad";}
     return `<tr>
-      <td class="cf-l"><strong>${g.name}</strong><div class="fund-cat">${g.cat||"other"} · ${g.tier||"important"}</div><div class="fund-meta">${fmtMoney(g.amt)}/yr × ${Math.max(1,g.endYear-g.startYear+1)} yrs</div></td>
+      <td class="cf-l"><strong>${_daEsc(g.name)}</strong><div class="fund-cat">${g.cat||"other"} · ${g.tier||"important"}</div><div class="fund-meta">${fmtMoney(g.amt)}/yr × ${Math.max(1,g.endYear-g.startYear+1)} yrs</div></td>
       <td class="cf-l">${g.endYear}</td>
       <td class="fund-amt">${fmtMoney(totalAmt)}</td>
       <td><span class="fund-amt ${nw30>=totalAmt?'fund-over':'fund-short'}">${fmtMoney(nw30)}<span class="fund-delta">${nw30>=totalAmt?'+':'−'}${fmtMoney(Math.abs(nw30-totalAmt))}</span></span></td>
@@ -15711,9 +15987,9 @@ function renderReturnsUnified(cur, prop, curMu, propMu, curSig, propSig){
     const xp = x.getPixelForValue(3.5);
     ctx.save();
     ctx.fillStyle = "rgba(124,58,237,0.07)"; ctx.fillRect(xp, a.top, a.right - xp, a.bottom - a.top);
-    ctx.strokeStyle = "rgba(255,255,255,0.30)"; ctx.setLineDash([4,3]); ctx.lineWidth = 1;
+    ctx.strokeStyle = "rgba(15,23,42,0.30)"; ctx.setLineDash([4,3]); ctx.lineWidth = 1;   // dark on light theme (was white-on-white)
     ctx.beginPath(); ctx.moveTo(xp, a.top); ctx.lineTo(xp, a.bottom); ctx.stroke(); ctx.setLineDash([]);
-    ctx.fillStyle = "rgba(255,255,255,0.55)"; ctx.font = "700 9px sans-serif"; ctx.textAlign = "center";
+    ctx.fillStyle = "rgba(15,23,42,0.60)"; ctx.font = "700 9px sans-serif"; ctx.textAlign = "center";
     ctx.fillText("TODAY", xp, a.top - 3);
     ctx.restore();
   }};
@@ -15817,7 +16093,7 @@ function runComparison(){
     const d=probProp-probCur;
     const cls=p=>p>=80?"gp-hi":p>=50?"gp-md":"gp-lo";
     return `<div class="goal-cmp">
-      <div class="gnm">${g.name}</div>
+      <div class="gnm">${_daEsc(g.name)}</div>
       <div class="gyr">${g.endYear}</div>
       <div class="gprob ${cls(probCur)}">${probCur.toFixed(0)}%</div>
       <div class="gprob ${cls(probProp)}">${probProp.toFixed(0)}%</div>
@@ -15930,24 +16206,28 @@ function runWhatIfScenario(scen){
     patchField("expO",(origO+scen.extraExp).toFixed(2));
   }
 
-  const paths=runMC(yrs,sims);
-  restoreAll();
+  // 4. Extra one-off goal — temporarily joins the real goals array so runMC's
+  //    goalOutMap actually withdraws it (it used to be scored but never simulated).
+  const tempGoal = scen.extraGoal ? {id:"wi-g", name:scen.extraGoal.name, amt:scen.extraGoal.amt,
+    startYear:scen.extraGoal.year, endYear:scen.extraGoal.year, cat:"other", tier:"important"} : null;
+  let paths;
+  try{
+    if(tempGoal) goals.push(tempGoal);
+    paths=runMC(yrs,sims);
+  } finally {
+    if(tempGoal) goals=goals.filter(g=>g!==tempGoal);
+    restoreAll();   // fields always restored, even if runMC throws
+  }
 
-  // Compute metrics
+  // Compute metrics — goal success uses the same liquidity-shortfall test as the
+  // main Goal Success metric (goalSuccessFromPaths), not the legacy wealth≥total test.
   const medNW=percentileAt(paths,yrs,50);
   const p10NW=percentileAt(paths,yrs,10);
   const p90NW=percentileAt(paths,yrs,90);
-  const cy=currentYear();
   let goalSucc=null;
-  if(goals.length>0||scen.extraGoal){
-    const allGoals=[...goals];
-    if(scen.extraGoal) allGoals.push({id:"wi-g",name:scen.extraGoal.name,amt:scen.extraGoal.amt,startYear:scen.extraGoal.year,endYear:scen.extraGoal.year});
-    const rates=allGoals.map(g=>{
-      const relYr=Math.max(0,Math.min(yrs,g.endYear-cy));
-      const totalAmt=g.amt*Math.max(1,g.endYear-(g.startYear||g.endYear)+1);
-      return paths.filter(p=>p[relYr]>=totalAmt).length/paths.length;
-    });
-    goalSucc=rates.reduce((a,b)=>a+b,0)/rates.length*100;
+  const allGoals=tempGoal?[...goals,tempGoal]:goals;
+  if(allGoals.length>0){
+    goalSucc=allGoals.reduce((s,g)=>s+(goalSuccessFromPaths(g,paths,yrs)||0),0)/allGoals.length;
   }
   return {medNW,p10NW,p90NW,goalSucc};
 }
@@ -15957,15 +16237,9 @@ function runBaselineWhatIf(){
   const yrs=num("simYrs",20), sims=parseInt(val("simN")||"200",10);
   const paths=runMC(yrs,sims);
   const medNW=percentileAt(paths,yrs,50);
-  const cy=currentYear();
   let goalSucc=null;
   if(goals.length>0){
-    const rates=goals.map(g=>{
-      const relYr=Math.max(0,Math.min(yrs,g.endYear-cy));
-      const totalAmt=g.amt*Math.max(1,g.endYear-(g.startYear||g.endYear)+1);
-      return paths.filter(p=>p[relYr]>=totalAmt).length/paths.length;
-    });
-    goalSucc=rates.reduce((a,b)=>a+b,0)/rates.length*100;
+    goalSucc=goals.reduce((s,g)=>s+(goalSuccessFromPaths(g,paths,yrs)||0),0)/goals.length;
   }
   return {medNW,goalSucc};
 }
@@ -16028,10 +16302,10 @@ function renderWhatIf(){
     if(w.retAgeOvr!=null) overrides.push("Retire at "+w.retAgeOvr);
     if(w.incChangePct!==0) overrides.push("Income "+(w.incChangePct>0?"+":"")+w.incChangePct+"%");
     if(w.extraExp!==0) overrides.push("Extra expense "+fmtMoney(w.extraExp)+"/yr");
-    if(w.extraGoal) overrides.push(`Goal: ${w.extraGoal.name} ${fmtMoney(w.extraGoal.amt)} in ${w.extraGoal.year}`);
+    if(w.extraGoal) overrides.push(`Goal: ${_daEsc(w.extraGoal.name)} ${fmtMoney(w.extraGoal.amt)} in ${w.extraGoal.year}`);
     return `<div class="wi-item">
       <div class="wi-head">
-        <span class="wi-name">${w.name}</span>
+        <span class="wi-name">${_daEsc(w.name)}</span>
         <span style="font-size:11px;color:var(--text3)">${overrides.join(" • ")||"No overrides"}</span>
         <button class="btn-x" style="font-size:10px;padding:2px 7px;color:var(--text3);border:1px solid var(--border);border-radius:3px" onclick="editWhatIf('${w.id}')">✎</button>
         <button class="btn-x" onclick="deleteWhatIf('${w.id}')">✕</button>
@@ -16219,349 +16493,20 @@ function ipsHtmlSection(d){
 }
 
 // ═══════════════════════════════════════════════════════════
-// PDF REPORT (basic HTML preview / jsPDF text dump)
+// PDF REPORT — PREVIEW
+// The preview and the download share ONE pipeline: previewPDFReport()
+// runs the same generatePDFReport() and shows the resulting document via
+// a blob URL, so what you see in the browser is byte-identical to the
+// saved file. (The old buildReportHtml() HTML twin was removed — two
+// renderers inevitably drifted apart.)
 // ═══════════════════════════════════════════════════════════
-function buildReportHtml(){
-  const cy=currentYear();
-  const ageC1=ageFromDOB(val("c1d"));
-  const inc=getGrossIncome(), exp=getTotalExpenses();
-  const tax=computeIncomeTax(inc), net=inc-tax;
-  const totAssets=totalAccountValue()+num("aProp",0)+num("aOther",0)+insuranceCashValue();
-  const debt=loans.reduce((s,l)=>s+l.bal,0);
-  const nw=totAssets-debt;
-
-  // Read section toggle settings
-  const incSim=val("rptIncSim")||"yes";
-  const incCF=val("rptIncCF")||"summary";
-  const incFund=val("rptIncFund")||"yes";
-  const incPort=val("rptIncPort")||"yes";
-  const discLvl=val("rptDiscLvl")||"standard";
-
-  // --- Monte Carlo results section ---
-  let simSection="";
-  if(incSim==="yes" && lastSimPaths){
-    const yrs=lastSimYrs;
-    const p10=percentileAt(lastSimPaths,yrs,10);
-    const p25=percentileAt(lastSimPaths,yrs,25);
-    const p50=percentileAt(lastSimPaths,yrs,50);
-    const p75=percentileAt(lastSimPaths,yrs,75);
-    const p90=percentileAt(lastSimPaths,yrs,90);
-    const inf=num("inf",3.8)/100;
-    const deflate=v=>v/Math.pow(1+inf,yrs);
-    simSection=`<h2>Monte Carlo projection (${yrs}-year horizon, ${lastSimPaths.length} simulations)</h2>
-    <table>
-      <tr><th>Percentile</th><th>Nominal</th><th>Real (inflation-adjusted)</th></tr>
-      <tr><td>10th (pessimistic)</td><td>${fmtMoneyFull(p10)}</td><td>${fmtMoneyFull(deflate(p10))}</td></tr>
-      <tr><td>25th</td><td>${fmtMoneyFull(p25)}</td><td>${fmtMoneyFull(deflate(p25))}</td></tr>
-      <tr><td>50th (median)</td><td>${fmtMoneyFull(p50)}</td><td>${fmtMoneyFull(deflate(p50))}</td></tr>
-      <tr><td>75th</td><td>${fmtMoneyFull(p75)}</td><td>${fmtMoneyFull(deflate(p75))}</td></tr>
-      <tr><td>90th (optimistic)</td><td>${fmtMoneyFull(p90)}</td><td>${fmtMoneyFull(deflate(p90))}</td></tr>
-    </table>`;
-  } else if(incSim==="yes"){
-    simSection=`<h2>Monte Carlo projection</h2><p style="color:#666;font-style:italic">Run the simulation to include projection results.</p>`;
-  }
-
-  // --- Cash flow section ---
-  let cfSection="";
-  if(incCF!=="no"){
-    const cfBody=document.getElementById("cfBody");
-    if(cfBody && cfBody.rows.length>1 && cfBody.rows[0].cells.length>3){
-      const rows=Array.from(cfBody.rows);
-      const step=incCF==="summary"?5:1;
-      const filtered=rows.filter((_,i)=>i%step===0||i===rows.length-1);
-      const thead=`<tr><th>Year</th><th>Age</th><th>Phase</th><th>Income</th><th>Tax</th><th>Expenses</th><th>Surplus</th><th>Cash</th><th>Investments</th><th>Net worth</th></tr>`;
-      const trows=filtered.map(r=>{
-        const c=r.cells;
-        if(c.length<13) return "";
-        return `<tr><td>${c[0]?.textContent||""}</td><td>${c[1]?.textContent||""}</td><td>${c[2]?.textContent||""}</td><td>${c[3]?.textContent||""}</td><td>${c[5]?.textContent||""}</td><td>${c[6]?.textContent||""}</td><td>${c[9]?.textContent||""}</td><td>${c[11]?.textContent||""}</td><td>${c[12]?.textContent||""}</td><td>${c[14]?.textContent||""}</td></tr>`;
-      }).join("");
-      cfSection=`<h2>Cash flow analysis${incCF==="summary"?" (5-year intervals)":""}</h2><table>${thead}${trows}</table>`;
-    } else {
-      cfSection=`<h2>Cash flow analysis</h2><p style="color:#666;font-style:italic">Run the simulation to populate the cash flow table.</p>`;
-    }
-  }
-
-  // --- Funding status section ---
-  let fundSection="";
-  if(incFund==="yes"){
-    const fundEl=document.getElementById("goalResultList");
-    if(fundEl && fundEl.children.length>0 && goals.length>0){
-      const rows=goals.map(g=>{
-        const row=Array.from(fundEl.querySelectorAll("[data-gid='"+g.id+"']"));
-        const pct=row.length?row[0].querySelector(".grs-pct")?.textContent||"—":"—";
-        return `<tr><td>${_daEsc(g.name)}</td><td>${fmtMoneyFull(g.amt)}/yr</td><td>${g.startYear}–${g.endYear}</td><td>${pct}</td></tr>`;
-      }).join("");
-      fundSection=`<h2>Goal success probability</h2><table><tr><th>Goal</th><th>Annual amount</th><th>Year range</th><th>Success probability</th></tr>${rows}</table>`;
-    } else if(goals.length>0){
-      fundSection=`<h2>Goal success probability</h2><p style="color:#666;font-style:italic">Run the simulation to populate goal results.</p>`;
-    }
-  }
-
-  // --- Goal Funding Status (PV) section [Merrill methodology] ---
-  let goalFundSection="";
-  if((val("rptIncGoalFunding")||"yes")!=="no" && goals.length>0){
-    try{
-      const st=computeGoalFundingStatus();
-      const tierLbl={essential:"Essential",important:"Important",aspirational:"Aspirational"};
-      const rows=st.rows.map(r=>`<tr><td>${r.name}</td><td>${tierLbl[r.tier]||r.tier} / ${r.conf}%</td><td>${r.period}</td><td>${fmtMoneyFull(r.goalCostPV)}</td><td>${fmtMoneyFull(r.fundedPV)}</td><td>${Math.round(r.ratio*100)}%</td></tr>`).join("");
-      goalFundSection=`<h2>Goal funding status (present value)</h2>
-      <p>Overall funding ratio: <strong>${(st.overallRatio*100).toFixed(0)}%</strong> — total goal cost (PV) ${fmtMoneyFull(st.totalGoalPV)}, funded ${fmtMoneyFull(st.totalFundedPV)}, shortfall ${fmtMoneyFull(Math.max(0,st.totalGoalPV-st.totalFundedPV))}. Portfolio geometric return ${(st.port.geoMu*100).toFixed(2)}% · σ ${(st.port.sigma*100).toFixed(2)}%.</p>
-      <table><tr><th>Goal</th><th>Tier / confidence</th><th>Period</th><th>Cost (PV)</th><th>Funded (PV)</th><th>Funded %</th></tr>${rows}</table>`;
-    }catch(e){ goalFundSection=""; }
-  }
-
-  // --- Potentially Achievable Lifestyle section [Merrill] ---
-  let lifestyleSection="";
-  if((val("rptIncLifestyle")||"yes")!=="no"){
-    try{
-      const w2=gbAssetClassWeights(), port2=gbPortfolioRisk(w2);
-      const inflation=num("inf",CMA_INFLATION)/100, a1=ageFromDOB(val("c1d"))||40, retAge=num("retAge",65);
-      const yrsToRet=Math.max(1,retAge-a1), investable=totalAccountValue(), annualSavings=num("savAnnual",0), yearsInRet=Math.max(1,90-retAge);
-      const rows=[{p:80,lbl:"Conservative (80%)"},{p:50,lbl:"Expected (50%)"},{p:30,lbl:"Optimistic (30%)"}].map(c=>{
-        const r=gbReturnAtConfidence(port2.geoMu,port2.sigma,yrsToRet,c.p);
-        let wealth=investable; for(let i=0;i<yrsToRet;i++){wealth=wealth*(1+r)+annualSavings;}
-        const rr=(r-inflation)/(1+inflation);
-        const spend=Math.abs(rr)<1e-6?wealth/yearsInRet:wealth*rr/(1-Math.pow(1+rr,-yearsInRet));
-        return `<tr><td>${c.lbl}</td><td>${(r*100).toFixed(1)}%/yr</td><td>${fmtMoneyFull(Math.max(0,wealth))}</td><td>${fmtMoneyFull(Math.max(0,spend))}/yr</td></tr>`;
-      }).join("");
-      lifestyleSection=`<h2>Potentially achievable lifestyle</h2>
-      <p>Sustainable inflation-adjusted annual spending in retirement (to age 90), at three confidence levels.</p>
-      <table><tr><th>Scenario</th><th>Return assumption</th><th>Wealth at retirement</th><th>Sustainable annual spend</th></tr>${rows}</table>`;
-    }catch(e){ lifestyleSection=""; }
-  }
-
-  // --- Wealth Allocation Framework section [Merrill] ---
-  let wealthFwSection="";
-  if((val("rptIncWealthFw")||"yes")!=="no"){
-    try{
-      const b={personal:0,market:0,aspirational:0};
-      assets.forEach(a=>b[gbWealthBucket(a)]+=(+a.value||0));
-      b.personal+=num("aProp",0); b.aspirational+=num("aOther",0);
-      investments.forEach(i=>{const k=gbWealthBucket({cls:(typeof effClass==="function"?effClass(i):i.cls),type:i.type,label:i.name}); b[k]+=(+i.val||0);});
-      const total=b.personal+b.market+b.aspirational;
-      const pct=v=>total>0?(v/total*100).toFixed(1)+"%":"—";
-      wealthFwSection=`<h2>Wealth allocation framework</h2>
-      <p>Assets classified into Personal (preserve lifestyle), Market (balance risk &amp; return) and Aspirational (idiosyncratic upside).</p>
-      <table><tr><th>Bucket</th><th>Purpose</th><th>Value</th><th>Share</th></tr>
-      <tr><td>Personal</td><td>Preserve lifestyle · safety</td><td>${fmtMoneyFull(b.personal)}</td><td>${pct(b.personal)}</td></tr>
-      <tr><td>Market</td><td>Balance risk &amp; return</td><td>${fmtMoneyFull(b.market)}</td><td>${pct(b.market)}</td></tr>
-      <tr><td>Aspirational</td><td>Idiosyncratic upside</td><td>${fmtMoneyFull(b.aspirational)}</td><td>${pct(b.aspirational)}</td></tr>
-      <tr><th>Total</th><td></td><th>${fmtMoneyFull(total)}</th><th>100%</th></tr></table>`;
-    }catch(e){ wealthFwSection=""; }
-  }
-
-  // --- Annual Potential Wealth section [Merrill] ---
-  let potWealthSection="";
-  if((val("rptIncPotWealth")||"yes")!=="no" && lastSimPaths){
-    try{
-      const yrs=lastSimYrs, cy2=currentYear(), a1=ageFromDOB(val("c1d"))||40;
-      const step=yrs>30?5:(yrs>15?2:1);
-      let rows="";
-      for(let yI=0;yI<=yrs;yI+=step){
-        rows+=`<tr><td>${cy2+yI}</td><td>${a1+yI}</td><td>${fmtMoneyFull(percentileAt(lastSimPaths,yI,20))}</td><td>${fmtMoneyFull(percentileAt(lastSimPaths,yI,50))}</td><td>${fmtMoneyFull(percentileAt(lastSimPaths,yI,70))}</td></tr>`;
-      }
-      if(yrs%step!==0){ rows+=`<tr><td>${cy2+yrs}</td><td>${a1+yrs}</td><td>${fmtMoneyFull(percentileAt(lastSimPaths,yrs,20))}</td><td>${fmtMoneyFull(percentileAt(lastSimPaths,yrs,50))}</td><td>${fmtMoneyFull(percentileAt(lastSimPaths,yrs,70))}</td></tr>`; }
-      potWealthSection=`<h2>Annual potential wealth</h2>
-      <p>Projected portfolio value year by year. 80% = conservative floor; 30% = optimistic. Values nominal.</p>
-      <table><tr><th>Year</th><th>Age</th><th>Conservative (80%)</th><th>Expected (50%)</th><th>Optimistic (30%)</th></tr>${rows}</table>`;
-    }catch(e){ potWealthSection=""; }
-  }
-
-  // --- Estate transfer summary section ---
-  let rothSection="";
-  if((val("rptIncRoth")||"yes")!=="no" && typeof computeRothConversion==="function"){
-    try{
-      const s=computeRothConversion();
-      if(s && s.mech.avail!==false && s.deferredPool>0 && s.windowYears>0){
-        const cn=(COUNTRY_ACCOUNTS[val("c1co")]&&COUNTRY_ACCOUNTS[val("c1co")].name)||"";
-        rothSection=`<h2>Roth-style conversion window</h2>
-        <p style="font-size:12px;color:#555">${cn?cn+" — ":""}${s.mech.name}${s.mech.avail==="partial"?" (analogous strategy)":""}. ${s.mech.note}</p>
-        <table>
-        <tr><th>Low-income window</th><td>age ${s.windowStart}–${s.windowEnd} (${s.windowYears} years)</td></tr>
-        <tr><th>Tax-deferred pool today</th><td>${fmtMoneyFull(s.deferredPool)}</td></tr>
-        <tr><th>Suggested level conversion / yr</th><td>${fmtMoneyFull(s.annualConv)}</td></tr>
-        <tr><th>Estimated tax rate in window</th><td>${(s.windowTax*100).toFixed(0)}%</td></tr>
-        <tr><th>Total converted over window</th><td>${fmtMoneyFull(s.totalConverted)}</td></tr>
-        <tr><th>Estimated total tax</th><td>${fmtMoneyFull(s.totalTax)}</td></tr></table>
-        <p>Spreading the tax-deferred pool across the window moves it into the tax-free bucket at an estimated ${(s.windowTax*100).toFixed(0)}% rate, rather than leaving it to grow the tax-deferred balance and force larger, higher-rate required withdrawals later. <em>Illustrative — not tax advice.</em></p>`;
-      }
-    }catch(_){ rothSection=""; }
-  }
-
-  let taxBucketsSection="";
-  if((val("rptIncTaxBuckets")||"yes")!=="no" && typeof computeWithdrawalOrder==="function"){
-    try{
-      const w=computeWithdrawalOrder();
-      if(w && w.t.total>0){ const t=w.t, pc=v=>t.total>0?Math.round(v/t.total*100)+"%":"—";
-        taxBucketsSection=`<h2>Tax buckets &amp; withdrawal order</h2>
-        <p>Your wealth grouped by how it is taxed, with a tax-efficient order in which to draw on it during retirement. Asset-location score ${t.score}/100.</p>
-        <table><tr><th>Tax bucket</th><th>Balance</th><th>Share</th></tr>
-        <tr><td>Tax-free (Roth / ISA / TFSA / NISA)</td><td>${fmtMoneyFull(t.taxFree)}</td><td>${pc(t.taxFree)}</td></tr>
-        <tr><td>Tax-deferred (401k / IRA / RRSP / pension)</td><td>${fmtMoneyFull(t.taxDeferred)}</td><td>${pc(t.taxDeferred)}</td></tr>
-        <tr><td>Taxable (brokerage / cash / other)</td><td>${fmtMoneyFull(t.taxable)}</td><td>${pc(t.taxable)}</td></tr>
-        <tr><th>Total</th><th>${fmtMoneyFull(t.total)}</th><th>100%</th></tr></table>
-        <p><strong>Recommended withdrawal order:</strong></p>
-        <ol>${w.order.map(o=>`<li><strong>${o.step}.</strong> ${o.detail}</li>`).join("")}</ol>
-        ${w.notes.length?`<p style="color:#a06a10">${w.notes.map(n=>"• "+n).join("<br>")}</p>`:""}
-        <p style="font-size:11px;color:#666">General sequencing guidance, not personal tax advice — confirm with a tax professional.</p>`;
-      }
-    }catch(_){ taxBucketsSection=""; }
-  }
-
-  let rmdSection="";
-  if((val("rptIncRMD")||"yes")!=="no" && typeof computeRMDSchedule==="function"){
-    try{
-      const s=computeRMDSchedule();
-      if(s.rule.kind!=="none" && s.rows.length){
-        const cn=(COUNTRY_ACCOUNTS[val("c1co")]&&COUNTRY_ACCOUNTS[val("c1co")].name)||"";
-        const kindLbl={rmd:"US Required Minimum Distributions",rrif:"Canada RRIF minimum",minpension:"Australia minimum pension drawdown"}[s.rule.kind]||s.rule.kind;
-        const step=s.rows.length>22?5:1;
-        const shown=s.rows.filter((r,i)=>i%step===0||i===s.rows.length-1);
-        rmdSection=`<h2>Required minimum withdrawals</h2>
-        <p style="font-size:12px;color:#555">${cn?cn+" — ":""}${kindLbl}. ${s.rule.note} Pool projected at ${(s.growth*100).toFixed(1)}%/yr; tax estimated at ${(s.effTax*100).toFixed(0)}% effective. <em>Illustrative — not tax advice.</em></p>
-        <p>Mandatory from age <strong>${s.rule.startAge}</strong> · tax-deferred pool today ${fmtMoneyFull(s.base)} · total required to age ${s.planAge} <strong>${fmtMoneyFull(s.totalW)}</strong> · estimated tax ${fmtMoneyFull(s.totalTax)}.</p>
-        <table><tr><th>Age</th><th>Year</th><th>Pool (start)</th><th>Required %</th><th>Withdrawal</th><th>Est. tax</th><th>Pool (end)</th></tr>
-        ${shown.map(r=>`<tr><td>${r.age}</td><td>${r.year}</td><td>${fmtMoneyFull(r.startBal)}</td><td>${(r.frac*100).toFixed(2)}%</td><td>${fmtMoneyFull(r.withdrawal)}</td><td>${fmtMoneyFull(r.taxEst)}</td><td>${fmtMoneyFull(r.endBal)}</td></tr>`).join("")}</table>`;
-      }
-    }catch(_){ rmdSection=""; }
-  }
-
-  let estateSection="";
-  if((val("rptIncEstate")||"yes")!=="no" && (beneficiaries.length>0 || insuranceDeathBenefit()>0)){
-    try{
-      const e=computeEstate();
-      const rowsB=beneficiaries.map(b=>`<tr><td>${b.name}</td><td>${b.rel}</td><td>${(+b.share||0).toFixed(0)}%</td><td>${fmtMoneyFull(e.net*(+b.share||0)/100)}</td></tr>`).join("");
-      estateSection=`<h2>Estate transfer summary</h2>
-      ${e.regime?`<p style="font-size:12px;color:#555"><strong>${e.country||"Jurisdiction"} — ${(({estate:"Estate tax",inheritance:"Inheritance tax",none:"No estate/inheritance tax",deemed:"No estate tax (capital gains at death)",unknown:"Set manually"})[e.regime.basis]||e.regime.basis)}.</strong> ${e.regime.note} <em>Illustrative ~2024 default, editable in the app — not tax advice; confirm with a local advisor.</em></p>`:""}
-      <p>${e.fromProjection?"Median projected estate":"Current net worth"}: ${fmtMoneyFull(e.baseNW)} + life insurance ${fmtMoneyFull(e.death)} − estate tax ${fmtMoneyFull(e.tax)} (exemption ${fmtMoneyFull(e.exemption)}, ${(e.rate*100).toFixed(0)}%) = <strong>${fmtMoneyFull(e.net)}</strong> to beneficiaries.</p>
-      ${beneficiaries.length?`<table><tr><th>Beneficiary</th><th>Relationship</th><th>Share</th><th>Receives</th></tr>${rowsB}</table>`:""}`;
-    }catch(_){ estateSection=""; }
-  }
-
-  // --- Glossary of Terms section ---
-  let glossarySection="";
-  if((val("rptIncGlossary")||"yes")!=="no"){
-    try{
-      const rows=RPT_GLOSSARY.map(g=>`<tr><td style="font-weight:bold;width:27%">${g[0]}</td><td>${g[1]}</td></tr>`).join("");
-      glossarySection=`<h2>Glossary of terms</h2>
-      <p>Definitions of the terms used throughout this report, provided for your convenience.</p>
-      <table>${rows}</table>`;
-    }catch(e){ glossarySection=""; }
-  }
-
-  // --- Capital Market Assumptions section [Merrill] ---
-  let cmaSection="";
-  if((val("rptIncCMA")||"yes")!=="no"){
-    try{
-      const w3=gbAssetClassWeights(), port3=gbPortfolioRisk(w3);
-      let rows="";
-      Object.entries(CMA).forEach(([k,c])=>{ const w=(w3[k]||0)*100; if(c.label==="Mixed/Balanced"&&w===0) return; rows+=`<tr><td>${c.label}</td><td>${w.toFixed(1)}%</td><td>${c.arith.toFixed(2)}%</td><td>${c.sigma.toFixed(2)}%</td><td>${c.geo.toFixed(2)}%</td><td>${c.income.toFixed(2)}%</td></tr>`; });
-      rows+=`<tr><th>Your portfolio</th><th>100%</th><th>${(port3.arithMu*100).toFixed(2)}%</th><th>${(port3.sigma*100).toFixed(2)}%</th><th>${(port3.geoMu*100).toFixed(2)}%</th><th>—</th></tr>`;
-      cmaSection=`<h2>Capital market assumptions</h2>
-      <p>Long-term assumptions underpinning all projections. Core inflation ${CMA_INFLATION.toFixed(2)}%. Geometric μ = arithmetic − ½σ². Portfolio σ uses the full correlation matrix.</p>
-      <table><tr><th>Asset class</th><th>Your weight</th><th>Arith μ</th><th>σ</th><th>Geo μ</th><th>Income</th></tr>${rows}</table>`;
-    }catch(e){ cmaSection=""; }
-  }
-
-  // --- Insurance inventory section ---
-  let insSection="";
-  if((val("rptIncInsurance")||"yes")!=="no" && insurances.length>0){
-    const whoI=p=>p.insured==="c2"?(val("c2f")||"Client 2"):(val("c1f")||"Client 1");
-    insSection=`<h2>Insurance inventory (${insurances.length})</h2>
-    <table><tr><th>Policy</th><th>Type</th><th>Insured</th><th>Benefit</th><th>Cash value</th><th>Premium/yr</th><th>Beneficiary</th></tr>
-    ${insurances.map(p=>`<tr><td>${p.label}</td><td>${INS_TYPE_LABELS[p.type]||p.type}</td><td>${whoI(p)}</td><td>${p.ben?fmtMoneyFull(p.ben):"—"}</td><td>${p.cash?fmtMoneyFull(p.cash):"—"}</td><td>${fmtMoneyFull(p.prem||0)}</td><td>${p.benef||"—"}</td></tr>`).join("")}
-    </table>
-    <p>Total life death benefit: ${fmtMoneyFull(insuranceDeathBenefit())} • Cash value in net worth: ${fmtMoneyFull(insuranceCashValue())} • Annual premiums: ${fmtMoneyFull(insurancePremiumAnnual())}</p>`;
-  }
-
-  // --- Portfolio section ---
-  let portSection="";
-  if(incPort==="yes" && investments.length>0){
-    portSection=`<h2>Portfolio (${investments.length} holdings)</h2>
-    <p>Total value: ${fmtMoneyFull(portfolioInvestmentSeed())}</p>
-    <table><tr><th>Position</th><th>Ticker</th><th>Class</th><th>Value</th></tr>
-    ${investments.map(i=>`<tr><td>${_daEsc(i.name)}</td><td>${_daEsc(i.tkr||"—")}</td><td>${INV_CLASS_LABELS[i.cls]||i.cls}</td><td>${fmtMoneyFull(i.val)}</td></tr>`).join("")}
-    </table>`;
-  }
-
-  // --- Investment Policy Statement section ---
-  let ipsSection="";
-  if((val("rptIncIPS")||"yes")!=="no"){
-    try{ ipsSection=ipsHtmlSection(computeIPS()); }catch(e){ ipsSection=""; }
-  }
-
-  // --- Disclaimer text by level ---
-  const DISC={
-    standard:`<strong>Disclaimer.</strong> Educational and planning purposes only. Not investment, tax, or legal advice. Monte Carlo projections rely on randomly sampled returns based on historical averages and do not predict actual future market behaviour. Past performance is not a reliable indicator of future results. All projections are estimates only. Consult a licensed financial professional before making any financial decisions.`,
-    advisor:`<strong>Professional use notice.</strong> This report has been prepared for advisor use and client presentation purposes only. It relies on client-supplied data and capital market assumptions that may differ from actual outcomes. Monte Carlo projections model stochastic return paths and carry inherent uncertainty — actual results will differ. This document does not constitute investment advice, a personal financial plan, or a prospectus. The advisor should review all assumptions and disclose all material conflicts of interest to the client prior to use. Not for redistribution.`,
-    minimal:`<em>For educational purposes only. Not financial advice.</em>`
-  };
-
-  return `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${val("rptTitle")||"Wealth Report"}</title>
-  <style>body{font-family:Arial;margin:30px;color:#222;line-height:1.4}h1{color:#1e40af}h2{color:#1e40af;border-bottom:2px solid #1e40af;padding-bottom:4px;margin-top:24px}table{border-collapse:collapse;width:100%;margin:8px 0}th,td{border:1px solid #ddd;padding:6px 10px;text-align:left}th{background:#f3f3f3}.disc{font-size:10px;color:#666;border:1px solid #ccc;padding:10px;margin-top:20px}</style></head><body>
-  <h1>${val("rptTitle")||"Personal Wealth Analysis"}</h1>
-  <p><strong>Prepared by:</strong> ${val("rptPrepBy")||"—"} ${val("rptFirm")?"("+val("rptFirm")+")":""}<br>
-  <strong>Prepared for:</strong> ${val("rptPrepFor")||(val("c1f")+" "+val("c1l"))||"—"}<br>
-  <strong>Date:</strong> ${new Date().toLocaleDateString()} • <strong>Ref:</strong> ${val("rptRef")||"—"}</p>
-
-  <h2>Executive summary</h2>
-  <table>
-    <tr><th>Net worth</th><td>${fmtMoneyFull(nw)}</td></tr>
-    <tr><th>Total assets</th><td>${fmtMoneyFull(totAssets)}</td></tr>
-    <tr><th>Total debt</th><td>${fmtMoneyFull(debt)}</td></tr>
-    <tr><th>Gross household income</th><td>${fmtMoneyFull(inc)} / yr</td></tr>
-    <tr><th>Estimated income tax</th><td>${fmtMoneyFull(tax)} (${inc>0?(tax/inc*100).toFixed(1):0}%)</td></tr>
-    <tr><th>Net income after tax</th><td>${fmtMoneyFull(net)} / yr</td></tr>
-    <tr><th>Annual expenses</th><td>${fmtMoneyFull(exp)} / yr</td></tr>
-    <tr><th>Annual savings target</th><td>${fmtMoneyFull(num("savAnnual",0))} / yr</td></tr>
-  </table>
-
-  <h2>Household</h2>
-  <p>Client 1: ${val("c1f")||"—"} ${val("c1l")||""} ${ageC1?"(age "+ageC1+")":""} • Country: ${COUNTRY_ACCOUNTS[val("c1co")]?.name||"—"}<br>
-  Risk: ${RISK_PROFILES[val("c1r")]?.label||"—"} • Horizon: ${HORIZON_PROFILES[val("c1h")]?.label||"—"}</p>
-
-  <h2>Assets (${assets.length})</h2>
-  <table><tr><th>Account</th><th>Type</th><th>Value</th><th>Liquid</th><th>Withdraw age</th></tr>
-  ${assets.map(a=>`<tr><td>${_daEsc(a.label)}</td><td>${_daEsc(a.baseLabel||a.type)}</td><td>${fmtMoneyFull(a.value)}</td><td>${a.liquid?"Yes":"No"}</td><td>${a.withdrawAge!=null?fmtAge(a.withdrawAge):"—"}</td></tr>`).join("")}
-  ${num("aProp",0)>0?`<tr><td>Property / Real estate</td><td>Real estate</td><td>${fmtMoneyFull(num("aProp",0))}</td><td>No</td><td>—</td></tr>`:""}
-  ${num("aOther",0)>0?`<tr><td>Other assets</td><td>Miscellaneous</td><td>${fmtMoneyFull(num("aOther",0))}</td><td>No</td><td>—</td></tr>`:""}
-  </table>
-
-  <h2>Loans (${loans.length})</h2>
-  <table><tr><th>Loan</th><th>Balance</th><th>Rate</th><th>Years</th><th>Monthly</th></tr>
-  ${loans.map(l=>`<tr><td>${_daEsc(l.label)}</td><td>${fmtMoneyFull(l.bal)}</td><td>${l.rate.toFixed(2)}%</td><td>${l.yrs}</td><td>${fmtMoneyFull(loanMonthly(l))}</td></tr>`).join("")}
-  </table>
-
-  <h2>Goals (${goals.length})</h2>
-  <table><tr><th>Goal</th><th>Amount</th><th>Year range</th><th>Category</th><th>Tier</th></tr>
-  ${goals.map(g=>`<tr><td>${_daEsc(g.name)}</td><td>${fmtMoneyFull(g.amt)}/yr (${fmtMoneyFull(g.amt*Math.max(1,g.endYear-g.startYear+1))} total)</td><td>${g.startYear}–${g.endYear}</td><td>${g.cat}</td><td>${g.tier}</td></tr>`).join("")}
-  </table>
-
-  ${ipsSection}
-  ${insSection}
-  ${portSection}
-  ${simSection}
-  ${fundSection}
-  ${goalFundSection}
-  ${lifestyleSection}
-  ${wealthFwSection}
-  ${potWealthSection}
-  ${cfSection}
-  ${cmaSection}
-  ${taxBucketsSection}
-  ${rothSection}
-  ${rmdSection}
-  ${estateSection}
-  ${glossarySection}
-
-  <div class="disc">${DISC[discLvl]||DISC.standard}</div>
-  </body></html>`;
-}
 function previewPDFReport(){
-  const html=buildReportHtml();
+  // Open the tab synchronously (inside the click gesture) so popup blockers
+  // allow it, then generate the real PDF and point the tab at its blob URL.
   const w=window.open("","_blank");
-  if(w){w.document.write(html); w.document.close();}
-  setT("rptStatus","✓ Preview opened in new tab.");
+  if(w){ try{ w.document.write('<title>Report preview</title><body style="font:14px system-ui,sans-serif;color:#555;display:grid;place-items:center;height:100vh;margin:0">Generating report preview…</body>'); }catch(_){} }
+  setT("rptStatus","Generating preview…");
+  return generatePDFReport("preview", w);
 }
 // ─── Morningstar fact-sheet helper ───────────────────────────────────────────
 // Tries the configured Morningstar Direct proxy via MarketData.fetchOne(ticker,"morningstar").
@@ -16644,93 +16589,23 @@ function runGoalsBased(){
 
   const weights = gbAssetClassWeights();
   const port = gbPortfolioRisk(weights);
-  const inflation = num("inf", CMA_INFLATION) / 100;
-  const cy = (typeof currentYear === "function") ? currentYear() : new Date().getFullYear();
-  const a1 = (typeof ageFromDOB === "function" ? ageFromDOB(val("c1d")) : 0) || 40;
-  const retAge = num("retAge", 65);
-  const effTax = (function(){
-    // Use the income effective tax rate if available; else 22%
-    try {
-      const inc = getGrossIncome(); const tax = (typeof computeIncomeTax==="function")?computeIncomeTax(inc):0;
-      return inc>0 ? Math.min(0.45, Math.max(0.10, tax/inc)) : 0.22;
-    } catch(_){ return 0.22; }
-  })();
 
-  // ─── Funding sources ───
-  const currentInvestable = (typeof totalAccountValue==="function" ? totalAccountValue() : 0)
-    + (typeof portfolioInvestmentSeed==="function" ? 0 : 0);
-  const liquidAssets = currentInvestable;
-  const annualSavings = num("savAnnual", 0);
-  const grossIncome = (typeof getGrossIncome==="function")?getGrossIncome():0;
-
-  // ─── Per-goal funding ratio ───
-  const goalRows = [];
-  // Sort goals by priority then start year
-  const prioOrder = {essential:0, important:1, aspirational:2};
-  const sortedGoals = [...goals].sort((a,b)=>(prioOrder[a.tier]??1)-(prioOrder[b.tier]??1) || a.startYear-b.startYear);
-
-  // Pool of funding sources consumed in priority order
-  let remainingAssets = liquidAssets;
-
-  let totalGoalPV = 0, totalFundedPV = 0;
-  sortedGoals.forEach(g => {
-    const tier = g.tier || "important";
-    const conf = GB_PRIORITY_CONF[tier] || 75;
-    const yrsToStart = Math.max(0, g.startYear - cy);
-    const yrsToEnd = Math.max(yrsToStart, g.endYear - cy);
-    const midHorizon = Math.max(1, (yrsToStart + yrsToEnd)/2);
-    // Risk-adjusted discount rate for this priority
-    const discRate = gbReturnAtConfidence(port.geoMu, port.sigma, midHorizon, conf);
-    // PV of the goal's inflation-growing cash flows, grossed for tax
-    let goalPV = 0;
-    for(let y = g.startYear; y <= g.endYear; y++){
-      const n = y - cy;
-      if(n < 0) continue;
-      const nominal = g.amt * Math.pow(1+inflation, n);
-      const pv = nominal / Math.pow(1+Math.max(0.001,1+discRate-1), n);
-      goalPV += pv;
-    }
-    // Gross up for taxes (tax-advantaged withdrawals taxed on the way out)
-    const taxOnGoal = goalPV * effTax * 0.6; // ~60% of withdrawals from taxable sources
-    const goalCostPV = goalPV + taxOnGoal;
-
-    // Funding: future savings PV allocated proportionally + current assets in priority order
-    const savingsYears = Math.max(0, Math.min(retAge - a1, yrsToEnd));
-    let futureSavingsPV = 0;
-    for(let n = 1; n <= savingsYears; n++){
-      futureSavingsPV += annualSavings / Math.pow(1+Math.max(0.001,1+discRate-1), n);
-    }
-    // Consume current assets for this goal (priority waterfall)
-    const assetsForThisGoal = Math.min(remainingAssets, goalCostPV);
-    const fundingSourcesPV = assetsForThisGoal + Math.min(futureSavingsPV, Math.max(0,goalCostPV-assetsForThisGoal)+goalCostPV);
-    remainingAssets = Math.max(0, remainingAssets - assetsForThisGoal);
-
-    const fundedPV = Math.min(goalCostPV, assetsForThisGoal + futureSavingsPV);
-    const ratio = goalCostPV > 0 ? fundedPV/goalCostPV : 1;
-
-    totalGoalPV += goalCostPV;
-    totalFundedPV += fundedPV;
-
-    goalRows.push({
-      name: g.name || "(unnamed goal)", tier, conf,
-      period: g.startYear + "–" + g.endYear,
-      annual: g.amt,
-      goalCostPV, taxOnGoal, fundedPV,
-      currentAssets: assetsForThisGoal, futureSavingsPV,
-      ratio: Math.min(1.5, ratio), discRate
-    });
-  });
-
-  const overallRatio = totalGoalPV > 0 ? totalFundedPV/totalGoalPV : 1;
+  // ─── Funding status: SAME engine as the Simulation tab ───
+  // computeGoalFundingStatus() is the single source of truth (shared future-savings
+  // budget so the same dollars aren't counted for every goal, un-floored risk-adjusted
+  // discount rates, and Mode A/B/C-aware investable base). The old inline copy here
+  // double-counted savings per goal and omitted the linked portfolio entirely.
+  const fs = computeGoalFundingStatus();
 
   // ─── Render everything ───
-  gbRenderOverall(overallRatio, totalGoalPV, totalFundedPV, port, weights);
-  gbRenderGoals(goalRows);
-  gbRenderLifestyle(port, weights, inflation, a1, retAge);
+  gbRenderOverall(fs.overallRatio, fs.totalGoalPV, fs.totalFundedPV, fs.port, weights);
+  gbRenderGoals(fs.rows);
+  // (gbRenderLifestyle call removed — #gbLifestyle panel was consolidated into
+  //  the Simulation tab's Potentially Achievable Annual Lifestyle panel.)
   gbRenderWealth();
   gbRenderCMA(weights, port);
 
-  ["gbOverallPanel","gbGoalsPanel","gbLifestylePanel","gbWealthPanel","gbCmaPanel"].forEach(id => {
+  ["gbOverallPanel","gbGoalsPanel","gbCmaPanel"].forEach(id => {
     const el = document.getElementById(id); if(el) el.style.display = "block";
   });
   if(status) status.innerHTML = '✓ <strong style="color:#1b6841">Analysis complete</strong> — portfolio μ ' + (port.geoMu*100).toFixed(2) + '% · σ ' + (port.sigma*100).toFixed(2) + '%';
@@ -16903,25 +16778,33 @@ function gbRenderCMA(weights, port){
 // ═══════════════════════════════════════════════════════════════════
 // PDF REPORT — custom content + page ordering
 // ═══════════════════════════════════════════════════════════════════
-const RPT_DEFAULT_ORDER = ["exec","about","hh","inc","equity","assets","insurance","goals","strategies","ips","port","factsheets","sim","fund","goalfunding","lifestyle","wealthframework","potentialwealth","rmd","taxbuckets","roth","estate","cf","educharts","cma","method","glossary","disc"];
+// Order follows the institutional sample deck: Key Findings → Goal Funding →
+// profile/details → Net Worth Details → WAF overview → Risk Categories →
+// Current Status → IPS/Portfolio → Total Portfolio → Efficiency → Performance → …
+const RPT_DEFAULT_ORDER = ["exec","goalfunding","about","hh","inc","equity","assets","insurance","goals","strategies","wealthframework","riskcategories","riskstatus","ips","port","totalportfolio","efficiency","performance","factsheets","sim","fund","lifestyle","potentialwealth","rmd","taxbuckets","roth","estate","cf","educharts","cma","method","glossary","disc"];
 const RPT_SECTION_LABELS = {
-  exec:            "Executive Summary",
+  exec:            "Executive Summary: Key Findings",
   about:           "About the Client (custom)",
   hh:              "Household Profile",
   inc:             "Income, Expenses & Tax",
   equity:          "Equity Compensation",
-  assets:          "Assets & Liabilities",
+  assets:          "Net Worth Details",
   insurance:       "Insurance Inventory",
   goals:           "Goals & Retirement Plan",
   strategies:      "Plan Strategies",
+  riskcategories:  "Overview: Risk Categories",
+  riskstatus:      "Wealth & Risk Allocation: Current Status",
+  totalportfolio:  "A View of Your Total Portfolio",
+  efficiency:      "Evaluating Portfolio Efficiency",
+  performance:     "Asset Class & Allocation Performance",
   ips:             "Investment Policy Statement",
   port:            "Portfolio Analysis",
   factsheets:      "Investment Fact Sheets",
   sim:             "Monte Carlo Projection",
   fund:            "Goal Success Probability",
-  goalfunding:     "Goal Funding Status",
+  goalfunding:     "Key Factors: Goal Funding Status",
   lifestyle:       "Potentially Achievable Lifestyle",
-  wealthframework: "Wealth Allocation Framework",
+  wealthframework: "Overview: Wealth Allocation Framework",
   potentialwealth: "Annual Potential Wealth",
   rmd:             "Required Minimum Withdrawals",
   taxbuckets:      "Tax Buckets & Withdrawal Order",
@@ -16937,7 +16820,12 @@ const RPT_SECTION_LABELS = {
 
 // Short "what's on this page" blurbs — shown as a hover preview in the Page Order list.
 const RPT_SECTION_DESC = {
-  exec:            "Headline metrics — net worth, monthly surplus, projected median wealth, goal-success rate and household risk.",
+  exec:            "Key findings — net-worth statement, asset allocation, education and retirement analysis bullets.",
+  riskcategories:  "Your balance sheet organized into Personal / Market / Aspirational risk categories with each category's key risks.",
+  riskstatus:      "Three-column snapshot of wealth by risk category — % of total, market-asset mix pie and category tables.",
+  totalportfolio:  "Target/current asset allocation pie with an amount-per-asset-class totals table.",
+  efficiency:      "Risk-band chart — your allocation's return/risk point vs the risk band of your investor profile.",
+  performance:     "Hypothetical CMA-based growth of the allocation vs individual asset classes and inflation, with a results table.",
   about:           "Your custom 'About the client' narrative.",
   hh:              "Client(s) and dependants — names, ages and residence.",
   inc:             "Gross income, expenses and the income-tax breakdown (brackets, child benefits, net).",
@@ -17427,8 +17315,10 @@ function downscaleLogoDataUrl(dataUrl, maxPx){
     }catch(_){ resolve(dataUrl); }
   });
 }
-async function generatePDFReport(){
-  setT("rptStatus","Generating PDF…");
+async function generatePDFReport(mode, previewWin){
+  // mode: undefined/"download" → save the file; "preview" → show the SAME
+  // document in a browser tab via blob URL (guarantees preview === download).
+  if(mode!=="preview") setT("rptStatus","Generating PDF…");
   try{
     const {jsPDF}=window.jspdf;
     if(!jsPDF) throw new Error("jsPDF not loaded");
@@ -17458,9 +17348,18 @@ async function generatePDFReport(){
     const confidLabel=CONFID_LABELS[confidTxt]||"";
 
     function fmt(n){
-      if(!isFinite(+n)) n=0;   // a bad data value must never print "$NaN"
-      if(numFmt==="k") return fmtMoneyFull(n).replace(/,\d{3}(?=,|$)/g,'').replace(/(\d+)(\d{3})$/,'$1k').replace(/[^0-9k$€£¥]/,'');
-      if(numFmt==="m"&&Math.abs(n)>=1000000) return (CURRENCIES[CURRENT_CCY]||CURRENCIES.USD).sym.trim()+(n/1000000).toFixed(2)+"M";
+      n=+n;
+      if(!isFinite(n)) n=0;   // a bad data value must never print "$NaN"
+      const sym=(CURRENCIES[CURRENT_CCY]||CURRENCIES.USD).sym.trim();
+      const sign=n<0?"-":"";
+      const abs=Math.abs(n);
+      if(numFmt==="k"){
+        // Round to whole thousands with a k suffix (the old regex chain just
+        // truncated digits and produced numbers like "$41" for $41,250).
+        if(abs>=1000) return sign+sym+Math.round(abs/1000).toLocaleString()+"k";
+        return fmtMoneyFull(n);
+      }
+      if(numFmt==="m"&&abs>=1000000) return sign+sym+(abs/1000000).toFixed(2)+"M";
       return fmtMoneyFull(n);
     }
 
@@ -17659,14 +17558,18 @@ function drawFanChart(){
 
   const chartY = y;
 
-  // Compute percentile series at every year
+  // Compute percentile series at every year — honoring the user-selected
+  // probability band (Standard/Alternative/Custom), same as the app's controls.
   const numYrs = lastSimYrs;
   const years  = Array.from({length: numYrs + 1}, (_, i) => i);
-  const p10 = years.map(i => percentileAt(lastSimPaths, i, 10));
+  const bLow  = (typeof band!=="undefined"&&band&&isFinite(band.low ))?band.low :10;
+  const bMid  = (typeof band!=="undefined"&&band&&isFinite(band.mid ))?band.mid :50;
+  const bHigh = (typeof band!=="undefined"&&band&&isFinite(band.high))?band.high:90;
+  const p10 = years.map(i => percentileAt(lastSimPaths, i, bLow));
   const p25 = years.map(i => percentileAt(lastSimPaths, i, 25));
-  const p50 = years.map(i => percentileAt(lastSimPaths, i, 50));
+  const p50 = years.map(i => percentileAt(lastSimPaths, i, bMid));
   const p75 = years.map(i => percentileAt(lastSimPaths, i, 75));
-  const p90 = years.map(i => percentileAt(lastSimPaths, i, 90));
+  const p90 = years.map(i => percentileAt(lastSimPaths, i, bHigh));
 
   // Axis bounds
   const allVals = [...p10, ...p90];
@@ -17704,25 +17607,7 @@ function drawFanChart(){
     doc.text((cy2 + yr).toString(), xx, chartY + chartH + 4, {align:"center"});
   }
 
-  // Helper to build a closed polygon path for two series (upper + lower reversed)
-  function fillBand(upper, lower, r, g, b, alpha){
-    // jsPDF path commands
-    doc.setFillColor(r, g, b);
-    doc.saveGraphicsState && doc.saveGraphicsState();
-    // Build polygon points: left-to-right along upper, right-to-left along lower
-    const pts = [];
-    for(let i = 0; i <= numYrs; i++) pts.push([mx(i), my(upper[i])]);
-    for(let i = numYrs; i >= 0; i--) pts.push([mx(i), my(lower[i])]);
-    // Draw filled polygon using lines()
-    const [sx, sy] = pts[0];
-    doc.lines(
-      pts.slice(1).map(([px, py]) => [px - pts[pts.indexOf([px,py])-1]?.[0] ?? sx, py - pts[pts.indexOf([px,py])-1]?.[1] ?? sy]),
-      sx, sy, [1,1], "F"
-    );
-    doc.restoreGraphicsState && doc.restoreGraphicsState();
-  }
-
-  // jsPDF's lines() is awkward for this; use moveTo/lineTo style instead:
+  // Filled band between two percentile series (upper + lower reversed polygon)
   function fillBandDirect(upper, lower, r, g, b){
     doc.setFillColor(r, g, b);
     doc.setDrawColor(r, g, b);
@@ -17738,21 +17623,34 @@ function drawFanChart(){
     doc.lines(moves, pts[0][0], pts[0][1], [1,1], "F", true);
   }
 
-  // Outer band: p10–p90 (light blue)
+  // Outer band: selected low–high percentiles (light blue)
   fillBandDirect(p90, p10, 193, 220, 245);
-  // Inner band: p25–p75 (medium blue)
+  // Inner band: p25–p75 interquartile (medium blue)
   fillBandDirect(p75, p25, 91, 155, 213);
 
-  // Median line
+  // Median / mid-percentile line
   doc.setDrawColor(...ac); doc.setLineWidth(0.6);
   for(let i = 1; i <= numYrs; i++){
     doc.line(mx(i-1), my(p50[i-1]), mx(i), my(p50[i]));
   }
 
-  // Legend
+  // Retirement-age marker (dashed) — same convention as the wealth line chart
+  try{
+    const _a1=ageFromDOB(val("c1d"))||40, _retAge=num("retAge",65);
+    const _ri=_retAge-_a1;
+    if(_ri>0 && _ri<numYrs){
+      const rx=mx(_ri);
+      doc.setDrawColor(150); doc.setLineWidth(0.3); doc.setLineDashPattern([1,1],0);
+      doc.line(rx, chartY, rx, chartY+chartH);
+      doc.setLineDashPattern([],0);
+      doc.setFontSize(6); doc.setTextColor(120); doc.text("retirement", rx+1, chartY+4);
+    }
+  }catch(_){}
+
+  // Legend (reflects the selected band)
   y = chartY + chartH + 8;
   const legendItems = [
-    {label:"10th–90th percentile", r:193, g:220, b:245},
+    {label:bLow+"th–"+bHigh+"th percentile", r:193, g:220, b:245},
     {label:"25th–75th percentile", r:91,  g:155, b:213},
   ];
   let lx = chartX;
@@ -17765,32 +17663,46 @@ function drawFanChart(){
   doc.setDrawColor(...ac); doc.setLineWidth(0.6);
   doc.line(lx, y-1, lx+7, y-1);
   doc.setFontSize(6.5); doc.setTextColor(80);
-  doc.text("Median (50th)", lx+8.5, y);
+  doc.text((bMid===50?"Median (50th)":"Mid ("+bMid+"th)"), lx+8.5, y);
   y += 6;
   doc.setTextColor(40); doc.setFont("helvetica","normal"); doc.setFontSize(fsz);
 }
 
-    // ── Wealth projection line chart (80/50/30% to age 90) — mirrors the app's
-    //    "What could your wealth look like?" chart, drawn natively in the report's
-    //    clean white style. Same deterministic engine (gbReturnAtConfidence). ──
+    // ── Wealth projection line chart — mirrors the app's "What could your wealth
+    //    look like?" chart. When a simulation has run it plots the SAME series the
+    //    app shows (inflation-adjusted Monte-Carlo percentiles, likelihood = 100-p);
+    //    without a sim it falls back to the deterministic gbReturnAtConfidence path. ──
     function drawWealthLineChart(){
       const port = gbPortfolioRisk(gbAssetClassWeights());
       const a1 = ageFromDOB(val("c1d")) || 40;
       const retAge = num("retAge",65);
-      const investable = (typeof totalAccountValue==="function"?totalAccountValue():0) + (typeof portfolioInvestmentSeed==="function"?portfolioInvestmentSeed():0);
+      const investable = (typeof investableAssetsValue==="function"?investableAssetsValue():0);
       const savings = num("savAnnual",0);
       const cyr = (typeof currentYear==="function")?currentYear():new Date().getFullYear();
-      const yrs = Math.max(1, 90 - a1);
-      const confs = [{p:80,c:[27,104,65],lbl:"80% likelihood (conservative)"},{p:50,c:ac,lbl:"50% likelihood (expected)"},{p:30,c:[124,58,237],lbl:"30% likelihood (optimistic)"}];
-      const series = confs.map(cf=>{ const r=gbReturnAtConfidence(port.geoMu,port.sigma,yrs,cf.p); const pts=[]; let w=investable;
-        for(let i=0;i<=yrs;i++){ pts.push(Math.max(0,w)); w=w*(1+r)+((a1+i)<retAge?savings:0); } return {cf,pts}; });
+      const haveMC = Array.isArray(lastSimPaths) && lastSimPaths.length>0 && lastSimYrs>0;
+      const yrs = haveMC ? lastSimYrs : Math.max(1, 90 - a1);
+      const infR = num("inf",3.8)/100;
+      // Fixed colors (green/blue/purple) matching the in-app chart — the expected
+      // line no longer uses the report theme accent, which collided with the
+      // conservative green under the "forest" theme.
+      const confs = [{p:80,c:[27,104,65],lbl:"80% likelihood (conservative)"},{p:50,c:[0,87,184],lbl:"50% likelihood (expected)"},{p:30,c:[124,58,237],lbl:"30% likelihood (optimistic)"}];
+      const series = confs.map(cf=>{
+        const pts=[];
+        if(haveMC){
+          for(let i=0;i<=yrs;i++) pts.push(Math.max(0, percentileAt(lastSimPaths,i,100-cf.p)/Math.pow(1+infR,i)));
+        } else {
+          const r=gbReturnAtConfidence(port.geoMu,port.sigma,yrs,cf.p); let w=investable;
+          for(let i=0;i<=yrs;i++){ pts.push(Math.max(0,w)); w=w*(1+r)+((a1+i)<retAge?savings:0); }
+        }
+        return {cf,pts}; });
       const ch=64; checkY(ch+26);
       const cx=M+15, plotW=CW-15, cy0=y;
       const hi=(Math.max.apply(null, series.flatMap(s=>s.pts))*1.06)||1, lo=0;
       const mx=i=>cx+(i/yrs)*plotW, my=v=>cy0+ch-((v-lo)/(hi-lo))*ch;
       doc.setFontSize(6.5);
       for(let t=0;t<=4;t++){ const v=lo+(hi-lo)*t/4, gy=my(v); doc.setDrawColor(228,231,236); doc.setLineWidth(0.15); doc.line(cx,gy,cx+plotW,gy); doc.setTextColor(110,118,130); doc.text(fmtMoney(v),cx-2,gy+1,{align:"right"}); }
-      for(let i=0;i<=yrs;i+=10){ const xx=mx(i); doc.setTextColor(110,118,130); doc.setFontSize(6.5); doc.text(String(cyr+i),xx,cy0+ch+4,{align:"center"}); doc.setTextColor(170); doc.setFontSize(5.6); doc.text("age "+(a1+i),xx,cy0+ch+7.6,{align:"center"}); }
+      const xstep = yrs>30?10:(yrs>15?5:2);
+      for(let i=0;i<=yrs;i+=xstep){ const xx=mx(i); doc.setTextColor(110,118,130); doc.setFontSize(6.5); doc.text(String(cyr+i),xx,cy0+ch+4,{align:"center"}); doc.setTextColor(170); doc.setFontSize(5.6); doc.text("age "+(a1+i),xx,cy0+ch+7.6,{align:"center"}); }
       doc.setDrawColor(170); doc.setLineWidth(0.3); doc.line(cx,cy0,cx,cy0+ch); doc.line(cx,cy0+ch,cx+plotW,cy0+ch);
       // soft cone fill between 80% (lower) and 30% (upper)
       const up=series[2].pts, dn=series[0].pts, pts=[];
@@ -17813,11 +17725,19 @@ function drawFanChart(){
       const inflation = num("inf",CMA_INFLATION)/100;
       const a1 = ageFromDOB(val("c1d")) || 40;
       const retAge = num("retAge",65);
-      const investable = (typeof totalAccountValue==="function"?totalAccountValue():0)+(typeof portfolioInvestmentSeed==="function"?portfolioInvestmentSeed():0);
+      const investable = (typeof investableAssetsValue==="function"?investableAssetsValue():0);
       const savings = num("savAnnual",0);
-      const spendAt=(rA,cP)=>{ const acc=Math.max(0,rA-a1), inret=Math.max(1,90-rA); const r=gbReturnAtConfidence(port.geoMu,port.sigma,Math.max(1,acc),cP);
-        let w=investable; for(let i=0;i<acc;i++) w=w*(1+r)+savings; const rr=(r-inflation)/(1+inflation);
-        return Math.max(0, Math.abs(rr)<1e-6 ? w/inret : w*rr/(1-Math.pow(1+rr,-inret))); };
+      // SAME engine as the app's renderSimLifestyleCandles: MC wealth percentile at
+      // the retirement year + Monte-Carlo sustainable-spend solver (90% survival);
+      // deterministic accumulation only as a no-sim fallback.
+      const haveMC = Array.isArray(lastSimPaths) && lastSimPaths.length>0;
+      const P = (typeof getActiveSimulationParams==="function") ? getActiveSimulationParams() : {mu:port.geoMu, sig:port.sigma};
+      const spendAt=(rA,cP)=>{ const acc=Math.max(0,rA-a1), inret=Math.max(1,90-rA);
+        let w;
+        if(haveMC){ w = percentileAt(lastSimPaths, Math.min(acc, lastSimYrs), 100-cP); }
+        else { const r=gbReturnAtConfidence(port.geoMu,port.sigma,Math.max(1,acc),cP);
+          w=investable; for(let i=0;i<acc;i++) w=w*(1+r)+savings; }
+        return Math.max(0, _solveSustainableSpendMC(Math.max(0,w), inret, P.mu, P.sig, inflation, 90, 100)); };
       const startAge=a1, endAge=Math.max(retAge,a1+1);   // start at current age, never a past retirement age
       const span=endAge-startAge, stepA=span>40?Math.ceil(span/40):1, ages=[];
       for(let a=startAge;a<=endAge;a+=stepA) ages.push(a);
@@ -18093,13 +18013,14 @@ function drawFanChart(){
     const rSub      = val("rptSubtitle");
 
     const inc       = getGrossIncome();
-    const tax       = computeIncomeTax(inc);
+    const tax       = getApplyTax()?computeIncomeTax(inc):0;   // honor the app's tax toggle
     const exp       = getTotalExpenses();
-    const totA      = totalAccountValue()+num("aProp",0)+num("aOther",0)+insuranceCashValue();
+    // Same asset base as the app's Total Assets card: portfolio-aware (Mode A/B/C)
+    const totA      = investableAssetsValue()+num("aProp",0)+num("aOther",0)+insuranceCashValue();
     const debtTot   = loans.reduce((s,l)=>s+(+l.bal||0),0);
     const nw        = totA-debtTot;
     const sav       = num("savAnnual",0);
-    const surplus   = inc-tax-exp-sav;
+    const surplus   = getNetSurplus();   // inc − tax − expenses − debt service (matches the app's Monthly Surplus)
     const a1age     = ageFromDOB(val("c1d"))||35;
     const showC2    = $("c2card").style.display!=="none";
 
@@ -18239,6 +18160,11 @@ function drawFanChart(){
       goalfunding:    () => val("rptIncGoalFunding") !== "no" && goals.length > 0,
       lifestyle:      () => val("rptIncLifestyle") !== "no",
       wealthframework:() => val("rptIncWealthFw") !== "no",
+      riskcategories: () => val("rptIncWealthFw") !== "no",
+      riskstatus:     () => val("rptIncWealthFw") !== "no",
+      totalportfolio: () => val("rptIncIPS") !== "no",
+      efficiency:     () => val("rptIncPort") !== "no",
+      performance:    () => val("rptIncCMA") !== "no",
       potentialwealth:() => val("rptIncPotWealth") !== "no" && lastSimPaths && lastSimPaths.length > 0,
       rmd:            () => val("rptIncRMD") !== "no" && (typeof rmdRuleFor==="function") && rmdRuleFor(val("c1co")).kind !== "none" && (typeof retirementAccountSeed==="function") && retirementAccountSeed() > 0,
       taxbuckets:     () => val("rptIncTaxBuckets") !== "no" && (typeof computeWithdrawalOrder==="function") && (function(){ try{ return computeWithdrawalOrder().t.total > 0; }catch(_){ return false; } })(),
@@ -18258,9 +18184,9 @@ function drawFanChart(){
       if(k === "port")            label = "Portfolio Analysis";
       if(k === "sim")             label = "Monte Carlo Projection";
       if(k === "fund")            label = "Goal Success Probability";
-      if(k === "goalfunding")     label = "Goal Funding Status";
+      if(k === "goalfunding")     label = "Key Factors: Goal Funding Status";
       if(k === "lifestyle")       label = "Potentially Achievable Lifestyle";
-      if(k === "wealthframework") label = "Wealth Allocation Framework";
+      if(k === "wealthframework") label = "Overview: Wealth Allocation Framework";
       if(k === "potentialwealth") label = "Annual Potential Wealth";
       if(k === "cma")             label = "Capital Market Assumptions";
       if(k === "cf")              label = "Cash-Flow Projection";
@@ -18518,7 +18444,7 @@ function drawFanChart(){
         {label:"Retirement pool", col:[120,200,185], vals:D.map(d=>Math.max(0,+d.retPot||0))},
         {label:"Property & other", col:[165,168,225], vals:D.map(d=>Math.max(0,(+d.prop||0)+(+d.otherAssets||0)))}
       ];
-      if(insCV>0) bands.push({label:"Insurance cash value", col:[245,205,140], vals:D.map(()=>insCV)});
+      if(insCV>0) bands.push({label:"Insurance cash value (held constant)", col:[245,205,140], vals:D.map(()=>insCV)});
       const nwLine=D.map(d=>(+d.nw||0)+insCV);
       const cum=[]; let prev=D.map(()=>0);
       bands.forEach(b=>{ const top=b.vals.map((v,i)=>prev[i]+v); cum.push({col:b.col, lower:prev, upper:top}); prev=top; });
@@ -18561,19 +18487,85 @@ function drawFanChart(){
       exec: () => {
         if(val("rptIncExec") === "no") return;
         newPage();
-        sectionH2("Executive Summary");
-        kv([
-          ["Net worth",                fmt(nw)],
-          ["Total assets",             fmt(totA)],
-          ["Total liabilities",        fmt(debtTot)],
-          ["Gross household income",   fmt(inc)+" / yr"],
-          ["Income tax",               fmt(tax)+" ("+(inc>0?(tax/inc*100).toFixed(1):0)+"%)"],
-          ["Net after-tax income",     fmt(inc-tax)+" / yr"],
-          ["Annual expenses",          fmt(exp)+" / yr"],
-          ["Annual savings target",    fmt(sav)+" / yr"],
-          ["Annual surplus / deficit", fmt(surplus)+" / yr"],
-          ["Retirement account pool",  fmt(retirementAccountSeed())],
-        ]);
+        sectionH2("Executive Summary: Key Findings");
+        const bullet = (txt, indent) => {
+          checkY(6);
+          doc.setFontSize(8.5); doc.setTextColor(45,52,64); doc.setFont("helvetica","normal");
+          const bx = M + 2 + (indent?5:0);
+          doc.text(indent?"◦":"•", bx, y);
+          const lines = doc.splitTextToSize(txt, CW - 8 - (indent?5:0));
+          lines.forEach((l,i)=>{ checkY(5); doc.text(l, bx+4, y); y += 4.4; });
+          y += 0.8;
+        };
+        // ── Your Net Worth Statement ──
+        subBar("Your Net Worth Statement");
+        para("A review of your net worth statement identifies the following key findings:",[70,80,95]);
+        const investableA = investableAssetsValue();
+        const personalA   = num("aProp",0) + insuranceCashValue();
+        const retPool     = retirementAccountSeed();
+        bullet("You have a combined net worth of "+fmt(nw)+".");
+        bullet("You have "+fmt(investableA)+" in investment assets. These are your working assets, representing "+(totA>0?(investableA/totA*100).toFixed(1):"0")+"% of your total assets"+(retPool>0?" (of which "+fmt(retPool)+" sits in retirement accounts)":"")+".");
+        (function(){
+          const w = gbAssetClassWeights();
+          const pct = k => ((w[k]||0)*100).toFixed(1)+"%";
+          const altW = 1-(w.equity||0)-(w.fixed_income||0)-(w.cash||0);
+          bullet("Your investment assets are currently allocated as "+pct("equity")+" equity, "+pct("fixed_income")+" fixed income, "+pct("cash")+" cash and "+(Math.max(0,altW)*100).toFixed(1)+"% real assets / alternatives.");
+        })();
+        if(personalA>0) bullet("You have "+fmt(personalA)+" in personal assets (residence, insurance cash value). These are non-working assets representing "+(totA>0?(personalA/totA*100).toFixed(1):"0")+"% of your total assets.");
+        bullet("Your total liabilities of "+fmt(debtTot)+" represent "+(totA>0?(debtTot/totA*100).toFixed(1):"0")+"% of your total asset base.");
+        // ── Your Asset Allocation Analysis ──
+        subBar("Your Asset Allocation Analysis");
+        para("A review of your investments identifies the following key findings:",[70,80,95]);
+        (function(){
+          const w = gbAssetClassWeights();
+          const port = gbPortfolioRisk(w);
+          const prof = RISK_PROFILES[val("c1r")];
+          if(prof){
+            const dev = Math.abs(port.sigma*100 - prof.retVol);
+            bullet(dev <= 3
+              ? "The risk associated with your asset allocation is consistent with the risk corresponding to your investor profile ("+prof.label+")."
+              : "The risk of your current allocation (volatility "+(port.sigma*100).toFixed(1)+"%) deviates from your "+prof.label+" investor profile ("+prof.retVol.toFixed(1)+"%) — review the Portfolio Efficiency page.");
+          }
+          if((w.cash||0) > 0.15) bullet("You have a large cash position in your portfolio ("+((w.cash||0)*100).toFixed(0)+"%).");
+        })();
+        // ── Your Education Analysis ──
+        const eduGoals = goals.filter(g=>g.cat==="education");
+        if(eduGoals.length){
+          subBar("Your Education Analysis");
+          try{
+            const fs = computeGoalFundingStatus();
+            eduGoals.forEach(g=>{
+              const r = fs.rows.find(x=>x.name===g.name);
+              if(r && r.ratio < 0.999){
+                const shortPV = Math.max(0, r.goalCostPV - r.fundedPV);
+                const yrsTo = Math.max(1, g.startYear - (typeof currentYear==="function"?currentYear():new Date().getFullYear()));
+                bullet("Additional assets are necessary to meet the anticipated cost of \""+g.name+"\": the present-value shortfall is "+fmt(shortPV)+".");
+                bullet("A systematic savings program of approximately "+fmt(shortPV/(yrsTo*12))+" per month until "+g.startYear+" (or a lump sum of "+fmt(shortPV)+" today) would close the gap.", true);
+              } else if(r){
+                bullet("\""+g.name+"\" is fully funded on a present-value basis.");
+              }
+            });
+          }catch(_){ }
+        }
+        // ── Your Retirement Analysis ──
+        subBar("Your Retirement Analysis");
+        if(Array.isArray(lastSimPaths) && lastSimPaths.length && goals.some(g=>g.cat==="retirement")){
+          const rg = goals.find(g=>g.cat==="retirement");
+          const p = goalSuccessFromPaths(rg, lastSimPaths, lastSimYrs)||0;
+          bullet(p>=70
+            ? "Based on the information in this analysis, your income and investment assets may be sufficient to support your retirement goals ("+p.toFixed(0)+"% Monte-Carlo success)."
+            : "Based on the information in this analysis, your current assets and savings may NOT be sufficient for your retirement goals ("+p.toFixed(0)+"% Monte-Carlo success) — consider the What-If scenarios reviewed with your advisor.");
+        }
+        try{
+          const port2 = gbPortfolioRisk(gbAssetClassWeights());
+          const P2 = (typeof getActiveSimulationParams==="function")?getActiveSimulationParams():{mu:port2.geoMu,sig:port2.sigma};
+          const yrsToRet2 = Math.max(1, num("retAge",65) - a1age);
+          const w2 = (Array.isArray(lastSimPaths)&&lastSimPaths.length)
+            ? percentileAt(lastSimPaths, Math.min(yrsToRet2, lastSimYrs), 50)
+            : investableAssetsValue();
+          const spend2 = _solveSustainableSpendMC(Math.max(0,w2), Math.max(1,90-num("retAge",65)), P2.mu, P2.sig, num("inf",3.8)/100, 90);
+          bullet("Based on the information in this analysis, a retirement lifestyle of approximately "+fmt(spend2)+" per year may be attainable.");
+        }catch(_){ }
       },
       // ─── ABOUT THE CLIENT (custom text — user-provided) ──
       about: () => {
@@ -18670,24 +18662,55 @@ function drawFanChart(){
         para("A visual summary of your balance sheet. The bar chart compares total assets, total liabilities and the resulting net worth. The two pie charts break down what your assets are made of and where your debts sit, so you can see your biggest concentrations at a glance.");
         try { drawNetWorthSummary(); }
         catch(e){ console.warn("Net Worth Summary failed:", e); doc.setFont("helvetica","italic"); doc.setTextColor(120); doc.text("Net Worth Summary unavailable for this data.", M, y+8); }
-        // Page 3+ — detailed holdings & liabilities
-        currentSectionTitle = "Assets & Liabilities";
+        // Page 3+ — Net Worth Details (Merrill-style categorized statement)
+        currentSectionTitle = "Net Worth Details";
         newPage();
         checkY(30);
-        sectionH2("Assets");
-        if(assets.length>0){
-          const aRows=assets.map(a=>[a.label, a.baseLabel||a.type, fmt(a.value), a.liquid?"Liquid":"Locked"]);
-          if(num("aProp",0)>0) aRows.push(["Property / Real estate","Real estate",fmt(num("aProp",0)),"Illiquid"]);
-          if(num("aOther",0)>0) aRows.push(["Other assets","Misc.",fmt(num("aOther",0)),"Illiquid"]);
-          aRows.push(["TOTAL","",fmt(totA),""]);
-          tbl(["Account / Asset","Type","Value","Liquidity"],aRows);
-        } else { para("No assets entered."); }
-        checkY(24);
-        sectionH2("Liabilities");
-        if(loans.length>0){
-          tbl(["Loan","Balance","Rate","Remaining yrs","Monthly payment"],
-            loans.map(l=>[l.label,fmt(l.bal),(l.rate*100).toFixed(2)+"%",l.yrs,fmt(loanMonthly(l))]));
-        } else { para("No loans entered."); }
+        sectionH2("Net Worth Details");
+        (function(){
+          const isRet = a => (!a.liquid && (a.withdrawAge>0)) || (typeof TAX_DEFERRED_TYPES!=="undefined" && TAX_DEFERRED_TYPES.has(a.type));
+          const isEdu = a => /529|resp\b|junior|education|jisa|coverdell/i.test((a.type||"")+" "+(a.label||""));
+          const personal=[], retirement=[], portfolio=[], education=[];
+          assets.forEach(a=>{
+            const row=[a.label, a.baseLabel||a.type, fmt(a.value)];
+            if(isEdu(a)) education.push(row);
+            else if(isRet(a)) retirement.push(row);
+            else portfolio.push(row);
+          });
+          if(num("aProp",0)>0)       personal.push(["Home / Real estate","Real estate",fmt(num("aProp",0))]);
+          if(insuranceCashValue()>0) personal.push(["Insurance cash value","Life / annuity",fmt(insuranceCashValue())]);
+          if(num("aOther",0)>0)      personal.push(["Other personal assets","Misc.",fmt(num("aOther",0))]);
+          const pfExtra = investableAssetsValue() - totalAccountValue();
+          if(pfExtra>0.5) portfolio.push(["Portfolio holdings (Investments tab)","Securities",fmt(pfExtra)]);
+          // Category subtotals computed from source data (not parsed back from fmt)
+          const vPersonal = num("aProp",0)+insuranceCashValue()+num("aOther",0);
+          const vRet      = assets.filter(a=>!isEdu(a)&&isRet(a)).reduce((s,a)=>s+(+a.value||0),0);
+          const vEdu      = assets.filter(isEdu).reduce((s,a)=>s+(+a.value||0),0);
+          const vPort     = totA - vPersonal - vRet - vEdu;
+          if(personal.length){ subBar("Personal Assets");
+            tbl(["Asset","Type","Value"], personal.concat([["Total Personal Assets","",fmt(vPersonal)]])); }
+          if(retirement.length||portfolio.length){ subBar("Investment Assets");
+            const invRows=[];
+            if(retirement.length){ invRows.push(["— Retirement assets —","",""]); retirement.forEach(r=>invRows.push(r)); invRows.push(["Total Retirement Assets","",fmt(vRet)]); }
+            if(portfolio.length){ invRows.push(["— Portfolio assets —","",""]); portfolio.forEach(r=>invRows.push(r)); invRows.push(["Total Portfolio Assets","",fmt(Math.max(0,vPort))]); }
+            invRows.push(["Total Investment Assets","",fmt(vRet+Math.max(0,vPort))]);
+            tbl(["Asset","Type","Value"], invRows); }
+          if(education.length){ subBar("Education Assets");
+            tbl(["Asset","Type","Value"], education.concat([["Total Education Assets","",fmt(vEdu)]])); }
+          checkY(24);
+          subBar("Liabilities");
+          if(loans.length>0){
+            tbl(["Loan","Balance","Rate","Remaining yrs","Monthly payment"],
+              loans.map(l=>[l.label,"("+fmt(l.bal)+")",l.rate.toFixed(2)+"%",l.yrs||"—",fmt(loanMonthly(l))])
+                .concat([["Total Liabilities","("+fmt(debtTot)+")","","",""]]));
+          } else { para("No liabilities entered."); }
+          subBar("Summary");
+          tbl(["","Amount"],[
+            ["Total Assets", fmt(totA)],
+            ["Total Liabilities", "("+fmt(debtTot)+")"],
+            ["Net Worth", fmt(nw)],
+          ]);
+        })();
       },
       // ─── INSURANCE INVENTORY ──
       insurance: () => {
@@ -19005,7 +19028,9 @@ function drawFanChart(){
           const yrs=lastSimYrs;
           const inf=num("inf",3.8)/100;
           const df=v=>v/Math.pow(1+inf,yrs);
-          const params=getReturnParams();
+          // Print the params the simulation ACTUALLY ran with (holdings-weighted /
+          // proposal-driven when active), not the raw risk-profile blend.
+          const params=(typeof getActiveSimulationParams==="function")?getActiveSimulationParams():getReturnParams();
           kv([
             ["Simulation count",lastSimPaths.length.toLocaleString()],
             ["Projection horizon",yrs+" years"],
@@ -19013,15 +19038,19 @@ function drawFanChart(){
             ["Volatility (σ)",(params.sig*100).toFixed(1)+"% / yr"],
             ["Inflation assumption",num("inf",3.8).toFixed(1)+"% / yr"],
           ]);
-          para("The fan chart below runs thousands of randomized market scenarios and plots the range of outcomes over time. The dark line is the median (50th percentile) result; the shaded bands show the spread — the outer band is the 10th–90th percentile range, so there is roughly an 80% chance your wealth lands inside it. A wider fan means more uncertainty the further out you look.");
+          const _bL=(typeof band!=="undefined"&&band&&isFinite(band.low ))?band.low :10;
+          const _bM=(typeof band!=="undefined"&&band&&isFinite(band.mid ))?band.mid :50;
+          const _bH=(typeof band!=="undefined"&&band&&isFinite(band.high))?band.high:90;
+          para("The fan chart below runs thousands of randomized market scenarios and plots the range of outcomes over time. The dark line is the "+(_bM===50?"median (50th percentile)":_bM+"th-percentile")+" result; the shaded bands show the spread — the outer band is the "+_bL+"th–"+_bH+"th percentile range (matching the probability band selected in the app), so there is roughly a "+Math.max(0,_bH-_bL)+"% chance your wealth lands inside it. A wider fan means more uncertainty the further out you look.");
           drawFanChart();
 
           checkY(40);
-          tbl(["Percentile","Nominal wealth","Real (inflation-adj.)","vs Median"],
-            [10,25,50,75,90].map(p=>{
+          const _pcts=[...new Set([_bL,25,_bM,75,_bH])].sort((a,b)=>a-b);
+          tbl(["Percentile","Nominal wealth","Real (inflation-adj.)","vs "+(_bM===50?"Median":_bM+"th")],
+            _pcts.map(p=>{
               const v=percentileAt(lastSimPaths,yrs,p);
-              const med=percentileAt(lastSimPaths,yrs,50);
-              return [p+"th", fmt(v), fmt(df(v)), p===50?"—":(v>=med?"+":"")+((v/med-1)*100).toFixed(0)+"%"];
+              const med=percentileAt(lastSimPaths,yrs,_bM);
+              return [p+"th", fmt(v), fmt(df(v)), p===_bM?"—":(v>=med?"+":"")+((v/med-1)*100).toFixed(0)+"%"];
             }));
         } else {
           para("Run the simulation to include Monte Carlo results.",[136,136,136]);
@@ -19033,10 +19062,9 @@ function drawFanChart(){
         checkY(30);
         sectionH2("Goal Success Probability");
         if(lastSimPaths&&lastSimPaths.length>0){
-          const fundEl=$("goalResultList");
           const rows=goals.map(g=>{
-            const el=fundEl?fundEl.querySelector("[data-gid='"+g.id+"']"):null;
-            const pct=el?el.querySelector(".grs-pct")?.textContent||"—":"—";
+            const p=(typeof goalSuccessFromPaths==="function")?goalSuccessFromPaths(g,lastSimPaths,lastSimYrs):null;
+            const pct=(p!=null)?Math.round(p)+"%":"—";
             return [g.name, fmt(g.amt)+"/yr", g.startYear+"–"+g.endYear, pct];
           });
           tbl(["Goal","Annual amount","Years","Success probability"],rows);
@@ -19048,7 +19076,7 @@ function drawFanChart(){
       goalfunding: () => {
         if(val("rptIncGoalFunding") === "no" || goals.length === 0) return;
         newPage();
-        sectionH2("Goal Funding Status");
+        sectionH2("Key Factors: Goal Funding Status");
         let st;
         try { st = computeGoalFundingStatus(); }
         catch(e){ para("Goal funding analysis unavailable — define goals and run the analysis."); return; }
@@ -19105,6 +19133,34 @@ function drawFanChart(){
           cyR+=cardH+4; });
         y=Math.max(topY+12+74+14, cyR)+2;
         para("Funding ratios at or above 100% indicate a fully funded goal; lower ratios indicate a present-value shortfall to close through added savings, return, or a revised goal. Hypothetical and not guaranteed.", [120,120,120]);
+        // ── Estimated Future Income / Savings (Merrill "Key Factors" block) ──
+        (function(){
+          const cyNow=(typeof currentYear==="function")?currentYear():new Date().getFullYear();
+          const retA=num("retAge",65);
+          const retYear=cyNow+Math.max(0,retA-a1age);
+          const rows=[];
+          const inc1t=num("inc1",0)+num("inc2",0);
+          if(inc1t>0) rows.push(["Salary income — "+((val("c1f")||"Client 1")), cyNow+" until retirement ("+retYear+")", fmt(inc1t)]);
+          if(showC2){
+            const inc2t=num("inc1b",0)+num("inc2b",0);
+            const c2a=ageFromDOB(val("c2d"))||a1age;
+            if(inc2t>0) rows.push(["Salary income — "+((val("c2f")||"Client 2")), cyNow+" until retirement ("+(cyNow+Math.max(0,retA-c2a))+")", fmt(inc2t)]);
+          }
+          const pen1=num("penAnnual",0), penA1=num("penStartAge",67);
+          if(pen1>0) rows.push(["State pension / Social Security — "+((val("c1f")||"Client 1")), (cyNow+Math.max(0,penA1-a1age))+" through rest of life", fmt(pen1)]);
+          if(showC2){
+            const pen2=num("penAnnual2",0), penA2=num("penStartAge2",67), c2a=ageFromDOB(val("c2d"))||a1age;
+            if(pen2>0) rows.push(["State pension / Social Security — "+((val("c2f")||"Client 2")), (cyNow+Math.max(0,penA2-c2a))+" through rest of life", fmt(pen2)]);
+          }
+          if(sav>0) rows.push(["Committed annual savings", cyNow+" until retirement ("+retYear+")", fmt(sav)]);
+          const surplusExtra=Math.max(0,surplus-sav);
+          if(surplusExtra>1000) rows.push(["Additional cash-flow surplus (unallocated)", cyNow+" until retirement", fmt(surplusExtra)]);
+          if(rows.length){
+            subBar("Estimated Future Income / Savings");
+            tbl(["Description","Time period","Annual amount"], rows);
+            para("Income and savings streams feeding the plan, as entered in the application. Salary grows with the assumed raise rate; pensions apply their own start age and indexation.", [120,120,120]);
+          }
+        })();
       },
       // ─── POTENTIALLY ACHIEVABLE LIFESTYLE (80/50/30 confidence) ──
       lifestyle: () => {
@@ -19120,33 +19176,84 @@ function drawFanChart(){
         const a1 = ageFromDOB(val("c1d")) || 40;
         const retAge = num("retAge", 65);
         const yrsToRet = Math.max(1, retAge - a1);
-        const investable = (typeof totalAccountValue==="function" ? totalAccountValue() : 0) + (typeof portfolioInvestmentSeed==="function" ? portfolioInvestmentSeed() : 0);
+        const investable = (typeof investableAssetsValue==="function"?investableAssetsValue():0);
         const annualSavings = num("savAnnual", 0);
         const yearsInRet = Math.max(1, 90 - retAge);
+        // SAME engine as the app's lifestyle cards: Monte-Carlo wealth-at-retirement
+        // at the (100-p)th percentile + MC sustainable-spend solver (90% survival),
+        // falling back to the deterministic projection only when no sim has run.
+        const haveMC = Array.isArray(lastSimPaths) && lastSimPaths.length>0;
+        const P = (typeof getActiveSimulationParams==="function") ? getActiveSimulationParams() : {mu:port.geoMu, sig:port.sigma};
         const confs = [
           {p:80, lbl:"Conservative (80% confidence)"},
           {p:50, lbl:"Expected (50% confidence)"},
           {p:30, lbl:"Optimistic (30% confidence)"}
         ];
         const rows = confs.map(c=>{
-          const r = gbReturnAtConfidence(port.geoMu, port.sigma, yrsToRet, c.p);
-          let wealth = investable;
-          for(let yI=0; yI<yrsToRet; yI++){ wealth = wealth*(1+r) + annualSavings; }
-          const realRate = (r - inflation)/(1+inflation);
-          let spend;
-          if(Math.abs(realRate) < 1e-6) spend = wealth/yearsInRet;
-          else spend = wealth*realRate/(1 - Math.pow(1+realRate, -yearsInRet));
-          return [c.lbl, (r*100).toFixed(1)+"% / yr", fmt(Math.max(0,wealth)), fmt(Math.max(0,spend))+" / yr"];
+          let wealth;
+          if(haveMC){
+            wealth = percentileAt(lastSimPaths, Math.min(yrsToRet, lastSimYrs), 100 - c.p);
+          } else {
+            const r = gbReturnAtConfidence(port.geoMu, port.sigma, yrsToRet, c.p);
+            wealth = investable;
+            for(let yI=0; yI<yrsToRet; yI++){ wealth = wealth*(1+r) + annualSavings; }
+          }
+          const spend = _solveSustainableSpendMC(Math.max(0,wealth), yearsInRet, P.mu, P.sig, inflation, 90);
+          const basis = haveMC ? "Monte Carlo · "+(100-c.p)+"th pct"
+                               : (gbReturnAtConfidence(port.geoMu, port.sigma, yrsToRet, c.p)*100).toFixed(1)+"% / yr";
+          return [c.lbl, basis, fmt(Math.max(0,wealth)), fmt(Math.max(0,spend))+" / yr"];
         });
-        tbl(["Scenario","Return assumption","Wealth at retirement","Sustainable annual spend"], rows);
-        para("Sustainable spend is modelled as a real (inflation-adjusted) annuity over the retirement horizon (current age "+a1+" → retirement "+retAge+" → age 90), assuming the portfolio continues to earn the confidence-level return through retirement.", [120,120,120]);
+        tbl(["Scenario","Basis","Wealth at retirement","Sustainable annual spend"], rows);
+        para("Sustainable spend targets a 90% probability of the money lasting to age 90 (Monte-Carlo drawdown at the portfolio's expected return and volatility) — the same solver the app's lifestyle panel uses (current age "+a1+" → retirement "+retAge+" → age 90).", [120,120,120]);
       },
       // ─── WEALTH ALLOCATION FRAMEWORK (Personal / Market / Aspirational) ──
       wealthframework: () => {
         if(val("rptIncWealthFw") === "no") return;
-        checkY(40);
-        sectionH2("Wealth Allocation Framework");
-        para("Your assets are classified into three risk buckets following the Merrill framework: Personal (preserve lifestyle and safety), Market (balance risk and return) and Aspirational (idiosyncratic upside such as concentrated stock, a business, investment property or crypto).");
+        newPage();
+        sectionH2("Overview: Wealth Allocation Framework");
+        para("The Wealth Allocation Framework is a goals-based framework to help determine an investor's financial approach. It compares an investor's risk allocation to their goals and priorities, and illuminates how to connect the two. Assets and liabilities are organized by risk-return characteristics into the three categories below.");
+        // ── Three-column explainer (Personal / Market / Aspirational) ──
+        (function(){
+          const colW=(CW-12)/3;
+          const cols=[
+            {t:"PERSONAL ASSETS", sub:"(personal risk)", col:[27,104,65],
+             head:"Preserve lifestyle / principal preservation / aimed at safety",
+             body:"Assets directly related to protecting your minimum lifestyle: residence, personal property and cash reserves.",
+             obj:"Do not jeopardize the basic standard of living. Reduce downside risk; accept below-market returns for reduced risk.",
+             bench:"Inflation."},
+            {t:"MARKET ASSETS", sub:"(market risk)", col:[0,87,184],
+             head:"Balance risk and return",
+             body:"Assets that provide the potential means to maintain or improve your standard of living: diversified equities, bonds and liquid alternatives.",
+             obj:"Maintain or improve lifestyle through market-level performance from a broadly diversified portfolio.",
+             bench:"Risk-adjusted market return."},
+            {t:"ASPIRATIONAL ASSETS", sub:"(idiosyncratic risk)", col:[180,110,30],
+             head:"Capitalize on unique opportunities",
+             body:"Calculated, idiosyncratic risks taken to substantially increase your standard of living: concentrated stock, stock options, a private business, investment property, crypto.",
+             obj:"Enhance lifestyle: increase upside by taking measured but significant risk.",
+             bench:"Absolute return."}
+          ];
+          checkY(70);
+          const topY=y;
+          cols.forEach((c,i)=>{
+            const x=M+i*(colW+6);
+            let cy2=topY;
+            doc.setFont("helvetica","bold"); doc.setFontSize(9); doc.setTextColor.apply(doc,c.col);
+            doc.text(c.t,x,cy2); cy2+=4;
+            doc.setFontSize(6.5); doc.setTextColor(120); doc.text(c.sub.toUpperCase(),x,cy2); cy2+=5;
+            doc.setFont("helvetica","bold"); doc.setFontSize(7.2); doc.setTextColor(60,66,80);
+            doc.splitTextToSize(c.head.toUpperCase(),colW).forEach(l=>{ doc.text(l,x,cy2); cy2+=3.4; }); cy2+=1.5;
+            doc.setFont("helvetica","italic"); doc.setFontSize(7); doc.setTextColor(90,98,112);
+            doc.splitTextToSize(c.body,colW).forEach(l=>{ doc.text(l,x,cy2); cy2+=3.2; }); cy2+=2;
+            doc.setFont("helvetica","bold"); doc.setFontSize(6.6); doc.setTextColor(60,66,80); doc.text("OBJECTIVE",x,cy2); cy2+=3.2;
+            doc.setFont("helvetica","normal"); doc.setFontSize(6.8); doc.setTextColor(70,80,95);
+            doc.splitTextToSize(c.obj,colW).forEach(l=>{ doc.text(l,x,cy2); cy2+=3.1; }); cy2+=2;
+            doc.setFont("helvetica","bold"); doc.setFontSize(6.6); doc.setTextColor(60,66,80); doc.text("BENCHMARK",x,cy2); cy2+=3.2;
+            doc.setFont("helvetica","normal"); doc.setFontSize(6.8); doc.setTextColor(70,80,95);
+            doc.splitTextToSize(c.bench,colW).forEach(l=>{ doc.text(l,x,cy2); cy2+=3.1; });
+            if(cy2>y) y=cy2;
+          });
+          y+=6; doc.setTextColor(40); doc.setFont("helvetica","normal"); doc.setFontSize(fsz);
+        })();
         const buckets = {personal:0, market:0, aspirational:0};
         (assets||[]).forEach(a=>{ buckets[gbWealthBucket(a)] += (+a.value||0); });
         buckets.personal     += num("aProp",0) + insuranceCashValue();
@@ -19157,6 +19264,7 @@ function drawFanChart(){
         });
         const total = buckets.personal + buckets.market + buckets.aspirational;
         const pctOf = v => total>0 ? (v/total*100).toFixed(1)+"%" : "—";
+        subBar("Your Wealth Allocation");
         tbl(["Bucket","Purpose","Value","Share"],[
           ["Personal",     "Preserve lifestyle · safety", fmt(buckets.personal),     pctOf(buckets.personal)],
           ["Market",       "Balance risk & return",       fmt(buckets.market),       pctOf(buckets.market)],
@@ -19165,23 +19273,226 @@ function drawFanChart(){
         ]);
         para("Concentrated and idiosyncratic positions carry higher risk. The framework recommends limiting Aspirational exposure relative to the assets required to fund your essential goals.", [120,120,120]);
       },
+      // ─── OVERVIEW: RISK CATEGORIES (your assets organized by risk type) ──
+      riskcategories: () => {
+        if(val("rptIncWealthFw") === "no") return;
+        newPage();
+        sectionH2("Overview: Risk Categories");
+        para("Understanding the individual components of your total wealth — and the expected role each asset or liability plays — is critical to achieving your financial goals. Below, your own balance sheet is organized into the framework's risk categories, alongside the principal risks each category carries.");
+        const items={personal:[],market:[],aspirational:[]};
+        (assets||[]).forEach(a=>{ items[gbWealthBucket(a)].push({l:a.label,v:(+a.value||0)}); });
+        if(num("aProp",0)>0)       items.personal.push({l:"Home / Real estate",v:num("aProp",0)});
+        if(insuranceCashValue()>0) items.personal.push({l:"Insurance cash value",v:insuranceCashValue()});
+        if(num("aOther",0)>0)      items.aspirational.push({l:"Other assets",v:num("aOther",0)});
+        (investments||[]).forEach(i=>{ const b=gbWealthBucket({cls:(typeof effClass==="function"?effClass(i):i.cls),type:i.type,label:i.name}); items[b].push({l:i.name||i.tkr||"Position",v:(+i.val||0)}); });
+        (loans||[]).forEach(l=>{ items.personal.push({l:l.label+" (liability)",v:-(+l.bal||0)}); });
+        const clamp=arr=>{ if(arr.length<=7) return arr; const head=arr.slice(0,6); const tail=arr.slice(6).reduce((s,x)=>s+x.v,0); return head.concat([{l:"Other ("+(arr.length-6)+")",v:tail}]); };
+        const RISKS={
+          personal:["Death / disability","Outliving your assets (longevity)","Loss of purchasing power (inflation)","Loss of job","Catastrophic illness","Lawsuits & legal liabilities","Lack of liquidity"],
+          market:["Portfolio volatility","Sustained market downturn","Market shocks · geopolitical events","Sector & interest-rate conditions","Currency fluctuation","Higher taxation / change in tax laws"],
+          aspirational:["Asset concentration","Loss of principal","Lack of liquidity","Higher taxation / change in tax laws"]
+        };
+        [["PERSONAL ASSETS & RISKS","personal",[27,104,65]],["MARKET ASSETS & RISKS","market",[0,87,184]],["ASPIRATIONAL ASSETS & RISKS","aspirational",[180,110,30]]].forEach(([title,key,col])=>{
+          subBar(title,{color:col});
+          const rows=clamp(items[key]).map(x=>[x.l, x.v<0?"("+fmt(-x.v)+")":fmt(x.v)]);
+          const tot=items[key].reduce((s,x)=>s+x.v,0);
+          rows.push(["Subtotal", tot<0?"("+fmt(-tot)+")":fmt(tot)]);
+          tbl(["Your assets","Value"],rows);
+          para("Key risks: "+RISKS[key].join(" · ")+".",[110,116,128]);
+        });
+        subBar("Total Net Worth");
+        tbl(["","Amount"],[["Total net worth (all categories, net of liabilities)",fmt(nw)]]);
+      },
+      // ─── WEALTH & RISK ALLOCATION: CURRENT STATUS (3-column snapshot) ──
+      riskstatus: () => {
+        if(val("rptIncWealthFw") === "no") return;
+        newPage();
+        sectionH2("Wealth & Risk Allocation: Your Current Status");
+        const buckets={personal:0,market:0,aspirational:0};
+        (assets||[]).forEach(a=>{ buckets[gbWealthBucket(a)]+=(+a.value||0); });
+        buckets.personal+=num("aProp",0)+insuranceCashValue();
+        buckets.aspirational+=num("aOther",0);
+        const mktByCls={};
+        (investments||[]).forEach(i=>{
+          const cls=(typeof effClass==="function"?effClass(i):i.cls)||"mixed";
+          const b=gbWealthBucket({cls,type:i.type,label:i.name});
+          buckets[b]+=(+i.val||0);
+          if(b==="market") mktByCls[cls]=(mktByCls[cls]||0)+(+i.val||0);
+        });
+        const totalW=buckets.personal+buckets.market+buckets.aspirational;
+        const pct=v=>totalW>0?(v/totalW*100).toFixed(2)+"%":"—";
+        const colW=(CW-12)/3;
+        const cols=[
+          {t:"PERSONAL RISK",v:buckets.personal,col:[27,104,65]},
+          {t:"MARKET RISK",v:buckets.market,col:[0,87,184]},
+          {t:"IDIOSYNCRATIC RISK",v:buckets.aspirational,col:[180,110,30]}
+        ];
+        checkY(30);
+        const topY=y;
+        cols.forEach((c,i)=>{
+          const x=M+i*(colW+6);
+          doc.setFillColor(228,231,236); doc.rect(x,topY-4,colW,6,"F");
+          doc.setFont("helvetica","bold"); doc.setFontSize(7.5); doc.setTextColor(60,66,80); doc.text(c.t,x+2,topY);
+          const bw=Math.max(1,(totalW>0?c.v/totalW:0)*(colW-30));
+          doc.setFillColor.apply(doc,c.col); doc.rect(x,topY+4,bw,3,"F");
+          doc.setFont("helvetica","bold"); doc.setFontSize(8); doc.setTextColor(40); doc.text(pct(c.v),x+bw+2,topY+6.6);
+          doc.setFontSize(8.5); doc.text(fmt(c.v),x+colW-2,topY+6.6,{align:"right"});
+        });
+        y=topY+14;
+        // Market-assets pie by asset class
+        if(buckets.market>0){
+          const CLS_LBL={equity:"Equities",fixed_income:"Fixed income",cash:"Cash",real_estate:"Real estate",commodity:"Commodities",alternative:"Alternatives",mixed:"Mixed / funds",crypto:"Digital assets"};
+          const PAL=[[0,87,184],[91,155,213],[0,164,166],[201,150,40],[124,58,237],[230,120,30],[150,160,175]];
+          let segs=Object.entries(mktByCls).map(([k,v],i)=>({label:CLS_LBL[k]||k,value:v,color:PAL[i%PAL.length]}));
+          if(!segs.length) segs=[{label:"Market assets",value:buckets.market,color:[0,87,184]}];
+          checkY(56);
+          const pieY=y+24;
+          drawPieChart(M+CW/2,pieY,20,segs);
+          pieLegend(M+CW/2+30,pieY-16,CW/2-40,segs);
+          y=pieY+26;
+        }
+        subBar("Category detail");
+        tbl(["Category","Amount","% of total"],[
+          ["Personal assets",fmt(buckets.personal),pct(buckets.personal)],
+          ["Market assets",fmt(buckets.market),pct(buckets.market)],
+          ["Aspirational assets",fmt(buckets.aspirational),pct(buckets.aspirational)],
+          ["Liabilities","("+fmt(debtTot)+")",totalW>0?(debtTot/totalW*100).toFixed(2)+"%":"—"],
+          ["TOTAL ASSETS & LIABILITIES",fmt(totalW-debtTot),""],
+        ]);
+        para("Percentages are of total assets across all three categories. Liabilities are shown against Personal risk following the framework convention.",[120,120,120]);
+      },
+      // ─── A VIEW OF YOUR TOTAL PORTFOLIO (target allocation pie + totals) ──
+      totalportfolio: () => {
+        if(val("rptIncIPS") === "no") return;
+        newPage();
+        sectionH2("A View of Your Total Portfolio");
+        const w=gbAssetClassWeights();
+        const investableT=investableAssetsValue();
+        const prof=RISK_PROFILES[val("c1r")];
+        para("Your "+(investments.length?"current investable portfolio":"profile-derived target allocation")+(prof?" ("+prof.label+")":"")+", valued at "+fmt(investableT)+".");
+        const CLS_LBL={equity:"Equities (EQ)",fixed_income:"Fixed Income (FI)",cash:"Cash (CA)",real_estate:"Real Assets (RA)",commodity:"Commodities",alternative:"Alternatives / Hedge (HFS)",mixed:"Multi-asset funds",crypto:"Digital assets",private_equity:"Private Equity (PE)"};
+        const PAL=[[0,87,184],[178,80,42],[110,160,60],[124,58,237],[0,164,166],[230,160,40],[150,160,175]];
+        const segs=Object.entries(w).filter(([k,v])=>v>0.0001).map(([k,v],i)=>({label:CLS_LBL[k]||k,value:v*investableT,color:PAL[i%PAL.length]}));
+        checkY(60);
+        const pieY=y+26;
+        drawPieChart(M+CW/2-30,pieY,22,segs);
+        pieLegend(M+CW/2+4,pieY-18,CW/2-20,segs);
+        y=pieY+30;
+        subBar("Totals");
+        const rows=segs.map(s=>[s.label,fmt(s.value),(s.value/Math.max(1,investableT)*100).toFixed(2)+"%"]);
+        rows.push(["Total",fmt(investableT),"100%"]);
+        tbl(["Asset class","Amount","Allocation"],rows);
+      },
+      // ─── EVALUATING THE EFFICIENCY OF YOUR PORTFOLIO (risk band + point) ──
+      efficiency: () => {
+        if(val("rptIncPort") === "no") return;
+        newPage();
+        sectionH2("Evaluating the Efficiency of Your Portfolio");
+        const port=gbPortfolioRisk(gbAssetClassWeights());
+        const prof=RISK_PROFILES[val("c1r")];
+        const profVol=prof?prof.retVol:12, profRet=prof?prof.retMean:7;
+        para("The shaded region represents the risk band associated with your investor profile"+(prof?" ("+prof.label+")":"")+". The diamond marks your "+(investments.length?"current":"target")+" allocation's expected return and risk (standard deviation) under the plan's capital market assumptions.");
+        const chH=62; checkY(chH+26);
+        const cx=M+18, plotW=CW-24, cy0=y;
+        const maxX=Math.max(20, port.sigma*100*1.4, profVol+6), maxY=Math.max(10, port.geoMu*100*1.5, profRet+3);
+        const mxE=v=>cx+(v/maxX)*plotW, myE=v=>cy0+chH-(v/maxY)*chH;
+        // plot area + profile risk band (±2pp around the profile volatility)
+        doc.setFillColor(238,240,236); doc.rect(cx,cy0,plotW,chH,"F");
+        const b0=Math.max(0,profVol-2), b1=Math.min(maxX,profVol+2);
+        doc.setFillColor(196,200,182); doc.rect(mxE(b0),cy0,Math.max(2,mxE(b1)-mxE(b0)),chH,"F");
+        doc.setFontSize(6.5); doc.setTextColor(90,98,112);
+        for(let t=0;t<=5;t++){ const vx=maxX*t/5; doc.text(vx.toFixed(0),mxE(vx),cy0+chH+4,{align:"center"}); }
+        for(let t=1;t<=5;t++){ const vy=maxY*t/5; doc.text(vy.toFixed(0),cx-2,myE(vy)+1,{align:"right"}); }
+        doc.setDrawColor(150); doc.setLineWidth(0.3); doc.line(cx,cy0,cx,cy0+chH); doc.line(cx,cy0+chH,cx+plotW,cy0+chH);
+        // dashed crosshair + diamond at the portfolio point
+        const pxE=mxE(port.sigma*100), pyE=myE(port.geoMu*100);
+        doc.setDrawColor(90); doc.setLineWidth(0.25); doc.setLineDashPattern([1.2,1.2],0);
+        doc.line(cx,pyE,pxE,pyE); doc.line(pxE,pyE,pxE,cy0+chH); doc.setLineDashPattern([],0);
+        doc.setFillColor(30,34,42); doc.triangle(pxE,pyE-2.4,pxE-2.4,pyE,pxE,pyE+2.4,"F"); doc.triangle(pxE,pyE-2.4,pxE+2.4,pyE,pxE,pyE+2.4,"F");
+        doc.setFontSize(6.5); doc.setTextColor(90,98,112);
+        doc.text("Risk (standard deviation, %)",cx+plotW/2,cy0+chH+8.5,{align:"center"});
+        doc.text("Return (%)",cx-10,cy0+chH/2,{angle:90});
+        if(prof){ doc.setFontSize(7); doc.setTextColor(60,66,80); doc.text(prof.label,mxE((b0+b1)/2),cy0-1.5,{align:"center"}); }
+        y=cy0+chH+13;
+        doc.setFillColor(196,200,182); doc.rect(M,y-2.6,5,3.4,"F");
+        doc.setFontSize(7); doc.setTextColor(70); doc.text("Investor-profile risk band",M+7,y);
+        doc.setFillColor(30,34,42); doc.triangle(M+62,y-3,M+60,y-1,M+62,y+1,"F"); doc.triangle(M+62,y-3,M+64,y-1,M+62,y+1,"F");
+        doc.text((investments.length?"Current":"Target")+" allocation — return "+(port.geoMu*100).toFixed(1)+"% · risk "+(port.sigma*100).toFixed(1)+"%",M+67,y);
+        y+=8;
+        para("A portfolio whose risk falls inside the shaded band is consistent with your stated investor profile. Note: the shaded region reflects volatility only — it does not guarantee any outcome.",[120,120,120]);
+      },
+      // ─── MEASURING PERFORMANCE OF ASSET CLASSES & ALLOCATIONS (CMA-based) ──
+      performance: () => {
+        if(val("rptIncCMA") === "no") return;
+        newPage();
+        sectionH2("Asset Class & Allocation Performance");
+        const startV=Math.max(100000, Math.round(investableAssetsValue()/50000)*50000)||1000000;
+        const yrsP=Math.min(20, Math.max(10, num("simYrs",20)));
+        const port=gbPortfolioRisk(gbAssetClassWeights());
+        const lines=[
+          {lbl:"Your target allocation", p:gbPortfolioRisk(gbAssetClassWeights()), col:[30,34,42]},
+          {lbl:"Global equities",        p:gbPortfolioRisk({equity:1}),            col:[0,87,184]},
+          {lbl:"Fixed income",           p:gbPortfolioRisk({fixed_income:1}),      col:[178,80,42]},
+          {lbl:"Cash",                   p:gbPortfolioRisk({cash:1}),              col:[110,160,60]},
+        ];
+        const infP=num("inf",3.8)/100;
+        para("Hypothetical growth of "+fmt(startV)+" over "+yrsP+" years under this plan's forward-looking capital market assumptions (NOT historical index returns — see the Capital Market Assumptions section for the inputs). The consumer-price line shows the same amount adjusted only for assumed inflation.");
+        // growth chart
+        const chH=58; checkY(chH+24);
+        const cx=M+18, plotW=CW-24, cy0=y;
+        const grow=(mu,i)=>startV*Math.pow(1+mu,i);
+        const maxV=Math.max.apply(null,lines.map(L=>grow(L.p.geoMu,yrsP)))*1.06;
+        const mxP=i=>cx+(i/yrsP)*plotW, myP=v=>cy0+chH-(v/maxV)*chH;
+        doc.setFontSize(6.5);
+        for(let t=0;t<=4;t++){ const v=maxV*t/4; doc.setDrawColor(228,231,236); doc.setLineWidth(0.15); doc.line(cx,myP(v),cx+plotW,myP(v)); doc.setTextColor(110,118,130); doc.text(fmt(v),cx-2,myP(v)+1,{align:"right"}); }
+        const cyNow=(typeof currentYear==="function")?currentYear():new Date().getFullYear();
+        for(let i=0;i<=yrsP;i+=Math.max(1,Math.round(yrsP/8))){ doc.setTextColor(110,118,130); doc.text(String(cyNow+i),mxP(i),cy0+chH+4,{align:"center"}); }
+        doc.setDrawColor(170); doc.setLineWidth(0.3); doc.line(cx,cy0,cx,cy0+chH); doc.line(cx,cy0+chH,cx+plotW,cy0+chH);
+        lines.forEach(L=>{ doc.setDrawColor.apply(doc,L.col); doc.setLineWidth(L.lbl.indexOf("target")>=0?0.9:0.55);
+          for(let i=1;i<=yrsP;i++) doc.line(mxP(i-1),myP(grow(L.p.geoMu,i-1)),mxP(i),myP(grow(L.p.geoMu,i))); });
+        // inflation line (dashed)
+        doc.setDrawColor(150); doc.setLineWidth(0.4); doc.setLineDashPattern([1.5,1.5],0);
+        for(let i=1;i<=yrsP;i++) doc.line(mxP(i-1),myP(grow(infP,i-1)),mxP(i),myP(grow(infP,i)));
+        doc.setLineDashPattern([],0);
+        y=cy0+chH+10;
+        let lx=cx; doc.setFontSize(6.8);
+        lines.concat([{lbl:"Inflation (CPI assumption)",col:[150,150,150]}]).forEach(L=>{
+          doc.setDrawColor.apply(doc,L.col); doc.setLineWidth(1); doc.line(lx,y-1.2,lx+6,y-1.2);
+          doc.setTextColor(70); doc.text(L.lbl,lx+8,y); lx+=Math.min(58,plotW/5+6); });
+        y+=8;
+        subBar("Summary of Results");
+        tbl(["Series","Volatility (σ)","Avg annual return","Growth of "+fmt(startV)+" ("+yrsP+" yrs)"],
+          lines.map(L=>[L.lbl,(L.p.sigma*100).toFixed(2)+"%",(L.p.geoMu*100).toFixed(2)+"%",fmt(grow(L.p.geoMu,yrsP))])
+            .concat([["Inflation (CPI assumption)","—",(infP*100).toFixed(2)+"%",fmt(grow(infP,yrsP))]]));
+        para("Results are illustrative, based on the plan's capital market assumptions compounded deterministically; they do not reflect any actual portfolio, trading costs or taxes, and past performance does not guarantee future results.",[120,120,120]);
+      },
       // ─── ANNUAL POTENTIAL WEALTH (year-by-year at confidence bands) ──
       potentialwealth: () => {
         if(val("rptIncPotWealth") === "no") return;
         sectionH2("Annual Potential Wealth");
         para("Projected portfolio value each year from today to age 90, in today's money, at three likelihood levels — 80% is a conservative floor (80% chance of doing at least this well), 50% is the expected path and 30% is an optimistic outcome. The shaded cone spans the conservative-to-optimistic range.");
-        // chart — mirrors the app's deterministic projection
+        // chart — same series as the app (MC percentiles when a sim has run)
         drawWealthLineChart();
-        // table on the same deterministic engine, so chart, table and app all agree
+        // table on the SAME series source, so chart, table and app all agree
         const port = gbPortfolioRisk(gbAssetClassWeights());
         const a1 = ageFromDOB(val("c1d")) || 40;
         const retAge = num("retAge",65);
-        const investable = (typeof totalAccountValue==="function"?totalAccountValue():0)+(typeof portfolioInvestmentSeed==="function"?portfolioInvestmentSeed():0);
+        const investable = (typeof investableAssetsValue==="function"?investableAssetsValue():0);
         const savings = num("savAnnual",0);
         const cy = (typeof currentYear==="function") ? currentYear() : new Date().getFullYear();
-        const yrs = Math.max(1, 90 - a1);
-        const ser = [80,50,30].map(p=>{ const r=gbReturnAtConfidence(port.geoMu,port.sigma,yrs,p); const pts=[]; let w=investable;
-          for(let i=0;i<=yrs;i++){ pts.push(Math.max(0,w)); w=w*(1+r)+((a1+i)<retAge?savings:0); } return pts; });
+        const haveMC = Array.isArray(lastSimPaths) && lastSimPaths.length>0 && lastSimYrs>0;
+        const yrs = haveMC ? lastSimYrs : Math.max(1, 90 - a1);
+        const infR = num("inf",3.8)/100;
+        const ser = [80,50,30].map(p=>{
+          const pts=[];
+          if(haveMC){
+            // inflation-adjusted MC percentiles — identical to the app's table
+            for(let i=0;i<=yrs;i++) pts.push(Math.max(0, percentileAt(lastSimPaths,i,100-p)/Math.pow(1+infR,i)));
+          } else {
+            const r=gbReturnAtConfidence(port.geoMu,port.sigma,yrs,p); let w=investable;
+            for(let i=0;i<=yrs;i++){ pts.push(Math.max(0,w)); w=w*(1+r)+((a1+i)<retAge?savings:0); }
+          }
+          return pts; });
         const step = yrs > 30 ? 5 : (yrs > 15 ? 2 : 1);
         const rows = [];
         for(let i=0;i<=yrs;i+=step){ rows.push([String(cy+i),String(a1+i),fmt(ser[0][i]),fmt(ser[1][i]),fmt(ser[2][i])]); }
@@ -19489,12 +19800,20 @@ function drawFanChart(){
       }
       doc.setTextColor(40); doc.setFont("helvetica","normal");
     } catch(e){ console.warn("footer pass failed:", e); }
-    // ── SAVE ─────────────────────────────────────────────────────────────────
+    // ── SAVE / PREVIEW ───────────────────────────────────────────────────────
     const fname=(rTitle||"wealth-report").replace(/[^a-zA-Z0-9_-]/g,"_").replace(/_+/g,"_")+"_"+new Date().toISOString().slice(0,10)+".pdf";
-    doc.save(fname);
-    setT("rptStatus","✓ Downloaded "+fname+" ("+doc.internal.getNumberOfPages()+" pages).");
+    if(mode==="preview"){
+      const url=doc.output("bloburl");
+      if(previewWin && !previewWin.closed) previewWin.location.href=url;
+      else window.open(url,"_blank");
+      setT("rptStatus","✓ Preview opened ("+doc.internal.getNumberOfPages()+" pages) — identical to the downloaded PDF.");
+    } else {
+      doc.save(fname);
+      setT("rptStatus","✓ Downloaded "+fname+" ("+doc.internal.getNumberOfPages()+" pages).");
+    }
   } catch(e){
     console.error(e);
+    if(previewWin && !previewWin.closed){ try{ previewWin.close(); }catch(_){} }
     setT("rptStatus","✗ Error: "+e.message);
   }
 }
@@ -19566,13 +19885,20 @@ const TAX_FREE_TYPES=new Set(["roth_ira","roth_401k","stocks_isa","cash_isa","li
 const TAX_DEFERRED_TYPES=new Set(["401k","ira","sep_ira","pension","social_security","rrsp","rrif","resp","sipp","workplace_pension","db_pension","cpf_oa","cpf_sa","cpf_ra","super_accum","super_pension","smsf","ahv_avs","bvg_lpp","kosei_nenkin","kokumin_nenkin","corporate_pension","irp","dc","nps","epf","ppf","bpjs_hari_tua","bpjs_pensiun","afore","inss","pgbl","vgbl","gosi","ppa","retirement_annuity","pension_fund","provident_fund","ideco","pillar_3b","pillar_3a","vested_benefits","labour_pension_new","national_pension","state_pension","occupational_pension","private_pension","cpp","dbpp","dcpp","annuity","mpf","mpf_voluntary","age_pension","basic_pension","enterprise_annuity","personal_pension"]);
 function calcTaxEfficiency(){
   let taxFree=0,taxDeferred=0,taxable=0;
+  const skipLinked=pfLinkedAccountId && investments.length>0;   // Mode B: portfolio replaces the linked account
   assets.forEach(a=>{
+    if(skipLinked && a.id===pfLinkedAccountId) return;
     if(TAX_FREE_TYPES.has(a.type)) taxFree+=a.value;
     else if(TAX_DEFERRED_TYPES.has(a.type)||!a.liquid) taxDeferred+=a.value;
     else taxable+=a.value;
   });
+  // Portfolio holdings assumed taxable. Mode C (holdings not linked): only count the
+  // value ABOVE the liquid accounts already summed — same de-dup as the sim engine.
   const invTotal=investments.reduce((s,i)=>s+i.val,0);
-  taxable+=invTotal; // portfolio assets assumed taxable unless linked to exempt account
+  if(investments.length>0){
+    if(pfLinkedAccountId) taxable+=invTotal;
+    else taxable+=Math.max(0, invTotal-Math.max(0, totalAccountValue()-retirementAccountSeed()));
+  }
   const total=taxFree+taxDeferred+taxable;
   const params=getReturnParams();
   const taxRate=0.25;
@@ -19838,7 +20164,9 @@ function drawOverviewDonut(){
         responsive:true,maintainAspectRatio:false,cutout:"65%",
         plugins:{
           legend:{display:false},
-          tooltip:{callbacks:{label:(c)=>c.label+": "+fmtMoney(c.raw)+" ("+(c.raw/total*100).toFixed(1)+"%)"}}
+          // total recomputed from the chart's CURRENT data — the closure `total`
+          // goes stale after in-place dataset updates (update("none") path).
+          tooltip:{callbacks:{label:(c)=>{ const t=c.dataset.data.reduce((s,v)=>s+(+v||0),0)||1; return c.label+": "+fmtMoney(c.raw)+" ("+(c.raw/t*100).toFixed(1)+"%)"; }}}
         }
       }
     });
@@ -19848,7 +20176,7 @@ function drawOverviewDonut(){
 // ═══════════════════════════════════════════════════════════
 // TOP-LEVEL METRICS
 // ═══════════════════════════════════════════════════════════
-function refreshTopMetrics(){
+function refreshTopMetrics(simPaths, simYrs){
   const hasPortfolio=investments.length>0;
   const acctVal=totalAccountValue(); // already excludes linked account when Mode B
   let pfAdj=0;
@@ -19867,7 +20195,9 @@ function refreshTopMetrics(){
   const debt=loans.reduce((s,l)=>s+l.bal,0);
   const netW=totA-debt;
   const annualSurplus=getNetSurplus();
-  const grossIncome=num("inc1",0)+num("inc2",0)+num("inc1b",0)+num("inc2b",0);
+  // Use getGrossIncome() (which zeroes hidden Client-2 income) so the denominator matches
+  // the numerator's basis and the Income-tab total — otherwise stale C2 income skews the rate.
+  const grossIncome=getGrossIncome();
   const savRate=grossIncome>0?(annualSurplus/grossIncome*100):0;
   const debtRatio=totA>0?(debt/totA*100):0;
   setT("m-nw",fmtMoney(netW));
@@ -19876,6 +20206,26 @@ function refreshTopMetrics(){
   setT("m-surplus",fmtMoney(annualSurplus/12)+"/mo");
   setT("m-savrate",grossIncome>0?savRate.toFixed(1)+"%":"—");
   setT("m-debtratio",totA>0?debtRatio.toFixed(1)+"%":"—");
+  // ── Projected Wealth (m-med) + Goal Success (m-prob) come from the Monte Carlo run ──
+  // When fresh sim paths are supplied (runSim / AI-apply), recompute both from them.
+  // When called bare (a plain input edit) after a prior run, dim them + add a tooltip so
+  // we never present a projection that no longer matches the current inputs.
+  const medEl=$("m-med"), probEl=$("m-prob");
+  if(Array.isArray(simPaths) && simPaths.length){
+    const yrsP=(simYrs!=null?simYrs:(simPaths[0].length-1));
+    try{ const _inf=num("inf",3.8)/100; const _mid=(typeof band!=="undefined"&&band&&band.mid)?band.mid:50;
+      setT("m-med",fmtMoney(percentileAt(simPaths,yrsP,_mid)/Math.pow(1+_inf,yrsP))); }catch(_){}
+    try{ if(typeof goals!=="undefined" && goals.length){
+        const avg=goals.reduce((s,g)=>s+(goalSuccessFromPaths(g,simPaths,yrsP)||0),0)/goals.length;
+        setT("m-prob",avg.toFixed(0)+"%");
+      } else { setT("m-prob","—"); } }catch(_){}
+    if(medEl){ medEl.style.opacity=""; medEl.title=""; }
+    if(probEl){ probEl.style.opacity=""; probEl.title=""; }
+  } else if(Array.isArray(lastSimPaths) && lastSimPaths.length){
+    const t="Inputs changed since the last simulation — re-run to update";
+    if(medEl){ medEl.style.opacity="0.45"; medEl.title=t; }
+    if(probEl && (probEl.textContent||"").trim()){ probEl.style.opacity="0.45"; probEl.title=t; }
+  }
   // As-of date
   const asOfEl=$("wh-asof-date");
   if(asOfEl){
@@ -19888,23 +20238,51 @@ function refreshTopMetrics(){
 // ═══════════════════════════════════════════════════════════
 // SAVE / LOAD PROFILE
 // ═══════════════════════════════════════════════════════════
+// ── Canonical persisted-field list ───────────────────────────────────────────
+// ONE list shared by saveProfile / restoreProfile / _buildShareProfile so the
+// three can never drift apart (they used to be three separate copies).
+const PROFILE_FIELDS=["c1f","c1l","c1d","c1r","c1h","c1s1","c1s2","c1ci","c1st","c1zp","c1co",
+  "c1eu","c1euReg","c1euCity",
+  "c2f","c2l","c2d","c2r","c2h","c2s1","c2s2","c2ci","c2st","c2zp","c2co",
+  "rel","inc1","inc2","inc1b","inc2b","raise","savAnnual",
+  "expL","expI","expO","inf","region","infEuCountry","aProp","aOther","retM","retV",
+  "retAge","retSpend","retLife","retLoc","penSrc","penAnnual","penStartAge","penCola","penSrc2","penAnnual2","penStartAge2","penCola2",
+  "pfFeeType","pfAdvisoryFee","prFeeType","prAdvisoryFee",
+  "prClient","prAdvisor","prAmount","prObjective","prRationale",
+  "simYrs","simN","tgtEquity","rebalFreq","gpOn","gpYears","estExemption","estRate",
+  "taxMode","taxFlat","cgtRate","cgtTurnover","taxApply","taxState","taxResidency","blow","bmid","bhigh",
+  "rdPlanAge","rdTarget","caAdj","caLife","stressScenario"];
+// Checkboxes persist .checked (not .value) — stored as fields["chk_"+id].
+const PROFILE_CHECKBOXES=["sameaddr","insPremExp"];
+// Fields the restore-time update cascade auto-fills (updateRetLifestyle → retSpend,
+// syncSimYrs → simYrs, onRegion/syncAssetCountry → inf+region, refreshPensionEstimates
+// → penAnnual/penStartAge/penCola): the SAVED values must win after the cascade,
+// otherwise a loaded profile comes back changed.
+// (retM/retV are intentionally NOT re-applied: getReturnParams derives them from
+// the restored risk profiles, so they recompute to the same values deterministically.)
+const PROFILE_REAPPLY=["retSpend","simYrs","inf","region","penAnnual","penStartAge","penCola","penAnnual2","penStartAge2","penCola2",
+  "taxResidency","rdPlanAge","rdTarget","caAdj","caLife","prClient","prAdvisor","prAmount","prObjective","prRationale"];
+// App defaults for every persisted field, captured once at script load (the script
+// sits below the HTML, so all elements exist). Used so loading an OLDER profile
+// that lacks newer fields RESETS them instead of retaining the previous client's data.
+const PROFILE_DEFAULTS={};
+PROFILE_FIELDS.forEach(id=>{ const el=$(id); if(el) PROFILE_DEFAULTS[id]=el.value; });
+// Highest numeric suffix among item ids — safe seq fallback for profiles saved
+// without seq counters (plain length could re-mint an existing id after deletes).
+function _maxIdSeq(arr){ return (arr||[]).reduce((m,x)=>Math.max(m, +String(x&&x.id||"").replace(/\D/g,"")||0), 0); }
+
 function saveProfile(){
-  const FLD=["c1f","c1l","c1d","c1r","c1h","c1s1","c1s2","c1ci","c1st","c1zp","c1co",
-    "c2f","c2l","c2d","c2r","c2h","c2s1","c2s2","c2ci","c2st","c2zp","c2co",
-    "rel","inc1","inc2","inc1b","inc2b","raise","savAnnual",
-    "expL","expI","expO","inf","region","aProp","aOther","retM","retV",
-    "retAge","retSpend","retLife","retLoc","penSrc","penAnnual","penStartAge","penCola","penSrc2","penAnnual2","penStartAge2","penCola2",
-    "pfFeeType","pfAdvisoryFee","prFeeType","prAdvisoryFee",
-    "simYrs","simN","tgtEquity","rebalFreq","gpOn","gpYears","estExemption","estRate",
-    "taxMode","taxFlat","cgtRate","cgtTurnover","taxApply","taxState","blow","bmid","bhigh"];
   const fields={};
-  FLD.forEach(id=>{if($(id)) fields[id]=$(id).value;});
+  PROFILE_FIELDS.forEach(id=>{if($(id)) fields[id]=$(id).value;});
+  PROFILE_CHECKBOXES.forEach(id=>{if($(id)) fields["chk_"+id]=$(id).checked;});
   const profile={
     v:"1.1",savedAt:new Date().toISOString(),
     fields,
     c2visible:$("c2card").style.display!=="none",
-    assets,loans,goals,children,investments,proposals,insurances,equityComp,beneficiaries,
-    assetSeq,loanSeq,goalSeq,childSeq,invSeq,propSeq,insSeq,eqSeq,benSeq,pfLinkedAccountId
+    bandMode:(typeof bandMode!=="undefined"?bandMode:"standard"),
+    ccy:CURRENT_CCY, ccyManual:(typeof _ccyManual!=="undefined"?_ccyManual:false),
+    assets,loans,goals,children,investments,proposals,insurances,equityComp,beneficiaries,whatIfScenarios,
+    assetSeq,loanSeq,goalSeq,childSeq,invSeq,propSeq,insSeq,eqSeq,benSeq,whatIfSeq,pfLinkedAccountId
   };
   const blob=new Blob([JSON.stringify(profile,null,2)],{type:"application/json"});
   const url=URL.createObjectURL(blob);
@@ -19930,30 +20308,40 @@ function loadProfile(){
 
 function restoreProfile(p){
   const f=p.fields||{};
-  const FLD=["c1f","c1l","c1d","c1r","c1h","c1s1","c1s2","c1ci","c1st","c1zp","c1co",
-    "c2f","c2l","c2d","c2r","c2h","c2s1","c2s2","c2ci","c2st","c2zp","c2co",
-    "rel","inc1","inc2","inc1b","inc2b","raise","savAnnual",
-    "expL","expI","expO","inf","region","aProp","aOther","retM","retV",
-    "retAge","retSpend","retLife","retLoc","penSrc","penAnnual","penStartAge","penCola","penSrc2","penAnnual2","penStartAge2","penCola2",
-    "pfFeeType","pfAdvisoryFee","prFeeType","prAdvisoryFee",
-    "simYrs","simN","tgtEquity","rebalFreq","gpOn","gpYears","estExemption","estRate",
-    "taxMode","taxFlat","cgtRate","cgtTurnover","taxApply","taxState","blow","bmid","bhigh"];
-  FLD.forEach(id=>{if(f[id]!=null && $(id)) $(id).value=f[id];});
+  // Missing keys (older profiles) reset to app defaults so the previous client's
+  // values never leak into a newly loaded profile.
+  PROFILE_FIELDS.forEach(id=>{ if(!$(id)) return;
+    if(f[id]!=null) $(id).value=f[id];
+    else if(PROFILE_DEFAULTS[id]!==undefined) $(id).value=PROFILE_DEFAULTS[id]; });
+  PROFILE_CHECKBOXES.forEach(id=>{if(f["chk_"+id]!=null && $(id)) $(id).checked=!!f["chk_"+id];});
+  // Currency (persisted with the profile; ccyManual preserves an explicit override)
+  if(p.ccy && typeof CURRENCIES!=="undefined" && CURRENCIES[p.ccy]){
+    CURRENT_CCY=p.ccy; _ccyManual=!!p.ccyManual;
+    const cs=$("m-ccy-tag"); if(cs) cs.value=p.ccy;
+    try{ syncCcySym(); popCcyDropdown("accy"); }catch(_){}
+  }
+  // A loaded profile invalidates any previous client's simulation results —
+  // they must never feed this client's report, metrics or retirement number.
+  lastSimPaths=[]; lastSimYrs=null;
+  setT("m-med","—"); setT("m-prob","—");
   // Coerce values/labels so a loaded or imported profile can never carry a
   // non-numeric balance or non-string label into the math or the PDF charts.
-  assets=(p.assets||[]).map(a=>({...a, value:(+a.value||0), label:String(a.label!=null?a.label:(a.baseLabel||a.type||"Account"))})); assetSeq=p.assetSeq||assets.length;
-  loans=(p.loans||[]).map(l=>({...l, bal:(+l.bal||0), rate:(+l.rate||0), yrs:(+l.yrs||0), label:String(l.label!=null?l.label:"Loan")})); loanSeq=p.loanSeq||loans.length;
-  insurances=p.insurances||[]; insSeq=p.insSeq||insurances.length;
-  equityComp=p.equityComp||[]; eqSeq=p.eqSeq||equityComp.length;
-  beneficiaries=p.beneficiaries||[]; benSeq=p.benSeq||beneficiaries.length;
-  goals=p.goals||[]; goalSeq=p.goalSeq||goals.length;
-  children=p.children||[]; childSeq=p.childSeq||children.length;
-  investments=p.investments||[]; invSeq=p.invSeq||investments.length;
-  proposals=p.proposals||[]; propSeq=p.propSeq||proposals.length;
+  assets=(p.assets||[]).map(a=>({...a, value:(+a.value||0), label:String(a.label!=null?a.label:(a.baseLabel||a.type||"Account"))})); assetSeq=p.assetSeq||_maxIdSeq(assets);
+  loans=(p.loans||[]).map(l=>({...l, bal:(+l.bal||0), rate:(+l.rate||0), yrs:(+l.yrs||0), label:String(l.label!=null?l.label:"Loan")})); loanSeq=p.loanSeq||_maxIdSeq(loans);
+  insurances=p.insurances||[]; insSeq=p.insSeq||_maxIdSeq(insurances);
+  equityComp=p.equityComp||[]; eqSeq=p.eqSeq||_maxIdSeq(equityComp);
+  beneficiaries=p.beneficiaries||[]; benSeq=p.benSeq||_maxIdSeq(beneficiaries);
+  goals=p.goals||[]; goalSeq=p.goalSeq||_maxIdSeq(goals);
+  children=p.children||[]; childSeq=p.childSeq||_maxIdSeq(children);
+  investments=p.investments||[]; invSeq=p.invSeq||_maxIdSeq(investments);
+  proposals=p.proposals||[]; propSeq=p.propSeq||_maxIdSeq(proposals);
+  whatIfScenarios=p.whatIfScenarios||[]; whatIfSeq=p.whatIfSeq||_maxIdSeq(whatIfScenarios);
   pfLinkedAccountId=p.pfLinkedAccountId||"";
   if(p.c2visible) showC2(); else hideC2();
   renderAssets(); renderLoans(); renderInsurances(); renderEquityGrants(); renderBeneficiaries(); renderGoals(); renderChildren();
   renderInvestments(); renderProposals();
+  try { if(typeof renderWhatIf==="function") renderWhatIf(); } catch(_){}
+  try { if(typeof gbRenderWealth==="function") gbRenderWealth(); } catch(_){}  // Wealth Allocation Framework (Simulation tab)
   refreshAssetTypes(); onRegion(); syncAssetCountry();
   // Re-apply state selections after dropdowns are populated
   if(f.c1st){const s=$("c1st"); if(s&&[...s.options].some(o=>o.value===f.c1st)) s.value=f.c1st;}
@@ -19965,6 +20353,28 @@ function restoreProfile(p){
   refreshPortfolioAccountDropdown();
   if(pfLinkedAccountId && $("pfLinkedAccount")) $("pfLinkedAccount").value=pfLinkedAccountId;
   updateLinkedReconcile();
+  // EU sub-selects: repopulate dependent options for the saved EU country, then
+  // re-apply the saved region/city picks on top.
+  if(f.c1eu && $("c1eu")){
+    $("c1eu").value=f.c1eu;
+    try{ if(typeof onEuCountryPick==="function") onEuCountryPick(); }catch(_){}
+    if(f.c1euReg && $("c1euReg")) $("c1euReg").value=f.c1euReg;
+    if(f.c1euCity && $("c1euCity")) $("c1euCity").value=f.c1euCity;
+  }
+  // Saved values win over any auto-suggestion fired by the update cascade above
+  // (updateRetLifestyle overwrites retSpend, syncSimYrs overwrites simYrs, …).
+  PROFILE_REAPPLY.forEach(id=>{ if(f[id]!=null && $(id)) $(id).value=f[id]; });
+  // Probability-band preset (blow/bmid/bhigh field values were re-applied above)
+  try{ if(p.bandMode && typeof setBand==="function") setBand(p.bandMode); }catch(_){}
+  // Refresh panels that depend on the re-applied values / restored checkboxes.
+  // onTaxResidencyChange refreshes the subnational dropdown for the restored
+  // jurisdiction (it preserves the already-applied taxState when still valid).
+  try{ if(f.taxResidency!=null && typeof onTaxResidencyChange==="function") onTaxResidencyChange(); }catch(_){}
+  if(f.taxState){const s=$("taxState"); if(s&&[...s.options].some(o=>o.value===f.taxState)) s.value=f.taxState;}
+  try{ updateTaxPanel(); }catch(_){}
+  try{ updateExpTotal(); }catch(_){}          // insPremExp checkbox affects total expenses
+  try{ if(typeof renderProposalMetrics==="function") renderProposalMetrics(); }catch(_){}
+  refreshTopMetrics();
   _topStatus("✓ Profile loaded");
 }
 
@@ -19979,21 +20389,16 @@ function _topStatus(msg){
 // no upload — the session lives in the URL itself.
 // ═══════════════════════════════════════════════════════════
 function _buildShareProfile(){
-  const FLD=["c1f","c1l","c1d","c1r","c1h","c1s1","c1s2","c1ci","c1st","c1zp","c1co",
-    "c2f","c2l","c2d","c2r","c2h","c2s1","c2s2","c2ci","c2st","c2zp","c2co",
-    "rel","inc1","inc2","inc1b","inc2b","raise","savAnnual",
-    "expL","expI","expO","inf","region","aProp","aOther","retM","retV",
-    "retAge","retSpend","retLife","retLoc","penSrc","penAnnual","penStartAge","penCola","penSrc2","penAnnual2","penStartAge2","penCola2",
-    "pfFeeType","pfAdvisoryFee","prFeeType","prAdvisoryFee",
-    "simYrs","simN","tgtEquity","rebalFreq","gpOn","gpYears","estExemption","estRate",
-    "taxMode","taxFlat","cgtRate","cgtTurnover","taxApply","taxState","blow","bmid","bhigh"];
-  const fields={}; FLD.forEach(id=>{if($(id)) fields[id]=$(id).value;});
+  // Same canonical field list as saveProfile/restoreProfile — a shared session
+  // must carry exactly what a saved profile carries (incl. What-If scenarios).
+  const fields={}; PROFILE_FIELDS.forEach(id=>{if($(id)) fields[id]=$(id).value;});
+  PROFILE_CHECKBOXES.forEach(id=>{if($(id)) fields["chk_"+id]=$(id).checked;});
   return {
     v:"1.1", savedAt:new Date().toISOString(),
     fields,
     c2visible: $("c2card") && $("c2card").style.display!=="none",
-    assets, loans, goals, children, investments, proposals, insurances, equityComp, beneficiaries,
-    assetSeq, loanSeq, goalSeq, childSeq, invSeq, propSeq, insSeq, eqSeq, benSeq, pfLinkedAccountId
+    assets, loans, goals, children, investments, proposals, insurances, equityComp, beneficiaries, whatIfScenarios,
+    assetSeq, loanSeq, goalSeq, childSeq, invSeq, propSeq, insSeq, eqSeq, benSeq, whatIfSeq, pfLinkedAccountId
   };
 }
 function _b64uEncode(bytes){
@@ -20120,13 +20525,16 @@ function setChartMode(mode){
 function runMCWithOverrides(years,sims,overrides){
   const saved={};
   Object.entries(overrides).forEach(([id,v])=>{saved[id]=val(id); if($(id)) $(id).value=v;});
-  const paths=runMC(years,sims);
-  Object.entries(saved).forEach(([id,v])=>{if($(id)) $(id).value=v;});
-  return paths;
+  try{
+    return runMC(years,sims);
+  } finally {
+    // fields always restored, even if runMC throws mid-run
+    Object.entries(saved).forEach(([id,v])=>{if($(id)) $(id).value=v;});
+  }
 }
 
 function runSensitivity(){
-  if(!lastSimPaths) return;
+  if(!lastSimPaths || !lastSimPaths.length) return;
   const yrs=lastSimYrs;
   const sims=Math.min(200,parseInt(val("simN")||"200",10));
   const baseMedian=percentileAt(lastSimPaths,yrs,50);
@@ -20145,14 +20553,15 @@ function runSensitivity(){
   // mode (no portfolio) AND holdings-weighted mode (portfolio entered), bypassing
   // the retM DOM field which has no effect when getEffectiveReturnParams() is active.
   (()=>{
-    const base=getEffectiveReturnParams();
+    // Pivot around the params the sim ACTUALLY ran with (proposal-driven when on)
+    const base=getActiveSimulationParams();
     const mPlus=percentileAt(runMC(yrs,sims,base.mu+0.02,base.sig),yrs,50);
     const mMinus=percentileAt(runMC(yrs,sims,Math.max(0.005,base.mu-0.02),base.sig),yrs,50);
     results.push({label:"Investment return",fmt:"±2 pp",plus:mPlus-baseMedian,minus:mMinus-baseMedian});
   })();
   // Return volatility sensitivity: same approach with sigOverride
   (()=>{
-    const base=getEffectiveReturnParams();
+    const base=getActiveSimulationParams();
     const mPlus=percentileAt(runMC(yrs,sims,base.mu,base.sig+0.03),yrs,50);
     const mMinus=percentileAt(runMC(yrs,sims,base.mu,Math.max(0.005,base.sig-0.03)),yrs,50);
     results.push({label:"Return volatility",fmt:"±3 pp",plus:mPlus-baseMedian,minus:mMinus-baseMedian});
@@ -20239,9 +20648,14 @@ document.addEventListener("DOMContentLoaded",function(){
   (function checkVersion(){
     const stored = localStorage.getItem("wa_app_version");
     if(stored && stored !== APP_VERSION){
-      // New version deployed — wipe all app keys (API keys excluded)
+      // New version deployed — wipe stale app state but PRESERVE everything the
+      // user explicitly configured: every market-data/AI API key (APP_KEY_DEFS),
+      // report branding & settings (wa_rpt_*), key health, and feature flags.
+      // (The old filter deleted 12 saved API keys + the advisor logo per update.)
+      const keep = new Set(["wa_ai_key","wa_av_key","wa_fh_key","wa_ai_builder_enabled","wa_key_health","wa_app_version"]);
+      try{ APP_KEY_DEFS.forEach(d => keep.add(d.id)); }catch(_){}
       Object.keys(localStorage)
-        .filter(k => k.startsWith("wa_") && k !== "wa_ai_key" && k !== "wa_av_key" && k !== "wa_fh_key" && k !== "wa_ai_builder_enabled")
+        .filter(k => k.startsWith("wa_") && !keep.has(k) && !k.startsWith("wa_rpt_"))
         .forEach(k => localStorage.removeItem(k));
       // Brief update notification banner
       const banner = document.createElement("div");
