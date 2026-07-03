@@ -757,7 +757,36 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
 .band-btn:hover{transform:translateY(-1px)}
 .wh-actions .btn-primary{padding:12px 26px;font-size:13.5px;box-shadow:0 6px 20px rgba(0,20,70,.45)}
 
-/* 14 · Ambient depth + back-to-top */
+/* 14 · Guided first-run — four-step setup checklist under the hero.
+   Steps check themselves off as data lands; the card celebrates once,
+   sets a localStorage flag and never returns. */
+.onboard-card{position:relative;background:#fff;border:1px solid rgba(0,87,184,.10);border-radius:var(--r);
+  padding:18px 22px 20px;margin-bottom:24px;box-shadow:0 2px 10px rgba(10,40,100,.06);
+  animation:wowFadeUp .45s ease both;transition:opacity .35s,transform .35s,box-shadow .5s}
+.onboard-card.ob-hide{opacity:0;transform:translateY(-8px)}
+.onboard-card.ob-complete{border-color:rgba(212,175,95,.55);box-shadow:0 0 0 4px rgba(212,175,95,.14),0 8px 28px rgba(160,120,30,.12)}
+.ob-head{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+.ob-title{font-size:14.5px;font-weight:800;color:var(--text);letter-spacing:-.02em}
+.ob-count{font-size:11px;font-weight:700;color:var(--gold);background:rgba(0,87,184,.07);border-radius:50px;padding:3px 10px}
+.ob-x{margin-left:auto;width:26px;height:26px;border-radius:50%;border:1px solid var(--border);background:var(--bg3);
+  color:var(--text3);cursor:pointer;font-size:11px;transition:all .15s}
+.ob-x:hover{background:var(--red);border-color:var(--red);color:#fff}
+.ob-bar{height:5px;border-radius:4px;background:var(--bg4);overflow:hidden;margin-bottom:14px}
+.ob-fill{height:100%;width:0;border-radius:4px;background:linear-gradient(90deg,#0069d9,#39d98a);transition:width .5s cubic-bezier(.3,.7,.3,1)}
+.ob-steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px}
+.ob-step{display:flex;align-items:flex-start;gap:10px;text-align:left;padding:11px 12px;border-radius:10px;cursor:pointer;
+  background:var(--bg3);border:1.5px solid transparent;font-family:var(--fb);transition:all .18s}
+.ob-step:hover{border-color:rgba(0,87,184,.30);background:#fff;transform:translateY(-1px);box-shadow:0 4px 14px rgba(10,40,100,.08)}
+.ob-num{width:22px;height:22px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(135deg,#0069d9,#003d8f);color:#fff;font-size:11px;font-weight:800;transition:all .3s}
+.ob-lbl{display:block;font-size:12.5px;font-weight:700;color:var(--text);line-height:1.25}
+.ob-sub{display:block;font-size:11px;color:var(--text3);margin-top:2px;line-height:1.35}
+.ob-step.ob-done{background:rgba(57,217,138,.07);border-color:rgba(57,217,138,.35)}
+.ob-step.ob-done .ob-num{background:linear-gradient(135deg,#1fbf75,#0d9457);font-size:0}
+.ob-step.ob-done .ob-num::after{content:"✓";font-size:12px;font-weight:800}
+.ob-step.ob-done .ob-lbl{color:#0d7a4a;text-decoration:line-through;text-decoration-thickness:1.5px;text-decoration-color:rgba(13,122,74,.4)}
+
+/* 15 · Ambient depth + back-to-top */
 .main{background:radial-gradient(1100px 480px at 88% -8%,rgba(0,105,217,.05),transparent 62%),var(--bg)}
 #wowTop{position:fixed;right:26px;bottom:26px;width:42px;height:42px;border-radius:50%;border:none;cursor:pointer;z-index:800;
   background:linear-gradient(135deg,#0069d9,#003d8f);color:#fff;font-size:17px;line-height:1;
@@ -19959,8 +19988,9 @@ function refreshTopMetrics(simPaths, simYrs){
     const now=new Date();
     asOfEl.textContent="As of "+now.toLocaleDateString("en-US",{month:"long",day:"numeric",year:"numeric"});
   }
-  // WOW layer: refresh the sidebar data-completion dots on every recompute
+  // WOW layer: refresh the sidebar data-completion dots + setup checklist
   try{ if(typeof updateNavDataDots==="function") updateNavDataDots(); }catch(_){}
+  try{ if(typeof updateOnboardCard==="function") updateOnboardCard(); }catch(_){}
   drawOverviewDonut();
 }
 
@@ -20923,6 +20953,82 @@ document.addEventListener("DOMContentLoaded",function(){
     main.addEventListener("scroll",()=>{ b.classList.toggle("show", main.scrollTop>500); },{passive:true});
     b.addEventListener("click",()=>{ main.scrollTo({top:0,behavior:"smooth"}); });
   }
+})();
+
+// ═══════════════════════════════════════════════════════════
+// Guided first-run — a four-step setup checklist under the hero.
+// Steps self-complete via the same data detection as the nav dots,
+// each step navigates to its tab, and the card celebrates once and
+// never returns (localStorage wa_onboard_done). Skipped entirely for
+// shared read-only sessions and for profiles that are already set up.
+// ═══════════════════════════════════════════════════════════
+(function(){
+  try{ if(localStorage.getItem("wa_onboard_done")==="1") return; }catch(_){}
+  if(location.hash && location.hash.indexOf("share=")>=0) return;
+  const hero=document.querySelector(".wealth-hero"); if(!hero) return;
+  const STEPS=[
+    {key:"household", n:1, t:"Add your household",        d:"Names, ages & risk profile",    tab:"household",
+     pred:()=> (val("c1f")||"").trim().length>0},
+    {key:"income",    n:2, t:"Enter income & expenses",   d:"Salary, spending & savings",    tab:"income",
+     pred:()=> getGrossIncome()>0},
+    {key:"assets",    n:3, t:"Add your assets",           d:"Accounts, property & loans",    tab:"assets",
+     pred:()=> (Array.isArray(assets)&&assets.length>0)||num("aProp",0)>0},
+    {key:"sim",       n:4, t:"Run your first simulation", d:"See your wealth projection",    tab:"simulation",
+     pred:()=> Array.isArray(lastSimPaths)&&lastSimPaths.length>0}
+  ];
+  // Returning user with a fully set-up profile: mark done, never show.
+  let already=0; STEPS.forEach(s=>{ try{ if(s.pred()) already++; }catch(_){} });
+  if(already===STEPS.length){ try{ localStorage.setItem("wa_onboard_done","1"); }catch(_){} return; }
+  const card=document.createElement("div");
+  card.id="onboardCard"; card.className="onboard-card";
+  card.innerHTML =
+    '<div class="ob-head">'+
+      '<div class="ob-title">Get set up in four steps</div>'+
+      '<div class="ob-count" id="obCount">0 of 4</div>'+
+      '<button class="ob-x" id="obDismiss" title="Dismiss" aria-label="Dismiss setup guide">✕</button>'+
+    '</div>'+
+    '<div class="ob-bar"><div class="ob-fill" id="obFill"></div></div>'+
+    '<div class="ob-steps">'+
+      STEPS.map(s=>
+        '<button class="ob-step" data-ob="'+s.key+'" data-obtab="'+s.tab+'">'+
+          '<span class="ob-num">'+s.n+'</span>'+
+          '<span class="ob-body"><span class="ob-lbl">'+s.t+'</span><span class="ob-sub">'+s.d+'</span></span>'+
+        '</button>').join("")+
+    '</div>';
+  hero.insertAdjacentElement("afterend", card);
+  card.querySelectorAll(".ob-step").forEach(btn=>{
+    btn.addEventListener("click",()=>{
+      const tab=btn.getAttribute("data-obtab");
+      const nav=document.querySelector('.nav-item[data-tab="'+tab+'"]');
+      try{ showTab(tab, nav); }catch(_){}
+    });
+  });
+  document.getElementById("obDismiss").addEventListener("click",()=>{
+    try{ localStorage.setItem("wa_onboard_done","1"); }catch(_){}
+    card.classList.add("ob-hide"); setTimeout(()=>card.remove(),380);
+  });
+  let celebrated=false;
+  window.updateOnboardCard=function(){
+    if(!document.getElementById("onboardCard")) return;
+    let done=0;
+    STEPS.forEach(s=>{
+      let ok=false; try{ ok=!!s.pred(); }catch(_){}
+      const el=card.querySelector('[data-ob="'+s.key+'"]');
+      if(el) el.classList.toggle("ob-done",ok);
+      if(ok) done++;
+    });
+    const fill=document.getElementById("obFill"), cnt=document.getElementById("obCount");
+    if(fill) fill.style.width=(done/STEPS.length*100)+"%";
+    if(cnt) cnt.textContent=done+" of "+STEPS.length;
+    if(done===STEPS.length && !celebrated){
+      celebrated=true;
+      card.classList.add("ob-complete");
+      const t=card.querySelector(".ob-title"); if(t) t.textContent="You’re all set — great work!";
+      try{ localStorage.setItem("wa_onboard_done","1"); }catch(_){}
+      setTimeout(()=>{ card.classList.add("ob-hide"); setTimeout(()=>card.remove(),400); }, 2600);
+    }
+  };
+  updateOnboardCard();
 })();
 </script>
 </body>
