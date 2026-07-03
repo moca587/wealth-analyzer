@@ -4887,7 +4887,18 @@ const CURRENCIES={
   MXN:{sym:"MX$",code:"MXN",name:"Mexican Peso",fxToUSD:0.059},
   BRL:{sym:"R$",code:"BRL",name:"Brazilian Real",fxToUSD:0.20},
   SAR:{sym:"SAR ",code:"SAR",name:"Saudi Riyal",fxToUSD:0.267},
-  ZAR:{sym:"R",code:"ZAR",name:"South African Rand",fxToUSD:0.055}
+  ZAR:{sym:"R",code:"ZAR",name:"South African Rand",fxToUSD:0.055},
+  SEK:{sym:"kr ",code:"SEK",name:"Swedish Krona",fxToUSD:0.095},
+  NOK:{sym:"kr ",code:"NOK",name:"Norwegian Krone",fxToUSD:0.094},
+  DKK:{sym:"kr ",code:"DKK",name:"Danish Krone",fxToUSD:0.145},
+  PLN:{sym:"zł ",code:"PLN",name:"Polish Zloty",fxToUSD:0.25},
+  NZD:{sym:"NZ$",code:"NZD",name:"New Zealand Dollar",fxToUSD:0.61},
+  THB:{sym:"฿",code:"THB",name:"Thai Baht",fxToUSD:0.028},
+  MYR:{sym:"RM ",code:"MYR",name:"Malaysian Ringgit",fxToUSD:0.22},
+  AED:{sym:"AED ",code:"AED",name:"UAE Dirham",fxToUSD:0.272},
+  NGN:{sym:"₦",code:"NGN",name:"Nigerian Naira",fxToUSD:0.00065},
+  ILS:{sym:"₪",code:"ILS",name:"Israeli Shekel",fxToUSD:0.27},
+  TRY:{sym:"₺",code:"TRY",name:"Turkish Lira",fxToUSD:0.025}
 };
 // All 20 eurozone members map to EUR; the rest keep their native currency.
 const COUNTRY_CURRENCIES={
@@ -4899,6 +4910,8 @@ const COUNTRY_CURRENCIES={
   // Rest of world
   JP:"JPY", SG:"SGD", HK:"HKD", CN:"CNY", TW:"TWD", KR:"KRW", IN:"INR",
   ID:"IDR", MX:"MXN", BR:"BRL", SA:"SAR", ZA:"ZAR",
+  SE:"SEK", NO:"NOK", DK:"DKK", PL:"PLN", NZ:"NZD", TH:"THB", MY:"MYR",
+  AE:"AED", NG:"NGN", IL:"ILS", TR:"TRY",
   OTHER:"USD"
 };
 
@@ -7636,8 +7649,16 @@ function calcPension(src,annual,startAge,cola,age,inf){
 // Estimate = min(income × public replacement-rate, country benefit cap). Falls
 // back to the legacy flat amount for any country still on the old data shape.
 function clientIncomeFor(which){ return which===2 ? (num("inc1b",0)+num("inc2b",0)) : (num("inc1",0)+num("inc2",0)); }
+// Country pension defaults with a eurozone-aware fallback: smaller euro-area
+// states without their own entry (LU, CY, HR, EE, LV, LT, SK, SI, MT, …) use
+// the Eurozone average instead of the generic OTHER placeholder.
+function penDefaultsFor(cc){
+  return PENSION_DEFAULTS[cc] ||
+    (typeof EUROZONE_MEMBERS!=="undefined" && EUROZONE_MEMBERS.has(cc) ? PENSION_DEFAULTS.EU : null) ||
+    PENSION_DEFAULTS.OTHER;
+}
 function estStatePension(country, income){
-  const p=PENSION_DEFAULTS[country]||PENSION_DEFAULTS.OTHER;
+  const p=penDefaultsFor(country);
   if(p.flat) return Math.round(p.cap||p.annual||0);   // flat (non-earnings-related) pension — income-independent
   if(typeof p.repl==="number"){
     const cap=(p.cap&&p.cap>0)?p.cap:Infinity;
@@ -7656,25 +7677,25 @@ function _penNote(c,p,est){
 function refreshPensionEstimates(){
   // client 1 — benefit amount + claiming age
   if(!_penEdited && (val("penSrc")||"auto")==="auto"){
-    const c=val("c1co")||"US", p=PENSION_DEFAULTS[c]||PENSION_DEFAULTS.OTHER, est=estStatePension(c, clientIncomeFor(1));
+    const c=val("c1co")||"US", p=penDefaultsFor(c), est=estStatePension(c, clientIncomeFor(1));
     if($("penAnnual")) $("penAnnual").value=est;
     if($("penStartAge")) $("penStartAge").value=p.age||67;
     setT("penNote", _penNote(c,p,est));
   }
   // client 1 — COLA / indexation (auto unless the user changed it)
   if(!_colaEdited && (val("penSrc")||"auto")==="auto" && $("penCola")){
-    const p=PENSION_DEFAULTS[val("c1co")||"US"]||PENSION_DEFAULTS.OTHER; $("penCola").value=p.cola||"full";
+    const p=penDefaultsFor(val("c1co")||"US"); $("penCola").value=p.cola||"full";
   }
   // client 2 — benefit amount + claiming age
   if($("penAnnual2") && !_pen2Edited && (val("penSrc2")||"auto")==="auto"){
-    const c=val("c2co")||val("c1co")||"US", p=PENSION_DEFAULTS[c]||PENSION_DEFAULTS.OTHER, est=estStatePension(c, clientIncomeFor(2));
+    const c=val("c2co")||val("c1co")||"US", p=penDefaultsFor(c), est=estStatePension(c, clientIncomeFor(2));
     $("penAnnual2").value=est;
     if($("penStartAge2")) $("penStartAge2").value=p.age||67;
     setT("penNote2", _penNote(c,p,est));
   }
   // client 2 — COLA / indexation
   if($("penCola2") && !_cola2Edited && (val("penSrc2")||"auto")==="auto"){
-    const p=PENSION_DEFAULTS[val("c2co")||val("c1co")||"US"]||PENSION_DEFAULTS.OTHER; $("penCola2").value=p.cola||"full";
+    const p=penDefaultsFor(val("c2co")||val("c1co")||"US"); $("penCola2").value=p.cola||"full";
   }
 }
 window.refreshPensionEstimates=refreshPensionEstimates;
@@ -7707,7 +7728,12 @@ function taxCountry(){
   return ov || ($("c1co")?.value) || "US";
 }
 function getCountryBrackets(){
-  return TAX_BRACKETS[taxCountry()]||TAX_BRACKETS.OTHER;
+  const cc=taxCountry();
+  // Eurozone-aware fallback: smaller euro-area states without their own bracket
+  // table use the Eurozone average rather than the generic OTHER placeholder.
+  return TAX_BRACKETS[cc] ||
+    (typeof EUROZONE_MEMBERS!=="undefined" && EUROZONE_MEMBERS.has(cc) ? TAX_BRACKETS.EU : null) ||
+    TAX_BRACKETS.OTHER;
 }
 // Fill the "Tax jurisdiction" override selector with every supported country.
 function populateTaxResidency(){
