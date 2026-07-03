@@ -1162,11 +1162,64 @@ input[type=date]{color-scheme:light}
 ::selection{background:rgba(0,105,217,.20)}
 :focus-visible{outline:2px solid rgba(0,105,217,.55);outline-offset:2px}
 
+/* ═══ WOW layer 2 — whole-app premium + usability ═══ */
+
+/* 8 · Sidebar — dark glass rail matching the hero */
+.sidebar{background:linear-gradient(178deg,#071a3d 0%,#0a2452 62%,#0d2c63 100%);border-right:1px solid rgba(255,255,255,.06)}
+.sidebar .nav-grp-label{color:rgba(160,185,225,.55)}
+.nav-item{color:rgba(210,224,245,.78)}
+.nav-item svg{opacity:.7}
+.nav-item:hover{color:#fff;background:rgba(255,255,255,.06)}
+.nav-item.active{color:#fff;border-left-color:#4da6ff;background:linear-gradient(90deg,rgba(77,166,255,.17),rgba(77,166,255,.03))}
+.nav-item.active svg{opacity:1;filter:drop-shadow(0 0 6px rgba(77,166,255,.8))}
+/* data-completion dots: a section lights up green once it holds data */
+.nav-item .nav-dot{width:6px;height:6px;border-radius:50%;background:#39d98a;margin-left:auto;flex-shrink:0;
+  box-shadow:0 0 8px rgba(57,217,138,.7);opacity:0;transform:scale(.4);transition:all .3s}
+.nav-item.has-data .nav-dot{opacity:1;transform:scale(1)}
+
+/* 9 · Topbar — frosted glass with a gradient wordmark */
+.topbar{background:rgba(255,255,255,.82);backdrop-filter:blur(14px) saturate(1.4)}
+.logo{background:linear-gradient(93deg,#06173a 0%,#0069d9 90%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.logo small{-webkit-text-fill-color:var(--text3)}
+
+/* 10 · Panels — hover depth + gradient hairline + title marker */
+.panel{position:relative;transition:box-shadow .25s}
+.panel:hover{box-shadow:0 8px 26px rgba(10,40,100,.09)}
+.panel::after{content:"";position:absolute;top:0;left:24px;right:24px;height:2px;border-radius:2px;pointer-events:none;
+  background:linear-gradient(90deg,rgba(0,105,217,.45),rgba(0,105,217,0));opacity:0;transition:opacity .25s}
+.panel:hover::after{opacity:1}
+.ptitle::before{content:"";width:14px;height:3px;border-radius:2px;flex-shrink:0;background:linear-gradient(90deg,#0069d9,#4da6ff)}
+
+/* 11 · Forms — calmer, friendlier inputs */
+input,select,textarea{transition:border-color .18s,box-shadow .18s,background .18s}
+input:hover:not(:focus),select:hover:not(:focus){border-color:rgba(0,87,184,.34)}
+input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10);background:#fbfdff}
+
+/* 12 · Empty states — turn dead ends into invitations */
+.empty{display:block;padding:18px 16px;border:1.5px dashed rgba(0,87,184,.22);border-radius:10px;
+  background:rgba(0,105,217,.025);color:var(--text3);font-size:12.5px;text-align:center}
+.empty::before{content:"✦  ";color:#7aa9e8}
+
+/* 13 · Secondary controls — gentle lift feedback */
+.btn-secondary{transition:all .18s}
+.btn-secondary:hover{background:rgba(0,87,184,.07);transform:translateY(-1px)}
+.band-btn:hover{transform:translateY(-1px)}
+.wh-actions .btn-primary{padding:12px 26px;font-size:13.5px;box-shadow:0 6px 20px rgba(0,20,70,.45)}
+
+/* 14 · Ambient depth + back-to-top */
+.main{background:radial-gradient(1100px 480px at 88% -8%,rgba(0,105,217,.05),transparent 62%),var(--bg)}
+#wowTop{position:fixed;right:26px;bottom:26px;width:42px;height:42px;border-radius:50%;border:none;cursor:pointer;z-index:800;
+  background:linear-gradient(135deg,#0069d9,#003d8f);color:#fff;font-size:17px;line-height:1;
+  box-shadow:0 8px 24px rgba(0,50,140,.35);opacity:0;visibility:hidden;transform:translateY(8px);transition:all .25s}
+#wowTop.show{opacity:1;visibility:visible;transform:none}
+#wowTop:hover{transform:translateY(-2px);box-shadow:0 12px 30px rgba(0,50,140,.48)}
+
 /* 7 · Accessibility — motion off when the OS asks for it */
 @media (prefers-reduced-motion: reduce){
   .wealth-hero,.wealth-hero::before,.tab.active .panel,.wow-pop,.wow-flash,.btn-primary:hover::after{animation:none!important}
   .tab.active .panel{opacity:1;transform:none}
-  .nav-item:hover,.wh-stat:hover,.btn-primary:hover{transform:none}
+  .nav-item:hover,.wh-stat:hover,.btn-primary:hover,.btn-secondary:hover,.band-btn:hover,#wowTop:hover{transform:none}
+  .nav-item .nav-dot{transition:none}
 }
 </style>
 </head>
@@ -3904,7 +3957,7 @@ input[type=date]{color-scheme:light}
 // ═══════════════════════════════════════════════════════════
 // VERSION — updated by build-standalone.pl on each build
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260703-1503";
+const APP_VERSION = "20260703-1514";
 
 // ═══════════════════════════════════════════════════════════
 // DATA
@@ -20355,6 +20408,8 @@ function refreshTopMetrics(simPaths, simYrs){
     const now=new Date();
     asOfEl.textContent="As of "+now.toLocaleDateString("en-US",{month:"long",day:"numeric",year:"numeric"});
   }
+  // WOW layer: refresh the sidebar data-completion dots on every recompute
+  try{ if(typeof updateNavDataDots==="function") updateNavDataDots(); }catch(_){}
   drawOverviewDonut();
 }
 
@@ -21272,6 +21327,51 @@ document.addEventListener("DOMContentLoaded",function(){
       animateTo(el, prev, now);
     }).observe(el,{childList:true,characterData:true,subtree:true});
   });
+})();
+
+// ═══════════════════════════════════════════════════════════
+// WOW layer 2 — usability: nav data-completion dots + back-to-top.
+// A green dot lights up next to each profile section once it holds
+// data, so users can see at a glance what is filled in and what is
+// still empty. Dots refresh via refreshTopMetrics (fires on all edits).
+// ═══════════════════════════════════════════════════════════
+(function(){
+  const MAP={
+    household:  ()=> (val("c1f")||"").trim().length>0,
+    goals:      ()=> Array.isArray(goals)&&goals.length>0,
+    expenses:   ()=> getTotalExpenses()>0,
+    income:     ()=> getGrossIncome()>0,
+    assets:     ()=> (Array.isArray(assets)&&assets.length>0)||num("aProp",0)>0||num("aOther",0)>0,
+    liabilities:()=> Array.isArray(loans)&&loans.length>0,
+    portfolio:  ()=> Array.isArray(investments)&&investments.length>0,
+    proposal:   ()=> Array.isArray(proposals)&&proposals.length>0,
+    simulation: ()=> Array.isArray(lastSimPaths)&&lastSimPaths.length>0
+  };
+  Object.keys(MAP).forEach(tab=>{
+    const item=document.querySelector('.nav-item[data-tab="'+tab+'"]');
+    if(item && !item.querySelector(".nav-dot")){
+      const d=document.createElement("span"); d.className="nav-dot"; item.appendChild(d);
+    }
+  });
+  window.updateNavDataDots=function(){
+    Object.entries(MAP).forEach(([tab,pred])=>{
+      const item=document.querySelector('.nav-item[data-tab="'+tab+'"]');
+      if(!item) return;
+      let on=false; try{ on=!!pred(); }catch(_){}
+      item.classList.toggle("has-data",on);
+    });
+  };
+  try{ updateNavDataDots(); }catch(_){}
+
+  // Back-to-top: appears after scrolling the main pane
+  const main=document.querySelector(".main");
+  if(main){
+    const b=document.createElement("button");
+    b.id="wowTop"; b.title="Back to top"; b.setAttribute("aria-label","Back to top"); b.textContent="↑";
+    document.body.appendChild(b);
+    main.addEventListener("scroll",()=>{ b.classList.toggle("show", main.scrollTop>500); },{passive:true});
+    b.addEventListener("click",()=>{ main.scrollTo({top:0,behavior:"smooth"}); });
+  }
 })();
 </script>
 </body>
