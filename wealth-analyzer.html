@@ -13528,6 +13528,11 @@ function runMC(years,sims,muOverride,sigOverride){
   });
 
   const paths=[]; // collection of Monte Carlo simulation results
+  // Holdings→bucket template is invariant across paths — build it once and
+  // copy per path (it used to be rebuilt from the investments array on every
+  // one of the 1,000 paths).
+  const _bucketTpl = getAssetBucketsFromHoldings();
+  const _tplEmpty = Object.keys(_bucketTpl).length === 0;
   for(let s=0;s<sims;s++){
     // let cash=cashSeed, inv=investSeed, prop=propVal;
 
@@ -13535,13 +13540,9 @@ function runMC(years,sims,muOverride,sigOverride){
     let cash = cashSeed;
     let prop = propVal;
 
-    let assetBuckets = getAssetBucketsFromHoldings();
-
-    if (Object.keys(assetBuckets).length === 0) {
-      assetBuckets = { mixed: investSeed };
-    } else {
-      assetBuckets = scaleBucketsToTotal(assetBuckets, investSeed);
-    }
+    let assetBuckets = _tplEmpty
+      ? { mixed: investSeed }
+      : scaleBucketsToTotal(Object.assign({}, _bucketTpl), investSeed);
 
     let inv = sumBuckets(assetBuckets); // grow only investments
 
@@ -13759,10 +13760,12 @@ function _survivalProb(startWealth, spend, yearsInRet, mu, sig, inf, sims=300){
 }
 
 // Binary-search the spend level that hits `targetSuccessPct` survival probability.
-function _solveSustainableSpendMC(startWealth, yearsInRet, mu, sig, inf, targetSuccessPct, sims=300){
+function _solveSustainableSpendMC(startWealth, yearsInRet, mu, sig, inf, targetSuccessPct, sims=150){
   if(startWealth <= 0) return 0;
   let lo = 0, hi = startWealth * 0.15;
-  for(let iter=0; iter<20; iter++){
+  // 12 bisection steps resolve to hi/4096 (≈0.004% of wealth) — far inside the
+  // Monte-Carlo noise band of the survival estimate; 20 steps was pure cost.
+  for(let iter=0; iter<12; iter++){
     const mid = (lo+hi)/2;
     const p = _survivalProb(startWealth, mid, yearsInRet, mu, sig, inf, sims);
     if(p >= targetSuccessPct/100) lo = mid; else hi = mid;
@@ -13909,8 +13912,17 @@ function renderSustainable(s){
 }
 window.solveSustainableSpend=solveSustainableSpend;
 
+// Per-year sorted columns are cached per paths-array (WeakMap): charts and
+// tables hit the same (paths, year) hundreds of times per run, and sorting
+// 1,000 values on every call was one of the biggest post-sim costs. A fresh
+// simulation allocates a new paths array, so its cache starts clean and the
+// old one is garbage-collected. Index math is unchanged.
+const _pctColCache=new WeakMap();
 function percentileAt(paths,yearIdx,p){
-  const arr=paths.map(pp=>pp[yearIdx]).sort((a,b)=>a-b);
+  let byYear=_pctColCache.get(paths);
+  if(!byYear){ byYear=Object.create(null); _pctColCache.set(paths,byYear); }
+  let arr=byYear[yearIdx];
+  if(!arr){ arr=paths.map(pp=>pp[yearIdx]).sort((a,b)=>a-b); byYear[yearIdx]=arr; }
   const i=Math.max(0,Math.min(arr.length-1,Math.floor(p/100*arr.length)));
   return arr[i];
 }
@@ -14028,24 +14040,28 @@ function runSim(){
   } catch(_){}
   redrawChart(paths);
   drawFanChart(paths);
-  renderSimLifestyle(); // new
   // (renderDownsideAnalysis / renderUpsideAnalysis calls removed — their target
   //  panels were removed from the Simulation tab, so the output went nowhere.)
   renderGoalAnalysis(paths,yrs);
   try{ if(typeof gbRenderWealth==="function") gbRenderWealth(); }catch(_){}  // Wealth Allocation Framework panel (Simulation tab)
-  renderCashFlow();
   renderFundingStatus(paths,yrs);
   refreshTopMetrics(paths,yrs);
-  runSensitivity();
   renderRetirementNumber();
   renderTaxEfficiency();
   renderEfficientFrontier();
-  // Merrill-style PV funding ratios + achievable lifestyle (reuse GB engine)
+  // Merrill-style PV funding ratios (reuse GB engine)
   try { renderSimFundingStatus(); } catch(e){ console.warn("renderSimFundingStatus:", e); }
-  try { renderSimLifestyle(); } catch(e){ console.warn("renderSimLifestyle:", e); }
   try { renderSimPotentialWealth(); } catch(e){ console.warn("renderSimPotentialWealth:", e); }
   try { renderClaimAge(); } catch(e){ console.warn("renderClaimAge:", e); }
   try { renderEstate(); } catch(e){ console.warn("renderEstate:", e); }
+  // Heavy secondary panels run in their own tasks so the charts and metrics
+  // above paint immediately (the browser paints between macrotasks). Profiled
+  // shares of the old 1.8s block: cash-flow table ~140ms, sensitivity tornado
+  // ~366ms, achievable-lifestyle solver ~576ms — and renderSimLifestyle used
+  // to run TWICE per simulation (duplicate call removed).
+  setTimeout(()=>{ try{ renderCashFlow(); }catch(e){ console.warn("renderCashFlow:", e); } }, 0);
+  setTimeout(()=>{ try{ runSensitivity(); }catch(e){ console.warn("runSensitivity:", e); } }, 0);
+  setTimeout(()=>{ try{ renderSimLifestyle(); }catch(e){ console.warn("renderSimLifestyle:", e); } }, 0);
   // WOW layer: brief gold flash on the freshly recomputed projection metrics
   try{
     ["m-med","m-prob"].forEach(id=>{
