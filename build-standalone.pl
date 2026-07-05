@@ -54,7 +54,7 @@ $html =~ s|'DM Sans',monospace|'Courier New',Courier,monospace|g;
 
 # 3. Inline Chart.js
 my $chart_block = "<script>/* Chart.js 4.4.1 — inlined */\n$chart_js\n</script>";
-$html =~ s|<script src="https://cdnjs\.cloudflare\.com/ajax/libs/Chart\.js/4\.4\.1/chart\.umd\.min\.js"></script>|$chart_block|;
+$html =~ s|<script (?:defer )?src="https://cdnjs\.cloudflare\.com/ajax/libs/Chart\.js/4\.4\.1/chart\.umd\.min\.js"></script>|$chart_block|;
 
 # 4. Inline pdf.js + worker blob
 my $pdfjs_block = <<PDFBLOCK;
@@ -72,24 +72,24 @@ $pdfjs_main
 })();
 </script>
 PDFBLOCK
-$html =~ s|<script src="https://cdnjs\.cloudflare\.com/ajax/libs/pdf\.js/3\.11\.174/pdf\.min\.js"></script>|$pdfjs_block|;
+$html =~ s|<script (?:defer )?src="https://cdnjs\.cloudflare\.com/ajax/libs/pdf\.js/3\.11\.174/pdf\.min\.js"></script>|$pdfjs_block|;
 
 # Fix workerSrc line
 $html =~ s|pdfjsLib\.GlobalWorkerOptions\.workerSrc="https://cdnjs\.cloudflare\.com/ajax/libs/pdf\.js/3\.11\.174/pdf\.worker\.min\.js";|pdfjsLib.GlobalWorkerOptions.workerSrc=window._pdfWorkerBlobUrl\|\|"";|;
 
 # 5. Inline jsPDF
 my $jspdf_block = "<script>/* jsPDF 2.5.1 — inlined */\n$jspdf_js\n</script>";
-$html =~ s|<script src="https://cdnjs\.cloudflare\.com/ajax/libs/jspdf/2\.5\.1/jspdf\.umd\.min\.js"></script>|$jspdf_block|;
+$html =~ s|<script (?:defer )?src="https://cdnjs\.cloudflare\.com/ajax/libs/jspdf/2\.5\.1/jspdf\.umd\.min\.js"></script>|$jspdf_block|;
 
 # 6. Inline jsPDF-autotable
 my $auto_block = "<script>/* jsPDF-autotable 3.8.2 — inlined */\n$autotable_js\n</script>";
-$html =~ s|<script src="https://cdnjs\.cloudflare\.com/ajax/libs/jspdf-autotable/3\.8\.2/jspdf\.plugin\.autotable\.min\.js"></script>|$auto_block|;
+$html =~ s|<script (?:defer )?src="https://cdnjs\.cloudflare\.com/ajax/libs/jspdf-autotable/3\.8\.2/jspdf\.plugin\.autotable\.min\.js"></script>|$auto_block|;
 
 # 7. Inline qrcodejs (share-session QR rendering) — optional, skip if vendor file missing
 if(-f "$V/qrcode.min.js"){
   my $qr_js = slurp_text("$V/qrcode.min.js");
   my $qr_block = "<script>/* qrcodejs 1.0.0 — inlined */\n$qr_js\n</script>";
-  $html =~ s|<script src="https://cdnjs\.cloudflare\.com/ajax/libs/qrcodejs/1\.0\.0/qrcode\.min\.js"></script>|$qr_block|;
+  $html =~ s|<script (?:defer )?src="https://cdnjs\.cloudflare\.com/ajax/libs/qrcodejs/1\.0\.0/qrcode\.min\.js"></script>|$qr_block|;
 }
 
 # Write output
@@ -119,7 +119,7 @@ if (-f "admin.html") {
     $admin =~ s|'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif|-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,Arial,sans-serif|g;
     $admin =~ s|'JetBrains Mono','SF Mono','Monaco','Consolas',monospace|'SF Mono','Monaco','Consolas','Courier New',monospace|g;
     # Inline Chart.js
-    $admin =~ s|<script src="https://cdnjs\.cloudflare\.com/ajax/libs/Chart\.js/4\.4\.1/chart\.umd\.min\.js"></script>|$chart_block|;
+    $admin =~ s|<script (?:defer )?src="https://cdnjs\.cloudflare\.com/ajax/libs/Chart\.js/4\.4\.1/chart\.umd\.min\.js"></script>|$chart_block|;
 
     my $admin_dest = "admin-standalone.html";
     open my $aout, '>:encoding(UTF-8)', $admin_dest or die "Cannot write admin: $!";
