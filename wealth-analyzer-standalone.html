@@ -1164,14 +1164,9 @@ input[type=date]{color-scheme:light}
 
 /* ═══ WOW layer 2 — whole-app premium + usability ═══ */
 
-/* 8 · Sidebar — dark glass rail matching the hero */
-.sidebar{background:linear-gradient(178deg,#071a3d 0%,#0a2452 62%,#0d2c63 100%);border-right:1px solid rgba(255,255,255,.06)}
-.sidebar .nav-grp-label{color:rgba(160,185,225,.55)}
-.nav-item{color:rgba(210,224,245,.78)}
-.nav-item svg{opacity:.7}
-.nav-item:hover{color:#fff;background:rgba(255,255,255,.06)}
-.nav-item.active{color:#fff;border-left-color:#4da6ff;background:linear-gradient(90deg,rgba(77,166,255,.17),rgba(77,166,255,.03))}
-.nav-item.active svg{opacity:1;filter:drop-shadow(0 0 6px rgba(77,166,255,.8))}
+/* 8 · Sidebar — classic white rail (reverted from the dark navy pass per
+   user preference). Base .sidebar/.nav-item styles apply unchanged; we keep
+   only the hover glide from layer 1 and the data-completion dots below. */
 /* data-completion dots: a section lights up green once it holds data */
 .nav-item .nav-dot{width:6px;height:6px;border-radius:50%;background:#39d98a;margin-left:auto;flex-shrink:0;
   box-shadow:0 0 8px rgba(57,217,138,.7);opacity:0;transform:scale(.4);transition:all .3s}
@@ -3986,7 +3981,7 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
 // ═══════════════════════════════════════════════════════════
 // VERSION — updated by build-standalone.pl on each build
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260705-1817";
+const APP_VERSION = "20260705-1838";
 
 // ═══════════════════════════════════════════════════════════
 // DATA
