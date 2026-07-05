@@ -583,7 +583,7 @@ body.shared-view .nav-item{cursor:pointer;opacity:.95}
 .wh-actions{margin-top:auto;padding-top:22px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 /* New stat grid for redesigned Wealth Overview */
 .wh-stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:6px}
-.wh-stat{display:flex;align-items:center;gap:11px;padding:11px 12px;background:rgba(255,255,255,.65);border:1px solid rgba(0,87,184,.08);border-radius:10px;transition:all .15s;backdrop-filter:blur(8px)}
+.wh-stat{display:flex;align-items:center;gap:11px;padding:11px 12px;background:rgba(255,255,255,.65);border:1px solid rgba(0,87,184,.08);border-radius:10px;transition:all .15s}
 .wh-stat:hover{background:#fff;border-color:rgba(0,87,184,.18);transform:translateY(-1px);box-shadow:0 2px 8px rgba(0,87,184,.06)}
 .wh-stat-icon{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .wh-stat-body{flex:1;min-width:0}
@@ -1096,11 +1096,14 @@ input[type=date]{color-scheme:light}
 /* 1 · Hero — deep navy with a slow-drifting aurora and gold-lit net worth */
 .wealth-hero{position:relative;background:linear-gradient(128deg,#061735 0%,#0a2a5e 52%,#0d3f8a 100%);
   box-shadow:0 22px 54px rgba(4,20,50,.38),0 2px 8px rgba(4,20,50,.22);animation:wowFadeUp .5s ease both}
-.wealth-hero::before{content:"";position:absolute;inset:-45%;pointer-events:none;
-  background:radial-gradient(38% 55% at 22% 30%,rgba(77,166,255,.30),transparent 62%),
-             radial-gradient(30% 45% at 78% 72%,rgba(212,175,95,.17),transparent 60%),
-             radial-gradient(26% 40% at 62% 15%,rgba(0,164,166,.15),transparent 60%);
+/* Perf-tamed aurora: the layer used to be ~1.9× the hero (inset:-45%) with
+   three gradients — a large GPU texture composited every frame, forever.
+   Now ~1.36× with two gradients; paused whenever the browser tab is hidden. */
+.wealth-hero::before{content:"";position:absolute;inset:-18%;pointer-events:none;
+  background:radial-gradient(40% 58% at 24% 32%,rgba(77,166,255,.28),transparent 62%),
+             radial-gradient(32% 48% at 76% 70%,rgba(212,175,95,.16),transparent 60%);
   animation:wowAurora 17s ease-in-out infinite}
+body.wa-page-hidden .wealth-hero::before{animation-play-state:paused}
 .wealth-hero>*{position:relative;z-index:1}
 .wealth-hero .wh-title{background:linear-gradient(93deg,#ffffff 0%,#bcd8ff 55%,#8fbaff 100%);-webkit-background-clip:text;background-clip:text}
 .wealth-hero .wh-sub{color:rgba(213,225,245,.74)}
@@ -1109,7 +1112,10 @@ input[type=date]{color-scheme:light}
 .wealth-hero .wh-asof{color:rgba(213,225,245,.48)}
 .wealth-hero .wh-legend .wh-lbl{color:rgba(222,232,248,.82)}
 .wealth-hero .wh-legend .wh-lval{color:#fff}
-.wealth-hero .wh-stat{background:rgba(255,255,255,.07);border-color:rgba(255,255,255,.14);backdrop-filter:blur(12px)}
+/* Glass look WITHOUT backdrop-filter: blurring the animated aurora behind six
+   cards forced a full re-blur every animation frame — the main perf drag.
+   A slightly higher fill alpha reads the same at a fraction of the cost. */
+.wealth-hero .wh-stat{background:rgba(255,255,255,.10);border-color:rgba(255,255,255,.15)}
 .wealth-hero .wh-stat:hover{background:rgba(255,255,255,.13);border-color:rgba(255,255,255,.30);transform:translateY(-2px);box-shadow:0 10px 26px rgba(2,12,32,.38)}
 .wealth-hero .wh-stat-lbl{color:rgba(213,225,245,.62)}
 .wealth-hero .wh-stat-val{color:#fff}
@@ -1173,7 +1179,9 @@ input[type=date]{color-scheme:light}
 .nav-item.has-data .nav-dot{opacity:1;transform:scale(1)}
 
 /* 9 · Topbar — frosted glass with a gradient wordmark */
-.topbar{background:rgba(255,255,255,.82);backdrop-filter:blur(14px) saturate(1.4)}
+/* Near-opaque white instead of backdrop blur: a sticky blur re-filters the
+   whole bar on every scroll frame. Visually near-identical, scrolls free. */
+.topbar{background:rgba(255,255,255,.96)}
 .logo{background:linear-gradient(93deg,#06173a 0%,#0069d9 90%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
 .logo small{-webkit-text-fill-color:var(--text3)}
 
@@ -3981,7 +3989,7 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
 // ═══════════════════════════════════════════════════════════
 // VERSION — updated by build-standalone.pl on each build
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260705-1838";
+const APP_VERSION = "20260705-2010";
 
 // ═══════════════════════════════════════════════════════════
 // DATA
@@ -21388,6 +21396,10 @@ document.addEventListener("DOMContentLoaded",function(){
   };
   try{ updateNavDataDots(); }catch(_){}
 
+  // Perf: pause the hero aurora animation while the browser tab is hidden
+  document.addEventListener("visibilitychange",()=>{
+    document.body.classList.toggle("wa-page-hidden", document.hidden);
+  });
   // Back-to-top: appears after scrolling the main pane
   const main=document.querySelector(".main");
   if(main){
@@ -21554,7 +21566,7 @@ document.addEventListener("DOMContentLoaded",function(){
     /* Spotlight node: compositor-only movement (translate3d + opacity). */
     ".fx-spotlight{position:absolute;left:0;top:0;width:" + CONFIG.spotlightSize + "px;height:" + CONFIG.spotlightSize + "px;" +
       "margin-left:-" + (CONFIG.spotlightSize / 2) + "px;margin-top:-" + (CONFIG.spotlightSize / 2) + "px;" +
-      "border-radius:50%;pointer-events:none;z-index:0!important;opacity:0;will-change:transform,opacity;" +
+      "border-radius:50%;pointer-events:none;z-index:0!important;opacity:0;" +
       "background:radial-gradient(circle," +
         "rgba(120,190,255,.28) 0%," +
         "rgba(90,150,255,.16) 30%," +
@@ -21619,6 +21631,7 @@ document.addEventListener("DOMContentLoaded",function(){
       S.tx = S.x = e.clientX - r.left;                 // start AT the cursor —
       S.ty = S.y = e.clientY - r.top;                  // no fly-in from a corner
       S.to = 1; S.inside = true;
+      spot.style.willChange = "transform,opacity";     // promote layer only while active
       wake();
     }, { passive: true });
 
@@ -21704,6 +21717,7 @@ document.addEventListener("DOMContentLoaded",function(){
     }
 
     if (busy) { S.raf = requestAnimationFrame(tick); } // else: loop sleeps, 0 idle cost
+    else if (spot) { spot.style.willChange = ""; }     // release the GPU layer when idle
   }
 
   /* ── Public API + kill switch ───────────────────────────────────────────── */
