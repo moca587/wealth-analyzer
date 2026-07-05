@@ -74,7 +74,7 @@
     /* Spotlight node: compositor-only movement (translate3d + opacity). */
     ".fx-spotlight{position:absolute;left:0;top:0;width:" + CONFIG.spotlightSize + "px;height:" + CONFIG.spotlightSize + "px;" +
       "margin-left:-" + (CONFIG.spotlightSize / 2) + "px;margin-top:-" + (CONFIG.spotlightSize / 2) + "px;" +
-      "border-radius:50%;pointer-events:none;z-index:0!important;opacity:0;will-change:transform,opacity;" +
+      "border-radius:50%;pointer-events:none;z-index:0!important;opacity:0;" +
       "background:radial-gradient(circle," +
         "rgba(120,190,255,.28) 0%," +
         "rgba(90,150,255,.16) 30%," +
@@ -139,6 +139,7 @@
       S.tx = S.x = e.clientX - r.left;                 // start AT the cursor —
       S.ty = S.y = e.clientY - r.top;                  // no fly-in from a corner
       S.to = 1; S.inside = true;
+      spot.style.willChange = "transform,opacity";     // promote layer only while active
       wake();
     }, { passive: true });
 
@@ -224,6 +225,7 @@
     }
 
     if (busy) { S.raf = requestAnimationFrame(tick); } // else: loop sleeps, 0 idle cost
+    else if (spot) { spot.style.willChange = ""; }     // release the GPU layer when idle
   }
 
   /* ── Public API + kill switch ───────────────────────────────────────────── */
