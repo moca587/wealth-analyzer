@@ -8,11 +8,14 @@
 <meta http-equiv="Expires" content="0">
 <title>Wealth Analyzer by Private Wealth Intelligence</title>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,200;0,300;0,400;0,500;0,600;0,700;0,800;1,300;1,400;1,500&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<!-- defer: none of these are used at parse time (all usage is inside functions
+     that run at/after DOMContentLoaded, and deferred scripts are guaranteed to
+     execute before DOMContentLoaded). Unblocks first paint — pdf.js alone is ~1MB. -->
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <style>
 :root{
   --bg:#f4f6fb;--bg2:#ffffff;--bg3:#eef1f8;--bg4:#e2e8f2;
@@ -693,14 +696,17 @@ body.wa-page-hidden .wealth-hero::before{animation-play-state:paused}
   background:linear-gradient(100deg,transparent,rgba(255,255,255,.38),transparent);transform:translateX(-140%) skewX(-18deg)}
 .btn-primary:hover::after{animation:wowSheen .8s ease}
 
-/* 3 · Panels — staggered entrance on every tab switch */
-.tab.active .panel{animation:wowFadeUp .38s cubic-bezier(.2,.7,.3,1) both}
-.tab.active .panel:nth-of-type(2){animation-delay:.05s}
-.tab.active .panel:nth-of-type(3){animation-delay:.10s}
-.tab.active .panel:nth-of-type(4){animation-delay:.15s}
-.tab.active .panel:nth-of-type(5){animation-delay:.20s}
-.tab.active .panel:nth-of-type(6){animation-delay:.25s}
-.tab.active .panel:nth-of-type(n+7){animation-delay:.30s}
+/* 3 · Panels — staggered entrance on every tab switch.
+   Snappier (.30s) and capped: only the first 8 panels animate — on heavy tabs
+   (Simulation has 15+) the below-the-fold panels now render instantly. */
+.tab.active .panel{animation:wowFadeUp .30s cubic-bezier(.2,.7,.3,1) both}
+.tab.active .panel:nth-of-type(2){animation-delay:.04s}
+.tab.active .panel:nth-of-type(3){animation-delay:.08s}
+.tab.active .panel:nth-of-type(4){animation-delay:.12s}
+.tab.active .panel:nth-of-type(5){animation-delay:.16s}
+.tab.active .panel:nth-of-type(6){animation-delay:.20s}
+.tab.active .panel:nth-of-type(n+7){animation-delay:.24s}
+.tab.active .panel:nth-of-type(n+9){animation:none}
 
 /* 4 · Sidebar — glide + soft active gradient */
 .nav-item{transition:all .18s cubic-bezier(.2,.7,.3,1)}
@@ -19866,6 +19872,12 @@ function drawOverviewDonut(){
   const segs=ALL_SEGS.filter(s=>s.value>0);
   const total=segs.reduce((s,x)=>s+x.value,0);
 
+  // Change-detection: typing in a name field re-runs the metrics pass but the
+  // allocation is untouched — skip the chart update + legend rebuild entirely.
+  const _sig=Math.round(total)+"|"+segs.map(s=>s.label+":"+Math.round(s.value)).join(",");
+  if(_sig===drawOverviewDonut._sig && overviewDonutChart){ return; }
+  drawOverviewDonut._sig=_sig;
+
   // Update donut center total
   const totEl=document.getElementById("wh-donut-total");
   if(totEl) totEl.textContent=total>0?fmtMoney(total):"—";
@@ -19935,7 +19947,24 @@ function drawOverviewDonut(){
 // ═══════════════════════════════════════════════════════════
 // TOP-LEVEL METRICS
 // ═══════════════════════════════════════════════════════════
+// Coalescing wrapper: input cascades (updateIncTotal → tax → savings → …) used
+// to run the full metrics + donut + checklist pass 3-6× within one event turn.
+// A microtask collapses the burst into a single pass, in the same turn, before
+// paint — behavior is identical, work is not repeated. Fresh sim paths passed
+// by any call in the burst are preserved and win.
+let _rtmQueued=false, _rtmArgs=null;
 function refreshTopMetrics(simPaths, simYrs){
+  if(Array.isArray(simPaths) && simPaths.length){ _rtmArgs=[simPaths, simYrs]; }
+  if(_rtmQueued) return;
+  _rtmQueued=true;
+  queueMicrotask(()=>{
+    _rtmQueued=false;
+    const a=_rtmArgs; _rtmArgs=null;
+    try{ _refreshTopMetricsNow(a?a[0]:undefined, a?a[1]:undefined); }
+    catch(e){ console.warn("refreshTopMetrics:", e); }
+  });
+}
+function _refreshTopMetricsNow(simPaths, simYrs){
   const hasPortfolio=investments.length>0;
   const acctVal=totalAccountValue(); // already excludes linked account when Mode B
   let pfAdj=0;
@@ -20466,7 +20495,7 @@ document.addEventListener("DOMContentLoaded",function(){
   };
 
   (function liveUpdatePoller(){
-    const POLL_INTERVAL_MS = 15 * 1000;        // 15s — fast enough to feel live
+    const POLL_INTERVAL_MS = 60 * 1000;        // 60s — still feels live, 4× fewer wakeups/fetches
     const AUTO_RELOAD_DELAY_MS = 5 * 1000;     // 5s countdown before auto-reload
     let updateAvailable = false;
     let polling = false;
