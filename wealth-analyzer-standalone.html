@@ -1681,10 +1681,11 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
         <label style="display:block;font-size:11px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;
                       color:var(--text3);margin-bottom:8px">Files</label>
         <input type="file" id="uploadDocFiles" multiple onchange="onUploadDocFilesChange()"
-               accept=".pdf,.png,.jpg,.jpeg,.gif,.webp,.heic,.heif,.tiff,.tif,.bmp,.csv,.tsv,.txt,.docx,.xlsx,.xls,image/*"
+               accept=".pdf,.doc,.docx,.rtf,.odt,.pptx,.xls,.xlsx,.ods,.csv,.tsv,.txt,.json,.md,.png,.jpg,.jpeg,.gif,.webp,.heic,.heif,.tiff,.tif,.bmp,image/*"
                style="font-size:12px;color:var(--text2);width:100%">
         <div style="font-size:10.5px;color:var(--text3);margin-top:6px;line-height:1.5">
-          Any number, mixed types. PDF · DOCX · XLSX · CSV · JPG / PNG / HEIC · scans · screenshots.
+          Any number, mixed types. PDF · Word (DOC/DOCX) · RTF · OpenDocument (ODT) · PowerPoint (PPTX) ·
+          Excel/OpenDocument sheets (XLS/XLSX/ODS) · CSV/TXT/JSON · JPG/PNG/HEIC · scans · screenshots.
         </div>
         <div id="uploadDocFileList" style="margin-top:8px"></div>
       </div>
@@ -3107,10 +3108,10 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
   <!-- AI Data Agent panel (hidden by default) — reads any file, fills the whole app after review -->
   <div id="aiAgentPanel" class="panel" style="display:none;background:var(--bg3);border:1px solid rgba(124,58,237,.28);margin-bottom:14px">
     <div class="ptitle" style="margin:0 0 6px">✦ AI Data Agent</div>
-    <div class="da-note">Upload any client documents — brokerage &amp; bank statements, tax forms, <strong>photos &amp; screenshots</strong>, scanned PDFs, CSV / XLSX, or notes. The agent reads them (vision for images &amp; scans), extracts every data point it can across the whole profile, and shows you a review screen before anything is written to the app.</div>
+    <div class="da-note">Upload any client documents — brokerage &amp; bank statements, tax forms, questionnaires, <strong>photos &amp; screenshots</strong>, scanned PDFs, Word/PowerPoint/OpenDocument files, CSV/XLSX/ODS, or notes. The agent reads them (vision for images &amp; scans), extracts every data point it can across the whole profile, and shows you a review screen before anything is written to the app.</div>
     <div class="frow" style="margin-top:8px">
       <label class="flbl">Files <span style="color:var(--text3)">(any number, mixed types)</span></label>
-      <input type="file" id="aiAgentFiles" multiple onchange="onAgentFilesChange()" accept=".pdf,.png,.jpg,.jpeg,.gif,.webp,.heic,.heif,.tiff,.tif,.bmp,.csv,.tsv,.txt,.docx,.xlsx,.xls,image/*" style="font-size:12px;color:var(--text2)">
+      <input type="file" id="aiAgentFiles" multiple onchange="onAgentFilesChange()" accept=".pdf,.doc,.docx,.rtf,.odt,.pptx,.xls,.xlsx,.ods,.csv,.tsv,.txt,.json,.md,.png,.jpg,.jpeg,.gif,.webp,.heic,.heif,.tiff,.tif,.bmp,image/*" style="font-size:12px;color:var(--text2)">
     </div>
     <div id="aiAgentFileList" style="margin:6px 0 8px"></div>
     <div id="aiAgentKeyNote" style="font-size:11px;margin-bottom:8px"></div>
@@ -4064,7 +4065,7 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
 // ═══════════════════════════════════════════════════════════
 // VERSION — updated by build-standalone.pl on each build
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260706-1742";
+const APP_VERSION = "20260706-1800";
 
 // ═══════════════════════════════════════════════════════════
 // DATA
@@ -9045,12 +9046,196 @@ async function _daImageBlock(file){
     throw new Error("Could not read image "+file.name+" — try exporting it as JPG or PNG.");
   }
 }
-async function _daDocxText(file){
-  const raw=new TextDecoder("utf-8",{fatal:false}).decode(new Uint8Array(await file.arrayBuffer()));
-  const m=raw.match(/<w:t(?:\s[^>]*)?>([^<]*)<\/w:t>/g)||[];
-  if(m.length) return m.map(s=>s.replace(/<[^>]+>/g,"")).join(" ");
-  return raw.replace(/<[^>]+>/g," ").replace(/\s+/g," ").slice(0,12000);
+
+// ── ZIP-backed readers (DOCX / ODT / PPTX are all ZIP archives of XML) ──────
+// A real Word/LibreOffice-generated file is DEFLATE-compressed inside the ZIP
+// container, so decoding the raw file bytes as UTF-8 text (the old approach)
+// never recovers the XML — it only "worked" for the rare uncompressed archive.
+// JSZip gives us a small, well-established zip reader (with its own inflate).
+let _daJSZipLoad=null;
+function _daEnsureJSZip(){
+  if(window.JSZip) return Promise.resolve(window.JSZip);
+  if(_daJSZipLoad) return _daJSZipLoad;
+  _daJSZipLoad=new Promise((res,rej)=>{
+    const s=document.createElement("script");
+    s.src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js";
+    s.onload=()=>res(window.JSZip); s.onerror=()=>rej(new Error("zip support could not load — check your connection and try again."));
+    document.head.appendChild(s);
+  });
+  return _daJSZipLoad;
 }
+// Unzips just the entries we need as UTF-8 text. `matchers` may be exact path
+// strings or RegExps (used for PPTX's ppt/slides/slideN.xml, which are numbered).
+async function _daUnzipEntries(file, matchers){
+  const JSZip=await _daEnsureJSZip();
+  let zip;
+  try{ zip=await JSZip.loadAsync(await file.arrayBuffer()); }
+  catch(e){ throw new Error("Could not open "+file.name+" — the file may be corrupted or not a valid Office document."); }
+  const names=Object.keys(zip.files).filter(n=>matchers.some(m=> m instanceof RegExp ? m.test(n) : m===n));
+  const out={};
+  for(const n of names){ out[n]=await zip.files[n].async("string"); }
+  return out;
+}
+
+async function _daDocxText(file){
+  try{
+    const entries=await _daUnzipEntries(file, ["word/document.xml"]);
+    const xml=entries["word/document.xml"]||"";
+    if(!xml) throw new Error("no document.xml");
+    const m=xml.match(/<w:t(?:\s[^>]*)?>([^<]*)<\/w:t>/g)||[];
+    const text=(m.length ? m.map(s=>s.replace(/<[^>]+>/g,"")).join(" ") : xml.replace(/<[^>]+>/g," ")).replace(/\s+/g," ").trim();
+    if(!text) throw new Error("empty");
+    return text;
+  }catch(e){
+    throw new Error("Could not read "+file.name+" as a Word document — try saving it as PDF and re-uploading.");
+  }
+}
+async function _daOdtText(file){
+  try{
+    const entries=await _daUnzipEntries(file, ["content.xml"]);
+    const xml=entries["content.xml"]||"";
+    if(!xml) throw new Error("no content.xml");
+    // OpenDocument text runs sit inside <text:p>/<text:h> — insert breaks at
+    // paragraph boundaries before stripping tags, so output stays readable.
+    const withBreaks=xml.replace(/<text:p[^>]*>/g,"\n").replace(/<text:h[^>]*>/g,"\n\n");
+    const text=withBreaks.replace(/<[^>]+>/g,"").replace(/[ \t]{2,}/g," ").replace(/\n{3,}/g,"\n\n").trim();
+    if(!text) throw new Error("empty");
+    return text;
+  }catch(e){
+    throw new Error("Could not read "+file.name+" as an OpenDocument text file — try exporting as PDF and re-uploading.");
+  }
+}
+async function _daPptxText(file){
+  try{
+    const entries=await _daUnzipEntries(file, [/^ppt\/slides\/slide\d+\.xml$/]);
+    const names=Object.keys(entries).sort((a,b)=>(+((a.match(/(\d+)/)||[])[1]||0))-(+((b.match(/(\d+)/)||[])[1]||0)));
+    if(!names.length) throw new Error("no slides");
+    const text=names.map((n,i)=>{
+      const xml=entries[n]||"";
+      const m=xml.match(/<a:t>([^<]*)<\/a:t>/g)||[];
+      return "Slide "+(i+1)+": "+m.map(s=>s.replace(/<[^>]+>/g,"")).join(" ");
+    }).join("\n");
+    return text;
+  }catch(e){
+    throw new Error("Could not read "+file.name+" as a PowerPoint file — try exporting as PDF and re-uploading.");
+  }
+}
+
+// ── RTF: plain 7-bit text with control words — regex-stripped, no library needed ──
+function _daRtfToText(raw){
+  // Non-content "destination" groups (font/color tables, doc metadata, and any
+  // \* ignorable destination) can nest braces themselves — e.g.
+  // {\fonttbl{\f0 Arial;}} — so a plain non-nested regex leaves the inner
+  // group's text behind. Walk the string tracking brace depth and drop the
+  // whole group (open brace to its matching close) instead.
+  function stripDestinationGroups(str){
+    const DEST=/^\{\\(?:\*\\)?(fonttbl|colortbl|stylesheet|generator|info|\*)/;
+    let out="", i=0;
+    while(i<str.length){
+      if(str[i]==="{" && DEST.test(str.slice(i,i+30))){
+        let depth=1, j=i+1;
+        while(j<str.length && depth>0){ if(str[j]==="{") depth++; else if(str[j]==="}") depth--; j++; }
+        i=j;
+      } else { out+=str[i]; i++; }
+    }
+    return out;
+  }
+  let s=stripDestinationGroups(raw);
+  s=s.replace(/\\par[d]?\b\s?/g,"\n").replace(/\\line\b\s?/g,"\n").replace(/\\tab\b\s?/g,"\t");
+  s=s.replace(/\\'([0-9a-fA-F]{2})/g,(m,hex)=>String.fromCharCode(parseInt(hex,16)));
+  s=s.replace(/\\[a-zA-Z]+-?\d* ?/g," ");
+  s=s.replace(/[{}]/g,"");
+  return s.replace(/[ \t]{2,}/g," ").replace(/\n{3,}/g,"\n\n").trim();
+}
+async function _daRtfText(file){
+  const raw=await _daReadText(file);   // RTF is 7-bit ASCII-safe — a plain text read is fine
+  const text=_daRtfToText(raw);
+  if(!text || text.length<5) throw new Error("Could not extract text from "+file.name+" — try exporting as PDF and re-uploading.");
+  return text;
+}
+
+// ── Legacy binary Office (.doc / .ppt, pre-2007 OLE compound format) ────────
+// No practical in-browser parser for the real binary layout; instead we do a
+// best-effort "strings" scan for printable UTF-16LE runs (how Word's binary
+// format stores text) or Latin-1 as a fallback, picking whichever recovers
+// more actual words. Imperfect, but far better than nothing — and clearly
+// labeled as best-effort so both the AI and the advisor can weigh it.
+function _daHeuristicBinaryText(u8){
+  function scanUtf16LE(bytes){
+    let out=[];
+    for(let i=0;i+1<bytes.length;i+=2){
+      const code=bytes[i]|(bytes[i+1]<<8);
+      if(code===10||code===13||code===9||(code>=32&&code<127)) out.push(String.fromCharCode(code));
+      else out.push(" ");
+    }
+    return out.join("");
+  }
+  function scanLatin1(bytes){
+    let out=[];
+    for(let i=0;i<bytes.length;i++){
+      const c=bytes[i];
+      out.push((c===10||c===13||c===9||(c>=32&&c<127)) ? String.fromCharCode(c) : " ");
+    }
+    return out.join("");
+  }
+  const score=s=>(s.match(/[A-Za-z]{3,}/g)||[]).length;
+  const a=scanUtf16LE(u8), b=scanLatin1(u8);
+  const chosen=score(a)>=score(b) ? a : b;
+  return chosen.replace(/[ \t]{2,}/g," ").replace(/\s*\n\s*/g,"\n").replace(/\n{3,}/g,"\n\n").trim();
+}
+async function _daLegacyOfficeText(file, kindLabel){
+  const u8=new Uint8Array(await file.arrayBuffer());
+  const text=_daHeuristicBinaryText(u8);
+  if((text.match(/[A-Za-z]{3,}/g)||[]).length < 20){
+    throw new Error("Could not extract readable text from "+file.name+" (legacy "+kindLabel+" format) — please re-save as PDF or "+(kindLabel===".doc"?".docx":".pptx")+" and re-upload.");
+  }
+  return "[Best-effort text recovery from legacy "+kindLabel+" format — extraction may be imperfect]\n"+text;
+}
+
+// ── Encoding-aware plain-text read (CSV/TXT/TSV/JSON/MD/EML) ────────────────
+// FileReader.readAsText() assumes UTF-8, which silently mangles the UTF-16
+// exports some spreadsheet tools (older Excel "Unicode Text" exports) produce.
+// Sniff the BOM, or fall back to a null-byte density heuristic for BOM-less
+// UTF-16, before decoding.
+async function _daReadTextSmart(file){
+  const bytes=new Uint8Array(await file.arrayBuffer());
+  if(bytes.length>=2 && bytes[0]===0xFF && bytes[1]===0xFE) return new TextDecoder("utf-16le").decode(bytes.slice(2));
+  if(bytes.length>=2 && bytes[0]===0xFE && bytes[1]===0xFF) return new TextDecoder("utf-16be").decode(bytes.slice(2));
+  if(bytes.length>=3 && bytes[0]===0xEF && bytes[1]===0xBB && bytes[2]===0xBF) return new TextDecoder("utf-8").decode(bytes.slice(3));
+  const sampleLen=Math.min(bytes.length,2000);
+  let nul=0; for(let i=0;i<sampleLen;i++) if(bytes[i]===0) nul++;
+  if(sampleLen>0 && nul/sampleLen>0.25) return new TextDecoder("utf-16le",{fatal:false}).decode(bytes);
+  return new TextDecoder("utf-8",{fatal:false}).decode(bytes);
+}
+// Rejects files that decode to mostly replacement-characters/control bytes —
+// i.e. a binary format we don't recognize, rather than silently feeding
+// garbage to the AI call and getting a confusing empty/wrong result.
+function _daLooksBinaryGarbage(text){
+  const sample=(text||"").slice(0,4000);
+  if(!sample.trim()) return true;
+  let bad=0;
+  for(let i=0;i<sample.length;i++){ const c=sample.charCodeAt(i); if(c===0xFFFD||c<9) bad++; }
+  return (bad/sample.length) > 0.15;
+}
+// Long files: keep head + tail rather than just the head, so trailing summary
+// rows (totals, signatures, "as of" dates) in long statements aren't silently
+// dropped along with everything else past the cutoff.
+function _daTruncateSmart(text, max){
+  if(!text || text.length<=max) return text||"";
+  const headLen=Math.round(max*0.7), tailLen=max-headLen-80;
+  return text.slice(0,headLen)+"\n\n...["+(text.length-max)+" characters omitted]...\n\n"+text.slice(text.length-tailLen);
+}
+// Cheap heuristic: the PDF trailer's /Encrypt marker is present even when the
+// content stream itself is encrypted, so a plain substring search over the
+// first chunk of bytes is enough to flag "this may need a password removed"
+// without pulling in a PDF parser. Non-fatal — just an inline note to the AI.
+async function _daCheckPdfEncrypted(file){
+  try{
+    const head=new Uint8Array(await file.slice(0, Math.min(file.size,200000)).arrayBuffer());
+    return /\/Encrypt\b/.test(new TextDecoder("latin1").decode(head));
+  }catch(_){ return false; }
+}
+
 let _daXlsxLoad=null;
 function _daEnsureXLSX(){
   if(window.XLSX) return Promise.resolve(window.XLSX);
@@ -9064,21 +9249,46 @@ function _daEnsureXLSX(){
   return _daXlsxLoad;
 }
 async function _daXlsxText(file){
+  // SheetJS auto-detects format from content, so this same reader also
+  // handles legacy binary .xls and OpenDocument .ods without extra code.
   const XLSX=await _daEnsureXLSX();
   const wb=XLSX.read(await file.arrayBuffer(),{type:"array"});
   return wb.SheetNames.map(n=>"# Sheet: "+n+"\n"+XLSX.utils.sheet_to_csv(wb.Sheets[n])).join("\n\n");
 }
+
+// File types with no practical way to recover readable text client-side —
+// fail fast with guidance instead of silently sending garbled binary to the AI.
+const _DA_UNSUPPORTED_EXT=new Set(["pages","numbers","key","msg","zip","7z","rar","exe","dmg","mp3","mp4","mov","avi","wav"]);
+
 async function fileToBlocks(file){
   const name=file.name||"file", ext=(name.split(".").pop()||"").toLowerCase(), mt=file.type||"";
+  if(file.size===0) throw new Error(name+" is empty (0 bytes) — nothing to read.");
+
   if(ext==="pdf" || mt==="application/pdf"){
     if(file.size>20*1024*1024) throw new Error(name+" is over 20MB — please split it into smaller files (base64 encoding inflates the upload).");
-    return [{type:"document",source:{type:"base64",media_type:"application/pdf",data:_daB64(await _daReadDataURL(file))}}];
+    const blocks=[{type:"document",source:{type:"base64",media_type:"application/pdf",data:_daB64(await _daReadDataURL(file))}}];
+    if(await _daCheckPdfEncrypted(file)){
+      blocks.push({type:"text",text:"Note: "+name+" appears to have PDF security/encryption settings. If the extraction below seems incomplete, remove the password protection and re-upload."});
+    }
+    return blocks;
   }
   if(/^(png|jpe?g|gif|webp|heic|heif|tiff?|bmp)$/.test(ext) || /^image\//.test(mt)) return [await _daImageBlock(file)];
-  if(ext==="docx") return [{type:"text",text:"File "+name+":\n"+(await _daDocxText(file))}];
-  if(ext==="xlsx"||ext==="xls") return [{type:"text",text:"File "+name+":\n"+(await _daXlsxText(file))}];
-  // csv/txt/tsv/json/any text-ish
-  return [{type:"text",text:"File "+name+":\n"+((await _daReadText(file)).slice(0,30000))}];
+  if(ext==="docx") return [{type:"text",text:"File "+name+":\n"+_daTruncateSmart(await _daDocxText(file),30000)}];
+  if(ext==="odt")  return [{type:"text",text:"File "+name+":\n"+_daTruncateSmart(await _daOdtText(file),30000)}];
+  if(ext==="pptx") return [{type:"text",text:"File "+name+":\n"+_daTruncateSmart(await _daPptxText(file),30000)}];
+  if(ext==="xlsx"||ext==="xls"||ext==="ods") return [{type:"text",text:"File "+name+":\n"+_daTruncateSmart(await _daXlsxText(file),30000)}];
+  if(ext==="rtf")  return [{type:"text",text:"File "+name+":\n"+_daTruncateSmart(await _daRtfText(file),30000)}];
+  if(ext==="doc")  return [{type:"text",text:"File "+name+":\n"+_daTruncateSmart(await _daLegacyOfficeText(file,".doc"),20000)}];
+  if(ext==="ppt")  return [{type:"text",text:"File "+name+":\n"+_daTruncateSmart(await _daLegacyOfficeText(file,".ppt"),20000)}];
+  if(_DA_UNSUPPORTED_EXT.has(ext)){
+    throw new Error(name+" is a ."+ext+" file, which isn't supported for data extraction — please export it as PDF, DOCX, or a spreadsheet (CSV/XLSX) and re-upload.");
+  }
+  // csv/tsv/txt/json/md/eml and anything else text-ish
+  const raw=await _daReadTextSmart(file);
+  if(_daLooksBinaryGarbage(raw)){
+    throw new Error("Could not read "+name+" as text — this file type may not be supported. Try PDF, DOCX, an image, or a spreadsheet export instead.");
+  }
+  return [{type:"text",text:"File "+name+":\n"+_daTruncateSmart(raw,30000)}];
 }
 
 // ── Extraction schema (enums generated LIVE from the app constants) ──────────
