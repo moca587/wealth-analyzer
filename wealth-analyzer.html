@@ -2138,100 +2138,27 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
 <div class="tab" id="tab-simulation">
 <!-- Simulation source banner — populated by renderProposalSourceBanner() -->
 <div id="simSourceBanner" style="display:none"></div>
-<div class="panel" id="simInputsPanel">
-  <div class="ptitle" style="cursor:pointer;user-select:none;display:flex;align-items:center;justify-content:space-between" onclick="toggleSimInputs()">
-    <span>Inputs feeding into this simulation</span>
-    <span id="simInputsCaret" style="font-size:13px;color:var(--text3);transition:transform .2s">▼</span>
-  </div>
-  <div id="simInputsBody" style="display:none">
-    <div id="simInputsSummary" style="font-size:12px;color:var(--text3);line-height:1.8;padding-top:6px">
-      Fill in the tabs above and click <strong style="color:var(--text2)">▶ Run Monte Carlo Simulation</strong> — the summary of what feeds in will appear here.
-    </div>
-  </div>
-</div>
-
-<!-- Simulation Settings -->
-<!-- <div class="panel">
-  
-  <div class="ptitle">Simulation Settings</div>
-  <div class="two-col">
-    <div>
-      <div class="frow"><label class="flbl">Projection years</label><input type="number" id="simYrs" value="20" min="5" max="40" step="1" class="w120" oninput="refreshTopMetrics()"></div>
-      <div class="frow"><label class="flbl">Glidepath de-risking</label>
-        <select id="gpOn" class="w200" onchange="runSim()">
-          <option value="no" selected>Off — static allocation</option>
-          <option value="yes">On — de-risk toward retirement</option>
-        </select>
-      </div>
-      <div class="frow"><label class="flbl">De-risk over final (years)</label><input type="number" id="gpYears" value="10" min="1" max="30" step="1" class="w120" onchange="runSim()"></div>
-      <div class="frow"><label class="flbl">Simulations</label>
-        <select id="simN" class="w160" onchange="refreshTopMetrics()">
-          <option value="200">200 — fast</option>
-          <option value="500" selected>500 — balanced</option>
-          <option value="1000">1000 — precise</option>
-        </select>
-      </div>
-
-      <div class="frow">
-        <label class="flbl">Stress scenario</label>
-        <select id="stressScenario" class="w200">
-          <option value="base" selected>Base case</option>
-          <option value="high_inflation">High inflation</option>
-          <option value="market_crash">Market crash</option>
-          <option value="lost_decade">Lost decade</option>
-          <option value="crash_2008">2008 financial crisis replay</option>
-          <option value="dot_com">Dot-com crash replay</option>   
-        </select>
-      </div>
-
-      <div class="frow" style="margin-top:8px"><label class="flbl">Portfolio rebalancing</label>
-        <select id="rebalFreq" class="w180" onchange="refreshTopMetrics()">
-          <option value="none" selected>None — static allocation</option>
-          <option value="annual">Annual — rebalance every year</option>
-          <option value="threshold">5% drift — rebalance on breach</option>
-        </select>
-      </div>
-      <div class="frow"><label class="flbl">Invested allocation %</label>
-        <input type="number" id="tgtEquity" value="60" min="0" max="100" step="5" class="w120" oninput="refreshTopMetrics()">
-        <span style="font-size:11px;color:var(--text3);margin-left:8px">remainder in cash</span>
-      </div>
-
-      
-
-      <div style="font-size:11px;color:var(--text3);line-height:1.6;margin-top:4px;padding:8px 10px;background:var(--bg3);border-radius:var(--rs);border:1px solid var(--border)">
-        <strong style="color:var(--text2)">Two-bucket model:</strong> the simulation splits all wealth into an <em>invested</em> bucket (earns your return mean ± volatility each year) and a <em>cash</em> bucket (flat — no growth, but accumulates annual savings). This % sets how much stays invested. When rebalancing is on, the split is restored each year or whenever drift exceeds 5%. Has no effect if rebalancing is set to None.
-      </div>
-    </div>
-    <div>
-      <div class="slbl">Probability bands</div>
-      <div class="band-btns">
-        <button class="band-btn active" id="bb-standard" onclick="setBand('standard')">Standard (30/50/80%)</button>
-        <button class="band-btn" id="bb-alternative" onclick="setBand('alternative')">Alternative (40/60/90%)</button>
-        <button class="band-btn" id="bb-custom" onclick="setBand('custom')">Custom</button>
-      </div>
-      <div class="custom-bands" id="cbwrap">
-        <span style="font-size:11px;color:var(--text3)">Low</span>
-        <input type="number" id="blow" value="10" min="1" max="49" step="1">
-        <span style="font-size:11px;color:var(--text3)">Mid</span>
-        <input type="number" id="bmid" value="50" min="1" max="99" step="1">
-        <span style="font-size:11px;color:var(--text3)">High</span>
-        <input type="number" id="bhigh" value="90" min="1" max="99" step="1">
-        <button class="btn-secondary" onclick="applyCustom()">Apply</button>
-      </div>
-      <div id="bdesc" class="band-desc"></div>
-    </div>
-  </div>
-  <button class="btn-primary full" onclick="runSim()">▶ Run Monte Carlo Simulation</button>
-</div> -->
 
 <!-- Run Simulation button -->
-<div class="panel">
+<div class="panel" style="text-align:center">
     <button class="btn-primary full" onclick="runSim()">▶ Run Monte Carlo Simulation</button>
+    <div style="margin-top:8px;font-size:12px;color:var(--text3)">Fine-tune projection years, simulations, probability bands and stress scenarios in the <strong>Settings</strong> panel (gear, top-right).</div>
 </div>
 
-<div style="margin:10px 0 14px;text-align:center;font-size:12px;color:var(--text3);">
-  Monte Carlo settings are available in the <strong>Settings</strong> panel.
+<div class="panel" id="simInputsPanel">
+  <div class="ptitle section-dropdown" onclick="toggleDropdown('simInputsBody')" style="margin:0">
+    <span>Inputs feeding into this simulation</span> <span class="dropdown-hint">click to review</span>
+    <span class="ptitle-line"></span>
+  </div>
+  <div id="simInputsBody" class="dropdown-body">
+    <div id="simInputsSummary" style="font-size:12px;color:var(--text3);line-height:1.8;padding-top:6px">
+      Fill in the tabs on the left and click <strong style="color:var(--text2)">▶ Run Monte Carlo Simulation</strong> — a summary of everything that feeds in will appear here.
+    </div>
+  </div>
 </div>
+
+<!-- ══════════ GROUP: YOUR WEALTH OUTLOOK ══════════ -->
+<div class="sim-group">Your wealth outlook</div>
 
 <div class="panel">
   <div class="ptitle section-dropdown open" onclick="toggleDropdown('mcChartBody')" style="margin:0">
@@ -2256,48 +2183,131 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
     </div>
     </div>
 
-    <!-- Wealth Allocation Framework (kept here in the Simulation tab) -->
-    <div class="panel" id="simWealthFwPanel">
-      <div class="ptitle">Wealth Allocation Framework</div>
-      <div style="font-size:12px;color:var(--text3);margin-bottom:14px;line-height:1.6">Merrill's three-bucket framework organizes assets by risk-return role: <strong style="color:var(--green)">Personal</strong> (preserve lifestyle — residence, cash), <strong style="color:var(--accent)">Market</strong> (balance risk &amp; return — diversified equities/bonds), and <strong style="color:#7c3aed">Aspirational</strong> (idiosyncratic upside — concentrated stock, business, crypto, investment property).</div>
-      <div id="gbWealth"><div style="color:var(--text3);font-size:12px">Add assets to see your wealth allocation.</div></div>
-    </div>
-
-    <!-- annual potential wealth table rendered below the achievable-lifestyle panel -->
-
-    <!-- Fan chart -->
-    <!-- <div style="font-size:12px;color:var(--text3);margin-top:22px;margin-bottom:10px">
-      Fan chart: percentile paths through time. The wider the spread, the greater the uncertainty.
-    </div>
-    <div class="chart-wrap">
-      <canvas id="fanChart" role="img" aria-label="Monte Carlo fan chart showing percentile paths through time"></canvas>
-    </div> -->
-
-    <!-- Downside Path Analysis -->
-    <!-- <div class="panel">
-      <div class="ptitle">Downside Path Analysis</div>
-      <div id="downsideAnalysis" style="font-size:13px;color:var(--text2);line-height:1.7">
-        Run the simulation to see the bottom 10% outcome summary.
-      </div>
-    </div> -->
-
     <!-- Annual Potential Wealth table (to age 90, 80/50/30% likelihood) -->
     <div class="panel">
       <div class="ptitle">Annual Potential Wealth — to Age 90</div>
       <div style="font-size:12px;color:var(--text3);margin-bottom:10px">Projected portfolio value each year from today until age 90 (today's money), at <strong style="color:#1b6841">80%</strong> / <strong style="color:#0057b8">50%</strong> / <strong style="color:#7c3aed">30%</strong> likelihood — the data behind the chart above.</div>
       <div id="simPotWealthTbl"><div class="empty">Run the simulation to populate.</div></div>
     </div>
-
-    
-    
-
   </div>
 </div>
 
-<!-- Retirement Drawdown — decumulation Monte Carlo (will the money last?) -->
+<!-- ══════════ GROUP: GOALS & FUNDING ══════════ -->
+<div class="sim-group">Goals &amp; funding</div>
+
+<div class="panel" id="goalResults" style="display:none">
+  <div class="ptitle">Goal Analysis</div>
+  <div id="goalResultList"></div>
+</div>
+
+<!-- Goals & Retirement Funding Status (probabilistic) -->
+<div class="panel" id="fundingPanel">
+  <div class="ptitle section-dropdown open" onclick="toggleDropdown('fundingBodyWrap')" style="margin:0">
+    Goals &amp; Retirement Funding Status <span class="dropdown-hint">probability-based · click to toggle</span>
+    <span class="ptitle-line"></span>
+  </div>
+  <div class="dropdown-body open" id="fundingBodyWrap">
+  <div id="fundingHeader" class="cf-header" style="margin-top:8px">Run the simulation to see how each goal scores at the 30%, 50%, and 80% confidence levels.</div>
+  <div class="fund-tbl-wrap"><table class="fund-tbl" id="fundingTable">
+    <thead><tr>
+      <th class="cf-l">Goal</th>
+      <th class="cf-l">Target year</th>
+      <th>Amount needed</th>
+      <th>NW @ 30% conf.</th>
+      <th>NW @ 50% conf.</th>
+      <th>NW @ 80% conf.</th>
+      <th>Probability funded</th>
+      <th class="cf-l">Status</th>
+    </tr></thead>
+    <tbody id="fundingBody"><tr><td colspan="8" style="text-align:center;color:var(--text3);padding:18px">Run the simulation — funding status appears here once the Monte Carlo finishes.</td></tr></tbody>
+  </table></div>
+  <div class="cf-legend">
+    <span><span class="fund-tag fund-ok">Fully funded</span> probability ≥ 80%</span>
+    <span><span class="fund-tag fund-warn">Partly funded</span> 50–79%</span>
+    <span><span class="fund-tag fund-warn">At risk</span> 25–49%</span>
+    <span><span class="fund-tag fund-bad">Underfunded</span> &lt; 25%</span>
+    <span style="color:var(--text3)">"NW @ X% confidence" reads the X-th percentile of simulated net worth in the goal's calendar year (i.e. the value that X% of paths beat). Retirement uses a present-value corpus need: net retirement spending (after pension) discounted at the real return from the retirement year to age 90, then inflated to nominal $ at the retirement date. Note: "net worth" here includes all simulated wealth (investments, cash, property, retirement accounts minus debt). For goals needing liquid funds quickly, actual availability may be lower if a significant portion of wealth is in illiquid assets such as property or locked retirement accounts.</span>
+  </div>
+  </div>
+</div>
+
+<!-- Goal Funding Status (PV-based, Merrill-style) -->
+<div class="panel" id="simFundingPanel">
+  <div class="ptitle section-dropdown" onclick="toggleDropdown('simFundingWrap')" style="margin:0">
+    Goal Funding Status <span class="dropdown-hint">present-value, priority-weighted · click to expand</span>
+    <span class="ptitle-line"></span>
+  </div>
+  <div class="dropdown-body" id="simFundingWrap">
+  <div style="font-size:12px;color:var(--text3);margin:10px 0 14px;line-height:1.6">
+    Each goal priced in present-value terms and discounted at a risk-adjusted rate matched to its priority (Essential 95% / Important 75% / Aspirational 55% confidence), grossed for tax, then compared to your funding sources. This complements the probabilistic goal-success rates above with the institutional <strong>Funding Ratio</strong> metric. Uses the capital-market-assumption covariance engine.
+  </div>
+  <div id="simFunding"><div class="pf-empty">Run the simulation to populate funding ratios.</div></div>
+  </div>
+</div>
+
+<!-- Goals-Based Analysis (moved from its own tab) -->
+<div class="panel" id="goalsBasedPanel" style="border-left:4px solid #7c3aed">
+  <div class="ptitle section-dropdown" onclick="toggleDropdown('goalsBasedBody')" style="margin:0">
+    🎯 Goals-Based Analysis <span class="dropdown-hint">Merrill funding-ratio method · click to expand</span>
+    <span class="ptitle-line"></span>
+  </div>
+  <div class="dropdown-body" id="goalsBasedBody">
+    <div style="font-size:12.5px;color:var(--text2);line-height:1.6;margin:10px 0 12px">
+      Institutional goals-based framework modeled on the Merrill Lynch Wealth Management Analysis. Each goal is priced in present-value terms, discounted at a risk-adjusted rate matched to its priority, and compared to your funding sources to produce a <strong>Funding Ratio</strong>. Uses per-asset-class capital market assumptions with a full correlation matrix for accurate portfolio risk.
+    </div>
+    <div style="margin-bottom:14px;display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+      <button class="btn-primary" onclick="runGoalsBased()" style="font-size:13px;padding:9px 20px">▶ Run / refresh goals-based analysis</button>
+      <span id="gbStatus" style="font-size:12px;color:var(--text3)"></span>
+    </div>
+
+    <!-- Overall Funding Ratio -->
+    <div class="panel" id="gbOverallPanel" style="display:none">
+      <div class="ptitle">Goal Funding Status — Overview</div>
+      <div id="gbOverall"></div>
+    </div>
+
+    <!-- Per-goal funding detail -->
+    <div class="panel" id="gbGoalsPanel" style="display:none">
+      <div class="ptitle">Goal Funding Detail (by priority)</div>
+      <div id="gbGoals"></div>
+    </div>
+
+    <!-- Capital Market Assumptions -->
+    <div class="panel" id="gbCmaPanel" style="display:none">
+      <div class="ptitle">Capital Market Assumptions</div>
+      <div style="font-size:12px;color:var(--text3);margin-bottom:14px;line-height:1.6">Per-asset-class long-term return/risk assumptions used to derive your portfolio's risk-adjusted return. Geometric mean = arithmetic − ½σ². Core long-term inflation assumption: <strong id="gbInflRef">2.28%</strong>.</div>
+      <div id="gbCma"></div>
+    </div>
+
+    <div style="font-size:11px;color:var(--text3);margin:10px 4px 2px;line-height:1.6">
+      <strong>Educational projection only — not financial advice.</strong> Funding ratios and achievable lifestyle figures are hypothetical, derived from capital market assumptions and your inputs. Actual results will differ. Consult a licensed advisor.
+    </div>
+  </div>
+</div>
+
+<!-- Wealth Allocation Framework (moved here — Merrill three-bucket) -->
+<div class="panel" id="simWealthFwPanel">
+  <div class="ptitle section-dropdown" onclick="toggleDropdown('simWealthFwBody')" style="margin:0">
+    Wealth Allocation Framework <span class="dropdown-hint">Personal / Market / Aspirational · click to expand</span>
+    <span class="ptitle-line"></span>
+  </div>
+  <div class="dropdown-body" id="simWealthFwBody">
+    <div style="font-size:12px;color:var(--text3);margin:10px 0 14px;line-height:1.6">Merrill's three-bucket framework organizes assets by risk-return role: <strong style="color:var(--green)">Personal</strong> (preserve lifestyle — residence, cash), <strong style="color:var(--accent)">Market</strong> (balance risk &amp; return — diversified equities/bonds), and <strong style="color:#7c3aed">Aspirational</strong> (idiosyncratic upside — concentrated stock, business, crypto, investment property).</div>
+    <div id="gbWealth"><div style="color:var(--text3);font-size:12px">Add assets to see your wealth allocation.</div></div>
+  </div>
+</div>
+
+<!-- ══════════ GROUP: RETIREMENT INCOME & WITHDRAWALS ══════════ -->
+<div class="sim-group">Retirement income &amp; withdrawals</div>
+
+<!-- Retirement Drawdown — decumulation Monte Carlo -->
 <div class="panel">
-  <div class="ptitle">Retirement Drawdown — will your money last?</div>
-  <div style="font-size:12px;color:var(--text3);line-height:1.6;margin-bottom:10px">A decumulation simulation: from your retirement age, each year withdraws your retirement spending (net of pensions &amp; Social Security), the portfolio earns a random return, and we count how often it lasts to your planning age — capturing <strong style="color:var(--text2)">sequence-of-returns risk</strong> (a poor market early in retirement does lasting damage). The whole investable pool is exposed to market risk here.</div>
+  <div class="ptitle section-dropdown" onclick="toggleDropdown('drawdownBody')" style="margin:0">
+    Retirement Drawdown — will your money last? <span class="dropdown-hint">click to expand</span>
+    <span class="ptitle-line"></span>
+  </div>
+  <div class="dropdown-body" id="drawdownBody">
+  <div style="font-size:12px;color:var(--text3);line-height:1.6;margin:10px 0 10px">A decumulation simulation: from your retirement age, each year withdraws your retirement spending (net of pensions &amp; Social Security), the portfolio earns a random return, and we count how often it lasts to your planning age — capturing <strong style="color:var(--text2)">sequence-of-returns risk</strong> (a poor market early in retirement does lasting damage). The whole investable pool is exposed to market risk here.</div>
   <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-bottom:12px">
     <label class="flbl" style="min-width:0">Plan through age</label>
     <input type="number" id="rdPlanAge" value="90" min="70" max="110" step="1" class="w120">
@@ -2311,39 +2321,74 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
     <button class="btn-secondary" onclick="solveSustainableSpend()">Find sustainable spending</button>
   </div>
   <div id="rdSustain"></div>
+  </div>
 </div>
 
-<!-- Required Minimum Withdrawals (RMD / RRIF / min pension) — country-aware -->
+<!-- Retirement Number (Actuarial) -->
+<div class="panel" id="retNumPanel">
+  <div class="ptitle section-dropdown" onclick="toggleDropdown('retNumBody')" style="margin:0">
+    Your Personal Retirement Number <span class="dropdown-hint">actuarial lump sum · click to expand</span>
+    <span class="ptitle-line"></span>
+  </div>
+  <div class="dropdown-body" id="retNumBody">
+  <div style="font-size:12px;color:var(--text3);margin:10px 0 14px;line-height:1.6">
+    The lump-sum you would theoretically need today to purchase an inflation-adjusted annuity from a highly-rated issuer — funding your retirement income from your target retirement age through age <span id="rn-end-age" style="color:var(--text2);font-weight:600">98</span> (a longevity horizon set from your residence country's life expectancy). Calculated using a <strong style="color:var(--text2)">6.8% discount rate</strong> and your configured inflation assumption, based on standard actuarial present-value formulas.
+  </div>
+  <div class="rn-hero" id="rnHero">
+    <div class="rn-card"><div class="rn-lbl">Retirement Number</div><div class="rn-val" id="rn-target">—</div><div class="rn-sub">lump sum needed at retirement</div></div>
+    <div class="rn-card"><div class="rn-lbl">Present Value Today</div><div class="rn-val" id="rn-today">—</div><div class="rn-sub">discounted to today's dollars</div></div>
+    <div class="rn-card"><div class="rn-lbl">Current Net Worth</div><div class="rn-val" id="rn-nw">—</div><div class="rn-sub">vs. target above</div></div>
+    <div class="rn-card"><div class="rn-lbl">Funding Gap / Surplus</div><div class="rn-val" id="rn-gap">—</div><div class="rn-sub" id="rn-gap-sub">vs. present-value target</div></div>
+  </div>
+  <div style="font-size:11px;color:var(--text3);line-height:1.6;padding:8px 12px;background:var(--bg3);border-radius:var(--rs);border:1px solid var(--border)">
+    <strong style="color:var(--text2)">Formula:</strong> PV = AnnualSpend × [1 − (1 + realRate)<sup>−n</sup>] / realRate, where realRate = (discountRate − inflation) / (1 + inflation) and n = years from retirement age to age <span id="rn-end-age2">98</span>. The result is then discounted back to today at the nominal discount rate. Annuity pricing assumes a 6.8% discount rate with your configured inflation rate (default 3.8%). Run the simulation or update expenses to refresh.
+  </div>
+  </div>
+</div>
+
+<!-- Required Minimum Withdrawals -->
 <div class="panel">
-  <div class="ptitle">Required Minimum Withdrawals</div>
-  <div style="font-size:12px;color:var(--text3);line-height:1.6;margin-bottom:10px">Many countries force a minimum annual withdrawal from tax-deferred retirement accounts once you reach a set age — the US <strong style="color:var(--text2)">RMD</strong>, Canada's <strong style="color:var(--text2)">RRIF minimum</strong>, Australia's <strong style="color:var(--text2)">minimum pension drawdown</strong>. This projects that mandatory schedule from your retirement pool and estimates the tax it triggers, using your household country's rule. Illustrative — not tax advice.</div>
+  <div class="ptitle section-dropdown" onclick="toggleDropdown('rmdBody')" style="margin:0">
+    Required Minimum Withdrawals <span class="dropdown-hint">RMD / RRIF / min pension · click to expand</span>
+    <span class="ptitle-line"></span>
+  </div>
+  <div class="dropdown-body" id="rmdBody">
+  <div style="font-size:12px;color:var(--text3);line-height:1.6;margin:10px 0 10px">Many countries force a minimum annual withdrawal from tax-deferred retirement accounts once you reach a set age — the US <strong style="color:var(--text2)">RMD</strong>, Canada's <strong style="color:var(--text2)">RRIF minimum</strong>, Australia's <strong style="color:var(--text2)">minimum pension drawdown</strong>. This projects that mandatory schedule from your retirement pool and estimates the tax it triggers, using your household country's rule. Illustrative — not tax advice.</div>
   <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-bottom:12px">
     <button class="btn-primary" onclick="runRMDSchedule()">▶ Project minimum withdrawals</button>
     <span id="rmdStatus" style="font-size:12px;color:var(--text3)"></span>
   </div>
   <div id="rmdResults"><div class="pf-empty">Set your country (Household tab) and retirement accounts, then project the schedule.</div></div>
+  </div>
 </div>
 
-<!-- Roth-style conversion window (country-aware) -->
+<!-- Roth-style conversion window -->
 <div class="panel">
-  <div class="ptitle">Roth-Style Conversion Window</div>
-  <div style="font-size:12px;color:var(--text3);line-height:1.6;margin-bottom:10px">Converting tax-deferred savings to a <strong style="color:var(--text2)">tax-free</strong> account in low-income years — the gap between retiring and when mandatory withdrawals or pensions begin — locks in today's lower tax rate and shrinks future required withdrawals. This sizes that window from your retirement pool, using your country's equivalent mechanism (or flags where none exists). Illustrative — not tax advice.</div>
+  <div class="ptitle section-dropdown" onclick="toggleDropdown('rothBody')" style="margin:0">
+    Roth-Style Conversion Window <span class="dropdown-hint">low-income-year conversions · click to expand</span>
+    <span class="ptitle-line"></span>
+  </div>
+  <div class="dropdown-body" id="rothBody">
+  <div style="font-size:12px;color:var(--text3);line-height:1.6;margin:10px 0 10px">Converting tax-deferred savings to a <strong style="color:var(--text2)">tax-free</strong> account in low-income years — the gap between retiring and when mandatory withdrawals or pensions begin — locks in today's lower tax rate and shrinks future required withdrawals. This sizes that window from your retirement pool, using your country's equivalent mechanism (or flags where none exists). Illustrative — not tax advice.</div>
   <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-bottom:12px">
     <button class="btn-primary" onclick="runRothConversion()">▶ Analyze conversion window</button>
     <span id="rothStatus" style="font-size:12px;color:var(--text3)"></span>
   </div>
   <div id="rothResults"><div class="pf-empty">Set your country, retirement age, and retirement accounts, then analyze.</div></div>
+  </div>
 </div>
 
-<div class="panel" id="goalResults" style="display:none">
-  <div class="ptitle">Goal Analysis</div>
-  <div id="goalResultList"></div>
-</div>
+<!-- ══════════ GROUP: CASH FLOW & NET WORTH ══════════ -->
+<div class="sim-group">Cash flow &amp; net worth</div>
 
 <!-- Cash Flow Analysis (to age 90) -->
 <div class="panel" id="cfPanel">
-  <div class="ptitle">Linear Cash Flow Analysis — Deterministic Projection (to age 90)</div>
-  <div id="cfHeader" class="cf-header">Run the simulation to populate the cash flow table.</div>
+  <div class="ptitle section-dropdown" onclick="toggleDropdown('cfWrap')" style="margin:0">
+    Linear Cash Flow Analysis <span class="dropdown-hint">deterministic year-by-year to age 90 · click to expand</span>
+    <span class="ptitle-line"></span>
+  </div>
+  <div class="dropdown-body" id="cfWrap">
+  <div id="cfHeader" class="cf-header" style="margin-top:8px">Run the simulation to populate the cash flow table.</div>
   <div class="cf-tbl-wrap"><table class="cf-tbl" id="cfTable"><thead><tr><th class="cf-l">Year</th><th class="cf-l">Age</th><th class="cf-l">Phase</th><th>Earned income</th><th>Pension / SS / RMD</th><th>Income tax</th><th>Expenses</th><th>Debt service</th><th>Savings target</th><th>Surplus / Deficit</th><th>Goal outflow</th><th>Cash</th><th>Investments</th><th>Ret. pool</th><th>Net worth</th><th class="cf-l">Notes</th></tr></thead><tbody id="cfBody"><tr><td colspan="16" style="text-align:center;color:var(--text3);padding:18px">Run the simulation — the cash flow table will project from today until the primary client turns 90.</td></tr></tbody></table></div>
   <div id="cfLegend" class="cf-legend">
     <span><span class="swatch sw-now"></span>Today (year 0)</span>
@@ -2352,15 +2397,16 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
     <span><span class="swatch sw-goal"></span>Goal year</span>
     <span style="color:var(--text3)">Deterministic projection at the household's mean return; investment growth assumes reinvested surplus and a 30/70 cash–invest split during accumulation. In retirement, earned income → 0 and expenses swap to the inflation-adjusted retirement spend; state pension / Social Security is credited from the configured start age (with the chosen COLA treatment). <strong>Pension / SS / RMD</strong> column combines all income-equivalent payments including mandatory drawdowns from locked accounts (401k/IRA RMD starts at 73, Canadian RRIF at 71, Australian Super at 60). <strong>Ret. pool</strong> shows the remaining retirement account balance after each year's RMD deduction — it grows at a <strong>fixed 3.5%/yr</strong> (extremely conservative, intentionally decoupled from the household risk profile, the AI Portfolio Builder, and the Investment Proposal so an aggressive investment stance never affects the retirement reserve). <strong>Income tax</strong> is recomputed each year on gross earned income + pension + RMD; <strong>savings target</strong> is funded first each year from net cash flow before remaining surplus is split.</span>
   </div>
+  </div>
 </div>
 
 <!-- Net worth by component (stacked) -->
 <div class="panel" id="nwCompPanel">
-  <div class="ptitle section-dropdown open" onclick="toggleDropdown('nwCompBody')" style="margin:0">
-    Net Worth by Component <span class="dropdown-hint">click to toggle</span>
+  <div class="ptitle section-dropdown" onclick="toggleDropdown('nwCompBody')" style="margin:0">
+    Net Worth by Component <span class="dropdown-hint">click to expand</span>
     <span class="ptitle-line"></span>
   </div>
-  <div class="dropdown-body open" id="nwCompBody">
+  <div class="dropdown-body" id="nwCompBody">
     <div style="font-size:12px;color:var(--text3);margin:8px 0 12px">How each part of your wealth — cash, investments, retirement pool, property, insurance cash value — evolves along the deterministic projection. The dashed line is total net worth after liabilities.</div>
     <div class="chart-wrap" style="height:300px"><canvas id="nwCompChart" role="img" aria-label="Net worth by component stacked chart"></canvas></div>
   </div>
@@ -2391,62 +2437,17 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
   </div>
 </div>
 
-<!-- Goals & Retirement Funding Status -->
-<div class="panel" id="fundingPanel">
-  <div class="ptitle">Goals &amp; Retirement Funding Status</div>
-  <div id="fundingHeader" class="cf-header">Run the simulation to see how each goal scores at the 30%, 50%, and 80% confidence levels.</div>
-  <div class="fund-tbl-wrap"><table class="fund-tbl" id="fundingTable">
-    <thead><tr>
-      <th class="cf-l">Goal</th>
-      <th class="cf-l">Target year</th>
-      <th>Amount needed</th>
-      <th>NW @ 30% conf.</th>
-      <th>NW @ 50% conf.</th>
-      <th>NW @ 80% conf.</th>
-      <th>Probability funded</th>
-      <th class="cf-l">Status</th>
-    </tr></thead>
-    <tbody id="fundingBody"><tr><td colspan="8" style="text-align:center;color:var(--text3);padding:18px">Run the simulation — funding status appears here once the Monte Carlo finishes.</td></tr></tbody>
-  </table></div>
-  <div class="cf-legend">
-    <span><span class="fund-tag fund-ok">Fully funded</span> probability ≥ 80%</span>
-    <span><span class="fund-tag fund-warn">Partly funded</span> 50–79%</span>
-    <span><span class="fund-tag fund-warn">At risk</span> 25–49%</span>
-    <span><span class="fund-tag fund-bad">Underfunded</span> &lt; 25%</span>
-    <span style="color:var(--text3)">"NW @ X% confidence" reads the X-th percentile of simulated net worth in the goal's calendar year (i.e. the value that X% of paths beat). Retirement uses a present-value corpus need: net retirement spending (after pension) discounted at the real return from the retirement year to age 90, then inflated to nominal $ at the retirement date. Note: "net worth" here includes all simulated wealth (investments, cash, property, retirement accounts minus debt). For goals needing liquid funds quickly, actual availability may be lower if a significant portion of wealth is in illiquid assets such as property or locked retirement accounts.</span>
-  </div>
-</div>
-
-<!-- Goal Funding Status (PV-based, Merrill-style) -->
-<div class="panel" id="simFundingPanel">
-  <div class="ptitle">Goal Funding Status <span style="font-size:11px;font-weight:500;color:var(--text3);margin-left:8px">— present-value, priority-weighted</span></div>
-  <div style="font-size:12px;color:var(--text3);margin-bottom:14px;line-height:1.6">
-    Each goal priced in present-value terms and discounted at a risk-adjusted rate matched to its priority (Essential 95% / Important 75% / Aspirational 55% confidence), grossed for tax, then compared to your funding sources. This complements the probabilistic goal-success rates above with the institutional <strong>Funding Ratio</strong> metric. Uses the capital-market-assumption covariance engine.
-  </div>
-  <div id="simFunding"><div class="pf-empty">Run the simulation to populate funding ratios.</div></div>
-</div>
-
-<!-- Retirement Number (Actuarial) -->
-<div class="panel" id="retNumPanel">
-  <div class="ptitle">Your Personal Retirement Number</div>
-  <div style="font-size:12px;color:var(--text3);margin-bottom:14px;line-height:1.6">
-    The lump-sum you would theoretically need today to purchase an inflation-adjusted annuity from a highly-rated issuer — funding your retirement income from your target retirement age through age <span id="rn-end-age" style="color:var(--text2);font-weight:600">98</span> (a longevity horizon set from your residence country's life expectancy). Calculated using a <strong style="color:var(--text2)">6.8% discount rate</strong> and your configured inflation assumption, based on standard actuarial present-value formulas.
-  </div>
-  <div class="rn-hero" id="rnHero">
-    <div class="rn-card"><div class="rn-lbl">Retirement Number</div><div class="rn-val" id="rn-target">—</div><div class="rn-sub">lump sum needed at retirement</div></div>
-    <div class="rn-card"><div class="rn-lbl">Present Value Today</div><div class="rn-val" id="rn-today">—</div><div class="rn-sub">discounted to today's dollars</div></div>
-    <div class="rn-card"><div class="rn-lbl">Current Net Worth</div><div class="rn-val" id="rn-nw">—</div><div class="rn-sub">vs. target above</div></div>
-    <div class="rn-card"><div class="rn-lbl">Funding Gap / Surplus</div><div class="rn-val" id="rn-gap">—</div><div class="rn-sub" id="rn-gap-sub">vs. present-value target</div></div>
-  </div>
-  <div style="font-size:11px;color:var(--text3);line-height:1.6;padding:8px 12px;background:var(--bg3);border-radius:var(--rs);border:1px solid var(--border)">
-    <strong style="color:var(--text2)">Formula:</strong> PV = AnnualSpend × [1 − (1 + realRate)<sup>−n</sup>] / realRate, where realRate = (discountRate − inflation) / (1 + inflation) and n = years from retirement age to age <span id="rn-end-age2">98</span>. The result is then discounted back to today at the nominal discount rate. Annuity pricing assumes a 6.8% discount rate with your configured inflation rate (default 3.8%). Run the simulation or update expenses to refresh.
-  </div>
-</div>
+<!-- ══════════ GROUP: PORTFOLIO EFFICIENCY & RISK ══════════ -->
+<div class="sim-group">Portfolio efficiency &amp; risk</div>
 
 <!-- Tax Efficiency Overlay -->
 <div class="panel" id="taxEffPanel">
-  <div class="ptitle">Tax Efficiency Overlay</div>
-  <div style="font-size:12px;color:var(--text3);margin-bottom:14px;line-height:1.6">
+  <div class="ptitle section-dropdown" onclick="toggleDropdown('taxEffWrap')" style="margin:0">
+    Tax Efficiency Overlay <span class="dropdown-hint">asset-location analysis · click to expand</span>
+    <span class="ptitle-line"></span>
+  </div>
+  <div class="dropdown-body" id="taxEffWrap">
+  <div style="font-size:12px;color:var(--text3);margin:10px 0 14px;line-height:1.6">
     Asset location analysis: growth-heavy assets sitting in taxable accounts create a persistent drag on compound returns. This engine classifies your accounts by tax treatment and estimates the drag of capital gains taxes over a 30-year horizon.
   </div>
   <div class="tax-grid" id="taxGrid">
@@ -2465,18 +2466,24 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
     <strong style="color:var(--text2)">Score methodology:</strong> 100 = all growth assets in Roth/ISA/TFSA (fully tax-free). Tax-deferred accounts score 70% (gains grow untaxed but withdrawals are taxed as income). Taxable accounts score 0%. Annual drag = taxable balance × portfolio return × 25% assumed marginal rate. Shortfall cost-basis logic: when a cash-flow shortfall occurs, the engine assumes the gap is funded from a taxable account at 100% cost basis, adding a tax cost of shortfall × effective rate.
   </div>
   <div id="te-order" style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border)"></div>
+  </div>
 </div>
 
 <!-- Mean-Variance Optimization / Efficient Frontier -->
 <div class="panel" id="mvoPanel">
-  <div class="ptitle">Mean-Variance Optimization — Efficient Frontier</div>
-  <div style="font-size:12px;color:var(--text3);margin-bottom:14px;line-height:1.6">
+  <div class="ptitle section-dropdown" onclick="toggleDropdown('mvoWrap')" style="margin:0">
+    Mean-Variance Optimization — Efficient Frontier <span class="dropdown-hint">click to expand</span>
+    <span class="ptitle-line"></span>
+  </div>
+  <div class="dropdown-body" id="mvoWrap">
+  <div style="font-size:12px;color:var(--text3);margin:10px 0 14px;line-height:1.6">
     Harry Markowitz's Modern Portfolio Theory (MPT) plots every known risk profile on the return vs. volatility plane. The efficient frontier shows the maximum expected return achievable for each level of risk. Your current household profile is highlighted — any point <em>above</em> the curve is unattainable; points <em>below</em> are sub-optimal.
   </div>
   <div class="mvo-wrap"><canvas id="mvoChart" role="img" aria-label="Efficient Frontier scatter chart"></canvas></div>
   <div class="ef-legend" id="efLegend"></div>
   <div style="font-size:11px;color:var(--text3);margin-top:10px;line-height:1.6;padding:8px 12px;background:var(--bg3);border-radius:var(--rs);border:1px solid var(--border)">
     <strong style="color:var(--text2)">Return profiles</strong> are sourced from long-run institutional capital market assumptions. Each dot represents the expected arithmetic mean return (μ) and annualised standard deviation (σ) for that allocation style. The efficient frontier curve is fitted through these points — your household profile is marked with a larger dot. Move right on the x-axis to accept more risk for higher expected returns.
+  </div>
   </div>
 </div>
 
@@ -2494,6 +2501,37 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
   </div>
 </div>
 
+<!-- ══════════ GROUP: ESTATE & METHODOLOGY ══════════ -->
+<div class="sim-group">Estate &amp; methodology</div>
+
+<!-- Estate transfer summary (moved from goals-based tab) -->
+<div class="panel" id="estatePanel">
+  <div class="ptitle section-dropdown" onclick="toggleDropdown('estateBody')">
+    Estate Transfer Summary <span class="dropdown-hint">click to expand</span>
+    <span class="ptitle-line"></span>
+  </div>
+  <div class="dropdown-body" id="estateBody">
+    <div style="font-size:12px;color:var(--text3);margin:10px 0;line-height:1.6">A simplified look at what transfers to your beneficiaries at the end of the projection: median projected net worth plus life-insurance death benefits, less a configurable estate tax. Run the simulation first.</div>
+    <div style="display:flex;gap:18px;flex-wrap:wrap;margin-bottom:8px;align-items:flex-end">
+      <div class="frow" style="margin:0"><label class="flbl">Estate tax exemption</label><input type="number" id="estExemption" value="13610000" step="100000" class="w160" oninput="this.dataset.userset='1';renderEstate()"></div>
+      <div class="frow" style="margin:0"><label class="flbl">Estate tax rate %</label><input type="number" id="estRate" value="40" step="1" min="0" max="80" class="w120" oninput="this.dataset.userset='1';renderEstate()"></div>
+      <button class="btn-secondary" onclick="syncEstateRegime(true)" style="padding:7px 14px">↺ Use country defaults</button>
+    </div>
+    <div id="estRegimeNote" style="font-size:11px;color:var(--text3);line-height:1.6;margin-bottom:12px;padding:8px 10px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--rs)"></div>
+    <div class="sdiv">
+      <div class="slbl">Beneficiaries</div>
+      <div id="benList"><div class="empty">No beneficiaries added.</div></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
+        <input id="bname" placeholder="Name" class="w160">
+        <input id="brel" placeholder="Relationship (child, spouse...)" class="w180">
+        <input type="number" id="bshare" placeholder="Share %" min="0" max="100" step="1" class="w120">
+        <button class="btn-secondary" onclick="addBeneficiary()" style="padding:7px 16px">+ Add</button>
+      </div>
+    </div>
+    <div id="estateResult" style="margin-top:14px"></div>
+  </div>
+</div>
+
 <!-- Methodology & disclaimer -->
 <div class="panel" id="mcDisclaimer">
   <div class="ptitle section-dropdown" onclick="toggleDropdown('mcDisclaimerBody')">
@@ -2504,7 +2542,7 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
 
   <div class="slbl">Inputs the simulation reads</div>
   <div style="font-size:12px;color:var(--text2);line-height:1.65;margin-bottom:14px">
-    Income (sum of all four income fields), annual raise %, base expenses (Living + Insurance + Other), inflation rate (taken from the Region preset — 50-yr historical CPI averages — or your manual override), property value, other assets, the sum of every entry on the Assets tab, and each loan's balance / rate / remaining years. Projection length and number of simulations come from this tab.
+    Income (sum of all four income fields), annual raise %, base expenses (Living + Insurance + Other), inflation rate (taken from the Region preset — 50-yr historical CPI averages — or your manual override), property value, other assets, the sum of every entry on the Assets tab, and each loan's balance / rate / remaining years. Projection length and number of simulations come from the Settings panel.
   </div>
 
   <div class="slbl">Return parameters by risk profile</div>
@@ -2537,12 +2575,7 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
 
   <div class="slbl">How goals are scored</div>
   <div style="font-size:12px;color:var(--text2);line-height:1.65;margin-bottom:14px">
-    For each goal, the engine counts the share of simulation paths whose net worth meets or exceeds the target dollar amount in the goal's calendar year (<code style="color:var(--text);background:var(--bg3);padding:1px 5px;border-radius:3px;font-size:11px">targetYear &minus; currentYear</code>).
-  </div>
-
-  <div class="slbl">What the simulation does <em>not</em> currently model</div>
-  <div style="font-size:12px;color:var(--text2);line-height:1.65;margin-bottom:14px">
-    The Retirement Planning panel (lifestyle, age, spending, location), goal category and priority, time-horizon dropdown, children, and address fields are stored but do <strong style="color:var(--text)">not</strong> influence the projection. There is no retirement drawdown phase, tax modelling, social-security benefit estimator, currency conversion, portfolio rebalancing, or sensitivity analysis. Returns assume a static allocation across the entire horizon.
+    For each goal, the engine counts the share of simulation paths whose liquid wealth covers every scheduled outflow through the goal's end year without a shortfall.
   </div>
 
   <div style="font-size:11px;color:var(--text3);line-height:1.55;padding:10px 12px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--rs);margin-top:6px">
@@ -2555,6 +2588,7 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
 
 <!-- ═══ PORTFOLIO ═══ -->
 <div class="tab" id="tab-portfolio">
+
 
 <!-- Market data API keys moved to Settings (gear, top-right) → "Data & integrations". -->
 
@@ -17514,6 +17548,7 @@ async function generatePDFReport(mode, previewWin){
         .replace(/−/g,"-").replace(/≈/g,"~").replace(/≠/g,"!=")
         .replace(/≤/g,"<=").replace(/≥/g,">=")
         .replace(/→/g,"->").replace(/←/g,"<-")
+        .replace(/◦/g,"-").replace(/‣/g,"-").replace(/▪/g,"-")   // sub-bullets → dash
         .replace(/•/g,"-").replace(/·/g,"·"); // keep middot (Latin-1)
       doc.text = function(txt){
         const a = Array.prototype.slice.call(arguments);
@@ -17691,6 +17726,85 @@ async function generatePDFReport(mode, previewWin){
 
     function kv(rows){
       tbl(["Item","Value"],rows,{columnStyles:{0:{fontStyle:"bold",cellWidth:CW*0.45}}});
+    }
+
+    // ── KPI stat-grid — bordered N-up cards with a big serif value (redesign) ──
+    //   cells: [{label, value, sub, subColor}]
+    function kpiGrid(cells, opts){
+      opts = opts || {};
+      cells = (cells||[]).filter(Boolean);
+      if(!cells.length) return;
+      const cols  = opts.cols || Math.min(4, cells.length);
+      const rows  = Math.ceil(cells.length/cols);
+      const gap   = 3;
+      const cardW = (CW - gap*(cols-1))/cols;
+      const cardH = opts.h || 22;
+      checkY(rows*(cardH+gap) + 4);
+      const yTop = y;
+      cells.forEach((c,i)=>{
+        const col = i%cols, row = Math.floor(i/cols);
+        const x  = M + col*(cardW+gap);
+        const yy = yTop + row*(cardH+gap);
+        doc.setFillColor(250,251,253); doc.setDrawColor(219,225,233); doc.setLineWidth(0.3);
+        doc.roundedRect(x, yy, cardW, cardH, 1.4, 1.4, "FD");
+        doc.setFillColor(...ac); doc.rect(x, yy, cardW, 1.1, "F");   // top accent strip
+        doc.setFont("helvetica","bold"); doc.setFontSize(6.6); doc.setTextColor(120,130,145);
+        doc.text(String(c.label||"").toUpperCase(), x+3.5, yy+6.4, {charSpace:0.35});
+        doc.setFont("times","bold"); doc.setFontSize(opts.valSize||14); doc.setTextColor(28,38,54);
+        doc.text(String(c.value==null?"—":c.value), x+3.5, yy+14.4);
+        if(c.sub){ doc.setFont("helvetica","normal"); doc.setFontSize(6.8);
+          doc.setTextColor.apply(doc, c.subColor||[130,138,150]); doc.text(String(c.sub), x+3.5, yy+19.2); }
+      });
+      y = yTop + rows*(cardH+gap) + 4;
+      doc.setTextColor(40); doc.setFont("helvetica","normal"); doc.setFontSize(fsz);
+    }
+
+    // ── Scenario cards — outcome name leads, value is the hero, probability a
+    //    footnote (Monte-Carlo "what could your wealth look like"). Fixes the
+    //    old "higher % looks better" read.  cards: [{name,prob,value,delta,
+    //    deltaColor,foot,accent}]
+    function scenarioCards(cards){
+      cards = (cards||[]).filter(Boolean);
+      if(!cards.length) return;
+      const gap   = 4, cols = cards.length;
+      const cardW = (CW - gap*(cols-1))/cols;
+      const cardH = 42;
+      checkY(cardH+6);
+      const yTop = y;
+      cards.forEach((c,i)=>{
+        const x = M + i*(cardW+gap), yy = yTop;
+        const accent = c.accent || ac;
+        doc.setFillColor(250,251,253); doc.setDrawColor(219,225,233); doc.setLineWidth(0.3);
+        doc.roundedRect(x, yy, cardW, cardH, 1.4, 1.4, "FD");
+        doc.setFillColor.apply(doc, accent); doc.rect(x, yy, cardW, 1.4, "F");
+        doc.setDrawColor.apply(doc, accent); doc.setLineWidth(0.5); doc.line(x+4, yy+7.5, x+10, yy+7.5);
+        doc.setFont("helvetica","bold"); doc.setFontSize(6.8); doc.setTextColor.apply(doc, accent);
+        doc.text(String(c.name||"").toUpperCase(), x+12, yy+9, {charSpace:0.4});
+        doc.setFont("times","italic"); doc.setFontSize(10); doc.setTextColor(70,80,95);
+        doc.text(String(c.prob||""), x+4, yy+17);
+        doc.setFont("times","bold"); doc.setFontSize(18); doc.setTextColor(25,35,50);
+        doc.text(String(c.value||"—"), x+4, yy+27);
+        if(c.delta){ doc.setFont("helvetica","normal"); doc.setFontSize(7.4);
+          doc.setTextColor.apply(doc, c.deltaColor||[27,104,65]); doc.text(String(c.delta), x+4, yy+32.4); }
+        if(c.foot){ doc.setDrawColor(228,232,238); doc.setLineWidth(0.2); doc.line(x+4, yy+34.4, x+cardW-4, yy+34.4);
+          doc.setFont("helvetica","normal"); doc.setFontSize(6.3); doc.setTextColor(120,128,140);
+          doc.splitTextToSize(String(c.foot), cardW-8).slice(0,2).forEach((l,li)=>doc.text(l, x+4, yy+38+li*3)); }
+      });
+      y = yTop + cardH + 6;
+      doc.setTextColor(40); doc.setFont("helvetica","normal"); doc.setFontSize(fsz);
+    }
+
+    // ── Donut funding ring — gray track + accent arc + centered % (goal funding)
+    function donutRing(cx, cyc, R, pct, color, centerSub){
+      const frac = Math.max(0, Math.min(1, (pct||0)/100));
+      drawWedge(cx, cyc, R, -Math.PI/2, -Math.PI/2 + Math.PI*2, [230,234,240]);      // track
+      if(frac>0.0001) drawWedge(cx, cyc, R, -Math.PI/2, -Math.PI/2 + Math.PI*2*frac, color); // value arc
+      doc.setFillColor(255,255,255); doc.circle(cx, cyc, R*0.64, "F");                // hole
+      doc.setFont("times","bold"); doc.setFontSize(R*0.62); doc.setTextColor.apply(doc, color);
+      doc.text(Math.round(pct||0)+"%", cx, cyc+R*0.14, {align:"center"});
+      if(centerSub){ doc.setFont("helvetica","bold"); doc.setFontSize(5.6); doc.setTextColor(120,128,140);
+        doc.text(String(centerSub).toUpperCase(), cx, cyc+R*0.42, {align:"center", charSpace:0.4}); }
+      doc.setTextColor(40); doc.setFont("helvetica","normal"); doc.setFontSize(fsz);
     }
 
     // ── Fan Chart: draws a time-series wealth fan using jsPDF primitives ──
@@ -18706,6 +18820,18 @@ function drawFanChart(){
         if(val("rptIncExec") === "no") return;
         newPage();
         sectionH2("Executive Summary: Key Findings");
+        // Headline KPI grid (redesign) — the numbers a reader scans first.
+        (function(){
+          const investableK = investableAssetsValue();
+          const surplus = (typeof inc!=="undefined") ? (inc - (typeof tax!=="undefined"?tax:0) - (typeof exp!=="undefined"?exp:0)) : null;
+          kpiGrid([
+            {label:"Net Worth",         value:fmt(nw),          sub:"Assets minus liabilities"},
+            {label:"Total Assets",      value:fmt(totA),        sub:"Investment + personal"},
+            {label:"Investment Assets", value:fmt(investableK), sub:(totA>0?(investableK/totA*100).toFixed(0)+"% of total":"")},
+            (surplus!=null ? {label:"Annual Surplus", value:fmt(surplus)+"/yr", sub:(surplus>=0?"Net cash flow":"Deficit"), subColor:(surplus>=0?[27,104,65]:[168,50,50])}
+                           : {label:"Liabilities", value:fmt(debtTot), sub:(totA>0?(debtTot/totA*100).toFixed(0)+"% of assets":"")}),
+          ]);
+        })();
         const bullet = (txt, indent) => {
           checkY(6);
           doc.setFontSize(8.5); doc.setTextColor(45,52,64); doc.setFont("helvetica","normal");
@@ -19262,6 +19388,26 @@ function drawFanChart(){
           para("The fan chart below runs thousands of randomized market scenarios and plots the range of outcomes over time. The dark line is the "+(_bM===50?"median (50th percentile)":_bM+"th-percentile")+" result; the shaded bands show the spread — the outer band is the "+_bL+"th–"+_bH+"th percentile range (matching the probability band selected in the app), so there is roughly a "+Math.max(0,_bH-_bL)+"% chance your wealth lands inside it. A wider fan means more uncertainty the further out you look.");
           drawFanChart();
 
+          // ── Scenario cards — what your wealth could look like at the horizon
+          //    (outcome name leads, value is the hero, probability a footnote).
+          (function(){
+            checkY(72);   // keep heading + intro + the three cards together on one page
+            const startNW = lastSimPaths[0][0];
+            const dfd = p => df(percentileAt(lastSimPaths, yrs, p));   // inflation-adjusted
+            const deltaStr = v => { const d=v-startNW, s=d>=0?"+":""; return s+fmt(d)+" vs today"; };
+            subBar("What Your Wealth Could Look Like in "+((typeof currentYear==="function"?currentYear():new Date().getFullYear())+yrs));
+            para("Projected net worth at the end of the "+yrs+"-year horizon, in today's money. Higher confidence means more scenarios reach at least that level — so the conservative figure is the floor, not the worst case.",[70,80,95]);
+            const vCons=dfd(10), vExp=dfd(40), vOpt=dfd(60);
+            scenarioCards([
+              {name:"Conservative", prob:"90% likely", value:fmt(vCons), delta:deltaStr(vCons), accent:[27,132,65],
+               foot:"9 in 10 scenarios reach at least this. The floor for essential planning."},
+              {name:"Expected", prob:"60% likely", value:fmt(vExp), delta:deltaStr(vExp), accent:ac,
+               foot:"6 in 10 scenarios reach at least this. The realistic planning target."},
+              {name:"Optimistic", prob:"40% likely", value:fmt(vOpt), delta:deltaStr(vOpt), accent:[192,110,40],
+               foot:"Only 4 in 10 scenarios reach this. Upside, not a plan."},
+            ]);
+          })();
+
           checkY(40);
           const _pcts=[...new Set([_bL,25,_bM,75,_bH])].sort((a,b)=>a-b);
           tbl(["Percentile","Nominal wealth","Real (inflation-adj.)","vs "+(_bM===50?"Median":_bM+"th")],
@@ -19333,10 +19479,13 @@ function drawFanChart(){
             {label:"Important & other",value:st.rows.filter(r=>r.tier!=="essential").reduce((s,r)=>s+(r.goalCostPV-r.taxOnGoal),0),color:[150,160,175]},
             {label:"Estimated taxes",value:taxAmt,color:[120,170,230]}]}
         ], maxV);
-        const coX=M+16+(leftW-20)/2-18, coY=topY+34;
-        doc.setFillColor(255,255,255); doc.setDrawColor(...ac); doc.setLineWidth(0.4); doc.roundedRect(coX,coY,36,14,1.5,1.5,"FD");
-        doc.setFont("helvetica","bold"); doc.setFontSize(7); doc.setTextColor(..._mut); doc.text("FUNDING RATIO",coX+18,coY+5,{align:"center"});
-        doc.setFontSize(15); doc.setTextColor(...ac); doc.text((st.overallRatio*100).toFixed(0)+"%",coX+18,coY+11.5,{align:"center"});
+        // Overall funding ratio as a donut ring badge, centred over the bars.
+        (function(){
+          const cxD = M+16+(leftW-20)/2, cyD = topY+40, R = 13;
+          const ratioCol = st.overallRatio>=0.85?_green:st.overallRatio>=0.6?_amber:_red;
+          doc.setFillColor(255,255,255); doc.circle(cxD, cyD, R+1.6, "F");   // clean white backing over the bars
+          donutRing(cxD, cyD, R, st.overallRatio*100, ratioCol, "Funded");
+        })();
         statBar(rX,rW,topY,"Goals",st.rows.length+(st.rows.length===1?" goal":" goals"));
         let cyR=topY+12;
         st.rows.forEach(r=>{ const cardH=28;
