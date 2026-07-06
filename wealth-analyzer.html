@@ -2037,7 +2037,10 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
     <div class="slbl">Add Goal</div>
     <div class="goal-add">
       <input id="gname" placeholder="Goal name">
-      <input type="number" id="gamt" placeholder="Amount / year">
+      <span style="display:inline-flex;align-items:center;gap:6px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:0 0 0 10px">
+        <span id="gamtCcy" style="font-family:var(--fb);font-size:12px;font-weight:700;color:var(--gold);min-width:24px">$</span>
+        <input type="number" id="gamt" placeholder="Amount / year" style="border:none;background:transparent;padding-left:0;min-width:120px">
+      </span>
       <input type="number" id="gstart" placeholder="Start year" min="2024" max="2100">
       <input type="number" id="gend" placeholder="End year" min="2024" max="2100">
       <select id="gcat" onchange="onGoalCatChange()">
@@ -2062,7 +2065,7 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
       <button class="btn-secondary" id="goalAddBtn" onclick="addGoal()">Add</button>
       <button class="btn-secondary" id="goalCancelBtn" style="display:none" onclick="cancelEditGoal()">Cancel</button>
     </div>
-    <div style="font-size:11px;color:var(--text3);margin-top:6px" id="goalAmtHint">Amount is <strong style="color:var(--text2)">per year</strong> for the duration of the goal. Total = amount × number of years. Enter the calendar year range when spending begins and ends.</div>
+    <div style="font-size:11px;color:var(--text3);margin-top:6px" id="goalAmtHint">Amount is <strong style="color:var(--text2)">per year</strong>, in the household's currency (<strong id="goalAmtCcyName" style="color:var(--text2)">USD</strong>), for the duration of the goal. Total = amount × number of years. Enter the calendar year range when spending begins and ends.</div>
     <div style="font-size:11px;color:var(--gold);margin-top:4px" id="goalHomeMortgageNote" style="display:none"></div>
   </div>
 </div>
@@ -7106,6 +7109,7 @@ function onCurrencyCountryChange(){
   syncCcySym();
   popCcyDropdown("accy");
   renderAssets();
+  renderGoals();          // re-render the goal list so amounts show the new symbol
   refreshTopMetrics();
 }
 function onCurrencyManualChange(){
@@ -7116,6 +7120,7 @@ function onCurrencyManualChange(){
   syncCcySym();
   popCcyDropdown("accy");
   renderAssets();
+  renderGoals();          // re-render the goal list so amounts show the new symbol
   refreshTopMetrics();
 }
 function syncCcySym(){
@@ -7128,6 +7133,10 @@ function syncCcySym(){
   // Expenses tab — currency-aware note for the Income/CG tax box
   const taxCcyNote = document.getElementById("taxCcyNote");
   if(taxCcyNote) taxCcyNote.textContent = CURRENT_CCY + " (" + sym + ")";
+  // Goals tab — currency badge next to the Amount input, and the ISO code
+  // in the hint text underneath.
+  setT("gamtCcy", sym);
+  setT("goalAmtCcyName", CURRENT_CCY);
 }
 function popCurrencyTag(){
   const sel=$("m-ccy-tag"); if(!sel) return;
