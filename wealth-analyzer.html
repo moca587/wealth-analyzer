@@ -18188,104 +18188,130 @@ function drawFanChart(){
       setT("rptStatus","Generating PDF…");
     }
 
-    // ── COVER PAGE (institutional — white with serif title) ────────────────────
-    // Slim accent band at the very top edge
-    doc.setFillColor(...ac);
-    doc.rect(0,0,pw,5,"F");
-    // ─── Optional client/firm logo on cover ───
+    // ══ COVER PAGE — navy full-bleed hero (matches the approved redesign) ══════
+    // Palette used only on the cover / openers (deep navy ground, warm paper ink,
+    // soft-blue accent). Kept local so the rest of the report's light theme is
+    // untouched.
+    const NAVY_TOP=[10,61,143], NAVY_BOT=[4,24,58];   // #0a3d8f → #04183a
+    const PAPER=[253,251,246], BLUE_SOFT=[96,168,250], COVER_MUTED=[150,162,184], COVER_WARM=[224,224,216];
+    const CM = 22;   // cover margin
+
+    // Logo prep (also reused by the running header on every page)
     _logoEmbed = (function(){ try { return localStorage.getItem("wa_rpt_logo") || ""; } catch(_) { return ""; } })();
     try { _logoEmbed = await downscaleLogoDataUrl(_logoEmbed, 420); } catch(_){}
     const logoData = _logoEmbed;
     const logoPos  = (function(){ try { return localStorage.getItem("wa_rpt_logo_pos") || "cover_top"; } catch(_) { return "cover_top"; } })();
-    // Aspect-preserving (no stretch) + lossless ("NONE") embed, centered within the box → stays sharp.
     function _addLogoImage(x, y, maxW, maxH){
       if(!logoData) return;
       try {
         const fmtSig = (logoData.indexOf("image/png")>=0)?"PNG"
-                    : (logoData.indexOf("image/jpeg")>=0||logoData.indexOf("image/jpg")>=0)?"JPEG"
-                    : "PNG"; // SVG handled via PNG fallback in jsPDF
+                    : (logoData.indexOf("image/jpeg")>=0||logoData.indexOf("image/jpg")>=0)?"JPEG":"PNG";
         let w = maxW, h = maxH;
-        try {
-          const p = doc.getImageProperties(logoData);
-          const ar = (p.width||1)/(p.height||1);
-          w = maxW; h = w/ar;
-          if(h > maxH){ h = maxH; w = h*ar; }
-        } catch(_){}
-        const cx = x + (maxW - w)/2, cy = y + (maxH - h)/2;   // center within the box
-        doc.addImage(logoData, fmtSig, cx, cy, w, h, "wa_logo", "FAST");   // shared alias → embedded once
+        try { const p=doc.getImageProperties(logoData); const ar=(p.width||1)/(p.height||1); w=maxW; h=w/ar; if(h>maxH){ h=maxH; w=h*ar; } } catch(_){}
+        const cx = x + (maxW - w)/2, cy = y + (maxH - h)/2;
+        doc.addImage(logoData, fmtSig, cx, cy, w, h, "wa_logo", "FAST");
       } catch(e){ console.warn("logo render failed:", e); }
     }
-    // ── Original PWI emblem (vector growth-monogram) — drawn on the cover when
-    //    no custom logo is uploaded. Entirely original; no third-party marks. ──
-    const drawPwiEmblem=(rightX, topY, size)=>{
-      const x=rightX-size, y=topY, r=size*0.16;
-      doc.setFillColor(...ac); doc.roundedRect(x,y,size,size,r,r,"F");
-      const padX=size*0.18, padB=size*0.20, baseY=y+size-padB, usable=size-padX*2, n=4, gap=usable/n, bw=gap*0.52;
-      const hs=[0.32,0.50,0.68,0.88];
-      // Solid pre-blended tints instead of white-at-opacity, so the whole PDF
-      // contains ZERO transparency (Acrobat renders opaque content far faster).
-      for(let i=0;i<n;i++){ const bx=x+padX+gap*i+(gap-bw)/2, bh=(size-padB-y-size*0.16)*hs[i];
-        const a=0.30+0.18*i;   // former opacity → blend white over the accent fill
-        doc.setFillColor(Math.round(ac[0]+(255-ac[0])*a), Math.round(ac[1]+(255-ac[1])*a), Math.round(ac[2]+(255-ac[2])*a));
-        doc.rect(bx,baseY-bh,bw,bh,"F"); }
-      doc.setDrawColor(255,255,255); doc.setLineWidth(size*0.045); doc.setLineCap("round");
-      const x1=x+size-padX, y1=y+size*0.30; doc.line(x+padX, baseY-size*0.10, x1, y1);
-      doc.setFillColor(255,255,255); const ah=size*0.13;
-      doc.triangle(x1,y1, x1-ah,y1+ah*0.35, x1-ah*0.35,y1+ah, "F");
-      doc.setLineCap("butt");
-    };
-    // Brand line (firm, small caps) top-left + logo / default emblem top-right
-    doc.setFont("times","normal"); doc.setFontSize(10.5); doc.setTextColor(...ac);
-    doc.text((rFirm||"Private Wealth Intelligence").toUpperCase(), M, 22);
-    if(logoData && logoPos === "cover_top"){
-      _addLogoImage(pw/2 - 20, 11, 40, 12);
-    } else if(logoData && (logoPos === "cover_corner" || logoPos === "header_last")){
-      _addLogoImage(pw - M - 18, 13, 16, 8);   // small top-right corner mark
-    } else if(!logoData){
-      drawPwiEmblem(pw - M, 12, 24);           // default original brand mark
+
+    // 1) Navy vertical gradient background — simulated with graduated bands
+    //    (jsPDF has no native gradient; bands are opaque so Acrobat stays fast).
+    (function paintNavy(){
+      const bands=54;
+      for(let i=0;i<bands;i++){
+        const t=i/(bands-1);
+        doc.setFillColor(
+          Math.round(NAVY_TOP[0]+(NAVY_BOT[0]-NAVY_TOP[0])*t),
+          Math.round(NAVY_TOP[1]+(NAVY_BOT[1]-NAVY_TOP[1])*t),
+          Math.round(NAVY_TOP[2]+(NAVY_BOT[2]-NAVY_TOP[2])*t));
+        doc.rect(0, (ph/bands)*i, pw, ph/bands+0.4, "F");
+      }
+    })();
+
+    // 2) Brand mark + wordmark (top-left). Uploaded logo wins; else a small
+    //    soft-blue "P" tile + firm name, matching the mockup's brand lock-up.
+    let _brandTextX = CM;
+    if(logoData && logoPos !== "none"){
+      _addLogoImage(CM, 16, 34, 12);
+    } else {
+      const s=11;
+      doc.setDrawColor(...BLUE_SOFT); doc.setLineWidth(0.5); doc.roundedRect(CM,16,s,s,1.6,1.6,"S");
+      doc.setFont("times","italic"); doc.setFontSize(13); doc.setTextColor(...BLUE_SOFT);
+      doc.text("P", CM+s/2, 16+s/2+2.2, {align:"center"});
+      _brandTextX = CM + s + 5;
     }
-    // Thin rule under the brand
-    doc.setDrawColor(...ac); doc.setLineWidth(0.4); doc.line(M,26,pw-M,26);
-    // Large serif title in brand blue
-    doc.setFont("times","bold"); doc.setFontSize(26); doc.setTextColor(...ac);
-    const wrappedTitle=doc.splitTextToSize(rTitle,CW);
-    let _ty=44;
-    wrappedTitle.forEach((line)=>{ doc.text(line,M,_ty); _ty+=11.5; });
-    // Subtitle (serif italic, grey)
-    if(rSub){
-      doc.setFont("times","italic"); doc.setFontSize(12.5); doc.setTextColor(95,105,120);
-      doc.splitTextToSize(rSub,CW).forEach(l=>{ doc.text(l,M,_ty+1); _ty+=6.5; });
-    }
-    // Confidentiality
-    if(confidLabel){
-      doc.setFont("helvetica","bold"); doc.setFontSize(8); doc.setTextColor(...ac);
-      doc.text(confidLabel,M,_ty+5); _ty+=8;
-    }
-    // Cover info block
-    y=Math.max(_ty+12, 88);
-    doc.setFontSize(10); doc.setFont("helvetica","normal"); doc.setTextColor(40);
-    const infoRows=[
-      ["Prepared for",rFor],
-      ["Prepared by",rBy+(rFirm?" — "+rFirm:"")],
-      ["Date",new Date().toLocaleDateString(undefined,{year:"numeric",month:"long",day:"numeric"})],
-    ];
-    if(rRef) infoRows.push(["Reference",rRef]);
-    infoRows.forEach(r=>{
-      doc.setFont(undefined,"bold"); doc.setTextColor(...ac);
-      doc.text(r[0]+":",M,y);
-      doc.setFont(undefined,"normal"); doc.setTextColor(40);
-      doc.text(r[1],M+42,y);
-      y+=8;
+    doc.setFont("helvetica","bold"); doc.setFontSize(9); doc.setTextColor(...COVER_WARM);
+    doc.text((rFirm||"Private Wealth Intelligence").toUpperCase(), _brandTextX, 20.5, {charSpace:0.5});
+    doc.setFont("helvetica","normal"); doc.setFontSize(7.5); doc.setTextColor(...COVER_MUTED);
+    doc.text("WEALTH PLANNING & ANALYSIS", _brandTextX, 25, {charSpace:0.6});
+
+    // 3) Badge — small caps, soft-blue, with a drawn diamond bullet (the "◆"
+    //    glyph isn't in jsPDF's Latin-1 font, so draw it as a rotated square).
+    let cy0 = 78;
+    const _badge = (rSub && rSub.length<40 ? rSub.toUpperCase() : "FINANCIAL PLANNING REPORT");
+    (function drawDiamond(cx, cyd, r){
+      doc.setFillColor(...BLUE_SOFT);
+      doc.triangle(cx, cyd-r, cx+r, cyd, cx, cyd+r, "F");
+      doc.triangle(cx, cyd-r, cx-r, cyd, cx, cyd+r, "F");
+    })(CM+1.4, cy0-1.4, 1.4);
+    doc.setFont("helvetica","bold"); doc.setFontSize(8.5); doc.setTextColor(...BLUE_SOFT);
+    doc.text(_badge, CM+6, cy0, {charSpace:1.2});
+
+    // 4) Hero title — large serif, paper-white, with the final word in soft blue
+    doc.setFont("times","bold"); doc.setTextColor(...PAPER);
+    const heroSize = rTitle.length>26 ? 34 : 44;
+    doc.setFontSize(heroSize);
+    const heroLines = doc.splitTextToSize(rTitle, CW);
+    let hy = cy0 + 16;
+    heroLines.forEach((line, li)=>{
+      if(li === heroLines.length-1){
+        // two-tone the last line: split trailing word into the accent colour
+        const words = line.split(" ");
+        if(words.length>1){
+          const last = words.pop(), head = words.join(" ")+" ";
+          doc.setTextColor(...PAPER); doc.text(head, CM, hy);
+          const hw = doc.getTextWidth(head);
+          doc.setTextColor(...BLUE_SOFT); doc.text(last, CM+hw, hy);
+          doc.setTextColor(...PAPER);
+        } else {
+          doc.setTextColor(...BLUE_SOFT); doc.text(line, CM, hy); doc.setTextColor(...PAPER);
+        }
+      } else {
+        doc.text(line, CM, hy);
+      }
+      hy += heroSize*0.42;
     });
-    // Horizontal rule
-    y+=4;
-    doc.setDrawColor(...ac); doc.setLineWidth(0.5); doc.line(M,y,pw-M,y); y+=6;
-    // Table of contents
-    doc.setFontSize(9); doc.setFont(undefined,"bold"); doc.setTextColor(...ac);
-    doc.text("Contents",M,y); y+=6;
-    // Build TOC from user-defined order. Each section reports whether
-    // it's actually included via its predicate (so empty sections are
-    // skipped from the contents list).
+
+    // 5) Accent rule + tagline
+    doc.setDrawColor(...BLUE_SOFT); doc.setLineWidth(0.6); doc.line(CM, hy+2, CM+26, hy+2);
+    doc.setFont("times","italic"); doc.setFontSize(12); doc.setTextColor(...COVER_WARM);
+    const tagline = (rSub && rSub.length>=40) ? rSub
+      : "A Monte Carlo projection of your household's position, portfolio, and long-term goals.";
+    doc.splitTextToSize(tagline, CW*0.62).forEach((l,i)=>{ doc.text(l, CM, hy+11+i*5.6); });
+
+    // 6) Prepared-for block
+    let py = ph - 44;
+    doc.setFont("helvetica","normal"); doc.setFontSize(7.5); doc.setTextColor(...COVER_MUTED);
+    doc.text("PREPARED FOR", CM, py, {charSpace:1});
+    doc.setFont("times","normal"); doc.setFontSize(17); doc.setTextColor(...PAPER);
+    doc.text(rFor||"—", CM, py+8);
+
+    // 7) Bottom meta row — Date · Reference · Confidential (right-aligned)
+    const metaY = ph - 16;
+    doc.setDrawColor(60,78,120); doc.setLineWidth(0.3); doc.line(CM, metaY-7, pw-CM, metaY-7);
+    const metaCell=(label,value,x,align)=>{
+      doc.setFont("helvetica","normal"); doc.setFontSize(6.8); doc.setTextColor(...COVER_MUTED);
+      doc.text(label, x, metaY-2.5, {charSpace:0.8, align});
+      doc.setFont("times","italic"); doc.setFontSize(10.5); doc.setTextColor(...BLUE_SOFT);
+      doc.text(value, x, metaY+2.5, {align});
+    };
+    metaCell("DATE", rptDateStr, CM, "left");
+    if(rRef) metaCell("REFERENCE", rRef, pw/2, "center");
+    doc.setFont("helvetica","normal"); doc.setFontSize(6.8); doc.setTextColor(...COVER_MUTED);
+    doc.text(confidLabel||"CONFIDENTIAL", pw-CM, metaY+0.5, {align:"right", charSpace:0.8});
+
+    // ══ CONTENTS PAGE (own page, light theme) ═════════════════════════════════
+    // Build the section list first (predicate-filtered), then render on a fresh
+    // page so the navy cover stays clean.
     const customAbout = (function(){ try { return (localStorage.getItem("wa_rpt_about")||"").trim(); } catch(_) { return ""; } })();
     const userOrder = getRptOrder();
     const SECTION_PREDS = {
@@ -18347,40 +18373,49 @@ function drawFanChart(){
         tocItems.push(rptLabelFor(k));
       }
     });
-    doc.setFont(undefined,"normal"); doc.setTextColor(60); doc.setFontSize(8.5);
-    // Multi-column TOC that always fits — landscape has plenty of horizontal
-    // room, and a single-column list of 25+ entries used to overflow into the
-    // footer, producing the interleaved "Prepared byOur Total Portfolio" text.
-    // The layout auto-scales column count (2 → 3 → 4) so no entry is dropped.
+    // Render the Contents on its OWN page (light theme) so the navy cover stays
+    // a clean hero. The running header shows "Contents" as the section title.
+    currentSectionTitle = "Contents";
+    newPage();
+    // Big serif "Contents" heading with an accent underline
+    doc.setFont("times","bold"); doc.setFontSize(26); doc.setTextColor(...ac);
+    doc.text("Contents", M, y+6);
+    doc.setDrawColor(...ac); doc.setLineWidth(0.5); doc.line(M, y+10, M+30, y+10);
+    doc.setFont("helvetica","normal"); doc.setFontSize(9); doc.setTextColor(120,128,140);
+    doc.text("Sections included in this report, in order.", M, y+16);
+    y += 26;
+    doc.setFontSize(9.5);
+    // Multi-column contents that always fits (auto 1→4 columns). Numbered rows
+    // with an accent tick and a hairline separator under each entry.
     (function drawToc(){
       const tocStartY = y;
-      const tocMaxY   = ph - 20;             // clear the footer band
-      const rowH      = 4.5;
+      const tocMaxY   = ph - 20;
+      const rowH      = 8.4;
       const rowsFit   = Math.max(1, Math.floor((tocMaxY - tocStartY) / rowH));
-      // Pick the smallest column count that lets every item render.
       let cols = 1;
-      while (cols < 4 && Math.ceil(tocItems.length / cols) > rowsFit) cols++;
-      const perCol   = Math.max(1, Math.ceil(tocItems.length / cols));
-      const colGap   = 8;
-      const colW     = (CW - colGap*(cols-1)) / cols;
-      let drawnRows = 0;
+      while (cols < 3 && Math.ceil(tocItems.length / cols) > rowsFit) cols++;
+      const perCol = Math.max(1, Math.ceil(tocItems.length / cols));
+      const colGap = 14;
+      const colW   = (CW - colGap*(cols-1)) / cols;
       tocItems.forEach((t, i) => {
         const col = Math.min(cols-1, Math.floor(i / perCol));
         const row = i - col*perCol;
-        if(row >= rowsFit) return;   // final safety: never draw over footer
+        if(row >= rowsFit) return;
         const xCol = M + col * (colW + colGap);
         const yRow = tocStartY + row * rowH;
-        doc.setFillColor(...ac);
-        doc.rect(xCol, yRow-2.4, 2.4, 2.4, "F");
-        // Clip long titles so they never bleed into the next column
-        const line = doc.splitTextToSize((i+1) + ".  " + t, colW - 5)[0];
-        doc.text(line, xCol + 4.5, yRow);
-        if(row+1 > drawnRows) drawnRows = row+1;
+        // number (serif italic, accent)
+        doc.setFont("times","italic"); doc.setFontSize(11); doc.setTextColor(...ac);
+        doc.text(String(i+1).padStart(2,"0"), xCol, yRow+2);
+        // title
+        doc.setFont("helvetica","normal"); doc.setFontSize(9.5); doc.setTextColor(45,52,64);
+        const line = doc.splitTextToSize(t, colW - 16)[0];
+        doc.text(line, xCol + 11, yRow+2);
+        // hairline under the row
+        doc.setDrawColor(224,228,234); doc.setLineWidth(0.2);
+        doc.line(xCol, yRow+4.6, xCol+colW-4, yRow+4.6);
       });
-      y = tocStartY + drawnRows * rowH + 4;   // advance y past the block
       doc.setFontSize(fsz);
     })();
-    // Cover footer is stamped in the final footer pass (below), like every other page.
 
     // ── Native pie chart (filled slices via drawWedge) ──
     function drawPieChart(cx, cy, R, segs){
@@ -19970,7 +20005,7 @@ function drawFanChart(){
     // ── Footer pass: stamp every page now that the total is known ──
     try {
       const _tot = doc.internal.getNumberOfPages();
-      for(let _p=1; _p<=_tot; _p++){
+      for(let _p=2; _p<=_tot; _p++){   // page 1 is the navy cover — it carries its own meta row
         doc.setPage(_p);
         doc.setDrawColor(205); doc.setLineWidth(0.3); doc.line(M, ph-11, pw-M, ph-11);
         doc.setFont("helvetica","bold"); doc.setFontSize(7); doc.setTextColor(95);
