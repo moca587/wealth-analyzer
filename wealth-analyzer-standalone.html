@@ -7,7 +7,11 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Wealth Analyzer by Private Wealth Intelligence</title>
-<!-- Google Fonts removed â system fonts used (standalone mode) -->
+<!-- Fonts: warm the connection early (preconnect), then load the stylesheet
+     NON-blocking (media=print flips to all on load). display=swap means text
+     paints immediately in the system-sans fallback and upgrades when Plus
+     Jakarta Sans arrives — first paint no longer waits on the font network. -->
+<noscript></noscript>
 <!-- defer: none of these are used at parse time (all usage is inside functions
      that run at/after DOMContentLoaded, and deferred scripts are guaranteed to
      execute before DOMContentLoaded). Unblocks first paint — pdf.js alone is ~1MB. -->
@@ -3995,7 +3999,7 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
 // ═══════════════════════════════════════════════════════════
 // VERSION — updated by build-standalone.pl on each build
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260705-2025";
+const APP_VERSION = "20260706-1534";
 
 // ═══════════════════════════════════════════════════════════
 // DATA
