@@ -673,8 +673,9 @@ input[type=date]{color-scheme:light}
 .coll-body{display:none}.coll-body.open{display:block}
 
 /* ── Section dropdown (click-to-expand section) ── */
-.section-dropdown{cursor:pointer;user-select:none;display:flex;align-items:center;gap:10px;transition:color .15s;padding-right:8px}
-.section-dropdown:hover{color:var(--gold)}
+.section-dropdown{cursor:pointer;user-select:none;display:flex;align-items:center;gap:10px;transition:color .15s,background .15s;padding:6px 8px;border-radius:6px}
+.section-dropdown:hover{color:var(--gold);background:rgba(0,105,217,.045)}
+.section-dropdown:focus-visible{outline:2px solid var(--gold);outline-offset:2px;color:var(--gold)}
 /* Override ptitle's default ::after underline when it's also a section-dropdown */
 .ptitle.section-dropdown::after{content:"▶";display:inline-block;font-size:10px;color:var(--text3);transition:transform .25s ease;flex:0 0 auto;height:auto;background:none;margin-left:8px}
 /* Standalone (.slbl) section-dropdown */
@@ -1213,9 +1214,9 @@ input:hover:not(:focus),select:hover:not(:focus){border-color:rgba(0,87,184,.34)
 input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10);background:#fbfdff}
 
 /* 12 · Empty states — turn dead ends into invitations */
-.empty{display:block;padding:18px 16px;border:1.5px dashed rgba(0,87,184,.22);border-radius:10px;
+.empty,.pf-empty{display:block;padding:18px 16px;border:1.5px dashed rgba(0,87,184,.22);border-radius:10px;
   background:rgba(0,105,217,.025);color:var(--text3);font-size:12.5px;text-align:center}
-.empty::before{content:"✦  ";color:#7aa9e8}
+.empty::before,.pf-empty::before{content:"✦  ";color:#7aa9e8}
 
 /* 13 · Secondary controls — gentle lift feedback */
 .btn-secondary{transition:all .18s}
@@ -1262,11 +1263,32 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
 
 /* 7 · Accessibility — motion off when the OS asks for it */
 @media (prefers-reduced-motion: reduce){
-  .wealth-hero,.wealth-hero::before,.tab.active .panel,.wow-pop,.wow-flash,.btn-primary:hover::after{animation:none!important}
+  .wealth-hero,.wealth-hero::before,.tab.active .panel,.wow-pop,.wow-flash,.btn-primary:hover::after,.dropdown-body.open{animation:none!important}
   .tab.active .panel{opacity:1;transform:none}
   .nav-item:hover,.wh-stat:hover,.btn-primary:hover,.btn-secondary:hover,.band-btn:hover,#wowTop:hover{transform:none}
   .nav-item .nav-dot{transition:none}
+  .ptitle.section-dropdown::after,.section-dropdown:not(.ptitle)::after{transition:none}
+  .sim-summary{animation:none!important}
 }
+
+/* ── Simulation-tab polish ── */
+.sim-run-panel{border:1px solid var(--border2);background:linear-gradient(135deg,#ffffff,#f1f6ff)}
+.sim-run-panel .btn-primary.full{font-size:15px;padding:13px}
+#tab-simulation .sim-group:first-of-type{margin-top:18px}
+/* Results-at-a-glance strip (populated after a run) */
+.sim-summary{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:2px 0 6px;animation:wowFadeUp .4s ease both}
+.ss-card{background:#fff;border:1px solid var(--border);border-left:3px solid var(--gold);border-radius:var(--r);padding:14px 16px;box-shadow:0 1px 4px rgba(0,0,0,.04)}
+.ss-card.good{border-left-color:var(--green)}
+.ss-card.warn{border-left-color:var(--amber)}
+.ss-card.bad{border-left-color:var(--red)}
+.ss-lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin-bottom:5px}
+.ss-val{font-size:23px;font-weight:800;color:var(--text);letter-spacing:-.03em;font-variant-numeric:tabular-nums;line-height:1.05}
+.ss-sub{font-size:11px;color:var(--text3);margin-top:3px}
+@media (max-width:760px){ .sim-summary{grid-template-columns:1fr 1fr} }
+/* Expand / collapse all */
+.sim-toolbar{display:flex;justify-content:flex-end;gap:8px;margin:0 2px 6px}
+.sim-toolbar button{font-family:var(--fb);font-size:11px;font-weight:600;color:var(--text2);background:var(--bg3);border:1px solid var(--border);border-radius:50px;padding:5px 13px;cursor:pointer;transition:all .15s}
+.sim-toolbar button:hover{border-color:var(--gold);color:var(--gold)}
 </style>
 </head>
 <body>
@@ -2586,9 +2608,18 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
 <div id="simSourceBanner" style="display:none"></div>
 
 <!-- Run Simulation button -->
-<div class="panel" style="text-align:center">
+<div class="panel sim-run-panel" style="text-align:center">
     <button class="btn-primary full" onclick="runSim()">▶ Run Monte Carlo Simulation</button>
-    <div style="margin-top:8px;font-size:12px;color:var(--text3)">Fine-tune projection years, simulations, probability bands and stress scenarios in the <strong>Settings</strong> panel (gear, top-right).</div>
+    <div style="margin-top:8px;font-size:12px;color:var(--text2)">Fine-tune projection years, simulations, probability bands and stress scenarios in the <strong>Settings</strong> panel (gear, top-right).</div>
+</div>
+
+<!-- Results at a glance — populated after a run -->
+<div class="sim-summary" id="simSummary" style="display:none"></div>
+
+<!-- Expand / collapse every section -->
+<div class="sim-toolbar">
+  <button type="button" onclick="expandAllSim(true)">⊕ Expand all</button>
+  <button type="button" onclick="expandAllSim(false)">⊖ Collapse all</button>
 </div>
 
 <div class="panel" id="simInputsPanel">
@@ -4029,7 +4060,7 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
 // ═══════════════════════════════════════════════════════════
 // VERSION — updated by build-standalone.pl on each build
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260706-2154";
+const APP_VERSION = "20260706-2209";
 
 // ═══════════════════════════════════════════════════════════
 // DATA
@@ -6743,7 +6774,10 @@ function toggleDropdown(bodyId, ev){
   const head = body.previousElementSibling;
   const wasOpen = body.classList.contains("open");
   body.classList.toggle("open");
-  if(head) head.classList.toggle("open");
+  if(head){
+    head.classList.toggle("open");
+    if(head.hasAttribute("aria-expanded")) head.setAttribute("aria-expanded", String(!wasOpen));
+  }
   // When expanding, let any Chart.js canvases inside refit to the now-visible size
   // (a chart drawn while its container was display:none can otherwise stay mis-sized).
   if(!wasOpen){
@@ -6754,6 +6788,69 @@ function toggleDropdown(bodyId, ev){
       });
     }catch(_){}
   }
+}
+
+// A11y: turn every .section-dropdown header into a real keyboard-operable button
+// (role/tabindex/aria-controls/aria-expanded + Enter/Space), app-wide. Idempotent.
+function enhanceCollapsibles(){
+  document.querySelectorAll(".section-dropdown").forEach(h=>{
+    if(h.dataset.a11y) return; h.dataset.a11y="1";
+    const body = h.nextElementSibling;
+    h.setAttribute("role","button");
+    h.setAttribute("tabindex","0");
+    h.setAttribute("aria-expanded", String(h.classList.contains("open")));
+    if(body && body.id) h.setAttribute("aria-controls", body.id);
+    h.addEventListener("keydown", e=>{
+      if(e.key==="Enter" || e.key===" "){
+        e.preventDefault();
+        if(body && body.id) toggleDropdown(body.id, e);
+      }
+    });
+  });
+}
+if(document.readyState!=="loading") enhanceCollapsibles();
+else document.addEventListener("DOMContentLoaded", enhanceCollapsibles);
+
+// Expand / collapse every section in the Simulation tab at once.
+function expandAllSim(open){
+  const tab = document.getElementById("tab-simulation"); if(!tab) return;
+  tab.querySelectorAll(".dropdown-body").forEach(b=>{
+    if(!b.id) return;
+    const isOpen = b.classList.contains("open");
+    if(open !== isOpen) toggleDropdown(b.id);
+  });
+}
+
+// Results-at-a-glance strip at the top of the Simulation tab (shown after a run).
+function renderSimSummary(){
+  const el = document.getElementById("simSummary"); if(!el) return;
+  if(!Array.isArray(lastSimPaths) || !lastSimPaths.length){ el.style.display="none"; return; }
+  const t = id => { const e=document.getElementById(id); return e ? (e.textContent||"").trim() : "—"; };
+  const med = t("m-med") || "—";
+  const prob = t("m-prob") || "—";
+  const gapEl = document.getElementById("rn-gap");
+  const gapTxt = gapEl ? (gapEl.textContent||"").trim() : "—";
+  const gapGood = !!(gapEl && /rn-gap-pos/.test(gapEl.className));
+  // Sustainable annual spend (expected / 50%) — same MC solver as the lifestyle panel
+  let spend = "—";
+  try{
+    const a1 = (typeof ageFromDOB==="function" ? ageFromDOB(val("c1d")) : 0) || 40;
+    const retAge = num("retAge",65);
+    const yrsToRet = Math.max(1, retAge - a1), yearsInRet = Math.max(1, 90 - retAge);
+    const inf = num("inf",3.8)/100, P = getActiveSimulationParams();
+    const w = percentileAt(lastSimPaths, Math.min(yrsToRet, lastSimYrs), 50);
+    spend = fmtMoney(_solveSustainableSpendMC(Math.max(0,w), yearsInRet, P.mu, P.sig, inf, 90));
+  }catch(_){}
+  const pn = parseFloat(prob);
+  const probCls = isFinite(pn) ? (pn>=80?"good":(pn>=50?"warn":"bad")) : "";
+  const gapCls = gapTxt==="—" ? "" : (gapGood?"good":"bad");
+  const card = (lbl,v,sub,cls)=> '<div class="ss-card '+(cls||"")+'"><div class="ss-lbl">'+lbl+'</div><div class="ss-val">'+v+'</div><div class="ss-sub">'+sub+'</div></div>';
+  el.innerHTML =
+    card("Projected wealth", med, "median · today's money", "") +
+    card("Goal success", prob, "across your goals", probCls) +
+    card("Sustainable spend", spend, "per year in retirement", "") +
+    card("Retirement funding", gapTxt, gapGood?"ahead of target":"vs. present-value target", gapCls);
+  el.style.display = "grid";
 }
 
 function fmtMoney(n,sym){
@@ -14808,6 +14905,8 @@ function runSim(){
   try { renderEstate(); } catch(e){ console.warn("renderEstate:", e); }
   // Goals-Based Analysis now lives in the Simulation tab — populate it on every run
   try { if(typeof runGoalsBased==="function") runGoalsBased(); } catch(e){ console.warn("runGoalsBased:", e); }
+  // Results-at-a-glance strip (reads the values the cascade just set)
+  try { renderSimSummary(); } catch(e){ console.warn("renderSimSummary:", e); }
   // Heavy secondary panels run in their own tasks so the charts and metrics
   // above paint immediately (the browser paints between macrotasks). Profiled
   // shares of the old 1.8s block: cash-flow table ~140ms, sensitivity tornado
