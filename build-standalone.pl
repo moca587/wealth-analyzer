@@ -40,8 +40,12 @@ print $vf qq({\n  "version": "$version",\n  "builtAt": "$version_full",\n  "chan
 close $vf;
 print "  Wrote version.json\n";
 
-# 1. Remove Google Fonts link
+# 1. Remove Google Fonts links (old single-link form AND the newer preconnect +
+#    async media=print stylesheet + noscript fallback). Standalone uses system fonts.
 $html =~ s|<link href="https://fonts\.googleapis\.com[^"]*" rel="stylesheet">|<!-- Google Fonts removed — system fonts used (standalone mode) -->|;
+$html =~ s{<link rel="preconnect" href="https://fonts\.g[^"]*"[^>]*>\s*}{}g;
+$html =~ s{<link rel="stylesheet"[^>]*href="https://fonts\.googleapis\.com[^"]*"[^>]*>\s*}{}g;
+$html =~ s{<noscript><link[^>]*href="https://fonts\.googleapis\.com[^"]*"[^>]*></noscript>}{<!-- Google Fonts removed — system fonts used (standalone mode) -->}g;
 
 # 2. Replace font-family values
 $html =~ s|'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif|-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,Arial,sans-serif|g;
