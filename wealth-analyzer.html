@@ -16657,7 +16657,7 @@ const RPT_GLOSSARY = [
   ["Essential / Important / Aspirational", "Goal priorities: Essential goals are needs and are tested at 95% confidence; Important goals at 75%; Aspirational goals (wants) at 55%."],
   ["Expected Return (Arithmetic)", "The simple average annual return assumed for an asset class or portfolio. Used as the input mean for the Monte Carlo engine."],
   ["Expense Ratio", "A fund's internal annual operating cost as a percentage of assets, charged by the fund issuer and already reflected in fund performance."],
-  ["Geometric (Compound) Return", "The constant annual growth rate that produces the same cumulative result over time; approximately the arithmetic mean minus half the variance (mu − ½σ²)."],
+  ["Geometric (Compound) Return", "The constant annual growth rate that produces the same cumulative result over time; approximately the arithmetic mean minus half the variance."],
   ["Goal Funding Ratio", "The present value of the resources allocated to a goal divided by the present value of the goal's cost. 100% or more means the goal is fully funded."],
   ["Liquid vs Locked Assets", "Liquid assets (cash, brokerage) can be spent at any time. Locked assets (pension and retirement accounts) are subject to withdrawal-age rules."],
   ["Median (50th Percentile)", "The middle simulated outcome — half of all Monte Carlo paths finish above this value and half below."],
@@ -17229,31 +17229,34 @@ async function generatePDFReport(mode, previewWin){
         try { doc.addImage(imgData, "PNG", rightX-maxW, (vAnchor==="bottom"?edgeY-maxH:edgeY), maxW, maxH, "wa_logo", "FAST"); return true; } catch(__){ return false; }
       }
     }
-    function newPage(){
-      doc.addPage();
-      _pendingPage=false;   // a page break just happened; clear any deferred request
-      // Small logo top-right corner when "header_all" or "header_last" is set
+    // Extracted so autoTable continuations (see tbl) can redraw the header on
+    // pages they auto-add — otherwise a table that spills past a page break
+    // produced a "headerless" continuation page (page 31 in the sample report).
+    function drawRunningHeader(){
       let _hdrLogo = false, _ldH = "", _lpH = "cover_top";
       try {
-        _ldH = _logoEmbed;   // downscaled once → cheap to render on every page
+        _ldH = _logoEmbed;
         _lpH = localStorage.getItem("wa_rpt_logo_pos") || "cover_top";
         _hdrLogo = !!_ldH && (_lpH === "header_all" || _lpH === "header_last");
       } catch(_){}
-      // ── Institutional page header: client (gray) over section title (bold) · firm/logo right · full rule ──
       doc.setFont("helvetica","normal"); doc.setFontSize(9); doc.setTextColor(130,138,150);
       doc.text(rFor||"", M, 9.5);
       doc.setFont("helvetica","bold"); doc.setFontSize(14.5); doc.setTextColor(35,45,60);
       doc.splitTextToSize(currentSectionTitle||rTitle||"", CW-46).slice(0,1).forEach(l=>doc.text(l, M, 17.6));
-      // right side — uploaded logo above the firm name (logo only when "header_all"); firm name always
       let _rfY = 10.5;
       if(_hdrLogo && placeLogo(_ldH, pw - M, 4, 34, 8.5, "top")){ _rfY = 17; }
       doc.setFont("helvetica","bold"); doc.setFontSize(9.5); doc.setTextColor(...ac);
       doc.text(rFirm||"Private Wealth Intelligence", pw-M, _rfY, {align:"right"});
       doc.setDrawColor(55,65,80); doc.setLineWidth(0.5); doc.line(M, 20.6, pw-M, 20.6);
+      doc.setTextColor(40); doc.setFont("helvetica","normal");
+    }
+    function newPage(){
+      doc.addPage();
+      _pendingPage=false;   // a page break just happened; clear any deferred request
+      drawRunningHeader();
       y = 27;
       // Footer (prepared-by · confidential · date | page) is stamped in one final
       // pass at the end, so every page can show "<n> of <total>".
-      doc.setTextColor(40); doc.setFont("helvetica","normal");
     }
     function checkY(need=20){if(y+need>ph-14) newPage();}
 
@@ -17286,29 +17289,36 @@ async function generatePDFReport(mode, previewWin){
 
     function tbl(head, rows, opts = {}) {
     checkY(24);
-
-    doc.autoTable({
+    // Base options first, then user overrides via ...opts, then finally wire
+    // in didDrawPage so it survives user overrides. autoTable's `didDrawPage`
+    // fires after each page's table content is drawn — on continuation pages
+    // (data.pageNumber > 1) we call drawRunningHeader() so the client name,
+    // section title, firm name, and rule appear on the fresh page.
+    const finalOpts = {
         startY: y,
         head: [head],
         body: rows,
 
+        // margin.top = 27 leaves room for the running header on continuation pages.
+        // (autoTable ignores margin.top on the FIRST page — it uses startY there.)
         margin: {
             left: M,
-            right: M
+            right: M,
+            top: 27
         },
 
         styles: {
             fontSize: fsz,
             cellPadding: 2.8,
             overflow: "linebreak",
-            fillColor: [255, 255, 255],      // white rows
+            fillColor: [255, 255, 255],
             textColor: [55, 55, 55],
-            lineColor: [220, 225, 232],      // light gray borders
+            lineColor: [220, 225, 232],
             lineWidth: 0.15
         },
 
         headStyles: {
-            fillColor: ac,                   // keep blue header
+            fillColor: ac,
             textColor: [255, 255, 255],
             fontStyle: "bold",
             fontSize: fsz
@@ -17326,7 +17336,17 @@ async function generatePDFReport(mode, previewWin){
         tableLineWidth: 0.15,
 
         ...opts
-    });
+    };
+
+    // Compose our header-drawing hook with any user-provided didDrawPage so
+    // callers can still pass their own without silently losing the header.
+    const _userDidDrawPage = finalOpts.didDrawPage;
+    finalOpts.didDrawPage = function(data){
+        try { if(data && data.pageNumber > 1) drawRunningHeader(); } catch(_){}
+        if(typeof _userDidDrawPage === "function") _userDidDrawPage.call(this, data);
+    };
+
+    doc.autoTable(finalOpts);
 
     y = doc.lastAutoTable.finalY + 7;
 }
@@ -17989,13 +18009,39 @@ function drawFanChart(){
         tocItems.push(rptLabelFor(k));
       }
     });
-    doc.setFont(undefined,"normal"); doc.setTextColor(60);
-    tocItems.forEach((t,i)=>{
-      doc.setFillColor(...ac);
-      doc.rect(M,y-3,3,3,"F");
-      doc.text((i+1)+".  "+t,M+6,y);
-      y+=5.5;
-    });
+    doc.setFont(undefined,"normal"); doc.setTextColor(60); doc.setFontSize(8.5);
+    // Multi-column TOC that always fits — landscape has plenty of horizontal
+    // room, and a single-column list of 25+ entries used to overflow into the
+    // footer, producing the interleaved "Prepared byOur Total Portfolio" text.
+    // The layout auto-scales column count (2 → 3 → 4) so no entry is dropped.
+    (function drawToc(){
+      const tocStartY = y;
+      const tocMaxY   = ph - 20;             // clear the footer band
+      const rowH      = 4.5;
+      const rowsFit   = Math.max(1, Math.floor((tocMaxY - tocStartY) / rowH));
+      // Pick the smallest column count that lets every item render.
+      let cols = 1;
+      while (cols < 4 && Math.ceil(tocItems.length / cols) > rowsFit) cols++;
+      const perCol   = Math.max(1, Math.ceil(tocItems.length / cols));
+      const colGap   = 8;
+      const colW     = (CW - colGap*(cols-1)) / cols;
+      let drawnRows = 0;
+      tocItems.forEach((t, i) => {
+        const col = Math.min(cols-1, Math.floor(i / perCol));
+        const row = i - col*perCol;
+        if(row >= rowsFit) return;   // final safety: never draw over footer
+        const xCol = M + col * (colW + colGap);
+        const yRow = tocStartY + row * rowH;
+        doc.setFillColor(...ac);
+        doc.rect(xCol, yRow-2.4, 2.4, 2.4, "F");
+        // Clip long titles so they never bleed into the next column
+        const line = doc.splitTextToSize((i+1) + ".  " + t, colW - 5)[0];
+        doc.text(line, xCol + 4.5, yRow);
+        if(row+1 > drawnRows) drawnRows = row+1;
+      });
+      y = tocStartY + drawnRows * rowH + 4;   // advance y past the block
+      doc.setFontSize(fsz);
+    })();
     // Cover footer is stamped in the final footer pass (below), like every other page.
 
     // ── Native pie chart (filled slices via drawWedge) ──
@@ -18122,10 +18168,21 @@ function drawFanChart(){
       pieLegend(lgX, py+4, lgW, aSegs);
       let py2=py+pieR*2+14;
       doc.setFont("helvetica","bold"); doc.setFontSize(9); doc.setTextColor.apply(doc,acDark); doc.text("Liabilities",Rx,py2);
-      const lSegs = loans.length ? loans.map((l,i)=>({label:String(l.label||("Loan "+(i+1))),value:(+l.bal||0),color:CHART_PALETTE[(i+5)%CHART_PALETTE.length]}))
-                                 : [{label:"No liabilities",value:1,color:[210,214,220]}];
-      drawPieChart(pcx, py2+pieR+3, pieR, lSegs);
-      pieLegend(lgX, py2+4, lgW, lSegs);
+      if(loans.length){
+        const lSegs = loans.map((l,i)=>({label:String(l.label||("Loan "+(i+1))),value:(+l.bal||0),color:CHART_PALETTE[(i+5)%CHART_PALETTE.length]}));
+        drawPieChart(pcx, py2+pieR+3, pieR, lSegs);
+        pieLegend(lgX, py2+4, lgW, lSegs);
+      } else {
+        // Empty state: subdued outline circle + plain "No liabilities" text
+        // (previously drew a fake pie segment with value:1, which the legend
+        // rendered as "$1  100%" — misleading placeholder data.)
+        doc.setDrawColor(210,214,220); doc.setLineWidth(0.4);
+        doc.setFillColor(245,246,248);
+        doc.circle(pcx, py2+pieR+3, pieR, "FD");
+        doc.setFont("helvetica","italic"); doc.setFontSize(9); doc.setTextColor(140);
+        doc.text("No liabilities.", lgX, py2+pieR+3);
+        doc.setFont("helvetica","normal"); doc.setTextColor(40);
+      }
       y=Math.max(chartY+chartH, py2+pieR*2+8)+6; doc.setTextColor(40); doc.setFont("helvetica","normal");
     }
 
