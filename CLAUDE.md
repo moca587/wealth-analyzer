@@ -17,6 +17,11 @@ A single-file (`wealth-analyzer.html`) personal wealth analysis web application 
 - Country-aware inflation region presets (50-year historical averages)
 - Risk profile + time horizon framework driving simulation parameters
 
+> **Two products in this repo:** the single-file HTML app documented above is the
+> **production** product. A parallel Next.js + Supabase SaaS rebuild lives in
+> `wealth-app-next/` — see [SaaS Migration](#saas-migration--wealth-app-next-stage-1)
+> below. The HTML app stays authoritative until the SaaS version reaches parity.
+
 ---
 
 ## Architecture Decisions
@@ -186,17 +191,128 @@ Selecting a country in the Client 1 address field automatically updates the Asse
 
 ---
 
+## SaaS Migration — `wealth-app-next/` (Stage 1)
+
+**What it is:** a parallel rebuild of the app as a real multi-user SaaS in
+`wealth-app-next/`, using Next.js 14 (App Router) + Supabase. It lives in the
+same repo as the legacy single-file app.
+
+**Status:** Stage-1 scaffold. **The legacy `wealth-analyzer.html` is still the
+production product** and stays authoritative until the SaaS version reaches
+parity. Do not delete or deprioritize the HTML app.
+
+**Why a rebuild (not a port of the monolith):** the single file is ~22k lines
+of vanilla JS with all state in the DOM. A real product needs accounts, saved
+plans, server-side persistence, and auth — which means a framework, a database,
+and validated data. The engine/data are ported as pure modules; the UI is
+rebuilt as React components rather than copied.
+
+### Stack
+Next.js 14 (App Router) · TypeScript · Tailwind + shadcn-style UI · Supabase
+(Postgres + Auth + Row-Level Security) · Zod (validation) · Vitest (tests) ·
+Chart.js via `react-chartjs-2`. Node 20. ESLint pinned to 8.x (peer-conflicts
+with `eslint-config-next@14`; install documented, not `--legacy-peer-deps`).
+
+### Layout
+```
+wealth-app-next/
+├── lib/engine/          ← pure TS port of the Monte Carlo + financial math
+│   ├── types.ts         ←   WealthPlan, Client, Asset, Goal, CountryCode…
+│   ├── constants.ts     ←   RISK_PROFILES, HORIZON_PROFILES, INFLATION_REGIONS,
+│   │                        inflationRegionForCountry()
+│   ├── financial-math.ts←   Box-Muller (seedable), amortization, PV/FV, ageFromDOB
+│   └── monte-carlo.ts   ←   runMonteCarlo(input)
+├── lib/plan/            ← schema.ts (Zod), default-plan.ts, migrate.ts, import-export.ts
+├── lib/data/            ← country-accounts.ts (GENERATED — see below)
+├── lib/supabase/        ← browser + server clients (@supabase/ssr)
+├── components/plan/     ← PlanForm + sections/{household,children,assets,import-export}
+├── components/sim/      ← sim runner + chart
+├── app/                 ← (auth)/{login,signup}, app/ (gated), app/plan, app/simulate,
+│                            api/plan, preview/plan (dev-only, 404s in prod)
+├── middleware.ts        ← Supabase session refresh + /app/* auth gate
+└── supabase/migrations/001_init.sql  ← profiles + simulations tables, RLS, signup trigger
+```
+
+### Review-driven hardening (Petros's "Top 5 plans", all complete + merged)
+1. **Build/test/dep baseline** — clean `npm ci`; `/login` `useSearchParams` moved
+   into `login-form.tsx` behind `<Suspense>`; real `financial-math` tests.
+2. **Plan persistence** — Zod validation on `PUT /api/plan`; `.upsert` (not
+   `.update`, which silently no-ops when the signup trigger didn't create a row);
+   `parseMoneyInput` so blank/invalid fields never store `NaN`/`null`; removing a
+   client reassigns its income (no orphan `clientId`).
+3. **Engine correctness** — optional `seed` for reproducible runs; inflation now
+   actually applied to expenses/goals each year; funded goals draw down wealth;
+   negative surplus draws down liquid assets; loan amortization fixed; invariant
+   tests (percentile ordering, goals reduce wealth, higher inflation lowers real).
+4. **Legacy feature parity** — see next section.
+5. **Release pipeline** — see "Release & CI".
+
+### Data model notes / gotchas
+- **`lib/data/country-accounts.ts` is GENERATED** from the root `country-accounts.js`
+  by `scratchpad/convert-accounts.js` (39 countries, 521 account types). Do not
+  hand-edit; regenerate from the source data file.
+- **`CountryCode` (types.ts) and the `countryCodeEnum` (schema.ts) must stay in
+  sync.** They were widened past the original 19 to include individual eurozone
+  members (DE, FR, IT, …) because the taxonomy defines each separately.
+  `inflationRegionForCountry()` maps eurozone members → `EU` and `TW` → `CN`
+  (a direct region lookup would miss them).
+- **Goals use a `startYear`/`endYear` span**, not the legacy single `targetYear`.
+  `migratePlan()` converts old shapes (targetYear → span, stringified numbers,
+  orphan income) on import, then Zod validates — a bad file errors rather than
+  overwriting the current plan.
+- **`components/plan/sections/*`** are module-level components with stable row
+  keys so inputs never remount on keystroke (the legacy "child input loses focus"
+  bug does not recur).
+- **`app/preview/plan`** renders `PlanForm` with sample data outside the auth
+  gate for design review; it `notFound()`s in production.
+
+### Running it
+```bash
+cd wealth-app-next
+cp .env.local.example .env.local   # real Supabase creds, or placeholders to just boot the UI
+npm install
+npm run dev        # http://localhost:3000  (or PORT=3100 npm run dev)
+npm run type-check && npm run test && npm run build
+```
+`.env.local` is gitignored. Placeholder Supabase values are enough to render the
+UI (including `/preview/plan`); real values are needed for auth/persistence.
+
+### Release & CI (whole repo)
+The legacy standalones and the SaaS app share one pipeline, driven from the
+**repo root** `package.json`:
+- `npm run ci` — app tests + type-check + Next build + `legacy:check`.
+- `npm run legacy:build` — regenerate every `*-standalone.html` via the Perl
+  builders, then validate (needs Perl).
+- `npm run legacy:check` — `scripts/release/check-artifacts.mjs`; validates each
+  app's `source APP_VERSION === version file === standalone`, offline-safety, and
+  embedded data blocks, **without** rebuilding.
+- GitHub Actions runs all of the above on every push to `main` + PR (active and
+  green). See `docs/release-process.md` for source-of-truth vs generated files.
+- The push token here lacks GitHub's `workflow` scope — workflow YAML changes go
+  through the GitHub web UI, not a push from this environment.
+
+---
+
 ## File Structure
 
+Source files live at the repository **root** (there is no `src/` directory).
+`*-standalone.html` files are **generated** — never hand-edit them.
+
 ```
-wealth-analyzer-project/
-├── CLAUDE.md                    ← this file
-├── src/
-│   └── wealth-analyzer.html    ← single-file application (production)
-├── docs/
-│   └── CONVERSATION_EXPORT.md  ← summary of design conversation
-└── exports/
-    └── (future PDF/JSON exports)
+wealth-analyzer/
+├── CLAUDE.md                          ← this file
+├── README.md
+├── wealth-analyzer.html              ← main app (source, production, single file)
+├── wealth-analyzer-standalone.html   ← generated: fully-vendored offline build
+├── wealth-analyzer-avaloq.html       ← Avaloq edition (source)
+├── admin.html                        ← admin console (source)
+├── country-accounts.js / fund-universe.js  ← source data injected into the app
+├── vendor/                           ← pinned Chart.js, jsPDF, pdf.js…
+├── version.json / version-avaloq.json← build stamps (generated)
+├── build-standalone*.pl              ← standalone builders (Perl)
+├── scripts/release/                  ← build-legacy.mjs + check-artifacts.mjs
+├── docs/release-process.md           ← release pipeline docs
+└── wealth-app-next/                  ← Next.js + Supabase SaaS migration (Stage 1)
 ```
 
 ---
@@ -205,11 +321,13 @@ wealth-analyzer-project/
 
 ### Running locally
 ```bash
-open src/wealth-analyzer.html
+open wealth-analyzer.html
 # or
 python3 -m http.server 8080
-# then visit http://localhost:8080/src/wealth-analyzer.html
+# then visit http://localhost:8080/wealth-analyzer.html
 ```
+(For the fully-offline single-file build, open `wealth-analyzer-standalone.html`.
+For the SaaS app, see the `wealth-app-next/` section above.)
 
 ### Editing
 All logic is in the `<script>` block at the bottom of `wealth-analyzer.html`. Data is in the large `COUNTRY_ACCOUNTS`, `REGIONS`, `RISK_PROFILES`, and `HORIZON_PROFILES` objects defined at the top of the script block.
