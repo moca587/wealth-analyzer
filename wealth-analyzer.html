@@ -2260,48 +2260,23 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
   <div id="goalResultList"></div>
 </div>
 
-<!-- Goals & Retirement Funding Status (probabilistic) -->
-<div class="panel" id="fundingPanel">
-  <div class="ptitle section-dropdown open" onclick="toggleDropdown('fundingBodyWrap')" style="margin:0">
-    Goals &amp; Retirement Funding Status <span class="dropdown-hint">probability-based · click to toggle</span>
+<!-- Goal & Retirement Funding Status (combined: probabilistic + PV-based) -->
+<div class="panel" id="goalFundingPanel">
+  <div class="ptitle section-dropdown open" onclick="toggleDropdown('goalFundingWrap')" style="margin:0">
+    Goal &amp; Retirement Funding Status <span class="dropdown-hint">probability-based + present-value · click to toggle</span>
     <span class="ptitle-line"></span>
   </div>
-  <div class="dropdown-body open" id="fundingBodyWrap">
-  <div id="fundingHeader" class="cf-header" style="margin-top:8px">Run the simulation to see how each goal scores at the 30%, 50%, and 80% confidence levels.</div>
-  <div class="fund-tbl-wrap"><table class="fund-tbl" id="fundingTable">
-    <thead><tr>
-      <th class="cf-l">Goal</th>
-      <th class="cf-l">Target year</th>
-      <th>Amount needed</th>
-      <th>NW @ 30% conf.</th>
-      <th>NW @ 50% conf.</th>
-      <th>NW @ 80% conf.</th>
-      <th>Probability funded</th>
-      <th class="cf-l">Status</th>
-    </tr></thead>
-    <tbody id="fundingBody"><tr><td colspan="8" style="text-align:center;color:var(--text3);padding:18px">Run the simulation — funding status appears here once the Monte Carlo finishes.</td></tr></tbody>
-  </table></div>
+  <div class="dropdown-body open" id="goalFundingWrap">
+  <div class="cf-header" style="margin-top:8px">Each goal is scored two ways: the <strong>simulated probability</strong> of being fully funded (from the Monte Carlo paths) and the <strong>present-value funding ratio</strong> (priority-weighted, discounted at a risk-adjusted rate, Merrill-style). Run the simulation to populate both.</div>
+  <div id="goalFundingSummary"></div>
+  <div id="goalFundingList"><div class="pf-empty">Run the simulation to populate funding status.</div></div>
   <div class="cf-legend">
-    <span><span class="fund-tag fund-ok">Fully funded</span> probability ≥ 80%</span>
-    <span><span class="fund-tag fund-warn">Partly funded</span> 50–79%</span>
+    <span><span class="fund-tag fund-ok">Fully funded</span> probability ≥ 80% / ratio ≥ 90%</span>
+    <span><span class="fund-tag fund-warn">Partly funded</span> 50–79% / 60–89%</span>
     <span><span class="fund-tag fund-warn">At risk</span> 25–49%</span>
-    <span><span class="fund-tag fund-bad">Underfunded</span> &lt; 25%</span>
-    <span style="color:var(--text3)">"NW @ X% confidence" reads the X-th percentile of simulated net worth in the goal's calendar year (i.e. the value that X% of paths beat). Retirement uses a present-value corpus need: net retirement spending (after pension) discounted at the real return from the retirement year to age 90, then inflated to nominal $ at the retirement date. Note: "net worth" here includes all simulated wealth (investments, cash, property, retirement accounts minus debt). For goals needing liquid funds quickly, actual availability may be lower if a significant portion of wealth is in illiquid assets such as property or locked retirement accounts.</span>
+    <span><span class="fund-tag fund-bad">Underfunded</span> &lt; 25% / &lt; 60%</span>
+    <span style="color:var(--text3)">Simulated success reads the percentile of simulated net worth in the goal's calendar year against the amount needed. Note: "net worth" here includes all simulated wealth (investments, cash, property, retirement accounts minus debt) — for goals needing liquid funds quickly, actual availability may be lower if a significant portion of wealth is in illiquid assets. The PV funding ratio discounts each goal's cost at a rate matched to its priority tier (Essential 95% / Important 75% / Aspirational 55% confidence), grossed for tax, and compares it to current assets plus reachable future savings, using the capital-market-assumption covariance engine.</span>
   </div>
-  </div>
-</div>
-
-<!-- Goal Funding Status (PV-based, Merrill-style) -->
-<div class="panel" id="simFundingPanel">
-  <div class="ptitle section-dropdown" onclick="toggleDropdown('simFundingWrap')" style="margin:0">
-    Goal Funding Status <span class="dropdown-hint">present-value, priority-weighted · click to expand</span>
-    <span class="ptitle-line"></span>
-  </div>
-  <div class="dropdown-body" id="simFundingWrap">
-  <div style="font-size:12px;color:var(--text3);margin:10px 0 14px;line-height:1.6">
-    Each goal priced in present-value terms and discounted at a risk-adjusted rate matched to its priority (Essential 95% / Important 75% / Aspirational 55% confidence), grossed for tax, then compared to your funding sources. This complements the probabilistic goal-success rates above with the institutional <strong>Funding Ratio</strong> metric. Uses the capital-market-assumption covariance engine.
-  </div>
-  <div id="simFunding"><div class="pf-empty">Run the simulation to populate funding ratios.</div></div>
   </div>
 </div>
 
@@ -3643,7 +3618,7 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
 // ═══════════════════════════════════════════════════════════
 // VERSION — updated by build-standalone.pl on each build
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260707-1451";
+const APP_VERSION = "20260707-1526";
 
 // ═══════════════════════════════════════════════════════════
 // DATA
@@ -14566,13 +14541,12 @@ function runSim(){
   //  panels were removed from the Simulation tab, so the output went nowhere.)
   renderGoalAnalysis(paths,yrs);
   try{ if(typeof gbRenderWealth==="function") gbRenderWealth(); }catch(_){}  // Wealth Allocation Framework panel (Simulation tab)
-  renderFundingStatus(paths,yrs);
   refreshTopMetrics(paths,yrs);
   renderRetirementNumber();
   renderTaxEfficiency();
   renderEfficientFrontier();
-  // Merrill-style PV funding ratios (reuse GB engine)
-  try { renderSimFundingStatus(); } catch(e){ console.warn("renderSimFundingStatus:", e); }
+  // Combined simulated-success + PV funding ratio panel (reuse GB engine)
+  try { renderCombinedGoalFunding(paths,yrs); } catch(e){ console.warn("renderCombinedGoalFunding:", e); }
   try { renderSimPotentialWealth(); } catch(e){ console.warn("renderSimPotentialWealth:", e); }
   try { renderClaimAge(); } catch(e){ console.warn("renderClaimAge:", e); }
   try { renderEstate(); } catch(e){ console.warn("renderEstate:", e); }
@@ -14598,33 +14572,82 @@ function runSim(){
   }catch(_){}
 }
 
-// ─── Goal Funding Status in the Simulation tab (PV, priority-weighted) ───
-function renderSimFundingStatus(){
-  const host = document.getElementById("simFunding");
-  if(!host) return;
-  if(!goals || goals.length === 0){ host.innerHTML = '<div class="pf-empty">No goals defined. Add goals on the Goals tab.</div>'; return; }
+// ─── Goal & Retirement Funding Status in the Simulation tab ───
+// Combines the Monte Carlo simulated-success rate with the PV-based,
+// priority-weighted funding ratio (Merrill-style) into one per-goal view.
+function renderCombinedGoalFunding(paths,yrs){
+  const summaryHost = document.getElementById("goalFundingSummary");
+  const listHost = document.getElementById("goalFundingList");
+  if(!listHost) return;
+  if(!goals || goals.length === 0){
+    if(summaryHost) summaryHost.innerHTML = '';
+    listHost.innerHTML = '<div class="pf-empty">No goals defined. Add goals on the Goals tab.</div>';
+    return;
+  }
   const fs = computeGoalFundingStatus();
-  let h = '';
-  // Overall ratio chip
-  h += '<div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:14px;padding:12px 16px;background:var(--bg3);border-radius:10px">';
-  h += '<div style="font-size:30px;font-weight:800;color:'+gbRatioColor(fs.overallRatio)+'">'+Math.round(fs.overallRatio*100)+'%</div>';
-  h += '<div style="flex:1;min-width:200px"><div style="font-size:13px;font-weight:600;color:var(--text)">Overall goal funding</div><div style="font-size:11.5px;color:var(--text3)">PV cost '+fmtMoney(fs.totalGoalPV)+' · funded '+fmtMoney(fs.totalFundedPV)+(fs.totalGoalPV-fs.totalFundedPV>0?' · shortfall '+fmtMoney(fs.totalGoalPV-fs.totalFundedPV):'')+'</div></div>';
-  h += '</div>';
-  // Per-goal rows
+  const pvById = {};
+  fs.rows.forEach(r=>{ pvById[r.id] = r; });
+  const cy = currentYear();
+  const avgProb = goals.reduce((s,g)=>s+(goalSuccessFromPaths(g,paths,yrs)||0),0)/goals.length;
+
+  // Summary strip: simulated success vs. PV funding ratio, side by side
+  if(summaryHost){
+    let s = '<div style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:14px">';
+    s += '<div style="flex:1;min-width:200px;display:flex;align-items:center;gap:14px;padding:12px 16px;background:var(--bg3);border-radius:10px">';
+    s += '<div style="font-size:30px;font-weight:800;color:'+(avgProb>=80?'#1b6841':avgProb>=50?'#c98a3a':'#a83232')+'">'+avgProb.toFixed(0)+'%</div>';
+    s += '<div><div style="font-size:13px;font-weight:600;color:var(--text)">Simulated success</div><div style="font-size:11.5px;color:var(--text3)">Average probability across all goals, from the Monte Carlo paths</div></div>';
+    s += '</div>';
+    s += '<div style="flex:1;min-width:200px;display:flex;align-items:center;gap:14px;padding:12px 16px;background:var(--bg3);border-radius:10px">';
+    s += '<div style="font-size:30px;font-weight:800;color:'+gbRatioColor(fs.overallRatio)+'">'+Math.round(fs.overallRatio*100)+'%</div>';
+    s += '<div><div style="font-size:13px;font-weight:600;color:var(--text)">PV funding ratio</div><div style="font-size:11.5px;color:var(--text3)">PV cost '+fmtMoney(fs.totalGoalPV)+' · funded '+fmtMoney(fs.totalFundedPV)+(fs.totalGoalPV-fs.totalFundedPV>0?' · shortfall '+fmtMoney(fs.totalGoalPV-fs.totalFundedPV):'')+'</div></div>';
+    s += '</div>';
+    s += '</div>';
+    summaryHost.innerHTML = s;
+  }
+
+  // Per-goal cards, sorted the same way computeGoalFundingStatus sorts (tier, then start year)
+  const prioOrder = {essential:0, important:1, aspirational:2};
+  const sortedGoals = [...goals].sort((a,b)=>(prioOrder[a.tier]??1)-(prioOrder[b.tier]??1) || a.startYear-b.startYear);
   const tierColor={essential:"var(--red)",important:"var(--amber)",aspirational:"#7c3aed"};
   const tierLabel={essential:"Essential",important:"Important",aspirational:"Aspirational"};
-  fs.rows.forEach(r => {
-    h += '<div style="margin-bottom:12px">';
-    h += '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:5px">';
-    h += '<span style="font-size:13.5px;font-weight:700">'+escapeForHTML(r.name)+'</span>';
-    h += '<span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:50px;background:'+tierColor[r.tier]+'1a;color:'+tierColor[r.tier]+'">'+tierLabel[r.tier]+' · '+r.conf+'%</span>';
-    h += '<span style="font-size:11px;color:var(--text3)">'+r.period+' · '+fmtMoney(r.annual)+'/yr · disc '+(r.discRate*100).toFixed(1)+'%</span>';
-    h += '<span style="margin-left:auto;font-size:18px;font-weight:800;color:'+gbRatioColor(r.ratio)+'">'+Math.round(r.ratio*100)+'%</span>';
+  let h = '';
+  sortedGoals.forEach(g=>{
+    const pv = pvById[g.id];
+    const relYr = Math.min(yrs, Math.max(0, g.endYear-cy));
+    const totalAmt = g.amt*Math.max(1,g.endYear-g.startYear+1);
+    const nw50 = percentileAt(paths,relYr,50);
+    const prob = goalSuccessFromPaths(g,paths,yrs)||0;
+    const probCls = prob>=80?"fund-ok":(prob>=50||prob>=25?"fund-warn":"fund-bad");
+    const icon=(typeof GOAL_ICONS!=="undefined"&&GOAL_ICONS[g.cat])||{emoji:"⭐",color:"#6b7280",bg:"rgba(107,114,128,.10)"};
+    h += '<div style="margin-bottom:16px;padding:12px 14px;background:var(--bg3);border-radius:10px">';
+    h += '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px">';
+    h += '<div class="goal-icon" style="background:'+icon.bg+';color:'+icon.color+';width:26px;height:26px;font-size:13px">'+icon.emoji+'</div>';
+    h += '<span style="font-size:13.5px;font-weight:700">'+_daEsc(g.name)+'</span>';
+    if(pv) h += '<span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:50px;background:'+tierColor[pv.tier]+'1a;color:'+tierColor[pv.tier]+'">'+tierLabel[pv.tier]+' · '+pv.conf+'%</span>';
+    h += '<span style="font-size:11px;color:var(--text3)">'+g.endYear+' · '+fmtMoney(g.amt)+'/yr</span>';
     h += '</div>';
-    h += '<div style="height:9px;background:rgba(0,0,0,.06);border-radius:5px;overflow:hidden"><div style="height:100%;width:'+Math.min(100,r.ratio*100)+'%;background:'+gbRatioColor(r.ratio)+';border-radius:5px"></div></div>';
+    h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">';
+    // Left: simulated success
+    h += '<div>';
+    h += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px"><span style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.03em">Simulated success</span><span class="fund-tag '+probCls+'" style="font-size:13px;padding:1px 9px">'+prob.toFixed(0)+'%</span></div>';
+    h += '<div class="fund-bar" style="width:100%"><div class="fund-bar-fill '+probCls+'" style="width:'+Math.min(100,prob)+'%"></div></div>';
+    h += '<div style="font-size:11px;color:var(--text3);margin-top:4px">Median NW '+fmtMoney(nw50)+' vs. '+fmtMoney(totalAmt)+' needed</div>';
+    h += '</div>';
+    // Right: PV funding ratio
+    h += '<div>';
+    if(pv){
+      const ratioCls = pv.ratio>=0.9?"fund-ok":(pv.ratio>=0.6?"fund-warn":"fund-bad");
+      h += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px"><span style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.03em">PV funding ratio</span><span class="fund-tag '+ratioCls+'" style="font-size:13px;padding:1px 9px">'+Math.round(pv.ratio*100)+'%</span></div>';
+      h += '<div class="fund-bar" style="width:100%"><div class="fund-bar-fill '+ratioCls+'" style="width:'+Math.min(100,pv.ratio*100)+'%"></div></div>';
+      h += '<div style="font-size:11px;color:var(--text3);margin-top:4px">PV cost '+fmtMoney(pv.goalCostPV)+' · funded '+fmtMoney(pv.fundedPV)+'</div>';
+    } else {
+      h += '<div style="font-size:11px;color:var(--text3)">Not available</div>';
+    }
+    h += '</div>';
+    h += '</div>';
     h += '</div>';
   });
-  host.innerHTML = h;
+  listHost.innerHTML = h;
 }
 
 // ─── Achievable Lifestyle in the Simulation tab (3 confidence levels) ───
@@ -15060,11 +15083,11 @@ function computeGoalFundingStatus(){
     const fundedPV = Math.min(goalCostPV, assetsForThisGoal + futureSavingsPV);
     const ratio = goalCostPV>0 ? fundedPV/goalCostPV : 1;
     totalGoalPV += goalCostPV; totalFundedPV += fundedPV;
-    rows.push({name:g.name||"(unnamed goal)", tier, conf, period:g.startYear+"–"+g.endYear, annual:g.amt, goalCostPV, taxOnGoal, fundedPV, currentAssets:assetsForThisGoal, futureSavingsPV, ratio:Math.min(1.5,ratio), discRate});
+    rows.push({id:g.id, name:g.name||"(unnamed goal)", tier, conf, period:g.startYear+"–"+g.endYear, annual:g.amt, goalCostPV, taxOnGoal, fundedPV, currentAssets:assetsForThisGoal, futureSavingsPV, ratio:Math.min(1.5,ratio), discRate});
   });
   return {rows, overallRatio: totalGoalPV>0?totalFundedPV/totalGoalPV:1, totalGoalPV, totalFundedPV, port};
 }
-window.renderSimFundingStatus = renderSimFundingStatus;
+window.renderCombinedGoalFunding = renderCombinedGoalFunding;
 window.renderSimLifestyle = renderSimLifestyle;
 window.computeGoalFundingStatus = computeGoalFundingStatus;
 
@@ -15989,41 +16012,6 @@ function renderCFComparison(niData,curData,propData,curMu,propMu,curParams,propP
   } else {
     setH("cfcGoals",`<div style="font-size:12px;color:var(--text3);padding:8px 0">No goals defined — add goals on the Goals tab to see funding comparison.</div>`);
   }
-}
-
-// ═══════════════════════════════════════════════════════════
-// FUNDING STATUS
-// ═══════════════════════════════════════════════════════════
-function renderFundingStatus(paths,yrs){
-  const tbody=$("fundingBody"); if(!tbody) return;
-  if(goals.length===0 && !val("retAge")){tbody.innerHTML='<tr><td colspan="8" style="text-align:center;color:var(--text3);padding:18px">No goals defined.</td></tr>'; return;}
-  const cy=currentYear();
-  const rows=goals.map(g=>{
-    const relYr=Math.min(yrs,Math.max(0,g.endYear-cy));
-    const totalAmt=g.amt*Math.max(1,g.endYear-g.startYear+1);
-    const nw30=percentileAt(paths,relYr,30);
-    const nw50=percentileAt(paths,relYr,50);
-    const nw80=percentileAt(paths,relYr,80);
-    const ok=paths.filter(p=>p[relYr]>=totalAmt).length;
-    const prob=ok/paths.length*100;
-    let tag,cls;
-    if(prob>=80){tag="Fully funded"; cls="fund-ok";}
-    else if(prob>=50){tag="Partly funded"; cls="fund-warn";}
-    else if(prob>=25){tag="At risk"; cls="fund-warn";}
-    else{tag="Underfunded"; cls="fund-bad";}
-    return `<tr>
-      <td class="cf-l"><strong>${_daEsc(g.name)}</strong><div class="fund-cat">${g.cat||"other"} · ${g.tier||"important"}</div><div class="fund-meta">${fmtMoney(g.amt)}/yr × ${Math.max(1,g.endYear-g.startYear+1)} yrs</div></td>
-      <td class="cf-l">${g.endYear}</td>
-      <td class="fund-amt">${fmtMoney(totalAmt)}</td>
-      <td><span class="fund-amt ${nw30>=totalAmt?'fund-over':'fund-short'}">${fmtMoney(nw30)}<span class="fund-delta">${nw30>=totalAmt?'+':'−'}${fmtMoney(Math.abs(nw30-totalAmt))}</span></span></td>
-      <td><span class="fund-amt ${nw50>=totalAmt?'fund-over':'fund-short'}">${fmtMoney(nw50)}<span class="fund-delta">${nw50>=totalAmt?'+':'−'}${fmtMoney(Math.abs(nw50-totalAmt))}</span></span></td>
-      <td><span class="fund-amt ${nw80>=totalAmt?'fund-over':'fund-short'}">${fmtMoney(nw80)}<span class="fund-delta">${nw80>=totalAmt?'+':'−'}${fmtMoney(Math.abs(nw80-totalAmt))}</span></span></td>
-      <td><div class="fund-prob"><div class="fund-bar"><div class="fund-bar-fill ${cls}" style="width:${Math.min(100,prob)}%;background:${prob>=80?'#1b6841':prob>=50?'#c98a3a':'#a83232'}"></div></div>${prob.toFixed(0)}%</div></td>
-      <td class="cf-l"><span class="fund-tag ${cls}">${tag}</span></td>
-    </tr>`;
-  });
-  tbody.innerHTML=rows.join("") || '<tr><td colspan="8" style="text-align:center;color:var(--text3);padding:18px">No goals to fund.</td></tr>';
-  setH("fundingHeader",`Reading the ${30}/${50}/${80}th percentile of the simulated wealth path at each goal's calendar year.`);
 }
 
 // ═══════════════════════════════════════════════════════════
