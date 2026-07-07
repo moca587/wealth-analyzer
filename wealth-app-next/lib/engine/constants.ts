@@ -51,6 +51,24 @@ export const COUNTRY_LABELS: Record<string, string> = {
   SA: "Saudi Arabia", ZA: "South Africa", OTHER: "Other"
 };
 
+/**
+ * Maps a country code to the INFLATION_REGIONS key that best represents it.
+ * Not every country has its own region: individual eurozone members share
+ * the blended "EU" rate, and Taiwan shares the "CN" (China & Taiwan) rate —
+ * a direct code lookup would miss those and fall through to a default.
+ */
+const EUROZONE_MEMBERS = new Set([
+  "DE", "FR", "IT", "ES", "NL", "BE", "AT", "IE", "PT", "LU",
+  "FI", "GR", "CY", "HR", "EE", "LV", "LT", "SK", "SI", "MT",
+]);
+
+export function inflationRegionForCountry(country: string): string {
+  if (INFLATION_REGIONS[country]) return country;
+  if (EUROZONE_MEMBERS.has(country)) return "EU";
+  if (country === "TW") return "CN";
+  return "US";
+}
+
 /** IRS Uniform Lifetime Table for RMD calculations (US-specific). */
 export const IRS_UNIFORM_LIFETIME: Record<number, number> = {
   73: 26.5, 74: 25.5, 75: 24.6, 76: 23.7, 77: 22.9, 78: 22.0, 79: 21.1,

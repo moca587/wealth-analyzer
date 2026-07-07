@@ -23,6 +23,9 @@ const timeHorizonEnum = z.enum(["0_5", "5_10", "10_15", "15_plus"]);
 const countryCodeEnum = z.enum([
   "US", "CA", "GB", "AU", "CH", "EU", "JP", "SG", "HK",
   "CN", "TW", "KR", "IN", "ID", "MX", "BR", "SA", "ZA", "OTHER",
+  // Individual eurozone members — each has its own account taxonomy.
+  "DE", "FR", "IT", "ES", "NL", "BE", "AT", "IE", "PT", "LU",
+  "FI", "GR", "CY", "HR", "EE", "LV", "LT", "SK", "SI", "MT",
 ]);
 
 const assetClassEnum = z.enum([

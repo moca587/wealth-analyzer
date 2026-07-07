@@ -1,16 +1,18 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { RISK_PROFILES, HORIZON_PROFILES, COUNTRY_LABELS, INFLATION_REGIONS } from "@/lib/engine/constants";
 import { emptyPlan, newId } from "@/lib/plan/default-plan";
+import { HouseholdSection } from "./sections/household-section";
+import { ChildrenSection } from "./sections/children-section";
+import { AssetsSection } from "./sections/assets-section";
+import { ImportExportSection } from "./sections/import-export-section";
 import type {
-  WealthPlan, Client, Goal, Asset, Loan, IncomeStream, ExpenseCategory, AssetClass
+  WealthPlan, Goal, Loan, IncomeStream, ExpenseCategory
 } from "@/lib/engine/types";
 
 const today = () => new Date().toISOString();
@@ -33,26 +35,24 @@ export function PlanForm({ initialPlan }: { initialPlan: WealthPlan | null }) {
   const [plan, setPlan] = useState<WealthPlan>(() => initialPlan || emptyPlan());
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState<"idle" | "ok" | "err">("idle");
+  const [dirty, setDirty] = useState(false);
 
-  const set = (patch: Partial<WealthPlan>) => setPlan((p) => ({ ...p, ...patch, updatedAt: today() }));
-
-  // ─── Client helpers ─────────────────────────────────────────────
-  const updateClient = (id: string, patch: Partial<Client>) =>
-    set({ clients: plan.clients.map((c) => (c.id === id ? { ...c, ...patch } : c)) });
-  const addSecondClient = () => {
-    if (plan.clients.length >= 2) return;
-    set({ clients: [...plan.clients, { id: newId(), first: "", last: "", country: plan.clients[0].country, risk: "moderate", horizon: "15_plus" }] });
-  };
-  const removeClient = (id: string) => {
-    if (plan.clients.length <= 1) return;
-    const remaining = plan.clients.filter((c) => c.id !== id);
-    // Reassign that client's income streams to whoever is left, rather than
-    // leaving an orphaned clientId the schema (and the sim) would reject.
-    const incomes = plan.incomes.map((x) => (x.clientId === id ? { ...x, clientId: remaining[0].id } : x));
-    set({ clients: remaining, incomes });
+  const set = (patch: Partial<WealthPlan>) => {
+    setPlan((p) => ({ ...p, ...patch, updatedAt: today() }));
+    setDirty(true);
+    setSaved("idle");
   };
 
-  // ─── Income/expense/asset/loan/goal helpers ───────────────────
+  // Warn before leaving with unsaved changes — the app relies on an explicit
+  // Save (no autosave), so a stray back/close shouldn't discard a full plan.
+  useEffect(() => {
+    if (!dirty) return;
+    const handler = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = ""; };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [dirty]);
+
+  // ─── Income/expense/loan/goal helpers ─────────────────────────
   const addIncome = () => set({ incomes: [...plan.incomes, { id: newId(), clientId: plan.clients[0].id, source: "", amount: 0 }] });
   const updateIncome = (id: string, patch: Partial<IncomeStream>) =>
     set({ incomes: plan.incomes.map((x) => (x.id === id ? { ...x, ...patch } : x)) });
@@ -62,11 +62,6 @@ export function PlanForm({ initialPlan }: { initialPlan: WealthPlan | null }) {
   const updateExpense = (id: string, patch: Partial<ExpenseCategory>) =>
     set({ expenses: plan.expenses.map((x) => (x.id === id ? { ...x, ...patch } : x)) });
   const removeExpense = (id: string) => set({ expenses: plan.expenses.filter((x) => x.id !== id) });
-
-  const addAsset = () => set({ assets: [...plan.assets, { id: newId(), type: "Brokerage", value: 0, liquid: true, cls: "equity" }] });
-  const updateAsset = (id: string, patch: Partial<Asset>) =>
-    set({ assets: plan.assets.map((x) => (x.id === id ? { ...x, ...patch } : x)) });
-  const removeAsset = (id: string) => set({ assets: plan.assets.filter((x) => x.id !== id) });
 
   const addLoan = () => set({ loans: [...plan.loans, { id: newId(), type: "Mortgage", bal: 0, rate: 6.5, yrs: 30 }] });
   const updateLoan = (id: string, patch: Partial<Loan>) =>
@@ -78,11 +73,8 @@ export function PlanForm({ initialPlan }: { initialPlan: WealthPlan | null }) {
     set({ goals: plan.goals.map((x) => (x.id === id ? { ...x, ...patch } : x)) });
   const removeGoal = (id: string) => set({ goals: plan.goals.filter((x) => x.id !== id) });
 
-  // ─── Inflation region change ──────────────────────────────────
-  const setRegion = (region: string) => {
-    const r = INFLATION_REGIONS[region];
-    set({ inflationRegion: region, inflationRate: r?.rate ?? plan.inflationRate });
-  };
+  // Replace the whole plan (used by import) — stamp updatedAt via set().
+  const replacePlan = (next: WealthPlan) => set({ ...next });
 
   // ─── Save to Postgres via /api/plan ───────────────────────────
   async function save() {
@@ -96,6 +88,7 @@ export function PlanForm({ initialPlan }: { initialPlan: WealthPlan | null }) {
       });
       if (!res.ok) throw new Error(await res.text());
       setSaved("ok");
+      setDirty(false);
       router.refresh();
     } catch (e) {
       console.error(e);
@@ -107,71 +100,8 @@ export function PlanForm({ initialPlan }: { initialPlan: WealthPlan | null }) {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* ─── HOUSEHOLD ─── */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Household</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {plan.clients.map((c, idx) => (
-            <div key={c.id} className="grid sm:grid-cols-2 lg:grid-cols-5 gap-3 p-4 rounded-lg border border-border bg-muted/30">
-              <div className="space-y-1.5">
-                <Label>First name</Label>
-                <Input value={c.first} onChange={(e) => updateClient(c.id, { first: e.target.value })} />
-              </div>
-              <div className="space-y-1.5">
-                <Label>Last name</Label>
-                <Input value={c.last} onChange={(e) => updateClient(c.id, { last: e.target.value })} />
-              </div>
-              <div className="space-y-1.5">
-                <Label>Country</Label>
-                <Select value={c.country || "US"} onChange={(e) => updateClient(c.id, { country: e.target.value as Client["country"] })}>
-                  {Object.entries(COUNTRY_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-                </Select>
-              </div>
-              <div className="space-y-1.5">
-                <Label>Risk profile</Label>
-                <Select value={c.risk || "moderate"} onChange={(e) => updateClient(c.id, { risk: e.target.value as Client["risk"] })}>
-                  {Object.entries(RISK_PROFILES).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
-                </Select>
-              </div>
-              <div className="space-y-1.5">
-                <Label>Time horizon</Label>
-                <div className="flex gap-2">
-                  <Select value={c.horizon || "15_plus"} onChange={(e) => updateClient(c.id, { horizon: e.target.value as Client["horizon"] })}>
-                    {Object.entries(HORIZON_PROFILES).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
-                  </Select>
-                  {idx > 0 && (
-                    <Button type="button" variant="ghost" size="sm" onClick={() => removeClient(c.id)} className="text-destructive">&times;</Button>
-                  )}
-                </div>
-              </div>
-            </div>
-          ))}
-          {plan.clients.length < 2 && (
-            <Button type="button" variant="outline" size="sm" onClick={addSecondClient}>+ Add second client</Button>
-          )}
-
-          <div className="grid sm:grid-cols-3 gap-3 pt-4 border-t border-border">
-            <div className="space-y-1.5">
-              <Label>Currency</Label>
-              <Select value={plan.currency} onChange={(e) => set({ currency: e.target.value })}>
-                {["USD","EUR","GBP","CHF","CAD","AUD","JPY","SGD","HKD"].map((c) => <option key={c} value={c}>{c}</option>)}
-              </Select>
-            </div>
-            <div className="space-y-1.5">
-              <Label>Inflation region</Label>
-              <Select value={plan.inflationRegion || "US"} onChange={(e) => setRegion(e.target.value)}>
-                {Object.entries(INFLATION_REGIONS).map(([k, v]) => <option key={k} value={k}>{v.label} ({(v.rate*100).toFixed(1)}%)</option>)}
-              </Select>
-            </div>
-            <div className="space-y-1.5">
-              <Label>Inflation rate (decimal)</Label>
-              <Input type="number" step="0.001" value={plan.inflationRate} onChange={(e) => set({ inflationRate: parseMoneyInput(e.target.value, plan.inflationRate) })} />
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      <HouseholdSection plan={plan} update={set} />
+      <ChildrenSection plan={plan} update={set} />
 
       {/* ─── INCOME ─── */}
       <SectionList
@@ -201,25 +131,8 @@ export function PlanForm({ initialPlan }: { initialPlan: WealthPlan | null }) {
         )}
       />
 
-      {/* ─── ASSETS ─── */}
-      <SectionList
-        title="Assets"
-        rows={plan.assets}
-        onAdd={addAsset}
-        renderRow={(x) => (
-          <>
-            <div className="space-y-1.5"><Label>Type</Label><Input value={x.type} onChange={(e) => updateAsset(x.id, { type: e.target.value })} placeholder="Brokerage, 401k, Property…" /></div>
-            <div className="space-y-1.5"><Label>Class</Label><Select value={x.cls || "equity"} onChange={(e) => updateAsset(x.id, { cls: e.target.value as AssetClass })}>
-              {["equity","fixed_income","real_estate","commodity","cash","mixed","alternative","crypto"].map((c) => <option key={c} value={c}>{c.replace("_"," ")}</option>)}
-            </Select></div>
-            <div className="space-y-1.5"><Label>Current value</Label><Input type="number" value={x.value} onChange={(e) => updateAsset(x.id, { value: parseMoneyInput(e.target.value, x.value) })} /></div>
-            <div className="flex items-end gap-2">
-              <label className="flex items-center gap-2 text-xs"><input type="checkbox" checked={x.liquid} onChange={(e) => updateAsset(x.id, { liquid: e.target.checked })} /> Liquid</label>
-              <Button type="button" variant="ghost" size="sm" onClick={() => removeAsset(x.id)} className="text-destructive ml-auto">Remove</Button>
-            </div>
-          </>
-        )}
-      />
+      {/* ─── ASSETS (country-aware) ─── */}
+      <AssetsSection plan={plan} update={set} />
 
       {/* ─── LIABILITIES ─── */}
       <SectionList
@@ -257,12 +170,17 @@ export function PlanForm({ initialPlan }: { initialPlan: WealthPlan | null }) {
         )}
       />
 
+      {/* ─── IMPORT / EXPORT ─── */}
+      <ImportExportSection plan={plan} onImport={replacePlan} />
+
       {/* ─── SAVE ─── */}
       <div className="sticky bottom-0 bg-gradient-to-t from-background via-background to-background/95 backdrop-blur-sm pt-4 pb-6 -mx-6 px-6 flex items-center justify-between border-t border-border">
         <div className="text-sm">
           {saved === "ok" && <span className="text-emerald-600">✓ Saved</span>}
           {saved === "err" && <span className="text-destructive">Save failed — check console</span>}
-          {saved === "idle" && <span className="text-muted-foreground">Click save to persist</span>}
+          {saved === "idle" && (dirty
+            ? <span className="text-amber-600">Unsaved changes</span>
+            : <span className="text-muted-foreground">Click save to persist</span>)}
         </div>
         <div className="flex gap-3">
           <Button variant="outline" onClick={() => router.push("/app")}>Cancel</Button>

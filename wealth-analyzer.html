@@ -163,12 +163,16 @@ body.shared-view .nav-item{cursor:pointer;opacity:.95}
 .wh-seg-lbl{flex:1;color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .wh-seg-pct{color:var(--text3);font-weight:600;font-variant-numeric:tabular-nums}
 
-/* ── Metric bar (secondary/hidden) ── */
+/* ── Metric tile — used both in the (hidden) top metric bar and, with an
+   inline display:grid override, in RMD/Roth/Estate/AI-builder/Goal-funding
+   result panels, where it is live and visible. ── */
 .metrics{display:none}
-.mc{background:linear-gradient(135deg,#ffffff,#f8fbff);border:1px solid rgba(0,87,184,0.08);border-radius:var(--r);padding:14px 18px;flex:1;min-width:110px;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+.mc{background:linear-gradient(135deg,#ffffff,#f8fbff);border:1px solid rgba(0,87,184,0.08);border-radius:var(--r);padding:14px 18px;flex:1;min-width:110px;box-shadow:0 1px 3px rgba(0,0,0,.04);transition:transform .15s,box-shadow .15s,border-color .15s}
+.mc:hover{transform:translateY(-2px);box-shadow:0 6px 18px rgba(0,87,184,.10);border-color:rgba(0,87,184,.22)}
 .mc-lbl{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.09em;margin-bottom:6px;font-weight:600}
 .mc-val{font-size:21px;color:var(--text);font-weight:700;letter-spacing:-.03em;font-variant-numeric:tabular-nums}
 .mc-val.pos{color:var(--green)}.mc-val.neg{color:var(--red)}.mc-val.gold{color:var(--gold)}
+@media (prefers-reduced-motion:reduce){.mc{transition:none}.mc:hover{transform:none}}
 
 /* ── Panel ── */
 .panel{background:#ffffff;border:1px solid rgba(0,87,184,0.08);border-radius:var(--r);padding:22px 26px;margin-bottom:16px;box-shadow:0 1px 4px rgba(0,0,0,.04)}
@@ -394,7 +398,9 @@ input[type=date]{color-scheme:light}
 .ai-pos-card:focus-within .ai-pos-why {
   max-height:1200px;
 }
-.pf-mc{padding:10px 14px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--rs)}
+.pf-mc{padding:10px 14px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--rs);transition:transform .15s,box-shadow .15s,border-color .15s}
+.pf-mc:hover{transform:translateY(-2px);box-shadow:0 6px 18px rgba(0,87,184,.10);border-color:rgba(0,87,184,.28);background:var(--bg2)}
+@media (prefers-reduced-motion:reduce){.pf-mc{transition:none}.pf-mc:hover{transform:none}}
 .pf-mc-lbl{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px}
 .pf-mc-val{font-family:var(--fd);font-size:18px;color:var(--text);font-weight:700}
 .pf-bar-wrap{margin-bottom:10px}
@@ -633,14 +639,18 @@ input[type=date]{color-scheme:light}
 .ef-legend{display:flex;flex-wrap:wrap;gap:12px;font-size:11px;margin-top:10px}
 .ef-dot{width:10px;height:10px;border-radius:50%;display:inline-block;margin-right:5px;vertical-align:middle}
 .tax-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px}
-.tax-box{background:var(--bg3);border:1px solid var(--border);border-radius:var(--rs);padding:12px 14px;text-align:center}
+.tax-box{background:var(--bg3);border:1px solid var(--border);border-radius:var(--rs);padding:12px 14px;text-align:center;transition:transform .15s,box-shadow .15s,border-color .15s}
+.tax-box:hover{transform:translateY(-2px);box-shadow:0 6px 18px rgba(0,87,184,.10);border-color:rgba(0,87,184,.28);background:var(--bg2)}
+@media (prefers-reduced-motion:reduce){.tax-box{transition:none}.tax-box:hover{transform:none}}
 .tax-box .tb-lbl{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px;font-weight:600}
 .tax-box .tb-val{font-size:20px;font-weight:700;color:var(--text)}
 .tax-box .tb-sub{font-size:10px;color:var(--text3);margin-top:2px}
 .tax-score-bar{height:8px;border-radius:4px;background:var(--bg4);overflow:hidden;margin:8px 0}
 .tax-score-fill{height:100%;border-radius:4px;background:linear-gradient(90deg,#e31837 0%,#f59e0b 40%,#00875a 100%);transition:width .4s ease}
 .rn-hero{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:16px}
-.rn-card{flex:1;min-width:160px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:14px 18px}
+.rn-card{flex:1;min-width:160px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:14px 18px;transition:transform .15s,box-shadow .15s,border-color .15s}
+.rn-card:hover{transform:translateY(-2px);box-shadow:0 6px 18px rgba(0,87,184,.10);border-color:rgba(0,87,184,.28);background:var(--bg2)}
+@media (prefers-reduced-motion:reduce){.rn-card{transition:none}.rn-card:hover{transform:none}}
 .rn-card .rn-lbl{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px;font-weight:600}
 .rn-card .rn-val{font-size:22px;font-weight:700;color:var(--text);font-variant-numeric:tabular-nums}
 .rn-card .rn-sub{font-size:11px;color:var(--text3);margin-top:3px}
@@ -3628,7 +3638,7 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
 // ═══════════════════════════════════════════════════════════
 // VERSION — updated by build-standalone.pl on each build
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260707-1438";
+const APP_VERSION = "20260707-1448";
 
 // ═══════════════════════════════════════════════════════════
 // DATA
@@ -5269,6 +5279,17 @@ function runRMDSchedule(){
   renderRMDSchedule(s);
   if(st){ st.textContent="✓ done"; st.style.color="var(--green)"; }
 }
+// Reusable metric tile (.mc): a label + value, with an optional hover-reveal
+// explanation using the app's existing .info-ic/.info-pop tooltip component
+// (the same pattern already used on the Portfolio-summary .pf-mc tiles) —
+// so every metric card in the app explains its own data consistently.
+function mcTile(label, value, explain, valStyle){
+  const ic = explain ? '<span class="info-ic">i<span class="info-pop">'+explain+'</span></span>' : '';
+  const st = valStyle ? ' style="'+valStyle+'"' : '';
+  return '<div class="mc"><div class="mc-lbl">'+label+ic+'</div><div class="mc-val"'+st+'>'+value+'</div></div>';
+}
+window.mcTile = mcTile;
+
 function renderRMDSchedule(s){
   const host=$("rmdResults"); if(!host) return;
   const cn=(COUNTRY_ACCOUNTS[val("c1co")]&&COUNTRY_ACCOUNTS[val("c1co")].name)||"Your country";
@@ -5279,9 +5300,12 @@ function renderRMDSchedule(s){
   }
   const step=s.rows.length>20?5:1;
   const shown=s.rows.filter((r,i)=>i%step===0 || i===s.rows.length-1);
-  const card=(l,v)=>'<div class="mc"><div class="mc-lbl">'+l+'</div><div class="mc-val" style="font-size:16px">'+v+'</div></div>';
+  const card=(l,v,ex)=>mcTile(l,v,ex,"font-size:16px");
   let h='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:12px">';
-  h+=card("Rule",kindLbl)+card("Starts at age",s.rule.startAge)+card("Total required (to "+s.planAge+")",fmtMoney(s.totalW))+card("Est. tax on withdrawals",fmtMoney(s.totalTax));
+  h+=card("Rule",kindLbl,"Which country's mandatory-withdrawal rule applies, based on your residence country on the Household tab.")
+    +card("Starts at age",s.rule.startAge,"The age your jurisdiction requires you to begin withdrawing from tax-deferred retirement accounts.")
+    +card("Total required (to "+s.planAge+")",fmtMoney(s.totalW),"The sum of every mandatory withdrawal from today's retirement pool through your planning age, before tax.")
+    +card("Est. tax on withdrawals",fmtMoney(s.totalTax),"Estimated tax on those mandatory withdrawals, using your effective income-tax rate. Illustrative — not tax advice.");
   h+='</div>';
   h+='<div style="font-size:11px;color:var(--text3);line-height:1.6;margin-bottom:10px">'+_daEsc(cn)+': '+_daEsc(s.rule.note)+' Pool projected at '+(s.growth*100).toFixed(1)+'%/yr; tax estimated at '+(s.effTax*100).toFixed(0)+'% effective. Illustrative — not tax advice.</div>';
   h+='<div style="overflow:auto"><table style="width:100%;border-collapse:collapse;font-size:12px"><tr style="color:var(--text3);text-align:left"><th style="padding:4px 8px">Age</th><th>Year</th><th>Pool (start)</th><th>Required %</th><th>Withdrawal</th><th>Est. tax</th><th>Pool (end)</th></tr>';
@@ -5344,9 +5368,12 @@ function renderRothConversion(s){
   if(s.mech.avail===false){ host.innerHTML=box('<strong>'+_daEsc(cn)+' — no Roth-style conversion.</strong><br>'+_daEsc(s.mech.note)); return; }
   if(!(s.deferredPool>0)){ host.innerHTML=box('<strong>'+_daEsc(cn)+' — '+_daEsc(s.mech.name)+'.</strong><br>'+_daEsc(s.mech.note)+'<br><span style="color:var(--text3)">No tax-deferred retirement pool detected — add retirement accounts to model a conversion.</span>'); return; }
   if(s.windowYears<=0){ host.innerHTML=box('<strong>'+_daEsc(cn)+' — '+_daEsc(s.mech.name)+'.</strong><br>'+_daEsc(s.mech.note)+'<br><span style="color:var(--amber)">No low-income conversion window: your retirement age ('+s.retAge+') is at or after the mandatory-withdrawal age ('+s.forcedAge+'). Conversions are most useful in the gap between the two.</span>'); return; }
-  const card=(l,v)=>'<div class="mc"><div class="mc-lbl">'+l+'</div><div class="mc-val" style="font-size:16px">'+v+'</div></div>';
+  const card=(l,v,ex)=>mcTile(l,v,ex,"font-size:16px");
   let h='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:12px">';
-  h+=card("Conversion window","age "+s.windowStart+"–"+s.windowEnd+" ("+s.windowYears+" yrs)")+card("Suggested / yr",fmtMoney(s.annualConv))+card("Tax / yr (~"+(s.windowTax*100).toFixed(0)+"%)",fmtMoney(s.taxPerYear))+card("Total converted",fmtMoney(s.totalConverted));
+  h+=card("Conversion window","age "+s.windowStart+"–"+s.windowEnd+" ("+s.windowYears+" yrs)","The gap between your retirement age and when mandatory withdrawals or pensions begin — the years available to convert at a lower tax rate.")
+    +card("Suggested / yr",fmtMoney(s.annualConv),"An even, level conversion amount that spreads your tax-deferred pool across the whole window.")
+    +card("Tax / yr (~"+(s.windowTax*100).toFixed(0)+"%)",fmtMoney(s.taxPerYear),"Estimated tax on each year's conversion, using a lower in-window rate than your current effective rate.")
+    +card("Total converted",fmtMoney(s.totalConverted),"The total tax-deferred balance projected to move into the tax-free bucket over the window.");
   h+='</div>';
   h+='<div style="font-size:12px;color:var(--text2);line-height:1.7;margin-bottom:8px"><strong>'+_daEsc(cn)+' — '+_daEsc(s.mech.name)+(s.mech.avail==="partial"?' (analogous strategy)':'')+'.</strong> '+_daEsc(s.mech.note)+'</div>';
   h+='<div style="font-size:12px;color:var(--text2);line-height:1.7">Spreading your '+fmtMoney(s.deferredPool)+' tax-deferred pool across the '+s.windowYears+'-year window (~'+fmtMoney(s.annualConv)+'/yr) moves it into the tax-free bucket at an estimated '+(s.windowTax*100).toFixed(0)+'% rate (~'+fmtMoney(s.totalTax)+' total tax) — instead of leaving it to grow the tax-deferred balance and force larger, higher-rate required withdrawals later.</div>';
@@ -7803,10 +7830,12 @@ function renderEstate(){
   try{ renderEstateRegimeNote(); }catch(_){}
   const e=computeEstate();
   let h='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:12px">';
-  h+='<div class="mc"><div class="mc-lbl">'+(e.fromProjection?"Median projected estate":"Current net worth")+'</div><div class="mc-val" style="font-size:16px">'+fmtMoney(e.baseNW)+'</div></div>';
-  h+='<div class="mc"><div class="mc-lbl">+ Life insurance</div><div class="mc-val" style="font-size:16px">'+fmtMoney(e.death)+'</div></div>';
-  h+='<div class="mc"><div class="mc-lbl">- Estate tax</div><div class="mc-val" style="font-size:16px;color:'+(e.tax>0?"var(--red)":"var(--green)")+'">'+fmtMoney(e.tax)+'</div></div>';
-  h+='<div class="mc"><div class="mc-lbl">Net to beneficiaries</div><div class="mc-val" style="font-size:16px;color:var(--green)">'+fmtMoney(e.net)+'</div></div>';
+  h+=mcTile(e.fromProjection?"Median projected estate":"Current net worth", fmtMoney(e.baseNW),
+    e.fromProjection?"The median simulated net worth at the end of your Monte Carlo projection — used as the estate's starting value once a simulation has run.":"Today's net worth — used as the estate's starting value until you run a simulation.",
+    "font-size:16px");
+  h+=mcTile("+ Life insurance", fmtMoney(e.death), "Death benefits from any life insurance policies entered on the Insurance tab, added to the estate.", "font-size:16px");
+  h+=mcTile("- Estate tax", fmtMoney(e.tax), "Estimated estate/inheritance tax on the amount above your exemption threshold, at your configured rate. Illustrative — not tax advice.", "font-size:16px;color:"+(e.tax>0?"var(--red)":"var(--green)"));
+  h+=mcTile("Net to beneficiaries", fmtMoney(e.net), "What's left to pass on after life insurance is added and estate tax is subtracted.", "font-size:16px;color:var(--green)");
   h+='</div>';
   if(beneficiaries.length>0){
     h+='<table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr style="border-bottom:2px solid var(--border);text-align:right"><th style="text-align:left;padding:6px 8px">Beneficiary</th><th style="padding:6px 8px">Share</th><th style="padding:6px 8px">Receives</th></tr></thead><tbody>';
@@ -11864,22 +11893,22 @@ function renderAIGenResult(rec, brief){
   // KPIs — full portfolio metrics
   const pm = rec.portfolioMetrics || {};
   h += `<div class="metrics" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(125px,1fr));gap:8px;margin-bottom:8px">
-    <div class="mc"><div class="mc-lbl">Expected Return (μ)</div><div class="mc-val" style="color:var(--green)">${((rec.expectedReturn||0)*100).toFixed(2)}%</div></div>
-    <div class="mc"><div class="mc-lbl">Volatility (σ)</div><div class="mc-val" style="color:var(--amber)">${((rec.expectedVolatility||0)*100).toFixed(2)}%</div></div>
-    <div class="mc"><div class="mc-lbl">Sharpe Ratio</div><div class="mc-val">${(pm.sharpe||0).toFixed(2)}</div></div>
-    <div class="mc"><div class="mc-lbl">Portfolio β</div><div class="mc-val">${(pm.beta||0).toFixed(2)}</div></div>
-    <div class="mc"><div class="mc-lbl">Max Drawdown</div><div class="mc-val" style="color:var(--red)">${(pm.maxDD||0).toFixed(0)}%</div></div>
-    <div class="mc"><div class="mc-lbl">Positions</div><div class="mc-val">${rec.positions?.length || 0}</div></div>
+    ${mcTile("Expected Return (μ)", ((rec.expectedReturn||0)*100).toFixed(2)+"%", "The portfolio's expected annual return (arithmetic mean), based on the recommended funds' asset-class mix.", "color:var(--green)")}
+    ${mcTile("Volatility (σ)", ((rec.expectedVolatility||0)*100).toFixed(2)+"%", "The portfolio's expected annual standard deviation — how much returns typically swing year to year.", "color:var(--amber)")}
+    ${mcTile("Sharpe Ratio", (pm.sharpe||0).toFixed(2), "Return earned per unit of risk taken (excess return ÷ volatility). Higher is better; above 1.0 is generally considered good.")}
+    ${mcTile("Portfolio β", (pm.beta||0).toFixed(2), "Sensitivity to the broad market. 1.0 moves with the market; below 1.0 is less volatile than the market, above 1.0 is more.")}
+    ${mcTile("Max Drawdown", (pm.maxDD||0).toFixed(0)+"%", "The largest peak-to-trough decline the portfolio's holdings have historically experienced.", "color:var(--red)")}
+    ${mcTile("Positions", rec.positions?.length || 0, "The number of distinct funds/securities in the recommended portfolio.")}
   </div>`;
   h += `<div class="metrics" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(125px,1fr));gap:8px;margin-bottom:14px">
-    <div class="mc"><div class="mc-lbl">1y Return</div><div class="mc-val" style="font-size:14px;color:${(pm.r1y||0)>=0?'var(--green)':'var(--red)'}">${(pm.r1y||0).toFixed(1)}%</div></div>
-    <div class="mc"><div class="mc-lbl">3y Annualized</div><div class="mc-val" style="font-size:14px;color:${(pm.r3y||0)>=0?'var(--green)':'var(--red)'}">${(pm.r3y||0).toFixed(1)}%</div></div>
-    <div class="mc"><div class="mc-lbl">5y Annualized</div><div class="mc-val" style="font-size:14px;color:${(pm.r5y||0)>=0?'var(--green)':'var(--red)'}">${(pm.r5y||0).toFixed(1)}%</div></div>
-    <div class="mc"><div class="mc-lbl">10y Annualized</div><div class="mc-val" style="font-size:14px;color:${(pm.r10y||0)>=0?'var(--green)':'var(--red)'}">${(pm.r10y||0).toFixed(1)}%</div></div>
-    <div class="mc"><div class="mc-lbl">Blended ER</div><div class="mc-val" style="font-size:14px">${(pm.blendedER||0).toFixed(2)}%</div></div>
-    <div class="mc"><div class="mc-lbl">Blended Yield</div><div class="mc-val" style="font-size:14px">${(pm.blendedYield||0).toFixed(2)}%</div></div>
-    <div class="mc"><div class="mc-lbl">Holdings (total)</div><div class="mc-val" style="font-size:14px">${(pm.totalHoldings||0).toLocaleString()}</div></div>
-    <div class="mc"><div class="mc-lbl">AUM (weighted)</div><div class="mc-val" style="font-size:14px">$${(pm.totalAUM||0).toFixed(0)}B</div></div>
+    ${mcTile("1y Return", (pm.r1y||0).toFixed(1)+"%", "Historical annualized total return over the trailing 1-year period, before fees.", "font-size:14px;color:"+((pm.r1y||0)>=0?'var(--green)':'var(--red)'))}
+    ${mcTile("3y Annualized", (pm.r3y||0).toFixed(1)+"%", "Historical annualized total return over the trailing 3-year period, before fees.", "font-size:14px;color:"+((pm.r3y||0)>=0?'var(--green)':'var(--red)'))}
+    ${mcTile("5y Annualized", (pm.r5y||0).toFixed(1)+"%", "Historical annualized total return over the trailing 5-year period, before fees.", "font-size:14px;color:"+((pm.r5y||0)>=0?'var(--green)':'var(--red)'))}
+    ${mcTile("10y Annualized", (pm.r10y||0).toFixed(1)+"%", "Historical annualized total return over the trailing 10-year period, before fees.", "font-size:14px;color:"+((pm.r10y||0)>=0?'var(--green)':'var(--red)'))}
+    ${mcTile("Blended ER", (pm.blendedER||0).toFixed(2)+"%", "The value-weighted average annual expense ratio across all recommended positions — the ongoing cost drag on returns.", "font-size:14px")}
+    ${mcTile("Blended Yield", (pm.blendedYield||0).toFixed(2)+"%", "The value-weighted average income yield (dividends + interest) across all recommended positions.", "font-size:14px")}
+    ${mcTile("Holdings (total)", (pm.totalHoldings||0).toLocaleString(), "Combined number of underlying securities held across all recommended funds, including look-through fund-of-fund exposure.", "font-size:14px")}
+    ${mcTile("AUM (weighted)", "$"+(pm.totalAUM||0).toFixed(0)+"B", "The value-weighted average assets under management across recommended funds — a proxy for liquidity and fund stability.", "font-size:14px")}
   </div>`;
   // Allocation bars
   if(rec.allocationByClass){
@@ -16907,10 +16936,10 @@ function gbRenderOverall(ratio, goalPV, fundedPV, port, weights){
   h += 'Across all your goals, your funding sources cover <strong style="color:'+gbRatioColor(ratio)+'">'+pct.toFixed(0)+'%</strong> of the present-value cost.';
   h += '</div>';
   h += '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-top:14px">';
-  h += '<div class="mc"><div class="mc-lbl">Total goal cost (PV)</div><div class="mc-val">'+fmtMoney(goalPV)+'</div></div>';
-  h += '<div class="mc"><div class="mc-lbl">Funded (PV)</div><div class="mc-val" style="color:var(--green)">'+fmtMoney(fundedPV)+'</div></div>';
-  h += '<div class="mc"><div class="mc-lbl">Shortfall (PV)</div><div class="mc-val" style="color:'+(goalPV-fundedPV>0?"var(--red)":"var(--green)")+'">'+fmtMoney(Math.max(0,goalPV-fundedPV))+'</div></div>';
-  h += '<div class="mc"><div class="mc-lbl">Portfolio μ / σ</div><div class="mc-val" style="font-size:15px">'+(port.geoMu*100).toFixed(1)+'% / '+(port.sigma*100).toFixed(1)+'%</div></div>';
+  h += mcTile("Total goal cost (PV)", fmtMoney(goalPV), "The present-value cost of every goal, discounted at a risk-adjusted rate matched to each goal's priority.");
+  h += mcTile("Funded (PV)", fmtMoney(fundedPV), "How much of that present-value cost your current assets and future savings are projected to cover.", "color:var(--green)");
+  h += mcTile("Shortfall (PV)", fmtMoney(Math.max(0,goalPV-fundedPV)), "The present-value gap between what your goals cost and what's currently funded — additional savings or return needed to close it.", "color:"+(goalPV-fundedPV>0?"var(--red)":"var(--green)"));
+  h += mcTile("Portfolio μ / σ", (port.geoMu*100).toFixed(1)+'% / '+(port.sigma*100).toFixed(1)+'%', "Your blended expected return (μ) and volatility (σ), derived from your asset-class mix and used to discount goal costs.", "font-size:15px");
   h += '</div></div></div>';
   setH("gbOverall", h);
 }
