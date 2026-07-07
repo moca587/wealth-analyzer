@@ -651,6 +651,11 @@ input[type=date]{color-scheme:light}
 .rn-card{flex:1;min-width:160px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:14px 18px;transition:transform .15s,box-shadow .15s,border-color .15s}
 .rn-card:hover{transform:translateY(-2px);box-shadow:0 6px 18px rgba(0,87,184,.10);border-color:rgba(0,87,184,.28);background:var(--bg2)}
 @media (prefers-reduced-motion:reduce){.rn-card{transition:none}.rn-card:hover{transform:none}}
+/* Achievable-Lifestyle confidence tiles (Conservative/Expected/Optimistic) —
+   border-top color stays inline per-tile; everything else lives here. */
+.conf-tile{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:16px;text-align:center;transition:transform .15s,box-shadow .15s,border-color .15s}
+.conf-tile:hover{transform:translateY(-2px);box-shadow:0 6px 18px rgba(0,87,184,.10)}
+@media (prefers-reduced-motion:reduce){.conf-tile{transition:none}.conf-tile:hover{transform:none}}
 .rn-card .rn-lbl{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px;font-weight:600}
 .rn-card .rn-val{font-size:22px;font-weight:700;color:var(--text);font-variant-numeric:tabular-nums}
 .rn-card .rn-sub{font-size:11px;color:var(--text3);margin-top:3px}
@@ -3638,7 +3643,7 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
 // ═══════════════════════════════════════════════════════════
 // VERSION — updated by build-standalone.pl on each build
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260707-1448";
+const APP_VERSION = "20260707-1451";
 
 // ═══════════════════════════════════════════════════════════
 // DATA
@@ -14635,7 +14640,11 @@ function renderSimLifestyle(){
   const yearsInRet = Math.max(1, 90 - retAge);
   const investable = (typeof investableAssetsValue==="function" ? investableAssetsValue() : 0);
   const annualSavings = num("savAnnual", 0);
-  const confs = [{p:80,lbl:"Conservative (80%)",c:"var(--green)"},{p:50,lbl:"Expected (50%)",c:"var(--accent)"},{p:30,lbl:"Optimistic (30%)",c:"#7c3aed"}];
+  const confs = [
+    {p:80,lbl:"Conservative (80%)",c:"var(--green)",explain:"80% likelihood you can sustain at least this much spending. Built from the 20th percentile of your simulated wealth at retirement (a below-average market run), then solved for the highest annual spend with a 90% chance of lasting to age 90. Treat this as your downside-planning number — even a poor-market retirement could still support this lifestyle."},
+    {p:50,lbl:"Expected (50%)",c:"var(--accent)",explain:"The median outcome — half of simulated paths end retirement richer, half poorer. Solved for the highest annual spend with a 90% chance of lasting to age 90 from this wealth level. This is your single most likely scenario, not a guarantee."},
+    {p:30,lbl:"Optimistic (30%)",c:"#7c3aed",explain:"A more favorable-markets outcome — the 70th percentile of your simulated wealth at retirement. Solved the same way: the highest annual spend with a 90% chance of lasting to age 90. Only 30% of simulated paths do this well or better, so treat it as an upside case rather than a plan."}
+  ];
   let h = '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px">';
 
   // confs.forEach(cf => {
@@ -14653,8 +14662,8 @@ function renderSimLifestyle(){
   const spend = _solveSustainableSpendMC(wealth, yearsInRet, P.mu, P.sig, inflation, 90); // fixed 90% survival target
   const r = P.mu; // for display only
 
-    h += '<div style="background:var(--bg2);border:1px solid var(--border);border-top:3px solid '+cf.c+';border-radius:10px;padding:16px;text-align:center">';
-    h += '<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);margin-bottom:8px">'+cf.lbl+'</div>';
+    h += '<div class="conf-tile" style="border-top:3px solid '+cf.c+'">';
+    h += '<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);margin-bottom:8px">'+cf.lbl+'<span class="info-ic">i<span class="info-pop">'+cf.explain+'</span></span></div>';
     h += '<div style="font-size:28px;font-weight:800;color:'+cf.c+';letter-spacing:-.03em">'+fmtMoney(Math.max(0,spend))+'</div>';
     h += '<div style="font-size:11px;color:var(--text3);margin-top:4px">per year, to age 90</div>';
     // h += '<div style="font-size:10.5px;color:var(--text3);margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">Return '+(r*100).toFixed(1)+'%/yr · wealth at retirement '+fmtMoney(wealth)+'</div>';
