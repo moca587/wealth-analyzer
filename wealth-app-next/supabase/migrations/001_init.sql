@@ -8,7 +8,11 @@
 create table if not exists public.profiles (
   id            uuid primary key references auth.users(id) on delete cascade,
   display_name  text,
-  plan          jsonb not null default '{}'::jsonb,
+  -- Last-resort guard only — full field-level validation happens in the app
+  -- (lib/plan/schema.ts) via Zod. This just stops a raw array/string/number
+  -- from ever landing in the column, however it gets written.
+  plan          jsonb not null default '{}'::jsonb
+                check (jsonb_typeof(plan) = 'object'),
   -- Stage 2 will flip this when Stripe webhook confirms a paid subscription
   is_paid       boolean not null default false,
   stripe_customer_id text,

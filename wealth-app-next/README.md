@@ -16,15 +16,18 @@ Stage 1 of the SaaS migration from the single-file HTML prototype.
 
 ## Setup (do these in order)
 
+Built and verified against **Node 24.16.0 / npm 11.13.0**. Any Node 20+ LTS should work; the dependency set is pinned so `npm ci` resolves deterministically without `--legacy-peer-deps` or `--force`.
+
 ### 1. Install Node.js LTS
 
-https://nodejs.org/en/download/ — Windows installer, accept defaults. Reopen your terminal.
+https://nodejs.org/en/download/ — accept defaults, reopen your terminal.
 
 ### 2. Install dependencies
 
+From this directory (`wealth-app-next/`):
+
 ```bash
-cd "D:\Claude PWA\wealth-app-next"
-npm install
+npm ci
 ```
 
 ### 3. Create your Supabase project
@@ -64,6 +67,19 @@ npm run dev
 
 Open http://localhost:3000 — you should see the landing page.
 Try signing up at http://localhost:3000/signup.
+
+### 7. Verify before you build on top of this
+
+```bash
+npm test -- --run
+npm run type-check
+npm run build
+```
+
+All three should exit 0. If `npm test` fails on an empty test file, or `npm run build`
+fails prerendering a page that calls `useSearchParams()`, that page needs its
+client body split out and wrapped in `<Suspense>` (see `app/(auth)/login/` for
+the pattern).
 
 ## Folder structure (target — what's next)
 

@@ -8,31 +8,24 @@ import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { RISK_PROFILES, HORIZON_PROFILES, COUNTRY_LABELS, INFLATION_REGIONS } from "@/lib/engine/constants";
+import { emptyPlan, newId } from "@/lib/plan/default-plan";
 import type {
   WealthPlan, Client, Goal, Asset, Loan, IncomeStream, ExpenseCategory, AssetClass
 } from "@/lib/engine/types";
 
-const newId = () => "id_" + Math.random().toString(36).slice(2, 10);
 const today = () => new Date().toISOString();
 const thisYear = new Date().getFullYear();
 
-function emptyPlan(): WealthPlan {
-  const c1: Client = { id: newId(), first: "", last: "", country: "US", risk: "moderate", horizon: "15_plus" };
-  return {
-    version: 1,
-    currency: "USD",
-    inflationRate: INFLATION_REGIONS.US.rate,
-    inflationRegion: "US",
-    clients: [c1],
-    children: [],
-    incomes: [{ id: newId(), clientId: c1.id, source: "Salary", amount: 0, taxable: true }],
-    expenses: [{ id: newId(), name: "Living expenses", amount: 0 }],
-    assets: [],
-    loans: [],
-    goals: [],
-    createdAt: today(),
-    updatedAt: today()
-  };
+/**
+ * Parses a numeric form field without ever producing NaN/Infinity in plan
+ * state — a blank field becomes 0, and anything non-finite is discarded in
+ * favor of the previous value (JSON.stringify(NaN) silently becomes `null`,
+ * which would otherwise corrupt the saved plan).
+ */
+function parseMoneyInput(value: string, previous: number): number {
+  if (value.trim() === "") return 0;
+  const n = Number(value);
+  return Number.isFinite(n) ? n : previous;
 }
 
 export function PlanForm({ initialPlan }: { initialPlan: WealthPlan | null }) {
@@ -50,8 +43,14 @@ export function PlanForm({ initialPlan }: { initialPlan: WealthPlan | null }) {
     if (plan.clients.length >= 2) return;
     set({ clients: [...plan.clients, { id: newId(), first: "", last: "", country: plan.clients[0].country, risk: "moderate", horizon: "15_plus" }] });
   };
-  const removeClient = (id: string) =>
-    plan.clients.length > 1 && set({ clients: plan.clients.filter((c) => c.id !== id) });
+  const removeClient = (id: string) => {
+    if (plan.clients.length <= 1) return;
+    const remaining = plan.clients.filter((c) => c.id !== id);
+    // Reassign that client's income streams to whoever is left, rather than
+    // leaving an orphaned clientId the schema (and the sim) would reject.
+    const incomes = plan.incomes.map((x) => (x.clientId === id ? { ...x, clientId: remaining[0].id } : x));
+    set({ clients: remaining, incomes });
+  };
 
   // ─── Income/expense/asset/loan/goal helpers ───────────────────
   const addIncome = () => set({ incomes: [...plan.incomes, { id: newId(), clientId: plan.clients[0].id, source: "", amount: 0 }] });
@@ -168,7 +167,7 @@ export function PlanForm({ initialPlan }: { initialPlan: WealthPlan | null }) {
             </div>
             <div className="space-y-1.5">
               <Label>Inflation rate (decimal)</Label>
-              <Input type="number" step="0.001" value={plan.inflationRate} onChange={(e) => set({ inflationRate: +e.target.value })} />
+              <Input type="number" step="0.001" value={plan.inflationRate} onChange={(e) => set({ inflationRate: parseMoneyInput(e.target.value, plan.inflationRate) })} />
             </div>
           </div>
         </CardContent>
@@ -182,7 +181,7 @@ export function PlanForm({ initialPlan }: { initialPlan: WealthPlan | null }) {
         renderRow={(x) => (
           <>
             <div className="space-y-1.5 sm:col-span-2"><Label>Source</Label><Input value={x.source} onChange={(e) => updateIncome(x.id, { source: e.target.value })} placeholder="Salary, Bonus, Dividends…" /></div>
-            <div className="space-y-1.5"><Label>Annual amount</Label><Input type="number" value={x.amount} onChange={(e) => updateIncome(x.id, { amount: +e.target.value })} /></div>
+            <div className="space-y-1.5"><Label>Annual amount</Label><Input type="number" value={x.amount} onChange={(e) => updateIncome(x.id, { amount: parseMoneyInput(e.target.value, x.amount) })} /></div>
             <div className="flex items-end"><Button type="button" variant="ghost" size="sm" onClick={() => removeIncome(x.id)} className="text-destructive">Remove</Button></div>
           </>
         )}
@@ -196,7 +195,7 @@ export function PlanForm({ initialPlan }: { initialPlan: WealthPlan | null }) {
         renderRow={(x) => (
           <>
             <div className="space-y-1.5 sm:col-span-2"><Label>Category</Label><Input value={x.name} onChange={(e) => updateExpense(x.id, { name: e.target.value })} placeholder="Rent, Food, Transport…" /></div>
-            <div className="space-y-1.5"><Label>Monthly amount</Label><Input type="number" value={x.amount} onChange={(e) => updateExpense(x.id, { amount: +e.target.value })} /></div>
+            <div className="space-y-1.5"><Label>Monthly amount</Label><Input type="number" value={x.amount} onChange={(e) => updateExpense(x.id, { amount: parseMoneyInput(e.target.value, x.amount) })} /></div>
             <div className="flex items-end"><Button type="button" variant="ghost" size="sm" onClick={() => removeExpense(x.id)} className="text-destructive">Remove</Button></div>
           </>
         )}
@@ -213,7 +212,7 @@ export function PlanForm({ initialPlan }: { initialPlan: WealthPlan | null }) {
             <div className="space-y-1.5"><Label>Class</Label><Select value={x.cls || "equity"} onChange={(e) => updateAsset(x.id, { cls: e.target.value as AssetClass })}>
               {["equity","fixed_income","real_estate","commodity","cash","mixed","alternative","crypto"].map((c) => <option key={c} value={c}>{c.replace("_"," ")}</option>)}
             </Select></div>
-            <div className="space-y-1.5"><Label>Current value</Label><Input type="number" value={x.value} onChange={(e) => updateAsset(x.id, { value: +e.target.value })} /></div>
+            <div className="space-y-1.5"><Label>Current value</Label><Input type="number" value={x.value} onChange={(e) => updateAsset(x.id, { value: parseMoneyInput(e.target.value, x.value) })} /></div>
             <div className="flex items-end gap-2">
               <label className="flex items-center gap-2 text-xs"><input type="checkbox" checked={x.liquid} onChange={(e) => updateAsset(x.id, { liquid: e.target.checked })} /> Liquid</label>
               <Button type="button" variant="ghost" size="sm" onClick={() => removeAsset(x.id)} className="text-destructive ml-auto">Remove</Button>
@@ -230,10 +229,10 @@ export function PlanForm({ initialPlan }: { initialPlan: WealthPlan | null }) {
         renderRow={(x) => (
           <>
             <div className="space-y-1.5"><Label>Type</Label><Input value={x.type} onChange={(e) => updateLoan(x.id, { type: e.target.value })} placeholder="Mortgage, Auto, Student…" /></div>
-            <div className="space-y-1.5"><Label>Balance</Label><Input type="number" value={x.bal} onChange={(e) => updateLoan(x.id, { bal: +e.target.value })} /></div>
-            <div className="space-y-1.5"><Label>Rate %</Label><Input type="number" step="0.01" value={x.rate} onChange={(e) => updateLoan(x.id, { rate: +e.target.value })} /></div>
+            <div className="space-y-1.5"><Label>Balance</Label><Input type="number" value={x.bal} onChange={(e) => updateLoan(x.id, { bal: parseMoneyInput(e.target.value, x.bal) })} /></div>
+            <div className="space-y-1.5"><Label>Rate %</Label><Input type="number" step="0.01" value={x.rate} onChange={(e) => updateLoan(x.id, { rate: parseMoneyInput(e.target.value, x.rate) })} /></div>
             <div className="space-y-1.5 flex items-end gap-2">
-              <div className="flex-1"><Label>Years left</Label><Input type="number" value={x.yrs} onChange={(e) => updateLoan(x.id, { yrs: +e.target.value })} /></div>
+              <div className="flex-1"><Label>Years left</Label><Input type="number" value={x.yrs} onChange={(e) => updateLoan(x.id, { yrs: parseMoneyInput(e.target.value, x.yrs) })} /></div>
               <Button type="button" variant="ghost" size="sm" onClick={() => removeLoan(x.id)} className="text-destructive">Remove</Button>
             </div>
           </>
@@ -248,10 +247,10 @@ export function PlanForm({ initialPlan }: { initialPlan: WealthPlan | null }) {
         renderRow={(x) => (
           <>
             <div className="space-y-1.5 sm:col-span-2"><Label>Name</Label><Input value={x.name} onChange={(e) => updateGoal(x.id, { name: e.target.value })} placeholder="Retirement, Kids' college, Home purchase…" /></div>
-            <div className="space-y-1.5"><Label>Annual amount needed</Label><Input type="number" value={x.amt} onChange={(e) => updateGoal(x.id, { amt: +e.target.value })} /></div>
-            <div className="space-y-1.5"><Label>Start year</Label><Input type="number" value={x.startYear} onChange={(e) => updateGoal(x.id, { startYear: +e.target.value })} /></div>
+            <div className="space-y-1.5"><Label>Annual amount needed</Label><Input type="number" value={x.amt} onChange={(e) => updateGoal(x.id, { amt: parseMoneyInput(e.target.value, x.amt) })} /></div>
+            <div className="space-y-1.5"><Label>Start year</Label><Input type="number" value={x.startYear} onChange={(e) => updateGoal(x.id, { startYear: parseMoneyInput(e.target.value, x.startYear) })} /></div>
             <div className="space-y-1.5 flex items-end gap-2">
-              <div className="flex-1"><Label>End year</Label><Input type="number" value={x.endYear} onChange={(e) => updateGoal(x.id, { endYear: +e.target.value })} /></div>
+              <div className="flex-1"><Label>End year</Label><Input type="number" value={x.endYear} onChange={(e) => updateGoal(x.id, { endYear: parseMoneyInput(e.target.value, x.endYear) })} /></div>
               <Button type="button" variant="ghost" size="sm" onClick={() => removeGoal(x.id)} className="text-destructive">Remove</Button>
             </div>
           </>

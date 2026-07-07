@@ -112,10 +112,8 @@ export interface SimulationInput {
   plan: WealthPlan;
   sims: 200 | 500 | 1000;
   years: number;              // typically 30-40
-  bands: {
-    low: number;              // e.g. 10 for P10
-    high: number;             // e.g. 80 for P80
-  };
+  /** Fixes the PRNG for a byte-identical repeat run (tests, cache checks). Omit for a real random run. */
+  seed?: number;
 }
 
 export interface SimulationResult {

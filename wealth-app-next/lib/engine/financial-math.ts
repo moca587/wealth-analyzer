@@ -8,12 +8,29 @@ import { IRS_UNIFORM_LIFETIME } from "./constants";
 
 /**
  * Box-Muller transform — draws a sample from N(0,1).
- * Used by the Monte Carlo engine for random returns.
+ * Used by the Monte Carlo engine for random returns. Accepts an optional
+ * uniform-[0,1) source so callers can substitute a seeded PRNG for
+ * deterministic/reproducible runs (tests, cached-result invalidation).
  */
-export function boxMuller(): number {
-  const u = Math.max(1e-12, Math.random());
-  const v = Math.random();
+export function boxMuller(rng: () => number = Math.random): number {
+  const u = Math.max(1e-12, rng());
+  const v = rng();
   return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
+}
+
+/**
+ * Deterministic PRNG (mulberry32) seeded from a single integer. Not
+ * cryptographically secure — only used so a Monte Carlo run can be repeated
+ * byte-for-byte in tests instead of depending on Math.random().
+ */
+export function createSeededRandom(seed: number): () => number {
+  let s = seed | 0;
+  return function () {
+    s = (s + 0x6d2b79f5) | 0;
+    let t = Math.imul(s ^ (s >>> 15), 1 | s);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
 }
 
 /**

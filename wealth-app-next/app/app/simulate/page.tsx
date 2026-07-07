@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { SimRunner } from "@/components/sim/sim-runner";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import type { WealthPlan } from "@/lib/engine/types";
+import { parsePlan } from "@/lib/plan/schema";
 
 export default async function SimulatePage() {
   const supabase = createClient();
@@ -12,9 +12,12 @@ export default async function SimulatePage() {
     .select("plan")
     .single();
 
-  const plan = profile?.plan && typeof profile.plan === "object" && "clients" in profile.plan
-    ? (profile.plan as WealthPlan)
-    : null;
+  // Validate before this ever reaches the Monte Carlo engine — a raw cast
+  // would let malformed JSONB (missing fields, NaN amounts) through into
+  // the simulation instead of failing safely here.
+  const hasStoredPlan = profile?.plan && typeof profile.plan === "object" && Object.keys(profile.plan).length > 0;
+  const parsed = hasStoredPlan ? parsePlan(profile!.plan) : null;
+  const plan = parsed?.ok ? parsed.plan : null;
 
   if (!plan || plan.clients.length === 0) {
     return (

@@ -20,7 +20,7 @@ export function SimRunner({ plan }: { plan: WealthPlan }) {
     // Use a short timeout so the UI updates before the JS-bound MC runs
     setTimeout(() => {
       try {
-        const r = runMonteCarlo({ plan, sims, years, bands: { low: 10, high: 80 } });
+        const r = runMonteCarlo({ plan, sims, years });
         setResult(r);
       } finally {
         setRunning(false);
