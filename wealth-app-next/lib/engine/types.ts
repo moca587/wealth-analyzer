@@ -17,8 +17,12 @@ export type RiskProfile =
 export type TimeHorizon = "0_5" | "5_10" | "10_15" | "15_plus";
 
 export type CountryCode =
+  // Original 19
   | "US" | "CA" | "GB" | "AU" | "CH" | "EU" | "JP" | "SG" | "HK"
-  | "CN" | "TW" | "KR" | "IN" | "ID" | "MX" | "BR" | "SA" | "ZA" | "OTHER";
+  | "CN" | "TW" | "KR" | "IN" | "ID" | "MX" | "BR" | "SA" | "ZA" | "OTHER"
+  // Individual eurozone members (each has its own account taxonomy)
+  | "DE" | "FR" | "IT" | "ES" | "NL" | "BE" | "AT" | "IE" | "PT" | "LU"
+  | "FI" | "GR" | "CY" | "HR" | "EE" | "LV" | "LT" | "SK" | "SI" | "MT";
 
 export interface Client {
   id: string;
