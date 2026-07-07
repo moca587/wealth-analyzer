@@ -1008,6 +1008,7 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
     if(p){ p.classList.add('open'); p.setAttribute('aria-hidden','false'); }
     // refresh the API-key summary pill (full grid renders when the section is expanded)
     try{ if(window.renderMdKeysGrid) window.renderMdKeysGrid(); }catch(_){}
+    try{ if(window.refreshAiKeyField) window.refreshAiKeyField(); }catch(_){}
     try{ if(window.applyMcParamsState) window.applyMcParamsState(); }catch(_){}
   }
   function closeSettings(){
@@ -1196,8 +1197,16 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
 
     <div class="set-sec">
       <div class="set-sec-h">Data &amp; integrations</div>
-      <!-- Market data API keys (collapsed by default) -->
-      <div id="mdKeysPanel">
+      <!-- Claude API key — the primary one; always visible so it's easy to find -->
+      <label for="aiKeyInput" style="display:block;font-size:12.5px;font-weight:600;color:var(--text);margin-bottom:5px">🤖 Claude (Anthropic) API key</label>
+      <input type="password" id="aiKeyInput" placeholder="sk-ant-… paste your key here" autocomplete="off" spellcheck="false"
+             onchange="onAiKeyInput()" oninput="onAiKeyInput()"
+             style="width:100%;font-family:var(--fm);font-size:12px;padding:8px 10px;border:1px solid var(--border);border-radius:var(--rs);background:var(--bg2);color:var(--text)">
+      <div id="aiKeyNote" style="font-size:11px;margin-top:5px;line-height:1.5"></div>
+      <div class="set-note">Powers <strong>Upload Document</strong> extraction and AI features. Stored only in your browser and sent only to Anthropic. Get a key at <a href="https://console.anthropic.com/settings/keys" target="_blank" style="color:var(--gold)">console.anthropic.com ↗</a>.</div>
+
+      <!-- Market data provider keys (collapsed by default) -->
+      <div id="mdKeysPanel" style="margin-top:14px">
         <div onclick="toggleMdKeys()" style="cursor:pointer;user-select:none;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:11px 13px;border:1px solid var(--border);border-radius:var(--rs);background:var(--bg3)">
           <span style="font-size:13px;font-weight:600;color:var(--text)">🔑 Provider API keys <span id="mdKeysSummary" style="font-size:11px;font-weight:500;color:var(--text3);margin-left:4px"></span></span>
           <span id="mdKeysCaret" style="font-size:13px;color:var(--text3);transition:transform .2s">▼</span>
@@ -3614,7 +3623,7 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
 // ═══════════════════════════════════════════════════════════
 // VERSION — updated by build-standalone.pl on each build
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260707-1304";
+const APP_VERSION = "20260707-1324";
 
 // ═══════════════════════════════════════════════════════════
 // DATA
@@ -6573,9 +6582,10 @@ const APP_KEY_DEFS = [
   {id:"wa_newsapi_key",       n:"NewsAPI.org",           url:"https://newsapi.org/register",                        tip:"100/day · proxied"},
   {id:"wa_marketaux_key",     n:"Marketaux",             url:"https://marketaux.com/account/dashboard",             tip:"100/day · sentiment"},
   // Macro
-  {id:"wa_fred_key",          n:"FRED (St Louis Fed)",   url:"https://fred.stlouisfed.org/docs/api/api_key.html",   tip:"Free unlimited · proxied"},
-  // AI
-  {id:"wa_ai_key",        n:"AI Assistant",         url:"",                       tip:"Powers AI narrative features", secret:true}
+  {id:"wa_fred_key",          n:"FRED (St Louis Fed)",   url:"https://fred.stlouisfed.org/docs/api/api_key.html",   tip:"Free unlimited · proxied"}
+  // Note: the Claude (wa_ai_key) key has its own dedicated field at the top of
+  // Settings → Data & integrations, so it is intentionally NOT in this
+  // market-data provider grid.
 ];
 
 function renderMdKeysGrid(){
@@ -8519,6 +8529,31 @@ function saveAIKey(){
   const v=$("aiKeyInput")?.value||"";
   if(v) localStorage.setItem("wa_ai_key",v);
 }
+// Dedicated Settings → Data & integrations Claude-key field. Saves on every
+// edit (allows clearing), and keeps the detected-state notes in sync across
+// the Settings drawer and the Upload Document modal.
+function onAiKeyInput(){
+  const el=document.getElementById("aiKeyInput"); if(!el) return;
+  const v=(el.value||"").trim();
+  try{ if(v) localStorage.setItem("wa_ai_key", v); else localStorage.removeItem("wa_ai_key"); }catch(_){}
+  syncAiKeyNote();
+  try{ if(typeof uploadDocKeyNote==="function") uploadDocKeyNote(); }catch(_){}
+  try{ if(typeof daKeyNote==="function") daKeyNote(); }catch(_){}
+}
+function syncAiKeyNote(){
+  const n=document.getElementById("aiKeyNote"); if(!n) return;
+  const has=!!getAIKey();
+  n.innerHTML = has
+    ? '<span style="color:var(--green)">✓ Key detected — AI features and document upload are enabled.</span>'
+    : '<span style="color:var(--text3)">No key set yet — paste your key above to enable Upload Document.</span>';
+}
+// Reflect the stored key + note whenever the field is present (Settings open).
+function refreshAiKeyField(){
+  const el=document.getElementById("aiKeyInput");
+  if(el && !el.value){ try{ const k=getAIKey(); if(k) el.value=k; }catch(_){} }
+  syncAiKeyNote();
+}
+window.onAiKeyInput=onAiKeyInput; window.syncAiKeyNote=syncAiKeyNote; window.refreshAiKeyField=refreshAiKeyField;
 function openHoldingsUpload(){ openDataAgent(); }   // back-compat alias
 // ═══════════════════════════════════════════════════════════════════════════
 // AI DATA AGENT — reads ANY client file (photo, scan, PDF, DOCX, XLSX, CSV,
