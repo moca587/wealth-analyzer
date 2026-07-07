@@ -3618,7 +3618,7 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
 // ═══════════════════════════════════════════════════════════
 // VERSION — updated by build-standalone.pl on each build
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260707-1553";
+const APP_VERSION = "20260707-1602";
 
 // ═══════════════════════════════════════════════════════════
 // DATA
@@ -6419,12 +6419,12 @@ function renderSimSummary(){
   const pn = parseFloat(prob);
   const probCls = isFinite(pn) ? (pn>=80?"good":(pn>=50?"warn":"bad")) : "";
   const gapCls = gapTxt==="—" ? "" : (gapGood?"good":"bad");
-  const card = (lbl,v,sub,cls)=> '<div class="ss-card '+(cls||"")+'"><div class="ss-lbl">'+lbl+'</div><div class="ss-val">'+v+'</div><div class="ss-sub">'+sub+'</div></div>';
+  const card = (lbl,v,sub,cls,explain)=> '<div class="ss-card '+(cls||"")+'"><div class="ss-lbl">'+lbl+(explain?'<span class="info-ic">i<span class="info-pop">'+explain+'</span></span>':'')+'</div><div class="ss-val">'+v+'</div><div class="ss-sub">'+sub+'</div></div>';
   el.innerHTML =
-    card("Projected wealth", med, "median · today's money", "") +
-    card("Goal success", prob, "across your goals", probCls) +
-    card("Sustainable spend", spend, "per year in retirement", "") +
-    card("Retirement funding", gapTxt, gapGood?"ahead of target":"vs. present-value target", gapCls);
+    card("Projected wealth", med, "median · today's money", "", "<strong>Projected wealth</strong> — the median (50th percentile) simulated net worth at the end of your simulation horizon, shown in today's money (deflated for inflation). Half of simulated paths end above this figure, half below.") +
+    card("Goal success", prob, "across your goals", probCls, "<strong>Goal success</strong> — the average probability, across all your goals, of being fully funded by its target year, read from the same Monte Carlo paths used throughout the Simulation tab.") +
+    card("Sustainable spend", spend, "per year in retirement", "", "<strong>Sustainable spend</strong> — the highest annual retirement spending solved to have a 90% chance of lasting to age 90, based on the median (50th percentile) simulated wealth at your retirement age.") +
+    card("Retirement funding", gapTxt, gapGood?"ahead of target":"vs. present-value target", gapCls, "<strong>Retirement funding</strong> — your current net worth compared to the present-value cost of funding your planned retirement spending (an actuarial annuity calculation, discounted at 6.8%). Positive means you're ahead of target; negative means additional savings are needed.");
   el.style.display = "grid";
 }
 
