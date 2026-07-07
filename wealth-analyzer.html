@@ -2435,7 +2435,11 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
 
 <!-- Portfolio vs Proposal — Cash Flow & Goal Comparison -->
 <div class="panel" id="cfComparePanel" style="display:none">
-  <div class="ptitle">Portfolio vs Proposal — Cash Flow &amp; Goal Impact</div>
+  <div class="ptitle section-dropdown open" onclick="toggleDropdown('cfcWrap')" style="margin:0">
+    Portfolio vs Proposal — Cash Flow &amp; Goal Impact <span class="dropdown-hint">click to toggle</span>
+    <span class="ptitle-line"></span>
+  </div>
+  <div class="dropdown-body open" id="cfcWrap">
   <div id="cfcHeader" class="cf-header" style="margin-bottom:12px"></div>
   <div class="cfc-banner" id="cfcRetBanner"></div>
   <div class="cfc-tbl-wrap">
@@ -2455,6 +2459,7 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
     <span><span style="display:inline-block;width:10px;height:10px;background:#5b9bd5;border-radius:2px;margin-right:4px"></span>Current portfolio — holdings-weighted or risk-profile return</span>
     <span><span style="display:inline-block;width:10px;height:10px;background:var(--gold);border-radius:2px;margin-right:4px"></span>Investment proposal — proposed allocation's weighted return (shown when proposal is entered)</span>
     <span style="color:var(--text3)">All scenarios use identical household inputs (income, expenses, pensions, loans, goals). Only the investment return parameter differs. Δ columns show the net worth advantage of each step up. Savings contributions still flow in all scenarios — the difference is purely whether they earn a return or sit idle in cash.</span>
+  </div>
   </div>
 </div>
 
@@ -3604,7 +3609,7 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
 // ═══════════════════════════════════════════════════════════
 // VERSION — updated by build-standalone.pl on each build
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260707-1622";
+const APP_VERSION = "20260707-1655";
 
 // ═══════════════════════════════════════════════════════════
 // DATA
