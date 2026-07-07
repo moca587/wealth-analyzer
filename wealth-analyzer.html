@@ -2255,18 +2255,16 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
 <!-- ══════════ GROUP: GOALS & FUNDING ══════════ -->
 <div class="sim-group">Goals &amp; funding</div>
 
-<div class="panel" id="goalResults" style="display:none">
-  <div class="ptitle">Goal Analysis</div>
-  <div id="goalResultList"></div>
-</div>
-
-<!-- Goal & Retirement Funding Status (combined: probabilistic + PV-based) -->
+<!-- Goal Funding — the single consolidated goal-funding box (combines what were
+     previously 4 separate panels: Goal Analysis, Goal & Retirement Funding Status,
+     Goals-Based Analysis Overview, and Goals-Based Analysis Detail). Collapsed by
+     default since goal funding is a secondary concern next to the main wealth outlook. -->
 <div class="panel" id="goalFundingPanel">
-  <div class="ptitle section-dropdown open" onclick="toggleDropdown('goalFundingWrap')" style="margin:0">
-    Goal &amp; Retirement Funding Status <span class="dropdown-hint">probability-based + present-value · click to toggle</span>
+  <div class="ptitle section-dropdown" onclick="toggleDropdown('goalFundingWrap')" style="margin:0">
+    Goal Funding <span class="dropdown-hint">probability-based + present-value · click to expand</span>
     <span class="ptitle-line"></span>
   </div>
-  <div class="dropdown-body open" id="goalFundingWrap">
+  <div class="dropdown-body" id="goalFundingWrap">
   <div class="cf-header" style="margin-top:8px">Each goal is scored two ways: the <strong>simulated probability</strong> of being fully funded (from the Monte Carlo paths) and the <strong>present-value funding ratio</strong> (priority-weighted, discounted at a risk-adjusted rate, Merrill-style). Run the simulation to populate both.</div>
   <div id="goalFundingSummary"></div>
   <div id="goalFundingList"><div class="pf-empty">Run the simulation to populate funding status.</div></div>
@@ -2288,23 +2286,11 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
   </div>
   <div class="dropdown-body" id="goalsBasedBody">
     <div style="font-size:12.5px;color:var(--text2);line-height:1.6;margin:10px 0 12px">
-      Institutional goals-based framework modeled on the Merrill Lynch Wealth Management Analysis. Each goal is priced in present-value terms, discounted at a risk-adjusted rate matched to its priority, and compared to your funding sources to produce a <strong>Funding Ratio</strong>. Uses per-asset-class capital market assumptions with a full correlation matrix for accurate portfolio risk.
+      Institutional methodology modeled on the Merrill Lynch Wealth Management Analysis, using per-asset-class capital market assumptions with a full correlation matrix for accurate portfolio risk. This feeds the <strong>Goal Funding</strong> panel above (present-value cost, priority-weighted discount rate, funding ratio) — this section shows the underlying assumptions and your Wealth Allocation Framework.
     </div>
     <div style="margin-bottom:14px;display:flex;gap:10px;flex-wrap:wrap;align-items:center">
-      <button class="btn-primary" onclick="runGoalsBased()" style="font-size:13px;padding:9px 20px">▶ Run / refresh goals-based analysis</button>
+      <button class="btn-primary" onclick="runGoalsBased()" style="font-size:13px;padding:9px 20px">▶ Run / refresh</button>
       <span id="gbStatus" style="font-size:12px;color:var(--text3)"></span>
-    </div>
-
-    <!-- Overall Funding Ratio -->
-    <div class="panel" id="gbOverallPanel" style="display:none">
-      <div class="ptitle">Goal Funding Status — Overview</div>
-      <div id="gbOverall"></div>
-    </div>
-
-    <!-- Per-goal funding detail -->
-    <div class="panel" id="gbGoalsPanel" style="display:none">
-      <div class="ptitle">Goal Funding Detail (by priority)</div>
-      <div id="gbGoals"></div>
     </div>
 
     <!-- Capital Market Assumptions -->
@@ -3618,7 +3604,7 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
 // ═══════════════════════════════════════════════════════════
 // VERSION — updated by build-standalone.pl on each build
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260707-1553";
+const APP_VERSION = "20260707-1622";
 
 // ═══════════════════════════════════════════════════════════
 // DATA
@@ -6419,12 +6405,12 @@ function renderSimSummary(){
   const pn = parseFloat(prob);
   const probCls = isFinite(pn) ? (pn>=80?"good":(pn>=50?"warn":"bad")) : "";
   const gapCls = gapTxt==="—" ? "" : (gapGood?"good":"bad");
-  const card = (lbl,v,sub,cls)=> '<div class="ss-card '+(cls||"")+'"><div class="ss-lbl">'+lbl+'</div><div class="ss-val">'+v+'</div><div class="ss-sub">'+sub+'</div></div>';
+  const card = (lbl,v,sub,cls,explain)=> '<div class="ss-card '+(cls||"")+'"><div class="ss-lbl">'+lbl+(explain?'<span class="info-ic">i<span class="info-pop">'+explain+'</span></span>':'')+'</div><div class="ss-val">'+v+'</div><div class="ss-sub">'+sub+'</div></div>';
   el.innerHTML =
-    card("Projected wealth", med, "median · today's money", "") +
-    card("Goal success", prob, "across your goals", probCls) +
-    card("Sustainable spend", spend, "per year in retirement", "") +
-    card("Retirement funding", gapTxt, gapGood?"ahead of target":"vs. present-value target", gapCls);
+    card("Projected wealth", med, "median · today's money", "", "<strong>Projected wealth</strong> — the median (50th percentile) simulated net worth at the end of your simulation horizon, shown in today's money (deflated for inflation). Half of simulated paths end above this figure, half below.") +
+    card("Goal success", prob, "across your goals", probCls, "<strong>Goal success</strong> — the average probability, across all your goals, of being fully funded by its target year, read from the same Monte Carlo paths used throughout the Simulation tab.") +
+    card("Sustainable spend", spend, "per year in retirement", "", "<strong>Sustainable spend</strong> — the highest annual retirement spending solved to have a 90% chance of lasting to age 90, based on the median (50th percentile) simulated wealth at your retirement age.") +
+    card("Retirement funding", gapTxt, gapGood?"ahead of target":"vs. present-value target", gapCls, "<strong>Retirement funding</strong> — your current net worth compared to the present-value cost of funding your planned retirement spending (an actuarial annuity calculation, discounted at 6.8%). Positive means you're ahead of target; negative means additional savings are needed.");
   el.style.display = "grid";
 }
 
@@ -14608,7 +14594,7 @@ function renderCombinedGoalFunding(paths,yrs){
     s += '</div>';
     s += '<div style="flex:1;min-width:200px;display:flex;align-items:center;gap:14px;padding:12px 16px;background:var(--bg3);border-radius:10px">';
     s += '<div style="font-size:30px;font-weight:800;color:'+gbRatioColor(fs.overallRatio)+'">'+Math.round(fs.overallRatio*100)+'%</div>';
-    s += '<div><div style="font-size:13px;font-weight:600;color:var(--text)">PV funding ratio</div><div style="font-size:11.5px;color:var(--text3)">PV cost '+fmtMoney(fs.totalGoalPV)+' · funded '+fmtMoney(fs.totalFundedPV)+(fs.totalGoalPV-fs.totalFundedPV>0?' · shortfall '+fmtMoney(fs.totalGoalPV-fs.totalFundedPV):'')+'</div></div>';
+    s += '<div><div style="font-size:13px;font-weight:600;color:var(--text)">PV funding ratio<span class="info-ic">i<span class="info-pop">Funding ratio = total funded PV ÷ total goal-cost PV across all goals, using a risk-adjusted discount rate per goal\'s priority tier plus a tax gross-up. Funded first from current liquid assets, then a shared future-savings budget. Portfolio assumptions used: μ '+(fs.port.geoMu*100).toFixed(1)+'% / σ '+(fs.port.sigma*100).toFixed(1)+'%.</span></span></div><div style="font-size:11.5px;color:var(--text3)">PV cost '+fmtMoney(fs.totalGoalPV)+' · funded '+fmtMoney(fs.totalFundedPV)+(fs.totalGoalPV-fs.totalFundedPV>0?' · shortfall '+fmtMoney(fs.totalGoalPV-fs.totalFundedPV):'')+'</div></div>';
     s += '</div>';
     s += '</div>';
     summaryHost.innerHTML = s;
@@ -14646,7 +14632,7 @@ function renderCombinedGoalFunding(paths,yrs){
     h += '<div>';
     if(pv){
       const ratioCls = pv.ratio>=0.9?"fund-ok":(pv.ratio>=0.6?"fund-warn":"fund-bad");
-      h += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px"><span style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.03em">PV funding ratio</span><span class="fund-tag '+ratioCls+'" style="font-size:13px;padding:1px 9px">'+Math.round(pv.ratio*100)+'%</span></div>';
+      h += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px"><span style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.03em">PV funding ratio<span class="info-ic">i<span class="info-pop">Goal cost (PV): '+fmtMoney(pv.goalCostPV)+' (incl. est. tax '+fmtMoney(pv.taxOnGoal)+'). Funded from current assets '+fmtMoney(pv.currentAssets)+' + future savings (PV) '+fmtMoney(pv.futureSavingsPV)+'. Discount rate: '+(pv.discRate*100).toFixed(2)+'%. Shortfall (PV): '+fmtMoney(Math.max(0,pv.goalCostPV-pv.fundedPV))+'.</span></span></span><span class="fund-tag '+ratioCls+'" style="font-size:13px;padding:1px 9px">'+Math.round(pv.ratio*100)+'%</span></div>';
       h += '<div class="fund-bar" style="width:100%"><div class="fund-bar-fill '+ratioCls+'" style="width:'+Math.min(100,pv.ratio*100)+'%"></div></div>';
       h += '<div style="font-size:11px;color:var(--text3);margin-top:4px">PV cost '+fmtMoney(pv.goalCostPV)+' · funded '+fmtMoney(pv.fundedPV)+'</div>';
     } else {
@@ -15450,24 +15436,10 @@ function goalSuccessFromPaths(g, paths, yrs){
   return ok/paths.length*100;
 }
 function renderGoalAnalysis(paths,yrs){
-  if(goals.length===0){show("goalResults",false); setT("m-prob","—"); return;}
-  show("goalResults",true);
-  const html=goals.map(g=>{
-    const totalAmt=g.amt*Math.max(1,g.endYear-g.startYear+1);
-    const prob=goalSuccessFromPaths(g,paths,yrs)||0;
-    const cls=prob>=80?"gp-hi":(prob>=50?"gp-md":"gp-lo");
-    const icon=(typeof GOAL_ICONS!=="undefined"&&GOAL_ICONS[g.cat])||{emoji:"⭐",color:"#6b7280",bg:"rgba(107,114,128,.10)"};
-    return `<div class="goal-cmp" data-gid="${g.id}" style="grid-template-columns:36px 1.2fr 80px 90px 90px 90px">
-      <div class="goal-icon" style="background:${icon.bg};color:${icon.color};width:28px;height:28px;font-size:14px">${icon.emoji}</div>
-      <div class="gnm">${_daEsc(g.name)}</div>
-      <div class="gyr">${g.endYear}</div>
-      <div style="font-variant-numeric:tabular-nums">${fmtMoney(g.amt)}<span style="font-size:10px;color:var(--text3)">/yr</span></div>
-      <div class="gprob grs-pct ${cls}">${prob.toFixed(0)}%</div>
-      <div class="gdelta" style="color:var(--text3)">${fmtMoney(totalAmt)} total</div>
-    </div>`;
-  }).join("");
-  setH("goalResultList",html);
-  // Top-line goal success = average across goals
+  // Per-goal display now lives entirely in the consolidated Goal Funding panel
+  // (renderCombinedGoalFunding); this function's remaining job is the headline
+  // "Goal Success" metric card (m-prob), averaged across all goals.
+  if(goals.length===0){ setT("m-prob","—"); return; }
   const avg=goals.reduce((s,g)=>s+(goalSuccessFromPaths(g,paths,yrs)||0),0)/goals.length;
   setT("m-prob",avg.toFixed(0)+"%");
 }
@@ -16905,85 +16877,21 @@ function runGoalsBased(){
   const weights = gbAssetClassWeights();
   const port = gbPortfolioRisk(weights);
 
-  // ─── Funding status: SAME engine as the Simulation tab ───
-  // computeGoalFundingStatus() is the single source of truth (shared future-savings
-  // budget so the same dollars aren't counted for every goal, un-floored risk-adjusted
-  // discount rates, and Mode A/B/C-aware investable base). The old inline copy here
-  // double-counted savings per goal and omitted the linked portfolio entirely.
-  const fs = computeGoalFundingStatus();
-
-  // ─── Render everything ───
-  gbRenderOverall(fs.overallRatio, fs.totalGoalPV, fs.totalFundedPV, fs.port, weights);
-  gbRenderGoals(fs.rows);
+  // Goal funding status itself (computeGoalFundingStatus) is rendered entirely by
+  // the consolidated Goal Funding panel via renderCombinedGoalFunding() — this
+  // function's remaining job is the Wealth Allocation Framework and Capital
+  // Market Assumptions panels below, which still need the portfolio weights/risk.
   // (gbRenderLifestyle call removed — #gbLifestyle panel was consolidated into
   //  the Simulation tab's Potentially Achievable Annual Lifestyle panel.)
   gbRenderWealth();
   gbRenderCMA(weights, port);
 
-  ["gbOverallPanel","gbGoalsPanel","gbCmaPanel"].forEach(id => {
-    const el = document.getElementById(id); if(el) el.style.display = "block";
-  });
+  const cmaEl = document.getElementById("gbCmaPanel"); if(cmaEl) cmaEl.style.display = "block";
   if(status) status.innerHTML = '✓ <strong style="color:#1b6841">Analysis complete</strong> — portfolio μ ' + (port.geoMu*100).toFixed(2) + '% · σ ' + (port.sigma*100).toFixed(2) + '%';
 }
 window.runGoalsBased = runGoalsBased;
 
-function gbRing(pct, color){
-  // SVG donut ring showing a funding ratio percentage
-  const r = 52, c = 2*Math.PI*r, val = Math.min(100, Math.max(0, pct));
-  const off = c*(1 - val/100);
-  return '<svg viewBox="0 0 130 130" style="width:130px;height:130px">'
-    + '<circle cx="65" cy="65" r="'+r+'" fill="none" stroke="rgba(0,0,0,.07)" stroke-width="12"/>'
-    + '<circle cx="65" cy="65" r="'+r+'" fill="none" stroke="'+color+'" stroke-width="12" stroke-linecap="round" stroke-dasharray="'+c+'" stroke-dashoffset="'+off+'" transform="rotate(-90 65 65)"/>'
-    + '<text x="65" y="60" text-anchor="middle" font-size="26" font-weight="800" fill="'+color+'">'+Math.round(pct)+'%</text>'
-    + '<text x="65" y="80" text-anchor="middle" font-size="10" fill="var(--text3)">FUNDED</text>'
-    + '</svg>';
-}
 function gbRatioColor(r){ return r>=0.9?"var(--green)":(r>=0.6?"var(--amber)":"var(--red)"); }
-
-function gbRenderOverall(ratio, goalPV, fundedPV, port, weights){
-  const pct = ratio*100;
-  let h = '<div style="display:flex;gap:24px;align-items:center;flex-wrap:wrap">';
-  h += '<div>' + gbRing(pct, gbRatioColor(ratio)) + '</div>';
-  h += '<div style="flex:1;min-width:240px">';
-  h += '<div style="font-size:13px;color:var(--text2);line-height:1.7">';
-  h += 'Across all your goals, your funding sources cover <strong style="color:'+gbRatioColor(ratio)+'">'+pct.toFixed(0)+'%</strong> of the present-value cost.<span class="info-ic">i<span class="info-pop">Funding ratio = total funded PV ÷ total goal-cost PV across all goals. Each goal\'s cost is its inflation-grown target amount, discounted at a risk-adjusted rate tied to its priority tier (essential/important/aspirational), plus a tax gross-up. It is funded first from your current liquid assets (drawn down in priority order) and then from a shared, PV\'d future-savings budget that goals compete for — so the same savings dollars are not double-counted across goals. 100% means projected resources fully cover the costs; below 100% is a shortfall.</span></span>';
-  h += '</div>';
-  h += '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-top:14px">';
-  h += mcTile("Total goal cost (PV)", fmtMoney(goalPV), "The present-value cost of every goal, discounted at a risk-adjusted rate matched to each goal's priority.");
-  h += mcTile("Funded (PV)", fmtMoney(fundedPV), "How much of that present-value cost your current assets and future savings are projected to cover.", "color:var(--green)");
-  h += mcTile("Shortfall (PV)", fmtMoney(Math.max(0,goalPV-fundedPV)), "The present-value gap between what your goals cost and what's currently funded — additional savings or return needed to close it.", "color:"+(goalPV-fundedPV>0?"var(--red)":"var(--green)"));
-  h += mcTile("Portfolio μ / σ", (port.geoMu*100).toFixed(1)+'% / '+(port.sigma*100).toFixed(1)+'%', "Your blended expected return (μ) and volatility (σ), derived from your asset-class mix and used to discount goal costs.", "font-size:15px");
-  h += '</div></div></div>';
-  setH("gbOverall", h);
-}
-
-function gbRenderGoals(rows){
-  if(rows.length === 0){ setH("gbGoals", '<div class="pf-empty">No goals defined. Add goals on the Goals tab.</div>'); return; }
-  let h = '';
-  const tierLabel = {essential:"Essential",important:"Important",aspirational:"Aspirational"};
-  const tierColor = {essential:"var(--red)",important:"var(--amber)",aspirational:"#7c3aed"};
-  rows.forEach(r => {
-    h += '<div style="border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:12px;background:var(--bg2)">';
-    h += '<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:10px">';
-    h += '<div style="font-size:15px;font-weight:700;color:var(--text)">'+escapeForHTML(r.name)+'</div>';
-    h += '<span style="font-size:10px;font-weight:700;padding:2px 9px;border-radius:50px;background:'+tierColor[r.tier]+'1a;color:'+tierColor[r.tier]+'">'+tierLabel[r.tier]+' · '+r.conf+'% confidence</span>';
-    h += '<span style="font-size:11px;color:var(--text3)">'+r.period+' · '+fmtMoney(r.annual)+'/yr</span>';
-    h += '<span style="margin-left:auto;font-size:22px;font-weight:800;color:'+gbRatioColor(r.ratio)+'">'+Math.round(r.ratio*100)+'%</span>';
-    h += '</div>';
-    // Funding bar
-    h += '<div style="height:10px;background:rgba(0,0,0,.06);border-radius:5px;overflow:hidden;margin-bottom:10px"><div style="height:100%;width:'+Math.min(100,r.ratio*100)+'%;background:'+gbRatioColor(r.ratio)+';border-radius:5px"></div></div>';
-    // Breakdown grid
-    h += '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:6px;font-size:11px">';
-    h += '<div><div style="color:var(--text3);font-size:9px;text-transform:uppercase">Goal cost (PV)</div><strong>'+fmtMoney(r.goalCostPV)+'</strong></div>';
-    h += '<div><div style="color:var(--text3);font-size:9px;text-transform:uppercase">Est. tax incl.</div><strong>'+fmtMoney(r.taxOnGoal)+'</strong></div>';
-    h += '<div><div style="color:var(--text3);font-size:9px;text-transform:uppercase">Current assets</div><strong>'+fmtMoney(r.currentAssets)+'</strong></div>';
-    h += '<div><div style="color:var(--text3);font-size:9px;text-transform:uppercase">Future savings (PV)</div><strong>'+fmtMoney(r.futureSavingsPV)+'</strong></div>';
-    h += '<div><div style="color:var(--text3);font-size:9px;text-transform:uppercase">Discount rate</div><strong>'+(r.discRate*100).toFixed(2)+'%</strong></div>';
-    h += '<div><div style="color:var(--text3);font-size:9px;text-transform:uppercase">Shortfall (PV)</div><strong style="color:'+(r.goalCostPV-r.fundedPV>0?"var(--red)":"var(--green)")+'">'+fmtMoney(Math.max(0,r.goalCostPV-r.fundedPV))+'</strong></div>';
-    h += '</div></div>';
-  });
-  setH("gbGoals", h);
-}
 
 function gbRenderLifestyle(port, weights, inflation, a1, retAge){
   // Wealth available at retirement: grow current investable + savings to retirement
