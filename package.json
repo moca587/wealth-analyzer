@@ -1,0 +1,15 @@
+{
+  "name": "wealth-analyzer-repo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Wealth Analyzer — legacy single-file HTML app + wealth-app-next (Next.js/Supabase SaaS migration). Root scripts orchestrate both.",
+  "scripts": {
+    "legacy:build": "node scripts/release/build-legacy.mjs",
+    "legacy:check": "node scripts/release/check-artifacts.mjs",
+    "app:install": "npm --prefix wealth-app-next ci",
+    "app:test": "npm --prefix wealth-app-next run test:run",
+    "app:typecheck": "npm --prefix wealth-app-next run type-check",
+    "app:build": "npm --prefix wealth-app-next run build",
+    "ci": "npm run app:test && npm run app:typecheck && npm run app:build && npm run legacy:check"
+  }
+}

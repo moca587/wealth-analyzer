@@ -5,10 +5,12 @@ A single-file browser application for comprehensive personal wealth analysis wit
 ## Quick Start
 
 ```bash
-open src/wealth-analyzer.html
+open wealth-analyzer.html
 ```
 
 No installation, no server, no build step required. Works directly from the filesystem.
+For a fully offline, single-file build (all libraries vendored in), open
+`wealth-analyzer-standalone.html` instead — see [docs/release-process.md](docs/release-process.md).
 
 ## Features
 
@@ -28,16 +30,25 @@ No installation, no server, no build step required. Works directly from the file
 
 ## Files
 
+Source files live at the repository root (there is no `src/` directory).
+Files named `*-standalone.html` are **generated** — never hand-edit them.
+
 ```
-wealth-analyzer-project/
+wealth-analyzer/
 ├── README.md
-├── CLAUDE.md                    ← AI session context & architecture docs
-├── src/
-│   └── wealth-analyzer.html    ← The entire application (single file)
-├── docs/
-│   └── CONVERSATION_EXPORT.md  ← Full development conversation log
-└── exports/
-    └── (future report exports)
+├── CLAUDE.md                          ← AI session context & architecture docs
+├── wealth-analyzer.html              ← main app (source, single file)
+├── wealth-analyzer-standalone.html   ← generated: fully-vendored offline build
+├── wealth-analyzer-avaloq.html       ← Avaloq edition (source)
+├── admin.html                        ← admin console (source)
+├── country-accounts.js               ← account taxonomy (source data)
+├── fund-universe.js                  ← fund universe (source data)
+├── vendor/                           ← pinned copies of Chart.js, jsPDF, pdf.js…
+├── version.json / version-avaloq.json← build stamps (generated)
+├── build-standalone*.pl              ← the standalone builders (Perl)
+├── scripts/release/                  ← build-legacy.mjs + check-artifacts.mjs
+├── docs/release-process.md           ← source-of-truth vs generated, how to build
+└── wealth-app-next/                  ← Next.js + Supabase SaaS migration (Stage 1)
 ```
 
 ## Supported Countries & Account Types
