@@ -4060,7 +4060,7 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
 // ═══════════════════════════════════════════════════════════
 // VERSION — updated by build-standalone.pl on each build
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260706-2209";
+const APP_VERSION = "20260707-1259";
 
 // ═══════════════════════════════════════════════════════════
 // DATA
@@ -9382,7 +9382,13 @@ function buildExtractionSchema(){
         tier:E(["essential","important","aspirational","legacy"]),confidence:conf,sourceQuote:src}}},
       holdings:{type:"array",items:{type:"object",properties:{
         name:str,tkr:str,val:num,type:E(invType),cls:E(invClass),region:E(invRegion),
-        er:num,yld:num,note:str,confidence:conf,sourceQuote:src}}}
+        er:num,yld:num,note:str,confidence:conf,sourceQuote:src}}},
+      retirement:{type:"object",description:"Retirement plan: desired spending, planned retirement ages, and each client's pension / social-security benefit.",properties:{
+        desiredAnnualSpend:num,
+        client1RetirementAge:num, client2RetirementAge:num,
+        client1PensionAnnual:num, client1PensionStartAge:num,
+        client2PensionAnnual:num, client2PensionStartAge:num,
+        confidence:conf, sourceQuote:src}}
     }, required:[] }
   };
 }
@@ -9393,6 +9399,7 @@ function _daInstruction(){
     +"Expense ratios and yields as WHOLE PERCENT numbers (1.8% -> 1.8, 0.03% -> 0.03 — NOT 0.018). Loan and inflation rates as whole percent (6.5% -> 6.5). "
     +"Dates as YYYY-MM-DD. Omit or null anything not present. For every classification use ONLY the allowed enum values; map each item to the closest one. "
     +"Holdings classes ("+Object.keys(INV_CLASS_LABELS).join(", ")+"); holding types ("+Object.keys(INV_TYPE_LABELS).join(", ")+"); regions ("+Object.keys(INV_REGION_LABELS).join(", ")+"). "
+    +"Retirement: capture desired annual spending in retirement, each client's planned retirement age, and each client's pension / social-security ANNUAL benefit and start age. If a pension figure is written per month, multiply by 12 to report an annual amount. "
     +"Give a 0-1 confidence and a short sourceQuote for each value.";
 }
 
@@ -9432,7 +9439,7 @@ function _daEnum(v,allowed,dflt){ if(v==null) return dflt; const k=String(v).tri
 
 function normalizeExtraction(raw){
   raw=raw||{};
-  const out={household:[],income:[],expenses:[],assets:[],liabilities:[],goals:[],holdings:[]};
+  const out={household:[],income:[],expenses:[],assets:[],liabilities:[],goals:[],holdings:[],retirement:[]};
   const ok=c=>c==null?0.7:(+c||0);
   (raw.household||[]).forEach(h=>{ out.household.push({ _ok:ok(h.confidence), _src:h.sourceQuote||"",
     role:_daEnum(h.role,["client1","client2","child"],"client1"), first:h.first||"", last:h.last||"", dob:_daDate(h.dob),
@@ -9456,6 +9463,14 @@ function normalizeExtraction(raw){
     name:h.name||"", tkr:h.tkr||"", val:_daNum(h.val),
     type:_daKey(h.type,_DA_TYPE_ALIAS,INV_TYPE_LABELS,"other"), cls:_daKey(h.cls,_DA_CLS_ALIAS,INV_CLASS_LABELS,"other"),
     region:_daKey(h.region,_DA_REGION_ALIAS,INV_REGION_LABELS,"other"), er:_daRate(h.er), yld:_daRate(h.yld), note:h.note||"" }); });
+  if(raw.retirement && typeof raw.retirement==="object"){ const rt=raw.retirement;
+    const anyVal=[rt.desiredAnnualSpend,rt.client1RetirementAge,rt.client2RetirementAge,rt.client1PensionAnnual,rt.client1PensionStartAge,rt.client2PensionAnnual,rt.client2PensionStartAge].some(v=>v!=null&&v!=="");
+    if(anyVal){ const age=v=>{ const n=parseInt(String(v==null?"":v).replace(/[^\d]/g,""),10); return (isFinite(n)&&n>0)?n:null; };
+      out.retirement.push({ _ok:ok(rt.confidence), _src:rt.sourceQuote||"",
+        desiredAnnualSpend:_daNum(rt.desiredAnnualSpend),
+        client1RetirementAge:age(rt.client1RetirementAge), client2RetirementAge:age(rt.client2RetirementAge),
+        client1PensionAnnual:_daNum(rt.client1PensionAnnual), client1PensionStartAge:age(rt.client1PensionStartAge),
+        client2PensionAnnual:_daNum(rt.client2PensionAnnual), client2PensionStartAge:age(rt.client2PensionStartAge) }); } }
   return out;
 }
 
@@ -9567,6 +9582,16 @@ function renderReviewModal(){
     {lbl:"Yld %",html:_daInput("holdings",i,"yld",h.yld,"number"),w:"flex:0 0 70px"}
   ],h.val>0&&req(h._ok))));
 
+  html+=section("Retirement plan", (x.retirement||[]).map((r,i)=>_daRow("retirement",i,r._ok,r._src,[
+    {lbl:"Desired spend $/yr",html:_daInput("retirement",i,"desiredAnnualSpend",r.desiredAnnualSpend,"number"),w:"flex:1.1"},
+    {lbl:"C1 retire age",html:_daInput("retirement",i,"client1RetirementAge",r.client1RetirementAge,"number"),w:"flex:0 0 90px"},
+    {lbl:"C1 pension $/yr",html:_daInput("retirement",i,"client1PensionAnnual",r.client1PensionAnnual,"number"),w:"flex:1"},
+    {lbl:"C1 from age",html:_daInput("retirement",i,"client1PensionStartAge",r.client1PensionStartAge,"number"),w:"flex:0 0 85px"},
+    {lbl:"C2 retire age",html:_daInput("retirement",i,"client2RetirementAge",r.client2RetirementAge,"number"),w:"flex:0 0 90px"},
+    {lbl:"C2 pension $/yr",html:_daInput("retirement",i,"client2PensionAnnual",r.client2PensionAnnual,"number"),w:"flex:1"},
+    {lbl:"C2 from age",html:_daInput("retirement",i,"client2PensionStartAge",r.client2PensionStartAge,"number"),w:"flex:0 0 85px"}
+  ],req(r._ok))));
+
   const total=Object.keys(x).reduce((s,k)=>s+x[k].length,0);
   m.innerHTML=`<div class="da-modal-bg" onclick="closeReviewModal()"></div>
     <div class="da-modal">
@@ -9603,6 +9628,8 @@ function applyDataAgent(){
   // figure out if any client2 row is selected (so we reveal client 2 first)
   x.household.forEach((h,i)=>{ if(_daChecked("household",i) && _daCollect("household",i).role==="client2") needC2=true; });
   x.income.forEach((r,i)=>{ if(_daChecked("income",i) && _daCollect("income",i).who==="client2") needC2=true; });
+  (x.retirement||[]).forEach((r,i)=>{ if(_daChecked("retirement",i)){ const c=_daCollect("retirement",i);
+    if((parseFloat(c.client2PensionAnnual)>0)||(parseInt(c.client2RetirementAge,10)>0)) needC2=true; } });
   if(needC2 && typeof showC2==="function"){ try{ showC2(); }catch(_){} }
 
   // Household
@@ -9649,12 +9676,30 @@ function applyDataAgent(){
       type:(r.type in INV_TYPE_LABELS)?r.type:"other", cls:(r.cls in INV_CLASS_LABELS)?r.cls:"other", region:(r.region in INV_REGION_LABELS)?r.region:"other",
       val:v, er:(r.er!==""&&r.er!=null&&isFinite(+r.er))?+r.er:null, yld:(r.yld!==""&&r.yld!=null&&isFinite(+r.yld))?+r.yld:null, note:"Imported by AI Data Agent"}); });
 
+  // Retirement plan → spending, retirement ages, and each client's pension.
+  (x.retirement||[]).forEach((r0,i)=>{ if(!_daChecked("retirement",i)) return; const r=_daCollect("retirement",i); let touched=false;
+    if(parseFloat(r.desiredAnnualSpend)>0){ _daSet("retSpend",r.desiredAnnualSpend); touched=true; }
+    if(parseInt(r.client1RetirementAge,10)>0){ _daSet("retAge",r.client1RetirementAge); touched=true; }
+    if(parseInt(r.client2RetirementAge,10)>0 && $("retAge2")){ _daSet("retAge2",r.client2RetirementAge); touched=true; }
+    // Client 1 pension: switch source to Manual, then set the benefit + start age
+    if(parseFloat(r.client1PensionAnnual)>0){ _daSetSel("penSrc","manual"); _daSet("penAnnual",r.client1PensionAnnual);
+      try{ if(typeof markPenEdited==="function") markPenEdited(); }catch(_){} touched=true; }
+    if(parseInt(r.client1PensionStartAge,10)>0){ _daSet("penStartAge",r.client1PensionStartAge); touched=true; }
+    // Client 2 pension
+    if(parseFloat(r.client2PensionAnnual)>0){ _daSetSel("penSrc2","manual"); _daSet("penAnnual2",r.client2PensionAnnual);
+      try{ if(typeof markPen2Edited==="function") markPen2Edited(); }catch(_){} touched=true; }
+    if(parseInt(r.client2PensionStartAge,10)>0){ _daSet("penStartAge2",r.client2PensionStartAge); touched=true; }
+    if(touched) n++; });
+
   // Re-render everything affected
   const safe=fn=>{ try{ if(typeof window[fn]==="function") window[fn](); }catch(e){ console.warn("[DataAgent] "+fn,e); } };
   ["renderChildren","updateDisplays","updateIncTotal","updateExpTotal","updateTaxPanel","renderAssets","renderLoans","renderGoals","renderInvestments","renderPortfolioMetrics","drawPortfolioPie","refreshTopMetrics"].forEach(safe);
   const stt=$("daApplyStatus"); if(stt){ stt.textContent="✓ Added "+n+" item"+(n!==1?"s":"")+" to the app."; stt.style.color="var(--green)"; }
   const ast=$("aiAgentStatus"); if(ast){ ast.textContent="✓ Applied "+n+" item"+(n!==1?"s":"")+"."; ast.style.color="var(--green)"; }
   try{ if(typeof _topStatus==="function") _topStatus("AI Data Agent added "+n+" item"+(n!==1?"s":"")); }catch(_){}
+  // Auto-close the review modal after a beat, so the success message is seen
+  // but the user isn't left dismissing a modal that already did its job.
+  if(n>0){ setTimeout(()=>{ try{ closeReviewModal(); }catch(_){} }, 900); }
 }
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -9669,7 +9714,7 @@ let _siQueue=[];       // pending CSV files awaiting Stage-1 mapping
 let _siCcySeen=null;   // currencies detected (for the FX warning)
 let _siSkipped=0;      // positions dropped for missing value (surfaced to the user)
 
-function _siEmpty(){ return {household:[],income:[],expenses:[],assets:[],liabilities:[],goals:[],holdings:[]}; }
+function _siEmpty(){ return {household:[],income:[],expenses:[],assets:[],liabilities:[],goals:[],holdings:[],retirement:[]}; }
 function _siMerge(a,b){ Object.keys(a).forEach(k=>{ a[k]=a[k].concat(b[k]||[]); }); return a; }
 function siStatus(msg,color){ const s=$("siStatus"); if(s){ s.textContent=msg||""; s.style.color=color||"var(--text3)"; } }
 
