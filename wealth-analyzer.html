@@ -1473,7 +1473,7 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
     </div>
   </div>
   <div class="wh-right">
-    <div class="wh-right-title">Asset Allocation</div>
+    <div class="wh-right-title">Asset Allocation<span class="info-ic">i<span class="info-pop">Breakdown of total assets by category, using current balances from the Assets tab. Percentages are of gross assets, before debt.</span></span></div>
     <div class="wh-donut-wrap">
       <canvas id="overview-donut"></canvas>
       <div class="wh-donut-center">
@@ -1645,8 +1645,8 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
       <div style="width:20px;height:20px;border-radius:50%;background:rgba(91,155,213,.15);color:var(--blue);border:1px solid rgba(91,155,213,.3);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;flex-shrink:0" id="inc-av1">C1</div>
       <span id="il1">Client 1</span>
     </div>
-    <div class="frow"><label class="flbl">Primary income (annual)</label><input type="number" id="inc1" value="85000" step="1000" class="w160" oninput="updateIncTotal()"></div>
-    <div class="frow"><label class="flbl">Secondary income (annual)</label><input type="number" id="inc2" value="15000" step="1000" class="w160" oninput="updateIncTotal()"></div>
+    <div class="frow"><label class="flbl">Primary income (annual)</label><input type="number" id="inc1" value="" step="1000" class="w160" oninput="updateIncTotal()"></div>
+    <div class="frow"><label class="flbl">Secondary income (annual)</label><input type="number" id="inc2" value="" step="1000" class="w160" oninput="updateIncTotal()"></div>
     <div id="inc-c1-sub" style="margin-top:6px;font-size:11px;color:var(--text3)">Client 1 subtotal: <span id="inc-c1-val" style="color:var(--text2);font-weight:500">—</span></div>
   </div>
 
@@ -1656,15 +1656,15 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
       <div style="width:20px;height:20px;border-radius:50%;background:rgba(76,175,125,.15);color:var(--green);border:1px solid rgba(76,175,125,.3);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;flex-shrink:0" id="inc-av2">C2</div>
       <span id="il2">Client 2</span>
     </div>
-    <div class="frow"><label class="flbl">Primary income (annual)</label><input type="number" id="inc1b" value="0" step="1000" class="w160" oninput="updateIncTotal()"></div>
-    <div class="frow"><label class="flbl">Secondary income (annual)</label><input type="number" id="inc2b" value="0" step="1000" class="w160" oninput="updateIncTotal()"></div>
+    <div class="frow"><label class="flbl">Primary income (annual)</label><input type="number" id="inc1b" value="" step="1000" class="w160" oninput="updateIncTotal()"></div>
+    <div class="frow"><label class="flbl">Secondary income (annual)</label><input type="number" id="inc2b" value="" step="1000" class="w160" oninput="updateIncTotal()"></div>
     <div style="margin-top:6px;font-size:11px;color:var(--text3)">Client 2 subtotal: <span id="inc-c2-val" style="color:var(--text2);font-weight:500">—</span></div>
   </div>
 
   <div style="border-top:1px solid var(--border);padding-top:12px">
     <div class="frow"><label class="flbl">Annual raise % (both)</label><input type="number" id="raise" value="0" step="0.5" class="w120" oninput="refreshTopMetrics()"></div>
     <div id="inc-total-row" style="margin-top:8px;padding:10px 12px;background:var(--bg3);border-radius:var(--rs);border:1px solid var(--border)">
-      <div style="font-size:11px;color:var(--text3);margin-bottom:4px">Household total income (live)</div>
+      <div style="font-size:11px;color:var(--text3);margin-bottom:4px">Household total income (live)<span class="info-ic">i<span class="info-pop"><strong>Household total income</strong> — the sum of both clients' primary and secondary income, before any tax. This gross figure feeds the Tax panel, the Income→Expenses→Surplus link, and the Monte Carlo simulation's income growth path.</span></span></div>
       <div style="font-size:18px;font-weight:500;color:var(--gold)" id="inc-total">—</div>
       <div id="inc-breakdown" style="font-size:11px;color:var(--text3);margin-top:4px">Updates as you type. Sum of all income fields above.</div>
     </div>
@@ -1680,7 +1680,7 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
       <button class="btn-secondary" onclick="setSavingsToZero()" type="button">Reset to 0</button>
     </div>
     <div id="sav-row" style="margin-top:10px;padding:10px 12px;background:var(--bg3);border-radius:var(--rs);border:1px solid var(--border)">
-      <div style="font-size:11px;color:var(--text3);margin-bottom:4px">Savings rate &amp; coverage</div>
+      <div style="font-size:11px;color:var(--text3);margin-bottom:4px">Savings rate &amp; coverage<span class="info-ic">i<span class="info-pop"><strong>Savings rate</strong> — your committed annual savings (the amount entered in Annual savings) as a % of gross household income: savings ÷ gross income × 100. <strong>Coverage</strong> compares that commitment to your actual annual surplus (gross income − tax − expenses − annual debt service): if savings exceed surplus, the shortfall is drawn from cash reserves in the simulation.</span></span></div>
       <div style="font-size:14px;font-weight:500;color:var(--text)" id="sav-summary">—</div>
       <div id="sav-detail" style="font-size:11px;color:var(--text3);margin-top:4px">Enter a savings amount to see your savings rate and how it compares to current available surplus.</div>
     </div>
@@ -1696,11 +1696,11 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
 <div class="panel">
   <div class="ptitle">Annual Household Expenses</div>
   <div style="font-size:12px;color:var(--text3);margin-bottom:12px;line-height:1.5">Enter <strong style="color:var(--text2)">total annual spending for the entire family</strong> — combined across both clients, children, and all dependents living in the household. Each line should already include every household member.</div>
-  <div class="frow"><label class="flbl">Living expenses (household)</label><input type="number" id="expL" value="36000" step="500" class="w140" oninput="updateExpTotal()"></div>
-  <div class="frow"><label class="flbl">Insurance / health (household)</label><input type="number" id="expI" value="6000" step="500" class="w140" oninput="updateExpTotal()"></div>
-  <div class="frow"><label class="flbl">Other expenses (household)</label><input type="number" id="expO" value="8000" step="500" class="w140" oninput="updateExpTotal()"></div>
+  <div class="frow"><label class="flbl">Living expenses (household)</label><input type="number" id="expL" value="" step="500" class="w140" oninput="updateExpTotal()"></div>
+  <div class="frow"><label class="flbl">Insurance / health (household)</label><input type="number" id="expI" value="" step="500" class="w140" oninput="updateExpTotal()"></div>
+  <div class="frow"><label class="flbl">Other expenses (household)</label><input type="number" id="expO" value="" step="500" class="w140" oninput="updateExpTotal()"></div>
   <div id="exp-total-row" style="margin-top:8px;padding:10px 12px;background:var(--bg3);border-radius:var(--rs);border:1px solid var(--border)">
-    <div style="font-size:11px;color:var(--text3);margin-bottom:4px">Total annual household expenses (live)</div>
+    <div style="font-size:11px;color:var(--text3);margin-bottom:4px">Total annual household expenses (live)<span class="info-ic">i<span class="info-pop"><strong>Total household expenses</strong> — living costs + insurance/health + other, combined across the whole family (plus any insurance premiums you've chosen to include). This total is subtracted from after-tax income to compute your annual surplus (see the breakdown just below), which drives savings available in the Monte Carlo simulation.</span></span></div>
     <div style="font-size:18px;font-weight:500;color:var(--gold)" id="exp-total">—</div>
     <div style="font-size:11px;color:var(--text3);margin-top:4px">Updates as you type. Sum of all three categories above — covers the entire family.</div>
   </div>
@@ -1803,7 +1803,7 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
         <div style="font-size:11px;color:var(--text3);margin-top:4px" id="tax-state-rate-lbl">—</div>
       </div>
       <div id="childTaxCard" style="display:none;padding:10px 12px;background:var(--bg3);border-radius:var(--rs);border:1px solid var(--border);margin-bottom:10px">
-        <div style="font-size:11px;color:var(--text3);margin-bottom:4px">Child / family tax benefit</div>
+        <div style="font-size:11px;color:var(--text3);margin-bottom:4px">Child / family tax benefit<span class="info-ic">i<span class="info-pop"><strong>Child &amp; family tax benefit</strong> — country-specific credits/deductions for dependent children (e.g. Child Tax Credit in the US, Kindergeld in Germany) that reduce net tax owed. Estimated from the number of children entered on the Household tab and the selected tax jurisdiction.</span></span></div>
         <div style="font-size:18px;font-weight:500;color:#1b6841" id="tax-child-saving">—</div>
         <div style="font-size:11px;color:var(--text3);margin-top:4px" id="tax-child-lbl">—</div>
         <div style="font-size:10px;color:var(--text3);margin-top:3px;font-style:italic" id="tax-child-note"></div>
@@ -1814,7 +1814,7 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
         <div style="font-size:11px;color:var(--text3);margin-top:4px" id="tax-total-rate-lbl">—</div>
       </div>
       <div style="padding:10px 12px;background:var(--bg3);border-radius:var(--rs);border:1px solid var(--border)">
-        <div style="font-size:11px;color:var(--text3);margin-bottom:4px">After-tax expected investment return</div>
+        <div style="font-size:11px;color:var(--text3);margin-bottom:4px">After-tax expected investment return<span class="info-ic">i<span class="info-pop"><strong>After-tax expected return</strong> — your portfolio's gross expected return reduced by a capital-gains-tax drag: effective return ≈ gross × (1 − CGT rate × portfolio turnover %). This after-tax figure is what the Monte Carlo simulation compounds when "Apply tax to simulation" is set to Yes.</span></span></div>
         <div style="font-size:18px;font-weight:500;color:var(--text)" id="tax-retnet">—</div>
         <div style="font-size:11px;color:var(--text3);margin-top:4px" id="tax-cgt-lbl">—</div>
       </div>
@@ -2260,48 +2260,23 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
   <div id="goalResultList"></div>
 </div>
 
-<!-- Goals & Retirement Funding Status (probabilistic) -->
-<div class="panel" id="fundingPanel">
-  <div class="ptitle section-dropdown open" onclick="toggleDropdown('fundingBodyWrap')" style="margin:0">
-    Goals &amp; Retirement Funding Status <span class="dropdown-hint">probability-based · click to toggle</span>
+<!-- Goal & Retirement Funding Status (combined: probabilistic + PV-based) -->
+<div class="panel" id="goalFundingPanel">
+  <div class="ptitle section-dropdown open" onclick="toggleDropdown('goalFundingWrap')" style="margin:0">
+    Goal &amp; Retirement Funding Status <span class="dropdown-hint">probability-based + present-value · click to toggle</span>
     <span class="ptitle-line"></span>
   </div>
-  <div class="dropdown-body open" id="fundingBodyWrap">
-  <div id="fundingHeader" class="cf-header" style="margin-top:8px">Run the simulation to see how each goal scores at the 30%, 50%, and 80% confidence levels.</div>
-  <div class="fund-tbl-wrap"><table class="fund-tbl" id="fundingTable">
-    <thead><tr>
-      <th class="cf-l">Goal</th>
-      <th class="cf-l">Target year</th>
-      <th>Amount needed</th>
-      <th>NW @ 30% conf.</th>
-      <th>NW @ 50% conf.</th>
-      <th>NW @ 80% conf.</th>
-      <th>Probability funded</th>
-      <th class="cf-l">Status</th>
-    </tr></thead>
-    <tbody id="fundingBody"><tr><td colspan="8" style="text-align:center;color:var(--text3);padding:18px">Run the simulation — funding status appears here once the Monte Carlo finishes.</td></tr></tbody>
-  </table></div>
+  <div class="dropdown-body open" id="goalFundingWrap">
+  <div class="cf-header" style="margin-top:8px">Each goal is scored two ways: the <strong>simulated probability</strong> of being fully funded (from the Monte Carlo paths) and the <strong>present-value funding ratio</strong> (priority-weighted, discounted at a risk-adjusted rate, Merrill-style). Run the simulation to populate both.</div>
+  <div id="goalFundingSummary"></div>
+  <div id="goalFundingList"><div class="pf-empty">Run the simulation to populate funding status.</div></div>
   <div class="cf-legend">
-    <span><span class="fund-tag fund-ok">Fully funded</span> probability ≥ 80%</span>
-    <span><span class="fund-tag fund-warn">Partly funded</span> 50–79%</span>
+    <span><span class="fund-tag fund-ok">Fully funded</span> probability ≥ 80% / ratio ≥ 90%</span>
+    <span><span class="fund-tag fund-warn">Partly funded</span> 50–79% / 60–89%</span>
     <span><span class="fund-tag fund-warn">At risk</span> 25–49%</span>
-    <span><span class="fund-tag fund-bad">Underfunded</span> &lt; 25%</span>
-    <span style="color:var(--text3)">"NW @ X% confidence" reads the X-th percentile of simulated net worth in the goal's calendar year (i.e. the value that X% of paths beat). Retirement uses a present-value corpus need: net retirement spending (after pension) discounted at the real return from the retirement year to age 90, then inflated to nominal $ at the retirement date. Note: "net worth" here includes all simulated wealth (investments, cash, property, retirement accounts minus debt). For goals needing liquid funds quickly, actual availability may be lower if a significant portion of wealth is in illiquid assets such as property or locked retirement accounts.</span>
+    <span><span class="fund-tag fund-bad">Underfunded</span> &lt; 25% / &lt; 60%</span>
+    <span style="color:var(--text3)">Simulated success reads the percentile of simulated net worth in the goal's calendar year against the amount needed. Note: "net worth" here includes all simulated wealth (investments, cash, property, retirement accounts minus debt) — for goals needing liquid funds quickly, actual availability may be lower if a significant portion of wealth is in illiquid assets. The PV funding ratio discounts each goal's cost at a rate matched to its priority tier (Essential 95% / Important 75% / Aspirational 55% confidence), grossed for tax, and compares it to current assets plus reachable future savings, using the capital-market-assumption covariance engine.</span>
   </div>
-  </div>
-</div>
-
-<!-- Goal Funding Status (PV-based, Merrill-style) -->
-<div class="panel" id="simFundingPanel">
-  <div class="ptitle section-dropdown" onclick="toggleDropdown('simFundingWrap')" style="margin:0">
-    Goal Funding Status <span class="dropdown-hint">present-value, priority-weighted · click to expand</span>
-    <span class="ptitle-line"></span>
-  </div>
-  <div class="dropdown-body" id="simFundingWrap">
-  <div style="font-size:12px;color:var(--text3);margin:10px 0 14px;line-height:1.6">
-    Each goal priced in present-value terms and discounted at a risk-adjusted rate matched to its priority (Essential 95% / Important 75% / Aspirational 55% confidence), grossed for tax, then compared to your funding sources. This complements the probabilistic goal-success rates above with the institutional <strong>Funding Ratio</strong> metric. Uses the capital-market-assumption covariance engine.
-  </div>
-  <div id="simFunding"><div class="pf-empty">Run the simulation to populate funding ratios.</div></div>
   </div>
 </div>
 
@@ -2449,7 +2424,7 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
   </div>
   <div class="dropdown-body" id="cfWrap">
   <div id="cfHeader" class="cf-header" style="margin-top:8px">Run the simulation to populate the cash flow table.</div>
-  <div class="cf-tbl-wrap"><table class="cf-tbl" id="cfTable"><thead><tr><th class="cf-l">Year</th><th class="cf-l">Age</th><th class="cf-l">Phase</th><th>Earned income</th><th>Pension / SS / RMD</th><th>Income tax</th><th>Expenses</th><th>Debt service</th><th>Savings target</th><th>Surplus / Deficit</th><th>Goal outflow</th><th>Cash</th><th>Investments</th><th>Ret. pool</th><th>Net worth</th><th class="cf-l">Notes</th></tr></thead><tbody id="cfBody"><tr><td colspan="16" style="text-align:center;color:var(--text3);padding:18px">Run the simulation — the cash flow table will project from today until the primary client turns 90.</td></tr></tbody></table></div>
+  <div class="cf-tbl-wrap"><table class="cf-tbl" id="cfTable"><thead><tr><th class="cf-l">Year</th><th class="cf-l">Age</th><th class="cf-l">Phase</th><th>Earned income</th><th>Pension / SS / RMD</th><th>Income tax</th><th>Expenses</th><th>Debt service</th><th>Savings target</th><th>Surplus / Deficit</th><th>Goal outflow</th><th>Cash</th><th>Investments</th><th>Ret. pool</th><th>Net worth<span class="info-ic">i<span class="info-pop">Total assets minus total liabilities as of the end of this year — cash + investments + retirement pool + property/other, minus remaining loan balances.</span></span></th><th class="cf-l">Notes</th></tr></thead><tbody id="cfBody"><tr><td colspan="16" style="text-align:center;color:var(--text3);padding:18px">Run the simulation — the cash flow table will project from today until the primary client turns 90.</td></tr></tbody></table></div>
   <div id="cfLegend" class="cf-legend">
     <span><span class="swatch sw-now"></span>Today (year 0)</span>
     <span><span class="swatch sw-ret"></span>Retirement starts</span>
@@ -2467,7 +2442,7 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
     <span class="ptitle-line"></span>
   </div>
   <div class="dropdown-body" id="nwCompBody">
-    <div style="font-size:12px;color:var(--text3);margin:8px 0 12px">How each part of your wealth — cash, investments, retirement pool, property, insurance cash value — evolves along the deterministic projection. The dashed line is total net worth after liabilities.</div>
+    <div style="font-size:12px;color:var(--text3);margin:8px 0 12px">How each part of your wealth — cash, investments, retirement pool, property, insurance cash value — evolves along the deterministic projection. The dashed line is total net worth after liabilities. Retirement pool = locked retirement/pension accounts growing at a fixed 3.5%/yr independent of your risk profile. Property & other = real estate plus any other/miscellaneous assets. Insurance cash value is held flat at today's value (no growth or decay modeled).</div>
     <div class="chart-wrap" style="height:300px"><canvas id="nwCompChart" role="img" aria-label="Net worth by component stacked chart"></canvas></div>
   </div>
 </div>
@@ -2676,7 +2651,7 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
     <div class="pf-mc"><div class="pf-mc-lbl">Diversification<span class="info-ic">i<span class="info-pop"><strong>Diversification grade</strong> — a letter grade (A-F) derived from the HHI concentration. A means well spread across positions; D/F means a few holdings dominate.</span></span></div><div class="pf-mc-val" id="pf-grade">—</div></div>
     <div class="pf-mc"><div class="pf-mc-lbl">Wtd yield<span class="info-ic">i<span class="info-pop"><strong>Weighted yield</strong> — the value-weighted average income yield (dividends + interest) across holdings. Approximates the annual cash income the portfolio throws off as a % of value.</span></span></div><div class="pf-mc-val" id="pf-yield">—</div></div>
     <div class="pf-mc"><div class="pf-mc-lbl">Wtd expense ratio<span class="info-ic">i<span class="info-pop"><strong>Weighted expense ratio</strong> — the value-weighted average annual fund fee across holdings. This cost is deducted from gross returns every year, so lower is better.</span></span></div><div class="pf-mc-val" id="pf-er">—</div></div>
-    <div class="pf-mc"><div class="pf-mc-lbl">Risk score<span class="info-ic">i<span class="info-pop"><strong>Risk score</strong> — the portfolio's covariance-based volatility mapped to a 0-10 scale. It accounts for how asset classes correlate, so a diversified mix scores lower than the average of its parts.</span></span></div><div class="pf-mc-val" id="pf-risk">—</div><div class="risk-bar"><div id="pf-risk-fill" style="flex:0 0 0%"></div></div></div>
+    <div class="pf-mc"><div class="pf-mc-lbl">Risk score<span class="info-ic">i<span class="info-pop"><strong>Risk score</strong> — the portfolio's covariance-based volatility mapped to a 0-10 scale. It accounts for how asset classes correlate, so a diversified mix scores lower than the average of its parts. The bar below shades from green (low risk, near 0) to red (high risk, near 10) along this same 0-10 scale.</span></span></div><div class="pf-mc-val" id="pf-risk">—</div><div class="risk-bar"><div id="pf-risk-fill" style="flex:0 0 0%"></div></div></div>
   </div>
   <div style="font-size:11px;color:var(--text3);margin-top:8px">When the portfolio has holdings, its total is added to the Monte Carlo investment seed and the asset-class mix overrides the risk-profile return assumptions. Avoid double-counting positions you've already entered as Investment account values on the Assets tab.</div>
 </div>
@@ -2701,15 +2676,15 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
     </div>
     <div>
       <div style="padding:10px 12px;background:var(--bg3);border-radius:var(--rs);border:1px solid var(--border);margin-bottom:8px">
-        <div style="font-size:11px;color:var(--text3);margin-bottom:3px">Gross expected return</div>
+        <div style="font-size:11px;color:var(--text3);margin-bottom:3px">Gross expected return<span class="info-ic">i<span class="info-pop">the portfolio's value-weighted expected annual return, derived from each holding's asset-class capital-market assumption (cash excluded).</span></span></div>
         <div style="font-size:17px;font-weight:500;color:var(--text)" id="pf-ret-gross">—</div>
       </div>
       <div style="padding:10px 12px;background:var(--bg3);border-radius:var(--rs);border:1px solid var(--border);margin-bottom:8px">
-        <div style="font-size:11px;color:var(--text3);margin-bottom:3px">Advisory fee drag</div>
+        <div style="font-size:11px;color:var(--text3);margin-bottom:3px">Advisory fee drag<span class="info-ic">i<span class="info-pop">The annual cost of your advisory fee (AUM % or flat $), converted to an effective % drag on returns — subtracted from gross return every year in all simulations.</span></span></div>
         <div style="font-size:17px;font-weight:500;color:#a83232" id="pf-ret-fee">—</div>
       </div>
       <div style="padding:10px 12px;background:var(--bg3);border-radius:var(--rs);border:1px solid var(--border)">
-        <div style="font-size:11px;color:var(--text3);margin-bottom:3px">Net expected return (after fee)</div>
+        <div style="font-size:11px;color:var(--text3);margin-bottom:3px">Net expected return (after fee)<span class="info-ic">i<span class="info-pop">Gross expected return minus the advisory fee drag, floored at zero — this is the return actually used to project your portfolio in the Monte Carlo simulation.</span></span></div>
         <div style="font-size:17px;font-weight:500;color:#1b6841" id="pf-ret-net">—</div>
       </div>
     </div>
@@ -2725,17 +2700,17 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
        they're easy to tell apart at a glance. -->
   <div class="alloc-pies">
     <div class="alloc-pie-wrap">
-      <div class="alloc-pie-title">By Asset Class</div>
+      <div class="alloc-pie-title">By Asset Class<span class="info-ic">i<span class="info-pop">Groups your holdings into equity, fixed income, real estate, cash and other buckets. Used for goal-bucket breakdowns and net-worth views elsewhere in the app.</span></span></div>
       <div class="alloc-pie-canvas-wrap"><canvas id="pfPieCanvas" role="img" aria-label="Portfolio asset-class pie chart"></canvas></div>
       <div id="pfPieLegend" class="alloc-pie-legend"></div>
     </div>
     <div class="alloc-pie-wrap">
-      <div class="alloc-pie-title">By Instrument Type</div>
+      <div class="alloc-pie-title">By Instrument Type<span class="info-ic">i<span class="info-pop">ETF, mutual fund, stock, bond, alternative, etc. — the wrapper/vehicle used to hold each position. Display and labeling only; does not affect return or risk assumptions.</span></span></div>
       <div class="alloc-pie-canvas-wrap"><canvas id="pfPieTypeCanvas" role="img" aria-label="Portfolio instrument-type pie chart"></canvas></div>
       <div id="pfPieTypeLegend" class="alloc-pie-legend"></div>
     </div>
     <div class="alloc-pie-wrap">
-      <div class="alloc-pie-title">By Geographic Region</div>
+      <div class="alloc-pie-title">By Geographic Region<span class="info-ic">i<span class="info-pop">US, developed international, emerging markets or global exposure. Display only — not currently factored into return or volatility assumptions.</span></span></div>
       <div class="alloc-pie-canvas-wrap"><canvas id="pfPieRegionCanvas" role="img" aria-label="Portfolio region pie chart"></canvas></div>
       <div id="pfPieRegionLegend" class="alloc-pie-legend"></div>
     </div>
@@ -2926,15 +2901,15 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
     </div>
     <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px">
       <div style="padding:8px 14px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--rs);flex:1;min-width:120px">
-        <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:3px">Gross return</div>
+        <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:3px">Gross return<span class="info-ic">i<span class="info-pop">the proposal's allocation-weighted expected annual return, averaged from each position's own expected-return field (not CMA-derived like the Portfolio tab).</span></span></div>
         <div style="font-size:16px;font-weight:500;color:var(--text)" id="pr-ret-gross">—</div>
       </div>
       <div style="padding:8px 14px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--rs);flex:1;min-width:120px">
-        <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:3px">Advisory fee</div>
+        <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:3px">Advisory fee<span class="info-ic">i<span class="info-pop">The annual cost of your advisory fee (AUM % or flat $), converted to an effective % drag on returns — subtracted from gross return every year in all simulations.</span></span></div>
         <div style="font-size:16px;font-weight:500;color:#a83232" id="pr-ret-fee">—</div>
       </div>
       <div style="padding:8px 14px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--rs);flex:1;min-width:120px">
-        <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:3px">Net return</div>
+        <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:3px">Net return<span class="info-ic">i<span class="info-pop">Gross expected return minus the advisory fee drag, floored at zero — this is the return actually used to project your portfolio in the Monte Carlo simulation.</span></span></div>
         <div style="font-size:16px;font-weight:500;color:#1b6841" id="pr-ret-net">—</div>
       </div>
     </div>
@@ -2956,16 +2931,16 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
   </div>
 
   <div class="pf-summary" id="prSummary">
-    <div class="pf-mc"><div class="pf-mc-lbl">Target amount</div><div class="pf-mc-val" id="pr-total">—</div></div>
-    <div class="pf-mc"><div class="pf-mc-lbl">Positions</div><div class="pf-mc-val" id="pr-count">0</div></div>
-    <div class="pf-mc"><div class="pf-mc-lbl">Allocation</div><div class="pf-mc-val" id="pr-alloc">0%</div></div>
-    <div class="pf-mc"><div class="pf-mc-lbl">Target match</div><div class="pf-mc-val" id="pr-match">—</div></div>
-    <div class="pf-mc"><div class="pf-mc-lbl">Gross return</div><div class="pf-mc-val" id="pr-ret">—</div></div>
-    <div class="pf-mc"><div class="pf-mc-lbl">Advisory fee</div><div class="pf-mc-val" style="color:var(--red)" id="pr-fee-sum">—</div></div>
-    <div class="pf-mc"><div class="pf-mc-lbl">Net return</div><div class="pf-mc-val" style="color:var(--green)" id="pr-ret-net-sum">—</div></div>
-    <div class="pf-mc"><div class="pf-mc-lbl">Wtd expense ratio</div><div class="pf-mc-val" id="pr-er">—</div></div>
-    <div class="pf-mc"><div class="pf-mc-lbl">Wtd yield</div><div class="pf-mc-val" id="pr-yld">—</div></div>
-    <div class="pf-mc"><div class="pf-mc-lbl">Risk score</div><div class="pf-mc-val" id="pr-risk">—</div><div class="risk-bar"><div id="pr-risk-fill" style="flex:0 0 0%"></div></div></div>
+    <div class="pf-mc"><div class="pf-mc-lbl">Target amount<span class="info-ic">i<span class="info-pop">the dollar amount you plan to invest in this proposal, entered above in Proposal Setup. Position weights are applied against this figure to compute dollar amounts per holding.</span></span></div><div class="pf-mc-val" id="pr-total">—</div></div>
+    <div class="pf-mc"><div class="pf-mc-lbl">Positions<span class="info-ic">i<span class="info-pop">the count of positions added to this proposal.</span></span></div><div class="pf-mc-val" id="pr-count">0</div></div>
+    <div class="pf-mc"><div class="pf-mc-lbl">Allocation<span class="info-ic">i<span class="info-pop">sum of each position's weight %, should total 100%.</span></span></div><div class="pf-mc-val" id="pr-alloc">0%</div></div>
+    <div class="pf-mc"><div class="pf-mc-lbl">Target match<span class="info-ic">i<span class="info-pop">status derived from total allocation: 100% = fully allocated, over 100% = over-allocated, 50-100% = under-allocated, under 50% = awaiting allocation.</span></span></div><div class="pf-mc-val" id="pr-match">—</div></div>
+    <div class="pf-mc"><div class="pf-mc-lbl">Gross return<span class="info-ic">i<span class="info-pop">allocation-weighted average of each position's own expected-return field — this is a different calculation from the Portfolio tab's CMA-derived gross return.</span></span></div><div class="pf-mc-val" id="pr-ret">—</div></div>
+    <div class="pf-mc"><div class="pf-mc-lbl">Advisory fee<span class="info-ic">i<span class="info-pop">the effective % drag from your advisory fee input (AUM % or flat $ ÷ target amount), same figure shown in the Advisory Fee panel above.</span></span></div><div class="pf-mc-val" style="color:var(--red)" id="pr-fee-sum">—</div></div>
+    <div class="pf-mc"><div class="pf-mc-lbl">Net return<span class="info-ic">i<span class="info-pop">gross return minus advisory fee, floored at zero.</span></span></div><div class="pf-mc-val" style="color:var(--green)" id="pr-ret-net-sum">—</div></div>
+    <div class="pf-mc"><div class="pf-mc-lbl">Wtd expense ratio<span class="info-ic">i<span class="info-pop">allocation-weighted average expense ratio across all positions.</span></span></div><div class="pf-mc-val" id="pr-er">—</div></div>
+    <div class="pf-mc"><div class="pf-mc-lbl">Wtd yield<span class="info-ic">i<span class="info-pop">allocation-weighted average dividend/interest yield across all positions.</span></span></div><div class="pf-mc-val" id="pr-yld">—</div></div>
+    <div class="pf-mc"><div class="pf-mc-lbl">Risk score<span class="info-ic">i<span class="info-pop">allocation-weighted average of a fixed per-asset-class risk score (0-10 scale). The bar below shades from green (low risk) to red (high risk) on this same scale.</span></span></div><div class="pf-mc-val" id="pr-risk">—</div><div class="risk-bar"><div id="pr-risk-fill" style="flex:0 0 0%"></div></div></div>
   </div>
 
   <!-- Three pies row — Asset Class, Vehicle Type, Geographic Region.
@@ -2973,17 +2948,17 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
        matching the Portfolio tab for consistency. -->
   <div class="alloc-pies" style="margin-top:8px">
     <div class="alloc-pie-wrap">
-      <div class="alloc-pie-title">By Asset Class</div>
+      <div class="alloc-pie-title">By Asset Class<span class="info-ic">i<span class="info-pop">Groups the proposed positions into equity, fixed income, real estate, cash and other buckets. When "simulate from proposal" is turned on, this mix directly sets the Monte Carlo simulation's return and volatility — otherwise the simulation uses your household risk profile.</span></span></div>
       <div class="alloc-pie-canvas-wrap"><canvas id="prPieCanvas" role="img" aria-label="Proposal asset-class pie chart"></canvas></div>
       <div id="prPieLegend" class="alloc-pie-legend"></div>
     </div>
     <div class="alloc-pie-wrap">
-      <div class="alloc-pie-title">By Vehicle Type</div>
+      <div class="alloc-pie-title">By Vehicle Type<span class="info-ic">i<span class="info-pop">ETF, mutual fund, stock, bond, alternative, etc. — the wrapper/vehicle used to hold each position. Display and labeling only; does not affect return or risk assumptions.</span></span></div>
       <div class="alloc-pie-canvas-wrap"><canvas id="prPieVehicleCanvas" role="img" aria-label="Proposal vehicle-type pie chart"></canvas></div>
       <div id="prPieVehicleLegend" class="alloc-pie-legend"></div>
     </div>
     <div class="alloc-pie-wrap">
-      <div class="alloc-pie-title">By Geographic Region</div>
+      <div class="alloc-pie-title">By Geographic Region<span class="info-ic">i<span class="info-pop">US, developed international, emerging markets or global exposure. Display only — not currently factored into return or volatility assumptions.</span></span></div>
       <div class="alloc-pie-canvas-wrap"><canvas id="prPieRegionCanvas" role="img" aria-label="Proposal region pie chart"></canvas></div>
       <div id="prPieRegionLegend" class="alloc-pie-legend"></div>
     </div>
@@ -3242,7 +3217,7 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
   <div class="cmp-grid" id="cmpParams">
     <div class="cmp-h cur">Current portfolio</div>
     <div class="cmp-h prop">Proposed portfolio</div>
-    <div class="cmp-h delta">Variance</div>
+    <div class="cmp-h delta">Variance<span class="info-ic">i<span class="info-pop">Simple difference: Proposed portfolio minus Current portfolio for each row (not a statistical variance/squared deviation).</span></span></div>
     <div class="cmp-c"><span class="lbl">Run comparison to populate</span>—</div>
     <div class="cmp-c"><span class="lbl">&nbsp;</span>—</div>
     <div class="cmp-c">—</div>
@@ -3549,7 +3524,7 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
       <div class="frow"><label class="flbl">Plan strategies summary</label>
         <select id="rptIncStrategies" class="w180"><option value="yes" selected>Yes</option><option value="no">No</option></select>
       </div>
-      <div class="frow"><label class="flbl">Investment Policy Statement</label>
+      <div class="frow"><label class="flbl">Investment Policy Statement<span class="info-ic">i<span class="info-pop"><strong>Investment Policy Statement (IPS).</strong> A one-page statement of target asset allocation, risk tolerance, and rebalancing rules that governs how the portfolio is managed.</span></span></label>
         <select id="rptIncIPS" class="w180"><option value="yes" selected>Yes</option><option value="no">No</option></select>
       </div>
       <div class="frow"><label class="flbl">Portfolio detail</label>
@@ -3566,7 +3541,7 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
       <div class="frow"><label class="flbl">Goal success probability</label>
         <select id="rptIncFund" class="w180"><option value="yes" selected>Yes</option><option value="no">No</option></select>
       </div>
-      <div class="frow"><label class="flbl">Goal funding status (PV)</label>
+      <div class="frow"><label class="flbl">Goal funding status (PV)<span class="info-ic">i<span class="info-pop"><strong>Present Value (PV) funding status.</strong> For each goal, compares the present-value cost of the goal against assets currently earmarked to fund it, shown as a funded percentage.</span></span></label>
         <select id="rptIncGoalFunding" class="w180"><option value="yes" selected>Yes (if goals added)</option><option value="no">No</option></select>
       </div>
       <div class="frow"><label class="flbl">Achievable lifestyle</label>
@@ -3581,16 +3556,16 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
       <div class="frow"><label class="flbl">Tax buckets &amp; withdrawal order</label>
         <select id="rptIncTaxBuckets" class="w180"><option value="yes" selected>Yes (if assets added)</option><option value="no">No</option></select>
       </div>
-      <div class="frow"><label class="flbl">Roth-style conversion window</label>
+      <div class="frow"><label class="flbl">Roth-style conversion window<span class="info-ic">i<span class="info-pop">Shows the years where moving money from tax-deferred to tax-free accounts (a "Roth conversion") is likely cheapest — typically low-income years between retirement and when mandatory withdrawals begin.</span></span></label>
         <select id="rptIncRoth" class="w180"><option value="yes" selected>Yes (if applicable)</option><option value="no">No</option></select>
       </div>
-      <div class="frow"><label class="flbl">Required minimum withdrawals</label>
+      <div class="frow"><label class="flbl">Required minimum withdrawals<span class="info-ic">i<span class="info-pop"><strong>Required Minimum Distributions (RMDs).</strong> The government-mandated minimum amount that must be withdrawn each year from tax-deferred retirement accounts once you reach the applicable age, per your country's rule.</span></span></label>
         <select id="rptIncRMD" class="w180"><option value="yes" selected>Yes (if country has a rule)</option><option value="no">No</option></select>
       </div>
       <div class="frow"><label class="flbl">Estate transfer summary</label>
         <select id="rptIncEstate" class="w180"><option value="yes" selected>Yes (if beneficiaries/insurance)</option><option value="no">No</option></select>
       </div>
-      <div class="frow"><label class="flbl">Capital market assumptions</label>
+      <div class="frow"><label class="flbl">Capital market assumptions<span class="info-ic">i<span class="info-pop"><strong>Capital Market Assumptions (CMA).</strong> The expected-return, volatility, and inflation assumptions used to drive the Monte Carlo simulation for each asset class.</span></span></label>
         <select id="rptIncCMA" class="w180"><option value="yes" selected>Yes</option><option value="no">No</option></select>
       </div>
       <div class="frow"><label class="flbl">Cash-flow projection</label>
@@ -3643,7 +3618,7 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
 // ═══════════════════════════════════════════════════════════
 // VERSION — updated by build-standalone.pl on each build
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260707-1451";
+const APP_VERSION = "20260707-1553";
 
 // ═══════════════════════════════════════════════════════════
 // DATA
@@ -5313,7 +5288,7 @@ function renderRMDSchedule(s){
     +card("Est. tax on withdrawals",fmtMoney(s.totalTax),"Estimated tax on those mandatory withdrawals, using your effective income-tax rate. Illustrative — not tax advice.");
   h+='</div>';
   h+='<div style="font-size:11px;color:var(--text3);line-height:1.6;margin-bottom:10px">'+_daEsc(cn)+': '+_daEsc(s.rule.note)+' Pool projected at '+(s.growth*100).toFixed(1)+'%/yr; tax estimated at '+(s.effTax*100).toFixed(0)+'% effective. Illustrative — not tax advice.</div>';
-  h+='<div style="overflow:auto"><table style="width:100%;border-collapse:collapse;font-size:12px"><tr style="color:var(--text3);text-align:left"><th style="padding:4px 8px">Age</th><th>Year</th><th>Pool (start)</th><th>Required %</th><th>Withdrawal</th><th>Est. tax</th><th>Pool (end)</th></tr>';
+  h+='<div style="overflow:auto"><table style="width:100%;border-collapse:collapse;font-size:12px"><tr style="color:var(--text3);text-align:left"><th style="padding:4px 8px">Age</th><th>Year</th><th>Pool (start)<span class="info-ic">i<span class="info-pop">Retirement-account balance at the start of the year, before this year\'s mandatory withdrawal is taken.</span></span></th><th>Required %<span class="info-ic">i<span class="info-pop">The statutory minimum withdrawal fraction for this age under your country\'s rule (e.g. IRS Uniform Lifetime Table) — Required % × Pool (start) = Withdrawal.</span></span></th><th>Withdrawal</th><th>Est. tax</th><th>Pool (end)<span class="info-ic">i<span class="info-pop">Balance remaining after the withdrawal, before this year\'s investment growth is applied to next year\'s starting pool.</span></span></th></tr>';
   h+=shown.map(r=>'<tr style="border-top:1px solid var(--border)"><td style="padding:4px 8px">'+r.age+'</td><td>'+r.year+'</td><td>'+fmtMoney(r.startBal)+'</td><td>'+(r.frac*100).toFixed(2)+'%</td><td>'+fmtMoney(r.withdrawal)+'</td><td>'+fmtMoney(r.taxEst)+'</td><td>'+fmtMoney(r.endBal)+'</td></tr>').join('');
   h+='</table></div>';
   host.innerHTML=h;
@@ -6936,13 +6911,21 @@ function updateHorizon(n){
 function updateHouseRisk(){
   const r1=$("c1r").value, r2=$("c2r").value;
   const showC2=$("c2card").style.display!=="none";
-  if(!r1 && !(showC2&&r2)){ setT("m-risk","—"); return; }
+  const el=$("m-risk");
+  if(!el) return;
+  if(!r1 && !(showC2&&r2)){ el.innerHTML="—"; return; }
   const profiles=[];
   if(r1) profiles.push(RISK_PROFILES[r1]);
   if(showC2 && r2) profiles.push(RISK_PROFILES[r2]);
-  if(profiles.length===0){setT("m-risk","—"); return;}
-  if(profiles.length===1){ setT("m-risk",profiles[0].label); return; }
-  setT("m-risk","Blended ("+profiles.map(p=>p.label.split(" ")[0]).join(" / ")+")");
+  if(profiles.length===0){ el.innerHTML="—"; return; }
+  if(profiles.length===1){
+    const p=profiles[0];
+    el.innerHTML=`${p.label}<span class="info-ic">i<span class="info-pop">${p.note} Expected return μ ${p.retMean}%, volatility σ ${p.retVol}% — the assumptions this risk profile feeds into the Monte Carlo simulation.</span></span>`;
+    return;
+  }
+  const mu=(profiles.reduce((a,p)=>a+p.retMean,0)/profiles.length).toFixed(1);
+  const sig=(profiles.reduce((a,p)=>a+p.retVol,0)/profiles.length).toFixed(1);
+  el.innerHTML=`Blended (${profiles.map(p=>p.label.split(" ")[0]).join(" / ")})<span class="info-ic">i<span class="info-pop">Household risk profile is the average of both clients' selected profiles. Blended expected return μ ${mu}%, volatility σ ${sig}% — the assumptions this feeds into the Monte Carlo simulation.</span></span>`;
 }
 function getReturnParams(){
   const r1=$("c1r").value, r2=$("c2r").value;
@@ -7981,8 +7964,8 @@ function renderGoals(){
     }
     return `<div class="goal-item">
       <span class="goal-icon" style="background:${icon.bg};color:${icon.color}" title="${icon.label}">${icon.emoji}</span>
-      <span class="gtag tcat" style="background:${icon.bg};color:${icon.color};border-color:${icon.bg}">${icon.label.toLowerCase()}</span>
-      <span class="gtag ${tierClass}">${g.tier||"important"}</span>
+      <span class="gtag tcat" style="background:${icon.bg};color:${icon.color};border-color:${icon.bg}">${icon.label.toLowerCase()}</span><span class="info-ic">i<span class="info-pop">Goal category: <strong>${icon.label}</strong>. Categorizes the goal for icon display and drives category-specific analysis (e.g. education funding gap and retirement success checks look for goals tagged with the matching category). Priority weighting in funding-shortfall alerts is set separately by the goal's tier (essential/important/aspirational), shown in the tag next to this one.</span></span>
+      <span class="gtag ${tierClass}">${g.tier||"important"}</span><span class="info-ic">i<span class="info-pop"><strong>Goal priority tier.</strong> Controls funding order when assets and savings are limited: <strong>essential</strong> goals draw from the shared assets/savings pool first and are flagged high-severity if underfunded; <strong>important</strong> goals are funded next (medium severity if short); <strong>aspirational</strong> and <strong>legacy</strong> goals are funded last, from whatever assets/savings remain, and are flagged low-severity if underfunded.</span></span>
       <span style="flex:1;font-weight:600;color:var(--text)">${_daEsc(g.name)}</span>
       <span style="font-variant-numeric:tabular-nums;font-weight:600">${amtDisplay}${extraNote}</span>
       <span style="font-size:11px;color:var(--text3)">${g.startYear}–${g.endYear} <span style="color:var(--text2)">(${fmtMoney(g.amt*years)} total)</span></span>
@@ -9753,7 +9736,8 @@ window.siCommitMapping=siCommitMapping; window.siCloseMap=siCloseMap;
 function renderInvestments(){
   const list=$("pfList"); if(!list) return;
   if(investments.length===0){list.innerHTML='<div class="pf-empty">No investments added.</div>'; return;}
-  list.innerHTML=investments.map(i=>{
+  const pfHeaderRow='<div class="pf-row" style="background:var(--bg3);border-bottom:2px solid var(--border2)"><span>Type</span><span>Name</span><span>Ticker</span><span>Class</span><span>Value<span class="info-ic">i<span class="info-pop">Current market value of this holding — summed into Total value above and used to weight all other portfolio metrics.</span></span></span><span>Region</span><span>Exp. Ratio<span class="info-ic">i<span class="info-pop">This holding\'s own reported annual expense ratio; contributes to the portfolio\'s value-weighted average shown above.</span></span></span><span>Yield<span class="info-ic">i<span class="info-pop">Annual income (dividends/interest) this holding pays as a % of its value.</span></span></span><span>Notes</span></div>';
+  list.innerHTML=pfHeaderRow+investments.map(i=>{
     const er=i.er!=null?i.er.toFixed(2)+"%":"—";
     const yld=i.yld!=null?i.yld.toFixed(2)+"%":"—";
     return `<div class="pf-row">
@@ -11941,22 +11925,22 @@ function renderAIGenResult(rec, brief){
       h += `<div class="ai-pos-card" tabindex="0" style="position:relative;border-left:3px solid #7c3aed;padding:11px 14px;margin-bottom:10px;background:rgba(124,58,237,.03);border-radius:0 6px 6px 0;transition:background .2s,box-shadow .2s;cursor:pointer">
         <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:4px;flex-wrap:wrap">
           <strong style="font-size:14px">${escapeForHTML(p.ticker)}</strong>
-          <span style="color:var(--text3);font-size:11.5px">${escapeForHTML(m.name||fund?.name||"")}${m.sponsor||fund?.sponsor?' · '+escapeForHTML(m.sponsor||fund.sponsor):''}${flags?' · <span style="background:rgba(124,58,237,.1);color:#7c3aed;padding:1px 6px;border-radius:3px;font-size:10px;font-weight:600">'+flags+'</span>':''}</span>
+          <span style="color:var(--text3);font-size:11.5px">${escapeForHTML(m.name||fund?.name||"")}${m.sponsor||fund?.sponsor?' · '+escapeForHTML(m.sponsor||fund.sponsor):''}${flags?' · <span style="background:rgba(124,58,237,.1);color:#7c3aed;padding:1px 6px;border-radius:3px;font-size:10px;font-weight:600">'+flags+'<span class="info-ic">i<span class="info-pop">UCITS: an EU-regulated fund structure legally distributable to non-US retail investors (EU/UK/Swiss/Asian/MENA) under PRIIPs. ESG: the fund applies an environmental/social/governance screen to its holdings. A country code (e.g. IE, LU) shows the fund\'s domicile when it is not the US.</span></span></span>':''}</span>
           <span style="margin-left:auto;font-size:13px;font-weight:700;color:#7c3aed">${p.weight.toFixed(1)}%</span>
         </div>
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(78px,1fr));gap:5px;margin:7px 0;padding:7px;background:rgba(0,0,0,.025);border-radius:5px;font-size:10.5px">
-          <div><div style="color:var(--text3);font-size:9px;text-transform:uppercase;letter-spacing:.05em">ER</div><strong>${(m.er||0).toFixed(2)}%</strong></div>
-          <div><div style="color:var(--text3);font-size:9px;text-transform:uppercase;letter-spacing:.05em">Yield</div><strong>${(m.yld||0).toFixed(1)}%</strong></div>
-          <div><div style="color:var(--text3);font-size:9px;text-transform:uppercase;letter-spacing:.05em">Sharpe</div><strong>${(m.sharpe||0).toFixed(2)}</strong></div>
-          <div><div style="color:var(--text3);font-size:9px;text-transform:uppercase;letter-spacing:.05em">μ</div><strong>${(m.mu||0).toFixed(1)}%</strong></div>
-          <div><div style="color:var(--text3);font-size:9px;text-transform:uppercase;letter-spacing:.05em">σ</div><strong>${(m.sigma||0).toFixed(1)}%</strong></div>
-          <div><div style="color:var(--text3);font-size:9px;text-transform:uppercase;letter-spacing:.05em">β</div><strong>${(m.beta||0).toFixed(2)}</strong></div>
-          <div><div style="color:var(--text3);font-size:9px;text-transform:uppercase;letter-spacing:.05em">Max DD</div><strong style="color:var(--red)">${(m.maxDD||0).toFixed(0)}%</strong></div>
-          <div><div style="color:var(--text3);font-size:9px;text-transform:uppercase;letter-spacing:.05em">5y</div><strong style="color:${(m.r5y||0)>=0?'var(--green)':'var(--red)'}">${(m.r5y||0).toFixed(1)}%</strong></div>
-          <div><div style="color:var(--text3);font-size:9px;text-transform:uppercase;letter-spacing:.05em">10y</div><strong style="color:${(m.r10y||0)>=0?'var(--green)':'var(--red)'}">${(m.r10y||0).toFixed(1)}%</strong></div>
-          <div><div style="color:var(--text3);font-size:9px;text-transform:uppercase;letter-spacing:.05em">Holdings</div><strong>${(m.holdings||0).toLocaleString()}</strong></div>
-          <div><div style="color:var(--text3);font-size:9px;text-transform:uppercase;letter-spacing:.05em">AUM</div><strong>$${m.aum||0}B</strong></div>
-          <div><div style="color:var(--text3);font-size:9px;text-transform:uppercase;letter-spacing:.05em">Inception</div><strong>${m.inception||'—'}</strong></div>
+          <div><div style="color:var(--text3);font-size:9px;text-transform:uppercase;letter-spacing:.05em">ER<span class="info-ic">i<span class="info-pop">The fund's annual expense ratio — the ongoing management fee charged as a % of assets, deducted automatically from returns.</span></span></div><strong>${(m.er||0).toFixed(2)}%</strong></div>
+          <div><div style="color:var(--text3);font-size:9px;text-transform:uppercase;letter-spacing:.05em">Yield<span class="info-ic">i<span class="info-pop">Income yield from dividends and interest, annualized.</span></span></div><strong>${(m.yld||0).toFixed(1)}%</strong></div>
+          <div><div style="color:var(--text3);font-size:9px;text-transform:uppercase;letter-spacing:.05em">Sharpe<span class="info-ic">i<span class="info-pop">Return earned per unit of risk taken; above 1.0 is generally considered good.</span></span></div><strong>${(m.sharpe||0).toFixed(2)}</strong></div>
+          <div><div style="color:var(--text3);font-size:9px;text-transform:uppercase;letter-spacing:.05em">μ<span class="info-ic">i<span class="info-pop">Expected annual return for this fund's asset class.</span></span></div><strong>${(m.mu||0).toFixed(1)}%</strong></div>
+          <div><div style="color:var(--text3);font-size:9px;text-transform:uppercase;letter-spacing:.05em">σ<span class="info-ic">i<span class="info-pop">Expected annual volatility (standard deviation) for this fund's asset class.</span></span></div><strong>${(m.sigma||0).toFixed(1)}%</strong></div>
+          <div><div style="color:var(--text3);font-size:9px;text-transform:uppercase;letter-spacing:.05em">β<span class="info-ic">i<span class="info-pop">Sensitivity to the broad market; 1.0 moves with the market, above 1.0 is more volatile.</span></span></div><strong>${(m.beta||0).toFixed(2)}</strong></div>
+          <div><div style="color:var(--text3);font-size:9px;text-transform:uppercase;letter-spacing:.05em">Max DD<span class="info-ic">i<span class="info-pop">The largest historical peak-to-trough decline.</span></span></div><strong style="color:var(--red)">${(m.maxDD||0).toFixed(0)}%</strong></div>
+          <div><div style="color:var(--text3);font-size:9px;text-transform:uppercase;letter-spacing:.05em">5y<span class="info-ic">i<span class="info-pop">Historical annualized total return over the trailing period, before fees.</span></span></div><strong style="color:${(m.r5y||0)>=0?'var(--green)':'var(--red)'}">${(m.r5y||0).toFixed(1)}%</strong></div>
+          <div><div style="color:var(--text3);font-size:9px;text-transform:uppercase;letter-spacing:.05em">10y<span class="info-ic">i<span class="info-pop">Historical annualized total return over the trailing period, before fees.</span></span></div><strong style="color:${(m.r10y||0)>=0?'var(--green)':'var(--red)'}">${(m.r10y||0).toFixed(1)}%</strong></div>
+          <div><div style="color:var(--text3);font-size:9px;text-transform:uppercase;letter-spacing:.05em">Holdings<span class="info-ic">i<span class="info-pop">Number of underlying securities held within this fund.</span></span></div><strong>${(m.holdings||0).toLocaleString()}</strong></div>
+          <div><div style="color:var(--text3);font-size:9px;text-transform:uppercase;letter-spacing:.05em">AUM<span class="info-ic">i<span class="info-pop">Assets under management in $B — a proxy for the fund's liquidity and stability.</span></span></div><strong>$${m.aum||0}B</strong></div>
+          <div><div style="color:var(--text3);font-size:9px;text-transform:uppercase;letter-spacing:.05em">Inception<span class="info-ic">i<span class="info-pop">The year this fund launched.</span></span></div><strong>${m.inception||'—'}</strong></div>
         </div>
         <div style="font-size:11.5px;color:var(--text3);font-style:italic;display:flex;align-items:center;gap:6px">
           <span style="background:rgba(124,58,237,.1);color:#7c3aed;padding:2px 7px;border-radius:50px;font-size:10px;font-weight:700;font-style:normal">${expanded.tagline}</span>
@@ -12294,15 +12278,15 @@ function renderProposals(){
   // Header row — column labels above the position numbers
   const headerStyle = "font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text3);padding:8px 0;line-height:1.3";
   let html = `<div class="pr-row" style="background:var(--bg3);border-bottom:2px solid var(--border2);align-items:end">
-    <span style="${headerStyle}">Vehicle</span>
+    <span style="${headerStyle}">Vehicle<span class="info-ic">i<span class="info-pop">Account/wrapper type this position sits in (e.g. brokerage, IRA, ISA).</span></span></span>
     <span style="${headerStyle}">Fund Name</span>
     <span style="${headerStyle}">Ticker</span>
-    <span style="${headerStyle}">Asset Class</span>
+    <span style="${headerStyle}">Asset Class<span class="info-ic">i<span class="info-pop">Broad category used to compute portfolio diversification.</span></span></span>
     <span style="${headerStyle}">Weight<br><span style="font-size:9px;font-weight:500;text-transform:none;letter-spacing:0;color:var(--text3)">% of portfolio</span></span>
-    <span style="${headerStyle}">Avg Expected<br>Return <span style="font-size:9px;font-weight:500;color:var(--gold)">10yr</span></span>
-    <span style="${headerStyle}">Expense<br>Ratio</span>
-    <span style="${headerStyle}">Yield</span>
-    <span style="${headerStyle}">Rationale</span>
+    <span style="${headerStyle}">Avg Expected<br>Return <span style="font-size:9px;font-weight:500;color:var(--gold)">10yr</span><span class="info-ic">i<span class="info-pop">Annualized gross return assumption for this position, weighted by allocation % into the proposal's blended Gross return shown above.</span></span></span>
+    <span style="${headerStyle}">Expense<br>Ratio<span class="info-ic">i<span class="info-pop">Annual fund fee, deducted from gross return each year.</span></span></span>
+    <span style="${headerStyle}">Yield<span class="info-ic">i<span class="info-pop">Value-weighted dividend/interest income as % of position value.</span></span></span>
+    <span style="${headerStyle}">Rationale<span class="info-ic">i<span class="info-pop">Advisor's stated reason for including this position.</span></span></span>
     <span></span>
   </div>`;
 
@@ -14566,13 +14550,12 @@ function runSim(){
   //  panels were removed from the Simulation tab, so the output went nowhere.)
   renderGoalAnalysis(paths,yrs);
   try{ if(typeof gbRenderWealth==="function") gbRenderWealth(); }catch(_){}  // Wealth Allocation Framework panel (Simulation tab)
-  renderFundingStatus(paths,yrs);
   refreshTopMetrics(paths,yrs);
   renderRetirementNumber();
   renderTaxEfficiency();
   renderEfficientFrontier();
-  // Merrill-style PV funding ratios (reuse GB engine)
-  try { renderSimFundingStatus(); } catch(e){ console.warn("renderSimFundingStatus:", e); }
+  // Combined simulated-success + PV funding ratio panel (reuse GB engine)
+  try { renderCombinedGoalFunding(paths,yrs); } catch(e){ console.warn("renderCombinedGoalFunding:", e); }
   try { renderSimPotentialWealth(); } catch(e){ console.warn("renderSimPotentialWealth:", e); }
   try { renderClaimAge(); } catch(e){ console.warn("renderClaimAge:", e); }
   try { renderEstate(); } catch(e){ console.warn("renderEstate:", e); }
@@ -14598,33 +14581,82 @@ function runSim(){
   }catch(_){}
 }
 
-// ─── Goal Funding Status in the Simulation tab (PV, priority-weighted) ───
-function renderSimFundingStatus(){
-  const host = document.getElementById("simFunding");
-  if(!host) return;
-  if(!goals || goals.length === 0){ host.innerHTML = '<div class="pf-empty">No goals defined. Add goals on the Goals tab.</div>'; return; }
+// ─── Goal & Retirement Funding Status in the Simulation tab ───
+// Combines the Monte Carlo simulated-success rate with the PV-based,
+// priority-weighted funding ratio (Merrill-style) into one per-goal view.
+function renderCombinedGoalFunding(paths,yrs){
+  const summaryHost = document.getElementById("goalFundingSummary");
+  const listHost = document.getElementById("goalFundingList");
+  if(!listHost) return;
+  if(!goals || goals.length === 0){
+    if(summaryHost) summaryHost.innerHTML = '';
+    listHost.innerHTML = '<div class="pf-empty">No goals defined. Add goals on the Goals tab.</div>';
+    return;
+  }
   const fs = computeGoalFundingStatus();
-  let h = '';
-  // Overall ratio chip
-  h += '<div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:14px;padding:12px 16px;background:var(--bg3);border-radius:10px">';
-  h += '<div style="font-size:30px;font-weight:800;color:'+gbRatioColor(fs.overallRatio)+'">'+Math.round(fs.overallRatio*100)+'%</div>';
-  h += '<div style="flex:1;min-width:200px"><div style="font-size:13px;font-weight:600;color:var(--text)">Overall goal funding</div><div style="font-size:11.5px;color:var(--text3)">PV cost '+fmtMoney(fs.totalGoalPV)+' · funded '+fmtMoney(fs.totalFundedPV)+(fs.totalGoalPV-fs.totalFundedPV>0?' · shortfall '+fmtMoney(fs.totalGoalPV-fs.totalFundedPV):'')+'</div></div>';
-  h += '</div>';
-  // Per-goal rows
+  const pvById = {};
+  fs.rows.forEach(r=>{ pvById[r.id] = r; });
+  const cy = currentYear();
+  const avgProb = goals.reduce((s,g)=>s+(goalSuccessFromPaths(g,paths,yrs)||0),0)/goals.length;
+
+  // Summary strip: simulated success vs. PV funding ratio, side by side
+  if(summaryHost){
+    let s = '<div style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:14px">';
+    s += '<div style="flex:1;min-width:200px;display:flex;align-items:center;gap:14px;padding:12px 16px;background:var(--bg3);border-radius:10px">';
+    s += '<div style="font-size:30px;font-weight:800;color:'+(avgProb>=80?'#1b6841':avgProb>=50?'#c98a3a':'#a83232')+'">'+avgProb.toFixed(0)+'%</div>';
+    s += '<div><div style="font-size:13px;font-weight:600;color:var(--text)">Simulated success</div><div style="font-size:11.5px;color:var(--text3)">Average probability across all goals, from the Monte Carlo paths</div></div>';
+    s += '</div>';
+    s += '<div style="flex:1;min-width:200px;display:flex;align-items:center;gap:14px;padding:12px 16px;background:var(--bg3);border-radius:10px">';
+    s += '<div style="font-size:30px;font-weight:800;color:'+gbRatioColor(fs.overallRatio)+'">'+Math.round(fs.overallRatio*100)+'%</div>';
+    s += '<div><div style="font-size:13px;font-weight:600;color:var(--text)">PV funding ratio</div><div style="font-size:11.5px;color:var(--text3)">PV cost '+fmtMoney(fs.totalGoalPV)+' · funded '+fmtMoney(fs.totalFundedPV)+(fs.totalGoalPV-fs.totalFundedPV>0?' · shortfall '+fmtMoney(fs.totalGoalPV-fs.totalFundedPV):'')+'</div></div>';
+    s += '</div>';
+    s += '</div>';
+    summaryHost.innerHTML = s;
+  }
+
+  // Per-goal cards, sorted the same way computeGoalFundingStatus sorts (tier, then start year)
+  const prioOrder = {essential:0, important:1, aspirational:2};
+  const sortedGoals = [...goals].sort((a,b)=>(prioOrder[a.tier]??1)-(prioOrder[b.tier]??1) || a.startYear-b.startYear);
   const tierColor={essential:"var(--red)",important:"var(--amber)",aspirational:"#7c3aed"};
   const tierLabel={essential:"Essential",important:"Important",aspirational:"Aspirational"};
-  fs.rows.forEach(r => {
-    h += '<div style="margin-bottom:12px">';
-    h += '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:5px">';
-    h += '<span style="font-size:13.5px;font-weight:700">'+escapeForHTML(r.name)+'</span>';
-    h += '<span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:50px;background:'+tierColor[r.tier]+'1a;color:'+tierColor[r.tier]+'">'+tierLabel[r.tier]+' · '+r.conf+'%</span>';
-    h += '<span style="font-size:11px;color:var(--text3)">'+r.period+' · '+fmtMoney(r.annual)+'/yr · disc '+(r.discRate*100).toFixed(1)+'%</span>';
-    h += '<span style="margin-left:auto;font-size:18px;font-weight:800;color:'+gbRatioColor(r.ratio)+'">'+Math.round(r.ratio*100)+'%</span>';
+  let h = '';
+  sortedGoals.forEach(g=>{
+    const pv = pvById[g.id];
+    const relYr = Math.min(yrs, Math.max(0, g.endYear-cy));
+    const totalAmt = g.amt*Math.max(1,g.endYear-g.startYear+1);
+    const nw50 = percentileAt(paths,relYr,50);
+    const prob = goalSuccessFromPaths(g,paths,yrs)||0;
+    const probCls = prob>=80?"fund-ok":(prob>=50||prob>=25?"fund-warn":"fund-bad");
+    const icon=(typeof GOAL_ICONS!=="undefined"&&GOAL_ICONS[g.cat])||{emoji:"⭐",color:"#6b7280",bg:"rgba(107,114,128,.10)"};
+    h += '<div style="margin-bottom:16px;padding:12px 14px;background:var(--bg3);border-radius:10px">';
+    h += '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px">';
+    h += '<div class="goal-icon" style="background:'+icon.bg+';color:'+icon.color+';width:26px;height:26px;font-size:13px">'+icon.emoji+'</div>';
+    h += '<span style="font-size:13.5px;font-weight:700">'+_daEsc(g.name)+'</span>';
+    if(pv) h += '<span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:50px;background:'+tierColor[pv.tier]+'1a;color:'+tierColor[pv.tier]+'">'+tierLabel[pv.tier]+' · '+pv.conf+'%</span>';
+    h += '<span style="font-size:11px;color:var(--text3)">'+g.endYear+' · '+fmtMoney(g.amt)+'/yr</span>';
     h += '</div>';
-    h += '<div style="height:9px;background:rgba(0,0,0,.06);border-radius:5px;overflow:hidden"><div style="height:100%;width:'+Math.min(100,r.ratio*100)+'%;background:'+gbRatioColor(r.ratio)+';border-radius:5px"></div></div>';
+    h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">';
+    // Left: simulated success
+    h += '<div>';
+    h += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px"><span style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.03em">Simulated success</span><span class="fund-tag '+probCls+'" style="font-size:13px;padding:1px 9px">'+prob.toFixed(0)+'%</span></div>';
+    h += '<div class="fund-bar" style="width:100%"><div class="fund-bar-fill '+probCls+'" style="width:'+Math.min(100,prob)+'%"></div></div>';
+    h += '<div style="font-size:11px;color:var(--text3);margin-top:4px">Median NW '+fmtMoney(nw50)+' vs. '+fmtMoney(totalAmt)+' needed</div>';
+    h += '</div>';
+    // Right: PV funding ratio
+    h += '<div>';
+    if(pv){
+      const ratioCls = pv.ratio>=0.9?"fund-ok":(pv.ratio>=0.6?"fund-warn":"fund-bad");
+      h += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px"><span style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.03em">PV funding ratio</span><span class="fund-tag '+ratioCls+'" style="font-size:13px;padding:1px 9px">'+Math.round(pv.ratio*100)+'%</span></div>';
+      h += '<div class="fund-bar" style="width:100%"><div class="fund-bar-fill '+ratioCls+'" style="width:'+Math.min(100,pv.ratio*100)+'%"></div></div>';
+      h += '<div style="font-size:11px;color:var(--text3);margin-top:4px">PV cost '+fmtMoney(pv.goalCostPV)+' · funded '+fmtMoney(pv.fundedPV)+'</div>';
+    } else {
+      h += '<div style="font-size:11px;color:var(--text3)">Not available</div>';
+    }
+    h += '</div>';
+    h += '</div>';
     h += '</div>';
   });
-  host.innerHTML = h;
+  listHost.innerHTML = h;
 }
 
 // ─── Achievable Lifestyle in the Simulation tab (3 confidence levels) ───
@@ -14818,9 +14850,14 @@ function runRecommendations(){
     return;
   }
   const colors = {high:"#dc2626", medium:"#d97706", low:"#6b7280"};
+  const SEVERITY_EXPLAIN = {
+    high: 'Flags an active problem — a deficit, sub-3-month cash buffer, or an essential goal materially underfunded. Address first.',
+    medium: 'Flags a gap versus target — savings below target, thin cash buffer, or a non-essential goal underfunded. Address as capacity allows.',
+    low: 'Flags a minor optimization opportunity, not an urgent risk.'
+  };
   host.innerHTML = flags.map(f=>`
     <div style="background:var(--bg2);border:1px solid var(--border);border-left:4px solid ${colors[f.severity]};border-radius:8px;padding:14px 16px;margin-bottom:10px">
-      <div style="font-weight:700;font-size:13.5px;color:var(--text1);margin-bottom:4px">${_daEsc(f.title)}</div>
+      <div style="font-weight:700;font-size:13.5px;color:var(--text1);margin-bottom:4px">${_daEsc(f.title)}<span class="info-ic" style="margin-left:8px">i<span class="info-pop"><strong>${f.severity.toUpperCase()} priority.</strong> ${SEVERITY_EXPLAIN[f.severity]}</span></span></div>
       <div style="font-size:12px;color:var(--text3);line-height:1.5">${_daEsc(f.detail)}</div>
     </div>
   `).join("");
@@ -15060,11 +15097,11 @@ function computeGoalFundingStatus(){
     const fundedPV = Math.min(goalCostPV, assetsForThisGoal + futureSavingsPV);
     const ratio = goalCostPV>0 ? fundedPV/goalCostPV : 1;
     totalGoalPV += goalCostPV; totalFundedPV += fundedPV;
-    rows.push({name:g.name||"(unnamed goal)", tier, conf, period:g.startYear+"–"+g.endYear, annual:g.amt, goalCostPV, taxOnGoal, fundedPV, currentAssets:assetsForThisGoal, futureSavingsPV, ratio:Math.min(1.5,ratio), discRate});
+    rows.push({id:g.id, name:g.name||"(unnamed goal)", tier, conf, period:g.startYear+"–"+g.endYear, annual:g.amt, goalCostPV, taxOnGoal, fundedPV, currentAssets:assetsForThisGoal, futureSavingsPV, ratio:Math.min(1.5,ratio), discRate});
   });
   return {rows, overallRatio: totalGoalPV>0?totalFundedPV/totalGoalPV:1, totalGoalPV, totalFundedPV, port};
 }
-window.renderSimFundingStatus = renderSimFundingStatus;
+window.renderCombinedGoalFunding = renderCombinedGoalFunding;
 window.renderSimLifestyle = renderSimLifestyle;
 window.computeGoalFundingStatus = computeGoalFundingStatus;
 
@@ -15992,41 +16029,6 @@ function renderCFComparison(niData,curData,propData,curMu,propMu,curParams,propP
 }
 
 // ═══════════════════════════════════════════════════════════
-// FUNDING STATUS
-// ═══════════════════════════════════════════════════════════
-function renderFundingStatus(paths,yrs){
-  const tbody=$("fundingBody"); if(!tbody) return;
-  if(goals.length===0 && !val("retAge")){tbody.innerHTML='<tr><td colspan="8" style="text-align:center;color:var(--text3);padding:18px">No goals defined.</td></tr>'; return;}
-  const cy=currentYear();
-  const rows=goals.map(g=>{
-    const relYr=Math.min(yrs,Math.max(0,g.endYear-cy));
-    const totalAmt=g.amt*Math.max(1,g.endYear-g.startYear+1);
-    const nw30=percentileAt(paths,relYr,30);
-    const nw50=percentileAt(paths,relYr,50);
-    const nw80=percentileAt(paths,relYr,80);
-    const ok=paths.filter(p=>p[relYr]>=totalAmt).length;
-    const prob=ok/paths.length*100;
-    let tag,cls;
-    if(prob>=80){tag="Fully funded"; cls="fund-ok";}
-    else if(prob>=50){tag="Partly funded"; cls="fund-warn";}
-    else if(prob>=25){tag="At risk"; cls="fund-warn";}
-    else{tag="Underfunded"; cls="fund-bad";}
-    return `<tr>
-      <td class="cf-l"><strong>${_daEsc(g.name)}</strong><div class="fund-cat">${g.cat||"other"} · ${g.tier||"important"}</div><div class="fund-meta">${fmtMoney(g.amt)}/yr × ${Math.max(1,g.endYear-g.startYear+1)} yrs</div></td>
-      <td class="cf-l">${g.endYear}</td>
-      <td class="fund-amt">${fmtMoney(totalAmt)}</td>
-      <td><span class="fund-amt ${nw30>=totalAmt?'fund-over':'fund-short'}">${fmtMoney(nw30)}<span class="fund-delta">${nw30>=totalAmt?'+':'−'}${fmtMoney(Math.abs(nw30-totalAmt))}</span></span></td>
-      <td><span class="fund-amt ${nw50>=totalAmt?'fund-over':'fund-short'}">${fmtMoney(nw50)}<span class="fund-delta">${nw50>=totalAmt?'+':'−'}${fmtMoney(Math.abs(nw50-totalAmt))}</span></span></td>
-      <td><span class="fund-amt ${nw80>=totalAmt?'fund-over':'fund-short'}">${fmtMoney(nw80)}<span class="fund-delta">${nw80>=totalAmt?'+':'−'}${fmtMoney(Math.abs(nw80-totalAmt))}</span></span></td>
-      <td><div class="fund-prob"><div class="fund-bar"><div class="fund-bar-fill ${cls}" style="width:${Math.min(100,prob)}%;background:${prob>=80?'#1b6841':prob>=50?'#c98a3a':'#a83232'}"></div></div>${prob.toFixed(0)}%</div></td>
-      <td class="cf-l"><span class="fund-tag ${cls}">${tag}</span></td>
-    </tr>`;
-  });
-  tbody.innerHTML=rows.join("") || '<tr><td colspan="8" style="text-align:center;color:var(--text3);padding:18px">No goals to fund.</td></tr>';
-  setH("fundingHeader",`Reading the ${30}/${50}/${80}th percentile of the simulated wealth path at each goal's calendar year.`);
-}
-
-// ═══════════════════════════════════════════════════════════
 // COMPARISON
 // ═══════════════════════════════════════════════════════════
 let cmpPieCurChart = null, cmpPiePropChart = null;
@@ -16223,7 +16225,8 @@ function renderReturnHorizon(curMu, curSig, propMu, propSig){
   });
 
   // Row 1: Current portfolio
-  const curSrc = curB ? (curB.anyActual ? "Per-holding trailing" : "Asset-class trailing") : "Expected μ";
+  const srcInfo = '<span class="info-ic">i<span class="info-pop">Per-holding trailing: uses each fund\'s own historical 1/3/5/10-year return (from its stored metrics or a matched fund-universe entry). Asset-class trailing: no fund-level history was available for one or more holdings, so that asset class\'s own historical trailing return is blended in instead. Expected μ: there are no positions to blend, so the long-run expected annual return is repeated flat across all four horizons.</span></span>';
+  const curSrc = (curB ? (curB.anyActual ? "Per-holding trailing" : "Asset-class trailing") : "Expected μ") + srcInfo;
   html += labelCell("Current Portfolio", curSrc, "var(--accent)");
   html += cellNum(cur.r1y);
   html += cellNum(cur.r3y);
@@ -16231,7 +16234,7 @@ function renderReturnHorizon(curMu, curSig, propMu, propSig){
   html += cellNum(cur.r10y);
 
   // Row 2: Proposed portfolio
-  const propSrc = propB ? (propB.anyActual ? "Per-holding trailing" : "Asset-class trailing") : "Expected μ";
+  const propSrc = (propB ? (propB.anyActual ? "Per-holding trailing" : "Asset-class trailing") : "Expected μ") + srcInfo;
   html += labelCell("Proposed Portfolio", propSrc, "#7c3aed");
   html += cellNum(prop.r1y, "var(--green)");
   html += cellNum(prop.r3y, "var(--green)");
@@ -16352,7 +16355,7 @@ function runComparison(){
   params.innerHTML = `
     <div class="cmp-h cur">Current portfolio</div>
     <div class="cmp-h prop">Proposed portfolio</div>
-    <div class="cmp-h delta">Variance</div>
+    <div class="cmp-h delta">Variance<span class="info-ic">i<span class="info-pop">Simple difference: Proposed portfolio minus Current portfolio for each row (not a statistical variance/squared deviation).</span></span></div>
     <div class="cmp-c"><span class="lbl">Gross return</span>${(curGrossMu*100).toFixed(2)}%</div>
     <div class="cmp-c"><span class="lbl">Gross return</span>${(propGrossMu*100).toFixed(2)}%</div>
     ${d(propGrossMu,curGrossMu)}
@@ -16411,7 +16414,8 @@ function runComparison(){
       <div class="gdelta ${d>0?'delta-pos':d<0?'delta-neg':'delta-neu'}">${d>=0?'+':''}${d.toFixed(0)} pts</div>
     </div>`;
   }).join("");
-  setH("cmpGoals",goalsHtml||'<div class="cmp-empty">Add goals to compare success rates.</div>');
+  const goalsHeader='<div class="goal-cmp" style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text3)"><div>Goal</div><div>Target Yr</div><div style="text-align:center">Current<span class="info-ic">i<span class="info-pop">Probability of fully funding this goal using your Current portfolio, from the same Monte Carlo engine used on the Simulation tab.</span></span></div><div style="text-align:center">Proposed<span class="info-ic">i<span class="info-pop">Probability of fully funding this goal if you switch to the Proposed portfolio.</span></span></div><div style="text-align:right">Δ</div></div>';
+  setH("cmpGoals",goalsHtml?(goalsHeader+goalsHtml):'<div class="cmp-empty">Add goals to compare success rates.</div>');
   setH("cmpStatus",`<strong>Comparison ready.</strong> ${sims} paths × ${yrs}y horizon. Current vs Proposed evaluated under the same household, expense, savings, and tax assumptions.`);
   // Simple recommendation
   let rec="Both portfolios are roughly equivalent on these inputs.";
@@ -16942,7 +16946,7 @@ function gbRenderOverall(ratio, goalPV, fundedPV, port, weights){
   h += '<div>' + gbRing(pct, gbRatioColor(ratio)) + '</div>';
   h += '<div style="flex:1;min-width:240px">';
   h += '<div style="font-size:13px;color:var(--text2);line-height:1.7">';
-  h += 'Across all your goals, your funding sources cover <strong style="color:'+gbRatioColor(ratio)+'">'+pct.toFixed(0)+'%</strong> of the present-value cost.';
+  h += 'Across all your goals, your funding sources cover <strong style="color:'+gbRatioColor(ratio)+'">'+pct.toFixed(0)+'%</strong> of the present-value cost.<span class="info-ic">i<span class="info-pop">Funding ratio = total funded PV ÷ total goal-cost PV across all goals. Each goal\'s cost is its inflation-grown target amount, discounted at a risk-adjusted rate tied to its priority tier (essential/important/aspirational), plus a tax gross-up. It is funded first from your current liquid assets (drawn down in priority order) and then from a shared, PV\'d future-savings budget that goals compete for — so the same savings dollars are not double-counted across goals. 100% means projected resources fully cover the costs; below 100% is a shortfall.</span></span>';
   h += '</div>';
   h += '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-top:14px">';
   h += mcTile("Total goal cost (PV)", fmtMoney(goalPV), "The present-value cost of every goal, discounted at a risk-adjusted rate matched to each goal's priority.");
@@ -20466,7 +20470,7 @@ function renderWithdrawalOrder(){
   const host=$("te-order"); if(!host) return;
   let w; try{ w=computeWithdrawalOrder(); }catch(_){ host.innerHTML=""; return; }
   if(!w || w.t.total<=0){ host.innerHTML=""; return; }
-  let h='<div style="font-weight:600;color:var(--text2);font-size:13px;margin-bottom:8px">Recommended withdrawal order in retirement</div>';
+  let h='<div style="font-weight:600;color:var(--text2);font-size:13px;margin-bottom:8px">Recommended withdrawal order in retirement<span class="info-ic">i<span class="info-pop">Where required minimum distributions apply, those are taken first — they are compulsory and taxed as income regardless of need. After that, the general rule is taxable accounts first (letting tax-deferred and tax-free balances keep compounding), then tax-deferred, then tax-free last — this typically minimizes lifetime tax and preserves tax-free growth the longest. Your actual order can shift for bracket management, benefit thresholds, or estate goals.</span></span></div>';
   h+='<ol style="margin:0 0 10px 18px;padding:0;font-size:12px;color:var(--text2);line-height:1.65">'+w.order.map(o=>'<li style="margin-bottom:5px"><strong style="color:var(--text)">'+_daEsc(o.step)+'.</strong> '+_daEsc(o.detail)+'</li>').join('')+'</ol>';
   if(w.notes.length) h+='<div style="font-size:11px;color:var(--amber);line-height:1.6;margin-bottom:6px">'+w.notes.map(n=>'• '+_daEsc(n)).join('<br>')+'</div>';
   h+='<div style="font-size:10px;color:var(--text3)">General sequencing guidance, not personal tax advice — bracket management, benefit thresholds and estate goals can change the optimal order. Confirm with a tax professional.</div>';
@@ -20556,8 +20560,8 @@ function renderEfficientFrontier(){
 
   // Build legend
   if(legEl){
-    legEl.innerHTML=allProfiles.map(p=>`<span><span class="ef-dot" style="background:${p.color}"></span>${p.label}</span>`).join("")+
-      `<span><span class="ef-dot" style="background:#0057b8;border:2px solid #002776;width:12px;height:12px"></span>Your profile</span>`;
+    legEl.innerHTML=allProfiles.map(p=>`<span><span class="ef-dot" style="background:${p.color}"></span>${p.label}<span class="info-ic">i<span class="info-pop">${p.label}: expected return μ ${p.mu.toFixed(1)}%, volatility σ ${p.sig}% — a standard institutional capital-market-assumption point on the efficient frontier (not personalized).</span></span></span>`).join("")+
+      `<span><span class="ef-dot" style="background:#0057b8;border:2px solid #002776;width:12px;height:12px"></span>Your profile<span class="info-ic">i<span class="info-pop">Your household's blended expected return (μ ${userMu.toFixed(1)}%) and volatility (σ ${userSig.toFixed(1)}%), computed from your risk profile, plotted against the standard profiles above.</span></span></span>`;
   }
 }
 
@@ -21146,7 +21150,7 @@ function renderTornado(results,base){
     Base median wealth at year <strong style="color:var(--text)">${currentYear()+lastSimYrs}</strong>: <strong style="color:var(--gold)">${fmtMoney(base)}</strong>
   </div>
   <div style="display:grid;grid-template-columns:160px 1fr 1fr;border:1px solid var(--border);border-radius:var(--rs);overflow:hidden">
-    <div style="font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--text3);padding:8px 12px;background:var(--bg3);border-bottom:1px solid var(--border)">Input</div>
+    <div style="font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--text3);padding:8px 12px;background:var(--bg3);border-bottom:1px solid var(--border)">Input<span class="info-ic">i<span class="info-pop">Each row re-runs the simulation with one input shifted up/down while all others stay fixed at their current values, then compares the resulting median wealth at the target year to the base case. Most inputs shift by ±20%, but Inflation rate shifts by ±1 percentage point, Investment return by ±2pp, and Return volatility by ±3pp.</span></span></div>
     <div style="font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--text3);padding:8px 12px;background:var(--bg3);border-bottom:1px solid var(--border);text-align:center">Lower scenario</div>
     <div style="font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--text3);padding:8px 12px;background:var(--bg3);border-bottom:1px solid var(--border);text-align:center">Higher scenario</div>`;
 
