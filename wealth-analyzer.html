@@ -5470,18 +5470,23 @@ function getAssetBucketsFromHoldings() {
   return buckets;
 }
 
-// Grows the asset buckets for each year 
-function growAssetBuckets(buckets, cgtDrag, y) {
+// Grows the asset buckets for each year. activeMu/activeSig (the household's
+// active mu/sig — risk profile, AI proposal, or a sensitivity override) scale
+// every asset class proportionally around the ASSET_CLASS_MC.mixed baseline,
+// so those knobs still move the simulation now that growth is bucket-based.
+function growAssetBuckets(buckets, cgtDrag, y, activeMu, activeSig) {
   const next = {};
+  const muScale = (activeMu != null) ? activeMu / ASSET_CLASS_MC.mixed.mu : 1;
+  const sigScale = (activeSig != null) ? activeSig / ASSET_CLASS_MC.mixed.sig : 1;
 
   Object.keys(buckets).forEach(cls => {
     // get equity assumtions (mu, sig) for this asset class
     const assumption = ASSET_CLASS_MC[cls] || ASSET_CLASS_MC.other;
-    // apply tax drag 
-    const muNet = assumption.mu * (1 - cgtDrag);
-    const sig = assumption.sig;
+    // apply tax drag
+    const muNet = Math.max(0.001, assumption.mu * muScale) * (1 - cgtDrag);
+    const sig = Math.max(0.01, assumption.sig * sigScale);
 
-    // adjust return/volatility if glidepath de-risking is on 
+    // adjust return/volatility if glidepath de-risking is on
     const gp = glidepathAdjust(muNet, sig, y);
     // create one random yearly return for that asset class 
     const r = (gp.mu - 0.5 * gp.sig * gp.sig) + gp.sig * boxMuller();
@@ -14020,7 +14025,6 @@ function runMC(years,sims,muOverride,sigOverride){
   }
   const savAnnual=num("savAnnual",0);
   const cgtDrag = getApplyTax()? (num("cgtRate",15)/100)*(num("cgtTurnover",10)/100) : 0;
-  const muNet = mu*(1-cgtDrag);
   // Retirement params
   const c1Age0=ageFromDOB(val("c1d"))||30;
   const retAge=num("retAge",65);
@@ -14202,18 +14206,15 @@ function runMC(years,sims,muOverride,sigOverride){
         });
         inv = sumBuckets(assetBuckets);
       } else {
-        // const gp_ = glidepathAdjust(muNet, sig, y);
-        // const r = (gp_.mu - 0.5 * gp_.sig * gp_.sig) + gp_.sig * boxMuller();
-        // inv = inv * Math.exp(r);
-
-        // New: grow asset buckets
         assetBuckets = growAssetBuckets(
           assetBuckets,
           cgtDrag,
-          y
+          y,
+          mu,
+          sig
         );
 
-inv = sumBuckets(assetBuckets);
+        inv = sumBuckets(assetBuckets);
       }
 
       // const propR=0.03+0.02*boxMuller();
