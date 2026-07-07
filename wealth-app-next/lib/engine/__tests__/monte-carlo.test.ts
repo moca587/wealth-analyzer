@@ -78,7 +78,6 @@ function run(
     plan,
     sims: 500,
     years: 20,
-    bands: { low: 30, high: 80 },
     ...overrides,
   });
 }
@@ -253,5 +252,93 @@ describe("runMonteCarlo", () => {
 
     expect(typeof result.inputHash).toBe("string");
     expect(result.inputHash.length).toBeGreaterThan(0);
+  });
+
+  test("a fixed seed reproduces byte-identical percentiles across repeated runs", () => {
+    const plan = makePlan();
+    const a = run(plan, { seed: 12345 });
+    const b = run(plan, { seed: 12345 });
+
+    expect(b.percentiles).toEqual(a.percentiles);
+    expect(b.final).toEqual(a.final);
+    expect(b.inputHash).toBe(a.inputHash);
+  });
+
+  test("different seeds produce different outcomes (sanity check the seed is actually used)", () => {
+    const plan = makePlan();
+    const a = run(plan, { seed: 1 });
+    const b = run(plan, { seed: 2 });
+
+    expect(b.final.p50).not.toBe(a.final.p50);
+  });
+
+  test("a funded goal draws down wealth rather than just being checked for affordability", () => {
+    const currentYear = new Date().getFullYear();
+    const withoutGoal = run(makePlan({ goals: [] }), { seed: 42 });
+    const withGoal = run(
+      makePlan({
+        goals: [
+          {
+            id: "g1",
+            name: "One-time purchase",
+            tier: "important",
+            amt: 50000,
+            startYear: currentYear + 5,
+            endYear: currentYear + 5,
+          },
+        ],
+      }),
+      { seed: 42 }
+    );
+
+    expect(withGoal.final.p50).toBeLessThan(withoutGoal.final.p50);
+  });
+
+  test("a negative-surplus plan draws down liquid assets below a breakeven plan", () => {
+    const breakeven = run(
+      makePlan({
+        incomes: [{ id: "i1", clientId: "c1", source: "salary", amount: 48000, taxable: true }],
+        expenses: [{ id: "e1", name: "Living expenses", amount: 4000 }], // 48000/yr — breakeven
+      }),
+      { seed: 7 }
+    );
+    const overspending = run(
+      makePlan({
+        incomes: [{ id: "i1", clientId: "c1", source: "salary", amount: 48000, taxable: true }],
+        expenses: [{ id: "e1", name: "Living expenses", amount: 6000 }], // 72000/yr — shortfall
+      }),
+      { seed: 7 }
+    );
+
+    expect(overspending.final.p50).toBeLessThan(breakeven.final.p50);
+  });
+
+  test("higher inflation lowers the projected wealth outcome", () => {
+    const lowInflation = run(makePlan({ inflationRate: 0.02 }), { seed: 99 });
+    const highInflation = run(makePlan({ inflationRate: 0.10 }), { seed: 99 });
+
+    expect(highInflation.final.p50).toBeLessThan(lowInflation.final.p50);
+  });
+
+  test("loan balances never go negative or NaN for a zero-rate loan", () => {
+    const result = run(
+      makePlan({
+        loans: [{ id: "l1", type: "Personal", bal: 20000, rate: 0, yrs: 5 }],
+      }),
+      { years: 10, seed: 3 }
+    );
+
+    result.paths.forEach((path) => path.forEach((v) => expect(Number.isFinite(v)).toBe(true)));
+  });
+
+  test("loan balances never go negative or NaN for a very high-rate loan", () => {
+    const result = run(
+      makePlan({
+        loans: [{ id: "l1", type: "Credit card", bal: 15000, rate: 29.99, yrs: 3 }],
+      }),
+      { years: 10, seed: 4 }
+    );
+
+    result.paths.forEach((path) => path.forEach((v) => expect(Number.isFinite(v)).toBe(true)));
   });
 });

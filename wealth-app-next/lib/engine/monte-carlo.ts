@@ -11,7 +11,7 @@
 //   - Goal funding evaluated at calendar-year targets
 // ─────────────────────────────────────────────────────────────────
 
-import { boxMuller, calcMortgagePayment, geometricMean } from "./financial-math";
+import { boxMuller, calcMortgagePayment, createSeededRandom, geometricMean } from "./financial-math";
 import { RISK_PROFILES } from "./constants";
 import type {
   SimulationInput,
@@ -67,13 +67,15 @@ function amortizeLoan(loan: Loan): { newBal: number; interestPaid: number; princ
  */
 export function runMonteCarlo(input: SimulationInput): SimulationResult {
   const t0 = performance.now();
-  const { plan, sims, years, bands } = input;
+  const { plan, sims, years, seed } = input;
+  const rng = seed !== undefined ? createSeededRandom(seed) : Math.random;
 
   // ─── Pre-compute static inputs ───
   const { muPct, sigmaPct } = getBlendedReturnParams(plan.clients);
   const mu = muPct / 100;
   const sigma = sigmaPct / 100;
   const drift = geometricMean(mu, sigma);
+  const inflation = plan.inflationRate;
 
   const totalInvestableAssets = sumOf(
     plan.assets.filter((a) => a.cls !== "real_estate"),
@@ -108,11 +110,11 @@ export function runMonteCarlo(input: SimulationInput): SimulationResult {
 
     for (let y = 0; y < years; y++) {
       // 1. Stochastic return on investable assets
-      const annRet = drift + sigma * boxMuller();
+      const annRet = drift + sigma * boxMuller(rng);
       investable = investable * (1 + annRet);
 
       // 2. Stochastic property appreciation (3% ± 2%)
-      const propRet = 0.03 + 0.02 * boxMuller();
+      const propRet = 0.03 + 0.02 * boxMuller(rng);
       propertyVal = propertyVal * (1 + propRet);
 
       // 3. Loan amortization
@@ -124,21 +126,26 @@ export function runMonteCarlo(input: SimulationInput): SimulationResult {
         interestPaid += ip;
       });
 
-      // 4. Annual surplus → 30% invested / 70% cash (added to investable)
-      const surplus = annualIncome - annualExpense - interestPaid;
-      if (surplus > 0) {
-        investable += surplus * 0.30; // invested allocation
-        investable += surplus * 0.70; // cash (still part of net worth)
-      }
+      // 4. Annual surplus/shortfall, expenses inflated to this year's dollars.
+      // A shortfall isn't ignored — it draws down liquid assets, same as a
+      // real household covering a budget gap from savings.
+      const inflatedExpense = annualExpense * Math.pow(1 + inflation, y);
+      const surplus = annualIncome - inflatedExpense - interestPaid;
+      investable += surplus;
 
-      // 5. Goal funding — for each goal whose calendar year is THIS year
+      // 5. Goal funding — for each goal whose calendar year is THIS year.
+      // The goal amount is inflated to the year it's actually needed, and a
+      // funded goal's cost is drawn down from investable wealth rather than
+      // just checked for affordability — otherwise every later year in the
+      // path acts as if the goal spend never happened.
       goalsByYear.forEach(({ goal, yearOffset }) => {
         if (yearOffset !== y) return;
         if (goalFundedThisSim[goal.id]) return;
         const yearsNeeded = Math.max(1, goal.endYear - goal.startYear + 1);
-        const totalNeeded = goal.amt * yearsNeeded;
+        const totalNeeded = goal.amt * yearsNeeded * Math.pow(1 + inflation, yearOffset);
         if (investable >= totalNeeded) {
           goalFundedThisSim[goal.id] = true;
+          investable -= totalNeeded;
         }
       });
 
@@ -181,7 +188,7 @@ export function runMonteCarlo(input: SimulationInput): SimulationResult {
   }));
 
   // ─── Hash input for caching (stable for identical plans) ───
-  const inputHash = hashPlan(plan, sims, years);
+  const inputHash = hashPlan(plan, sims, years, seed);
 
   return {
     inputHash,
@@ -203,7 +210,7 @@ export function runMonteCarlo(input: SimulationInput): SimulationResult {
 }
 
 /** Cheap stable hash for caching simulation results */
-function hashPlan(plan: WealthPlan, sims: number, years: number): string {
+function hashPlan(plan: WealthPlan, sims: number, years: number, seed?: number): string {
   const s = JSON.stringify({
     c: plan.clients.map((c) => [c.risk, c.horizon]),
     a: plan.assets.map((a) => [a.cls, a.value]),
@@ -212,7 +219,7 @@ function hashPlan(plan: WealthPlan, sims: number, years: number): string {
     i: plan.incomes.map((i) => i.amount),
     e: plan.expenses.map((e) => e.amount),
     inf: plan.inflationRate,
-    sims, years
+    sims, years, seed: seed ?? null
   });
   // Simple FNV-1a hash
   let h = 2166136261;
