@@ -33,6 +33,19 @@ my $version = strftime("%Y%m%d-%H%M", localtime);
 $html =~ s/const APP_VERSION\s*=\s*"[^"]*"/const APP_VERSION = "$version"/;
 print "  Version: $version\n";
 
+# 0a. Persist that same stamp back into the SOURCE so the deployed app's
+#     APP_VERSION matches version-avaloq.json. Otherwise the source keeps a
+#     frozen constant, the live update-poller sees a permanent mismatch, and
+#     the hosted Avaloq edition auto-reloads in a loop — the same bug that hit
+#     the main app. Byte-preserving edit (only that literal).
+{
+  my $raw = slurp($SRC);
+  $raw =~ s/const APP_VERSION\s*=\s*"[^"]*"/const APP_VERSION = "$version"/;
+  open my $sf, '>:raw', $SRC or die "Cannot write $SRC: $!";
+  print $sf $raw; close $sf;
+  print "  Synced APP_VERSION into $SRC\n";
+}
+
 # 0b. The Avaloq edition gets its OWN version channel. version.json belongs to
 # the main app — sharing it would make whichever edition was built last force
 # the other into an auto-reload loop, and the shared localStorage version key
@@ -110,28 +123,7 @@ printf "Done!  %s  —  %.0f KB (%.1f MB)\n", $DEST, $size_kb, $size_kb/1024;
 my $still_cdn = ($html =~ /cdnjs\.cloudflare\.com|fonts\.googleapis\.com/) ? "YES ⚠" : "none ✓";
 print "Remaining CDN references: $still_cdn\n";
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Build admin-standalone.html if admin.html exists
-# ─────────────────────────────────────────────────────────────────────────────
-if (-f "admin.html") {
-    print "\nBuilding admin-standalone.html...\n";
-    my $admin = slurp_text("admin.html");
-    # Stamp version
-    $admin =~ s/const APP_VERSION\s*=\s*"[^"]*"/const APP_VERSION = "$version"/;
-    # Remove Google Fonts link
-    $admin =~ s|<link href="https://fonts\.googleapis\.com[^"]*" rel="stylesheet">|<!-- Google Fonts removed — system fonts used (standalone mode) -->|;
-    # Font substitutions
-    $admin =~ s|'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif|-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,Arial,sans-serif|g;
-    $admin =~ s|'JetBrains Mono','SF Mono','Monaco','Consolas',monospace|'SF Mono','Monaco','Consolas','Courier New',monospace|g;
-    # Inline Chart.js
-    $admin =~ s|<script src="https://cdnjs\.cloudflare\.com/ajax/libs/Chart\.js/4\.4\.1/chart\.umd\.min\.js"></script>|$chart_block|;
-
-    my $admin_dest = "admin-standalone.html";
-    open my $aout, '>:encoding(UTF-8)', $admin_dest or die "Cannot write admin: $!";
-    print $aout $admin;
-    close $aout;
-    my $asize_kb = (stat($admin_dest))[7] / 1024;
-    printf "Done!  %s  —  %.0f KB\n", $admin_dest, $asize_kb;
-} else {
-    print "\n(admin.html not found — skipping admin standalone build)\n";
-}
+# NOTE: admin-standalone.html is intentionally NOT built here. The admin app is
+# not Avaloq-specific and is owned by the main build (build-standalone.pl),
+# versioned by version.json. Building it in two places with two different
+# timestamps was a source of version drift, so it lives in one place now.

@@ -127,8 +127,18 @@ print "Remaining CDN references: $still_cdn\n";
 if (-f "admin.html") {
     print "\nBuilding admin-standalone.html...\n";
     my $admin = slurp_text("admin.html");
-    # Stamp version
+    # Stamp version into the standalone...
     $admin =~ s/const APP_VERSION\s*=\s*"[^"]*"/const APP_VERSION = "$version"/;
+    # ...and sync the same stamp back into the admin SOURCE, so admin.html,
+    # version.json, and admin-standalone.html never drift apart (same reasoning
+    # as the main app's 0a sync). Byte-preserving edit of only that literal.
+    {
+      my $araw = slurp("admin.html");
+      $araw =~ s/const APP_VERSION\s*=\s*"[^"]*"/const APP_VERSION = "$version"/;
+      open my $asf, '>:raw', "admin.html" or die "Cannot write admin.html: $!";
+      print $asf $araw; close $asf;
+      print "  Synced APP_VERSION into admin.html\n";
+    }
     # Remove Google Fonts link
     $admin =~ s|<link href="https://fonts\.googleapis\.com[^"]*" rel="stylesheet">|<!-- Google Fonts removed — system fonts used (standalone mode) -->|;
     # Font substitutions
