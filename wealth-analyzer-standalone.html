@@ -2948,13 +2948,24 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
     <span class="ptitle-line"></span>
   </div>
   <div class="dropdown-body" id="mvoWrap">
-  <div style="font-size:12px;color:var(--text3);margin:10px 0 14px;line-height:1.6">
-    Harry Markowitz's Modern Portfolio Theory (MPT) plots every known risk profile on the return vs. volatility plane. The efficient frontier shows the maximum expected return achievable for each level of risk. Your current household profile is highlighted — any point <em>above</em> the curve is unattainable; points <em>below</em> are sub-optimal.
+  <div style="font-size:13px;color:var(--text2);margin:10px 0 12px;line-height:1.6">
+    <strong style="color:var(--text)">The trade-off between risk and reward, in one picture.</strong> Every way of investing sits somewhere between “safe but slow” and “bumpy but potentially faster.” This chart plots that trade-off so you can see exactly where your plan lands.
   </div>
-  <div class="mvo-wrap"><canvas id="mvoChart" role="img" aria-label="Efficient Frontier scatter chart"></canvas></div>
+  <div style="font-size:12px;color:var(--text3);margin:0 0 14px;line-height:1.7;padding:11px 14px;background:var(--bg3);border-radius:var(--rs);border:1px solid var(--border)">
+    <div style="font-weight:600;color:var(--text2);margin-bottom:6px">How to read it</div>
+    <div style="margin:4px 0"><strong style="color:var(--text2)">→ Left-to-right = risk.</strong> How much your investments swing up and down from year to year. Further right means bigger swings.</div>
+    <div style="margin:4px 0"><strong style="color:var(--text2)">↑ Bottom-to-top = reward.</strong> The average yearly return you’d expect over the long run. Higher up means more growth.</div>
+    <div style="margin:4px 0"><strong style="color:var(--text2)">Each dot is one investing style,</strong> ranging from very cautious (bottom-left) to very aggressive (top-right).</div>
+    <div style="margin:4px 0"><strong style="color:var(--text2)">The curved line is the “best deals.”</strong> It links the styles that give the most reward for each level of risk — that line is the <em>efficient frontier</em>.</div>
+    <div style="margin:4px 0"><strong style="color:var(--gold)">The big dot is you</strong> — where your household’s current risk profile sits today.</div>
+  </div>
+  <div class="mvo-wrap"><canvas id="mvoChart" role="img" aria-label="Efficient Frontier scatter chart: horizontal axis is risk (volatility), vertical axis is expected return; each dot is an investing style and the curve is the efficient frontier; your household profile is the largest dot."></canvas></div>
   <div class="ef-legend" id="efLegend"></div>
-  <div style="font-size:11px;color:var(--text3);margin-top:10px;line-height:1.6;padding:8px 12px;background:var(--bg3);border-radius:var(--rs);border:1px solid var(--border)">
-    <strong style="color:var(--text2)">Return profiles</strong> are sourced from long-run institutional capital market assumptions. Each dot represents the expected arithmetic mean return (μ) and annualised standard deviation (σ) for that allocation style. The efficient frontier curve is fitted through these points — your household profile is marked with a larger dot. Move right on the x-axis to accept more risk for higher expected returns.
+  <div style="font-size:12px;color:var(--text2);margin-top:12px;line-height:1.6;padding:10px 14px;background:rgba(0,105,217,.045);border-radius:var(--rs);border:1px solid var(--border)">
+    <strong style="color:var(--text)">The takeaway:</strong> you generally can’t earn more without accepting more ups and downs — that’s why the line slopes upward. A dot sitting <em>on</em> the line is an efficient choice. A dot <em>below</em> the line means you’re taking on risk without getting the extra reward you could — so aim for the line. To reach for more growth you move right (a bumpier ride), so pick the spot that matches how much bumpiness you can comfortably live with.
+  </div>
+  <div style="font-size:11px;color:var(--text3);margin-top:8px;line-height:1.6;padding:8px 12px;background:var(--bg3);border-radius:var(--rs);border:1px solid var(--border)">
+    <strong style="color:var(--text2)">For the technically minded:</strong> this is Harry Markowitz’s Mean-Variance Optimization (Modern Portfolio Theory). Each dot’s position is its expected arithmetic mean return (μ, vertical axis) and annualised standard deviation of returns (σ, horizontal axis), sourced from long-run institutional capital market assumptions. The dashed curve is the efficient frontier fitted through those points; your household profile is the larger dot.
   </div>
   </div>
 </div>
@@ -3777,7 +3788,8 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
 
 <!-- ── Identity & Branding ───────────────────────────────────── -->
 <div class="panel">
-  <div class="ptitle">Identity &amp; Branding</div>
+  <div class="ptitle section-dropdown" onclick="toggleDropdown('rptIdentityBody')">Identity &amp; Branding <span class="dropdown-hint">click to expand</span><span class="ptitle-line"></span></div>
+  <div class="dropdown-body" id="rptIdentityBody">
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:0 28px">
     <div>
       <div class="frow"><label class="flbl">Report title</label><input type="text" id="rptTitle" value="Personal Wealth Analysis" class="w220"></div>
@@ -3790,11 +3802,13 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
       <div class="frow"><label class="flbl">Cover subtitle line</label><input type="text" id="rptSubtitle" value="" placeholder="e.g. Retirement Readiness Review" class="w220"></div>
     </div>
   </div>
+  </div>
 </div>
 
 <!-- ── Appearance ────────────────────────────────────────────── -->
 <div class="panel">
-  <div class="ptitle">Appearance</div>
+  <div class="ptitle section-dropdown" onclick="toggleDropdown('rptAppearanceBody')">Appearance <span class="dropdown-hint">click to expand</span><span class="ptitle-line"></span></div>
+  <div class="dropdown-body" id="rptAppearanceBody">
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:0 28px">
     <div>
       <div class="frow"><label class="flbl">Page size</label>
@@ -3852,11 +3866,13 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
       </div>
     </div>
   </div>
+  </div>
 </div>
 
 <!-- ── Custom Content: logo, about-client page, disclosure ─────── -->
 <div class="panel">
-  <div class="ptitle">Custom Content</div>
+  <div class="ptitle section-dropdown" onclick="toggleDropdown('rptCustomBody')">Custom Content <span class="dropdown-hint">click to expand</span><span class="ptitle-line"></span></div>
+  <div class="dropdown-body" id="rptCustomBody">
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:0 28px">
     <div>
       <div class="frow"><label class="flbl">Client logo / firm logo</label>
@@ -3889,6 +3905,7 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
     <textarea id="rptCustomDisc" placeholder="Optional: type your firm's specific disclosure text here. If filled in, this replaces the standard auto-generated disclosure. Leave empty to use the auto-generated one based on the &quot;Disclosure profile&quot; setting below." style="width:100%;min-height:100px;resize:vertical;font-family:var(--fb);font-size:12px;line-height:1.55;padding:10px 12px"></textarea>
   </div>
   <div style="font-size:11px;color:var(--text3);margin-top:6px;line-height:1.6">All custom content is saved in your browser only and persists across sessions.</div>
+  </div>
 </div>
 
 <!-- ── Page Order ────────────────────────────────────────────── -->
@@ -3898,11 +3915,14 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
   .rpt-ord-prev{display:none;position:absolute;left:0;top:calc(100% + 3px);z-index:60;width:300px;max-width:82vw;background:var(--bg2);border:1px solid var(--accent);border-radius:8px;padding:10px 12px;box-shadow:0 10px 28px rgba(0,0,0,.4)}
   .rpt-ord-item:hover .rpt-ord-prev{display:block}
   </style>
-  <div class="ptitle">Page Order <span style="font-size:11px;font-weight:500;color:var(--text3);margin-left:8px">— drag the ↑↓ buttons to reorder · hover a page name to preview what's on it</span></div>
+  <div class="ptitle section-dropdown" onclick="toggleDropdown('rptPageOrderBody')">Page Order <span class="dropdown-hint">click to expand</span><span class="ptitle-line"></span></div>
+  <div class="dropdown-body" id="rptPageOrderBody">
+  <div style="font-size:11px;font-weight:500;color:var(--text3);margin-bottom:8px">Drag the ↑↓ buttons to reorder · hover a page name to preview what's on it</div>
   <div id="rptOrderList" style="display:flex;flex-direction:column;gap:6px"></div>
   <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
     <button type="button" class="btn-secondary" onclick="resetRptOrder()" style="font-size:11px;padding:6px 12px">↺ Reset to default order</button>
     <span id="rptOrderStatus" style="font-size:11px;color:var(--text3);align-self:center"></span>
+  </div>
   </div>
 </div>
 
@@ -4055,7 +4075,7 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
 // ═══════════════════════════════════════════════════════════
 // VERSION — updated by build-standalone.pl on each build
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260707-1655";
+const APP_VERSION = "20260707-1715";
 
 // ═══════════════════════════════════════════════════════════
 // DATA
