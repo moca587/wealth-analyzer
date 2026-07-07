@@ -3614,7 +3614,7 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
 // ═══════════════════════════════════════════════════════════
 // VERSION — updated by build-standalone.pl on each build
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260615-1509";
+const APP_VERSION = "20260707-1304";
 
 // ═══════════════════════════════════════════════════════════
 // DATA
@@ -21175,6 +21175,7 @@ document.addEventListener("DOMContentLoaded",function(){
     let updateAvailable = false;
     let polling = false;
     let cancelled = false;
+    let baselineVer = null;   // the version.json this tab first observed (self-baseline)
 
     function startAutoReload(newVer){
       if(document.getElementById("wa-live-update-banner")) return;
@@ -21232,10 +21233,16 @@ document.addEventListener("DOMContentLoaded",function(){
         const r = await fetch("version.json?t=" + Date.now(), {cache: "no-store"});
         if(!r.ok) return;
         const j = await r.json();
-        if(j.version && j.version !== APP_VERSION){
+        if(!j.version) return;
+        // Baseline off the FIRST version.json this tab sees, not the baked-in
+        // APP_VERSION constant — a stale constant would otherwise mismatch a
+        // freshly-built version.json forever and auto-reload in a loop. We only
+        // reload when the SERVER's version.json actually changes after load.
+        if(baselineVer === null){ baselineVer = j.version; return; }
+        if(j.version !== baselineVer){
           updateAvailable = true;
           startAutoReload(j.version);
-          console.info("[live-update] New version available: " + j.version + " (loaded: " + APP_VERSION + ") — auto-reloading");
+          console.info("[live-update] New version available: " + j.version + " (was " + baselineVer + ") — auto-reloading");
         }
       } catch(e){ /* offline / 404 — silent */ }
       finally { polling = false; }

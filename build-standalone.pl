@@ -33,6 +33,18 @@ my $version = strftime("%Y%m%d-%H%M", localtime);
 $html =~ s/const APP_VERSION\s*=\s*"[^"]*"/const APP_VERSION = "$version"/;
 print "  Version: $version\n";
 
+# 0a. Persist that same stamp back into the SOURCE wealth-analyzer.html so the
+#     deployed app's APP_VERSION matches version.json. Otherwise the source keeps
+#     a frozen constant, the live update-poller sees a permanent mismatch, and the
+#     hosted site auto-reloads in a loop. Byte-preserving edit (only that literal).
+{
+  my $raw = slurp($SRC);
+  $raw =~ s/const APP_VERSION\s*=\s*"[^"]*"/const APP_VERSION = "$version"/;
+  open my $sf, '>:raw', $SRC or die "Cannot write $SRC: $!";
+  print $sf $raw; close $sf;
+  print "  Synced APP_VERSION into $SRC\n";
+}
+
 # 0b. Write version.json — polled by live clients to detect new deploys
 my $version_full = strftime("%Y-%m-%dT%H:%M:%S", localtime);
 open my $vf, '>:encoding(UTF-8)', "version.json" or die "Cannot write version.json: $!";
