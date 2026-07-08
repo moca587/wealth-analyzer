@@ -18689,14 +18689,16 @@ function drawFanChart(){
       for(let i=0;i<tocGroups.length;i++){ run+=baseH(tocGroups[i]); if(run>=total/2){ splitAt=i+1; break; } }
       splitAt = tocGroups.length>=2 ? Math.max(1, Math.min(splitAt, tocGroups.length-1)) : tocGroups.length;
       const columns = [ tocGroups.slice(0,splitAt), tocGroups.slice(splitAt) ];
-      // Scale spacing so the taller column fits the available page height.
+      // Scale spacing so the taller column fits the page height. Reserve room
+      // for the top offset, the first line's baseline, and a bottom margin —
+      // otherwise a full 33-section report overruns the bottom in landscape.
       const colBase = columns.map(gs => gs.reduce((s,g)=>s+baseH(g),0));
-      const avail = bottomY - startY;
-      const scale = Math.min(1, avail / Math.max(1, Math.max.apply(null, colBase)));
+      const usable = (bottomY - startY) - 14;
+      const scale = Math.min(1, usable / Math.max(1, Math.max.apply(null, colBase)));
       const headH = BHead*scale, itemH = BItem*scale, pGap = BGap*scale;
       columns.forEach((groups, ci) => {
         const x = M + ci*(colW+colGap);
-        let yy = startY + headH*0.55;
+        let yy = startY + 8;
         groups.forEach(g => {
           const seg = g.title.split(" — ");
           const roman = seg[0], name = seg[1] || g.title;
