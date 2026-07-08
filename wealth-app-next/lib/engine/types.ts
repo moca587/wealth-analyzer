@@ -143,6 +143,13 @@ export interface SimulationInput {
   years: number;              // typically 30-40
   /** Fixes the PRNG for a byte-identical repeat run (tests, cache checks). Omit for a real random run. */
   seed?: number;
+  /**
+   * Base calendar year the run is anchored to. Drives goal-year offsets and the
+   * primary client's current age. Omit for a live run (defaults to the current
+   * year); pass an explicit value so a seeded run is fully reproducible and does
+   * not drift as the wall clock advances (golden-master tests rely on this).
+   */
+  asOfYear?: number;
 }
 
 export interface SimulationResult {
