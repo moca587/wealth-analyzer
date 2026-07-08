@@ -316,4 +316,62 @@ describe("runMonteCarlo", () => {
 
     result.paths.forEach((path) => path.forEach((v) => expect(Number.isFinite(v)).toBe(true)));
   });
+
+  // ─── Retirement / decumulation (Plan C) ───
+
+  // A near-retirement household: taxable brokerage + a tax-deferred 401(k).
+  function retiree(retirement: WealthPlan["retirement"], pensions?: WealthPlan["pensions"], assetOverride?: WealthPlan["assets"]) {
+    return makePlan({
+      clients: [{ id: "c1", first: "R", last: "T", dob: "1966-01-01", country: "US", risk: "moderate", horizon: "15_plus" }],
+      incomes: [{ id: "i1", clientId: "c1", source: "salary", amount: 120000, taxable: true }],
+      expenses: [{ id: "e1", name: "Living", amount: 4000 }],
+      assets: assetOverride ?? [
+        { id: "a1", type: "brokerage", label: "Taxable", value: 500000, liquid: true, country: "US", cls: "equity" },
+        { id: "a2", type: "401k", label: "401(k)", value: 400000, liquid: false, country: "US", cls: "equity" },
+      ],
+      retirement,
+      pensions,
+    });
+  }
+
+  test("retirement mode reports a depletion/success probability and extends the horizon", () => {
+    const r = run(retiree({ enabled: true, retirementAge: 65, annualSpending: 50000, planToAge: 90 }), { seed: 1 });
+    expect(r.retirement).toBeDefined();
+    expect(r.retirement!.enabled).toBe(true);
+    expect(r.retirement!.depletionProbability).toBeGreaterThanOrEqual(0);
+    expect(r.retirement!.depletionProbability).toBeLessThanOrEqual(1);
+    expect(r.retirement!.depletionProbability + r.retirement!.successProbability).toBeCloseTo(1, 10);
+    expect(r.years).toBeGreaterThan(20); // modelled through planToAge, not the caller's 20
+  });
+
+  test("higher retirement spending raises the depletion probability", () => {
+    const modest = run(retiree({ enabled: true, retirementAge: 65, annualSpending: 40000, planToAge: 90 }), { seed: 2 });
+    const lavish = run(retiree({ enabled: true, retirementAge: 65, annualSpending: 130000, planToAge: 90 }), { seed: 2 });
+    expect(lavish.retirement!.depletionProbability).toBeGreaterThan(modest.retirement!.depletionProbability);
+  });
+
+  test("a pension lowers the depletion probability", () => {
+    const ret = { enabled: true, retirementAge: 65, annualSpending: 95000, planToAge: 90 };
+    const noPension = run(retiree(ret, []), { seed: 3 });
+    const withPension = run(retiree(ret, [{ id: "p1", label: "Social Security", annualAmount: 40000, startAge: 67, colaRate: 0.02 }]), { seed: 3 });
+    expect(withPension.retirement!.depletionProbability).toBeLessThan(noPension.retirement!.depletionProbability);
+  });
+
+  test("retiring earlier raises the depletion probability", () => {
+    const late = run(retiree({ enabled: true, retirementAge: 70, annualSpending: 85000, planToAge: 90 }), { seed: 4 });
+    const early = run(retiree({ enabled: true, retirementAge: 62, annualSpending: 85000, planToAge: 90 }), { seed: 4 });
+    expect(early.retirement!.depletionProbability).toBeGreaterThan(late.retirement!.depletionProbability);
+  });
+
+  test("a well-funded retiree's money lasts (low depletion)", () => {
+    const r = run(
+      retiree(
+        { enabled: true, retirementAge: 65, annualSpending: 40000, planToAge: 90 },
+        [],
+        [{ id: "a1", type: "brokerage", label: "Taxable", value: 2000000, liquid: true, country: "US", cls: "equity" }]
+      ),
+      { seed: 5 }
+    );
+    expect(r.retirement!.depletionProbability).toBeLessThan(0.15);
+  });
 });

@@ -102,6 +102,26 @@ export function migratePlan(input: unknown): WealthPlan {
     };
   });
 
+  // Retirement + pensions are optional; carry them through with coercion.
+  const rSrc = src.retirement as Record<string, unknown> | undefined;
+  const retirement = rSrc && typeof rSrc === "object"
+    ? {
+        enabled: typeof rSrc.enabled === "boolean" ? rSrc.enabled : undefined,
+        retirementAge: num(rSrc.retirementAge, 65),
+        annualSpending: num(rSrc.annualSpending, 0),
+        planToAge: num(rSrc.planToAge, 90),
+      }
+    : undefined;
+
+  const pensions = asArray(src.pensions).map((p) => ({
+    id: id(p.id),
+    label: str(p.label),
+    clientId: typeof p.clientId === "string" ? p.clientId : undefined,
+    annualAmount: num(p.annualAmount),
+    startAge: num(p.startAge, 65),
+    colaRate: typeof p.colaRate === "number" || typeof p.colaRate === "string" ? num(p.colaRate, 0) : undefined,
+  }));
+
   return {
     version: num(src.version, 1) || 1,
     currency: str(src.currency, base.currency),
@@ -114,6 +134,8 @@ export function migratePlan(input: unknown): WealthPlan {
     assets,
     loans,
     goals,
+    ...(retirement ? { retirement } : {}),
+    ...(pensions.length ? { pensions } : {}),
     notes: typeof src.notes === "string" ? src.notes : undefined,
     createdAt: str(src.createdAt, base.createdAt),
     updatedAt: new Date().toISOString(),

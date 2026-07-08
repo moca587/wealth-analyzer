@@ -108,6 +108,22 @@ const goalSchema = z
 // allow a wider ceiling specifically when inflationRegion is "BR"; every
 // other region is capped well below that as a sanity bound against typos
 // (e.g. entering "38" instead of "0.038").
+const pensionSchema = z.object({
+  id: nonEmptyId,
+  label: z.string(),
+  clientId: z.string().optional(),
+  annualAmount: money,
+  startAge: z.number().int().min(0).max(120),
+  colaRate: finiteNumber.optional(),
+});
+
+const retirementSchema = z.object({
+  enabled: z.boolean().optional(),
+  retirementAge: z.number().int().min(30).max(100),
+  annualSpending: money,
+  planToAge: z.number().int().min(50).max(120).optional(),
+});
+
 const MAX_INFLATION_DEFAULT = 0.30;
 const MAX_INFLATION_BR = 0.60;
 const MIN_INFLATION = -0.02;
@@ -125,6 +141,8 @@ export const wealthPlanSchema = z
     assets: z.array(assetSchema),
     loans: z.array(loanSchema),
     goals: z.array(goalSchema),
+    retirement: retirementSchema.optional(),
+    pensions: z.array(pensionSchema).optional(),
     notes: z.string().optional(),
     createdAt: z.string(),
     updatedAt: z.string(),

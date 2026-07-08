@@ -24,6 +24,8 @@ function samplePlan(): WealthPlan {
   ];
   p.loans = [{ id: "l1", type: "Mortgage", bal: 320000, rate: 5.1, yrs: 22 }];
   p.goals = [{ id: "g1", name: "Retirement", cat: "Retirement", tier: "essential", amt: 70000, startYear: 2050, endYear: 2075 }];
+  p.retirement = { enabled: true, retirementAge: 65, annualSpending: 60000, planToAge: 92 };
+  p.pensions = [{ id: "pn1", label: "UK State Pension", annualAmount: 11500, startAge: 67, colaRate: 0.025 }];
   return p;
 }
 
