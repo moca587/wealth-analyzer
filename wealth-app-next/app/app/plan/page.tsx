@@ -3,7 +3,7 @@ import { PlanForm } from "@/components/plan/plan-form";
 import { parsePlan } from "@/lib/plan/schema";
 
 export default async function PlanPage() {
-  const supabase = createClient();
+  const supabase = await createClient();
   const { data: profile } = await supabase
     .from("profiles")
     .select("plan")
