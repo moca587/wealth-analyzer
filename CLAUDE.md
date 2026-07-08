@@ -208,10 +208,12 @@ and validated data. The engine/data are ported as pure modules; the UI is
 rebuilt as React components rather than copied.
 
 ### Stack
-Next.js 14 (App Router) · TypeScript · Tailwind + shadcn-style UI · Supabase
-(Postgres + Auth + Row-Level Security) · Zod (validation) · Vitest (tests) ·
-Chart.js via `react-chartjs-2`. Node 20. ESLint pinned to 8.x (peer-conflicts
-with `eslint-config-next@14`; install documented, not `--legacy-peer-deps`).
+Next.js 15 (App Router) · React 19 · TypeScript · Tailwind + shadcn-style UI ·
+Supabase (Postgres + Auth + Row-Level Security) · Zod (validation) · Vitest
+(tests) · Chart.js via `react-chartjs-2`. Node 20+. ESLint 8.x with
+`eslint-config-next@15`. (Upgraded from Next 14/React 18 to clear the Next.js
+security advisories — `cookies()` is async in 15, so `lib/supabase/server.ts`
+`createClient()` is async and its callers `await` it.)
 
 ### Layout
 ```

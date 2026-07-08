@@ -32,8 +32,17 @@ export async function middleware(request: NextRequest) {
     }
   );
 
-  // This refreshes the session if expired
-  const { data: { user } } = await supabase.auth.getUser();
+  // This refreshes the session if expired. If Supabase is unreachable, don't
+  // 500 the entire site — fail open and let the page's own guard + error
+  // boundary handle it, so an auth-provider blip degrades gracefully.
+  let user = null;
+  try {
+    const { data } = await supabase.auth.getUser();
+    user = data.user;
+  } catch (e) {
+    console.error("[middleware] supabase.auth.getUser failed:", e);
+    return response;
+  }
 
   // Gate the /app/* routes — must be signed in
   const isAppRoute = request.nextUrl.pathname.startsWith("/app");
