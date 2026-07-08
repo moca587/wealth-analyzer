@@ -8,7 +8,10 @@ import {
   ageFromDOB,
   formatMoney,
   geometricMean,
+  portfolioReturnParams,
+  estimateIncomeTax,
 } from "../financial-math";
+import { ASSET_CLASS_CMA } from "../constants";
 
 describe("calcMortgagePayment", () => {
   test("standard amortizing loan", () => {
@@ -118,5 +121,69 @@ describe("geometricMean", () => {
 
   test("zero volatility leaves the arithmetic mean unchanged", () => {
     expect(geometricMean(0.06, 0)).toBeCloseTo(0.06, 10);
+  });
+});
+
+describe("portfolioReturnParams", () => {
+  const fallback = { mean: 0.07, sigma: 0.12 };
+
+  test("a single-class portfolio returns that class's CMA", () => {
+    const p = portfolioReturnParams([{ cls: "equity", value: 100 }], fallback);
+    expect(p.mean).toBeCloseTo(ASSET_CLASS_CMA.equity.mean, 10);
+    expect(p.sigma).toBeCloseTo(ASSET_CLASS_CMA.equity.sigma, 10);
+  });
+
+  test("mean is the value-weighted average of class means", () => {
+    const p = portfolioReturnParams(
+      [{ cls: "equity", value: 60 }, { cls: "fixed_income", value: 40 }],
+      fallback
+    );
+    const expected = 0.6 * ASSET_CLASS_CMA.equity.mean + 0.4 * ASSET_CLASS_CMA.fixed_income.mean;
+    expect(p.mean).toBeCloseTo(expected, 10);
+  });
+
+  test("diversification: a mixed portfolio's σ is below the weighted-average σ (correlation < 1)", () => {
+    const w = 0.5;
+    const weightedAvgSigma = w * ASSET_CLASS_CMA.equity.sigma + w * ASSET_CLASS_CMA.fixed_income.sigma;
+    const p = portfolioReturnParams(
+      [{ cls: "equity", value: 50 }, { cls: "fixed_income", value: 50 }],
+      fallback
+    );
+    expect(p.sigma).toBeLessThan(weightedAvgSigma);
+    // ...and above the lower single-class σ (still carries equity risk).
+    expect(p.sigma).toBeGreaterThan(ASSET_CLASS_CMA.fixed_income.sigma);
+  });
+
+  test("no valued holdings → returns the fallback", () => {
+    expect(portfolioReturnParams([], fallback)).toEqual(fallback);
+    expect(portfolioReturnParams([{ cls: "equity", value: 0 }], fallback)).toEqual(fallback);
+  });
+
+  test("an unknown/missing class is treated as 'mixed', not dropped", () => {
+    const p = portfolioReturnParams([{ value: 100 }], fallback);
+    expect(p.mean).toBeCloseTo(ASSET_CLASS_CMA.mixed.mean, 10);
+  });
+});
+
+describe("estimateIncomeTax", () => {
+  test("zero or negative income is untaxed", () => {
+    expect(estimateIncomeTax(0, "US")).toBe(0);
+    expect(estimateIncomeTax(-5000, "US")).toBe(0);
+  });
+
+  test("US brackets are progressive (effective rate rises with income)", () => {
+    const t50 = estimateIncomeTax(50000, "US");
+    const t200 = estimateIncomeTax(200000, "US");
+    expect(t50).toBeGreaterThan(0);
+    expect(t200 / 200000).toBeGreaterThan(t50 / 50000); // higher effective rate
+  });
+
+  test("an unknown country falls back to the default table (still taxes)", () => {
+    expect(estimateIncomeTax(100000, "ZZ")).toBeGreaterThan(0);
+  });
+
+  test("a tax-free-threshold country (GB) taxes nothing on income under the allowance", () => {
+    expect(estimateIncomeTax(10000, "GB")).toBe(0);
+    expect(estimateIncomeTax(30000, "GB")).toBeGreaterThan(0);
   });
 });
