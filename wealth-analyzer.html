@@ -18630,12 +18630,36 @@ function drawFanChart(){
       if(k === "disc")            label = "Disclosures";
       return label;
     }
-    const tocItems = [];
+    // Included sections (key + display label), in reading order.
+    const tocEntries = [];
     userOrder.forEach(k => {
       if(SECTION_PREDS[k] && SECTION_PREDS[k]()){
-        tocItems.push(rptLabelFor(k));
+        tocEntries.push({ key:k, label:rptLabelFor(k) });
       }
     });
+    // The report's six logical Parts. Every section key belongs to one Part;
+    // anything unmapped falls into a trailing "Additional" group so a future
+    // section can never silently disappear from the Contents.
+    const RPT_PARTS = [
+      { title:"I — Your Financial Picture",     keys:["exec","about","hh","inc","equity","assets","insurance"] },
+      { title:"II — Goals & Strategy",          keys:["goals","strategies","ips"] },
+      { title:"III — Portfolio",                keys:["port","totalportfolio","efficiency","performance","factsheets","wealthframework","riskcategories","riskstatus"] },
+      { title:"IV — Projections & Outcomes",    keys:["sim","fund","goalfunding","lifestyle","potentialwealth","cf"] },
+      { title:"V — Retirement Income & Estate", keys:["rmd","taxbuckets","roth","estate"] },
+      { title:"VI — Reference",                 keys:["educharts","cma","method","glossary","disc"] }
+    ];
+    // Group included sections under their Part, numbering continuously; drop
+    // empty Parts.
+    const _lblByKey = {}; tocEntries.forEach(e => { _lblByKey[e.key] = e.label; });
+    const _usedKey = {}; let _tocN = 0;
+    const tocGroups = [];
+    RPT_PARTS.forEach(p => {
+      const items = [];
+      p.keys.forEach(k => { if(_lblByKey[k] != null){ items.push({ n:(++_tocN), label:_lblByKey[k] }); _usedKey[k]=1; } });
+      if(items.length) tocGroups.push({ title:p.title, items });
+    });
+    const _leftover = tocEntries.filter(e => !_usedKey[e.key]).map(e => ({ n:(++_tocN), label:e.label }));
+    if(_leftover.length) tocGroups.push({ title:"— Additional", items:_leftover });
     // Render the Contents on its OWN page (light theme) so the navy cover stays
     // a clean hero. The running header shows "Contents" as the section title.
     currentSectionTitle = "Contents";
@@ -18645,37 +18669,55 @@ function drawFanChart(){
     doc.text("Contents", M, y+6);
     doc.setDrawColor(...ac); doc.setLineWidth(0.5); doc.line(M, y+10, M+30, y+10);
     doc.setFont("helvetica","normal"); doc.setFontSize(9); doc.setTextColor(120,128,140);
-    doc.text("Sections included in this report, in order.", M, y+16);
+    doc.text("Sections included in this report, grouped by theme.", M, y+16);
     y += 26;
     doc.setFontSize(9.5);
-    // Multi-column contents that always fits (auto 1→4 columns). Numbered rows
-    // with an accent tick and a hairline separator under each entry.
+    // Two-column Contents grouped under Part headers. Parts are packed into the
+    // two columns balanced by height and never split; row heights scale down if
+    // needed so the whole Contents always fits on this one page.
     (function drawToc(){
-      const tocStartY = y;
-      const tocMaxY   = ph - 20;
-      const rowH      = 8.4;
-      const rowsFit   = Math.max(1, Math.floor((tocMaxY - tocStartY) / rowH));
-      let cols = 1;
-      while (cols < 3 && Math.ceil(tocItems.length / cols) > rowsFit) cols++;
-      const perCol = Math.max(1, Math.ceil(tocItems.length / cols));
-      const colGap = 14;
-      const colW   = (CW - colGap*(cols-1)) / cols;
-      tocItems.forEach((t, i) => {
-        const col = Math.min(cols-1, Math.floor(i / perCol));
-        const row = i - col*perCol;
-        if(row >= rowsFit) return;
-        const xCol = M + col * (colW + colGap);
-        const yRow = tocStartY + row * rowH;
-        // number (serif italic, accent)
-        doc.setFont("helvetica","italic"); doc.setFontSize(11); doc.setTextColor(...ac);
-        doc.text(String(i+1).padStart(2,"0"), xCol, yRow+2);
-        // title
-        doc.setFont("helvetica","normal"); doc.setFontSize(9.5); doc.setTextColor(45,52,64);
-        const line = doc.splitTextToSize(t, colW - 16)[0];
-        doc.text(line, xCol + 11, yRow+2);
-        // hairline under the row
-        doc.setDrawColor(224,228,234); doc.setLineWidth(0.2);
-        doc.line(xCol, yRow+4.6, xCol+colW-4, yRow+4.6);
+      if(!tocGroups.length) return;
+      const startY  = y;
+      const bottomY = ph - 18;
+      const colGap  = 16;
+      const colW    = (CW - colGap) / 2;
+      const BItem = 6.4, BHead = 9.6, BGap = 4.5;
+      const baseH = g => BHead + g.items.length*BItem + BGap;
+      const total = tocGroups.reduce((s,g)=>s+baseH(g), 0);
+      // Fill column 1 until it passes half the total height; rest go to column 2.
+      let run=0, splitAt=1;
+      for(let i=0;i<tocGroups.length;i++){ run+=baseH(tocGroups[i]); if(run>=total/2){ splitAt=i+1; break; } }
+      splitAt = tocGroups.length>=2 ? Math.max(1, Math.min(splitAt, tocGroups.length-1)) : tocGroups.length;
+      const columns = [ tocGroups.slice(0,splitAt), tocGroups.slice(splitAt) ];
+      // Scale spacing so the taller column fits the available page height.
+      const colBase = columns.map(gs => gs.reduce((s,g)=>s+baseH(g),0));
+      const avail = bottomY - startY;
+      const scale = Math.min(1, avail / Math.max(1, Math.max.apply(null, colBase)));
+      const headH = BHead*scale, itemH = BItem*scale, pGap = BGap*scale;
+      columns.forEach((groups, ci) => {
+        const x = M + ci*(colW+colGap);
+        let yy = startY + headH*0.55;
+        groups.forEach(g => {
+          const seg = g.title.split(" — ");
+          const roman = seg[0], name = seg[1] || g.title;
+          doc.setFont("helvetica","bold"); doc.setFontSize(fsz-1.5); doc.setTextColor(...ac);
+          doc.text("PART "+roman, x, yy, {charSpace:0.8});
+          const rw = doc.getTextWidth("PART "+roman) + 3.4;
+          doc.setFont("helvetica","bold"); doc.setFontSize(fsz+1); doc.setTextColor(...acDark);
+          doc.text(name, x+rw, yy, {charSpace:0.2});
+          doc.setDrawColor(200,208,220); doc.setLineWidth(0.35); doc.line(x, yy+2.4, x+colW-2, yy+2.4);
+          yy += headH;
+          g.items.forEach(it => {
+            doc.setFont("helvetica","italic"); doc.setFontSize(10.5); doc.setTextColor(...ac);
+            doc.text(String(it.n).padStart(2,"0"), x, yy);
+            doc.setFont("helvetica","normal"); doc.setFontSize(9.3); doc.setTextColor(45,52,64);
+            const line = doc.splitTextToSize(it.label, colW - 14)[0];
+            doc.text(line, x+10, yy);
+            doc.setDrawColor(228,232,238); doc.setLineWidth(0.2); doc.line(x, yy+2.3, x+colW-2, yy+2.3);
+            yy += itemH;
+          });
+          yy += pGap;
+        });
       });
       doc.setFontSize(fsz);
     })();
