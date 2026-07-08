@@ -13,7 +13,7 @@
 
 import {
   boxMuller, calcMortgagePayment, createSeededRandom, geometricMean,
-  portfolioReturnParams, estimateIncomeTax
+  portfolioReturnParams, estimateIncomeTax, ageFromDOB, calcRMD
 } from "./financial-math";
 import { RISK_PROFILES } from "./constants";
 import type {
@@ -75,7 +75,13 @@ export function runMonteCarlo(input: SimulationInput): SimulationResult {
 
   // ─── Pre-compute static inputs ───
   const investableAssets = plan.assets.filter((a) => a.cls !== "real_estate");
-  const totalInvestableAssets = sumOf(investableAssets, (a) => a.value);
+  // Split investable into a taxable pool and a tax-deferred (retirement-account)
+  // pool. They grow identically, but in retirement, spending is withdrawn from
+  // taxable first; deferred draws + RMDs are taxed as income; and RMDs are
+  // forced past age 73. For non-retirement plans this is behaviourally identical
+  // to a single pool.
+  const initialTaxable = sumOf(investableAssets.filter((a) => a.liquid !== false), (a) => a.value);
+  const initialDeferred = sumOf(investableAssets.filter((a) => a.liquid === false), (a) => a.value);
   const totalPropertyValue = sumOf(
     plan.assets.filter((a) => a.cls === "real_estate"),
     (a) => a.value
@@ -96,39 +102,53 @@ export function runMonteCarlo(input: SimulationInput): SimulationResult {
   const annualIncome = sumOf(plan.incomes, (i) => i.amount);
   const annualExpense = sumOf(plan.expenses, (e) => e.amount) * 12;
 
-  // Income tax: applied to taxable income each year so surplus is post-tax
-  // rather than gross (previously the engine reinvested income untaxed,
-  // overstating savings). Income is flat, so the tax is computed once.
+  // Income tax on working income (flat income → computed once).
   const taxableIncome = sumOf(plan.incomes.filter((i) => i.taxable !== false), (i) => i.amount);
   const taxCountry = plan.clients[0]?.country || "US";
-  const annualTax = estimateIncomeTax(taxableIncome, taxCountry);
-  const afterTaxIncome = annualIncome - annualTax;
+  const afterTaxIncome = annualIncome - estimateIncomeTax(taxableIncome, taxCountry);
+
+  // ─── Retirement / decumulation config ───
+  const currentAge = plan.clients[0]?.dob ? ageFromDOB(plan.clients[0].dob) : 40;
+  const ret = plan.retirement;
+  const retEnabled = !!(ret && ret.enabled && ret.retirementAge > 0);
+  const retirementAge = retEnabled ? ret!.retirementAge : Infinity;
+  const retSpendToday = retEnabled ? (ret!.annualSpending || 0) : 0;
+  const planToAge = retEnabled ? (ret!.planToAge || 90) : 0;
+  const pensions = plan.pensions || [];
+  // With retirement on, model through planToAge; otherwise use the caller's years.
+  const Y = retEnabled ? Math.max(1, Math.min(70, planToAge - currentAge)) : years;
 
   const startYear = new Date().getFullYear();
 
   // Pre-compute goal target year offsets (relative year indices)
   const goalsByYear: Array<{ goal: Goal; yearOffset: number }> = plan.goals
     .map((g) => ({ goal: g, yearOffset: g.startYear - startYear }))
-    .filter((g) => g.yearOffset >= 0 && g.yearOffset < years);
+    .filter((g) => g.yearOffset >= 0 && g.yearOffset < Y);
 
   // ─── Run all sims ───
   const paths: number[][] = [];
   const goalHits: Record<string, number> = {};
   plan.goals.forEach((g) => { goalHits[g.id] = 0; });
+  let depletionCount = 0;
 
   for (let s = 0; s < sims; s++) {
-    let investable = totalInvestableAssets;
+    let taxable = initialTaxable;
+    let deferred = initialDeferred;
     let propertyVal = totalPropertyValue;
     const loanState: Loan[] = plan.loans.map((l) => ({ ...l }));
     const path: number[] = [];
-    let goalFundedThisSim: Record<string, boolean> = {};
+    const goalFundedThisSim: Record<string, boolean> = {};
+    let depleted = false;
 
-    for (let y = 0; y < years; y++) {
-      // 1. Stochastic return on investable assets
+    for (let y = 0; y < Y; y++) {
+      const age = currentAge + y;
+
+      // 1. Stochastic return on both investable pools
       const annRet = drift + sigma * boxMuller(rng);
-      investable = investable * (1 + annRet);
+      taxable *= 1 + annRet;
+      deferred *= 1 + annRet;
 
-      // 2. Stochastic property appreciation (3% ± 2%)
+      // 2. Stochastic property appreciation (3% ± 2%) — property isn't drawn for spending
       const propRet = 0.03 + 0.02 * boxMuller(rng);
       propertyVal = propertyVal * (1 + propRet);
 
@@ -141,35 +161,72 @@ export function runMonteCarlo(input: SimulationInput): SimulationResult {
         interestPaid += ip;
       });
 
-      // 4. Annual surplus/shortfall, expenses inflated to this year's dollars.
-      // A shortfall isn't ignored — it draws down liquid assets, same as a
-      // real household covering a budget gap from savings.
-      const inflatedExpense = annualExpense * Math.pow(1 + inflation, y);
-      const surplus = afterTaxIncome - inflatedExpense - interestPaid;
-      investable += surplus;
+      // 4. Cash flow — accumulation while working, decumulation in retirement.
+      const inRetirement = retEnabled && age >= retirementAge;
+      if (!inRetirement) {
+        // Working: surplus (post-tax income − inflated expenses − interest) is
+        // saved into the taxable pool; a shortfall draws it down.
+        const inflatedExpense = annualExpense * Math.pow(1 + inflation, y);
+        taxable += afterTaxIncome - inflatedExpense - interestPaid;
+      } else {
+        // Retirement: salary stops. Pensions (COLA-grown) + RMDs provide taxed
+        // income; the remaining spending need is withdrawn — taxable first, then
+        // the tax-deferred pool (grossed up for tax).
+        let pensionGross = 0;
+        for (const p of pensions) {
+          if (age >= p.startAge) pensionGross += (p.annualAmount || 0) * Math.pow(1 + (p.colaRate || 0), age - p.startAge);
+        }
+        const netPension = pensionGross - estimateIncomeTax(pensionGross, taxCountry);
 
-      // 5. Goal funding — for each goal whose calendar year is THIS year.
-      // The goal amount is inflated to the year it's actually needed, and a
-      // funded goal's cost is drawn down from investable wealth rather than
-      // just checked for affordability — otherwise every later year in the
-      // path acts as if the goal spend never happened.
+        // Required Minimum Distributions from the tax-deferred pool past age 73.
+        let netRMD = 0;
+        if (age >= 73 && deferred > 0) {
+          const rmd = calcRMD(deferred, age);
+          deferred -= rmd;
+          netRMD = rmd - estimateIncomeTax(rmd, taxCountry);
+        }
+
+        const spending = retSpendToday * Math.pow(1 + inflation, y);
+        let need = spending + interestPaid - netPension - netRMD;
+        if (need <= 0) {
+          // Pension/RMD more than covers spending — reinvest the surplus.
+          taxable += -need;
+        } else {
+          const fromTaxable = Math.min(Math.max(0, taxable), need);
+          taxable -= fromTaxable;
+          need -= fromTaxable;
+          if (need > 0) {
+            // Deferred withdrawals are taxed as income — gross up so the net covers the need.
+            const effRate = Math.min(0.5, Math.max(0, estimateIncomeTax(spending, taxCountry) / Math.max(1, spending)));
+            deferred -= need / (1 - effRate);
+            need = 0;
+          }
+        }
+        if (taxable < 0) { deferred += taxable; taxable = 0; }
+        if (deferred < 0) { depleted = true; deferred = 0; }
+      }
+
+      // 5. Goal funding — drawn from taxable then deferred (calendar-year aware).
       goalsByYear.forEach(({ goal, yearOffset }) => {
         if (yearOffset !== y) return;
         if (goalFundedThisSim[goal.id]) return;
         const yearsNeeded = Math.max(1, goal.endYear - goal.startYear + 1);
         const totalNeeded = goal.amt * yearsNeeded * Math.pow(1 + inflation, yearOffset);
-        if (investable >= totalNeeded) {
+        if (taxable + deferred >= totalNeeded) {
           goalFundedThisSim[goal.id] = true;
-          investable -= totalNeeded;
+          const fromTaxable = Math.min(Math.max(0, taxable), totalNeeded);
+          taxable -= fromTaxable;
+          deferred -= totalNeeded - fromTaxable;
         }
       });
 
-      // 6. Net worth this year = investable + property − total debt
+      // 6. Net worth this year = investable pools + property − total debt
       const totalDebt = loanState.reduce((s, l) => s + Math.max(0, l.bal), 0);
-      path.push(investable + propertyVal - totalDebt);
+      path.push(taxable + deferred + propertyVal - totalDebt);
     }
 
     paths.push(path);
+    if (depleted) depletionCount++;
     Object.entries(goalFundedThisSim).forEach(([gid, hit]) => {
       if (hit) goalHits[gid] = (goalHits[gid] || 0) + 1;
     });
@@ -182,7 +239,7 @@ export function runMonteCarlo(input: SimulationInput): SimulationResult {
   const p10: number[] = [], p25: number[] = [], p50: number[] = [];
   const p75: number[] = [], p80: number[] = [], p90: number[] = [];
 
-  for (let y = 0; y < years; y++) {
+  for (let y = 0; y < Y; y++) {
     const row = paths.map((p) => p[y]).sort((a, b) => a - b);
     p10.push(pct(row, 10));
     p25.push(pct(row, 25));
@@ -192,7 +249,7 @@ export function runMonteCarlo(input: SimulationInput): SimulationResult {
     p90.push(pct(row, 90));
   }
 
-  const finalRow = paths.map((p) => p[years - 1]).sort((a, b) => a - b);
+  const finalRow = paths.map((p) => p[Y - 1]).sort((a, b) => a - b);
   const mean = finalRow.reduce((s, v) => s + v, 0) / sims;
 
   // ─── Goal success rates ───
@@ -203,12 +260,23 @@ export function runMonteCarlo(input: SimulationInput): SimulationResult {
   }));
 
   // ─── Hash input for caching (stable for identical plans) ───
-  const inputHash = hashPlan(plan, sims, years, seed);
+  const inputHash = hashPlan(plan, sims, Y, seed);
+
+  // ─── Retirement "will my money last?" summary ───
+  const retirement = retEnabled
+    ? {
+        enabled: true,
+        successProbability: (sims - depletionCount) / sims,
+        depletionProbability: depletionCount / sims,
+        retirementAge: ret!.retirementAge,
+        planToAge,
+      }
+    : undefined;
 
   return {
     inputHash,
     sims,
-    years,
+    years: Y,
     paths,
     percentiles: { p10, p25, p50, p75, p80, p90 },
     goalSuccess,
@@ -220,6 +288,7 @@ export function runMonteCarlo(input: SimulationInput): SimulationResult {
       p90: pct(finalRow, 90),
       mean
     },
+    ...(retirement ? { retirement } : {}),
     runMs: Math.round(performance.now() - t0)
   };
 }
@@ -227,12 +296,14 @@ export function runMonteCarlo(input: SimulationInput): SimulationResult {
 /** Cheap stable hash for caching simulation results */
 function hashPlan(plan: WealthPlan, sims: number, years: number, seed?: number): string {
   const s = JSON.stringify({
-    c: plan.clients.map((c) => [c.risk, c.horizon, c.country]),
-    a: plan.assets.map((a) => [a.cls, a.value]),
+    c: plan.clients.map((c) => [c.risk, c.horizon, c.country, c.dob]),
+    a: plan.assets.map((a) => [a.cls, a.value, a.liquid]),
     l: plan.loans.map((l) => [l.bal, l.rate, l.yrs]),
     g: plan.goals.map((g) => [g.amt, g.startYear, g.endYear]),
     i: plan.incomes.map((i) => [i.amount, i.taxable !== false]),
     e: plan.expenses.map((e) => e.amount),
+    r: plan.retirement ? [plan.retirement.enabled, plan.retirement.retirementAge, plan.retirement.annualSpending, plan.retirement.planToAge] : null,
+    p: (plan.pensions || []).map((p) => [p.annualAmount, p.startAge, p.colaRate]),
     inf: plan.inflationRate,
     sims, years, seed: seed ?? null
   });

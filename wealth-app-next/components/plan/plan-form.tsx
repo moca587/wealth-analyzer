@@ -10,6 +10,7 @@ import { emptyPlan, newId } from "@/lib/plan/default-plan";
 import { HouseholdSection } from "./sections/household-section";
 import { ChildrenSection } from "./sections/children-section";
 import { AssetsSection } from "./sections/assets-section";
+import { RetirementSection } from "./sections/retirement-section";
 import { ImportExportSection } from "./sections/import-export-section";
 import type {
   WealthPlan, Goal, Loan, IncomeStream, ExpenseCategory
@@ -169,6 +170,9 @@ export function PlanForm({ initialPlan }: { initialPlan: WealthPlan | null }) {
           </>
         )}
       />
+
+      {/* ─── RETIREMENT ─── */}
+      <RetirementSection plan={plan} update={set} />
 
       {/* ─── IMPORT / EXPORT ─── */}
       <ImportExportSection plan={plan} onImport={replacePlan} />

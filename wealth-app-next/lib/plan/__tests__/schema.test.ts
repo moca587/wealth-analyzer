@@ -97,4 +97,26 @@ describe("parsePlan", () => {
     const result = parsePlan(validPlan({ inflationRate: 5, inflationRegion: "BR" }));
     expect(result.ok).toBe(false);
   });
+
+  test("accepts a plan with retirement + pensions", () => {
+    const result = parsePlan(validPlan({
+      retirement: { enabled: true, retirementAge: 65, annualSpending: 60000, planToAge: 92 },
+      pensions: [{ id: "p1", label: "State Pension", annualAmount: 11500, startAge: 67, colaRate: 0.025 }],
+    }));
+    expect(result.ok).toBe(true);
+  });
+
+  test("rejects an out-of-range retirement age", () => {
+    const result = parsePlan(validPlan({
+      retirement: { enabled: true, retirementAge: 200, annualSpending: 60000 },
+    }));
+    expect(result.ok).toBe(false);
+  });
+
+  test("rejects a negative pension amount", () => {
+    const result = parsePlan(validPlan({
+      pensions: [{ id: "p1", label: "X", annualAmount: -100, startAge: 67 }],
+    }));
+    expect(result.ok).toBe(false);
+  });
 });
