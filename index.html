@@ -4,9 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>Wealth Analyzer by Private Wealth Intelligence</title>
-<meta name="description" content="The wealth platform that thinks like a private banker. Build evidence-backed portfolios with research from 16 institutions, 792 funds, Monte Carlo simulation, and country-aware compliance — all in one browser tab.">
+<meta name="description" content="The complete wealth-planning workbench in one browser tab. Build a full financial plan, analyze any portfolio, draft an investment proposal, and stress-test it with Monte Carlo simulation — country-aware, tax-aware, and fully private.">
 <meta property="og:title" content="Wealth Analyzer by Private Wealth Intelligence">
-<meta property="og:description" content="Research-driven AI builds your client's portfolio in 30 seconds. 16 institutional sources. 792 funds. UCITS-aware. Monte Carlo simulated.">
+<meta property="og:description" content="Plan, analyze, propose, and simulate — the whole advisory workflow in a single browser tab. 1,000-path Monte Carlo. Country- and tax-aware. Client-ready PDF reports.">
 <meta property="og:type" content="website">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -98,8 +98,8 @@ nav{
 .hero-tag .dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 0 3px rgba(0,135,90,.2)}
 .hero h1{
   font-family:'DM Serif Display',Georgia,serif;
-  font-size:clamp(42px,5.5vw,68px);
-  line-height:1.05;letter-spacing:-.025em;font-weight:400;margin-bottom:22px;
+  font-size:clamp(42px,5.5vw,66px);
+  line-height:1.06;letter-spacing:-.025em;font-weight:400;margin-bottom:22px;
 }
 .hero h1 .grad{
   background:linear-gradient(135deg, var(--accent) 0%, var(--purple) 100%);
@@ -107,11 +107,9 @@ nav{
 }
 .hero p.lead{font-size:18px;color:var(--ink2);line-height:1.65;margin-bottom:32px;max-width:560px}
 .hero-cta{display:flex;gap:14px;align-items:center;flex-wrap:wrap}
-.hero-trust{margin-top:36px;padding-top:24px;border-top:1px solid var(--line);display:flex;align-items:center;gap:24px;flex-wrap:wrap}
-.hero-trust-label{font-size:11px;text-transform:uppercase;letter-spacing:.12em;color:var(--ink3);font-weight:600}
-.hero-trust-logos{display:flex;gap:18px;flex-wrap:wrap;font-size:13px;color:var(--ink3);font-weight:600;letter-spacing:-.01em}
-.hero-trust-logos span{position:relative}
-.hero-trust-logos span:not(:last-child)::after{content:"·";position:absolute;right:-12px;color:var(--line)}
+.hero-note{margin-top:30px;padding-top:22px;border-top:1px solid var(--line);font-size:13px;color:var(--ink3);display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+.hero-note b{color:var(--ink2);font-weight:600}
+.hero-note .pipe{color:var(--line)}
 
 /* ─── HERO MOCKUP ─── */
 .mockup{
@@ -135,20 +133,19 @@ nav{
 .mockup-dot.r{background:#ff5f57}.mockup-dot.y{background:#febc2e}.mockup-dot.g{background:#28c840}
 .mockup-url{flex:1;background:#fff;border-radius:6px;padding:5px 12px;font-size:11px;color:var(--ink3);text-align:center;margin-left:8px}
 .mockup-body{padding:22px}
+.m-eyebrow{font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--ink3);font-weight:700;margin-bottom:12px}
 .m-kpi{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px}
 .m-kpi-card{background:#fafbfc;border-radius:10px;padding:12px 14px;border:1px solid var(--line)}
 .m-kpi-lbl{font-size:9px;text-transform:uppercase;letter-spacing:.08em;color:var(--ink3);font-weight:700;margin-bottom:4px}
-.m-kpi-val{font-size:18px;font-weight:800;letter-spacing:-.02em;color:var(--ink)}
+.m-kpi-val{font-size:17px;font-weight:800;letter-spacing:-.02em;color:var(--ink)}
 .m-kpi-val.g{color:var(--green)}.m-kpi-val.b{color:var(--accent)}.m-kpi-val.p{color:var(--purple)}
-.m-pos{padding:10px 12px;background:#fafbfc;border-left:3px solid var(--accent);border-radius:0 8px 8px 0;margin-bottom:8px}
-.m-pos-row{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px}
-.m-pos-tkr{font-weight:700;font-size:13px}
-.m-pos-pct{font-weight:700;font-size:13px;color:var(--accent)}
-.m-pos-name{font-size:10.5px;color:var(--ink3)}
-.m-pos-metric{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-top:6px;font-size:9.5px}
-.m-pos-metric > div{background:#fff;padding:3px 5px;border-radius:3px;text-align:center}
-.m-pos-metric span{display:block;color:var(--ink3);font-size:8px;text-transform:uppercase;letter-spacing:.05em}
-.m-pos-metric strong{font-size:10px;color:var(--ink)}
+.m-kpi-sub{font-size:8.5px;color:var(--ink3);margin-top:2px}
+.m-chart{background:#fafbfc;border:1px solid var(--line);border-radius:10px;padding:14px 14px 10px}
+.m-chart-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.m-chart-title{font-size:11px;font-weight:700;color:var(--ink2)}
+.m-chart-legend{font-size:9px;color:var(--ink3);display:flex;gap:10px;align-items:center}
+.m-chart-legend i{display:inline-block;width:9px;height:9px;border-radius:2px;vertical-align:middle;margin-right:3px}
+.m-xaxis{display:flex;justify-content:space-between;font-size:9px;color:var(--ink3);margin-top:4px}
 
 /* ─── STATS STRIP ─── */
 .stats{padding:60px 0;background:#fff;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
@@ -162,13 +159,6 @@ section{padding:100px 0}
 .section-tag{display:inline-block;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.14em;color:var(--accent);margin-bottom:16px}
 .section-h{font-family:'DM Serif Display',Georgia,serif;font-size:clamp(34px,4vw,48px);line-height:1.1;letter-spacing:-.02em;font-weight:400;margin-bottom:18px;max-width:740px}
 .section-p{font-size:17px;color:var(--ink2);line-height:1.7;max-width:680px;margin-bottom:50px}
-
-/* ─── INSTITUTIONAL TRUST ─── */
-.institutions{padding:70px 0;background:linear-gradient(180deg, var(--bg) 0%, #fff 100%);text-align:center}
-.inst-label{font-size:12px;text-transform:uppercase;letter-spacing:.14em;color:var(--ink3);font-weight:700;margin-bottom:26px}
-.inst-grid{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:42px 56px}
-.inst-name{font-weight:600;font-size:16px;color:var(--ink2);opacity:.85;letter-spacing:-.01em;transition:opacity .2s,color .2s}
-.inst-name:hover{opacity:1;color:var(--accent)}
 
 /* ─── FEATURE CARDS ─── */
 .features{background:#fff}
@@ -241,7 +231,7 @@ section{padding:100px 0}
 .cv-ucits{background:rgba(245,158,11,.15);color:#92400e}
 .cv-us{background:rgba(0,135,90,.15);color:#065f46}
 
-/* ─── METRICS SHOWCASE ─── */
+/* ─── SHOWCASE ─── */
 .showcase{padding:100px 0;background:#fff;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
 .showcase-grid{display:grid;grid-template-columns:1fr 1fr;gap:64px;align-items:center}
 @media(max-width:980px){.showcase-grid{grid-template-columns:1fr}}
@@ -313,8 +303,7 @@ footer ul li a:hover{color:#fff}
     <div class="nav-links">
       <a href="#features">Features</a>
       <a href="#how">How it works</a>
-      <a href="#compliance">Compliance</a>
-      <a href="#sources">Research</a>
+      <a href="#countries">Countries</a>
       <a class="btn btn-primary" href="wealth-analyzer-standalone.html">Launch app &rarr;</a>
     </div>
   </div>
@@ -326,21 +315,22 @@ footer ul li a:hover{color:#fff}
       <div class="fade-in">
         <div class="hero-tag">
           <span class="dot"></span>
-          16 institutional research sources &middot; live consensus engine
+          Financial plan &middot; Portfolio analysis &middot; Monte Carlo
         </div>
-        <h1>The portfolio that thinks like <span class="grad">a private banker.</span></h1>
+        <h1>The complete wealth plan, <span class="grad">proven by simulation.</span></h1>
         <p class="lead">
-          Build evidence-backed portfolios in seconds. The AI synthesizes research from BlackRock, JPMorgan, Goldman, Morgan Stanley, UBS and 11 more &mdash; then constructs your client's allocation from 792 institutionally-vetted funds. Country-aware. UCITS-compliant. Fully transparent.
+          Wealth Analyzer builds a client's full financial plan, analyzes their current portfolio, drafts an investment proposal, and stress-tests the whole thing with Monte Carlo &mdash; thousands of market paths, goal-by-goal funding odds, and retirement drawdown. Country-aware. Tax-aware. 100% browser-based &mdash; nothing leaves your machine.
         </p>
         <div class="hero-cta">
           <a href="wealth-analyzer-standalone.html" class="btn btn-primary btn-xl">Open the app &mdash; it's free &rarr;</a>
           <a href="#how" class="btn btn-secondary btn-lg">See how it works</a>
         </div>
-        <div class="hero-trust">
-          <span class="hero-trust-label">Powered by research from</span>
-          <div class="hero-trust-logos">
-            <span>BlackRock</span><span>JPMorgan</span><span>Goldman Sachs</span><span>Morgan Stanley</span><span>Citi</span><span>UBS</span>
-          </div>
+        <div class="hero-note">
+          <b>One tab, four modules:</b>
+          <span>Financial Plan</span><span class="pipe">&middot;</span>
+          <span>Portfolio Analysis</span><span class="pipe">&middot;</span>
+          <span>Investment Proposal</span><span class="pipe">&middot;</span>
+          <span>Monte Carlo</span>
         </div>
       </div>
 
@@ -349,62 +339,45 @@ footer ul li a:hover{color:#fff}
           <span class="mockup-dot r"></span>
           <span class="mockup-dot y"></span>
           <span class="mockup-dot g"></span>
-          <div class="mockup-url">wealth-analyzer.html &mdash; AI Portfolio Builder</div>
+          <div class="mockup-url">wealth-analyzer.html &mdash; Monte Carlo Simulation</div>
         </div>
         <div class="mockup-body">
-          <div style="font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--ink3);font-weight:700;margin-bottom:10px">AI-Generated Portfolio &middot; Switzerland Client</div>
+          <div class="m-eyebrow">Wealth Projection &middot; 1,000 paths &middot; Switzerland client</div>
           <div class="m-kpi">
             <div class="m-kpi-card">
-              <div class="m-kpi-lbl">Expected &mu;</div>
-              <div class="m-kpi-val g">9.8%</div>
+              <div class="m-kpi-lbl">Projected wealth</div>
+              <div class="m-kpi-val g">CHF 5.30M</div>
+              <div class="m-kpi-sub">median &middot; today's money</div>
             </div>
             <div class="m-kpi-card">
-              <div class="m-kpi-lbl">Sharpe</div>
-              <div class="m-kpi-val b">0.47</div>
+              <div class="m-kpi-lbl">Goal success</div>
+              <div class="m-kpi-val b">100%</div>
+              <div class="m-kpi-sub">across your goals</div>
             </div>
             <div class="m-kpi-card">
-              <div class="m-kpi-lbl">10y CAGR</div>
-              <div class="m-kpi-val p">11.2%</div>
+              <div class="m-kpi-lbl">Sustainable spend</div>
+              <div class="m-kpi-val p">CHF 451k</div>
+              <div class="m-kpi-sub">per year &middot; today's money</div>
             </div>
           </div>
-          <div class="m-pos">
-            <div class="m-pos-row">
-              <span class="m-pos-tkr">CSPX</span>
-              <span class="m-pos-pct">28.0%</span>
+          <div class="m-chart">
+            <div class="m-chart-top">
+              <div class="m-chart-title">Simulated wealth &mdash; to age 90</div>
+              <div class="m-chart-legend">
+                <span><i style="background:rgba(0,87,184,.18)"></i>P10&ndash;P90</span>
+                <span><i style="background:var(--accent)"></i>Median</span>
+              </div>
             </div>
-            <div class="m-pos-name">iShares Core S&amp;P 500 UCITS &middot; Ireland</div>
-            <div class="m-pos-metric">
-              <div><span>Sharpe</span><strong>0.40</strong></div>
-              <div><span>5y</span><strong>14.7%</strong></div>
-              <div><span>ER</span><strong>0.07%</strong></div>
-              <div><span>AUM</span><strong>$90B</strong></div>
-            </div>
-          </div>
-          <div class="m-pos">
-            <div class="m-pos-row">
-              <span class="m-pos-tkr">IWDA</span>
-              <span class="m-pos-pct">22.0%</span>
-            </div>
-            <div class="m-pos-name">iShares Core MSCI World UCITS &middot; Ireland</div>
-            <div class="m-pos-metric">
-              <div><span>Sharpe</span><strong>0.42</strong></div>
-              <div><span>5y</span><strong>13.0%</strong></div>
-              <div><span>ER</span><strong>0.20%</strong></div>
-              <div><span>AUM</span><strong>$80B</strong></div>
-            </div>
-          </div>
-          <div class="m-pos">
-            <div class="m-pos-row">
-              <span class="m-pos-tkr">SGLN</span>
-              <span class="m-pos-pct">8.0%</span>
-            </div>
-            <div class="m-pos-name">iShares Physical Gold ETC &middot; Jersey</div>
-            <div class="m-pos-metric">
-              <div><span>Sharpe</span><strong>0.14</strong></div>
-              <div><span>5y</span><strong>11.0%</strong></div>
-              <div><span>ER</span><strong>0.12%</strong></div>
-              <div><span>AUM</span><strong>$15B</strong></div>
-            </div>
+            <svg viewBox="0 0 380 118" width="100%" height="118" preserveAspectRatio="none" aria-hidden="true">
+              <line x1="8" y1="104" x2="372" y2="104" stroke="#e8ecf2" stroke-width="1"/>
+              <line x1="8" y1="70" x2="372" y2="70" stroke="#f1f4f8" stroke-width="1"/>
+              <line x1="8" y1="36" x2="372" y2="36" stroke="#f1f4f8" stroke-width="1"/>
+              <polygon points="8,96 100,80 190,56 280,32 372,12 372,74 280,82 190,90 100,97 8,100"
+                       fill="#0057b8" fill-opacity="0.14"/>
+              <polyline points="8,98 100,88 190,74 280,56 372,40" fill="none"
+                        stroke="#0057b8" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>
+            </svg>
+            <div class="m-xaxis"><span>Today</span><span>10y</span><span>20y</span><span>30y</span><span>Age 90</span></div>
           </div>
         </div>
       </div>
@@ -416,45 +389,21 @@ footer ul li a:hover{color:#fff}
   <div class="container">
     <div class="stats-grid">
       <div>
-        <div class="stat-v">792</div>
-        <div class="stat-l">Institutional funds &middot; ETFs &amp; SICAVs</div>
-      </div>
-      <div>
-        <div class="stat-v">16</div>
-        <div class="stat-l">Research sources &middot; auto-synthesized</div>
-      </div>
-      <div>
-        <div class="stat-v">19</div>
-        <div class="stat-l">Countries &middot; UCITS-compliant by default</div>
-      </div>
-      <div>
         <div class="stat-v">1,000+</div>
         <div class="stat-l">Monte Carlo paths &middot; per simulation</div>
       </div>
-    </div>
-  </div>
-</section>
-
-<section class="institutions" id="sources">
-  <div class="container">
-    <div class="inst-label">Research synthesized live from</div>
-    <div class="inst-grid">
-      <span class="inst-name">BofA / Merrill Lynch</span>
-      <span class="inst-name">JPMorgan</span>
-      <span class="inst-name">Morgan Stanley</span>
-      <span class="inst-name">Citi</span>
-      <span class="inst-name">Goldman Sachs</span>
-      <span class="inst-name">Julius Baer</span>
-      <span class="inst-name">UBS</span>
-      <span class="inst-name">Vontobel</span>
-      <span class="inst-name">Pictet</span>
-      <span class="inst-name">FactSet</span>
-      <span class="inst-name">Bloomberg</span>
-      <span class="inst-name">Oppenheimer</span>
-      <span class="inst-name">Seeking Alpha</span>
-      <span class="inst-name">BlackRock</span>
-      <span class="inst-name">Eaton Vance</span>
-      <span class="inst-name">Morningstar</span>
+      <div>
+        <div class="stat-v">19</div>
+        <div class="stat-l">Countries &middot; account, tax &amp; inflation aware</div>
+      </div>
+      <div>
+        <div class="stat-v">7</div>
+        <div class="stat-l">Risk profiles &middot; time-horizon calibrated</div>
+      </div>
+      <div>
+        <div class="stat-v">100%</div>
+        <div class="stat-l">Browser-based &middot; nothing leaves your machine</div>
+      </div>
     </div>
   </div>
 </section>
@@ -463,68 +412,68 @@ footer ul li a:hover{color:#fff}
   <div class="container">
     <div style="text-align:center;max-width:760px;margin:0 auto 60px">
       <div class="section-tag">Capabilities</div>
-      <h2 class="section-h" style="margin:0 auto 18px">Built for advisors. Engineered like Bloomberg.</h2>
-      <p class="section-p" style="margin:0 auto">Every feature you'd expect from an institutional desk &mdash; without the platform fees, the consultants, or the procurement cycle.</p>
+      <h2 class="section-h" style="margin:0 auto 18px">The whole engagement, in one tab.</h2>
+      <p class="section-p" style="margin:0 auto">From the first data-capture field to the client-ready PDF &mdash; plan, analysis, proposal, and simulation, with tax and country rules built in. No platform fee, no consultants, no procurement cycle.</p>
     </div>
     <div class="feature-grid">
       <div class="feature">
-        <div class="feature-icon">&#129302;</div>
-        <h3>AI Portfolio Agent</h3>
-        <p>Reads research from 16 institutions, extracts asset-class consensus, picks funds with full quantitative rationale. Powered by our proprietary AI research engine &mdash; deterministic, auditable, and fully transparent.</p>
+        <div class="feature-icon">&#129513;</div>
+        <h3>Financial Plan</h3>
+        <p>Capture the whole household &mdash; two clients, children, income, expenses, assets, liabilities, and calendar-year goals &mdash; then let the plan match where your client actually lives.</p>
         <ul>
-          <li>Sharpe-weighted selection</li>
-          <li>Auto-tilts on net votes</li>
-          <li>Cites every research source</li>
-        </ul>
-      </div>
-      <div class="feature">
-        <div class="feature-icon">&#127757;</div>
-        <h3>Country-aware compliance</h3>
-        <p>Swiss client gets UCITS funds. US client gets 40-Act funds. Singapore client gets local + UCITS. The wrapper rules are built in &mdash; your AI agent can't recommend funds the client can't legally buy.</p>
-        <ul>
-          <li>PRIIPs / KID enforcement</li>
-          <li>Ireland + Luxembourg domicile</li>
-          <li>271 UCITS &middot; 521 US 40-Act</li>
+          <li>Two-client households + children</li>
+          <li>~500 account types across 19 countries</li>
+          <li>Goals as calendar-year targets</li>
         </ul>
       </div>
       <div class="feature">
         <div class="feature-icon">&#128202;</div>
-        <h3>Full fund metrics</h3>
-        <p>Every fund carries Sharpe, &beta;, &mu;, &sigma;, max drawdown, 1y/3y/5y/10y returns, holdings count, AUM, inception, tracking error. The AI uses all 14 metrics &mdash; and so does the position card.</p>
+        <h3>Portfolio Analysis</h3>
+        <p>Drop in a client's current holdings and see the book the way a risk desk does &mdash; concentration, diversification, and a blended risk score, with full metrics on every position.</p>
         <ul>
-          <li>80+ flagships with real 2024 data</li>
-          <li>Class-typical defaults for the rest</li>
-          <li>Risk-adjusted scoring</li>
+          <li>Concentration (HHI) + diversification grade</li>
+          <li>Weighted yield &amp; expense ratio</li>
+          <li>Per-position Sharpe / &beta; / &mu; / &sigma; / max DD</li>
+        </ul>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">&#128220;</div>
+        <h3>Investment Proposal</h3>
+        <p>Draft a proposed allocation and put it head-to-head with the current book. See expected return, volatility, and Sharpe move &mdash; net of the advisory fee &mdash; plus the goal-funding impact of switching.</p>
+        <ul>
+          <li>Current vs. proposed, side by side</li>
+          <li>Advisory-fee &amp; net-return modeling</li>
+          <li>Goal-funding impact of the switch</li>
         </ul>
       </div>
       <div class="feature">
         <div class="feature-icon">&#127922;</div>
         <h3>Monte Carlo simulation</h3>
-        <p>1,000 paths per scenario with Box-Muller log-normal returns, real amortization on loans, configurable percentile bands. Goal probability calculated as calendar-year targets, not "years from now."</p>
+        <p>1,000 log-normal paths (Box-Muller), real loan amortization, and configurable percentile bands. Goal funding as calendar-year probabilities, retirement drawdown, and sustainable spend solved to a 90% success target.</p>
         <ul>
-          <li>7 risk profiles &middot; 4 time horizons</li>
-          <li>Country-aware inflation (19 regions)</li>
-          <li>P10 / P50 / P90 bands</li>
+          <li>P10 / P50 / P90 wealth bands</li>
+          <li>Goal &amp; retirement funding odds</li>
+          <li>Sustainable spend &amp; achievable lifestyle</li>
         </ul>
       </div>
       <div class="feature">
         <div class="feature-icon">&#127963;</div>
         <h3>Tax-aware modeling</h3>
-        <p>Federal + state/canton brackets for US (12 states), Canada (3 provinces), UK, Australia, Germany, Switzerland (3 cantons), Japan, Singapore. ETF preference for high tax-sensitivity flags.</p>
+        <p>Federal + state/canton brackets for the US (12 states), Canada, UK, Australia, Germany, Switzerland (3 cantons), Japan, and Singapore &mdash; applied to income, and optionally to simulated returns.</p>
         <ul>
           <li>Per-bracket marginal rates</li>
           <li>Per-state / canton overrides</li>
-          <li>ETF wrapper preference logic</li>
+          <li>Optional after-tax simulation</li>
         </ul>
       </div>
       <div class="feature">
-        <div class="feature-icon">&#128200;</div>
-        <h3>Live market data</h3>
-        <p>36 market data providers across equities, news, crypto, FX, and macro. Auto-failover chain 18-deep &mdash; if one provider rate-limits, the next 17 kick in. All keys health-checked every 2 minutes.</p>
+        <div class="feature-icon">&#128196;</div>
+        <h3>Client-ready reports</h3>
+        <p>One click turns the whole analysis into a polished, multi-page PDF &mdash; cover, contents, plan, portfolio, proposal, and simulation &mdash; ready to hand to the client. Generated entirely offline.</p>
         <ul>
-          <li>Equities: Finnhub, Polygon, Tiingo, FMP</li>
-          <li>FX: Frankfurter, OXR, CurrencyAPI</li>
-          <li>Macro: FRED, Treasury, NewsAPI</li>
+          <li>Multi-page branded PDF</li>
+          <li>Plan &middot; analysis &middot; proposal &middot; simulation</li>
+          <li>Fully offline, private by default</li>
         </ul>
       </div>
     </div>
@@ -535,41 +484,41 @@ footer ul li a:hover{color:#fff}
   <div class="container">
     <div style="text-align:center;max-width:740px;margin:0 auto">
       <div class="section-tag">How it works</div>
-      <h2 class="section-h" style="margin:0 auto 18px">From client meeting to portfolio in 90 seconds.</h2>
-      <p class="section-p" style="margin:0 auto">No build step. No backend. Open the file, fill the form, get a portfolio with citations.</p>
+      <h2 class="section-h" style="margin:0 auto 18px">From first meeting to documented plan.</h2>
+      <p class="section-p" style="margin:0 auto">No build step. No backend. Open the file, fill the form, and get a stress-tested plan you can hand to the client.</p>
     </div>
     <div class="step-grid">
       <div class="step">
         <div class="step-num">1</div>
-        <h3>Capture the client</h3>
-        <p>Household profile, income, expenses, assets, liabilities, goals &mdash; plus address country so we know what wrapper applies. Two-client households fully supported.</p>
+        <h3>Capture the plan</h3>
+        <p>Enter the household, income, expenses, assets, liabilities, and goals &mdash; plus each client's country, so account types, tax, and inflation all self-adjust.</p>
       </div>
       <div class="step">
         <div class="step-num">2</div>
-        <h3>AI reads the research</h3>
-        <p>The agent extracts asset-class consensus across all 16 institutional sources &mdash; overweight equities, underweight EM debt, gold tailwinds &mdash; and tilts allocation accordingly.</p>
+        <h3>Analyze &amp; propose</h3>
+        <p>Load the current portfolio to see its risk and concentration, then draft a proposed allocation and compare the two &mdash; net of fees, goal by goal.</p>
       </div>
       <div class="step">
         <div class="step-num">3</div>
-        <h3>Get a portfolio with citations</h3>
-        <p>6&ndash;12 positions, each with Sharpe / 5y return / max DD / AUM cited, plus the research source that drove the call. Apply to Investment Proposal in one click.</p>
+        <h3>Simulate &amp; report</h3>
+        <p>Run 1,000 Monte Carlo paths for funding odds, retirement drawdown, and sustainable spend &mdash; then export the whole thing as a client-ready PDF.</p>
       </div>
     </div>
   </div>
 </section>
 
-<section class="compliance" id="compliance">
+<section class="compliance" id="countries">
   <div class="container">
     <div class="compliance-card">
       <div>
-        <div class="section-tag">Regulatory wrapper</div>
-        <h2>Built for cross-border wealth.</h2>
-        <p>The platform encodes the regulatory wrapper rules so you don't have to remember them. When you set a Swiss client's address, the universe drops from 792 funds to 271 UCITS-passportable funds &mdash; automatically.</p>
-        <p>The AI agent literally cannot recommend US 40-Act funds to European retail clients. PRIIPs requires a KID. UCITS funds have one. US funds don't. Done.</p>
+        <div class="section-tag">Country-aware</div>
+        <h2>Country-aware from the first field.</h2>
+        <p>Set a client's country and the whole workbench adapts &mdash; the account types they can hold, the tax brackets that apply, the inflation region for the projection, and which fund wrappers are eligible. A Swiss client's universe narrows to UCITS-passportable funds automatically; a US client gets 40-Act.</p>
+        <p>No more remembering which wrapper applies where. PRIIPs requires a KID &mdash; UCITS funds have one, US funds don't &mdash; so European retail clients simply never see ineligible funds.</p>
         <ul>
-          <li><strong>US / Canada:</strong> US 40-Act ETFs and mutual funds (521 funds)</li>
-          <li><strong>UK / EU / CH:</strong> Ireland + Luxembourg UCITS (253 funds)</li>
-          <li><strong>HK / SG:</strong> UCITS + local listings (271 funds)</li>
+          <li><strong>US / Canada:</strong> 40-Act funds &middot; IRA / 401(k) / RRSP account types</li>
+          <li><strong>UK / EU / CH:</strong> UCITS funds &middot; ISA / PEA / pillar 3a wrappers</li>
+          <li><strong>HK / SG:</strong> UCITS + local listings &middot; CPF / MPF</li>
           <li><strong>Asia / MENA / LatAm:</strong> UCITS via offshore wrappers</li>
         </ul>
         <div class="country-flags">
@@ -594,12 +543,12 @@ footer ul li a:hover{color:#fff}
         </div>
       </div>
       <div class="compliance-visual">
-        <div style="font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--ink3);font-weight:700;margin-bottom:14px">Wrapper applied per country</div>
+        <div style="font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--ink3);font-weight:700;margin-bottom:14px">Rules applied per country</div>
         <div class="cv-row">
           <div class="cv-flag">&#127464;&#127469;</div>
           <div class="cv-info">
             <div class="cv-country">Switzerland</div>
-            <div class="cv-rule">PRIIPs &middot; UCITS required</div>
+            <div class="cv-rule">PRIIPs &middot; UCITS &middot; pillar 3a</div>
           </div>
           <div class="cv-badge cv-ucits">UCITS</div>
         </div>
@@ -607,7 +556,7 @@ footer ul li a:hover{color:#fff}
           <div class="cv-flag">&#127482;&#127480;</div>
           <div class="cv-info">
             <div class="cv-country">United States</div>
-            <div class="cv-rule">SEC &middot; 40-Act registered</div>
+            <div class="cv-rule">SEC &middot; 40-Act &middot; 401(k) / IRA</div>
           </div>
           <div class="cv-badge cv-us">40-Act</div>
         </div>
@@ -615,7 +564,7 @@ footer ul li a:hover{color:#fff}
           <div class="cv-flag">&#127468;&#127463;</div>
           <div class="cv-info">
             <div class="cv-country">United Kingdom</div>
-            <div class="cv-rule">FCA &middot; UCITS or NURS</div>
+            <div class="cv-rule">FCA &middot; UCITS &middot; ISA / SIPP</div>
           </div>
           <div class="cv-badge cv-ucits">UCITS</div>
         </div>
@@ -623,7 +572,7 @@ footer ul li a:hover{color:#fff}
           <div class="cv-flag">&#127480;&#127468;</div>
           <div class="cv-info">
             <div class="cv-country">Singapore</div>
-            <div class="cv-rule">MAS &middot; UCITS + SGX local</div>
+            <div class="cv-rule">MAS &middot; UCITS + SGX &middot; CPF</div>
           </div>
           <div class="cv-badge cv-ucits">UCITS+SG</div>
         </div>
@@ -644,10 +593,10 @@ footer ul li a:hover{color:#fff}
   <div class="container">
     <div class="showcase-grid">
       <div>
-        <div class="section-tag">Per-fund metrics</div>
-        <h2 class="section-h">Every position. Twelve metrics. One rationale.</h2>
-        <p class="section-p">The AI agent doesn't just pick tickers &mdash; it picks them for reasons, and shows you all of them. Sharpe ratio. Five-year return. Max drawdown. AUM. Holdings count. The research source that drove the call.</p>
-        <p style="font-size:14px;color:var(--ink3);line-height:1.7;max-width:540px">Every rationale cites at least one quantitative metric and at least one research source. Fully deterministic &mdash; the same inputs always produce the same output. No black boxes.</p>
+        <div class="section-tag">Portfolio analysis</div>
+        <h2 class="section-h">Every position. Fully X-rayed.</h2>
+        <p class="section-p">Load a client's book and each holding is scored the way an institutional risk desk would &mdash; Sharpe, &beta;, &mu;, &sigma;, max drawdown, expense ratio, yield, 5y / 10y returns, AUM, and holdings count &mdash; rolled up into concentration, diversification, and a blended risk score for the whole portfolio.</p>
+        <p style="font-size:14px;color:var(--ink3);line-height:1.7;max-width:540px">Nothing is a black box: every number is on the card, and the same inputs always produce the same output.</p>
       </div>
       <div class="metric-card">
         <div class="mc-name">
@@ -670,7 +619,7 @@ footer ul li a:hover{color:#fff}
           <div><label>Inception</label><b>2010</b></div>
         </div>
         <div class="mc-why">
-          <strong>&#128161; Why selected:</strong> 14/16 providers overweight US large-cap equity &middot; CSPX cited by BlackRock, Morgan Stanley &middot; Sharpe 0.40 &middot; 10y 12.4% &middot; ER 0.07% &middot; &sigma; 15.0% &middot; 503 holdings &middot; AUM $90B &middot; UCITS-passportable (IE-domiciled) &mdash; eligible for CH resident under PRIIPs
+          <strong>&#128202; Position analysis:</strong> core US large-cap sleeve &middot; 28% weight &middot; Sharpe 0.40 &middot; 10y 12.4% &middot; ER 0.07% &middot; &sigma; 15.0% &middot; max DD &minus;24% &middot; 503 holdings &middot; AUM $90B &middot; UCITS-passportable (IE-domiciled) &mdash; eligible for a Swiss resident under PRIIPs.
         </div>
       </div>
     </div>
@@ -680,8 +629,8 @@ footer ul li a:hover{color:#fff}
 <section class="cta-strip">
   <div class="container">
     <div>
-      <h2>Stop building portfolios in Excel.</h2>
-      <p>Open the app. Capture a client. Get an evidence-backed portfolio in 90 seconds. No signup. No backend. No procurement cycle.</p>
+      <h2>Stop building plans in Excel.</h2>
+      <p>Open the app. Capture a client. Get a stress-tested financial plan and a client-ready report in minutes. No signup. No backend. No procurement cycle.</p>
       <div style="display:flex;gap:14px;justify-content:center;flex-wrap:wrap">
         <a href="wealth-analyzer-standalone.html" class="btn btn-primary btn-xl">Launch the app &rarr;</a>
         <a href="admin-standalone.html" class="btn btn-secondary btn-xl">Open admin console</a>
@@ -696,7 +645,7 @@ footer ul li a:hover{color:#fff}
     <div class="footer-grid">
       <div class="footer-brand">
         <h4>Wealth Analyzer by Private Wealth Intelligence</h4>
-        <p>Institutional-grade portfolio intelligence in a single browser tab. Built for advisors who want Bloomberg-quality output without the Bloomberg invoice.</p>
+        <p>The complete wealth-planning workbench in a single browser tab &mdash; plan, analyze, propose, and simulate, with client-ready reporting. Private by default.</p>
       </div>
       <div>
         <h5>Product</h5>
@@ -704,25 +653,25 @@ footer ul li a:hover{color:#fff}
           <li><a href="wealth-analyzer-standalone.html">Main app</a></li>
           <li><a href="admin-standalone.html">Admin console</a></li>
           <li><a href="#features">Features</a></li>
-          <li><a href="#compliance">Compliance</a></li>
+          <li><a href="#countries">Countries</a></li>
         </ul>
       </div>
       <div>
-        <h5>Universe</h5>
+        <h5>Modules</h5>
         <ul>
-          <li>521 US 40-Act funds</li>
-          <li>253 UCITS funds</li>
-          <li>18 local listings</li>
-          <li>12 crypto ETPs</li>
+          <li>Financial Plan</li>
+          <li>Portfolio Analysis</li>
+          <li>Investment Proposal</li>
+          <li>Monte Carlo simulation</li>
         </ul>
       </div>
       <div>
         <h5>Coverage</h5>
         <ul>
           <li>19 client countries</li>
-          <li>16 research sources</li>
-          <li>36 market data feeds</li>
+          <li>~500 account types</li>
           <li>7 risk profiles</li>
+          <li>Tax for 8 jurisdictions</li>
         </ul>
       </div>
     </div>
