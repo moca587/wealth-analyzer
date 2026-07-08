@@ -3654,7 +3654,7 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
 // ═══════════════════════════════════════════════════════════
 // VERSION — updated by build-standalone.pl on each build
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260708-0955";
+const APP_VERSION = "20260708-1010";
 
 // ═══════════════════════════════════════════════════════════
 // DATA
@@ -18146,7 +18146,9 @@ function drawFanChart(){
         if(haveMC){ w = percentileAt(lastSimPaths, Math.min(acc, lastSimYrs), 100-cP); }
         else { const r=gbReturnAtConfidence(port.geoMu,port.sigma,Math.max(1,acc),cP);
           w=investable; for(let i=0;i<acc;i++) w=w*(1+r)+savings; }
-        return Math.max(0, _solveSustainableSpendMC(Math.max(0,w), inret, P.mu, P.sig, inflation, 90, 100)); };
+        const pens=_retirementPensionSchedule(rA, inret, inflation);
+        const spendNom=_solveSustainableSpendMC(Math.max(0,w), inret, P.mu, P.sig, inflation, 90, 100, pens);
+        return Math.max(0, spendNom/Math.pow(1+inflation, acc)); };   // nominal-at-retirement → today's money, pension-inclusive
       const startAge=a1, endAge=Math.max(retAge,a1+1);   // start at current age, never a past retirement age
       const span=endAge-startAge, stepA=span>40?Math.ceil(span/40):1, ages=[];
       for(let a=startAge;a<=endAge;a+=stepA) ages.push(a);
@@ -18168,7 +18170,7 @@ function drawFanChart(){
         doc.setFillColor.apply(doc,ac); doc.rect(xc-bw/2,yT,bw,Math.max(0.4,(cy0+ch)-yT),"F"); });
       y=cy0+ch+13;
       doc.setFontSize(7); doc.setTextColor(70);
-      doc.setFillColor.apply(doc,ac); doc.rect(cx,y-2.6,4,3.4,"F"); doc.text("Expected (50%) sustainable annual spending by retirement age",cx+6,y);
+      doc.setFillColor.apply(doc,ac); doc.rect(cx,y-2.6,4,3.4,"F"); doc.text("Expected (50%) sustainable annual spending by retirement age (today's $)",cx+6,y);
       y+=7; doc.setTextColor(40); doc.setFont("helvetica","normal"); doc.setFontSize(fsz);
     }
 
@@ -19052,12 +19054,17 @@ function drawFanChart(){
         try{
           const port2 = gbPortfolioRisk(gbAssetClassWeights());
           const P2 = (typeof getActiveSimulationParams==="function")?getActiveSimulationParams():{mu:port2.geoMu,sig:port2.sigma};
-          const yrsToRet2 = Math.max(1, num("retAge",65) - a1age);
+          const inf2 = num("inf",3.8)/100;
+          const retAge2 = num("retAge",65);
+          const yrsToRet2 = Math.max(1, retAge2 - a1age);
+          const yearsInRet2 = Math.max(1, 90 - retAge2);
           const w2 = (Array.isArray(lastSimPaths)&&lastSimPaths.length)
             ? percentileAt(lastSimPaths, Math.min(yrsToRet2, lastSimYrs), 50)
             : investableAssetsValue();
-          const spend2 = _solveSustainableSpendMC(Math.max(0,w2), Math.max(1,90-num("retAge",65)), P2.mu, P2.sig, num("inf",3.8)/100, 90);
-          bullet("Based on the information in this analysis, a retirement lifestyle of approximately "+fmt(spend2)+" per year may be attainable.");
+          const pens2 = _retirementPensionSchedule(retAge2, yearsInRet2, inf2);
+          const spend2nom = _solveSustainableSpendMC(Math.max(0,w2), yearsInRet2, P2.mu, P2.sig, inf2, 90, 150, pens2);
+          const spend2 = spend2nom / Math.pow(1+inf2, yrsToRet2);   // nominal-at-retirement → today's money
+          bullet("Based on the information in this analysis, a retirement lifestyle of approximately "+fmt(spend2)+" per year (in today's money, including projected pension income) may be attainable.");
         }catch(_){ }
       },
       // ─── ABOUT THE CLIENT (custom text — user-provided) ──
@@ -19683,7 +19690,7 @@ function drawFanChart(){
         if(val("rptIncLifestyle") === "no") return;
         newPage();
         sectionH2("Potentially Achievable Lifestyle");
-        para("This estimates the sustainable inflation-adjusted annual spending your portfolio could support throughout retirement (to age 90), at three confidence levels. Higher confidence assumes a more conservative return; lower confidence assumes more favourable markets. Each bar below shows the expected (50%) achievable spending if you retired at that age.");
+        para("This estimates the sustainable annual spending you could support throughout retirement (to age 90), at three confidence levels — shown in today's money and inclusive of your projected pension / state-benefit income (the portfolio funds only spending above what pensions cover). Higher confidence assumes a more conservative return; lower confidence assumes more favourable markets. Each bar below shows the expected (50%) achievable spending if you retired at that age.");
         // single-colour bar chart — mirrors the app's achievable-lifestyle chart
         drawLifestyleCandles();
         const weights = gbAssetClassWeights();
@@ -19705,6 +19712,7 @@ function drawFanChart(){
           {p:50, lbl:"Expected (50% confidence)"},
           {p:30, lbl:"Optimistic (30% confidence)"}
         ];
+        const pens = _retirementPensionSchedule(retAge, yearsInRet, inflation);
         const rows = confs.map(c=>{
           let wealth;
           if(haveMC){
@@ -19714,13 +19722,14 @@ function drawFanChart(){
             wealth = investable;
             for(let yI=0; yI<yrsToRet; yI++){ wealth = wealth*(1+r) + annualSavings; }
           }
-          const spend = _solveSustainableSpendMC(Math.max(0,wealth), yearsInRet, P.mu, P.sig, inflation, 90);
+          const spendNom = _solveSustainableSpendMC(Math.max(0,wealth), yearsInRet, P.mu, P.sig, inflation, 90, 150, pens);
+          const spend = spendNom / Math.pow(1+inflation, yrsToRet);   // nominal-at-retirement → today's money
           const basis = haveMC ? "Monte Carlo · "+(100-c.p)+"th pct"
                                : (gbReturnAtConfidence(port.geoMu, port.sigma, yrsToRet, c.p)*100).toFixed(1)+"% / yr";
           return [c.lbl, basis, fmt(Math.max(0,wealth)), fmt(Math.max(0,spend))+" / yr"];
         });
-        tbl(["Scenario","Basis","Wealth at retirement","Sustainable annual spend"], rows);
-        para("Sustainable spend targets a 90% probability of the money lasting to age 90 (Monte-Carlo drawdown at the portfolio's expected return and volatility) — the same solver the app's lifestyle panel uses (current age "+a1+" → retirement "+retAge+" → age 90).", [120,120,120]);
+        tbl(["Scenario","Basis","Wealth at retirement","Sustainable spend (today's $)"], rows);
+        para("Sustainable spend is shown in today's money and includes your projected pension / state-benefit income — the portfolio only funds spending above what pensions cover. It targets a 90% probability of the money lasting to age 90 (Monte-Carlo drawdown at the portfolio's expected return and volatility) — the same solver the app's lifestyle panel uses (current age "+a1+" → retirement "+retAge+" → age 90). Wealth at retirement is shown in future (at-retirement) dollars.", [120,120,120]);
       },
       // ─── WEALTH ALLOCATION FRAMEWORK (Personal / Market / Aspirational) ──
       wealthframework: () => {
