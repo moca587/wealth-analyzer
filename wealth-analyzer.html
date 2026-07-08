@@ -3654,7 +3654,7 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
 // ═══════════════════════════════════════════════════════════
 // VERSION — updated by build-standalone.pl on each build
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260708-0924";
+const APP_VERSION = "20260708-0955";
 
 // ═══════════════════════════════════════════════════════════
 // DATA
@@ -6447,7 +6447,9 @@ function renderSimSummary(){
   const gapEl = document.getElementById("rn-gap");
   const gapTxt = gapEl ? (gapEl.textContent||"").trim() : "—";
   const gapGood = !!(gapEl && /rn-gap-pos/.test(gapEl.className));
-  // Sustainable annual spend (expected / 50%) — same MC solver as the lifestyle panel
+  // Sustainable annual spend (expected / 50%) — same MC solver as the lifestyle
+  // panel. Pension income is folded into the survival model, and the result is
+  // deflated to today's money so it reads on the same basis as Projected wealth.
   let spend = "—";
   try{
     const a1 = (typeof ageFromDOB==="function" ? ageFromDOB(val("c1d")) : 0) || 40;
@@ -6455,7 +6457,9 @@ function renderSimSummary(){
     const yrsToRet = Math.max(1, retAge - a1), yearsInRet = Math.max(1, 90 - retAge);
     const inf = num("inf",3.8)/100, P = getActiveSimulationParams();
     const w = percentileAt(lastSimPaths, Math.min(yrsToRet, lastSimYrs), 50);
-    spend = fmtMoney(_solveSustainableSpendMC(Math.max(0,w), yearsInRet, P.mu, P.sig, inf, 90));
+    const pens = _retirementPensionSchedule(retAge, yearsInRet, inf);
+    const spendNom = _solveSustainableSpendMC(Math.max(0,w), yearsInRet, P.mu, P.sig, inf, 90, 150, pens);
+    spend = fmtMoney(spendNom / Math.pow(1+inf, yrsToRet));   // nominal-at-retirement → today's money
   }catch(_){}
   const pn = parseFloat(prob);
   const probCls = isFinite(pn) ? (pn>=80?"good":(pn>=50?"warn":"bad")) : "";
@@ -6464,7 +6468,7 @@ function renderSimSummary(){
   el.innerHTML =
     card("Projected wealth", med, "median · today's money", "", "<strong>Projected wealth</strong> — the median (50th percentile) simulated net worth at the end of your simulation horizon, shown in today's money (deflated for inflation). Half of simulated paths end above this figure, half below.") +
     card("Goal success", prob, "across your goals", probCls, "<strong>Goal success</strong> — the average probability, across all your goals, of being fully funded by its target year, read from the same Monte Carlo paths used throughout the Simulation tab.") +
-    card("Sustainable spend", spend, "per year in retirement", "", "<strong>Sustainable spend</strong> — the highest annual retirement spending solved to have a 90% chance of lasting to age 90, based on the median (50th percentile) simulated wealth at your retirement age.") +
+    card("Sustainable spend", spend, "per year · today's money", "", "<strong>Sustainable spend</strong> — the highest annual retirement spending, in today's purchasing power, with a 90% chance of lasting to age 90, from the median (50th percentile) simulated wealth at your retirement age. Includes your projected pension / state-benefit income — the portfolio only has to cover spending above what pensions provide.") +
     card("Retirement funding", gapTxt, gapGood?"ahead of target":"vs. present-value target", gapCls, "<strong>Retirement funding</strong> — your current net worth compared to the present-value cost of funding your planned retirement spending (an actuarial annuity calculation, discounted at 6.8%). Positive means you're ahead of target; negative means additional savings are needed.");
   el.style.display = "grid";
 }
@@ -14284,16 +14288,42 @@ function _drawdownSeed(){
 
 // Simulate N retirement paths starting from `startWealth`, withdrawing `spend`/yr
 // (inflation-adjusted), and return the fraction of paths that survive to end of horizon.
-function _survivalProb(startWealth, spend, yearsInRet, mu, sig, inf, sims=300){
+// Nominal pension / state-benefit income for each year of retirement, read from
+// the pension inputs (client 1 + optional client 2). Uses the same calcPension()
+// the retirement-drawdown model uses, so the two stay consistent. Values are
+// nominal at the retirement date, matching the survival model's spend growth.
+function _retirementPensionSchedule(retireAge, yearsInRet, inf){
+  const out = new Array(Math.max(0, yearsInRet)).fill(0);
+  if(typeof calcPension !== "function") return out;
+  const a1 = (typeof ageFromDOB==="function" ? ageFromDOB(val("c1d")) : 0) || 40;
+  const penSrc = val("penSrc")||"auto", penAnn = num("penAnnual",0), penStart = num("penStartAge",67), penCola = val("penCola")||"full";
+  const showC2 = !!($("c2card") && $("c2card").style.display!=="none");
+  const penSrc2 = showC2 ? (val("penSrc2")||"auto") : "none";
+  const penAnn2 = penSrc2==="none" ? 0 : num("penAnnual2",0), penStart2 = num("penStartAge2",67), penCola2 = val("penCola2")||"full";
+  const c2Age = (typeof ageFromDOB==="function" ? ageFromDOB(val("c2d")) : null);
+  const c2AgeAtRet = (c2Age==null ? retireAge : c2Age + (retireAge - a1));
+  for(let y=0; y<yearsInRet; y++){
+    let pen = calcPension(penSrc, penAnn, penStart, penCola, retireAge + y, inf);
+    if(showC2) pen += calcPension(penSrc2, penAnn2, penStart2, penCola2, c2AgeAtRet + y, inf);
+    out[y] = pen;
+  }
+  return out;
+}
+// Probability the portfolio lasts all of retirement at the given first-year
+// spend. `spend` and the pension schedule are nominal at the retirement date;
+// the portfolio only has to fund spending above pension income each year.
+function _survivalProb(startWealth, spend, yearsInRet, mu, sig, inf, sims=300, pensionByYear=null){
   let successes = 0;
   for(let s=0; s<sims; s++){
     let port = startWealth;
     let depleted = false;
 
     for(let y=0; y<yearsInRet; y++){
-      const wd = spend * Math.pow(1+inf, y);
+      const gross = spend * Math.pow(1+inf, y);
+      const pen = pensionByYear ? (pensionByYear[y]||0) : 0;
+      const wd = Math.max(0, gross - pen);
       port -= wd;
-      if(port <= 0){ depleted = true; break; }
+      if(port <= 0 && wd > 0){ depleted = true; break; }
       const r = (mu - 0.5*sig*sig) + sig*boxMuller();
       port = port * Math.exp(r);
     }
@@ -14303,14 +14333,17 @@ function _survivalProb(startWealth, spend, yearsInRet, mu, sig, inf, sims=300){
 }
 
 // Binary-search the spend level that hits `targetSuccessPct` survival probability.
-function _solveSustainableSpendMC(startWealth, yearsInRet, mu, sig, inf, targetSuccessPct, sims=150){
-  if(startWealth <= 0) return 0;
-  let lo = 0, hi = startWealth * 0.15;
+function _solveSustainableSpendMC(startWealth, yearsInRet, mu, sig, inf, targetSuccessPct, sims=150, pensionByYear=null){
+  const pen0 = pensionByYear ? (pensionByYear[0]||0) : 0;
+  if(startWealth <= 0 && pen0 <= 0) return 0;
+  // Upper bound includes the first-year pension: total sustainable spend can
+  // exceed what the portfolio alone provides because pensions cover part of it.
+  let lo = 0, hi = startWealth * 0.15 + pen0;
   // 12 bisection steps resolve to hi/4096 (≈0.004% of wealth) — far inside the
   // Monte-Carlo noise band of the survival estimate; 20 steps was pure cost.
   for(let iter=0; iter<12; iter++){
     const mid = (lo+hi)/2;
-    const p = _survivalProb(startWealth, mid, yearsInRet, mu, sig, inf, sims);
+    const p = _survivalProb(startWealth, mid, yearsInRet, mu, sig, inf, sims, pensionByYear);
     if(p >= targetSuccessPct/100) lo = mid; else hi = mid;
   }
   return lo;
@@ -14725,21 +14758,21 @@ function renderSimLifestyle(){
   //   if(Math.abs(realRate) < 1e-6) spend = wealth/yearsInRet;
   //   else spend = wealth*realRate/(1 - Math.pow(1+realRate,-yearsInRet));
   const P = getActiveSimulationParams();
+  const pens = _retirementPensionSchedule(retAge, yearsInRet, inflation);
   confs.forEach(cf => {
-  // const wealth = (lastSimPaths && lastSimPaths.length) ? percentileAt(lastSimPaths, yrsToRet, cf.p) : investable;
   const wealth = (lastSimPaths && lastSimPaths.length) ? percentileAt(lastSimPaths, yrsToRet, 100 - cf.p) : investable;
-  const spend = _solveSustainableSpendMC(wealth, yearsInRet, P.mu, P.sig, inflation, 90); // fixed 90% survival target
-  const r = P.mu; // for display only
+  const spendNom = _solveSustainableSpendMC(wealth, yearsInRet, P.mu, P.sig, inflation, 90, 150, pens); // 90% survival, pension-inclusive
+  const spend = spendNom / Math.pow(1+inflation, yrsToRet); // nominal-at-retirement → today's money
 
     h += '<div class="conf-tile" style="border-top:3px solid '+cf.c+'">';
     h += '<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);margin-bottom:8px">'+cf.lbl+'<span class="info-ic">i<span class="info-pop">'+cf.explain+'</span></span></div>';
     h += '<div style="font-size:28px;font-weight:800;color:'+cf.c+';letter-spacing:-.03em">'+fmtMoney(Math.max(0,spend))+'</div>';
-    h += '<div style="font-size:11px;color:var(--text3);margin-top:4px">per year, to age 90</div>';
-    // h += '<div style="font-size:10.5px;color:var(--text3);margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">Return '+(r*100).toFixed(1)+'%/yr · wealth at retirement '+fmtMoney(wealth)+'</div>';
+    h += '<div style="font-size:11px;color:var(--text3);margin-top:4px">per year, to age 90 · today\'s money</div>';
     h += '<div style="font-size:10.5px;color:var(--text3);margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">90% survival to 90 · wealth at retirement '+fmtMoney(wealth)+'</div>';
     h += '</div>';
   });
   h += '</div>';
+  h += '<div style="font-size:10.5px;color:var(--text3);margin-top:10px;line-height:1.5">Figures are in today\'s money and include projected pension / state-benefit income — the portfolio only funds spending above what pensions cover.</div>';
   host.innerHTML = h;
   try{ renderSimLifestyleCandles(); }catch(e){ console.warn('renderSimLifestyleCandles:', e); }
 }
@@ -14934,7 +14967,9 @@ function renderSimLifestyleCandles(){
     const wealth = (lastSimPaths && lastSimPaths.length)
       ? percentileAt(lastSimPaths, Math.min(yrsAccum, lastSimYrs), 100 - confP)
       : investable;
-    return _solveSustainableSpendMC(wealth, yearsInRet, P.mu, P.sig, inflation, 90, 100);
+    const pens = _retirementPensionSchedule(retireAge, yearsInRet, inflation);
+    const spendNom = _solveSustainableSpendMC(wealth, yearsInRet, P.mu, P.sig, inflation, 90, 100, pens);
+    return spendNom / Math.pow(1+inflation, yrsAccum); // nominal-at-retirement → today's money
   };
 
   // one bar per retirement age (cap to ~40 for readability)
@@ -17055,7 +17090,7 @@ function gbRenderCMA(weights, port){
 // Order follows the institutional sample deck: Key Findings → Goal Funding →
 // profile/details → Net Worth Details → WAF overview → Risk Categories →
 // Current Status → IPS/Portfolio → Total Portfolio → Efficiency → Performance → …
-const RPT_DEFAULT_ORDER = ["exec","goalfunding","about","hh","inc","equity","assets","insurance","goals","strategies","wealthframework","riskcategories","riskstatus","ips","port","totalportfolio","efficiency","performance","factsheets","sim","fund","lifestyle","potentialwealth","rmd","taxbuckets","roth","estate","cf","educharts","cma","method","glossary","disc"];
+const RPT_DEFAULT_ORDER = ["exec","about","hh","inc","equity","assets","insurance","goals","strategies","ips","port","totalportfolio","efficiency","performance","factsheets","wealthframework","riskcategories","riskstatus","sim","fund","goalfunding","lifestyle","potentialwealth","cf","rmd","taxbuckets","roth","estate","educharts","cma","method","glossary","disc"];
 const RPT_SECTION_LABELS = {
   exec:            "Executive Summary: Key Findings",
   about:           "About the Client (custom)",
@@ -17842,7 +17877,7 @@ async function generatePDFReport(mode, previewWin){
       tbl(["Item","Value"],rows,{columnStyles:{0:{fontStyle:"bold",cellWidth:CW*0.45}}});
     }
 
-    // ── KPI stat-grid — bordered N-up cards with a big serif value (redesign) ──
+    // ── KPI stat-grid — bordered N-up cards with a big value (redesign) ──
     //   cells: [{label, value, sub, subColor}]
     function kpiGrid(cells, opts){
       opts = opts || {};
@@ -17864,7 +17899,7 @@ async function generatePDFReport(mode, previewWin){
         doc.setFillColor(...ac); doc.rect(x, yy, cardW, 1.1, "F");   // top accent strip
         doc.setFont("helvetica","bold"); doc.setFontSize(6.6); doc.setTextColor(120,130,145);
         doc.text(String(c.label||"").toUpperCase(), x+3.5, yy+6.4, {charSpace:0.35});
-        doc.setFont("times","bold"); doc.setFontSize(opts.valSize||14); doc.setTextColor(28,38,54);
+        doc.setFont("helvetica","bold"); doc.setFontSize(opts.valSize||14); doc.setTextColor(28,38,54);
         doc.text(String(c.value==null?"—":c.value), x+3.5, yy+14.4);
         if(c.sub){ doc.setFont("helvetica","normal"); doc.setFontSize(6.8);
           doc.setTextColor.apply(doc, c.subColor||[130,138,150]); doc.text(String(c.sub), x+3.5, yy+19.2); }
@@ -17894,9 +17929,9 @@ async function generatePDFReport(mode, previewWin){
         doc.setDrawColor.apply(doc, accent); doc.setLineWidth(0.5); doc.line(x+4, yy+7.5, x+10, yy+7.5);
         doc.setFont("helvetica","bold"); doc.setFontSize(6.8); doc.setTextColor.apply(doc, accent);
         doc.text(String(c.name||"").toUpperCase(), x+12, yy+9, {charSpace:0.4});
-        doc.setFont("times","italic"); doc.setFontSize(10); doc.setTextColor(70,80,95);
+        doc.setFont("helvetica","italic"); doc.setFontSize(10); doc.setTextColor(70,80,95);
         doc.text(String(c.prob||""), x+4, yy+17);
-        doc.setFont("times","bold"); doc.setFontSize(18); doc.setTextColor(25,35,50);
+        doc.setFont("helvetica","bold"); doc.setFontSize(18); doc.setTextColor(25,35,50);
         doc.text(String(c.value||"—"), x+4, yy+27);
         if(c.delta){ doc.setFont("helvetica","normal"); doc.setFontSize(7.4);
           doc.setTextColor.apply(doc, c.deltaColor||[27,104,65]); doc.text(String(c.delta), x+4, yy+32.4); }
@@ -17914,7 +17949,7 @@ async function generatePDFReport(mode, previewWin){
       drawWedge(cx, cyc, R, -Math.PI/2, -Math.PI/2 + Math.PI*2, [230,234,240]);      // track
       if(frac>0.0001) drawWedge(cx, cyc, R, -Math.PI/2, -Math.PI/2 + Math.PI*2*frac, color); // value arc
       doc.setFillColor(255,255,255); doc.circle(cx, cyc, R*0.64, "F");                // hole
-      doc.setFont("times","bold"); doc.setFontSize(R*0.62); doc.setTextColor.apply(doc, color);
+      doc.setFont("helvetica","bold"); doc.setFontSize(R*0.62); doc.setTextColor.apply(doc, color);
       doc.text(Math.round(pct||0)+"%", cx, cyc+R*0.14, {align:"center"});
       if(centerSub){ doc.setFont("helvetica","bold"); doc.setFontSize(5.6); doc.setTextColor(120,128,140);
         doc.text(String(centerSub).toUpperCase(), cx, cyc+R*0.42, {align:"center", charSpace:0.4}); }
@@ -18463,7 +18498,7 @@ function drawFanChart(){
     } else {
       const s=11;
       doc.setDrawColor(...BLUE_SOFT); doc.setLineWidth(0.5); doc.roundedRect(CM,16,s,s,1.6,1.6,"S");
-      doc.setFont("times","italic"); doc.setFontSize(13); doc.setTextColor(...BLUE_SOFT);
+      doc.setFont("helvetica","italic"); doc.setFontSize(13); doc.setTextColor(...BLUE_SOFT);
       doc.text("P", CM+s/2, 16+s/2+2.2, {align:"center"});
       _brandTextX = CM + s + 5;
     }
@@ -18485,7 +18520,7 @@ function drawFanChart(){
     doc.text(_badge, CM+6, cy0, {charSpace:1.2});
 
     // 4) Hero title — large serif, paper-white, with the final word in soft blue
-    doc.setFont("times","bold"); doc.setTextColor(...PAPER);
+    doc.setFont("helvetica","bold"); doc.setTextColor(...PAPER);
     const heroSize = rTitle.length>26 ? 34 : 44;
     doc.setFontSize(heroSize);
     const heroLines = doc.splitTextToSize(rTitle, CW);
@@ -18511,7 +18546,7 @@ function drawFanChart(){
 
     // 5) Accent rule + tagline
     doc.setDrawColor(...BLUE_SOFT); doc.setLineWidth(0.6); doc.line(CM, hy+2, CM+26, hy+2);
-    doc.setFont("times","italic"); doc.setFontSize(12); doc.setTextColor(...COVER_WARM);
+    doc.setFont("helvetica","italic"); doc.setFontSize(12); doc.setTextColor(...COVER_WARM);
     const tagline = (rSub && rSub.length>=40) ? rSub
       : "A Monte Carlo projection of your household's position, portfolio, and long-term goals.";
     doc.splitTextToSize(tagline, CW*0.62).forEach((l,i)=>{ doc.text(l, CM, hy+11+i*5.6); });
@@ -18520,7 +18555,7 @@ function drawFanChart(){
     let py = ph - 44;
     doc.setFont("helvetica","normal"); doc.setFontSize(7.5); doc.setTextColor(...COVER_MUTED);
     doc.text("PREPARED FOR", CM, py, {charSpace:1});
-    doc.setFont("times","normal"); doc.setFontSize(17); doc.setTextColor(...PAPER);
+    doc.setFont("helvetica","normal"); doc.setFontSize(17); doc.setTextColor(...PAPER);
     doc.text(rFor||"—", CM, py+8);
 
     // 7) Bottom meta row — Date · Reference · Confidential (right-aligned)
@@ -18529,7 +18564,7 @@ function drawFanChart(){
     const metaCell=(label,value,x,align)=>{
       doc.setFont("helvetica","normal"); doc.setFontSize(6.8); doc.setTextColor(...COVER_MUTED);
       doc.text(label, x, metaY-2.5, {charSpace:0.8, align});
-      doc.setFont("times","italic"); doc.setFontSize(10.5); doc.setTextColor(...BLUE_SOFT);
+      doc.setFont("helvetica","italic"); doc.setFontSize(10.5); doc.setTextColor(...BLUE_SOFT);
       doc.text(value, x, metaY+2.5, {align});
     };
     metaCell("DATE", rptDateStr, CM, "left");
@@ -18606,7 +18641,7 @@ function drawFanChart(){
     currentSectionTitle = "Contents";
     newPage();
     // Big serif "Contents" heading with an accent underline
-    doc.setFont("times","bold"); doc.setFontSize(26); doc.setTextColor(...ac);
+    doc.setFont("helvetica","bold"); doc.setFontSize(26); doc.setTextColor(...ac);
     doc.text("Contents", M, y+6);
     doc.setDrawColor(...ac); doc.setLineWidth(0.5); doc.line(M, y+10, M+30, y+10);
     doc.setFont("helvetica","normal"); doc.setFontSize(9); doc.setTextColor(120,128,140);
@@ -18632,7 +18667,7 @@ function drawFanChart(){
         const xCol = M + col * (colW + colGap);
         const yRow = tocStartY + row * rowH;
         // number (serif italic, accent)
-        doc.setFont("times","italic"); doc.setFontSize(11); doc.setTextColor(...ac);
+        doc.setFont("helvetica","italic"); doc.setFontSize(11); doc.setTextColor(...ac);
         doc.text(String(i+1).padStart(2,"0"), xCol, yRow+2);
         // title
         doc.setFont("helvetica","normal"); doc.setFontSize(9.5); doc.setTextColor(45,52,64);
@@ -19243,7 +19278,7 @@ function drawFanChart(){
         if(val("rptIncIPS") === "no") return;
         let d; try{ d = computeIPS(); }catch(e){ return; }
         const RP = k => RISK_PROFILES[k]?.label || k;
-        function sub(t){ checkY(11); doc.setFont("times","bold"); doc.setFontSize(fsz+1.5); doc.setTextColor(...ac); doc.text(t, M, y); y+=4.8; doc.setFont("helvetica","normal"); doc.setTextColor(40); doc.setFontSize(fsz); }
+        function sub(t){ checkY(11); doc.setFont("helvetica","bold"); doc.setFontSize(fsz+1.5); doc.setTextColor(...ac); doc.text(t, M, y); y+=4.8; doc.setFont("helvetica","normal"); doc.setTextColor(40); doc.setFontSize(fsz); }
         newPage();                         // formal document begins on its own page
         sectionH2("Investment Policy Statement");
         para('This Investment Policy Statement ("IPS") establishes the objectives, constraints, strategic asset allocation and governance policies agreed for the management of the household portfolio. It is a working framework — not a contract — and grants no discretionary authority.');
@@ -20146,9 +20181,9 @@ function drawFanChart(){
         charts.forEach(c => {
           newPage();
           // Title (serif) + subtitle + accent rule — institutional graph slide
-          doc.setFont("times","bold"); doc.setFontSize(15); doc.setTextColor(28,40,60);
+          doc.setFont("helvetica","bold"); doc.setFontSize(15); doc.setTextColor(28,40,60);
           doc.text(c.title, M, y); y += 7;
-          doc.setFont("times","bold"); doc.setFontSize(10.5); doc.setTextColor.apply(doc, ac);
+          doc.setFont("helvetica","bold"); doc.setFontSize(10.5); doc.setTextColor.apply(doc, ac);
           doc.splitTextToSize(c.subtitle, CW).forEach(l => { doc.text(l, M, y); y += 5; });
           y += 1;
           doc.setDrawColor.apply(doc, ac); doc.setLineWidth(0.5); doc.line(M, y, pw-M, y); y += 9;
@@ -20204,7 +20239,7 @@ function drawFanChart(){
         let contentTop = y, col = 0, gy = contentTop;
         RPT_GLOSSARY.forEach(g => {
           const term = g[0], def = g[1];
-          doc.setFont("times","bold"); doc.setFontSize(8.6);
+          doc.setFont("helvetica","bold"); doc.setFontSize(8.6);
           const termLines = doc.splitTextToSize(term, colW);
           doc.setFont("helvetica","normal"); doc.setFontSize(7.3);
           const defLines = doc.splitTextToSize(def, colW);
@@ -20213,7 +20248,7 @@ function drawFanChart(){
             if(col === 0){ col = 1; gy = contentTop; }
             else { newPage(); sectionH2("Glossary of Terms (continued)"); contentTop = y; col = 0; gy = contentTop; }
           }
-          doc.setFont("times","bold"); doc.setFontSize(8.6); doc.setTextColor(...ac);
+          doc.setFont("helvetica","bold"); doc.setFontSize(8.6); doc.setTextColor(...ac);
           termLines.forEach(l => { doc.text(l, colX[col], gy); gy += 3.7; });
           doc.setFont("helvetica","normal"); doc.setFontSize(7.3); doc.setTextColor(70);
           defLines.forEach(l => { doc.text(l, colX[col], gy); gy += 3.3; });
