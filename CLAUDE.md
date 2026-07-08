@@ -285,9 +285,13 @@ The engine is guarded by three layers of tests under `lib/engine/__tests__/`
   different models.
 - **`pipeline.test.ts`** — "E2E-lite": raw legacy-shaped export →
   `migratePlan` → `parsePlan` → `runMonteCarlo` → report-coherence asserts.
-  Also pins a **known modelling interaction**: a plan carrying BOTH a
-  "retirement income" goal AND `retirement.annualSpending` double-counts
-  retirement spend (the app's sample report plan currently does this).
+  Also pins the **retirement double-count fix**: when `retirement.enabled`, the
+  engine excludes `cat === "Retirement"` goals from goal-funding (the
+  decumulation loop already models that spend via `retirement.annualSpending`),
+  so a plan carrying BOTH — as the sample report/plan previews do — no longer
+  double-counts. Those goals report their success as the retirement money-lasts
+  probability rather than an always-zero funded flag. The test asserts that
+  adding an overlapping retirement goal is a no-op on decumulation success.
 
 **Determinism knob:** `runMonteCarlo` accepts an optional `asOfYear`
 (`SimulationInput`) that fixes goal-year offsets and the primary client's age;

@@ -126,8 +126,18 @@ export function runMonteCarlo(input: SimulationInput): SimulationResult {
 
   const startYear = asOfYear;
 
+  // A `cat === "Retirement"` goal that overlaps the decumulation phase would be
+  // funded TWICE — once by the decumulation loop (via retirement.annualSpending)
+  // and again as a lump-sum goal drawdown below — making success/depletion look
+  // worse than reality. When retirement is enabled we therefore exclude
+  // retirement-category goals from goal-funding; the decumulation engine already
+  // models that spend. (Their "success" is reported as the money-lasts
+  // probability instead of an always-zero funded flag — see goalSuccess below.)
+  const coveredByRetirement = (g: Goal) => retEnabled && g.cat === "Retirement";
+
   // Pre-compute goal target year offsets (relative year indices)
   const goalsByYear: Array<{ goal: Goal; yearOffset: number }> = plan.goals
+    .filter((g) => !coveredByRetirement(g))
     .map((g) => ({ goal: g, yearOffset: g.startYear - startYear }))
     .filter((g) => g.yearOffset >= 0 && g.yearOffset < Y);
 
@@ -259,10 +269,14 @@ export function runMonteCarlo(input: SimulationInput): SimulationResult {
   const mean = finalRow.reduce((s, v) => s + v, 0) / sims;
 
   // ─── Goal success rates ───
+  // Retirement-category goals excluded from goal-funding (see coveredByRetirement
+  // above) are met by the decumulation engine, so their "success" IS the
+  // money-lasts probability — reporting the raw funded flag would always be 0.
+  const retSuccessProb = (sims - depletionCount) / sims;
   const goalSuccess = plan.goals.map((g) => ({
     goalId: g.id,
     goalName: g.name,
-    probability: (goalHits[g.id] || 0) / sims
+    probability: coveredByRetirement(g) ? retSuccessProb : (goalHits[g.id] || 0) / sims
   }));
 
   // ─── Hash input for caching (stable for identical plans) ───
