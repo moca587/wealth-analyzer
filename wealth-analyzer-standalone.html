@@ -2429,7 +2429,11 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
 
 <!-- ─── Insurance — protection inventory ─── -->
 <div class="panel" id="insurancePanel">
-  <div class="ptitle">Insurance — Protection Inventory</div>
+  <div class="ptitle section-dropdown" onclick="toggleDropdown('insBody')">
+    Insurance — Protection Inventory <span class="dropdown-hint">click to expand</span>
+    <span class="ptitle-line"></span>
+  </div>
+  <div class="dropdown-body" id="insBody">
   <div style="font-size:12px;color:var(--text3);margin-bottom:12px;line-height:1.5">Track life, disability, and long-term-care policies. <strong style="color:var(--text2)">Cash value</strong> counts toward net worth; <strong style="color:var(--text2)">death benefits</strong> feed the estate transfer summary; premiums can flow into annual expenses below.</div>
   <div id="insList"><div class="empty">No policies added.</div></div>
   <div class="sdiv">
@@ -2459,6 +2463,7 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
     <input type="checkbox" id="insPremExp" checked onchange="refreshTopMetrics();updateTaxPanel()" style="width:15px;height:15px;accent-color:var(--gold)">
     <label for="insPremExp" style="font-size:12px;color:var(--text2);cursor:pointer">Include premiums in annual expenses <span style="color:var(--text3)">(untick if already counted in the Expenses tab's "Insurance &amp; health")</span></label>
   </div>
+  </div>
 </div>
 </div>
 
@@ -2467,7 +2472,11 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
 
 <!-- Retirement Planning -->
 <div class="panel">
-  <div class="ptitle">Retirement Planning</div>
+  <div class="ptitle section-dropdown" onclick="toggleDropdown('retPlanBody')">
+    Retirement Planning <span class="dropdown-hint">click to expand</span>
+    <span class="ptitle-line"></span>
+  </div>
+  <div class="dropdown-body" id="retPlanBody">
   <div class="two-col">
     <div>
       <div class="frow"><label class="flbl">Desired lifestyle</label>
@@ -2570,6 +2579,7 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
       </div>
     </div>
 
+  </div>
   </div>
 </div>
 
@@ -3106,7 +3116,11 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
 
 <!-- Advisory Fee — Portfolio -->
 <div class="panel">
-  <div class="ptitle">Advisory Fee</div>
+  <div class="ptitle section-dropdown" onclick="toggleDropdown('pfFeeBody')">
+    Advisory Fee <span class="dropdown-hint">click to expand</span>
+    <span class="ptitle-line"></span>
+  </div>
+  <div class="dropdown-body" id="pfFeeBody">
   <div class="two-col">
     <div>
       <div class="frow"><label class="flbl">Fee type</label>
@@ -3136,6 +3150,7 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
         <div style="font-size:17px;font-weight:500;color:#1b6841" id="pf-ret-net">—</div>
       </div>
     </div>
+  </div>
   </div>
 </div>
 
@@ -3317,7 +3332,11 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
 
 <!-- Proposal setup -->
 <div class="panel">
-  <div class="ptitle">Proposal Setup</div>
+  <div class="ptitle section-dropdown" onclick="toggleDropdown('prSetupBody')">
+    Proposal Setup <span class="dropdown-hint">click to expand</span>
+    <span class="ptitle-line"></span>
+  </div>
+  <div class="dropdown-body" id="prSetupBody">
   <div class="pr-head">
     <input id="prClient" placeholder="Client / household name (auto from Household tab)" oninput="this.dataset.userEdited='1';renderProposalMetrics()">
     <input id="prAdvisor" placeholder="Advisor name" oninput="renderProposalMetrics()">
@@ -3362,6 +3381,7 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
       </div>
     </div>
     <div style="font-size:11px;color:var(--text3);margin-top:6px">Deducted from the proposal's gross return in the Portfolio Comparison simulation. Shown separately from the current portfolio fee so you can model the net-of-fee impact side by side.</div>
+  </div>
   </div>
 </div>
 
@@ -3727,7 +3747,11 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
 
 <!-- What-If Scenarios -->
 <div class="panel">
-  <div class="ptitle">What-If Scenarios</div>
+  <div class="ptitle section-dropdown" onclick="toggleDropdown('whatIfBody')">
+    What-If Scenarios <span class="dropdown-hint">click to expand</span>
+    <span class="ptitle-line"></span>
+  </div>
+  <div class="dropdown-body" id="whatIfBody">
   <div style="font-size:12px;color:var(--text3);margin-bottom:14px">Model alternative futures — earlier retirement, a second home, education costs, income changes — and compare each scenario's median wealth and goal success against the baseline plan.</div>
 
   <!-- Scenario list -->
@@ -3758,6 +3782,7 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
       <button id="wiAddBtn" class="btn-primary" onclick="addWhatIf()" style="flex:1">▶ Run Scenario</button>
       <button id="wiCancelBtn" class="btn-secondary" onclick="cancelEditWhatIf()" style="display:none">✕ Cancel</button>
     </div>
+  </div>
   </div>
 </div>
 
@@ -4075,7 +4100,7 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
 // ═══════════════════════════════════════════════════════════
 // VERSION — updated by build-standalone.pl on each build
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260707-1715";
+const APP_VERSION = "20260708-0924";
 
 // ═══════════════════════════════════════════════════════════
 // DATA
@@ -5902,18 +5927,23 @@ function getAssetBucketsFromHoldings() {
   return buckets;
 }
 
-// Grows the asset buckets for each year 
-function growAssetBuckets(buckets, cgtDrag, y) {
+// Grows the asset buckets for each year. activeMu/activeSig (the household's
+// active mu/sig — risk profile, AI proposal, or a sensitivity override) scale
+// every asset class proportionally around the ASSET_CLASS_MC.mixed baseline,
+// so those knobs still move the simulation now that growth is bucket-based.
+function growAssetBuckets(buckets, cgtDrag, y, activeMu, activeSig) {
   const next = {};
+  const muScale = (activeMu != null) ? activeMu / ASSET_CLASS_MC.mixed.mu : 1;
+  const sigScale = (activeSig != null) ? activeSig / ASSET_CLASS_MC.mixed.sig : 1;
 
   Object.keys(buckets).forEach(cls => {
     // get equity assumtions (mu, sig) for this asset class
     const assumption = ASSET_CLASS_MC[cls] || ASSET_CLASS_MC.other;
-    // apply tax drag 
-    const muNet = assumption.mu * (1 - cgtDrag);
-    const sig = assumption.sig;
+    // apply tax drag
+    const muNet = Math.max(0.001, assumption.mu * muScale) * (1 - cgtDrag);
+    const sig = Math.max(0.01, assumption.sig * sigScale);
 
-    // adjust return/volatility if glidepath de-risking is on 
+    // adjust return/volatility if glidepath de-risking is on
     const gp = glidepathAdjust(muNet, sig, y);
     // create one random yearly return for that asset class 
     const r = (gp.mu - 0.5 * gp.sig * gp.sig) + gp.sig * boxMuller();
@@ -14461,7 +14491,6 @@ function runMC(years,sims,muOverride,sigOverride){
   }
   const savAnnual=num("savAnnual",0);
   const cgtDrag = getApplyTax()? (num("cgtRate",15)/100)*(num("cgtTurnover",10)/100) : 0;
-  const muNet = mu*(1-cgtDrag);
   // Retirement params
   const c1Age0=ageFromDOB(val("c1d"))||30;
   const retAge=num("retAge",65);
@@ -14643,18 +14672,15 @@ function runMC(years,sims,muOverride,sigOverride){
         });
         inv = sumBuckets(assetBuckets);
       } else {
-        // const gp_ = glidepathAdjust(muNet, sig, y);
-        // const r = (gp_.mu - 0.5 * gp_.sig * gp_.sig) + gp_.sig * boxMuller();
-        // inv = inv * Math.exp(r);
-
-        // New: grow asset buckets
         assetBuckets = growAssetBuckets(
           assetBuckets,
           cgtDrag,
-          y
+          y,
+          mu,
+          sig
         );
 
-inv = sumBuckets(assetBuckets);
+        inv = sumBuckets(assetBuckets);
       }
 
       // const propR=0.03+0.02*boxMuller();

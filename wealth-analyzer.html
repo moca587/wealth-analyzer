@@ -1983,7 +1983,11 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
 
 <!-- ─── Insurance — protection inventory ─── -->
 <div class="panel" id="insurancePanel">
-  <div class="ptitle">Insurance — Protection Inventory</div>
+  <div class="ptitle section-dropdown" onclick="toggleDropdown('insBody')">
+    Insurance — Protection Inventory <span class="dropdown-hint">click to expand</span>
+    <span class="ptitle-line"></span>
+  </div>
+  <div class="dropdown-body" id="insBody">
   <div style="font-size:12px;color:var(--text3);margin-bottom:12px;line-height:1.5">Track life, disability, and long-term-care policies. <strong style="color:var(--text2)">Cash value</strong> counts toward net worth; <strong style="color:var(--text2)">death benefits</strong> feed the estate transfer summary; premiums can flow into annual expenses below.</div>
   <div id="insList"><div class="empty">No policies added.</div></div>
   <div class="sdiv">
@@ -2013,6 +2017,7 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
     <input type="checkbox" id="insPremExp" checked onchange="refreshTopMetrics();updateTaxPanel()" style="width:15px;height:15px;accent-color:var(--gold)">
     <label for="insPremExp" style="font-size:12px;color:var(--text2);cursor:pointer">Include premiums in annual expenses <span style="color:var(--text3)">(untick if already counted in the Expenses tab's "Insurance &amp; health")</span></label>
   </div>
+  </div>
 </div>
 </div>
 
@@ -2021,7 +2026,11 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
 
 <!-- Retirement Planning -->
 <div class="panel">
-  <div class="ptitle">Retirement Planning</div>
+  <div class="ptitle section-dropdown" onclick="toggleDropdown('retPlanBody')">
+    Retirement Planning <span class="dropdown-hint">click to expand</span>
+    <span class="ptitle-line"></span>
+  </div>
+  <div class="dropdown-body" id="retPlanBody">
   <div class="two-col">
     <div>
       <div class="frow"><label class="flbl">Desired lifestyle</label>
@@ -2124,6 +2133,7 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
       </div>
     </div>
 
+  </div>
   </div>
 </div>
 
@@ -2660,7 +2670,11 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
 
 <!-- Advisory Fee — Portfolio -->
 <div class="panel">
-  <div class="ptitle">Advisory Fee</div>
+  <div class="ptitle section-dropdown" onclick="toggleDropdown('pfFeeBody')">
+    Advisory Fee <span class="dropdown-hint">click to expand</span>
+    <span class="ptitle-line"></span>
+  </div>
+  <div class="dropdown-body" id="pfFeeBody">
   <div class="two-col">
     <div>
       <div class="frow"><label class="flbl">Fee type</label>
@@ -2690,6 +2704,7 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
         <div style="font-size:17px;font-weight:500;color:#1b6841" id="pf-ret-net">—</div>
       </div>
     </div>
+  </div>
   </div>
 </div>
 
@@ -2871,7 +2886,11 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
 
 <!-- Proposal setup -->
 <div class="panel">
-  <div class="ptitle">Proposal Setup</div>
+  <div class="ptitle section-dropdown" onclick="toggleDropdown('prSetupBody')">
+    Proposal Setup <span class="dropdown-hint">click to expand</span>
+    <span class="ptitle-line"></span>
+  </div>
+  <div class="dropdown-body" id="prSetupBody">
   <div class="pr-head">
     <input id="prClient" placeholder="Client / household name (auto from Household tab)" oninput="this.dataset.userEdited='1';renderProposalMetrics()">
     <input id="prAdvisor" placeholder="Advisor name" oninput="renderProposalMetrics()">
@@ -2916,6 +2935,7 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
       </div>
     </div>
     <div style="font-size:11px;color:var(--text3);margin-top:6px">Deducted from the proposal's gross return in the Portfolio Comparison simulation. Shown separately from the current portfolio fee so you can model the net-of-fee impact side by side.</div>
+  </div>
   </div>
 </div>
 
@@ -3281,7 +3301,11 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
 
 <!-- What-If Scenarios -->
 <div class="panel">
-  <div class="ptitle">What-If Scenarios</div>
+  <div class="ptitle section-dropdown" onclick="toggleDropdown('whatIfBody')">
+    What-If Scenarios <span class="dropdown-hint">click to expand</span>
+    <span class="ptitle-line"></span>
+  </div>
+  <div class="dropdown-body" id="whatIfBody">
   <div style="font-size:12px;color:var(--text3);margin-bottom:14px">Model alternative futures — earlier retirement, a second home, education costs, income changes — and compare each scenario's median wealth and goal success against the baseline plan.</div>
 
   <!-- Scenario list -->
@@ -3312,6 +3336,7 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
       <button id="wiAddBtn" class="btn-primary" onclick="addWhatIf()" style="flex:1">▶ Run Scenario</button>
       <button id="wiCancelBtn" class="btn-secondary" onclick="cancelEditWhatIf()" style="display:none">✕ Cancel</button>
     </div>
+  </div>
   </div>
 </div>
 
@@ -3629,7 +3654,7 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
 // ═══════════════════════════════════════════════════════════
 // VERSION — updated by build-standalone.pl on each build
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260707-1715";
+const APP_VERSION = "20260708-0924";
 
 // ═══════════════════════════════════════════════════════════
 // DATA
