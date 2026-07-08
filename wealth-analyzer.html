@@ -2271,11 +2271,11 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
      default since goal funding is a secondary concern next to the main wealth outlook. -->
 <div class="panel" id="goalFundingPanel">
   <div class="ptitle section-dropdown" onclick="toggleDropdown('goalFundingWrap')" style="margin:0">
-    Goal Funding <span class="dropdown-hint">probability-based + present-value · click to expand</span>
+    Goal Funding <span class="dropdown-hint">probability-based + present-value · click to expand</span><span class="info-ic">i<span class="info-pop"><strong>Goal-relative optimization</strong> — goals are funded in priority order each simulated year (essential, then important, then aspirational/legacy), not split evenly. A shortfall shows up against the lower-priority goal competing for the same dollars, not against every goal active that year. This is one of the value-creating activities identified in goals-based wealth management (GBWM) research (independent studies from Vanguard, Morningstar, Envestnet and Russell Investments on advisor-created value).</span></span>
     <span class="ptitle-line"></span>
   </div>
   <div class="dropdown-body" id="goalFundingWrap">
-  <div class="cf-header" style="margin-top:8px">Each goal is scored two ways: the <strong>simulated probability</strong> of being fully funded (from the Monte Carlo paths) and the <strong>present-value funding ratio</strong> (priority-weighted, discounted at a risk-adjusted rate, Merrill-style). Run the simulation to populate both.</div>
+  <div class="cf-header" style="margin-top:8px">Each goal is scored two ways: the <strong>simulated probability</strong> of being fully funded (from the Monte Carlo paths) and the <strong>present-value funding ratio</strong> (priority-weighted, discounted at a risk-adjusted rate). Run the simulation to populate both.</div>
   <div id="goalFundingSummary"></div>
   <div id="goalFundingList"><div class="pf-empty">Run the simulation to populate funding status.</div></div>
   <div class="cf-legend">
@@ -2291,12 +2291,12 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
 <!-- Goals-Based Analysis (moved from its own tab) -->
 <div class="panel" id="goalsBasedPanel" style="border-left:4px solid #7c3aed">
   <div class="ptitle section-dropdown" onclick="toggleDropdown('goalsBasedBody')" style="margin:0">
-    🎯 Goals-Based Analysis <span class="dropdown-hint">Merrill funding-ratio method · click to expand</span>
+    🎯 Goals-Based Analysis <span class="dropdown-hint">present-value funding-ratio method · click to expand</span>
     <span class="ptitle-line"></span>
   </div>
   <div class="dropdown-body" id="goalsBasedBody">
     <div style="font-size:12.5px;color:var(--text2);line-height:1.6;margin:10px 0 12px">
-      Institutional methodology modeled on the Merrill Lynch Wealth Management Analysis, using per-asset-class capital market assumptions with a full correlation matrix for accurate portfolio risk. This feeds the <strong>Goal Funding</strong> panel above (present-value cost, priority-weighted discount rate, funding ratio) — this section shows the underlying assumptions and your Wealth Allocation Framework.
+      Institutional goals-based methodology using per-asset-class capital market assumptions with a full correlation matrix for accurate portfolio risk. This feeds the <strong>Goal Funding</strong> panel above (present-value cost, priority-weighted discount rate, funding ratio) — this section shows the underlying assumptions and your Wealth Allocation Framework.
     </div>
     <div style="margin-bottom:14px;display:flex;gap:10px;flex-wrap:wrap;align-items:center">
       <button class="btn-primary" onclick="runGoalsBased()" style="font-size:13px;padding:9px 20px">▶ Run / refresh</button>
@@ -2316,14 +2316,14 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
   </div>
 </div>
 
-<!-- Wealth Allocation Framework (moved here — Merrill three-bucket) -->
+<!-- Wealth Allocation Framework (moved here — three-bucket) -->
 <div class="panel" id="simWealthFwPanel">
   <div class="ptitle section-dropdown" onclick="toggleDropdown('simWealthFwBody')" style="margin:0">
     Wealth Allocation Framework <span class="dropdown-hint">Personal / Market / Aspirational · click to expand</span>
     <span class="ptitle-line"></span>
   </div>
   <div class="dropdown-body" id="simWealthFwBody">
-    <div style="font-size:12px;color:var(--text3);margin:10px 0 14px;line-height:1.6">Merrill's three-bucket framework organizes assets by risk-return role: <strong style="color:var(--green)">Personal</strong> (preserve lifestyle — residence, cash), <strong style="color:var(--accent)">Market</strong> (balance risk &amp; return — diversified equities/bonds), and <strong style="color:#7c3aed">Aspirational</strong> (idiosyncratic upside — concentrated stock, business, crypto, investment property).</div>
+    <div style="font-size:12px;color:var(--text3);margin:10px 0 14px;line-height:1.6">A three-bucket framework organizes assets by risk-return role: <strong style="color:var(--green)">Personal</strong> (preserve lifestyle — residence, cash), <strong style="color:var(--accent)">Market</strong> (balance risk &amp; return — diversified equities/bonds), and <strong style="color:#7c3aed">Aspirational</strong> (idiosyncratic upside — concentrated stock, business, crypto, investment property).</div>
     <div id="gbWealth"><div style="color:var(--text3);font-size:12px">Add assets to see your wealth allocation.</div></div>
   </div>
 </div>
@@ -2501,6 +2501,7 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
   <div style="font-size:11px;color:var(--text3);line-height:1.6;padding:8px 12px;background:var(--bg3);border-radius:var(--rs);border:1px solid var(--border)">
     <strong style="color:var(--text2)">Score methodology:</strong> 100 = all growth assets in Roth/ISA/TFSA (fully tax-free). Tax-deferred accounts score 70% (gains grow untaxed but withdrawals are taxed as income). Taxable accounts score 0%. Annual drag = taxable balance × portfolio return × 25% assumed marginal rate. Shortfall cost-basis logic: when a cash-flow shortfall occurs, the engine assumes the gap is funded from a taxable account at 100% cost basis, adding a tax cost of shortfall × effective rate.
   </div>
+  <div id="te-location" style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border)"></div>
   <div id="te-order" style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border)"></div>
   </div>
 </div>
@@ -2545,6 +2546,20 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
       Shows how ±20% changes in key inputs shift the <strong style="color:var(--text2)">median projected wealth</strong> at year <span id="sensYr" style="color:var(--gold);font-weight:600">—</span>. Wider bars = greater sensitivity. Run the simulation first.
     </div>
     <div id="tornadoWrap"><div class="empty">Run the simulation to generate sensitivity analysis.</div></div>
+  </div>
+</div>
+
+<!-- Behavior Gap — the cost of panic-selling -->
+<div class="panel" id="behaviorGapPanel">
+  <div class="ptitle section-dropdown" onclick="toggleDropdown('bgBody')">
+    Behavior Gap <span class="dropdown-hint">click to expand</span>
+    <span class="ptitle-line"></span>
+  </div>
+  <div class="dropdown-body" id="bgBody">
+    <div style="font-size:12px;color:var(--text3);margin:12px 0;line-height:1.5">
+      Runs the <strong style="color:var(--text2)">same simulated market path</strong> through two investors — one who stays invested through downturns, one who sells after a crash and re-enters gradually — to quantify what panic-selling costs, in this household's own numbers, by year <span id="bgYr" style="color:var(--gold);font-weight:600">—</span>.
+    </div>
+    <div id="bgWrap"><div class="empty">Run the simulation to generate the behavior-gap analysis.</div></div>
   </div>
 </div>
 
@@ -3186,9 +3201,8 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
 
 <!-- Trust strip — what we use -->
 <div class="panel" style="background:var(--bg3);border:1px solid var(--border)">
-  <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.10em;color:var(--text3);margin-bottom:14px">Powered by research from 16 institutional sources</div>
+  <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.10em;color:var(--text3);margin-bottom:14px">Powered by research from 15 institutional sources</div>
   <div style="display:flex;flex-wrap:wrap;gap:8px;font-size:11.5px;color:var(--text2);font-weight:600">
-    <span style="padding:5px 11px;background:#fff;border:1px solid var(--border);border-radius:50px">Bank of America / Merrill</span>
     <span style="padding:5px 11px;background:#fff;border:1px solid var(--border);border-radius:50px">JPMorgan AM</span>
     <span style="padding:5px 11px;background:#fff;border:1px solid var(--border);border-radius:50px">Morgan Stanley</span>
     <span style="padding:5px 11px;background:#fff;border:1px solid var(--border);border-radius:50px">Goldman Sachs</span>
@@ -3342,7 +3356,7 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
 
 </div>
 
-<!-- ═══ GOALS-BASED ANALYSIS (Merrill-style) ═══ -->
+<!-- ═══ GOALS-BASED ANALYSIS (priority-weighted) ═══ -->
 <!-- RECOMMENDATIONS -->
 <div class="tab" id="tab-recommendations">
   <div class="panel" style="background:linear-gradient(135deg,#fff,#f0f7f2);border-left:4px solid #1b6841">
@@ -3654,7 +3668,7 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
 // ═══════════════════════════════════════════════════════════
 // VERSION — updated by build-standalone.pl on each build
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260708-0924";
+const APP_VERSION = "20260708-1001";
 
 // ═══════════════════════════════════════════════════════════
 // DATA
@@ -7988,6 +8002,12 @@ const GOAL_ICONS = {
   legacy:      {emoji:"🎁", color:"#5b21b6", bg:"rgba(91,33,182,.12)",   label:"Legacy"},
   other:       {emoji:"⭐", color:"#6b7280", bg:"rgba(107,114,128,.10)", label:"Other"}
 };
+
+// Goal-relative optimization: when several goals compete for the same dollars
+// in the same year, essential goals are funded first, then important, then
+// aspirational/legacy — mirrors GBWM's goal-prioritization step (see runMC's
+// per-year goal-outflow block and goalSuccessFromPaths).
+const GOAL_TIER_ORDER = {essential:0, important:1, aspirational:2, legacy:3};
 
 function renderGoals(){
   const list=$("goalList"); if(!list) return;
@@ -13681,7 +13701,7 @@ function getEffectiveReturnParams(){
 const RET_POOL_MU = 0.035; // 3.5% nominal — both accumulation and retirement
 
 // ═══════════════════════════════════════════════════════════════════
-// CAPITAL MARKET ASSUMPTIONS (Merrill-style) — canonical for the WHOLE app.
+// CAPITAL MARKET ASSUMPTIONS (institutional-style) — canonical for the WHOLE app.
 // Per-asset-class arithmetic μ, σ, geometric μ, income yield (annual %).
 // These now drive the core simulation engine, portfolio metrics,
 // comparison, and the Goals-Based Analysis tab — one source of truth.
@@ -14063,13 +14083,16 @@ function runMC(years,sims,muOverride,sigOverride){
   const c2Age0=ageFromDOB(val("c2d"))||c1Age0;
   const rebalFreq=val("rebalFreq")||"none";
   const tgtEq=num("tgtEquity",60)/100;
-  // Pre-build goal outflow map: calendar year → total annual outflow across all goals
+  // Pre-build goal outflow map: calendar year → goals active that year (id,
+  // amt, tier). Kept per-goal rather than summed so the per-year draw below
+  // can fund goals in priority order and attribute a shortfall to the goal
+  // that actually lost out, not to every goal active that year.
   const cy0=currentYear();
   const goalOutMap={};
 
   goals.forEach(g=>{
     for(let yr=g.startYear;yr<=g.endYear;yr++){
-      goalOutMap[yr]=(goalOutMap[yr]||0)+g.amt;
+      (goalOutMap[yr]=goalOutMap[yr]||[]).push({id:g.id, amt:g.amt, tier:g.tier});
     }
   });
 
@@ -14097,6 +14120,7 @@ function runMC(years,sims,muOverride,sigOverride){
     let loanState=loans.map(l=>({bal:l.bal,rate:l.rate/100,yrs:l.yrs}));
     const path=[];
     let shortfallYr=-1;   // first year goal spending couldn't be met from liquid wealth (cash+investments)
+    const goalShortfalls={}; // goal id → first year THAT goal's own draw came up short
 
     // Yearly loop. One iteration simulates one year of the client's life 
     // Updates the household's finances for one simulated year 
@@ -14192,16 +14216,27 @@ function runMC(years,sims,muOverride,sigOverride){
         if(cash<0){inv+=cash; cash=0; if(inv<0) inv=0;}
         assetBuckets = scaleBucketsToTotal(assetBuckets, inv);
       }
-      // Goal outflows: deduct goal spending from liquid wealth (cash first, then investments)
-      const goalOut=goalOutMap[cy0+y]||0;
-      if(goalOut>0){
-        const fromCash=Math.min(Math.max(0,cash),goalOut);
-        cash-=fromCash;
-        const still=goalOut-fromCash;
-        const fromInv=Math.min(Math.max(0,inv),still);
-        inv-=fromInv;
-        // Liquidity shortfall: liquid wealth couldn't fully cover this year's goals.
-        if(shortfallYr<0 && (fromCash+fromInv) < goalOut-0.5) shortfallYr=y;
+      // Goal outflows: deduct goal spending from liquid wealth (cash first, then
+      // investments), one goal at a time in priority order — essential before
+      // important before aspirational/legacy. This is goal-relative optimization:
+      // when goals compete for the same dollars in the same year, the lower-
+      // priority goal absorbs the shortfall rather than spreading it evenly
+      // across all goals active that year.
+      const goalsThisYear=goalOutMap[cy0+y];
+      if(goalsThisYear && goalsThisYear.length>0){
+        const ordered=goalsThisYear.slice().sort((a,b)=>(GOAL_TIER_ORDER[a.tier]??1)-(GOAL_TIER_ORDER[b.tier]??1));
+        ordered.forEach(gr=>{
+          const fromCash=Math.min(Math.max(0,cash),gr.amt);
+          cash-=fromCash;
+          const still=gr.amt-fromCash;
+          const fromInv=Math.min(Math.max(0,inv),still);
+          inv-=fromInv;
+          // Liquidity shortfall: this specific goal's own draw came up short.
+          if((fromCash+fromInv) < gr.amt-0.5){
+            if(shortfallYr<0) shortfallYr=y;
+            if(goalShortfalls[gr.id]===undefined) goalShortfalls[gr.id]=y;
+          }
+        });
         cash=Math.max(0,cash); inv=Math.max(0,inv);
         assetBuckets = scaleBucketsToTotal(assetBuckets, inv);
       }
@@ -14252,6 +14287,7 @@ function runMC(years,sims,muOverride,sigOverride){
       path.push(cash+inv+prop+other+retPot-debtTotal);
     }
     path._shortfallYr=shortfallYr;   // goal-liquidity marker for goalSuccessFromPaths
+    path._goalShortfalls=goalShortfalls; // per-goal marker (goal-relative optimization)
     paths.push(path);
   }
   return paths;
@@ -14607,6 +14643,7 @@ function runSim(){
   // to run TWICE per simulation (duplicate call removed).
   setTimeout(()=>{ try{ renderCashFlow(); }catch(e){ console.warn("renderCashFlow:", e); } }, 0);
   setTimeout(()=>{ try{ runSensitivity(); }catch(e){ console.warn("runSensitivity:", e); } }, 0);
+  setTimeout(()=>{ try{ runBehaviorGap(); }catch(e){ console.warn("runBehaviorGap:", e); } }, 0);
   setTimeout(()=>{ try{ renderSimLifestyle(); }catch(e){ console.warn("renderSimLifestyle:", e); } }, 0);
   // WOW layer: brief gold flash on the freshly recomputed projection metrics
   try{
@@ -14620,7 +14657,7 @@ function runSim(){
 
 // ─── Goal & Retirement Funding Status in the Simulation tab ───
 // Combines the Monte Carlo simulated-success rate with the PV-based,
-// priority-weighted funding ratio (Merrill-style) into one per-goal view.
+// priority-weighted funding ratio into one per-goal view.
 function renderCombinedGoalFunding(paths,yrs){
   const summaryHost = document.getElementById("goalFundingSummary");
   const listHost = document.getElementById("goalFundingList");
@@ -15476,12 +15513,21 @@ function goalSuccessFromPaths(g, paths, yrs){
   const cy=(typeof currentYear==="function")?currentYear():new Date().getFullYear();
   const relYr=Math.min(yrs, Math.max(0, (g.endYear||cy)-cy));
   let ok=0;
-  if(paths[0] && typeof paths[0]._shortfallYr!=="undefined"){
-    // Preferred: liquid-based — a path funds this goal if no liquidity shortfall
-    // occurred at or before the goal's target year.
+  if(paths[0] && paths[0]._goalShortfalls){
+    // Preferred: per-goal, priority-ordered (goal-relative optimization) — a
+    // path funds THIS goal if no shortfall was ever recorded against its own
+    // id. Goals draw in priority order each year (essential first), so a
+    // shortfall attaches to the goal that actually lost out, not to every
+    // goal active that year.
+    for(let i=0;i<paths.length;i++){
+      const sf=paths[i]._goalShortfalls[g.id];
+      if(sf===undefined || sf>relYr) ok++;
+    }
+  } else if(paths[0] && typeof paths[0]._shortfallYr!=="undefined"){
+    // Fallback: liquid-based, household-aggregate shortfall marker.
     for(let i=0;i<paths.length;i++){ const sf=paths[i]._shortfallYr; if(sf<0 || sf>relYr) ok++; }
   } else {
-    // Fallback: plan stays solvent (net worth > 0) through the goal's target year.
+    // Last-resort fallback: plan stays solvent (net worth > 0) through the goal's target year.
     for(let i=0;i<paths.length;i++){ if((paths[i][relYr]||0) > 0) ok++; }
   }
   return ok/paths.length*100;
@@ -16878,7 +16924,7 @@ async function fetchMorningstarFactSheet(ticker){
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// GOALS-BASED ANALYSIS ENGINE (Merrill-style)
+// GOALS-BASED ANALYSIS ENGINE (priority-weighted)
 // The capital market assumptions (CMA), correlation matrix (CMA_CORR),
 // cmaCorr(), normInv(), gbPortfolioRisk() and gbReturnAtConfidence()
 // are now defined canonically near the core portfolio metrics so the
@@ -16917,7 +16963,7 @@ function gbAssetClassWeights(){
   return ALLOC[risk] || ALLOC.moderate;
 }
 
-// Priority → probability-of-success confidence level (Merrill convention)
+// Priority → probability-of-success confidence level (industry convention)
 const GB_PRIORITY_CONF = { essential:95, important:75, aspirational:55 };
 
 // Main goals-based analysis
@@ -17019,7 +17065,7 @@ function gbRenderWealth(){
     h += '</div>';
   });
   h += '</div>';
-  h += '<div style="font-size:11px;color:var(--text3);margin-top:12px">Total categorized: <strong>'+fmtMoney(total)+'</strong>. Concentrated/idiosyncratic positions (business, concentrated stock, investment property, crypto) carry higher risk — Merrill recommends limiting Aspirational exposure relative to your essential-goal funding needs.</div>';
+  h += '<div style="font-size:11px;color:var(--text3);margin-top:12px">Total categorized: <strong>'+fmtMoney(total)+'</strong>. Concentrated/idiosyncratic positions (business, concentrated stock, investment property, crypto) carry higher risk — industry guidance recommends limiting Aspirational exposure relative to your essential-goal funding needs.</div>';
   setH("gbWealth", h);
 }
 
@@ -17611,7 +17657,7 @@ async function generatePDFReport(mode, previewWin){
     };
     const ac=THEMES[themeKey]||THEMES.blue;   // accent RGB array
     const acL=[Math.min(255,ac[0]+170),Math.min(255,ac[1]+170),Math.min(255,ac[2]+170)]; // light tint
-    // Merrill-style header/footer + section-bar palette (light tint band, deep text)
+    // Institutional-style header/footer + section-bar palette (light tint band, deep text)
     const acBar=[Math.round(ac[0]+(255-ac[0])*0.86), Math.round(ac[1]+(255-ac[1])*0.86), Math.round(ac[2]+(255-ac[2])*0.86)]; // pale band fill
     const acBar2=[Math.round(ac[0]+(255-ac[0])*0.93), Math.round(ac[1]+(255-ac[1])*0.93), Math.round(ac[2]+(255-ac[2])*0.93)]; // fainter band (sub-rows)
     const acDark=[Math.round(ac[0]*0.5), Math.round(ac[1]*0.5), Math.round(ac[2]*0.5)]; // deep accent for band text
@@ -19120,7 +19166,7 @@ function drawFanChart(){
         para("A visual summary of your balance sheet. The bar chart compares total assets, total liabilities and the resulting net worth. The two pie charts break down what your assets are made of and where your debts sit, so you can see your biggest concentrations at a glance.");
         try { drawNetWorthSummary(); }
         catch(e){ console.warn("Net Worth Summary failed:", e); doc.setFont("helvetica","italic"); doc.setTextColor(120); doc.text("Net Worth Summary unavailable for this data.", M, y+8); }
-        // Page 3+ — Net Worth Details (Merrill-style categorized statement)
+        // Page 3+ — Net Worth Details (institutional-style categorized statement)
         currentSectionTitle = "Net Worth Details";
         newPage();
         checkY(30);
@@ -19550,7 +19596,7 @@ function drawFanChart(){
           para("Run the simulation to populate funding status.");
         }
       },
-      // ─── GOAL FUNDING STATUS (PV funding ratios — Merrill methodology) ──
+      // ─── GOAL FUNDING STATUS (PV funding ratios — priority-weighted methodology) ──
       goalfunding: () => {
         if(val("rptIncGoalFunding") === "no" || goals.length === 0) return;
         newPage();
@@ -19614,7 +19660,7 @@ function drawFanChart(){
           cyR+=cardH+4; });
         y=Math.max(topY+12+74+14, cyR)+2;
         para("Funding ratios at or above 100% indicate a fully funded goal; lower ratios indicate a present-value shortfall to close through added savings, return, or a revised goal. Hypothetical and not guaranteed.", [120,120,120]);
-        // ── Estimated Future Income / Savings (Merrill "Key Factors" block) ──
+        // ── Estimated Future Income / Savings ("Key Factors" block) ──
         (function(){
           const cyNow=(typeof currentYear==="function")?currentYear():new Date().getFullYear();
           const retA=num("retAge",65);
@@ -20403,6 +20449,94 @@ function renderTaxEfficiency(){
   const shortfallTax=Math.max(0,t.taxable*0.01*0.25); // placeholder 1% shortfall assumption
   setT("te-shortfall",shortfallTax>0?fmtMoney(shortfallTax):"None");
   try{ renderWithdrawalOrder(); }catch(_){}
+  try{ renderAssetLocationPlan(); }catch(_){}
+}
+
+// ── Asset location: which asset CLASS belongs in which account TYPE ────────
+// calcTaxEfficiency() above only scores where money sits in aggregate (tax-
+// free vs. tax-deferred vs. taxable). It doesn't know whether the bonds or
+// the equities are the ones sitting in the taxable account — this is that
+// missing layer: rank each held asset class by tax efficiency and recommend
+// which should claim available shelter capacity first. Mirrors the "asset
+// location" value-creating activity identified in GBWM research (independent
+// studies: Vanguard estimates up to 75bps/yr; Russell and Envestnet estimate
+// 45-100bps/yr from asset-location and tax-management activities).
+const ASSET_CLASS_TAX_EFFICIENCY = {
+  fixed_income:   {label:"Fixed income",       score:20, why:"interest is taxed as ordinary income every year"},
+  real_estate:    {label:"Real estate / REITs",score:25, why:"non-qualified dividends and depreciation recapture"},
+  hedge_fund:     {label:"Hedge funds",        score:30, why:"high turnover, often ordinary-income treatment"},
+  structured:     {label:"Structured products",score:30, why:"complex tax treatment, frequently ordinary income"},
+  commodity:      {label:"Commodities",        score:35, why:"often marked-to-market, no qualified-dividend treatment"},
+  alternative:    {label:"Alternatives",       score:40, why:"turnover-heavy, limited capital-gains deferral"},
+  mixed:          {label:"Mixed / balanced",   score:55, why:"blended — partial ordinary income from the bond sleeve"},
+  private_equity: {label:"Private equity",     score:70, why:"long hold, mostly capital gains at exit"},
+  crypto:         {label:"Crypto",             score:75, why:"capital-gains treatment, no income distributions"},
+  equity:         {label:"Equity",             score:85, why:"qualified dividends, long-term capital gains, loss-harvestable"},
+  other:          {label:"Other",              score:50, why:"treatment varies — review with a tax professional"}
+};
+function calcAssetLocationPlan(){
+  const buckets=(typeof getAssetBucketsFromHoldings==="function")?getAssetBucketsFromHoldings():{};
+  const total=Object.values(buckets).reduce((a,b)=>a+b,0);
+  const t=calcTaxEfficiency();
+  const shelterCapacity=t.taxFree+t.taxDeferred; // $ capacity that could hold sheltered assets
+  if(total<=0 || Object.keys(buckets).length===0) return {hasHoldings:false, t, shelterCapacity};
+  // Rank worst-efficiency-first — those classes claim shelter capacity first.
+  const rows=Object.keys(buckets).map(cls=>{
+    const eff=ASSET_CLASS_TAX_EFFICIENCY[cls]||ASSET_CLASS_TAX_EFFICIENCY.other;
+    return {cls, label:eff.label, why:eff.why, score:eff.score, value:buckets[cls]};
+  }).sort((a,b)=>a.score-b.score);
+  let remainingShelter=shelterCapacity, inefficientSheltered=0, inefficientTotal=0;
+  rows.forEach(r=>{
+    if(r.score<50){
+      inefficientTotal+=r.value;
+      const sheltered=Math.min(r.value, Math.max(0,remainingShelter));
+      r.recommended = sheltered>=r.value-0.5 ? "Tax-deferred / tax-free" : (sheltered>0 ? "Split — shelter what fits" : "Taxable (shelter capacity full)");
+      r.shelteredAmt=sheltered;
+      remainingShelter-=sheltered;
+      inefficientSheltered+=sheltered;
+    } else {
+      r.recommended="Taxable — tax-efficient as is";
+      r.shelteredAmt=0;
+    }
+  });
+  const unshelteredInefficient=Math.max(0, inefficientTotal-inefficientSheltered);
+  // Estimated annual value of sheltering the remaining inefficient dollars:
+  // ordinary-income drag vs. a lower capital-gains/qualified-dividend drag on
+  // the return those dollars earn. Held conservative relative to the cited
+  // research range (45-100bps/yr).
+  const params=getReturnParams();
+  const ORDINARY_VS_CG_RATE_GAP=0.15;
+  const estAnnualBenefit=unshelteredInefficient*params.mu*ORDINARY_VS_CG_RATE_GAP;
+  return {hasHoldings:true, t, shelterCapacity, rows, inefficientTotal, inefficientSheltered, unshelteredInefficient, estAnnualBenefit};
+}
+function renderAssetLocationPlan(){
+  const host=$("te-location"); if(!host) return;
+  let plan; try{ plan=calcAssetLocationPlan(); }catch(_){ host.innerHTML=""; return; }
+  if(!plan){ host.innerHTML=""; return; }
+  let h='<div style="font-weight:600;color:var(--text2);font-size:13px;margin-bottom:8px">Asset location — which holdings belong where</div>';
+  if(!plan.hasHoldings){
+    h+='<div style="font-size:12px;color:var(--text3);line-height:1.6">Add holdings on the Portfolio tab for a personalised, dollar-level asset-location plan. General principle: hold tax-inefficient assets (bonds, REITs, hedge funds — anything taxed as ordinary income or high-turnover) in tax-deferred/tax-free accounts; hold tax-efficient assets (broad equity index funds) in taxable accounts.</div>';
+    $("te-location").innerHTML=h; return;
+  }
+  h+='<div style="display:grid;grid-template-columns:140px 100px 190px 1fr;gap:0;border:1px solid var(--border);border-radius:var(--rs);overflow:hidden;font-size:11px">'
+    +'<div style="font-weight:600;color:var(--text3);padding:6px 10px;background:var(--bg3);border-bottom:1px solid var(--border)">Asset class</div>'
+    +'<div style="font-weight:600;color:var(--text3);padding:6px 10px;background:var(--bg3);border-bottom:1px solid var(--border)">Value</div>'
+    +'<div style="font-weight:600;color:var(--text3);padding:6px 10px;background:var(--bg3);border-bottom:1px solid var(--border)">Recommended location</div>'
+    +'<div style="font-weight:600;color:var(--text3);padding:6px 10px;background:var(--bg3);border-bottom:1px solid var(--border)">Why</div>'
+    +plan.rows.map(r=>
+      '<div style="padding:6px 10px;border-top:1px solid var(--border);color:var(--text)">'+_daEsc(r.label)+'</div>'
+      +'<div style="padding:6px 10px;border-top:1px solid var(--border);font-variant-numeric:tabular-nums">'+fmtMoney(r.value)+'</div>'
+      +'<div style="padding:6px 10px;border-top:1px solid var(--border);color:'+(r.score<50?'var(--amber)':'var(--text2)')+'">'+_daEsc(r.recommended)+'</div>'
+      +'<div style="padding:6px 10px;border-top:1px solid var(--border);color:var(--text3)">'+_daEsc(r.why)+'</div>'
+    ).join('')
+    +'</div>';
+  if(plan.unshelteredInefficient>0.5){
+    h+='<div style="margin-top:10px;font-size:12px;color:var(--amber);line-height:1.6">'+fmtMoney(plan.unshelteredInefficient)+' of tax-inefficient holdings has no shelter capacity left — estimated tax drag ≈'+fmtMoney(plan.estAnnualBenefit)+'/yr versus an equivalent tax-efficient placement.</div>';
+  } else if(plan.inefficientTotal>0.5){
+    h+='<div style="margin-top:10px;font-size:12px;color:#2e7d4f;line-height:1.6">All tax-inefficient holdings currently fit within available tax-deferred/tax-free capacity.</div>';
+  }
+  h+='<div style="font-size:10px;color:var(--text3);margin-top:8px">Assumes holdings can be freely relocated between accounts — an actual move may trigger transaction costs or realize gains. General guidance, not personal tax advice; confirm with a tax professional.</div>';
+  $("te-location").innerHTML=h;
 }
 
 // ── Tax-bucket withdrawal-order guidance (country-aware) ────────────────────
@@ -21135,6 +21269,96 @@ function renderTornado(results,base){
   html+=`</div>
   <div style="font-size:11px;color:var(--text3);margin-top:8px">Each row re-runs ${Math.min(200,parseInt(val("simN")||"200",10))} simulations with that single input shifted while all others remain unchanged.</div>`;
   wrap.innerHTML=html;
+}
+
+// ═══════════════════════════════════════════════════════════
+// BEHAVIOR GAP — the cost of panic-selling vs. staying invested
+// ═══════════════════════════════════════════════════════════
+// Illustrative what-if comparison, not part of the core runMC engine (same
+// spirit as the tornado above) — runs a disciplined investor and a panic
+// investor through the IDENTICAL sequence of simulated market returns (same
+// crash years, same recovery, active stress scenario honored), so the only
+// difference in outcome is behavior: the panic investor sells to cash after
+// a real crash and re-enters gradually, missing part of the recovery. This
+// quantifies the "behavioral coaching" value-creating activity identified in
+// GBWM research — Barber et al. (2009) find aggressive trading can cost
+// individual investors ~4%/yr; Russell Investments' "Value of an Advisor"
+// research separately estimates behavioral coaching alone at ~2%/yr.
+const BG_CRASH_THRESHOLD=-0.15;  // a single-year decline this bad triggers panic-selling
+const BG_SELL_FRACTION=0.65;     // share of the invested pool sold to cash when it triggers
+const BG_SIDELINE_YEARS=2;       // years new contributions are parked in cash, not invested
+const BG_REENTRY_YEARS=2;        // years to phase the parked cash back into the market
+
+function runBehaviorGapMC(years, sims){
+  const {mu,sig}=getActiveSimulationParams();
+  const seed=Math.max(0, investableAssetsValue());
+  const savAnnual=num("savAnnual",0);
+  const disciplinedPaths=[], panicPaths=[];
+  let panickedCount=0;
+  for(let s=0;s<sims;s++){
+    let dInv=seed, pInv=seed, pParked=0, sidelineLeft=0, reentryLeft=0, panicked=false;
+    const dPath=[seed], pPath=[seed];
+    for(let y=1;y<=years;y++){
+      const shock=scenarioReturnShock(y);
+      const r = shock!==null ? shock : ((mu-0.5*sig*sig)+sig*boxMuller());
+      // Disciplined: fully invested every year, keeps contributing.
+      dInv=Math.max(0, dInv*(1+r)+savAnnual);
+      // Panic: same market return applied to whatever's still invested; sells
+      // AFTER seeing the loss (locks it in), then sits out before re-entering.
+      pInv=Math.max(0, pInv*(1+r));
+      if(!panicked && r<=BG_CRASH_THRESHOLD){
+        panicked=true; panickedCount++;
+        const sold=pInv*BG_SELL_FRACTION;
+        pInv-=sold; pParked+=sold;
+        sidelineLeft=BG_SIDELINE_YEARS;
+      }
+      if(sidelineLeft>0){
+        pParked+=savAnnual; sidelineLeft--;
+        if(sidelineLeft===0) reentryLeft=BG_REENTRY_YEARS;
+      } else if(reentryLeft>0){
+        const chunk=pParked/reentryLeft;
+        pInv+=chunk; pParked-=chunk; reentryLeft--;
+        pInv+=savAnnual;
+      } else {
+        pInv+=savAnnual;
+      }
+      dPath.push(dInv);
+      pPath.push(pInv+pParked);
+    }
+    disciplinedPaths.push(dPath);
+    panicPaths.push(pPath);
+  }
+  return {years, disciplinedPaths, panicPaths, seed, panicShare: sims>0 ? panickedCount/sims*100 : 0};
+}
+let lastBehaviorGap=null;
+function runBehaviorGap(){
+  const host=$("bgWrap"); if(!host) return;
+  const years=(typeof lastSimYrs==="number" && lastSimYrs>0) ? lastSimYrs : num("simYrs",20);
+  const sims=Math.min(500, Math.max(200, parseInt(val("simN")||"500",10)));
+  let result;
+  try{ result=runBehaviorGapMC(years, sims); }
+  catch(e){ console.warn("runBehaviorGapMC:", e); host.innerHTML='<div class="empty">Could not run behavior-gap analysis.</div>'; return; }
+  lastBehaviorGap=result;
+  renderBehaviorGap(result);
+}
+function renderBehaviorGap(result){
+  const host=$("bgWrap"); if(!host) return;
+  const {years, disciplinedPaths, panicPaths, seed, panicShare}=result;
+  if(seed<=0){ host.innerHTML='<div class="empty">Add investable assets or portfolio holdings to model the behavior gap.</div>'; return; }
+  const medD=percentileAt(disciplinedPaths, years, 50);
+  const medP=percentileAt(panicPaths, years, 50);
+  const gap=Math.max(0, medD-medP);
+  const cagr=v=> years>0 ? (Math.pow(Math.max(0.01,v)/Math.max(1,seed), 1/years)-1) : 0;
+  const gapPct=Math.max(0, (cagr(medD)-cagr(medP))*100);
+  const targetYr=currentYear()+years;
+  setT("bgYr", String(targetYr));
+  let h='<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px">'
+    +'<div class="tax-box"><div class="tb-lbl">Stays invested</div><div class="tb-val" style="color:#2e7d4f">'+fmtMoney(medD)+'</div><div class="tb-sub">Median wealth at '+targetYr+'</div></div>'
+    +'<div class="tax-box"><div class="tb-lbl">Sells &amp; re-enters late</div><div class="tb-val" style="color:var(--red)">'+fmtMoney(medP)+'</div><div class="tb-sub">Median wealth at '+targetYr+'</div></div>'
+    +'</div>'
+    +'<div style="font-size:13px;color:var(--text2);margin-bottom:10px">Cost of panic: <strong style="color:var(--red)">'+fmtMoney(gap)+'</strong> ('+gapPct.toFixed(1)+' pp/yr) by '+targetYr+', in <strong>'+panicShare.toFixed(0)+'%</strong> of simulated paths that hit a decline severe enough to trigger the modeled reaction.</div>'
+    +'<div style="font-size:10px;color:var(--text3)">Model: a decline of '+Math.abs(BG_CRASH_THRESHOLD*100).toFixed(0)+'%+ in a single year triggers selling '+(BG_SELL_FRACTION*100).toFixed(0)+'% of the invested pool to cash; contributions pause for '+BG_SIDELINE_YEARS+' years, then phase back into the market over '+BG_REENTRY_YEARS+' more. Both investors experience the identical simulated market path each run — only the reaction differs. Illustrative, not personal advice. See Barber, Lee, Liu &amp; Odean (2009) on aggressive-trading cost and Russell Investments\' "Value of an Advisor" research on the value of behavioral coaching.</div>';
+  host.innerHTML=h;
 }
 
 // ═══════════════════════════════════════════════════════════

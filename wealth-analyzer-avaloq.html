@@ -1914,7 +1914,7 @@ input[type=date]{color-scheme:light}
   </div>
 </div>
 
-<!-- Goal Funding Status (PV-based, Merrill-style) -->
+<!-- Goal Funding Status (PV-based, priority-weighted) -->
 <div class="panel" id="simFundingPanel">
   <div class="ptitle">Goal Funding Status <span style="font-size:11px;font-weight:500;color:var(--text3);margin-left:8px">— present-value, priority-weighted</span></div>
   <div style="font-size:12px;color:var(--text3);margin-bottom:14px;line-height:1.6">
@@ -2518,12 +2518,12 @@ input[type=date]{color-scheme:light}
 
 </div>
 
-<!-- ═══ GOALS-BASED ANALYSIS (Merrill-style) ═══ -->
+<!-- ═══ GOALS-BASED ANALYSIS (priority-weighted) ═══ -->
 <div class="tab" id="tab-goalsbased">
   <div class="panel" style="background:linear-gradient(135deg,#fff,#f3f0ff);border-left:4px solid #7c3aed">
     <div class="ptitle" style="border:none">🎯 Goals-Based Wealth Analysis</div>
     <div style="font-size:12.5px;color:var(--text2);line-height:1.6">
-      Institutional goals-based framework modeled on the Merrill Lynch Wealth Management Analysis. Each goal is priced in present-value terms, discounted at a risk-adjusted rate matched to its priority, and compared to your funding sources to produce a <strong>Funding Ratio</strong>. Uses per-asset-class capital market assumptions with a full correlation matrix for accurate portfolio risk.
+      Institutional goals-based framework using present-value funding-ratio analysis. Each goal is priced in present-value terms, discounted at a risk-adjusted rate matched to its priority, and compared to your funding sources to produce a <strong>Funding Ratio</strong>. Uses per-asset-class capital market assumptions with a full correlation matrix for accurate portfolio risk.
     </div>
     <div style="margin-top:12px;display:flex;gap:10px;flex-wrap:wrap;align-items:center">
       <button class="btn-primary" onclick="runGoalsBased()" style="font-size:14px;padding:10px 24px">▶ Run Goals-Based Analysis</button>
@@ -2553,7 +2553,7 @@ input[type=date]{color-scheme:light}
   <!-- Wealth Allocation Framework -->
   <div class="panel" id="gbWealthPanel" style="display:none">
     <div class="ptitle">Wealth Allocation Framework</div>
-    <div style="font-size:12px;color:var(--text3);margin-bottom:14px;line-height:1.6">Merrill's three-bucket framework organizes assets by risk-return role: <strong style="color:var(--green)">Personal</strong> (preserve lifestyle — residence, cash), <strong style="color:var(--accent)">Market</strong> (balance risk & return — diversified equities/bonds), and <strong style="color:#7c3aed">Aspirational</strong> (idiosyncratic upside — concentrated stock, business, crypto, investment property).</div>
+    <div style="font-size:12px;color:var(--text3);margin-bottom:14px;line-height:1.6">A three-bucket framework organizes assets by risk-return role: <strong style="color:var(--green)">Personal</strong> (preserve lifestyle — residence, cash), <strong style="color:var(--accent)">Market</strong> (balance risk & return — diversified equities/bonds), and <strong style="color:#7c3aed">Aspirational</strong> (idiosyncratic upside — concentrated stock, business, crypto, investment property).</div>
     <div id="gbWealth"></div>
   </div>
 
@@ -2853,7 +2853,7 @@ input[type=date]{color-scheme:light}
 // ═══════════════════════════════════════════════════════════
 // VERSION — updated by build-standalone.pl on each build
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260707-1602";
+const APP_VERSION = "20260708-1001";
 
 // ═══════════════════════════════════════════════════════════
 // DATA
@@ -10661,7 +10661,7 @@ function getEffectiveReturnParams(){
 const RET_POOL_MU = 0.035; // 3.5% nominal — both accumulation and retirement
 
 // ═══════════════════════════════════════════════════════════════════
-// CAPITAL MARKET ASSUMPTIONS (Merrill-style) — canonical for the WHOLE app.
+// CAPITAL MARKET ASSUMPTIONS (institutional-style) — canonical for the WHOLE app.
 // Per-asset-class arithmetic μ, σ, geometric μ, income yield (annual %).
 // These now drive the core simulation engine, portfolio metrics,
 // comparison, and the Goals-Based Analysis tab — one source of truth.
@@ -11175,7 +11175,7 @@ function runSim(){
   renderRetirementNumber();
   renderTaxEfficiency();
   renderEfficientFrontier();
-  // Merrill-style PV funding ratios + achievable lifestyle (reuse GB engine)
+  // Priority-weighted PV funding ratios + achievable lifestyle (reuse GB engine)
   try { renderSimFundingStatus(); } catch(e){ console.warn("renderSimFundingStatus:", e); }
   try { renderSimLifestyle(); } catch(e){ console.warn("renderSimLifestyle:", e); }
   try { renderClaimAge(); } catch(e){ console.warn("renderClaimAge:", e); }
@@ -12679,7 +12679,7 @@ function buildReportHtml(){
     }
   }
 
-  // --- Goal Funding Status (PV) section [Merrill methodology] ---
+  // --- Goal Funding Status (PV) section [priority-weighted methodology] ---
   let goalFundSection="";
   if((val("rptIncGoalFunding")||"yes")!=="no" && goals.length>0){
     try{
@@ -12692,7 +12692,7 @@ function buildReportHtml(){
     }catch(e){ goalFundSection=""; }
   }
 
-  // --- Potentially Achievable Lifestyle section [Merrill] ---
+  // --- Potentially Achievable Lifestyle section ---
   let lifestyleSection="";
   if((val("rptIncLifestyle")||"yes")!=="no"){
     try{
@@ -12712,7 +12712,7 @@ function buildReportHtml(){
     }catch(e){ lifestyleSection=""; }
   }
 
-  // --- Wealth Allocation Framework section [Merrill] ---
+  // --- Wealth Allocation Framework section ---
   let wealthFwSection="";
   if((val("rptIncWealthFw")||"yes")!=="no"){
     try{
@@ -12732,7 +12732,7 @@ function buildReportHtml(){
     }catch(e){ wealthFwSection=""; }
   }
 
-  // --- Annual Potential Wealth section [Merrill] ---
+  // --- Annual Potential Wealth section ---
   let potWealthSection="";
   if((val("rptIncPotWealth")||"yes")!=="no" && lastSimPaths){
     try{
@@ -12772,7 +12772,7 @@ function buildReportHtml(){
     }catch(e){ glossarySection=""; }
   }
 
-  // --- Capital Market Assumptions section [Merrill] ---
+  // --- Capital Market Assumptions section ---
   let cmaSection="";
   if((val("rptIncCMA")||"yes")!=="no"){
     try{
@@ -12908,7 +12908,7 @@ async function fetchMorningstarFactSheet(ticker){
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// GOALS-BASED ANALYSIS ENGINE (Merrill-style)
+// GOALS-BASED ANALYSIS ENGINE (priority-weighted)
 // The capital market assumptions (CMA), correlation matrix (CMA_CORR),
 // cmaCorr(), normInv(), gbPortfolioRisk() and gbReturnAtConfidence()
 // are now defined canonically near the core portfolio metrics so the
@@ -12947,7 +12947,7 @@ function gbAssetClassWeights(){
   return ALLOC[risk] || ALLOC.moderate;
 }
 
-// Priority → probability-of-success confidence level (Merrill convention)
+// Priority → probability-of-success confidence level (industry convention)
 const GB_PRIORITY_CONF = { essential:95, important:75, aspirational:55 };
 
 // Main goals-based analysis
@@ -13183,7 +13183,7 @@ function gbRenderWealth(){
     h += '</div>';
   });
   h += '</div>';
-  h += '<div style="font-size:11px;color:var(--text3);margin-top:12px">Total categorized: <strong>'+fmtMoney(total)+'</strong>. Concentrated/idiosyncratic positions (business, concentrated stock, investment property, crypto) carry higher risk — Merrill recommends limiting Aspirational exposure relative to your essential-goal funding needs.</div>';
+  h += '<div style="font-size:11px;color:var(--text3);margin-top:12px">Total categorized: <strong>'+fmtMoney(total)+'</strong>. Concentrated/idiosyncratic positions (business, concentrated stock, investment property, crypto) carry higher risk — industry guidance recommends limiting Aspirational exposure relative to your essential-goal funding needs.</div>';
   setH("gbWealth", h);
 }
 
@@ -14219,7 +14219,7 @@ async function generatePDFReport(){
           para("Run the simulation to populate funding status.");
         }
       },
-      // ─── GOAL FUNDING STATUS (PV funding ratios — Merrill methodology) ──
+      // ─── GOAL FUNDING STATUS (PV funding ratios — priority-weighted methodology) ──
       goalfunding: () => {
         if(val("rptIncGoalFunding") === "no" || goals.length === 0) return;
         newPage();
@@ -14288,7 +14288,7 @@ async function generatePDFReport(){
         if(val("rptIncWealthFw") === "no") return;
         checkY(40);
         sectionH2("Wealth Allocation Framework");
-        para("Your assets are classified into three risk buckets following the Merrill framework: Personal (preserve lifestyle and safety), Market (balance risk and return) and Aspirational (idiosyncratic upside such as concentrated stock, a business, investment property or crypto).");
+        para("Your assets are classified into three risk buckets: Personal (preserve lifestyle and safety), Market (balance risk and return) and Aspirational (idiosyncratic upside such as concentrated stock, a business, investment property or crypto).");
         const buckets = {personal:0, market:0, aspirational:0};
         (assets||[]).forEach(a=>{ buckets[gbWealthBucket(a)] += (+a.value||0); });
         buckets.personal     += num("aProp",0) + insuranceCashValue();

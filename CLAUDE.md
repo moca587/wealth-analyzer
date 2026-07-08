@@ -312,8 +312,16 @@ wealth-analyzer/
 ├── build-standalone*.pl              ← standalone builders (Perl)
 ├── scripts/release/                  ← build-legacy.mjs + check-artifacts.mjs
 ├── docs/release-process.md           ← release pipeline docs
+├── docs/pitch/avaloq-partnership-deck.html ← Avaloq deck source (print to PDF; see below)
 └── wealth-app-next/                  ← Next.js + Supabase SaaS migration (Stage 1)
 ```
+
+**`Avaloq-Pitch-Deck.pdf`** (repo root, untracked) has no prior source in this
+repo — it was printed from a throwaway HTML page that was never saved.
+`docs/pitch/avaloq-partnership-deck.html` is that missing source, established
+2026-07-07: open it in a Chromium browser and Print → Save as PDF (landscape,
+no margins, background graphics on) to regenerate the deck. Edit slide content
+there, not the PDF.
 
 ---
 

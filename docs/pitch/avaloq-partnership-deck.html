@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wealth Analyzer × Avaloq — Partnership Proposal</title>
+<style>
+  :root{
+    --navy:#0b1229; --navy2:#141b38; --navy-line:rgba(255,255,255,.12);
+    --blue:#0057b8; --blue-bright:#5b9bd5;
+    --gold:#c9a96e; --gold-dim:#8a6d3a;
+    --ink:#12172b; --ink2:#4b5567; --ink3:#8b93a3;
+    --paper:#fbfaf8; --card:#f3f1ec; --line:#e2ded4;
+    --green:#1b6841; --green-bg:rgba(27,104,65,.12);
+    --amber:#8a5a2b; --amber-bg:rgba(212,149,106,.18);
+    --sans:"Segoe UI",-apple-system,BlinkMacSystemFont,"Helvetica Neue",Arial,sans-serif;
+    --mono:"Consolas","SF Mono","Roboto Mono",ui-monospace,monospace;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{background:#c8cdd6;font-family:var(--sans)}
+  .deckwrap{padding:40px 0;display:flex;flex-direction:column;align-items:center;gap:28px}
+  .slide{width:1200px;max-width:calc(100vw - 32px);aspect-ratio:16/9;background:var(--paper);position:relative;overflow:hidden;padding:6.5% 7.5%;box-shadow:0 18px 40px -12px rgba(11,18,41,.35);border-radius:6px}
+  .slide-dark{background:var(--navy);color:#fff}
+  .eyebrow{font-size:12px;letter-spacing:.16em;font-weight:700;color:var(--gold-dim);text-transform:uppercase}
+  .slide-dark .eyebrow{color:var(--gold)}
+  .rule{width:52px;height:3px;background:var(--blue);margin:12px 0 30px;border-radius:2px}
+  .slide-dark .rule{background:var(--blue-bright)}
+  h1{font-family:var(--sans);font-size:42px;line-height:1.12;font-weight:700;color:var(--ink);margin:0 0 18px;letter-spacing:-.015em;text-wrap:balance;max-width:820px}
+  .slide-dark h1{color:#fff}
+  h1 .accent{color:var(--blue);font-weight:800}
+  .slide-dark h1 .accent{color:var(--blue-bright)}
+  .sub{font-size:16px;color:var(--ink2);max-width:600px;line-height:1.55}
+  .slide-dark .sub{color:#b9c0d4}
+  .stats-row{display:flex;gap:64px;margin-top:64px;padding-top:28px;border-top:1px solid var(--line)}
+  .stat-num{font-family:var(--mono);font-size:38px;font-weight:700;color:var(--blue);font-variant-numeric:tabular-nums}
+  .stat-lbl{font-size:12.5px;color:var(--ink2);margin-top:8px;max-width:165px;line-height:1.4}
+  .cards{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:36px}
+  .cards3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-top:32px}
+  .card{background:var(--card);border-radius:10px;padding:20px 22px}
+  .card-eyebrow{font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.06em;color:var(--gold-dim);text-transform:uppercase;margin-bottom:9px}
+  .card h3{font-size:19px;margin:0 0 7px;color:var(--ink);font-weight:700}
+  .card p{font-size:12.5px;color:var(--ink2);line-height:1.5;margin:0}
+  .cite-box{margin-top:30px;background:var(--card);border-left:3px solid var(--gold);border-radius:0 8px 8px 0;padding:18px 22px;max-width:760px}
+  .cite-box p{font-size:13.5px;color:var(--ink2);line-height:1.55;margin:0 0 8px}
+  .cite-box .src{font-family:var(--mono);font-size:10.5px;color:var(--ink3)}
+  .footnote{position:absolute;left:7.5%;right:7.5%;bottom:5%;font-family:var(--mono);font-size:9.5px;color:var(--ink3)}
+  .footer-brand{position:absolute;bottom:7%;left:7.5%;font-size:14px;font-weight:700;color:var(--ink)}
+  .slide-dark .footer-brand{color:#fff}
+  .footer-note{position:absolute;bottom:7%;right:7.5%;font-family:var(--mono);font-size:9.5px;letter-spacing:.06em;color:var(--ink3);text-transform:uppercase;text-align:right}
+  .glow{position:absolute;right:-180px;top:-180px;width:560px;height:560px;border-radius:50%;background:radial-gradient(circle at 35% 35%,rgba(91,155,213,.35),rgba(11,18,41,0) 70%);pointer-events:none}
+  .glow2{position:absolute;left:-140px;bottom:-220px;width:480px;height:480px;border-radius:50%;background:radial-gradient(circle at 60% 40%,rgba(201,169,110,.18),rgba(11,18,41,0) 70%);pointer-events:none}
+  .layers{display:flex;flex-direction:column;gap:10px;margin-top:44px}
+  .layer{display:flex;align-items:center;justify-content:space-between;border:1px solid var(--line);border-radius:8px;padding:14px 20px;background:var(--paper)}
+  .layer.active{border-color:var(--blue);background:#eef4fb}
+  .layer.record{background:var(--navy);color:#fff;border-color:var(--navy)}
+  .layer-l{display:flex;align-items:baseline;gap:14px}
+  .layer-tag{font-family:var(--mono);font-size:10px;color:var(--ink3);letter-spacing:.06em}
+  .layer.record .layer-tag{color:#8b93a3}
+  .layer-name{font-size:15px;font-weight:700;color:var(--ink)}
+  .layer.record .layer-name{color:#fff}
+  .layer-sub{font-size:12px;color:var(--ink2);font-weight:400}
+  .layer.record .layer-sub{color:#b9c0d4}
+  .chip{font-family:var(--mono);font-size:10px;background:var(--card);border:1px solid var(--line);border-radius:20px;padding:4px 10px;color:var(--ink2)}
+  .chip-row{display:flex;gap:8px}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:38px}
+  .status-row{display:flex;align-items:center;justify-content:space-between;background:var(--card);border-radius:8px;padding:14px 18px}
+  .status-lbl{font-size:14px;font-weight:600;color:var(--ink)}
+  .pill{font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;border-radius:20px;padding:5px 12px}
+  .pill-ready{background:var(--green-bg);color:var(--green)}
+  .pill-roadmap{background:var(--amber-bg);color:var(--amber)}
+  .trio{display:grid;grid-template-columns:1fr 1fr 1fr;gap:22px;margin-top:44px}
+  .trio-item{border-top:2px solid var(--blue);padding-top:14px}
+  .trio-item h3{font-size:17px;margin:0 0 8px;color:var(--ink)}
+  .trio-item p{font-size:12.5px;color:var(--ink2);line-height:1.5;margin:0}
+  .ask-list{margin-top:36px;display:flex;flex-direction:column;gap:20px}
+  .ask-item{display:flex;gap:14px;align-items:baseline}
+  .ask-arrow{color:var(--blue);font-weight:700;font-size:18px}
+  .ask-item b{font-size:17px;color:var(--ink)}
+  .ask-item span{font-size:14px;color:var(--ink2)}
+  .num-list{margin-top:40px;display:flex;flex-direction:column;gap:22px}
+  .num-item{display:flex;gap:18px}
+  .num{font-family:var(--mono);font-size:13px;color:var(--gold-dim);font-weight:700;padding-top:2px}
+  .num-item h3{font-size:18px;margin:0 0 4px;color:var(--ink)}
+  .num-item p{font-size:13px;color:var(--ink2);margin:0}
+
+  /* Print-to-PDF: one slide per landscape page, no browser chrome/shadow */
+  @media print{
+    body{background:#fff}
+    .deckwrap{padding:0;gap:0}
+    .slide{width:100vw;max-width:100vw;height:100vh;aspect-ratio:auto;box-shadow:none;border-radius:0;page-break-after:always}
+    @page{size:1200px 675px landscape;margin:0}
+  }
+</style>
+</head>
+<body>
+
+<!--
+  Wealth Analyzer × Avaloq — partnership deck source.
+  No source file existed for the original Avaloq-Pitch-Deck.pdf (it was
+  printed from a throwaway HTML page that was never saved) — this file is
+  that missing source, going forward. To export a PDF: open in a Chromium
+  browser and Print → Save as PDF (landscape, no margins, background
+  graphics on). Each .slide prints as one page via the @media print rule
+  above.
+-->
+
+<div class="deckwrap">
+
+  <!-- 1: TITLE -->
+  <div class="slide slide-dark">
+    <div class="glow"></div>
+    <div class="eyebrow">Partnership Proposal · Confidential</div>
+    <div class="rule"></div>
+    <h1 style="font-size:54px;max-width:760px">Financial planning,<br><span class="accent">powered by Monte Carlo.</span></h1>
+    <div class="sub">For financial advisors and investment advisors.</div>
+    <div class="footer-brand"><b>Wealth Analyzer</b> <span style="color:var(--ink3);font-weight:400">×</span> <b>Avaloq</b></div>
+    <div class="footer-note">Wealth Analyzer by Private Wealth Intelligence · Momo Ivetic<br>— prepared for Avaloq</div>
+  </div>
+
+  <!-- 2: THE GAP (revised — adds GBWM research citation) -->
+  <div class="slide">
+    <div class="eyebrow">The Gap</div>
+    <div class="rule"></div>
+    <h1>You already have goal-based planning.<br><span class="accent">You don't have Monte Carlo.</span></h1>
+    <div class="sub">Wealth Analyzer adds the probabilistic simulation layer your platform is missing today — inflation-adjusted, cross-border, institution-grade — built to sit alongside what you've already shipped, not replace it.</div>
+    <div class="cite-box">
+      <p>Third-party research puts a real number on that gap. Independent studies from Vanguard, Morningstar, Envestnet and Russell Investments — each surveying advisor-created value across goals-based wealth management — estimate disciplined, goals-based advice adds <b style="color:var(--ink)">160–420 bps/year</b>. Most of that value sits in activities — asset allocation, goal-relative optimization, savings &amp; withdrawal guidance — that require probability-of-success analysis to prove. A GBWM platform without Monte Carlo can describe those numbers. It can't demonstrate them to a client, or defend them to a compliance officer.</p>
+      <div class="src">Sources: Vanguard, "Putting a Value on Your Value" (2016) · Morningstar, "Alpha, Beta, and Now Gamma" (2013) · Envestnet, "Capital Sigma" (2015) · Russell Investments, "Value of an Advisor" series</div>
+    </div>
+    <div class="footer-note">02 / 12</div>
+  </div>
+
+  <!-- 3: WHAT IT IS -->
+  <div class="slide">
+    <div class="eyebrow">What It Is</div>
+    <div class="rule"></div>
+    <h1>A white-label financial<br>planning platform for advisors.</h1>
+    <div class="stats-row">
+      <div><div class="stat-num">50</div><div class="stat-lbl">Jurisdictions of tax, pension &amp; currency logic</div></div>
+      <div><div class="stat-num">1,000</div><div class="stat-lbl">Monte Carlo paths, resolved sub-second</div></div>
+      <div><div class="stat-num">40pp</div><div class="stat-lbl">White-label institutional report</div></div>
+      <div><div class="stat-num">0</div><div class="stat-lbl">External runtime dependencies</div></div>
+    </div>
+    <div class="footer-note">03 / 12</div>
+  </div>
+
+  <!-- 4: WHAT IT DOES -->
+  <div class="slide">
+    <div class="eyebrow">What It Does</div>
+    <div class="rule"></div>
+    <div class="cards">
+      <div class="card"><div class="card-eyebrow">Projection</div><h3>Monte Carlo Financial Planning</h3><p>Answers "will the plan hold?" with validated, inflation-adjusted probability analysis.</p></div>
+      <div class="card"><div class="card-eyebrow">Reporting</div><h3>Institutional reports</h3><p>A 40-page advisory report, rendered as the bank's own document.</p></div>
+      <div class="card"><div class="card-eyebrow">Cross-Border</div><h3>50-jurisdiction logic</h3><p>Tax, pensions &amp; currencies for the internationally-mobile private client.</p></div>
+      <div class="card"><div class="card-eyebrow">Engagement</div><h3>Advisor &amp; client modes</h3><p>Built for financial advisors and investment advisors — RM-led review plus guided client self-service.</p></div>
+    </div>
+    <div class="footer-note">04 / 12</div>
+  </div>
+
+  <!-- 5: NEW — WHAT'S NEW -->
+  <div class="slide">
+    <div class="eyebrow">Now Shipping</div>
+    <div class="rule"></div>
+    <h1 style="font-size:38px">Three gaps closed —<br><span class="accent">cited, not just claimed.</span></h1>
+    <div class="sub" style="margin-top:-6px">The largest value-creating activities in goals-based wealth management research, built into the engine — quantifying the advice itself, not only the projection.</div>
+    <div class="cards3">
+      <div class="card"><div class="card-eyebrow">Behavioral coaching · up to 400bps/yr</div><h3>Behavior Gap</h3><p>Runs the identical simulated market path through a disciplined investor and a panic-seller — quantifying what selling low and re-entering late costs, in the client's own numbers.</p></div>
+      <div class="card"><div class="card-eyebrow">Goal-relative optimization · up to 165bps/yr</div><h3>Priority-Ordered Funding</h3><p>Goals draw down the plan essential-first, important-next, aspirational-last — so a success probability reflects the goal that actually loses out, not a household average.</p></div>
+      <div class="card"><div class="card-eyebrow">Tax management · 45–100bps/yr</div><h3>Asset-Location Guidance</h3><p>Ranks every held asset class by tax efficiency and recommends what belongs in taxable versus tax-deferred and tax-free accounts.</p></div>
+    </div>
+    <div class="footnote">Value ranges per independent research from Vanguard, Morningstar, Envestnet and Russell Investments on goals-based wealth management.</div>
+  </div>
+
+  <!-- 6: DEPTH -->
+  <div class="slide">
+    <div class="eyebrow">Depth</div>
+    <div class="rule"></div>
+    <h1>Built <span class="accent">cross-border-first</span> —<br>the problem your clients actually live.</h1>
+    <div class="sub">Where a generic Monte Carlo engine stops at one market, ours starts with fifty. In Swiss private banking, that's the whole game.</div>
+    <div class="footer-note">06 / 12</div>
+  </div>
+
+  <!-- 7: HOW IT INTEGRATES -->
+  <div class="slide">
+    <div class="eyebrow">How It Integrates</div>
+    <div class="rule"></div>
+    <h1 style="font-size:34px">Native to the Avaloq Core Platform.</h1>
+    <div class="layers">
+      <div class="layer"><div class="layer-l"><span class="layer-tag">LAYER 1 · USERS</span><span class="layer-name">RM &amp; Client <span class="layer-sub">→ Bank SSO</span></span></div><div class="chip-row"><span class="chip">OIDC / OAuth2</span><span class="chip">SAML</span></div></div>
+      <div class="layer active"><div class="layer-l"><span class="layer-tag">LAYER 2 · APP</span><span class="layer-name">Wealth Analyzer <span class="layer-sub">· white-label, session only</span></span></div><div class="chip-row"><span class="chip">Monte Carlo</span><span class="chip">Reporting</span><span class="chip">Cross-border</span></div></div>
+      <div class="layer"><div class="layer-l"><span class="layer-tag">LAYER 3 · ADAPTER</span><span class="layer-name">Standards-based API connector</span></div><div class="chip-row"><span class="chip">Read · portfolios</span><span class="chip">Write-back · proposals</span></div></div>
+      <div class="layer record"><div class="layer-l"><span class="layer-tag">LAYER 4 · RECORD</span><span class="layer-name">Avaloq Core Platform</span></div></div>
+    </div>
+    <div class="sub" style="margin-top:22px;font-size:13px">Runs inside the bank / Avaloq perimeter — no client-data egress.</div>
+  </div>
+
+  <!-- 8: TRUST & COMPLIANCE -->
+  <div class="slide">
+    <div class="eyebrow">Trust &amp; Compliance</div>
+    <div class="rule"></div>
+    <h1 style="font-size:34px">Built to private-banking requirements<br>— and honest about status.</h1>
+    <div class="grid2">
+      <div class="status-row"><div class="status-lbl">Data residency · zero egress</div><span class="pill pill-ready">Ready</span></div>
+      <div class="status-row"><div class="status-lbl">Self-contained, vendored build</div><span class="pill pill-ready">Ready</span></div>
+      <div class="status-row"><div class="status-lbl">Standards-based auth &amp; SSO</div><span class="pill pill-roadmap">On roadmap</span></div>
+      <div class="status-row"><div class="status-lbl">Documented model governance</div><span class="pill pill-roadmap">On roadmap</span></div>
+      <div class="status-row"><div class="status-lbl">Suitability &amp; MiFID / FIDLEG</div><span class="pill pill-roadmap">On roadmap</span></div>
+      <div class="status-row"><div class="status-lbl">ISO 27001 / SOC 2 · pen-test</div><span class="pill pill-roadmap">On roadmap</span></div>
+    </div>
+    <div class="footer-note">08 / 12</div>
+  </div>
+
+  <!-- 9: UNDER THE HOOD -->
+  <div class="slide">
+    <div class="eyebrow">Under The Hood</div>
+    <div class="rule"></div>
+    <h1 style="font-size:34px">A validated engine,<br>documented for model risk.</h1>
+    <div class="trio">
+      <div class="trio-item"><h3>Rigorous</h3><p>i.i.d. log-normal Monte Carlo simulation, inflation-adjusted, with liquidity-aware funding analysis.</p></div>
+      <div class="trio-item"><h3>Verified</h3><p>Independently audited end-to-end; every surface reconciles to the figure.</p></div>
+      <div class="trio-item"><h3>Governed</h3><p>Full methodology dossier, grounded in published GBWM research; assumptions are configurable to your house-view CMAs.</p></div>
+    </div>
+    <div class="footer-note">09 / 12</div>
+  </div>
+
+  <!-- 10: COMMERCIAL MODEL -->
+  <div class="slide">
+    <div class="eyebrow">Commercial Model</div>
+    <div class="rule"></div>
+    <div class="num-list">
+      <div class="num-item"><div class="num">01</div><div><h3>Marketplace listing</h3><p>Distributed to your client banks through the partner ecosystem.</p></div></div>
+      <div class="num-item"><div class="num">02</div><div><h3>Per-tenant licensing + revenue share</h3><p>Avaloq earns on every deployment.</p></div></div>
+      <div class="num-item"><div class="num">03</div><div><h3>White-labeled as the bank's own product</h3><p>You and the bank keep the client relationship.</p></div></div>
+    </div>
+    <div class="footer-note">10 / 12</div>
+  </div>
+
+  <!-- 11: THE ASK -->
+  <div class="slide">
+    <div class="eyebrow">The Ask</div>
+    <div class="rule"></div>
+    <h1>A <span class="accent">90-day pilot.</span></h1>
+    <div class="ask-list">
+      <div class="ask-item"><span class="ask-arrow">→</span><div><b>API sandbox access</b> <span>+ a named technical contact</span></div></div>
+      <div class="ask-item"><span class="ask-arrow">→</span><div><b>A design-partner bank</b> <span>from the Avaloq network</span></div></div>
+      <div class="ask-item"><span class="ask-arrow">→</span><div><b>Joint marketplace onboarding</b></div></div>
+    </div>
+    <div class="footer-note">11 / 12</div>
+  </div>
+
+  <!-- 12: CLOSE -->
+  <div class="slide slide-dark">
+    <div class="glow"></div>
+    <div class="glow2"></div>
+    <div class="eyebrow">Where We Are</div>
+    <div class="rule"></div>
+    <h1 style="font-size:46px">Pilot-ready today.<br><span class="accent">A defined path to certification.</span></h1>
+    <div class="footer-brand"><b>Wealth Analyzer</b> <span style="color:var(--ink3);font-weight:400">×</span> <b>Avaloq</b></div>
+    <div class="footer-note">Wealth Analyzer by PWI · Momo Ivetic<br>[ email ] · [ phone ]</div>
+  </div>
+
+</div>
+</body>
+</html>
