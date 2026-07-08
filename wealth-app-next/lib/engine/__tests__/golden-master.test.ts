@@ -99,9 +99,10 @@ const SCENARIOS: Array<{ name: string; input: SimulationInput }> = [
           { id: "a4", type: "home", label: "Home", value: 850000, liquid: false, cls: "real_estate" },
         ],
         loans: [{ id: "l1", type: "Mortgage", bal: 410000, rate: 5.4, yrs: 24 }],
-        // Note: no separate "Retirement Income" goal here — retirement spend is
-        // modelled by the decumulation engine (retirement.annualSpending). A plan
-        // with BOTH double-counts retirement spending; see pipeline.test.ts.
+        // Note: the only goal here is an Education goal (a genuine, separate
+        // drawdown). Retirement spend is modelled by the decumulation engine
+        // (retirement.annualSpending); a `cat === "Retirement"` goal would now be
+        // excluded from goal-funding to avoid double-counting — see pipeline.test.ts.
         goals: [
           { id: "g2", name: "College", cat: "Education", tier: "important", amt: 60000, startYear: 2028, endYear: 2031 },
         ],

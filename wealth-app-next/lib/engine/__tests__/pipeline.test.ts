@@ -125,13 +125,13 @@ describe("pipeline: migrate → validate → simulate", () => {
   });
 });
 
-describe("pipeline: documents the retirement double-count interaction", () => {
-  // The engine models retirement spend via retirement.annualSpending AND, if a
-  // separate "retirement income" GOAL exists, ALSO draws that goal from wealth.
-  // A plan that carries both (as the app's sample report plan currently does)
-  // double-counts retirement spending and looks worse than it should. This test
-  // pins that behaviour so a future intentional fix is a conscious, visible
-  // change rather than a silent one.
+describe("pipeline: retirement-category goals don't double-count against decumulation", () => {
+  // The engine models retirement spend via retirement.annualSpending. A separate
+  // `cat === "Retirement"` GOAL for the same spend used to ALSO be drawn from
+  // wealth, double-counting retirement spending and making success/depletion look
+  // worse than reality (the app's sample plans carry exactly this pattern). The
+  // engine now excludes retirement-category goals from goal-funding when
+  // retirement is enabled, so adding one is a no-op on the decumulation outcome.
   const base: WealthPlan = {
     version: 1, currency: "USD", inflationRate: 0.03, inflationRegion: "US",
     clients: [{ id: "c1", first: "P", last: "Q", dob: "1970-01-01", country: "US", risk: "moderate", horizon: "15_plus" }],
@@ -151,9 +151,19 @@ describe("pipeline: documents the retirement double-count interaction", () => {
     goals: [{ id: "gret", name: "Retirement Income", cat: "Retirement", tier: "essential", amt: 80000, startYear: 2035, endYear: 2060 }],
   };
 
-  it("adding an overlapping retirement-income goal lowers modelled success", () => {
+  it("adding an overlapping retirement-income goal no longer changes modelled success", () => {
     const clean = runMonteCarlo({ plan: base, sims: 1000, years: 40, seed: 77, asOfYear: ASOF });
-    const doubled = runMonteCarlo({ plan: withOverlap, sims: 1000, years: 40, seed: 77, asOfYear: ASOF });
-    expect(clean.retirement!.successProbability).toBeGreaterThanOrEqual(doubled.retirement!.successProbability);
+    const withGoal = runMonteCarlo({ plan: withOverlap, sims: 1000, years: 40, seed: 77, asOfYear: ASOF });
+    // The retirement-category goal is excluded from goal-funding, so the
+    // decumulation outcome is identical to the plan without it (no double-count).
+    expect(withGoal.retirement!.successProbability).toBe(clean.retirement!.successProbability);
+    expect(withGoal.retirement!.depletionProbability).toBe(clean.retirement!.depletionProbability);
+  });
+
+  it("reports the covered retirement goal's success as the money-lasts probability, not zero", () => {
+    const withGoal = runMonteCarlo({ plan: withOverlap, sims: 1000, years: 40, seed: 77, asOfYear: ASOF });
+    const gs = withGoal.goalSuccess.find((g) => g.goalId === "gret");
+    expect(gs).toBeTruthy();
+    expect(gs!.probability).toBe(withGoal.retirement!.successProbability);
   });
 });
