@@ -11,7 +11,10 @@
 //   - Goal funding evaluated at calendar-year targets
 // ─────────────────────────────────────────────────────────────────
 
-import { boxMuller, calcMortgagePayment, createSeededRandom, geometricMean } from "./financial-math";
+import {
+  boxMuller, calcMortgagePayment, createSeededRandom, geometricMean,
+  portfolioReturnParams, estimateIncomeTax
+} from "./financial-math";
 import { RISK_PROFILES } from "./constants";
 import type {
   SimulationInput,
@@ -71,23 +74,35 @@ export function runMonteCarlo(input: SimulationInput): SimulationResult {
   const rng = seed !== undefined ? createSeededRandom(seed) : Math.random;
 
   // ─── Pre-compute static inputs ───
-  const { muPct, sigmaPct } = getBlendedReturnParams(plan.clients);
-  const mu = muPct / 100;
-  const sigma = sigmaPct / 100;
-  const drift = geometricMean(mu, sigma);
-  const inflation = plan.inflationRate;
-
-  const totalInvestableAssets = sumOf(
-    plan.assets.filter((a) => a.cls !== "real_estate"),
-    (a) => a.value
-  );
+  const investableAssets = plan.assets.filter((a) => a.cls !== "real_estate");
+  const totalInvestableAssets = sumOf(investableAssets, (a) => a.value);
   const totalPropertyValue = sumOf(
     plan.assets.filter((a) => a.cls === "real_estate"),
     (a) => a.value
   );
 
+  // Portfolio return/volatility derived from the ACTUAL investable allocation
+  // via per-asset-class CMAs + correlation — so composition matters (a 100%
+  // equity plan now differs from a 60/40). The blended risk profile is only a
+  // fallback when there are no classified investable holdings.
+  const { muPct, sigmaPct } = getBlendedReturnParams(plan.clients);
+  const { mean: mu, sigma } = portfolioReturnParams(
+    investableAssets.map((a) => ({ cls: a.cls, value: a.value })),
+    { mean: muPct / 100, sigma: sigmaPct / 100 }
+  );
+  const drift = geometricMean(mu, sigma);
+  const inflation = plan.inflationRate;
+
   const annualIncome = sumOf(plan.incomes, (i) => i.amount);
   const annualExpense = sumOf(plan.expenses, (e) => e.amount) * 12;
+
+  // Income tax: applied to taxable income each year so surplus is post-tax
+  // rather than gross (previously the engine reinvested income untaxed,
+  // overstating savings). Income is flat, so the tax is computed once.
+  const taxableIncome = sumOf(plan.incomes.filter((i) => i.taxable !== false), (i) => i.amount);
+  const taxCountry = plan.clients[0]?.country || "US";
+  const annualTax = estimateIncomeTax(taxableIncome, taxCountry);
+  const afterTaxIncome = annualIncome - annualTax;
 
   const startYear = new Date().getFullYear();
 
@@ -130,7 +145,7 @@ export function runMonteCarlo(input: SimulationInput): SimulationResult {
       // A shortfall isn't ignored — it draws down liquid assets, same as a
       // real household covering a budget gap from savings.
       const inflatedExpense = annualExpense * Math.pow(1 + inflation, y);
-      const surplus = annualIncome - inflatedExpense - interestPaid;
+      const surplus = afterTaxIncome - inflatedExpense - interestPaid;
       investable += surplus;
 
       // 5. Goal funding — for each goal whose calendar year is THIS year.
@@ -212,11 +227,11 @@ export function runMonteCarlo(input: SimulationInput): SimulationResult {
 /** Cheap stable hash for caching simulation results */
 function hashPlan(plan: WealthPlan, sims: number, years: number, seed?: number): string {
   const s = JSON.stringify({
-    c: plan.clients.map((c) => [c.risk, c.horizon]),
+    c: plan.clients.map((c) => [c.risk, c.horizon, c.country]),
     a: plan.assets.map((a) => [a.cls, a.value]),
     l: plan.loans.map((l) => [l.bal, l.rate, l.yrs]),
     g: plan.goals.map((g) => [g.amt, g.startYear, g.endYear]),
-    i: plan.incomes.map((i) => i.amount),
+    i: plan.incomes.map((i) => [i.amount, i.taxable !== false]),
     e: plan.expenses.map((e) => e.amount),
     inf: plan.inflationRate,
     sims, years, seed: seed ?? null

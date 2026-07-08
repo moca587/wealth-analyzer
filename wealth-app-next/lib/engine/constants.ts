@@ -3,7 +3,7 @@
 // Ported 1:1 from the HTML app for behavior compatibility.
 // ─────────────────────────────────────────────────────────────────
 
-import type { RiskProfile, TimeHorizon } from "./types";
+import type { AssetClass, RiskProfile, TimeHorizon } from "./types";
 
 export const RISK_PROFILES: Record<RiskProfile, { label: string; mu: number; sigma: number }> = {
   very_conservative:        { label: "Very Conservative",      mu: 3.5,  sigma: 4  },
@@ -68,6 +68,80 @@ export function inflationRegionForCountry(country: string): string {
   if (country === "TW") return "CN";
   return "US";
 }
+
+// ─────────────────────────────────────────────────────────────────
+// Capital-market assumptions (long-run, per asset class). Arithmetic
+// mean return and annualised volatility (both decimal). These let the
+// engine derive a portfolio's μ/σ from its actual allocation instead
+// of one blended risk-profile number — so a 100%-equity and a 60/40
+// plan no longer simulate identically. Ported/adapted from the legacy
+// CMA table in wealth-analyzer.html.
+// ─────────────────────────────────────────────────────────────────
+export const ASSET_CLASS_CMA: Record<AssetClass, { mean: number; sigma: number }> = {
+  equity:       { mean: 0.080, sigma: 0.160 },
+  fixed_income: { mean: 0.040, sigma: 0.060 },
+  real_estate:  { mean: 0.055, sigma: 0.110 },
+  commodity:    { mean: 0.045, sigma: 0.180 },
+  cash:         { mean: 0.030, sigma: 0.015 },
+  mixed:        { mean: 0.060, sigma: 0.100 },
+  alternative:  { mean: 0.070, sigma: 0.140 },
+  crypto:       { mean: 0.120, sigma: 0.600 },
+};
+
+// Correlation matrix between asset classes (symmetric; diagonal = 1).
+// Used to compute portfolio σ from a covariance sum, so diversification
+// (holding lowly-correlated sleeves) correctly reduces portfolio risk.
+const _CORR_PAIRS: Partial<Record<AssetClass, Partial<Record<AssetClass, number>>>> = {
+  equity:       { fixed_income: 0.15, real_estate: 0.55, commodity: 0.30, cash: 0.00, mixed: 0.85, alternative: 0.55, crypto: 0.35 },
+  fixed_income: { real_estate: 0.20, commodity: 0.00, cash: 0.30, mixed: 0.55, alternative: 0.15, crypto: 0.05 },
+  real_estate:  { commodity: 0.25, cash: 0.05, mixed: 0.60, alternative: 0.45, crypto: 0.20 },
+  commodity:    { cash: 0.00, mixed: 0.25, alternative: 0.35, crypto: 0.25 },
+  cash:         { mixed: 0.10, alternative: 0.00, crypto: 0.00 },
+  mixed:        { alternative: 0.55, crypto: 0.35 },
+  alternative:  { crypto: 0.30 },
+};
+
+/** Correlation between two asset classes (order-independent; 1 on the diagonal). */
+export function assetCorrelation(a: AssetClass, b: AssetClass): number {
+  if (a === b) return 1;
+  return _CORR_PAIRS[a]?.[b] ?? _CORR_PAIRS[b]?.[a] ?? 0;
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Progressive income-tax brackets (marginal rate up to each ceiling),
+// keyed by country. A simplified, federal-level model applied to
+// taxable income each simulation year so surplus is post-tax rather
+// than gross. Not a substitute for filing advice — excludes
+// state/provincial/local layers and credits. `default` covers any
+// country without its own table.
+// ─────────────────────────────────────────────────────────────────
+export const TAX_BRACKETS: Record<string, Array<{ upTo: number; rate: number }>> = {
+  US: [
+    { upTo: 11600, rate: 0.10 }, { upTo: 47150, rate: 0.12 }, { upTo: 100525, rate: 0.22 },
+    { upTo: 191950, rate: 0.24 }, { upTo: 243725, rate: 0.32 }, { upTo: 609350, rate: 0.35 },
+    { upTo: Infinity, rate: 0.37 },
+  ],
+  GB: [
+    { upTo: 12570, rate: 0.00 }, { upTo: 50270, rate: 0.20 }, { upTo: 125140, rate: 0.40 },
+    { upTo: Infinity, rate: 0.45 },
+  ],
+  CA: [
+    { upTo: 55867, rate: 0.15 }, { upTo: 111733, rate: 0.205 }, { upTo: 173205, rate: 0.26 },
+    { upTo: 246752, rate: 0.29 }, { upTo: Infinity, rate: 0.33 },
+  ],
+  AU: [
+    { upTo: 18200, rate: 0.00 }, { upTo: 45000, rate: 0.19 }, { upTo: 135000, rate: 0.325 },
+    { upTo: 190000, rate: 0.37 }, { upTo: Infinity, rate: 0.45 },
+  ],
+  DE: [
+    { upTo: 11604, rate: 0.00 }, { upTo: 17005, rate: 0.14 }, { upTo: 66760, rate: 0.30 },
+    { upTo: 277825, rate: 0.42 }, { upTo: Infinity, rate: 0.45 },
+  ],
+  default: [
+    { upTo: 15000, rate: 0.10 }, { upTo: 50000, rate: 0.20 }, { upTo: 150000, rate: 0.30 },
+    { upTo: Infinity, rate: 0.38 },
+  ],
+};
 
 /** IRS Uniform Lifetime Table for RMD calculations (US-specific). */
 export const IRS_UNIFORM_LIFETIME: Record<number, number> = {

@@ -4,7 +4,8 @@
 // Ported from the wealth-analyzer.html script block.
 // ─────────────────────────────────────────────────────────────────
 
-import { IRS_UNIFORM_LIFETIME } from "./constants";
+import { IRS_UNIFORM_LIFETIME, ASSET_CLASS_CMA, assetCorrelation, TAX_BRACKETS } from "./constants";
+import type { AssetClass } from "./types";
 
 /**
  * Box-Muller transform — draws a sample from N(0,1).
@@ -66,6 +67,67 @@ export function annuityPV(payment: number, ratePct: number, periods: number): nu
 /** Geometric mean adjustment: log-normal mean from arithmetic μ, σ (both decimal) */
 export function geometricMean(arithMean: number, vol: number): number {
   return arithMean - 0.5 * vol * vol;
+}
+
+/**
+ * Derive a portfolio's expected return (mean) and volatility (sigma) from its
+ * actual allocation, using per-asset-class capital-market assumptions and the
+ * correlation matrix. Portfolio σ is the covariance sum
+ *   σ_p = sqrt( ΣΣ wᵢ wⱼ σᵢ σⱼ ρᵢⱼ )
+ * so lowly-correlated sleeves correctly reduce risk (diversification).
+ *
+ * Weights are by value, aggregated per class. Assets with no class fall back
+ * to "mixed". If the holdings carry no value, returns `fallback` (typically the
+ * blended risk-profile assumption) so empty/cash-only-zero plans still run.
+ * Both returned figures are decimals.
+ */
+export function portfolioReturnParams(
+  holdings: Array<{ cls?: AssetClass; value: number }>,
+  fallback: { mean: number; sigma: number }
+): { mean: number; sigma: number } {
+  const byClass = new Map<AssetClass, number>();
+  let total = 0;
+  for (const h of holdings) {
+    const v = h.value || 0;
+    if (v <= 0) continue;
+    const cls: AssetClass = (h.cls && ASSET_CLASS_CMA[h.cls]) ? h.cls : "mixed";
+    byClass.set(cls, (byClass.get(cls) || 0) + v);
+    total += v;
+  }
+  if (total <= 0) return fallback;
+
+  const classes = Array.from(byClass.keys());
+  const weight = (c: AssetClass) => (byClass.get(c) || 0) / total;
+
+  let mean = 0;
+  for (const c of classes) mean += weight(c) * ASSET_CLASS_CMA[c].mean;
+
+  let variance = 0;
+  for (const a of classes) {
+    for (const b of classes) {
+      variance += weight(a) * weight(b) * ASSET_CLASS_CMA[a].sigma * ASSET_CLASS_CMA[b].sigma * assetCorrelation(a, b);
+    }
+  }
+  return { mean, sigma: Math.sqrt(Math.max(0, variance)) };
+}
+
+/**
+ * Estimate annual income tax on `taxableIncome` using progressive marginal
+ * brackets for the given country (falls back to a generic table). Simplified,
+ * federal-level only — excludes state/provincial/local layers and credits.
+ * Returns the tax amount in the same units as the income.
+ */
+export function estimateIncomeTax(taxableIncome: number, country = "US"): number {
+  if (!(taxableIncome > 0)) return 0;
+  const brackets = TAX_BRACKETS[country] ?? TAX_BRACKETS.default;
+  let tax = 0, prev = 0;
+  for (const b of brackets) {
+    const slice = Math.min(taxableIncome, b.upTo) - prev;
+    if (slice > 0) tax += slice * b.rate;
+    prev = b.upTo;
+    if (taxableIncome <= b.upTo) break;
+  }
+  return Math.max(0, tax);
 }
 
 /**

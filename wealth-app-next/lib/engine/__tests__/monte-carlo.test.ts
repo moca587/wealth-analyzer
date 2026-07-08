@@ -147,79 +147,54 @@ describe("runMonteCarlo", () => {
     expect(highSavings.final.p50).toBeGreaterThan(lowSavings.final.p50);
   });
 
-  test("higher return risk profile increases median final wealth", () => {
-    const conservative = run(
+  test("portfolio composition drives return — an all-equity plan beats an all-cash plan", () => {
+    const equityPlan = run(
       makePlan({
-        clients: [
-          {
-            id: "c1",
-            first: "Test",
-            last: "Client",
-            dob: "1980-01-01",
-            country: "US",
-            risk: "conservative",
-            horizon: "15_plus",
-          },
-        ],
-      })
+        assets: [{ id: "a1", type: "brokerage", label: "Equity", value: 200000, liquid: true, country: "US", cls: "equity" }],
+      }),
+      { seed: 5 }
+    );
+    const cashPlan = run(
+      makePlan({
+        assets: [{ id: "a1", type: "savings", label: "Cash", value: 200000, liquid: true, country: "US", cls: "cash" }],
+      }),
+      { seed: 5 }
     );
 
-    const aggressive = run(
-      makePlan({
-        clients: [
-          {
-            id: "c1",
-            first: "Test",
-            last: "Client",
-            dob: "1980-01-01",
-            country: "US",
-            risk: "aggressive",
-            horizon: "15_plus",
-          },
-        ],
-      })
-    );
-
-    expect(aggressive.final.p50).toBeGreaterThan(conservative.final.p50);
+    // Same everything except the asset class — equity's higher CMA return wins.
+    expect(equityPlan.final.p50).toBeGreaterThan(cashPlan.final.p50);
   });
 
-  test("higher volatility creates wider outcome spread", () => {
-    const lowVol = run(
+  test("portfolio composition drives volatility — equity spreads wider than cash", () => {
+    const equityPlan = run(
       makePlan({
-        clients: [
-          {
-            id: "c1",
-            first: "Test",
-            last: "Client",
-            dob: "1980-01-01",
-            country: "US",
-            risk: "conservative",
-            horizon: "15_plus",
-          },
-        ],
-      })
+        assets: [{ id: "a1", type: "brokerage", label: "Equity", value: 200000, liquid: true, country: "US", cls: "equity" }],
+      }),
+      { seed: 8 }
+    );
+    const cashPlan = run(
+      makePlan({
+        assets: [{ id: "a1", type: "savings", label: "Cash", value: 200000, liquid: true, country: "US", cls: "cash" }],
+      }),
+      { seed: 8 }
     );
 
-    const highVol = run(
-      makePlan({
-        clients: [
-          {
-            id: "c1",
-            first: "Test",
-            last: "Client",
-            dob: "1980-01-01",
-            country: "US",
-            risk: "very_aggressive",
-            horizon: "15_plus",
-          },
-        ],
-      })
+    const equitySpread = equityPlan.final.p90 - equityPlan.final.p10;
+    const cashSpread = cashPlan.final.p90 - cashPlan.final.p10;
+    expect(equitySpread).toBeGreaterThan(cashSpread);
+  });
+
+  test("income tax reduces projected wealth versus untaxed income", () => {
+    const taxed = run(
+      makePlan({ incomes: [{ id: "i1", clientId: "c1", source: "salary", amount: 150000, taxable: true }] }),
+      { seed: 11 }
+    );
+    const untaxed = run(
+      makePlan({ incomes: [{ id: "i1", clientId: "c1", source: "salary", amount: 150000, taxable: false }] }),
+      { seed: 11 }
     );
 
-    const lowSpread = lowVol.final.p90 - lowVol.final.p10;
-    const highSpread = highVol.final.p90 - highVol.final.p10;
-
-    expect(highSpread).toBeGreaterThan(lowSpread);
+    expect(untaxed.final.p50).toBeGreaterThan(taxed.final.p50);
   });
 
   test("goal success probability is returned between 0 and 1", () => {
