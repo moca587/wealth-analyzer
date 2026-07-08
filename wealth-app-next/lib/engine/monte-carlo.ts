@@ -73,6 +73,12 @@ export function runMonteCarlo(input: SimulationInput): SimulationResult {
   const { plan, sims, years, seed } = input;
   const rng = seed !== undefined ? createSeededRandom(seed) : Math.random;
 
+  // Anchor the run to a fixed calendar year so goal offsets and the primary
+  // client's age are reproducible for a given seed (they otherwise drift with
+  // the wall clock). Defaults to the current year for live runs.
+  const asOfYear = input.asOfYear ?? new Date().getFullYear();
+  const asOfDate = new Date(asOfYear, 0, 1);
+
   // ─── Pre-compute static inputs ───
   const investableAssets = plan.assets.filter((a) => a.cls !== "real_estate");
   // Split investable into a taxable pool and a tax-deferred (retirement-account)
@@ -108,7 +114,7 @@ export function runMonteCarlo(input: SimulationInput): SimulationResult {
   const afterTaxIncome = annualIncome - estimateIncomeTax(taxableIncome, taxCountry);
 
   // ─── Retirement / decumulation config ───
-  const currentAge = plan.clients[0]?.dob ? ageFromDOB(plan.clients[0].dob) : 40;
+  const currentAge = plan.clients[0]?.dob ? ageFromDOB(plan.clients[0].dob, asOfDate) : 40;
   const ret = plan.retirement;
   const retEnabled = !!(ret && ret.enabled && ret.retirementAge > 0);
   const retirementAge = retEnabled ? ret!.retirementAge : Infinity;
@@ -118,7 +124,7 @@ export function runMonteCarlo(input: SimulationInput): SimulationResult {
   // With retirement on, model through planToAge; otherwise use the caller's years.
   const Y = retEnabled ? Math.max(1, Math.min(70, planToAge - currentAge)) : years;
 
-  const startYear = new Date().getFullYear();
+  const startYear = asOfYear;
 
   // Pre-compute goal target year offsets (relative year indices)
   const goalsByYear: Array<{ goal: Goal; yearOffset: number }> = plan.goals
@@ -260,7 +266,7 @@ export function runMonteCarlo(input: SimulationInput): SimulationResult {
   }));
 
   // ─── Hash input for caching (stable for identical plans) ───
-  const inputHash = hashPlan(plan, sims, Y, seed);
+  const inputHash = hashPlan(plan, sims, Y, seed, asOfYear);
 
   // ─── Retirement "will my money last?" summary ───
   const retirement = retEnabled
@@ -294,7 +300,7 @@ export function runMonteCarlo(input: SimulationInput): SimulationResult {
 }
 
 /** Cheap stable hash for caching simulation results */
-function hashPlan(plan: WealthPlan, sims: number, years: number, seed?: number): string {
+function hashPlan(plan: WealthPlan, sims: number, years: number, seed?: number, asOfYear?: number): string {
   const s = JSON.stringify({
     c: plan.clients.map((c) => [c.risk, c.horizon, c.country, c.dob]),
     a: plan.assets.map((a) => [a.cls, a.value, a.liquid]),
@@ -305,7 +311,7 @@ function hashPlan(plan: WealthPlan, sims: number, years: number, seed?: number):
     r: plan.retirement ? [plan.retirement.enabled, plan.retirement.retirementAge, plan.retirement.annualSpending, plan.retirement.planToAge] : null,
     p: (plan.pensions || []).map((p) => [p.annualAmount, p.startAge, p.colaRate]),
     inf: plan.inflationRate,
-    sims, years, seed: seed ?? null
+    sims, years, seed: seed ?? null, asOfYear: asOfYear ?? null
   });
   // Simple FNV-1a hash
   let h = 2166136261;

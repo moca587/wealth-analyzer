@@ -9,7 +9,8 @@
     "app:install": "npm --prefix wealth-app-next ci",
     "app:test": "npm --prefix wealth-app-next run test:run",
     "app:typecheck": "npm --prefix wealth-app-next run type-check",
+    "app:lint": "npm --prefix wealth-app-next run lint",
     "app:build": "npm --prefix wealth-app-next run build",
-    "ci": "npm run app:test && npm run app:typecheck && npm run app:build && npm run legacy:check"
+    "ci": "npm run app:test && npm run app:typecheck && npm run app:lint && npm run app:build && npm run legacy:check"
   }
 }

@@ -268,13 +268,38 @@ wealth-app-next/
 - **`app/preview/plan`** renders `PlanForm` with sample data outside the auth
   gate for design review; it `notFound()`s in production.
 
+### Quality safety net (audit Plan E)
+The engine is guarded by three layers of tests under `lib/engine/__tests__/`
+(all seeded + `asOfYear`-anchored, so runs are byte-reproducible):
+- **`golden-master.test.ts`** — 5 canonical plans frozen to expected
+  percentiles / goal-success / retirement stats. Any numeric drift trips it.
+  Regenerate intentionally with `GEN_GOLDEN=1 npx vitest run golden-master`
+  (prints a JSON blob to paste into `EXPECTED`), then review the diff.
+- **`analytical-bounds.test.ts`** — pins the engine to first-principles truth
+  (all-cash median ≈ `initial·(1+drift)^T`; mean ≥ median skew; percentile
+  ordering; equity out-grows/out-spreads cash; diversification lowers spread).
+  This is the honest replacement for a legacy-vs-SaaS parity harness: the SaaS
+  engine is **no longer a port** of `wealth-analyzer.html` `runMC()` (it
+  re-models with per-class CMAs + correlation + progressive tax + two-pool
+  decumulation), so a numeric parity test would compare two intentionally
+  different models.
+- **`pipeline.test.ts`** — "E2E-lite": raw legacy-shaped export →
+  `migratePlan` → `parsePlan` → `runMonteCarlo` → report-coherence asserts.
+  Also pins a **known modelling interaction**: a plan carrying BOTH a
+  "retirement income" goal AND `retirement.annualSpending` double-counts
+  retirement spend (the app's sample report plan currently does this).
+
+**Determinism knob:** `runMonteCarlo` accepts an optional `asOfYear`
+(`SimulationInput`) that fixes goal-year offsets and the primary client's age;
+omit it for live runs (defaults to the current year).
+
 ### Running it
 ```bash
 cd wealth-app-next
 cp .env.local.example .env.local   # real Supabase creds, or placeholders to just boot the UI
 npm install
 npm run dev        # http://localhost:3000  (or PORT=3100 npm run dev)
-npm run type-check && npm run test && npm run build
+npm run type-check && npm run test && npm run lint && npm run build
 ```
 `.env.local` is gitignored. Placeholder Supabase values are enough to render the
 UI (including `/preview/plan`); real values are needed for auth/persistence.
@@ -282,7 +307,8 @@ UI (including `/preview/plan`); real values are needed for auth/persistence.
 ### Release & CI (whole repo)
 The legacy standalones and the SaaS app share one pipeline, driven from the
 **repo root** `package.json`:
-- `npm run ci` — app tests + type-check + Next build + `legacy:check`.
+- `npm run ci` — app tests + type-check + **lint** (`app:lint` → `next lint`,
+  config in `wealth-app-next/.eslintrc.json`) + Next build + `legacy:check`.
 - `npm run legacy:build` — regenerate every `*-standalone.html` via the Perl
   builders, then validate (needs Perl).
 - `npm run legacy:check` — `scripts/release/check-artifacts.mjs`; validates each
@@ -292,6 +318,11 @@ The legacy standalones and the SaaS app share one pipeline, driven from the
   green). See `docs/release-process.md` for source-of-truth vs generated files.
 - The push token here lacks GitHub's `workflow` scope — workflow YAML changes go
   through the GitHub web UI, not a push from this environment.
+- **Pending web-UI edit:** `.github/workflows/ci.yml` still runs test /
+  type-check / build / `legacy:check` as separate steps but has **no lint
+  step** — add one (`run: npm run app:lint`) after "Type-check" so CI enforces
+  the lint the root `ci` script already includes. (`next build` also lints now
+  that `.eslintrc.json` exists, so lint is enforced at build time regardless.)
 
 ---
 
