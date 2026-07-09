@@ -3,11 +3,17 @@
 // Pure function: given a plan + simulation parameters, returns
 // percentile bands, paths, goal probabilities, final-year stats.
 //
-// Mirrors the algorithm in wealth-analyzer.html runSim():
-//   - Log-normal returns via Box-Muller transform
-//   - Property appreciation as stochastic 3% ± 2%
+// Originally ported from wealth-analyzer.html runSim(); has since been
+// re-modelled (per-asset-class CMAs + correlation, progressive income tax,
+// two-pool retirement decumulation with pensions/RMDs) and is intentionally
+// NOT numerically parity with the legacy engine:
+//   - TRUE log-normal returns via Box-Muller: pool *= exp((μ−σ²/2) + σZ),
+//     so the mean tracks the stated CMA μ and the median grows at the
+//     geometric rate. (Legacy applies the same draw arithmetically, which
+//     double-counts the volatility drag — changed here 2026-07.)
+//   - Property appreciation as stochastic 3% ± 2% (arithmetic; σ too small
+//     for the distinction to matter)
 //   - Real loan amortization (interest math, balance amortizes down)
-//   - Surplus split 30% invested / 70% cash (configurable later)
 //   - Goal funding evaluated at calendar-year targets
 // ─────────────────────────────────────────────────────────────────
 
@@ -163,12 +169,17 @@ export function runMonteCarlo(input: SimulationInput): SimulationResult {
     for (let y = 0; y < Y; y++) {
       const age = currentAge + y;
 
-      // 1. Stochastic return on both investable pools. The annual multiplier is
-      // floored at 0 — a long-only pool cannot lose more than 100% in a single
-      // year (an unclamped high-σ draw could otherwise flip the balance negative)
-      // — and returns are applied ONLY to a positive balance, so a temporary cash
-      // shortfall (negative taxable) is never compounded like a leveraged short.
-      const growth = Math.max(0, 1 + drift + sigma * boxMuller(rng));
+      // 1. Stochastic return on both investable pools — TRUE log-normal:
+      // the drawn annRet = (μ − σ²/2) + σZ is a LOG return, so the annual
+      // multiplier is e^annRet. This delivers the stated CMA arithmetic mean μ
+      // (E[e^annRet] = 1+μ-ish) with median growth e^drift — the −σ²/2
+      // volatility drag counted exactly once. (The legacy runMC() applies the
+      // same draw arithmetically as 1+annRet, double-counting the drag; changed
+      // 2026-07 — see CLAUDE.md "Return model".) e^x > 0, so a long-only pool
+      // can never flip negative in a down year. Returns apply ONLY to a positive
+      // balance, so a temporary cash shortfall (negative taxable) is never
+      // compounded like a leveraged short.
+      const growth = Math.exp(drift + sigma * boxMuller(rng));
       if (taxable > 0) taxable *= growth;
       if (deferred > 0) deferred *= growth;
 

@@ -183,33 +183,37 @@ function signature(r: SimulationResult): Sig {
 }
 
 // ─── Frozen golden values (regenerate via GEN_GOLDEN=1 — see header) ───
+// Regenerated 2026-07-09 for the TRUE log-normal return model
+// (pool *= e^annRet — see monte-carlo.ts header). Every scenario moved UP vs
+// the prior arithmetic model, as predicted: medians +20-60% (scaling with
+// equity share × horizon), money-lasts probabilities +12-13pp.
 const EXPECTED: Record<string, Sig> = {
   "accumulation-60-40": {
     years: 30,
-    final: { p10: 1411310, p25: 2066329, p50: 3112422, p75: 4491498, p90: 6128159, mean: 3500798 },
+    final: { p10: 1713538, p25: 2467555, p50: 3750848, p75: 5435146, p90: 7619986, mean: 4265555 },
     goals: {},
   },
   "goals-college-and-wedding": {
     years: 30,
-    final: { p10: 600748, p25: 1246424, p50: 2515901, p75: 4181699, p90: 6353442, mean: 3164849 },
+    final: { p10: 958518, p25: 1806255, p50: 3475576, p75: 5862945, p90: 8958971, mean: 4519698 },
     goals: { g1: 1, g2: 1 },
   },
   "retirement-funded": {
     years: 39,
-    final: { p10: 2423694, p25: 2639379, p50: 3157983, p75: 7467477, p90: 13644401, mean: 6268806 },
+    final: { p10: 2472088, p25: 2736940, p50: 5089116, p75: 11421473, p90: 21010922, mean: 9264342 },
     goals: { g2: 1 },
-    retirement: { success: 0.483, depletion: 0.517, retirementAge: 65, planToAge: 92 },
+    retirement: { success: 0.609, depletion: 0.391, retirementAge: 65, planToAge: 92 },
   },
   "two-client-blend": {
     years: 25,
-    final: { p10: 3254273, p25: 4204131, p50: 5827792, p75: 7858794, p90: 10873997, mean: 6569069 },
+    final: { p10: 3770327, p25: 4920615, p50: 7050298, p75: 9854526, p90: 13879012, mean: 8127171 },
     goals: {},
   },
   "retirement-tight": {
     years: 37,
-    final: { p10: 0, p25: 0, p50: 0, p75: 0, p90: 2525613, mean: 844869 },
+    final: { p10: 0, p25: 0, p50: 0, p75: 1328158, p90: 6855091, mean: 2050439 },
     goals: {},
-    retirement: { success: 0.197, depletion: 0.803, retirementAge: 65, planToAge: 95 },
+    retirement: { success: 0.322, depletion: 0.678, retirementAge: 65, planToAge: 95 },
   },
 };
 

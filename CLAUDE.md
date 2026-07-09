@@ -276,8 +276,10 @@ The engine is guarded by three layers of tests under `lib/engine/__tests__/`
   Regenerate intentionally with `GEN_GOLDEN=1 npx vitest run golden-master`
   (prints a JSON blob to paste into `EXPECTED`), then review the diff.
 - **`analytical-bounds.test.ts`** — pins the engine to first-principles truth
-  (all-cash median ≈ `initial·(1+drift)^T`; mean ≥ median skew; percentile
-  ordering; equity out-grows/out-spreads cash; diversification lowers spread).
+  (single-class median = `initial·e^(drift·T)` exactly, mean = `initial·e^(μT)`
+  within 3 sample-SE — the log-normal closed forms; mean ≥ median skew;
+  percentile ordering; equity out-grows/out-spreads cash; diversification
+  lowers spread).
   This is the honest replacement for a legacy-vs-SaaS parity harness: the SaaS
   engine is **no longer a port** of `wealth-analyzer.html` `runMC()` (it
   re-models with per-class CMAs + correlation + progressive tax + two-pool
@@ -322,6 +324,39 @@ NOT changed): working income is held nominal (no wage-growth term while
 expenses inflate); the `IRS_UNIFORM_LIFETIME` table is sparse (nearest-5
 fallback for missing ages); pensions with `startAge < retirementAge` aren't
 credited during working years; `/login?error=auth` isn't surfaced to the user.
+
+### Stress campaign (2026-07) — engine passed, findings recorded
+A 6-agent stress workflow (statistical validity vs closed form, 600-plan
+property fuzz, 7 common-random-number sensitivity sweeps, performance/scale,
+pipeline fuzz, seed/convergence) found **zero hard failures**: no NaN/crash,
+percentiles ordered everywhere, all 7 sensitivity directions correct, 120k fuzz
+paths clean, huge plan (120 assets × 1000 sims × 70 yrs) runs in ~186ms with
+linear sims-scaling, 12-seed estimates cluster (p50 rel-sd 5.4%), migrate/parse
+never throws (incl. prototype-pollution attempts). Deterministic + `asOfYear`
+semantics exact.
+
+**Return model — switched to TRUE log-normal (2026-07-09, product decision):**
+the engine now applies the drawn log-return exponentially —
+`pool *= exp((μ−σ²/2) + σZ)` — so the stated CMA arithmetic mean μ is actually
+delivered (`E[terminal] = V0·e^(μT)`) and the median grows at the geometric
+rate (`V0·e^((μ−σ²/2)T)`), the volatility drag counted exactly once. The prior
+formula (inherited from legacy `runMC()`) applied the same draw ARITHMETICALLY
+(`pool *= 1+annRet`), double-counting the drag: 30-yr equity delivered mean
+≈7.0× / median ≈5.0× vs the CMA-faithful 10.9×/7.5×. Impact of the switch
+(all goldens regenerated + reviewed): medians +20–60% scaling with equity
+share × horizon; retirement money-lasts probabilities +12–13pp; cash/bond
+plans nearly unchanged; a long-only pool can now never hit exactly 0 from
+returns (e^x > 0). Property appreciation stays arithmetic 3%±2% (σ too small
+to matter). **The legacy `wealth-analyzer.html` `runMC()` still uses the old
+arithmetic formula** — its projections read conservatively low vs the SaaS
+until it is updated to match (deliberate divergence, documented here).
+
+**Minor (recorded, not fixed):** no distress flag for accumulation-phase
+insolvency (deep-negative net worth reports without a qualitative warning);
+goal `startYear/endYear` unbounded ints; `migratePlan` coerces garbage numerics
+to 0 (a `amt:'abc'` goal becomes a $0 goal at 100% success); no length cap on
+`notes` (5MB string passes to JSONB); sims=200 reads ~5pp rosier on
+money-lasts than converged 1000-sim runs.
 
 ### Running it
 ```bash
