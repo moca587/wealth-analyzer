@@ -2853,7 +2853,7 @@ input[type=date]{color-scheme:light}
 // ═══════════════════════════════════════════════════════════
 // VERSION — updated by build-standalone.pl on each build
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260708-1700";
+const APP_VERSION = "20260709-1621";
 
 // ═══════════════════════════════════════════════════════════
 // DATA
@@ -11047,8 +11047,10 @@ function runMC(years,sims,muOverride,sigOverride){
       const gp_=glidepathAdjust(muNet,sig,y);
       const r=(gp_.mu-0.5*gp_.sig*gp_.sig)+gp_.sig*boxMuller();
       inv=inv*Math.exp(r);
-      const propR=0.03+0.02*boxMuller();
-      prop=prop*(1+propR);
+      // Property: log-normal like the investment pool (matches the main app)
+      const propMu=0.03, propSig=0.02;
+      const propLogR=(propMu-0.5*propSig*propSig)+propSig*boxMuller();
+      prop=prop*Math.exp(propLogR);
       if(!retired) income*=(1+raise);
       expense*=(1+inf);
       const debtTotal=loanState.reduce((s,l)=>s+l.bal,0);

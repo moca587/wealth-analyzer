@@ -346,10 +346,20 @@ formula (inherited from legacy `runMC()`) applied the same draw ARITHMETICALLY
 (all goldens regenerated + reviewed): medians +20–60% scaling with equity
 share × horizon; retirement money-lasts probabilities +12–13pp; cash/bond
 plans nearly unchanged; a long-only pool can now never hit exactly 0 from
-returns (e^x > 0). Property appreciation stays arithmetic 3%±2% (σ too small
-to matter). **The legacy `wealth-analyzer.html` `runMC()` still uses the old
-arithmetic formula** — its projections read conservatively low vs the SaaS
-until it is updated to match (deliberate divergence, documented here).
+returns (e^x > 0). Property appreciation stays arithmetic 3%±2% in the SaaS
+(σ too small to matter).
+
+**Correction (2026-07-09):** an earlier version of this note claimed the
+legacy `wealth-analyzer.html` still used the arithmetic formula. Reading the
+code disproved that: the legacy main app has applied returns exponentially
+all along — per-class buckets (`buckets[cls] * Math.exp(r)`, commit 2493e01),
+property (`Math.exp(propLogR)`, commit 4569095 by steslic), and the drawdown
+MCs. The arithmetic double-count was introduced **in the SaaS port**, which
+copied the `(μ−σ²/2)+σZ` draw but dropped the `exp()`. With the SaaS fix the
+two engines now agree in model form (the SaaS adds correlation/tax/two-pool
+structure on top). Two true stragglers were fixed the same day: the Avaloq
+edition's property line (was `prop*(1+propR)`) and the admin console's
+test-bench `runMC` (was `nw*(1+r)`).
 
 **Minor (recorded, not fixed):** no distress flag for accumulation-phase
 insolvency (deep-negative net worth reports without a qualitative warning);

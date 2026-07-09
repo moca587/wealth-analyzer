@@ -9,8 +9,9 @@
 // NOT numerically parity with the legacy engine:
 //   - TRUE log-normal returns via Box-Muller: pool *= exp((μ−σ²/2) + σZ),
 //     so the mean tracks the stated CMA μ and the median grows at the
-//     geometric rate. (Legacy applies the same draw arithmetically, which
-//     double-counts the volatility drag — changed here 2026-07.)
+//     geometric rate. (The original port copied legacy's (μ−σ²/2)+σZ draw
+//     but applied it arithmetically, double-counting the volatility drag —
+//     fixed 2026-07. The legacy app itself always applied exp().)
 //   - Property appreciation as stochastic 3% ± 2% (arithmetic; σ too small
 //     for the distinction to matter)
 //   - Real loan amortization (interest math, balance amortizes down)
@@ -173,12 +174,12 @@ export function runMonteCarlo(input: SimulationInput): SimulationResult {
       // the drawn annRet = (μ − σ²/2) + σZ is a LOG return, so the annual
       // multiplier is e^annRet. This delivers the stated CMA arithmetic mean μ
       // (E[e^annRet] = 1+μ-ish) with median growth e^drift — the −σ²/2
-      // volatility drag counted exactly once. (The legacy runMC() applies the
-      // same draw arithmetically as 1+annRet, double-counting the drag; changed
-      // 2026-07 — see CLAUDE.md "Return model".) e^x > 0, so a long-only pool
-      // can never flip negative in a down year. Returns apply ONLY to a positive
-      // balance, so a temporary cash shortfall (negative taxable) is never
-      // compounded like a leveraged short.
+      // volatility drag counted exactly once. (The port originally applied this
+      // draw arithmetically as 1+annRet, double-counting the drag; fixed
+      // 2026-07 — see CLAUDE.md "Return model". Legacy always used exp().)
+      // e^x > 0, so a long-only pool can never flip negative in a down year.
+      // Returns apply ONLY to a positive balance, so a temporary cash shortfall
+      // (negative taxable) is never compounded like a leveraged short.
       const growth = Math.exp(drift + sigma * boxMuller(rng));
       if (taxable > 0) taxable *= growth;
       if (deferred > 0) deferred *= growth;
