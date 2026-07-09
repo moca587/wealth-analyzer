@@ -293,6 +293,32 @@ The engine is guarded by three layers of tests under `lib/engine/__tests__/`
 (`SimulationInput`) that fixes goal-year offsets and the primary client's age;
 omit it for live runs (defaults to the current year).
 
+### Audit hardening (2026-07) — `all-plans.test.ts` + `hardening.test.ts`
+`all-plans.test.ts` runs ONE rich two-client household (7 asset classes,
+taxable + muni income, mortgage, goals, retirement to 95, two pensions,
+RMD-triggering 401k) end-to-end, proving Plans B/C/D-data/E compose. A
+verification+adversarial workflow then probed the engine; the confirmed bugs
+were fixed (all golden-safe — the frozen snapshots did not move) and pinned by
+`hardening.test.ts`:
+- **Return multiplier floored at 0** and applied only to a positive balance —
+  a long-only pool can't flip negative from a >100% down-draw (was projecting
+  −$78M for a $200k crypto position), and a cash shortfall no longer compounds
+  at the market rate.
+- **RMDs are age-based (73), not coupled to `retirementAge`** — a client
+  working past 73 is now forced to draw the deferred pool (IRS-correct).
+- **A term-expired loan with a balance is kept** (was silently erased).
+- **`Button asChild`** now renders via a minimal Slot (no Radix) so the primary
+  CTAs are styled `<a>`s, not invalid `<button><a>` (`components/ui/button.tsx`).
+- **Schema guards**: reject `planToAge ≤ retirementAge` when retirement is
+  enabled (avoids a falsely-reassuring 100% success) and duplicate goal ids
+  (they collapse in the engine's per-goal maps).
+
+**Deferred modelling notes** (need a product decision / would move goldens, so
+NOT changed): working income is held nominal (no wage-growth term while
+expenses inflate); the `IRS_UNIFORM_LIFETIME` table is sparse (nearest-5
+fallback for missing ages); pensions with `startAge < retirementAge` aren't
+credited during working years; `/login?error=auth` isn't surfaced to the user.
+
 ### Running it
 ```bash
 cd wealth-app-next

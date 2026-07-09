@@ -119,4 +119,30 @@ describe("parsePlan", () => {
     }));
     expect(result.ok).toBe(false);
   });
+
+  test("rejects retirement with planToAge <= retirementAge when enabled", () => {
+    const result = parsePlan(validPlan({
+      retirement: { enabled: true, retirementAge: 65, annualSpending: 60000, planToAge: 60 },
+    }));
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.fieldErrors["retirement.planToAge"]).toBeDefined();
+  });
+
+  test("allows contradictory retirement ages when retirement is disabled", () => {
+    const result = parsePlan(validPlan({
+      retirement: { enabled: false, retirementAge: 65, annualSpending: 0, planToAge: 60 },
+    }));
+    expect(result.ok).toBe(true);
+  });
+
+  test("rejects duplicate goal ids (they collapse in the engine's per-goal maps)", () => {
+    const result = parsePlan(validPlan({
+      goals: [
+        { id: "dup", name: "A", amt: 1000, startYear: 2030, endYear: 2031 },
+        { id: "dup", name: "B", amt: 2000, startYear: 2035, endYear: 2036 },
+      ],
+    }));
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.fieldErrors["goals.1.id"]).toBeDefined();
+  });
 });

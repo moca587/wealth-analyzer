@@ -117,12 +117,21 @@ const pensionSchema = z.object({
   colaRate: finiteNumber.optional(),
 });
 
-const retirementSchema = z.object({
-  enabled: z.boolean().optional(),
-  retirementAge: z.number().int().min(30).max(100),
-  annualSpending: money,
-  planToAge: z.number().int().min(50).max(120).optional(),
-});
+const retirementSchema = z
+  .object({
+    enabled: z.boolean().optional(),
+    retirementAge: z.number().int().min(30).max(100),
+    annualSpending: money,
+    planToAge: z.number().int().min(50).max(120).optional(),
+  })
+  // When retirement is on, the plan-to age must be strictly beyond the
+  // retirement age — otherwise the decumulation phase never runs and the sim
+  // would report a falsely reassuring 100% success for a retirement it never
+  // modelled.
+  .refine((r) => !r.enabled || (r.planToAge ?? 90) > r.retirementAge, {
+    message: "planToAge must be greater than retirementAge",
+    path: ["planToAge"],
+  });
 
 const MAX_INFLATION_DEFAULT = 0.30;
 const MAX_INFLATION_BR = 0.60;
@@ -166,6 +175,21 @@ export const wealthPlanSchema = z
           path: ["incomes", i, "clientId"],
         });
       }
+    });
+
+    // Goal ids must be unique — the engine keys per-goal funding + success maps
+    // by goal.id, so duplicate ids would collapse (one goal's drawdown silently
+    // skipped, both reporting the same misattributed success probability).
+    const seenGoalIds = new Set<string>();
+    plan.goals.forEach((g, i) => {
+      if (seenGoalIds.has(g.id)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `goals[${i}].id "${g.id}" is duplicated`,
+          path: ["goals", i, "id"],
+        });
+      }
+      seenGoalIds.add(g.id);
     });
   });
 
