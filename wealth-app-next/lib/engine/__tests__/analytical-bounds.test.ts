@@ -44,19 +44,44 @@ function run(plan: WealthPlan, seed: number, years = 30): ReturnType<typeof runM
 }
 
 describe("analytical bounds — closed-form growth", () => {
-  it("all-cash median tracks initial × (1+drift)^T (narrow-σ closed form)", () => {
-    // With no cashflow and a single asset class, each path is a product of
-    // (1+annRet) with annRet = drift + σ·N(0,1). The MEDIAN annual return is the
-    // drift (N(0,1) is symmetric), so for a low-σ class the median terminal
-    // wealth ≈ initial·(1+drift)^T. Cash σ is 1.5%, so the approximation is tight.
+  it("single-class median tracks initial × e^(drift·T) (exact log-normal closed form)", () => {
+    // With no cashflow and a single asset class, each path is
+    // initial · exp(Σ(drift + σZ)), so log terminal wealth is
+    // Normal(T·drift, σ²T) and the median is EXACTLY initial·e^(T·drift).
+    // Holds for every σ — check the volatile class too, not just cash.
     const T = 30, initial = 1_000_000;
-    const { mean: mu, sigma } = ASSET_CLASS_CMA.cash;
-    const drift = geometricMean(mu, sigma);
-    const closedForm = initial * Math.pow(1 + drift, T);
+    for (const cls of ["cash", "equity"] as const) {
+      const { mean: mu, sigma } = ASSET_CLASS_CMA[cls];
+      const drift = geometricMean(mu, sigma);
+      const closedForm = initial * Math.exp(drift * T);
 
-    const r = run(mk([asset("cash", initial)]), 111, T);
-    const rel = Math.abs(r.final.p50 - closedForm) / closedForm;
-    expect(rel, `median ${Math.round(r.final.p50)} vs closed-form ${Math.round(closedForm)} (rel ${(rel * 100).toFixed(2)}%)`).toBeLessThan(0.03);
+      const r = run(mk([asset(cls, initial)]), 111, T);
+      const rel = Math.abs(r.final.p50 - closedForm) / closedForm;
+      // Sampling error of a 1000-sim median scales with σ√T — cash is sub-1%,
+      // equity a few percent.
+      const tol = cls === "cash" ? 0.03 : 0.08;
+      expect(rel, `${cls} median ${Math.round(r.final.p50)} vs closed-form ${Math.round(closedForm)} (rel ${(rel * 100).toFixed(2)}%)`).toBeLessThan(tol);
+    }
+  });
+
+  it("single-class MEAN tracks the stated CMA: initial × e^(μ·T) within 3 sample-SE", () => {
+    // E[e^(drift+σZ)] = e^(drift+σ²/2) = e^μ, so expected terminal wealth is
+    // initial·e^(μT) — the engine now DELIVERS the published capital-market
+    // assumption instead of under-shooting it by σ²/2 (the pre-2026-07
+    // arithmetic model's double-counted volatility drag).
+    const T = 30, initial = 1_000_000;
+    for (const cls of ["cash", "fixed_income", "equity"] as const) {
+      const { mean: mu } = ASSET_CLASS_CMA[cls];
+      const expected = initial * Math.exp(mu * T);
+
+      const r = run(mk([asset(cls, initial)]), 222, T);
+      const finals = r.paths.map((p) => p[T - 1]);
+      const m = finals.reduce((s, v) => s + v, 0) / finals.length;
+      const sd = Math.sqrt(finals.reduce((s, v) => s + (v - m) * (v - m), 0) / (finals.length - 1));
+      const se = sd / Math.sqrt(finals.length);
+      const z = Math.abs(m - expected) / se;
+      expect(z, `${cls} mean ${Math.round(m)} vs e^(μT) ${Math.round(expected)} (z=${z.toFixed(2)})`).toBeLessThan(3);
+    }
   });
 
   it("zero assets + zero net cashflow ⇒ zero terminal wealth", () => {
