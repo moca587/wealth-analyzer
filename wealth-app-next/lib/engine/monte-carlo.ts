@@ -42,7 +42,11 @@ function sumOf<T>(arr: T[], getter: (item: T) => number): number {
 
 /** Per-period (annual) amortization: returns new balance + interest paid. */
 function amortizeLoan(loan: Loan): { newBal: number; interestPaid: number; principalPaid: number } {
-  if (loan.bal <= 0 || loan.yrs <= 0) return { newBal: 0, interestPaid: 0, principalPaid: 0 };
+  if (loan.bal <= 0) return { newBal: 0, interestPaid: 0, principalPaid: 0 };
+  // A term-expired loan that still carries a balance (yrs ≤ 0 but bal > 0 — e.g.
+  // an imported stub liability) is debt owed now: keep it on the books rather
+  // than silently erasing it. It just doesn't amortize further.
+  if (loan.yrs <= 0) return { newBal: loan.bal, interestPaid: 0, principalPaid: 0 };
   const monthlyPmt = calcMortgagePayment(loan.bal, loan.rate, loan.yrs);
   const annualPmt = monthlyPmt * 12;
   let bal = loan.bal;
@@ -159,10 +163,14 @@ export function runMonteCarlo(input: SimulationInput): SimulationResult {
     for (let y = 0; y < Y; y++) {
       const age = currentAge + y;
 
-      // 1. Stochastic return on both investable pools
-      const annRet = drift + sigma * boxMuller(rng);
-      taxable *= 1 + annRet;
-      deferred *= 1 + annRet;
+      // 1. Stochastic return on both investable pools. The annual multiplier is
+      // floored at 0 — a long-only pool cannot lose more than 100% in a single
+      // year (an unclamped high-σ draw could otherwise flip the balance negative)
+      // — and returns are applied ONLY to a positive balance, so a temporary cash
+      // shortfall (negative taxable) is never compounded like a leveraged short.
+      const growth = Math.max(0, 1 + drift + sigma * boxMuller(rng));
+      if (taxable > 0) taxable *= growth;
+      if (deferred > 0) deferred *= growth;
 
       // 2. Stochastic property appreciation (3% ± 2%) — property isn't drawn for spending
       const propRet = 0.03 + 0.02 * boxMuller(rng);
@@ -178,12 +186,25 @@ export function runMonteCarlo(input: SimulationInput): SimulationResult {
       });
 
       // 4. Cash flow — accumulation while working, decumulation in retirement.
+      // Required Minimum Distributions are AGE-based (IRS rules apply from 73
+      // regardless of employment), so they are taken before the phase split: a
+      // client who keeps working past 73 (retirementAge > 73) is still forced to
+      // draw down the tax-deferred pool.
+      let netRMD = 0;
+      if (retEnabled && age >= 73 && deferred > 0) {
+        const rmd = calcRMD(deferred, age);
+        deferred -= rmd;
+        netRMD = rmd - estimateIncomeTax(rmd, taxCountry);
+      }
+
       const inRetirement = retEnabled && age >= retirementAge;
       if (!inRetirement) {
         // Working: surplus (post-tax income − inflated expenses − interest) is
-        // saved into the taxable pool; a shortfall draws it down.
+        // saved into the taxable pool; a shortfall draws it down. A forced RMD
+        // during working years is after-tax income not earmarked for spending, so
+        // it is reinvested into the taxable pool.
         const inflatedExpense = annualExpense * Math.pow(1 + inflation, y);
-        taxable += afterTaxIncome - inflatedExpense - interestPaid;
+        taxable += afterTaxIncome - inflatedExpense - interestPaid + netRMD;
       } else {
         // Retirement: salary stops. Pensions (COLA-grown) + RMDs provide taxed
         // income; the remaining spending need is withdrawn — taxable first, then
@@ -193,14 +214,6 @@ export function runMonteCarlo(input: SimulationInput): SimulationResult {
           if (age >= p.startAge) pensionGross += (p.annualAmount || 0) * Math.pow(1 + (p.colaRate || 0), age - p.startAge);
         }
         const netPension = pensionGross - estimateIncomeTax(pensionGross, taxCountry);
-
-        // Required Minimum Distributions from the tax-deferred pool past age 73.
-        let netRMD = 0;
-        if (age >= 73 && deferred > 0) {
-          const rmd = calcRMD(deferred, age);
-          deferred -= rmd;
-          netRMD = rmd - estimateIncomeTax(rmd, taxCountry);
-        }
 
         const spending = retSpendToday * Math.pow(1 + inflation, y);
         let need = spending + interestPaid - netPension - netRMD;
