@@ -138,8 +138,9 @@ export function SimRunner({ plan }: { plan: WealthPlan }) {
 
           <div className="text-xs text-muted-foreground border-t border-border pt-4">
             <strong>Important:</strong> Monte Carlo results are illustrative projections based on the inputs you provided
-            and assumed risk/return parameters. They are not predictions, guarantees, or financial advice. Real outcomes
-            will differ. Consult a licensed advisor before making decisions.
+            and assumed risk/return parameters. They are not predictions, guarantees, or financial, tax, or investment
+            advice. Tax figures are simplified estimates — this tool does not provide tax advice. Real outcomes
+            will differ. Consult a licensed advisor and a tax professional before making decisions.
           </div>
         </>
       )}
