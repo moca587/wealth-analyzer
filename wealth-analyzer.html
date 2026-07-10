@@ -13460,8 +13460,26 @@ async function fetchAlphaVantageForProposal(){
 // ═══════════════════════════════════════════════════════════
 // MONTE CARLO ENGINE
 // ═══════════════════════════════════════════════════════════
+// Seeded PRNG (mulberry32) so Monte Carlo runs are reproducible.
+// All simulation randomness must flow through _simRand / boxMuller —
+// never Math.random() — or determinism breaks.
+function mulberry32(seed){
+  let a = seed >>> 0;
+  return function(){
+    a |= 0; a = (a + 0x6D2B79F5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+const SIM_SEED = 20260710;                 // fixed default seed
+let _simRand = mulberry32(SIM_SEED);
+function simSeedReset(seed){ _simRand = mulberry32((seed==null ? SIM_SEED : seed) >>> 0); }
+
 function boxMuller(){
-  let u=0,v=0; while(u===0) u=Math.random(); while(v===0) v=Math.random();
+  // let u=0,v=0; while(u===0) u=Math.random(); while(v===0) v=Math.random();
+  let u=0,v=0; while(u===0) u=_simRand(); while(v===0) v=_simRand();
+
   return Math.sqrt(-2.0*Math.log(u))*Math.cos(2.0*Math.PI*v);
 }
 function totalAccountValue(){
@@ -14017,6 +14035,8 @@ function buildFanChartData(paths){
 
 // Main Monte Carlo engine for the "what could your wealth look like" chart
 function runMC(years,sims,muOverride,sigOverride){
+  simSeedReset();
+
   // Override → proposal-driven (when AI applied) → household effective (default)
   const {mu,sig} = (muOverride!=null)?{mu:muOverride,sig:sigOverride}:getActiveSimulationParams();
 
@@ -14323,6 +14343,8 @@ function _retirementPensionSchedule(retireAge, yearsInRet, inf){
 // spend. `spend` and the pension schedule are nominal at the retirement date;
 // the portfolio only has to fund spending above pension income each year.
 function _survivalProb(startWealth, spend, yearsInRet, mu, sig, inf, sims=300, pensionByYear=null){
+  simSeedReset();
+
   let successes = 0;
   for(let s=0; s<sims; s++){
     let port = startWealth;
@@ -14360,6 +14382,8 @@ function _solveSustainableSpendMC(startWealth, yearsInRet, mu, sig, inf, targetS
 }
 
 function runRetirementDrawdown(){
+  simSeedReset();
+
   const st=$("rdStatus");
   const c1Age=ageFromDOB(val("c1d"))||40;
   const retAge=Math.max(c1Age, num("retAge",65));
@@ -14450,6 +14474,8 @@ window.runRetirementDrawdown=runRetirementDrawdown;
 // that meets a target plan-success confidence. Binary search over spend, reusing
 // the same decumulation model as runRetirementDrawdown.
 function solveSustainableSpend(){
+  simSeedReset();
+  
   const st=$("rdStatus");
   const c1Age=ageFromDOB(val("c1d"))||40;
   const retAge=Math.max(c1Age, num("retAge",65));
@@ -21162,6 +21188,8 @@ function setChartMode(mode){
 // SENSITIVITY ANALYSIS (tornado chart)
 // ═══════════════════════════════════════════════════════════
 function runMCWithOverrides(years,sims,overrides){
+  simSeedReset();
+
   const saved={};
   Object.entries(overrides).forEach(([id,v])=>{saved[id]=val(id); if($(id)) $(id).value=v;});
   try{
