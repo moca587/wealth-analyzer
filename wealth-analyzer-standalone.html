@@ -4100,7 +4100,7 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
 // ═══════════════════════════════════════════════════════════
 // VERSION — updated by build-standalone.pl on each build
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260710-1304";
+const APP_VERSION = "20260710-1621";
 
 // ═══════════════════════════════════════════════════════════
 // DATA
@@ -20776,9 +20776,9 @@ function drawFanChart(){
           });
         } else {
           const DISC = {
-            standard:"This report has been prepared for educational and planning purposes only. It does not constitute investment, tax, or legal advice. Monte Carlo projections rely on randomly sampled returns based on configurable assumptions and do not predict actual future market behaviour. Past performance is not a reliable indicator of future results. All projections are estimates and actual results will differ, potentially significantly. Inflation, tax, and regulatory changes are not modelled dynamically. Consult a licensed financial professional before making any financial decisions. This document is not a prospectus or offering document.",
-            advisor:"PROFESSIONAL USE NOTICE. This report has been prepared for advisor use and client presentation purposes only. It relies on client-supplied data and capital market assumptions that may differ materially from actual outcomes. Monte Carlo projections model stochastic return paths and carry inherent uncertainty — actual results will differ. Sequence-of-returns risk, behavioural factors, unexpected expenses, and changes in tax law are not fully captured in the model. This document does not constitute investment advice, a personal financial plan, or a prospectus. The advisor should review all assumptions, validate all data inputs, and disclose all material conflicts of interest to the client prior to use. Not for redistribution to third parties.",
-            minimal:"For educational purposes only. Not financial advice. Consult a licensed advisor before making financial decisions.",
+            standard:"This report has been prepared for educational and planning purposes only. It does not constitute investment, tax, or legal advice. All tax figures shown are simplified estimates — this report does not provide tax advice; consult a qualified tax professional regarding your personal situation. Monte Carlo projections rely on randomly sampled returns based on configurable assumptions and do not predict actual future market behaviour. Past performance is not a reliable indicator of future results. All projections are estimates and actual results will differ, potentially significantly. Inflation, tax, and regulatory changes are not modelled dynamically. Consult a licensed financial professional before making any financial decisions. This document is not a prospectus or offering document.",
+            advisor:"PROFESSIONAL USE NOTICE. This report has been prepared for advisor use and client presentation purposes only. It relies on client-supplied data and capital market assumptions that may differ materially from actual outcomes. Monte Carlo projections model stochastic return paths and carry inherent uncertainty — actual results will differ. Sequence-of-returns risk, behavioural factors, unexpected expenses, and changes in tax law are not fully captured in the model. Tax figures are simplified estimates and do not constitute tax advice. This document does not constitute investment advice, a personal financial plan, or a prospectus. The advisor should review all assumptions, validate all data inputs, and disclose all material conflicts of interest to the client prior to use. Not for redistribution to third parties.",
+            minimal:"For educational purposes only. Not financial or tax advice — tax figures are simplified estimates. Consult a licensed advisor and a tax professional before making financial decisions.",
           };
           para(DISC[discLvl]||DISC.standard, [80,80,80]);
         }
