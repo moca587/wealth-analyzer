@@ -112,7 +112,7 @@ export default function SignupPage() {
           {loading ? "Creating account…" : "Create account"}
         </Button>
         <p className="text-xs text-muted-foreground text-center">
-          By signing up you agree to use this tool for educational purposes — it is not financial advice.
+          By signing up you agree to use this tool for educational purposes — it does not provide financial, tax, or legal advice.
         </p>
       </form>
 

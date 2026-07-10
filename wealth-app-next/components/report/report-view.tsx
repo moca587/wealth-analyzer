@@ -175,7 +175,7 @@ export function ReportView({ plan }: { plan: WealthPlan }) {
               <Tr strong cells={["Annual surplus", m(annualSurplus)]} align={["left", "right"]} />
             </tbody>
           </table>
-          <p className="text-xs text-slate-400 mt-3">Income tax is a simplified, federal-level estimate for {plan.clients[0]?.country || "US"}; it excludes state/local layers and credits.</p>
+          <p className="text-xs text-slate-400 mt-3">Income tax is a simplified, federal-level estimate for {plan.clients[0]?.country || "US"}; it excludes state/local layers and credits. It is not tax advice — consult a tax professional.</p>
         </section>
 
         {/* ── GOALS ── */}
