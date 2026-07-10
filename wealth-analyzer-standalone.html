@@ -4100,7 +4100,7 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
 // ═══════════════════════════════════════════════════════════
 // VERSION — updated by build-standalone.pl on each build
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260709-1621";
+const APP_VERSION = "20260710-1304";
 
 // ═══════════════════════════════════════════════════════════
 // DATA
@@ -14200,7 +14200,12 @@ function gbPortfolioRisk(weights){
 // Annualized return at a confidence level over a horizon (decimal).
 function gbReturnAtConfidence(geoMu, sigma, years, confidencePct){
   const z = normInv(confidencePct/100);
-  return geoMu - z * (sigma / Math.sqrt(Math.max(1, years)));
+  // geoMu − z·σ/√T is the confidence-level ANNUALIZED LOG return (log-normal
+  // quantile). Consumers compound/discount arithmetically — (1+r)^T — so
+  // convert to the arithmetic-equivalent rate e^q − 1, making (1+r)^T equal
+  // the exact log-normal quantile e^(qT). Matches the exp() Monte Carlo.
+  const q = geoMu - z * (sigma / Math.sqrt(Math.max(1, years)));
+  return Math.expm1(q);
 }
 
 // ═══════════════════════════════════════════════════════════════════
