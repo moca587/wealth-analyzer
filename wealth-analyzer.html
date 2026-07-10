@@ -334,10 +334,87 @@ input[type=date]{color-scheme:light}
 
 /* ── Portfolio ── */
 /* Holdings box mirrors the Proposal box grid 1:1 for visual parity */
-.pf-add{display:grid;grid-template-columns:90px 1.3fr 140px 130px 100px 90px 90px 110px 1.4fr auto;gap:8px;align-items:end;margin-top:10px}
-.pf-add input,.pf-add select{width:100%;font-size:12px}
+/* .pf-add{display:grid;grid-template-columns:90px 1.3fr 140px 130px 100px 90px 90px 110px 1.4fr auto;gap:8px;align-items:end;margin-top:10px}
+.pf-add input,.pf-add select{width:100%;font-size:12px} */
+
 /* Alternatives add line: Type · Subcategory · Name · Value · Region · ER · Yield · Notes · buttons (no ticker, no class) */
-.pf-add-alt{grid-template-columns:120px 180px 1.3fr 100px 90px 90px 110px 1.4fr auto;margin-top:8px}
+/* .pf-add-alt{grid-template-columns:120px 180px 1.3fr 100px 90px 90px 110px 1.4fr auto;margin-top:8px} */
+
+.pf-add{
+  display:grid;
+  grid-template-columns:
+    90px
+    minmax(140px,1.3fr)
+    140px
+    130px
+    100px
+    90px
+    90px
+    110px
+    minmax(140px,1.4fr)
+    auto;
+  gap:8px;
+  align-items:end;
+  margin-top:10px;
+}
+
+.pf-add input,
+.pf-add select{
+  width:100%;
+  min-width:0;
+  font-size:12px;
+}
+
+.pf-add-alt{
+  grid-template-columns:
+    120px
+    180px
+    minmax(140px,1.3fr)
+    100px
+    90px
+    90px
+    110px
+    minmax(140px,1.4fr)
+    auto;
+  margin-top:8px;
+}
+
+/* Current Portfolio responsive layout */
+.pf-add,
+.pf-add-alt,
+.pf-add .fld{
+  min-width:0;
+}
+
+@media(max-width:1500px){
+  .pf-add,
+  .pf-add-alt{
+    grid-template-columns:repeat(5,minmax(0,1fr));
+  }
+}
+
+@media(max-width:1200px){
+  .pf-add,
+  .pf-add-alt{
+    grid-template-columns:repeat(3,minmax(0,1fr));
+  }
+}
+
+@media(max-width:900px){
+  .pf-add,
+  .pf-add-alt{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+}
+
+@media(max-width:700px){
+  .pf-add,
+  .pf-add-alt{
+    grid-template-columns:1fr;
+  }
+}
+
+
 /* ── AI Data Agent ── */
 .da-note{font-size:12px;color:var(--text2);line-height:1.55}
 .da-sec{margin-bottom:14px}
@@ -359,7 +436,72 @@ input[type=date]{color-scheme:light}
 .si-map-row{display:flex;gap:10px;align-items:center;margin-bottom:6px}
 .pf-add .fld,.pr-add .fld{display:flex;flex-direction:column;gap:3px;min-width:0}
 .pf-add .fld > label,.pr-add .fld > label{font-size:10px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.4px}
-.pf-row{display:grid;grid-template-columns:90px 1.5fr 80px 130px 100px 80px 80px 110px 1.4fr auto;gap:8px;align-items:center;padding:8px 10px;border-bottom:1px solid var(--border);font-size:12px}
+
+/* .pf-row{display:grid;grid-template-columns:90px 1.5fr 80px 130px 100px 80px 80px 110px 1.4fr auto;gap:8px;align-items:center;padding:8px 10px;border-bottom:1px solid var(--border);font-size:12px} */
+.pf-row{
+  display:grid;
+  grid-template-columns:
+    90px
+    minmax(120px,1.5fr)
+    80px
+    130px
+    100px
+    80px
+    80px
+    110px
+    minmax(120px,1.4fr)
+    auto;
+  gap:8px;
+  align-items:center;
+  padding:8px 10px;
+  border-bottom:1px solid var(--border);
+  font-size:12px;
+  min-width:0;
+}
+
+.pf-row > *{
+  min-width:0;
+}
+
+.pf-row .pname,
+.pf-row .ptkr,
+.pf-row .pnote{
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+.pf-row button{
+  max-width:100%;
+  justify-self:start;
+}
+
+/* Current Portfolio holding rows */
+@media(max-width:1500px){
+  .pf-row{
+    grid-template-columns:repeat(5,minmax(0,1fr));
+    row-gap:10px;
+  }
+}
+
+@media(max-width:1200px){
+  .pf-row{
+    grid-template-columns:repeat(3,minmax(0,1fr));
+  }
+}
+
+@media(max-width:900px){
+  .pf-row{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+}
+
+@media(max-width:700px){
+  .pf-row{
+    grid-template-columns:1fr;
+  }
+}
+
 .pf-row:hover{background:var(--bg2)}
 .pf-row .pname{font-weight:500;color:var(--text)}
 .pf-row .ptkr{font-family:'DM Sans',monospace;font-size:11px;color:var(--text3);letter-spacing:.04em}
