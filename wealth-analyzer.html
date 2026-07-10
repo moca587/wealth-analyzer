@@ -14333,7 +14333,15 @@ function _retirementPensionSchedule(retireAge, yearsInRet, inf){
   const c2Age = (typeof ageFromDOB==="function" ? ageFromDOB(val("c2d")) : null);
   const c2AgeAtRet = (c2Age==null ? retireAge : c2Age + (retireAge - a1));
   for(let y=0; y<yearsInRet; y++){
-    let pen = calcPension(penSrc, penAnn, penStart, penCola, retireAge + y, inf);
+    // let pen = calcPension(penSrc, penAnn, penStart, penCola, retireAge + y, inf);
+    let pen = calcPension(
+      penSrc,
+      penAnn,
+      penStart,
+      penCola,
+      age,
+      inf
+    );
     if(showC2) pen += calcPension(penSrc2, penAnn2, penStart2, penCola2, c2AgeAtRet + y, inf);
     out[y] = pen;
   }
@@ -15745,6 +15753,7 @@ function renderCashFlow(){
   //   loopMu   — annual investment return (geometric mean = mu − 0.5σ², matching MC median)
   function runLoop(initInv, initCash, loopMu){
     let iv=initInv, ca=initCash, rp=retSeed;
+    let unfundedShortfall = 0;
     // Retirement pool: fixed extremely conservative rate — never tied to
     // the simulation's active μ (proposal-driven or otherwise). Only the
     // "Investments" pool tracks loopMu.
@@ -15825,35 +15834,98 @@ function renderCashFlow(){
       // Step 3 — residual surplus is discretionary spending, not additionally saved.
       // Only a deficit drains cash first, then investments.
       const surpAfterSav=surp-actualSav;
+
+      // let surpToInv=0, deficitDrain=0;
+      // if(surpAfterSav<0){
+      //   ca+=surpAfterSav;
+      //   if(ca<0){deficitDrain=ca; iv+=ca; ca=0; if(iv<0) iv=0;}
+      // }
       let surpToInv=0, deficitDrain=0;
+
       if(surpAfterSav<0){
-        ca+=surpAfterSav;
-        if(ca<0){deficitDrain=ca; iv+=ca; ca=0; if(iv<0) iv=0;}
+        const deficit=Math.abs(surpAfterSav);
+
+        const fromCash=Math.min(ca,deficit);
+        ca-=fromCash;
+
+        const remainingAfterCash=deficit-fromCash;
+        const fromInv=Math.min(iv,remainingAfterCash);
+        iv-=fromInv;
+
+        const unpaidDeficit=remainingAfterCash-fromInv;
+
+        // Keep the tooltip value negative because it represents an investment drain.
+        deficitDrain=-fromInv;
+
+        // Anything that could not be paid becomes an accumulated liability.
+        unfundedShortfall+=unpaidDeficit;
       }
+
       // Step 4 — goal outflows: cash first, then investments
+      // let goalDrain=0;
+      // if(goalOut>0){
+      //   const fromCash=Math.min(ca,goalOut);
+      //   ca-=fromCash;
+      //   const fromInv=Math.min(iv,goalOut-fromCash);
+      //   goalDrain=fromInv;
+      //   iv-=fromInv;
+      //   ca=Math.max(0,ca); iv=Math.max(0,iv);
+      // }
       let goalDrain=0;
+
       if(goalOut>0){
         const fromCash=Math.min(ca,goalOut);
         ca-=fromCash;
-        const fromInv=Math.min(iv,goalOut-fromCash);
-        goalDrain=fromInv;
+
+        const remainingAfterCash=goalOut-fromCash;
+        const fromInv=Math.min(iv,remainingAfterCash);
         iv-=fromInv;
-        ca=Math.max(0,ca); iv=Math.max(0,iv);
+        goalDrain=fromInv;
+
+        const unpaidGoal=remainingAfterCash-fromInv;
+        unfundedShortfall+=unpaidGoal;
       }
+
       // Step 5 — property appreciation and income/expense escalation
       pr=pr*(1+propGrowth);
       ic*=(1+raise); ex*=(1+inf);
-      const debtTotal=lb.reduce((s,l)=>s+l.bal,0);
+      // const debtTotal=lb.reduce((s,l)=>s+l.bal,0);
+      // const nw=ca+iv+pr+other+rp-debtTotal;
+      const scheduledDebtTotal=lb.reduce((s,l)=>s+l.bal,0);
+      const debtTotal=scheduledDebtTotal+unfundedShortfall;
       const nw=ca+iv+pr+other+rp-debtTotal;
+
       if(nw<=0&&y>0) dep=true;
       data.push({y,age,retired,phase,earnedInc,pen,pen1,pen2,rmd,rmd1,rmd2,tax,livingExp,debt,
         surp,effectiveSav,actualSav,surpAfterSav,goalOut,
         invOpen,invReturn,surpToInv,deficitDrain,goalDrain,
         inv:iv,cash:ca,retPot:rp,nw,depleted:dep,
-        prop:pr,otherAssets:other,debtBal:debtTotal,
-        caOpen,rpBefore,rpGrowth,retMu,loanPayments,goalsFired});
+        prop:pr,
+        otherAssets:other,
+        debtBal:debtTotal,
+        scheduledDebtBal:scheduledDebtTotal,
+        unfundedShortfall,
+        caOpen,
+        rpBefore,
+        rpGrowth,
+        retMu,
+        loanPayments,
+        goalsFired});
       if(y===0) lastCfComponents=[];
-      lastCfComponents.push({y,age,cash:ca,inv:iv,retPot:rp,prop:pr,otherAssets:other,debtBal:debtTotal,nw});
+      // lastCfComponents.push({y,age,cash:ca,inv:iv,retPot:rp,prop:pr,otherAssets:other,debtBal:debtTotal,nw});
+      lastCfComponents.push({
+        y,
+        age,
+        cash:ca,
+        inv:iv,
+        retPot:rp,
+        prop:pr,
+        otherAssets:other,
+        debtBal:debtTotal,
+        scheduledDebtBal:scheduledDebtTotal,
+        unfundedShortfall,
+        nw
+      });
     }
     return data;
   }
@@ -21205,6 +21277,10 @@ function runSensitivity(){
   const yrs=lastSimYrs;
   const sims=Math.min(200,parseInt(val("simN")||"200",10));
   const baseMedian=percentileAt(lastSimPaths,yrs,50);
+  // simSeedReset();
+  // const basePaths = runMC(yrs,sims);
+  // const baseMedian = percentileAt(basePaths,yrs,50);
+
   setT("sensYr",String(currentYear()+yrs));
 
   const tests=[
