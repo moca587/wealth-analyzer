@@ -14038,6 +14038,7 @@ function runMC(years,sims,muOverride,sigOverride){
   const country=val("c1co")||"US";
   const liquidAcc=Math.max(0, totalAcc-retSeed); // exclude retirement accounts from liquid pool
   const pfTotal=pfInvested+pfCash;
+
   let investSeed, cashSeed;
   if(investments.length>0 && !pfLinkedAccountId){
     // Mode C — portfolio entered but not linked to an asset account.
@@ -14052,6 +14053,7 @@ function runMC(years,sims,muOverride,sigOverride){
     investSeed=Math.max(pfInvested, totalSeed*0.3);
     cashSeed=Math.max(0, totalSeed-investSeed)+pfCash;
   }
+  
   const savAnnual=num("savAnnual",0);
   const cgtDrag = getApplyTax()? (num("cgtRate",15)/100)*(num("cgtTurnover",10)/100) : 0;
   // Retirement params
@@ -14086,8 +14088,9 @@ function runMC(years,sims,muOverride,sigOverride){
   // Holdings→bucket template is invariant across paths — build it once and
   // copy per path (it used to be rebuilt from the investments array on every
   // one of the 1,000 paths).
-  const _bucketTpl = getAssetBucketsFromHoldings();
+  const _bucketTpl = getAssetBucketsFromHoldings(); // returns object, holds percentages
   const _tplEmpty = Object.keys(_bucketTpl).length === 0;
+
   for(let s=0;s<sims;s++){
     // let cash=cashSeed, inv=investSeed, prop=propVal;
 
@@ -14099,7 +14102,7 @@ function runMC(years,sims,muOverride,sigOverride){
       ? { mixed: investSeed }
       : scaleBucketsToTotal(Object.assign({}, _bucketTpl), investSeed);
 
-    let inv = sumBuckets(assetBuckets); // grow only investments
+    let inv = sumBuckets(assetBuckets); // starting investment balance. grow only investments
 
     let retPot=retSeed; // retirement pool per simulation path
     let income=baseInc, expense=baseExp;
@@ -14121,18 +14124,17 @@ function runMC(years,sims,muOverride,sigOverride){
     // Deficits reduce cash/investments
     // Goals are paid from wealth
     // Portfolio is optionally rebalanced
+
+    // yearly loop
     for(let y=0;y<=years;y++){
+      // Chronological snapshot first
+      const debtTotal=loanState.reduce((s,l)=>s+l.bal,0);
+      path.push(cash+inv+prop+other+retPot-debtTotal);
+
+      if (y === years) break;
+
       const infY = scenarioInflation(y, inf);
       const returnShock = scenarioReturnShock(y);
-
-      // if (s === 0 && y <= 10) {
-      //   console.log("scenario test", {
-      //     scenario: val("stressScenario") || "base",
-      //     year: y,
-      //     infY,
-      //     returnShock
-      //   });
-      // }
 
       // age and retirement status 
       const age=c1Age0+y; 
@@ -14227,6 +14229,7 @@ function runMC(years,sims,muOverride,sigOverride){
           }
         }
       }
+      // REPLACE THIS 
       // Random returns, or scenario shock overrides
       if(returnShock !== null){
         // inv = inv * (1 + returnShock);
@@ -14252,13 +14255,15 @@ function runMC(years,sims,muOverride,sigOverride){
       // log-normalized 
       const propMu = 0.03;
       const propSig = 0.02;
+
       const propLogR = (propMu - 0.5 * propSig * propSig) + propSig * boxMuller();
       prop = prop * Math.exp(propLogR);
       
       if(!retired) income*=(1+raise);
       expense*=(1+infY);
-      const debtTotal=loanState.reduce((s,l)=>s+l.bal,0);
-      path.push(cash+inv+prop+other+retPot-debtTotal);
+      // const debtTotal=loanState.reduce((s,l)=>s+l.bal,0);
+
+      // path.push(cash+inv+prop+other+retPot-debtTotal);
     }
     path._shortfallYr=shortfallYr;   // goal-liquidity marker for goalSuccessFromPaths
     paths.push(path);
@@ -17029,18 +17034,40 @@ function gbWealthBucket(asset){
   return "market";
 }
 
-function gbRenderWealth(){
+// Compute Personal / Market / Aspirational bucket totals.
+// Mode B: when portfolio holdings are linked to an account (pfLinkedAccountId),
+// the holdings REPLACE that account — skip it to avoid double-counting
+// (same convention as totalAccountValue() and the net-worth builder).
+function gbComputeWealthBuckets(){
   const buckets = {personal:0, market:0, aspirational:0};
-  (assets||[]).forEach(a => { buckets[gbWealthBucket(a)] += (+a.value||0); });
-  // Property + other from the Assets tab summary fields
-  const prop = num("aProp",0), other = num("aOther",0);
-  buckets.personal += prop + insuranceCashValue(); // primary residence + policy cash value → personal
-  buckets.aspirational += other; // "other" treated as idiosyncratic
-  // Portfolio holdings (investments) → market
+  const skipLinked = pfLinkedAccountId && (investments||[]).length > 0;
+  (assets||[]).forEach(a => {
+    if(skipLinked && a.id === pfLinkedAccountId) return;   // the actual fix
+    buckets[gbWealthBucket(a)] += (+a.value||0);
+  });
+  buckets.personal += num("aProp",0) + insuranceCashValue();
+  buckets.aspirational += num("aOther",0);
   (investments||[]).forEach(i => {
     const b = gbWealthBucket({cls:(typeof effClass==="function"?effClass(i):i.cls), type:i.type, label:i.name});
     buckets[b] += (+i.val||0);
   });
+  return buckets;
+}
+
+function gbRenderWealth(){
+  // const buckets = {personal:0, market:0, aspirational:0};
+  // (assets||[]).forEach(a => { buckets[gbWealthBucket(a)] += (+a.value||0); });
+  // // Property + other from the Assets tab summary fields
+  // const prop = num("aProp",0), other = num("aOther",0);
+  // buckets.personal += prop + insuranceCashValue(); // primary residence + policy cash value → personal
+  // buckets.aspirational += other; // "other" treated as idiosyncratic
+  // // Portfolio holdings (investments) → market
+  // (investments||[]).forEach(i => {
+  //   const b = gbWealthBucket({cls:(typeof effClass==="function"?effClass(i):i.cls), type:i.type, label:i.name});
+  //   buckets[b] += (+i.val||0);
+  // });
+  const buckets = gbComputeWealthBuckets();
+
   const total = buckets.personal + buckets.market + buckets.aspirational;
   const defs = [
     {k:"personal",   label:"Personal Assets",     sub:"Preserve lifestyle · safety", color:"var(--green)"},
@@ -19828,14 +19855,17 @@ function drawFanChart(){
           });
           y+=6; doc.setTextColor(40); doc.setFont("helvetica","normal"); doc.setFontSize(fsz);
         })();
-        const buckets = {personal:0, market:0, aspirational:0};
-        (assets||[]).forEach(a=>{ buckets[gbWealthBucket(a)] += (+a.value||0); });
-        buckets.personal     += num("aProp",0) + insuranceCashValue();
-        buckets.aspirational += num("aOther",0);
-        (investments||[]).forEach(i=>{
-          const b = gbWealthBucket({cls:(typeof effClass==="function"?effClass(i):i.cls), type:i.type, label:i.name});
-          buckets[b] += (+i.val||0);
-        });
+
+        const buckets = gbComputeWealthBuckets(); // Mode B: linked account excluded
+        // const buckets = {personal:0, market:0, aspirational:0};
+        // (assets||[]).forEach(a=>{ buckets[gbWealthBucket(a)] += (+a.value||0); });
+        // buckets.personal     += num("aProp",0) + insuranceCashValue();
+        // buckets.aspirational += num("aOther",0);
+        // (investments||[]).forEach(i=>{
+        //   const b = gbWealthBucket({cls:(typeof effClass==="function"?effClass(i):i.cls), type:i.type, label:i.name});
+        //   buckets[b] += (+i.val||0);
+        // });
+
         const total = buckets.personal + buckets.market + buckets.aspirational;
         const pctOf = v => total>0 ? (v/total*100).toFixed(1)+"%" : "—";
         subBar("Your Wealth Allocation");
@@ -19882,17 +19912,26 @@ function drawFanChart(){
         if(val("rptIncWealthFw") === "no") return;
         newPage();
         sectionH2("Wealth & Risk Allocation: Your Current Status");
-        const buckets={personal:0,market:0,aspirational:0};
-        (assets||[]).forEach(a=>{ buckets[gbWealthBucket(a)]+=(+a.value||0); });
-        buckets.personal+=num("aProp",0)+insuranceCashValue();
-        buckets.aspirational+=num("aOther",0);
+
+        // const buckets={personal:0,market:0,aspirational:0};
+        // (assets||[]).forEach(a=>{ buckets[gbWealthBucket(a)]+=(+a.value||0); });
+        // buckets.personal+=num("aProp",0)+insuranceCashValue();
+        // buckets.aspirational+=num("aOther",0);
+        // const mktByCls={};
+        // (investments||[]).forEach(i=>{
+        //   const cls=(typeof effClass==="function"?effClass(i):i.cls)||"mixed";
+        //   const b=gbWealthBucket({cls,type:i.type,label:i.name});
+        //   buckets[b]+=(+i.val||0);
+        //   if(b==="market") mktByCls[cls]=(mktByCls[cls]||0)+(+i.val||0);
+        // });
+        const buckets=gbComputeWealthBuckets(); // Mode B: linked account excluded
         const mktByCls={};
         (investments||[]).forEach(i=>{
           const cls=(typeof effClass==="function"?effClass(i):i.cls)||"mixed";
           const b=gbWealthBucket({cls,type:i.type,label:i.name});
-          buckets[b]+=(+i.val||0);
           if(b==="market") mktByCls[cls]=(mktByCls[cls]||0)+(+i.val||0);
         });
+        
         const totalW=buckets.personal+buckets.market+buckets.aspirational;
         const pct=v=>totalW>0?(v/totalW*100).toFixed(2)+"%":"—";
         const colW=(CW-12)/3;
