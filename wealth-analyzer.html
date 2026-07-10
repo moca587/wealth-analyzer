@@ -14475,16 +14475,28 @@ function _retirementPensionSchedule(retireAge, yearsInRet, inf){
   const c2Age = (typeof ageFromDOB==="function" ? ageFromDOB(val("c2d")) : null);
   const c2AgeAtRet = (c2Age==null ? retireAge : c2Age + (retireAge - a1));
   for(let y=0; y<yearsInRet; y++){
-    // let pen = calcPension(penSrc, penAnn, penStart, penCola, retireAge + y, inf);
+    const c1AgeAtYear = retireAge + y;
+
     let pen = calcPension(
       penSrc,
       penAnn,
       penStart,
       penCola,
-      age,
+      c1AgeAtYear,
       inf
     );
-    if(showC2) pen += calcPension(penSrc2, penAnn2, penStart2, penCola2, c2AgeAtRet + y, inf);
+
+    if(showC2){
+      pen += calcPension(
+        penSrc2,
+        penAnn2,
+        penStart2,
+        penCola2,
+        c2AgeAtRet + y,
+        inf
+      );
+    }
+
     out[y] = pen;
   }
   return out;
