@@ -1805,13 +1805,13 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
 
     <div class="set-sec">
       <div class="set-sec-h">Data &amp; integrations</div>
-      <!-- Claude API key — the primary one; always visible so it's easy to find -->
-      <label for="aiKeyInput" style="display:block;font-size:12.5px;font-weight:600;color:var(--text);margin-bottom:5px">🤖 Claude (Anthropic) API key</label>
-      <input type="password" id="aiKeyInput" placeholder="sk-ant-… paste your key here" autocomplete="off" spellcheck="false"
+      <!-- AI API key — the primary one; always visible so it's easy to find -->
+      <label for="aiKeyInput" style="display:block;font-size:12.5px;font-weight:600;color:var(--text);margin-bottom:5px">🤖 AI API key</label>
+      <input type="password" id="aiKeyInput" placeholder="paste your key here" autocomplete="off" spellcheck="false"
              onchange="onAiKeyInput()" oninput="onAiKeyInput()"
              style="width:100%;font-family:var(--fm);font-size:12px;padding:8px 10px;border:1px solid var(--border);border-radius:var(--rs);background:var(--bg2);color:var(--text)">
       <div id="aiKeyNote" style="font-size:11px;margin-top:5px;line-height:1.5"></div>
-      <div class="set-note">Powers <strong>Upload Document</strong> extraction and AI features. Stored only in your browser and sent only to Anthropic. Get a key at <a href="https://console.anthropic.com/settings/keys" target="_blank" style="color:var(--gold)">console.anthropic.com ↗</a>.</div>
+      <div class="set-note">Powers <strong>Upload Document</strong> extraction and AI features. The key is stored only in your browser and sent only to the AI provider.</div>
 
       <!-- Market data provider keys (collapsed by default) -->
       <div id="mdKeysPanel" style="margin-top:14px">
@@ -4241,7 +4241,7 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
 // ═══════════════════════════════════════════════════════════
 // VERSION — updated by build-standalone.pl on each build
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260711-1628";
+const APP_VERSION = "20260711-1632";
 
 // ═══════════════════════════════════════════════════════════
 // DATA
@@ -7227,7 +7227,7 @@ const APP_KEY_DEFS = [
   {id:"wa_marketaux_key",     n:"Marketaux",             url:"https://marketaux.com/account/dashboard",             tip:"100/day · sentiment"},
   // Macro
   {id:"wa_fred_key",          n:"FRED (St Louis Fed)",   url:"https://fred.stlouisfed.org/docs/api/api_key.html",   tip:"Free unlimited · proxied"}
-  // Note: the Claude (wa_ai_key) key has its own dedicated field at the top of
+  // Note: the AI (wa_ai_key) key has its own dedicated field at the top of
   // Settings → Data & integrations, so it is intentionally NOT in this
   // market-data provider grid.
 ];
@@ -9183,7 +9183,7 @@ function saveAIKey(){
   const v=$("aiKeyInput")?.value||"";
   if(v) localStorage.setItem("wa_ai_key",v);
 }
-// Dedicated Settings → Data & integrations Claude-key field. Saves on every
+// Dedicated Settings → Data & integrations AI-key field. Saves on every
 // edit (allows clearing), and keeps the detected-state notes in sync across
 // the Settings drawer and the Upload Document modal.
 function onAiKeyInput(){
@@ -9211,7 +9211,7 @@ window.onAiKeyInput=onAiKeyInput; window.syncAiKeyNote=syncAiKeyNote; window.ref
 function openHoldingsUpload(){ openDataAgent(); }   // back-compat alias
 // ═══════════════════════════════════════════════════════════════════════════
 // AI DATA AGENT — reads ANY client file (photo, scan, PDF, DOCX, XLSX, CSV,
-// TXT, screenshot) with Claude vision + document understanding, extracts the
+// TXT, screenshot) with AI vision + document understanding, extracts the
 // FULL household profile into a strict tool schema, and lets the advisor
 // review every row before it fills the app. Replaces the old holdings-only,
 // text-only importer (and fixes its us_equity/region + decimal-er/yld bugs).
@@ -9253,7 +9253,7 @@ function uploadDocKeyNote(){
   const has = !!getAIKey();
   if(n) n.innerHTML = has
     ? '<span style="color:var(--green)">✓ AI key detected — ready to read documents.</span>'
-    : '<span style="color:var(--amber)">⚠ No AI key set. The agent needs your Claude API key to read documents.</span>';
+    : '<span style="color:var(--amber)">⚠ No AI key set. The agent needs your AI API key to read documents.</span>';
   if(b) b.disabled = !has;
   if(kb) kb.style.display = has ? "none" : "inline-flex";
 }
@@ -9286,7 +9286,7 @@ async function runUploadDocExtract(){
     }
     content.push({type:"text",text:_daInstruction()});
     if(st) st.textContent="Analyzing with AI…";
-    const raw=await callClaudeExtract(content);
+    const raw=await callAIExtract(content);
     _daExtraction=normalizeExtraction(raw);
     const total=Object.keys(_daExtraction).reduce((s,k)=>s+_daExtraction[k].length,0);
     if(!total){ if(st){st.textContent="No financial data detected — try a clearer file."; st.style.color="var(--amber)";} return; }
@@ -9312,7 +9312,7 @@ function daKeyNote(){
   const n=$("aiAgentKeyNote"); if(!n) return;
   n.innerHTML = getAIKey()
     ? '<span style="color:var(--green)">✓ AI key detected — vision document reading is enabled.</span>'
-    : '<span style="color:var(--amber)">⚠ No AI key set. The AI Data Agent needs your Claude API key (Settings → Data &amp; integrations, or Admin → API Keys) to read documents.</span>';
+    : '<span style="color:var(--amber)">⚠ No AI key set. The AI Data Agent needs your AI API key (Settings → Data &amp; integrations, or Admin → API Keys) to read documents.</span>';
 }
 function renderAgentFileList(){
   const el=$("aiAgentFileList"), inp=$("aiAgentFiles"); if(!el) return;
@@ -9646,8 +9646,8 @@ function _daInstruction(){
     +"Give a 0-1 confidence and a short sourceQuote for each value.";
 }
 
-// ── Claude call (forced tool_use → guaranteed structured object) ─────────────
-async function callClaudeExtract(content){
+// ── AI call (forced tool_use → guaranteed structured object) ─────────────
+async function callAIExtract(content){
   const key=getAIKey(); if(!key) throw new Error("No AI key set.");
   const headers={ "x-api-key":key, "anthropic-version":"2023-06-01", "content-type":"application/json", "anthropic-dangerous-direct-browser-access":"true" };
   const body={ model:AI_MODEL, max_tokens:8192, system:"You are a meticulous financial-document data-extraction engine. Never fabricate values.",
@@ -9730,7 +9730,7 @@ async function runDataAgent(){
       catch(e){ content.push({type:"text",text:"=== Source: "+f.name+" (could not read: "+e.message+") ==="}); } }
     content.push({type:"text",text:_daInstruction()});
     if(st) st.textContent="Analyzing with AI…";
-    const raw=await callClaudeExtract(content);
+    const raw=await callAIExtract(content);
     _daExtraction=normalizeExtraction(raw);
     const total=Object.keys(_daExtraction).reduce((s,k)=>s+_daExtraction[k].length,0);
     if(!total){ if(st){st.textContent="No financial data detected — try a clearer file."; st.style.color="var(--amber)";} return; }
