@@ -780,10 +780,87 @@ input[type=date]{color-scheme:light}
 
 /* ── Portfolio ── */
 /* Holdings box mirrors the Proposal box grid 1:1 for visual parity */
-.pf-add{display:grid;grid-template-columns:90px 1.3fr 140px 130px 100px 90px 90px 110px 1.4fr auto;gap:8px;align-items:end;margin-top:10px}
-.pf-add input,.pf-add select{width:100%;font-size:12px}
+/* .pf-add{display:grid;grid-template-columns:90px 1.3fr 140px 130px 100px 90px 90px 110px 1.4fr auto;gap:8px;align-items:end;margin-top:10px}
+.pf-add input,.pf-add select{width:100%;font-size:12px} */
+
 /* Alternatives add line: Type · Subcategory · Name · Value · Region · ER · Yield · Notes · buttons (no ticker, no class) */
-.pf-add-alt{grid-template-columns:120px 180px 1.3fr 100px 90px 90px 110px 1.4fr auto;margin-top:8px}
+/* .pf-add-alt{grid-template-columns:120px 180px 1.3fr 100px 90px 90px 110px 1.4fr auto;margin-top:8px} */
+
+.pf-add{
+  display:grid;
+  grid-template-columns:
+    90px
+    minmax(140px,1.3fr)
+    140px
+    130px
+    100px
+    90px
+    90px
+    110px
+    minmax(140px,1.4fr)
+    auto;
+  gap:8px;
+  align-items:end;
+  margin-top:10px;
+}
+
+.pf-add input,
+.pf-add select{
+  width:100%;
+  min-width:0;
+  font-size:12px;
+}
+
+.pf-add-alt{
+  grid-template-columns:
+    120px
+    180px
+    minmax(140px,1.3fr)
+    100px
+    90px
+    90px
+    110px
+    minmax(140px,1.4fr)
+    auto;
+  margin-top:8px;
+}
+
+/* Current Portfolio responsive layout */
+.pf-add,
+.pf-add-alt,
+.pf-add .fld{
+  min-width:0;
+}
+
+@media(max-width:1500px){
+  .pf-add,
+  .pf-add-alt{
+    grid-template-columns:repeat(5,minmax(0,1fr));
+  }
+}
+
+@media(max-width:1200px){
+  .pf-add,
+  .pf-add-alt{
+    grid-template-columns:repeat(3,minmax(0,1fr));
+  }
+}
+
+@media(max-width:900px){
+  .pf-add,
+  .pf-add-alt{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+}
+
+@media(max-width:700px){
+  .pf-add,
+  .pf-add-alt{
+    grid-template-columns:1fr;
+  }
+}
+
+
 /* ── AI Data Agent ── */
 .da-note{font-size:12px;color:var(--text2);line-height:1.55}
 .da-sec{margin-bottom:14px}
@@ -805,7 +882,72 @@ input[type=date]{color-scheme:light}
 .si-map-row{display:flex;gap:10px;align-items:center;margin-bottom:6px}
 .pf-add .fld,.pr-add .fld{display:flex;flex-direction:column;gap:3px;min-width:0}
 .pf-add .fld > label,.pr-add .fld > label{font-size:10px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.4px}
-.pf-row{display:grid;grid-template-columns:90px 1.5fr 80px 130px 100px 80px 80px 110px 1.4fr auto;gap:8px;align-items:center;padding:8px 10px;border-bottom:1px solid var(--border);font-size:12px}
+
+/* .pf-row{display:grid;grid-template-columns:90px 1.5fr 80px 130px 100px 80px 80px 110px 1.4fr auto;gap:8px;align-items:center;padding:8px 10px;border-bottom:1px solid var(--border);font-size:12px} */
+.pf-row{
+  display:grid;
+  grid-template-columns:
+    90px
+    minmax(120px,1.5fr)
+    80px
+    130px
+    100px
+    80px
+    80px
+    110px
+    minmax(120px,1.4fr)
+    auto;
+  gap:8px;
+  align-items:center;
+  padding:8px 10px;
+  border-bottom:1px solid var(--border);
+  font-size:12px;
+  min-width:0;
+}
+
+.pf-row > *{
+  min-width:0;
+}
+
+.pf-row .pname,
+.pf-row .ptkr,
+.pf-row .pnote{
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+.pf-row button{
+  max-width:100%;
+  justify-self:start;
+}
+
+/* Current Portfolio holding rows */
+@media(max-width:1500px){
+  .pf-row{
+    grid-template-columns:repeat(5,minmax(0,1fr));
+    row-gap:10px;
+  }
+}
+
+@media(max-width:1200px){
+  .pf-row{
+    grid-template-columns:repeat(3,minmax(0,1fr));
+  }
+}
+
+@media(max-width:900px){
+  .pf-row{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+}
+
+@media(max-width:700px){
+  .pf-row{
+    grid-template-columns:1fr;
+  }
+}
+
 .pf-row:hover{background:var(--bg2)}
 .pf-row .pname{font-weight:500;color:var(--text)}
 .pf-row .ptkr{font-family:'Courier New',Courier,monospace;font-size:11px;color:var(--text3);letter-spacing:.04em}
@@ -4100,7 +4242,7 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
 // ═══════════════════════════════════════════════════════════
 // VERSION — updated by build-standalone.pl on each build
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260710-1621";
+const APP_VERSION = "20260711-1621";
 
 // ═══════════════════════════════════════════════════════════
 // DATA
@@ -13906,8 +14048,26 @@ async function fetchAlphaVantageForProposal(){
 // ═══════════════════════════════════════════════════════════
 // MONTE CARLO ENGINE
 // ═══════════════════════════════════════════════════════════
+// Seeded PRNG (mulberry32) so Monte Carlo runs are reproducible.
+// All simulation randomness must flow through _simRand / boxMuller —
+// never Math.random() — or determinism breaks.
+function mulberry32(seed){
+  let a = seed >>> 0;
+  return function(){
+    a |= 0; a = (a + 0x6D2B79F5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+const SIM_SEED = 20260710;                 // fixed default seed
+let _simRand = mulberry32(SIM_SEED);
+function simSeedReset(seed){ _simRand = mulberry32((seed==null ? SIM_SEED : seed) >>> 0); }
+
 function boxMuller(){
-  let u=0,v=0; while(u===0) u=Math.random(); while(v===0) v=Math.random();
+  // let u=0,v=0; while(u===0) u=Math.random(); while(v===0) v=Math.random();
+  let u=0,v=0; while(u===0) u=_simRand(); while(v===0) v=_simRand();
+
   return Math.sqrt(-2.0*Math.log(u))*Math.cos(2.0*Math.PI*v);
 }
 function totalAccountValue(){
@@ -14463,6 +14623,8 @@ function buildFanChartData(paths){
 
 // Main Monte Carlo engine for the "what could your wealth look like" chart
 function runMC(years,sims,muOverride,sigOverride){
+  simSeedReset();
+
   // Override → proposal-driven (when AI applied) → household effective (default)
   const {mu,sig} = (muOverride!=null)?{mu:muOverride,sig:sigOverride}:getActiveSimulationParams();
 
@@ -14484,6 +14646,7 @@ function runMC(years,sims,muOverride,sigOverride){
   const country=val("c1co")||"US";
   const liquidAcc=Math.max(0, totalAcc-retSeed); // exclude retirement accounts from liquid pool
   const pfTotal=pfInvested+pfCash;
+
   let investSeed, cashSeed;
   if(investments.length>0 && !pfLinkedAccountId){
     // Mode C — portfolio entered but not linked to an asset account.
@@ -14498,6 +14661,7 @@ function runMC(years,sims,muOverride,sigOverride){
     investSeed=Math.max(pfInvested, totalSeed*0.3);
     cashSeed=Math.max(0, totalSeed-investSeed)+pfCash;
   }
+  
   const savAnnual=num("savAnnual",0);
   const cgtDrag = getApplyTax()? (num("cgtRate",15)/100)*(num("cgtTurnover",10)/100) : 0;
   // Retirement params
@@ -14532,8 +14696,9 @@ function runMC(years,sims,muOverride,sigOverride){
   // Holdings→bucket template is invariant across paths — build it once and
   // copy per path (it used to be rebuilt from the investments array on every
   // one of the 1,000 paths).
-  const _bucketTpl = getAssetBucketsFromHoldings();
+  const _bucketTpl = getAssetBucketsFromHoldings(); // returns object, holds percentages
   const _tplEmpty = Object.keys(_bucketTpl).length === 0;
+
   for(let s=0;s<sims;s++){
     // let cash=cashSeed, inv=investSeed, prop=propVal;
 
@@ -14545,7 +14710,7 @@ function runMC(years,sims,muOverride,sigOverride){
       ? { mixed: investSeed }
       : scaleBucketsToTotal(Object.assign({}, _bucketTpl), investSeed);
 
-    let inv = sumBuckets(assetBuckets); // grow only investments
+    let inv = sumBuckets(assetBuckets); // starting investment balance. grow only investments
 
     let retPot=retSeed; // retirement pool per simulation path
     let income=baseInc, expense=baseExp;
@@ -14567,18 +14732,17 @@ function runMC(years,sims,muOverride,sigOverride){
     // Deficits reduce cash/investments
     // Goals are paid from wealth
     // Portfolio is optionally rebalanced
+
+    // yearly loop
     for(let y=0;y<=years;y++){
+      // Chronological snapshot first
+      const debtTotal=loanState.reduce((s,l)=>s+l.bal,0);
+      path.push(cash+inv+prop+other+retPot-debtTotal);
+
+      if (y === years) break;
+
       const infY = scenarioInflation(y, inf);
       const returnShock = scenarioReturnShock(y);
-
-      // if (s === 0 && y <= 10) {
-      //   console.log("scenario test", {
-      //     scenario: val("stressScenario") || "base",
-      //     year: y,
-      //     infY,
-      //     returnShock
-      //   });
-      // }
 
       // age and retirement status 
       const age=c1Age0+y; 
@@ -14673,6 +14837,7 @@ function runMC(years,sims,muOverride,sigOverride){
           }
         }
       }
+      // REPLACE THIS 
       // Random returns, or scenario shock overrides
       if(returnShock !== null){
         // inv = inv * (1 + returnShock);
@@ -14698,13 +14863,15 @@ function runMC(years,sims,muOverride,sigOverride){
       // log-normalized 
       const propMu = 0.03;
       const propSig = 0.02;
+
       const propLogR = (propMu - 0.5 * propSig * propSig) + propSig * boxMuller();
       prop = prop * Math.exp(propLogR);
       
       if(!retired) income*=(1+raise);
       expense*=(1+infY);
-      const debtTotal=loanState.reduce((s,l)=>s+l.bal,0);
-      path.push(cash+inv+prop+other+retPot-debtTotal);
+      // const debtTotal=loanState.reduce((s,l)=>s+l.bal,0);
+
+      // path.push(cash+inv+prop+other+retPot-debtTotal);
     }
     path._shortfallYr=shortfallYr;   // goal-liquidity marker for goalSuccessFromPaths
     paths.push(path);
@@ -14754,8 +14921,28 @@ function _retirementPensionSchedule(retireAge, yearsInRet, inf){
   const c2Age = (typeof ageFromDOB==="function" ? ageFromDOB(val("c2d")) : null);
   const c2AgeAtRet = (c2Age==null ? retireAge : c2Age + (retireAge - a1));
   for(let y=0; y<yearsInRet; y++){
-    let pen = calcPension(penSrc, penAnn, penStart, penCola, retireAge + y, inf);
-    if(showC2) pen += calcPension(penSrc2, penAnn2, penStart2, penCola2, c2AgeAtRet + y, inf);
+    const c1AgeAtYear = retireAge + y;
+
+    let pen = calcPension(
+      penSrc,
+      penAnn,
+      penStart,
+      penCola,
+      c1AgeAtYear,
+      inf
+    );
+
+    if(showC2){
+      pen += calcPension(
+        penSrc2,
+        penAnn2,
+        penStart2,
+        penCola2,
+        c2AgeAtRet + y,
+        inf
+      );
+    }
+
     out[y] = pen;
   }
   return out;
@@ -14764,6 +14951,8 @@ function _retirementPensionSchedule(retireAge, yearsInRet, inf){
 // spend. `spend` and the pension schedule are nominal at the retirement date;
 // the portfolio only has to fund spending above pension income each year.
 function _survivalProb(startWealth, spend, yearsInRet, mu, sig, inf, sims=300, pensionByYear=null){
+  simSeedReset();
+
   let successes = 0;
   for(let s=0; s<sims; s++){
     let port = startWealth;
@@ -14801,6 +14990,8 @@ function _solveSustainableSpendMC(startWealth, yearsInRet, mu, sig, inf, targetS
 }
 
 function runRetirementDrawdown(){
+  simSeedReset();
+
   const st=$("rdStatus");
   const c1Age=ageFromDOB(val("c1d"))||40;
   const retAge=Math.max(c1Age, num("retAge",65));
@@ -14891,6 +15082,8 @@ window.runRetirementDrawdown=runRetirementDrawdown;
 // that meets a target plan-success confidence. Binary search over spend, reusing
 // the same decumulation model as runRetirementDrawdown.
 function solveSustainableSpend(){
+  simSeedReset();
+  
   const st=$("rdStatus");
   const c1Age=ageFromDOB(val("c1d"))||40;
   const retAge=Math.max(c1Age, num("retAge",65));
@@ -16160,6 +16353,7 @@ function renderCashFlow(){
   //   loopMu   — annual investment return (geometric mean = mu − 0.5σ², matching MC median)
   function runLoop(initInv, initCash, loopMu){
     let iv=initInv, ca=initCash, rp=retSeed;
+    let unfundedShortfall = 0;
     // Retirement pool: fixed extremely conservative rate — never tied to
     // the simulation's active μ (proposal-driven or otherwise). Only the
     // "Investments" pool tracks loopMu.
@@ -16240,35 +16434,98 @@ function renderCashFlow(){
       // Step 3 — residual surplus is discretionary spending, not additionally saved.
       // Only a deficit drains cash first, then investments.
       const surpAfterSav=surp-actualSav;
+
+      // let surpToInv=0, deficitDrain=0;
+      // if(surpAfterSav<0){
+      //   ca+=surpAfterSav;
+      //   if(ca<0){deficitDrain=ca; iv+=ca; ca=0; if(iv<0) iv=0;}
+      // }
       let surpToInv=0, deficitDrain=0;
+
       if(surpAfterSav<0){
-        ca+=surpAfterSav;
-        if(ca<0){deficitDrain=ca; iv+=ca; ca=0; if(iv<0) iv=0;}
+        const deficit=Math.abs(surpAfterSav);
+
+        const fromCash=Math.min(ca,deficit);
+        ca-=fromCash;
+
+        const remainingAfterCash=deficit-fromCash;
+        const fromInv=Math.min(iv,remainingAfterCash);
+        iv-=fromInv;
+
+        const unpaidDeficit=remainingAfterCash-fromInv;
+
+        // Keep the tooltip value negative because it represents an investment drain.
+        deficitDrain=-fromInv;
+
+        // Anything that could not be paid becomes an accumulated liability.
+        unfundedShortfall+=unpaidDeficit;
       }
+
       // Step 4 — goal outflows: cash first, then investments
+      // let goalDrain=0;
+      // if(goalOut>0){
+      //   const fromCash=Math.min(ca,goalOut);
+      //   ca-=fromCash;
+      //   const fromInv=Math.min(iv,goalOut-fromCash);
+      //   goalDrain=fromInv;
+      //   iv-=fromInv;
+      //   ca=Math.max(0,ca); iv=Math.max(0,iv);
+      // }
       let goalDrain=0;
+
       if(goalOut>0){
         const fromCash=Math.min(ca,goalOut);
         ca-=fromCash;
-        const fromInv=Math.min(iv,goalOut-fromCash);
-        goalDrain=fromInv;
+
+        const remainingAfterCash=goalOut-fromCash;
+        const fromInv=Math.min(iv,remainingAfterCash);
         iv-=fromInv;
-        ca=Math.max(0,ca); iv=Math.max(0,iv);
+        goalDrain=fromInv;
+
+        const unpaidGoal=remainingAfterCash-fromInv;
+        unfundedShortfall+=unpaidGoal;
       }
+
       // Step 5 — property appreciation and income/expense escalation
       pr=pr*(1+propGrowth);
       ic*=(1+raise); ex*=(1+inf);
-      const debtTotal=lb.reduce((s,l)=>s+l.bal,0);
+      // const debtTotal=lb.reduce((s,l)=>s+l.bal,0);
+      // const nw=ca+iv+pr+other+rp-debtTotal;
+      const scheduledDebtTotal=lb.reduce((s,l)=>s+l.bal,0);
+      const debtTotal=scheduledDebtTotal+unfundedShortfall;
       const nw=ca+iv+pr+other+rp-debtTotal;
+
       if(nw<=0&&y>0) dep=true;
       data.push({y,age,retired,phase,earnedInc,pen,pen1,pen2,rmd,rmd1,rmd2,tax,livingExp,debt,
         surp,effectiveSav,actualSav,surpAfterSav,goalOut,
         invOpen,invReturn,surpToInv,deficitDrain,goalDrain,
         inv:iv,cash:ca,retPot:rp,nw,depleted:dep,
-        prop:pr,otherAssets:other,debtBal:debtTotal,
-        caOpen,rpBefore,rpGrowth,retMu,loanPayments,goalsFired});
+        prop:pr,
+        otherAssets:other,
+        debtBal:debtTotal,
+        scheduledDebtBal:scheduledDebtTotal,
+        unfundedShortfall,
+        caOpen,
+        rpBefore,
+        rpGrowth,
+        retMu,
+        loanPayments,
+        goalsFired});
       if(y===0) lastCfComponents=[];
-      lastCfComponents.push({y,age,cash:ca,inv:iv,retPot:rp,prop:pr,otherAssets:other,debtBal:debtTotal,nw});
+      // lastCfComponents.push({y,age,cash:ca,inv:iv,retPot:rp,prop:pr,otherAssets:other,debtBal:debtTotal,nw});
+      lastCfComponents.push({
+        y,
+        age,
+        cash:ca,
+        inv:iv,
+        retPot:rp,
+        prop:pr,
+        otherAssets:other,
+        debtBal:debtTotal,
+        scheduledDebtBal:scheduledDebtTotal,
+        unfundedShortfall,
+        nw
+      });
     }
     return data;
   }
@@ -17475,18 +17732,40 @@ function gbWealthBucket(asset){
   return "market";
 }
 
-function gbRenderWealth(){
+// Compute Personal / Market / Aspirational bucket totals.
+// Mode B: when portfolio holdings are linked to an account (pfLinkedAccountId),
+// the holdings REPLACE that account — skip it to avoid double-counting
+// (same convention as totalAccountValue() and the net-worth builder).
+function gbComputeWealthBuckets(){
   const buckets = {personal:0, market:0, aspirational:0};
-  (assets||[]).forEach(a => { buckets[gbWealthBucket(a)] += (+a.value||0); });
-  // Property + other from the Assets tab summary fields
-  const prop = num("aProp",0), other = num("aOther",0);
-  buckets.personal += prop + insuranceCashValue(); // primary residence + policy cash value → personal
-  buckets.aspirational += other; // "other" treated as idiosyncratic
-  // Portfolio holdings (investments) → market
+  const skipLinked = pfLinkedAccountId && (investments||[]).length > 0;
+  (assets||[]).forEach(a => {
+    if(skipLinked && a.id === pfLinkedAccountId) return;   // the actual fix
+    buckets[gbWealthBucket(a)] += (+a.value||0);
+  });
+  buckets.personal += num("aProp",0) + insuranceCashValue();
+  buckets.aspirational += num("aOther",0);
   (investments||[]).forEach(i => {
     const b = gbWealthBucket({cls:(typeof effClass==="function"?effClass(i):i.cls), type:i.type, label:i.name});
     buckets[b] += (+i.val||0);
   });
+  return buckets;
+}
+
+function gbRenderWealth(){
+  // const buckets = {personal:0, market:0, aspirational:0};
+  // (assets||[]).forEach(a => { buckets[gbWealthBucket(a)] += (+a.value||0); });
+  // // Property + other from the Assets tab summary fields
+  // const prop = num("aProp",0), other = num("aOther",0);
+  // buckets.personal += prop + insuranceCashValue(); // primary residence + policy cash value → personal
+  // buckets.aspirational += other; // "other" treated as idiosyncratic
+  // // Portfolio holdings (investments) → market
+  // (investments||[]).forEach(i => {
+  //   const b = gbWealthBucket({cls:(typeof effClass==="function"?effClass(i):i.cls), type:i.type, label:i.name});
+  //   buckets[b] += (+i.val||0);
+  // });
+  const buckets = gbComputeWealthBuckets();
+
   const total = buckets.personal + buckets.market + buckets.aspirational;
   const defs = [
     {k:"personal",   label:"Personal Assets",     sub:"Preserve lifestyle · safety", color:"var(--green)"},
@@ -20274,14 +20553,17 @@ function drawFanChart(){
           });
           y+=6; doc.setTextColor(40); doc.setFont("helvetica","normal"); doc.setFontSize(fsz);
         })();
-        const buckets = {personal:0, market:0, aspirational:0};
-        (assets||[]).forEach(a=>{ buckets[gbWealthBucket(a)] += (+a.value||0); });
-        buckets.personal     += num("aProp",0) + insuranceCashValue();
-        buckets.aspirational += num("aOther",0);
-        (investments||[]).forEach(i=>{
-          const b = gbWealthBucket({cls:(typeof effClass==="function"?effClass(i):i.cls), type:i.type, label:i.name});
-          buckets[b] += (+i.val||0);
-        });
+
+        const buckets = gbComputeWealthBuckets(); // Mode B: linked account excluded
+        // const buckets = {personal:0, market:0, aspirational:0};
+        // (assets||[]).forEach(a=>{ buckets[gbWealthBucket(a)] += (+a.value||0); });
+        // buckets.personal     += num("aProp",0) + insuranceCashValue();
+        // buckets.aspirational += num("aOther",0);
+        // (investments||[]).forEach(i=>{
+        //   const b = gbWealthBucket({cls:(typeof effClass==="function"?effClass(i):i.cls), type:i.type, label:i.name});
+        //   buckets[b] += (+i.val||0);
+        // });
+
         const total = buckets.personal + buckets.market + buckets.aspirational;
         const pctOf = v => total>0 ? (v/total*100).toFixed(1)+"%" : "—";
         subBar("Your Wealth Allocation");
@@ -20328,17 +20610,26 @@ function drawFanChart(){
         if(val("rptIncWealthFw") === "no") return;
         newPage();
         sectionH2("Wealth & Risk Allocation: Your Current Status");
-        const buckets={personal:0,market:0,aspirational:0};
-        (assets||[]).forEach(a=>{ buckets[gbWealthBucket(a)]+=(+a.value||0); });
-        buckets.personal+=num("aProp",0)+insuranceCashValue();
-        buckets.aspirational+=num("aOther",0);
+
+        // const buckets={personal:0,market:0,aspirational:0};
+        // (assets||[]).forEach(a=>{ buckets[gbWealthBucket(a)]+=(+a.value||0); });
+        // buckets.personal+=num("aProp",0)+insuranceCashValue();
+        // buckets.aspirational+=num("aOther",0);
+        // const mktByCls={};
+        // (investments||[]).forEach(i=>{
+        //   const cls=(typeof effClass==="function"?effClass(i):i.cls)||"mixed";
+        //   const b=gbWealthBucket({cls,type:i.type,label:i.name});
+        //   buckets[b]+=(+i.val||0);
+        //   if(b==="market") mktByCls[cls]=(mktByCls[cls]||0)+(+i.val||0);
+        // });
+        const buckets=gbComputeWealthBuckets(); // Mode B: linked account excluded
         const mktByCls={};
         (investments||[]).forEach(i=>{
           const cls=(typeof effClass==="function"?effClass(i):i.cls)||"mixed";
           const b=gbWealthBucket({cls,type:i.type,label:i.name});
-          buckets[b]+=(+i.val||0);
           if(b==="market") mktByCls[cls]=(mktByCls[cls]||0)+(+i.val||0);
         });
+        
         const totalW=buckets.personal+buckets.market+buckets.aspirational;
         const pct=v=>totalW>0?(v/totalW*100).toFixed(2)+"%":"—";
         const colW=(CW-12)/3;
@@ -21569,6 +21860,8 @@ function setChartMode(mode){
 // SENSITIVITY ANALYSIS (tornado chart)
 // ═══════════════════════════════════════════════════════════
 function runMCWithOverrides(years,sims,overrides){
+  simSeedReset();
+
   const saved={};
   Object.entries(overrides).forEach(([id,v])=>{saved[id]=val(id); if($(id)) $(id).value=v;});
   try{
@@ -21584,6 +21877,10 @@ function runSensitivity(){
   const yrs=lastSimYrs;
   const sims=Math.min(200,parseInt(val("simN")||"200",10));
   const baseMedian=percentileAt(lastSimPaths,yrs,50);
+  // simSeedReset();
+  // const basePaths = runMC(yrs,sims);
+  // const baseMedian = percentileAt(basePaths,yrs,50);
+
   setT("sensYr",String(currentYear()+yrs));
 
   const tests=[
