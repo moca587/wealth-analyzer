@@ -5655,16 +5655,37 @@ function sumBuckets(buckets) {
   return Object.values(buckets).reduce((a, b) => a + b, 0);
 }
 
+// function scaleBucketsToTotal(buckets, newTotal) {
+//   const oldTotal = sumBuckets(buckets);
+
+//   if (oldTotal <= 0) return { mixed: Math.max(0, newTotal) };
+
+//   const scaled = {};
+//   Object.keys(buckets).forEach(cls => {
+//     scaled[cls] = buckets[cls] * (newTotal / oldTotal);
+//   });
+
+//   return scaled;
+// }
+
 function scaleBucketsToTotal(buckets, newTotal) {
   const oldTotal = sumBuckets(buckets);
+  const keys = Object.keys(buckets);
+  if (keys.length === 0) return { mixed: Math.max(0, newTotal) };
 
-  if (oldTotal <= 0) return { mixed: Math.max(0, newTotal) };
+  if (oldTotal <= 0) {
+    // Preserve the existing class keys (equal split of any new total) instead
+    // of collapsing to a single 'mixed' bucket. growAssetBuckets consumes one
+    // random draw PER CLASS per year, so collapsing changes the number of
+    // draws consumed after depletion — which shifts the shared seeded stream
+    // and breaks common-random-numbers alignment between sensitivity runs.
+    const scaled = {};
+    keys.forEach(cls => { scaled[cls] = Math.max(0, newTotal) / keys.length; });
+    return scaled;
+  }
 
   const scaled = {};
-  Object.keys(buckets).forEach(cls => {
-    scaled[cls] = buckets[cls] * (newTotal / oldTotal);
-  });
-
+  keys.forEach(cls => { scaled[cls] = buckets[cls] * (newTotal / oldTotal); });
   return scaled;
 }
 
@@ -21428,8 +21449,12 @@ function runMCWithOverrides(years,sims,overrides){
 function runSensitivity(){
   if(!lastSimPaths || !lastSimPaths.length) return;
   const yrs=lastSimYrs;
+
   const sims=Math.min(200,parseInt(val("simN")||"200",10));
-  const baseMedian=percentileAt(lastSimPaths,yrs,50);
+  // const baseMedian=percentileAt(lastSimPaths,yrs,50);
+  const baseMedian=percentileAt(runMC(yrs,sims),yrs,50);
+
+
   // simSeedReset();
   // const basePaths = runMC(yrs,sims);
   // const baseMedian = percentileAt(basePaths,yrs,50);
