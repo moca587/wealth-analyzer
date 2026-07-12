@@ -198,15 +198,19 @@ const EXPECTED: Record<string, Sig> = {
     final: { p10: 958518, p25: 1806255, p50: 3475576, p75: 5862945, p90: 8958971, mean: 4519698 },
     goals: { g1: 1, g2: 1 },
   },
+  // retirement-funded + two-client-blend regenerated 2026-07 for the loan
+  // debt-service fix (engine v2): principal payments are now funded from cash
+  // flow instead of vanishing, so loan-bearing plans project lower. Loan-free
+  // scenarios were byte-identical across the change (RNG stream untouched).
   "retirement-funded": {
     years: 39,
-    final: { p10: 2472088, p25: 2736940, p50: 5089116, p75: 11421473, p90: 21010922, mean: 9264342 },
+    final: { p10: 2425432, p25: 2646500, p50: 3246006, p75: 8915723, p90: 18205231, mean: 7726750 },
     goals: { g2: 1 },
-    retirement: { success: 0.609, depletion: 0.391, retirementAge: 65, planToAge: 92 },
+    retirement: { success: 0.498, depletion: 0.502, retirementAge: 65, planToAge: 92 },
   },
   "two-client-blend": {
     years: 25,
-    final: { p10: 3770327, p25: 4920615, p50: 7050298, p75: 9854526, p90: 13879012, mean: 8127171 },
+    final: { p10: 3334654, p25: 4356518, p50: 6305123, p75: 8804449, p90: 12584129, mean: 7293712 },
     goals: {},
   },
   "retirement-tight": {

@@ -121,6 +121,7 @@ export function PlanForm({ initialPlan }: { initialPlan: WealthPlan | null }) {
       {/* ─── EXPENSES ─── */}
       <SectionList
         title="Monthly expenses"
+        hint="Exclude payments on loans entered under Liabilities — the simulation deducts those separately (it would double-count them)."
         rows={plan.expenses}
         onAdd={addExpense}
         renderRow={(x) => (
@@ -197,9 +198,10 @@ export function PlanForm({ initialPlan }: { initialPlan: WealthPlan | null }) {
 
 // ─── Generic add/remove section component ────────────────────────
 function SectionList<T extends { id: string }>({
-  title, rows, onAdd, renderRow
+  title, hint, rows, onAdd, renderRow
 }: {
   title: string;
+  hint?: string;
   rows: T[];
   onAdd: () => void;
   renderRow: (row: T) => React.ReactNode;
@@ -207,7 +209,10 @@ function SectionList<T extends { id: string }>({
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0">
-        <CardTitle>{title}</CardTitle>
+        <div>
+          <CardTitle>{title}</CardTitle>
+          {hint && <p className="text-xs text-muted-foreground mt-1">{hint}</p>}
+        </div>
         <Button type="button" variant="outline" size="sm" onClick={onAdd}>+ Add</Button>
       </CardHeader>
       <CardContent className="space-y-3">

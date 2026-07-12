@@ -12,7 +12,7 @@ import { useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { SimChart } from "@/components/sim/sim-chart";
 import { runMonteCarlo } from "@/lib/engine/monte-carlo";
-import { formatMoney, estimateIncomeTax, ageFromDOB } from "@/lib/engine/financial-math";
+import { formatMoney, estimateIncomeTax, ageFromDOB, calcMortgagePayment } from "@/lib/engine/financial-math";
 import { RISK_PROFILES } from "@/lib/engine/constants";
 import type { WealthPlan } from "@/lib/engine/types";
 
@@ -39,7 +39,12 @@ export function ReportView({ plan }: { plan: WealthPlan }) {
   const taxableIncome = sum(plan.incomes.filter((i) => i.taxable !== false), (i) => i.amount);
   const tax = estimateIncomeTax(taxableIncome, plan.clients[0]?.country || "US");
   const annualExpense = sum(plan.expenses, (e) => e.amount) * 12;
-  const annualSurplus = grossIncome - tax - annualExpense;
+  // First-year debt service (P+I) on tracked loans — the engine deducts this
+  // from cash flow each year, so the printed surplus must reflect it too.
+  const annualDebtService = sum(plan.loans, (l) =>
+    l.bal > 0 && l.yrs > 0 ? calcMortgagePayment(l.bal, l.rate, l.yrs) * 12 : 0
+  );
+  const annualSurplus = grossIncome - tax - annualExpense - annualDebtService;
 
   // Assets grouped by class.
   const byClass = new Map<string, number>();
@@ -172,10 +177,13 @@ export function ReportView({ plan }: { plan: WealthPlan }) {
               <Tr cells={["Gross annual income", m(grossIncome)]} align={["left", "right"]} />
               <Tr cells={["Estimated income tax", `(${m(tax)})`]} align={["left", "right"]} />
               <Tr cells={["Annual expenses", `(${m(annualExpense)})`]} align={["left", "right"]} />
+              {annualDebtService > 0 && (
+                <Tr cells={["Debt service (loans, first year)", `(${m(annualDebtService)})`]} align={["left", "right"]} />
+              )}
               <Tr strong cells={["Annual surplus", m(annualSurplus)]} align={["left", "right"]} />
             </tbody>
           </table>
-          <p className="text-xs text-slate-400 mt-3">Income tax is a simplified, federal-level estimate for {plan.clients[0]?.country || "US"}; it excludes state/local layers and credits. It is not tax advice — consult a tax professional.</p>
+          <p className="text-xs text-slate-400 mt-3">Income tax is a simplified, federal-level estimate for {plan.clients[0]?.country || "US"}; it excludes state/local layers and credits. It is not tax advice — consult a tax professional. Expense categories should exclude payments on tracked loans — debt service is shown (and simulated) separately.</p>
         </section>
 
         {/* ── GOALS ── */}
@@ -232,7 +240,7 @@ export function ReportView({ plan }: { plan: WealthPlan }) {
           <ul className="text-sm text-slate-600 mt-4 space-y-2 list-disc pl-5 report-avoid">
             <li>Returns are simulated as log-normal draws. Portfolio expected return and volatility are derived from your actual allocation using per-asset-class capital-market assumptions and a correlation matrix (so diversification reduces risk).</li>
             <li>Expenses and goals are inflated at {pct(plan.inflationRate)} per year; income is taxed using simplified federal brackets.</li>
-            <li>Loans amortize with real interest math; property appreciates stochastically and is not liquidated for spending.</li>
+            <li>Loans amortize with real interest math, and full debt service (interest + principal) is paid from each year&apos;s cash flow — expense categories are assumed to exclude those payments. Property appreciates stochastically and is not liquidated for spending.</li>
             {sim.retirement && <li>In retirement, salary stops, spending is drawn from taxable then tax-deferred accounts, pensions are credited, and RMDs are forced past age 73.</li>}
           </ul>
           <p className="text-xs text-slate-400 mt-6 leading-relaxed report-avoid">

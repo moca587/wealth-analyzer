@@ -14,7 +14,8 @@
 //     fixed 2026-07. The legacy app itself always applied exp().)
 //   - Property appreciation as stochastic 3% ± 2% (arithmetic; σ too small
 //     for the distinction to matter)
-//   - Real loan amortization (interest math, balance amortizes down)
+//   - Real loan amortization: debt service (interest + principal) is funded
+//     from each year's cash flow while the balance amortizes down (engine v2)
 //   - Goal funding evaluated at calendar-year targets
 // ─────────────────────────────────────────────────────────────────
 
@@ -47,7 +48,7 @@ function sumOf<T>(arr: T[], getter: (item: T) => number): number {
   return arr.reduce((s, x) => s + (getter(x) || 0), 0);
 }
 
-/** Per-period (annual) amortization: returns new balance + interest paid. */
+/** Per-period (annual) amortization: returns new balance + interest/principal paid. */
 function amortizeLoan(loan: Loan): { newBal: number; interestPaid: number; principalPaid: number } {
   if (loan.bal <= 0) return { newBal: 0, interestPaid: 0, principalPaid: 0 };
   // A term-expired loan that still carries a balance (yrs ≤ 0 but bal > 0 — e.g.
@@ -55,22 +56,18 @@ function amortizeLoan(loan: Loan): { newBal: number; interestPaid: number; princ
   // than silently erasing it. It just doesn't amortize further.
   if (loan.yrs <= 0) return { newBal: loan.bal, interestPaid: 0, principalPaid: 0 };
   const monthlyPmt = calcMortgagePayment(loan.bal, loan.rate, loan.yrs);
-  const annualPmt = monthlyPmt * 12;
   let bal = loan.bal;
   let interestTotal = 0;
   const monthlyRate = loan.rate / 100 / 12;
   for (let m = 0; m < 12; m++) {
     if (bal <= 0) break;
     const interest = bal * monthlyRate;
-    const principal = monthlyPmt - interest;
+    const principal = Math.min(monthlyPmt - interest, bal); // final payment can't overpay
     interestTotal += interest;
     bal -= principal;
   }
-  return {
-    newBal: Math.max(0, bal),
-    interestPaid: interestTotal,
-    principalPaid: annualPmt - interestTotal
-  };
+  const newBal = Math.max(0, bal);
+  return { newBal, interestPaid: interestTotal, principalPaid: loan.bal - newBal };
 }
 
 /**
@@ -125,15 +122,23 @@ export function runMonteCarlo(input: SimulationInput): SimulationResult {
   const afterTaxIncome = annualIncome - estimateIncomeTax(taxableIncome, taxCountry);
 
   // ─── Retirement / decumulation config ───
-  const currentAge = plan.clients[0]?.dob ? ageFromDOB(plan.clients[0].dob, asOfDate) : 40;
+  // Guard against a malformed dob (the schema doesn't enforce date format):
+  // a NaN age would poison the retirement horizon (Y = NaN → empty paths,
+  // NaN percentiles) the same way an unclamped `years` used to.
+  const dobAge = plan.clients[0]?.dob ? ageFromDOB(plan.clients[0].dob, asOfDate) : NaN;
+  const currentAge = Number.isFinite(dobAge) ? dobAge : 40;
   const ret = plan.retirement;
   const retEnabled = !!(ret && ret.enabled && ret.retirementAge > 0);
   const retirementAge = retEnabled ? ret!.retirementAge : Infinity;
   const retSpendToday = retEnabled ? (ret!.annualSpending || 0) : 0;
   const planToAge = retEnabled ? (ret!.planToAge || 90) : 0;
   const pensions = plan.pensions || [];
-  // With retirement on, model through planToAge; otherwise use the caller's years.
-  const Y = retEnabled ? Math.max(1, Math.min(70, planToAge - currentAge)) : years;
+  // With retirement on, model through planToAge; otherwise use the caller's years,
+  // clamped to a sane [1, 100] horizon — years ≤ 0 would produce empty paths and
+  // NaN percentiles downstream; a non-finite value (e.g. NaN from an empty form
+  // field) falls back to the typical 30-year horizon.
+  const requestedYears = Number.isFinite(years) ? Math.min(100, Math.max(1, Math.floor(years))) : 30;
+  const Y = retEnabled ? Math.max(1, Math.min(70, planToAge - currentAge)) : requestedYears;
 
   const startYear = asOfYear;
 
@@ -188,13 +193,17 @@ export function runMonteCarlo(input: SimulationInput): SimulationResult {
       const propRet = 0.03 + 0.02 * boxMuller(rng);
       propertyVal = propertyVal * (1 + propRet);
 
-      // 3. Loan amortization
-      let interestPaid = 0;
+      // 3. Loan amortization — debt service (interest + principal) is real cash
+      // out the door, deducted from the year's cash flow below. Paying principal
+      // moves cash to equity (assets −P, debt −P), so a payment nets out to
+      // costing exactly the interest. Expense categories are assumed to exclude
+      // debt service on tracked loans (it would double-count otherwise).
+      let debtService = 0;
       loanState.forEach((l) => {
-        const { newBal, interestPaid: ip } = amortizeLoan(l);
+        const { newBal, interestPaid, principalPaid } = amortizeLoan(l);
         l.bal = newBal;
         if (l.yrs > 0) l.yrs -= 1;
-        interestPaid += ip;
+        debtService += interestPaid + principalPaid;
       });
 
       // 4. Cash flow — accumulation while working, decumulation in retirement.
@@ -211,12 +220,12 @@ export function runMonteCarlo(input: SimulationInput): SimulationResult {
 
       const inRetirement = retEnabled && age >= retirementAge;
       if (!inRetirement) {
-        // Working: surplus (post-tax income − inflated expenses − interest) is
-        // saved into the taxable pool; a shortfall draws it down. A forced RMD
+        // Working: surplus (post-tax income − inflated expenses − debt service)
+        // is saved into the taxable pool; a shortfall draws it down. A forced RMD
         // during working years is after-tax income not earmarked for spending, so
         // it is reinvested into the taxable pool.
         const inflatedExpense = annualExpense * Math.pow(1 + inflation, y);
-        taxable += afterTaxIncome - inflatedExpense - interestPaid + netRMD;
+        taxable += afterTaxIncome - inflatedExpense - debtService + netRMD;
       } else {
         // Retirement: salary stops. Pensions (COLA-grown) + RMDs provide taxed
         // income; the remaining spending need is withdrawn — taxable first, then
@@ -228,7 +237,7 @@ export function runMonteCarlo(input: SimulationInput): SimulationResult {
         const netPension = pensionGross - estimateIncomeTax(pensionGross, taxCountry);
 
         const spending = retSpendToday * Math.pow(1 + inflation, y);
-        let need = spending + interestPaid - netPension - netRMD;
+        let need = spending + debtService - netPension - netRMD;
         if (need <= 0) {
           // Pension/RMD more than covers spending — reinvest the surplus.
           taxable += -need;
@@ -237,8 +246,12 @@ export function runMonteCarlo(input: SimulationInput): SimulationResult {
           taxable -= fromTaxable;
           need -= fromTaxable;
           if (need > 0) {
-            // Deferred withdrawals are taxed as income — gross up so the net covers the need.
-            const effRate = Math.min(0.5, Math.max(0, estimateIncomeTax(spending, taxCountry) / Math.max(1, spending)));
+            // Deferred withdrawals are taxed as income — gross up so the net
+            // covers the need. The rate is estimated on the full withdrawal-funded
+            // outflow (spending + debt service), so a mortgage paid from the
+            // deferred pool isn't modeled as tax-free when spending is small.
+            const grossBase = spending + debtService;
+            const effRate = Math.min(0.5, Math.max(0, estimateIncomeTax(grossBase, taxCountry) / Math.max(1, grossBase)));
             deferred -= need / (1 - effRate);
             need = 0;
           }
@@ -338,9 +351,14 @@ export function runMonteCarlo(input: SimulationInput): SimulationResult {
   };
 }
 
+// Bump whenever the simulation model changes (not just inputs), so persisted
+// results keyed by inputHash can never be served for a different engine.
+const ENGINE_VERSION = 2;
+
 /** Cheap stable hash for caching simulation results */
 function hashPlan(plan: WealthPlan, sims: number, years: number, seed?: number, asOfYear?: number): string {
   const s = JSON.stringify({
+    v: ENGINE_VERSION,
     c: plan.clients.map((c) => [c.risk, c.horizon, c.country, c.dob]),
     a: plan.assets.map((a) => [a.cls, a.value, a.liquid]),
     l: plan.loans.map((l) => [l.bal, l.rate, l.yrs]),
