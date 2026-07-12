@@ -295,6 +295,26 @@ The engine is guarded by three layers of tests under `lib/engine/__tests__/`
   probability rather than an always-zero funded flag. The test asserts that
   adding an overlapping retirement goal is a no-op on decumulation success.
 
+**Engine v2 (loan debt-service fix):** `amortizeLoan` used to compute
+`principalPaid` that no caller consumed — debt amortized down with **no cash
+outflow**, so a mortgage cost $0 and inflated net worth by the principal. The
+sim loop now deducts full debt service (interest + principal) from working-year
+surplus and retirement-year need; paying principal moves cash to equity, so a
+payment nets to costing exactly the interest. Expense categories are assumed to
+EXCLUDE debt service on tracked loans (the plan form's expenses section and the
+report methodology now say so; the report's cash-flow table shows a debt-service
+row and nets it from surplus). Also: the retirement gross-up tax rate is based
+on spending + debt service (a mortgage paid from the deferred pool isn't
+tax-free); a malformed `dob` can't NaN the retirement horizon; degenerate loans
+(`yrs <= 0` with balance) freeze instead of vanishing; `years` input is clamped
+(`[1,100]`, floored, non-finite → 30) so `years: 0` can't emit NaN; and
+`hashPlan` embeds an `ENGINE_VERSION` (byte-pinned by a test — bump it on any
+model change, never silently repin) so persisted results keyed by `inputHash`
+can't collide across model changes. Golden master regenerated for the two
+loan-bearing scenarios (loan-free scenarios were byte-identical — RNG stream
+untouched). All of this was adversarially reviewed by a 4-lens agent panel
+(financial-math, regression, test-adequacy via mutant runs, edge-cases).
+
 **Determinism knob:** `runMonteCarlo` accepts an optional `asOfYear`
 (`SimulationInput`) that fixes goal-year offsets and the primary client's age;
 omit it for live runs (defaults to the current year).

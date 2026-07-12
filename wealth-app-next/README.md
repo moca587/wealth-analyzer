@@ -127,7 +127,9 @@ The Monte Carlo engine in `lib/engine/monte-carlo.ts` mirrors `runSim()`
 from `wealth-analyzer.html`:
 - Log-normal returns via Box-Muller (`boxMuller()`)
 - Property appreciation as stochastic 3% ± 2%
-- Real loan amortization (per-month interest math, balance amortizes down)
+- Real loan amortization (per-month interest math; full debt service —
+  interest + principal — is funded from each year's cash flow, so expense
+  categories must exclude payments on tracked loans)
 - 30% surplus invested / 70% cash
 - Goals evaluated at calendar-year targets (`yearOffset = startYear - currentYear`)
 - Percentile bands: 10/25/50/75/80/90
