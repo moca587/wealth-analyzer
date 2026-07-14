@@ -2668,6 +2668,35 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
   </div>
 </div>
 
+<!-- Swiss Pension — Annuity vs Lump Sum (2nd pillar; shown only when country = Switzerland) -->
+<div class="panel" id="chAnnuityPanel" style="display:none">
+  <div class="ptitle section-dropdown" onclick="toggleDropdown('chAnnuityWrap')" style="margin:0">
+    🇨🇭 Swiss Pension — Annuity vs Lump Sum <span class="dropdown-hint">2nd pillar · break-even · click to expand</span>
+    <span class="ptitle-line"></span>
+  </div>
+  <div class="dropdown-body" id="chAnnuityWrap">
+  <div style="font-size:12px;color:var(--text3);margin:10px 0 14px;line-height:1.6">
+    At retirement your <strong style="color:var(--text2)">2nd pillar (BVG/LPP)</strong> can be drawn as a lifelong <strong style="color:var(--text2)">annuity</strong> or a one-time <strong style="color:var(--text2)">lump sum</strong>. The annuity is taxed as income for life and insures against outliving your money; the lump sum is taxed once (panel above), then it's yours to invest and leave to heirs. This compares the two and finds the <strong style="color:var(--text2)">break-even age</strong>. It is a comparison, <strong style="color:var(--text2)">not a recommendation</strong> — the right choice also depends on your health, family and risk appetite.
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:0 24px">
+    <div>
+      <div class="frow"><label class="flbl">2nd pillar (BVG/LPP) capital</label><input type="number" id="anCap" step="1000" min="0" placeholder="0" class="w160" oninput="this.dataset.touched='1';renderCHAnnuity()"><span style="font-size:11px;color:var(--text3);margin-left:6px">CHF</span></div>
+      <div class="frow"><label class="flbl">Conversion rate<span class="info-ic">i<span class="info-pop">The <em>Umwandlungssatz</em> — the % of your capital your fund pays as an annual pension for life. The BVG mandatory minimum is 6.8%; many funds' effective (enveloping) rate on the over-obligatory part is now ~5–5.5%. Ask your fund for its rate at your retirement age.</span></span></label><input type="number" id="anConv" step="0.1" min="0" value="6.0" class="w120" oninput="renderCHAnnuity()"><span style="font-size:11px;color:var(--text3);margin-left:6px">%</span></div>
+      <div class="frow"><label class="flbl">Retire at age</label><input type="number" id="anRetAge" step="1" min="55" max="75" value="65" class="w120" oninput="renderCHAnnuity()"></div>
+    </div>
+    <div>
+      <div class="frow"><label class="flbl">Plan through age</label><input type="number" id="anPlanAge" step="1" min="70" max="105" value="90" class="w120" oninput="renderCHAnnuity()"></div>
+      <div class="frow"><label class="flbl">Avg tax on pension income<span class="info-ic">i<span class="info-pop">The annuity is added to your other retirement income and taxed at ordinary cantonal + federal rates each year. This is an assumed average rate applied to the pension for a like-for-like comparison — set it to your expected retirement marginal rate.</span></span></label><input type="number" id="anTaxRate" step="1" min="0" max="45" value="18" class="w120" oninput="renderCHAnnuity()"><span style="font-size:11px;color:var(--text3);margin-left:6px">%</span></div>
+      <div class="frow"><label class="flbl">Net return if invested<span class="info-ic">i<span class="info-pop">If you take the lump sum, this is the assumed annual net-of-fee return you'd earn on it while drawing the same income the annuity would pay. A conservative rate is prudent — the lump-sum path carries the investment and longevity risk the annuity removes.</span></span></label><input type="number" id="anReturn" step="0.1" min="0" value="3.0" class="w120" oninput="renderCHAnnuity()"><span style="font-size:11px;color:var(--text3);margin-left:6px">%</span></div>
+    </div>
+  </div>
+  <div id="chAnnuityResult" style="margin-top:6px"></div>
+  <div style="font-size:11px;color:var(--text3);line-height:1.6;margin-top:12px;padding:8px 12px;background:var(--bg3);border-radius:var(--rs);border:1px solid var(--border)">
+    <strong style="color:var(--text2)">Illustrative comparison — not financial or tax advice.</strong> It does not capture the annuity's survivor pension (typically ~60% to a spouse), inflation indexing (BVG pensions are only partly indexed), your fund's exact terms, or your health. Lump-sum tax uses the canton selected in the panel above. The annuity-vs-lump-sum decision is significant and often irreversible — review it with a licensed pension advisor.
+  </div>
+  </div>
+</div>
+
 <!-- Mean-Variance Optimization / Efficient Frontier -->
 <div class="panel" id="mvoPanel">
   <div class="ptitle section-dropdown" onclick="toggleDropdown('mvoWrap')" style="margin:0">
@@ -20833,10 +20862,13 @@ function chLumpRate(canton,amount){
 function chLumpTax(canton,amount){ const r=chLumpRate(canton,amount); return r==null?null:amount*r/100; }
 const _fmtCHF=n=>{n=Math.round(n||0);const neg=n<0;n=Math.abs(n);return (neg?"−CHF ":"CHF ")+n.toString().replace(/\B(?=(\d{3})+(?!\d))/g,"'");};
 function updateCHPensionVisibility(){
-  const panel=document.getElementById("chPensionPanel"); if(!panel) return;
+  const panel=document.getElementById("chPensionPanel");
+  const anPanel=document.getElementById("chAnnuityPanel");
+  if(!panel&&!anPanel) return;
   const isCH=!!($("c1co")&&$("c1co").value==="CH");
-  panel.style.display=isCH?"":"none";
-  if(isCH){ try{ renderCHLumpSum(); }catch(_){} }
+  if(panel) panel.style.display=isCH?"":"none";
+  if(anPanel) anPanel.style.display=isCH?"":"none";
+  if(isCH){ try{ renderCHLumpSum(); }catch(_){} try{ renderCHAnnuity(); }catch(_){} }
 }
 function renderCHLumpSum(){
   const host=document.getElementById("chLumpResult"); if(!host) return;
@@ -20894,6 +20926,63 @@ function renderCHLumpSum(){
   if(cheapest.c!==canton) h+=crow('Lowest — '+CH_CANTON_NAMES[cheapest.c],cheapest.c,cheapest.tax,' · '+_fmtCHF(tax1-cheapest.tax)+' less');
   h+='<div style="display:flex;justify-content:space-between;gap:12px;padding:7px 12px;background:var(--bg3);border-radius:8px;margin-bottom:5px;font-size:13px"><span style="color:var(--text2)">Swiss average (26 cantons)</span><span style="font-variant-numeric:tabular-nums"><strong>'+_fmtCHF(avg)+'</strong> <span style="color:var(--text3);font-size:11px">'+(avg/total*100).toFixed(2)+'%</span></span></div>';
   if(dearest.c!==canton) h+=crow('Highest — '+CH_CANTON_NAMES[dearest.c],dearest.c,dearest.tax,' · '+_fmtCHF(dearest.tax-tax1)+' more');
+  h+='</div>';
+  host.innerHTML=h;
+  try{ renderCHAnnuity(); }catch(_){}   // keep the annuity-vs-lump-sum panel in sync with canton/balance
+}
+// ── Swiss 2nd-pillar: annuity vs lump-sum comparison with break-even (illustrative) ──
+function renderCHAnnuity(){
+  const host=document.getElementById("chAnnuityResult"); if(!host) return;
+  const capEl=$("anCap");
+  if(capEl && !capEl.dataset.touched){ const p2=+(($("chP2")&&$("chP2").value)||0); if(p2>0) capEl.value=p2; }
+  const cap=+((capEl&&capEl.value)||0);
+  const conv=+(($("anConv")&&$("anConv").value)||6)/100;
+  const retAge=+(($("anRetAge")&&$("anRetAge").value)||65);
+  const planAge=+(($("anPlanAge")&&$("anPlanAge").value)||90);
+  const taxRate=Math.min(1,Math.max(0,+(($("anTaxRate")&&$("anTaxRate").value)||18)/100));
+  const r=+(($("anReturn")&&$("anReturn").value)||3)/100;
+  const canton=($("chCanton")&&$("chCanton").value)||"ZH";
+  const years=Math.max(1,planAge-retAge);
+  if(cap<=0){ host.innerHTML='<div style="font-size:12px;color:var(--text3);padding:10px 0">Enter your 2nd-pillar capital above to compare taking it as an annuity vs a lump sum.</div>'; return; }
+  // Annuity path (pension taxed as income for life)
+  const grossAnnuity=cap*conv, netAnnuity=grossAnnuity*(1-taxRate), annuityTotalNet=netAnnuity*years;
+  // Lump-sum path (taxed once at the canton's capital-withdrawal rate, then invested & drawn at the same net income)
+  const lumpTax=chLumpTax(canton,cap)||0, netLump=cap-lumpTax;
+  let bal=netLump, depleteAge=null;
+  for(let age=retAge; age<planAge; age++){ bal=bal*(1+r)-netAnnuity; if(bal<=0){ depleteAge=age+1; bal=0; break; } }
+  const residual=bal;
+  const beYears=netAnnuity>0?netLump/netAnnuity:Infinity, beAge=retAge+beYears;
+  const F=_fmtCHF;
+  let h='';
+  // Two comparison cards
+  h+='<div style="display:flex;gap:14px;flex-wrap:wrap;align-items:stretch;margin-bottom:14px">';
+  h+='<div style="flex:1;min-width:220px;padding:14px 16px;background:var(--bg3);border-radius:10px;border:1px solid var(--border);border-top:3px solid var(--accent)">';
+  h+='<div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Annuity (lifelong pension)</div>';
+  h+='<div style="font-size:27px;font-weight:800;color:var(--text)">'+F(netAnnuity)+'<span style="font-size:14px;font-weight:600;color:var(--text3)">/yr net</span></div>';
+  h+='<div style="font-size:11.5px;color:var(--text3);margin-top:4px">'+F(grossAnnuity)+' gross at '+(conv*100).toFixed(1)+'% conversion, less '+(taxRate*100).toFixed(0)+'% income tax · paid for life</div>';
+  h+='<div style="font-size:11.5px;color:var(--text2);margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">By age '+planAge+': <strong>'+F(annuityTotalNet)+'</strong> received<br><span style="color:var(--text3)">no market or longevity risk; leaves no capital to heirs</span></div>';
+  h+='</div>';
+  h+='<div style="flex:1;min-width:220px;padding:14px 16px;background:var(--bg3);border-radius:10px;border:1px solid var(--border);border-top:3px solid var(--gold)">';
+  h+='<div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Lump sum ('+CH_CANTON_NAMES[canton]+')</div>';
+  h+='<div style="font-size:27px;font-weight:800;color:var(--text)">'+F(netLump)+'</div>';
+  h+='<div style="font-size:11.5px;color:var(--text3);margin-top:4px">'+F(cap)+' less '+F(lumpTax)+' one-time tax · then yours to invest</div>';
+  if(depleteAge) h+='<div style="font-size:11.5px;color:var(--text2);margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">Invested at '+(r*100).toFixed(1)+'% and drawn at the same income, it runs out at <strong style="color:var(--red)">age '+depleteAge+'</strong><br><span style="color:var(--text3)">before age '+planAge+' — you carry the longevity risk</span></div>';
+  else h+='<div style="font-size:11.5px;color:var(--text2);margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">Invested at '+(r*100).toFixed(1)+'% and drawn at the same income, still worth <strong style="color:var(--green)">'+F(residual)+'</strong> at age '+planAge+'<br><span style="color:var(--text3)">available to leave to heirs</span></div>';
+  h+='</div></div>';
+  // Break-even banner
+  const beInHorizon=beAge<=planAge && isFinite(beAge);
+  h+='<div style="padding:12px 16px;background:var(--bg3);border-radius:10px;border:1px solid var(--border2);margin-bottom:14px">';
+  h+='<div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:3px">Break-even age ≈ '+(isFinite(beAge)?Math.round(beAge):'—')+'</div>';
+  h+='<div style="font-size:12px;color:var(--text3);line-height:1.6">In simple cash terms it takes about <strong style="color:var(--text2)">'+(isFinite(beYears)?beYears.toFixed(1):'—')+' years</strong> of the net pension to match the net lump sum. '+(beInHorizon?('Live past <strong style="color:var(--text2)">age '+Math.round(beAge)+'</strong> and the annuity pays out more in total cash; before that — or if leaving an estate matters — the lump sum retains value.'):('Within your planning horizon to age '+planAge+', the pension never fully catches up with investing the lump sum — though the annuity still removes longevity and market risk.'))+'</div>';
+  h+='</div>';
+  // Qualitative tradeoffs
+  h+='<div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:6px">What the numbers don\'t show</div>';
+  h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:11.5px">';
+  const tile=(head,body,col)=>'<div style="padding:9px 12px;background:var(--bg3);border-radius:8px"><div style="font-weight:600;color:'+col+';margin-bottom:2px">'+head+'</div><div style="color:var(--text3);line-height:1.5">'+body+'</div></div>';
+  h+=tile('Annuity favours','Longevity insurance — income you can\'t outlive; a survivor pension (~60%) for a spouse; nothing to manage.','var(--accent)');
+  h+=tile('Lump sum favours','Flexibility and legacy — capital to invest, spend unevenly, or leave to heirs; you control it.','var(--gold)');
+  h+=tile('Watch with the annuity','BVG pensions are only partly inflation-indexed, so real income erodes; the choice is usually irreversible.','var(--text2)');
+  h+=tile('Watch with the lump sum','You carry the investment and longevity risk — a poor market run or a long life can exhaust it (see age above).','var(--text2)');
   h+='</div>';
   host.innerHTML=h;
 }
