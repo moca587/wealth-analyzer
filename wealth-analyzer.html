@@ -620,6 +620,7 @@ input[type=date]{color-scheme:light}
 .wi-stat-val.pos{color:var(--green)}.wi-stat-val.neg{color:var(--red)}.wi-stat-val.gold{color:var(--gold)}
 .wi-delta{font-size:11px;color:var(--text3);margin-top:2px}
 .wi-delta.up{color:var(--green)}.wi-delta.dn{color:var(--red)}
+.wi-depwarn{margin-top:8px;padding:7px 10px;font-size:11.5px;color:#d4956a;background:rgba(212,149,106,.10);border:1px solid rgba(212,149,106,.35);border-radius:var(--rs)}
 
 /* ── Cash Flow Analysis ── */
 .cf-header{display:flex;flex-wrap:wrap;gap:14px;font-size:12px;color:var(--text2);margin-bottom:8px;padding:10px 14px;background:var(--bg3);border-radius:var(--rs);border:1px solid var(--border)}
@@ -3845,7 +3846,7 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
 // ═══════════════════════════════════════════════════════════
 // VERSION — updated by build-standalone.pl on each build
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260714-2113";
+const APP_VERSION = "20260716-1710";
 
 // ═══════════════════════════════════════════════════════════
 // DATA
@@ -14341,6 +14342,15 @@ function runMC(years,sims,muOverride,sigOverride){
     let loanState=loans.map(l=>({bal:l.bal,rate:l.rate/100,yrs:l.yrs}));
     const path=[];
     let shortfallYr=-1;   // first year goal spending couldn't be met from liquid wealth (cash+investments)
+    // Honest shortfall accounting: money the plan NEEDED but liquid wealth could
+    // not provide (spending deficits or goal outflows after cash+inv hit zero).
+    // It used to be silently discarded, which floored every underwater scenario
+    // at the same net worth and made What-If comparisons understate bad futures.
+    // Tracked as a cumulative (non-compounding) balance and subtracted from the
+    // net-worth snapshot — pure arithmetic, no RNG draws, so seeded streams and
+    // sensitivity/what-if common-random-number alignment are unaffected.
+    let unfunded=0;
+    let liqDepletedYr=-1; // first year ANY need went unfunded (goals or spending)
 
     // Yearly loop. One iteration simulates one year of the client's life 
     // Updates the household's finances for one simulated year 
@@ -14359,9 +14369,10 @@ function runMC(years,sims,muOverride,sigOverride){
 
     // yearly loop
     for(let y=0;y<=years;y++){
-      // Chronological snapshot first
+      // Chronological snapshot first — net of any cumulative unfunded shortfall,
+      // so paths that ran out of liquid assets keep falling instead of flooring.
       const debtTotal=loanState.reduce((s,l)=>s+l.bal,0);
-      path.push(cash+inv+prop+other+retPot-debtTotal);
+      path.push(cash+inv+prop+other+retPot-debtTotal-unfunded);
 
       if (y === years) break;
 
@@ -14432,7 +14443,15 @@ function runMC(years,sims,muOverride,sigOverride){
       // Only deficits drain cash (then investments).
       if(remaining<0){
         cash+=remaining;
-        if(cash<0){inv+=cash; cash=0; if(inv<0) inv=0;}
+        if(cash<0){
+          inv+=cash; cash=0;
+          if(inv<0){
+            // Liquid wealth exhausted — the rest of this year's need is unfunded.
+            unfunded+=-inv;
+            if(liqDepletedYr<0) liqDepletedYr=y;
+            inv=0;
+          }
+        }
         assetBuckets = scaleBucketsToTotal(assetBuckets, inv);
       }
       // Goal outflows: deduct goal spending from liquid wealth (cash first, then investments)
@@ -14444,7 +14463,12 @@ function runMC(years,sims,muOverride,sigOverride){
         const fromInv=Math.min(Math.max(0,inv),still);
         inv-=fromInv;
         // Liquidity shortfall: liquid wealth couldn't fully cover this year's goals.
-        if(shortfallYr<0 && (fromCash+fromInv) < goalOut-0.5) shortfallYr=y;
+        const unmetGoal=goalOut-fromCash-fromInv;
+        if(shortfallYr<0 && unmetGoal>0.5) shortfallYr=y;
+        if(unmetGoal>0.5){
+          unfunded+=unmetGoal;
+          if(liqDepletedYr<0) liqDepletedYr=y;
+        }
         cash=Math.max(0,cash); inv=Math.max(0,inv);
         assetBuckets = scaleBucketsToTotal(assetBuckets, inv);
       }
@@ -14498,7 +14522,25 @@ function runMC(years,sims,muOverride,sigOverride){
       // path.push(cash+inv+prop+other+retPot-debtTotal);
     }
     path._shortfallYr=shortfallYr;   // goal-liquidity marker for goalSuccessFromPaths
+    path._liqDepletedYr=liqDepletedYr; // first year ANY need went unfunded (-1 = never)
+    path._unfunded=unfunded;           // total lifetime unfunded need on this path
     paths.push(path);
+  }
+  // Aggregate depletion stats for badges/warnings (non-index property on the
+  // array: JSON-serialization of paths and all existing callers are unaffected).
+  {
+    const dep=paths.filter(p=>p._liqDepletedYr>=0);
+    if(dep.length===0){
+      paths.depletion={prob:0,medianYr:null,medianUnfunded:0};
+    } else {
+      const yrsArr=dep.map(p=>p._liqDepletedYr).sort((a,b)=>a-b);
+      const unf=dep.map(p=>p._unfunded).sort((a,b)=>a-b);
+      paths.depletion={
+        prob:dep.length/paths.length,
+        medianYr:yrsArr[Math.floor(yrsArr.length/2)],
+        medianUnfunded:unf[Math.floor(unf.length/2)]
+      };
+    }
   }
   return paths;
 }
@@ -16829,6 +16871,15 @@ function addWhatIf(){
   const goalName=val("wiGoalName").trim();
   const goalAmt=num("wiGoalAmt",0);
   const goalYear=parseInt(val("wiGoalYear"))||0;
+  // A goal dated outside the projection window would never be simulated (and
+  // used to be silently scored 100% successful) — refuse it with an explanation.
+  if(goalName && goalAmt>0 && goalYear>0){
+    const cy=currentYear(), horizon=cy+num("simYrs",20);
+    if(goalYear<cy || goalYear>horizon){
+      setT("wiStatus",`⚠ Goal year ${goalYear} is outside the projection window (${cy}–${horizon}), so it would never be simulated. Adjust the year or extend Projection years on the Simulation tab.`);
+      return;
+    }
+  }
   const scen={
     id:"wi"+(++whatIfSeq), name,
     retAgeOvr, incChangePct, extraExp,
@@ -16934,7 +16985,7 @@ function runWhatIfScenario(scen){
   if(allGoals.length>0){
     goalSucc=allGoals.reduce((s,g)=>s+(goalSuccessFromPaths(g,paths,yrs)||0),0)/allGoals.length;
   }
-  return {medNW,p10NW,p90NW,goalSucc};
+  return {medNW,p10NW,p90NW,goalSucc,dep:paths.depletion||null};
 }
 
 // Baseline = current parameters, no overrides
@@ -16946,7 +16997,7 @@ function runBaselineWhatIf(){
   if(goals.length>0){
     goalSucc=goals.reduce((s,g)=>s+(goalSuccessFromPaths(g,paths,yrs)||0),0)/goals.length;
   }
-  return {medNW,goalSucc};
+  return {medNW,goalSucc,dep:paths.depletion||null};
 }
 
 function runAllWhatIf(){
@@ -16982,6 +17033,16 @@ function renderWhatIf(){
       const gsDelta=r.goalSucc!=null&&b&&b.goalSucc!=null?r.goalSucc-b.goalSucc:null;
       const gsDeltaFmt=gsDelta!=null?(gsDelta>=0?"+":"")+gsDelta.toFixed(1)+"%pts":"";
       const gsDeltaCls=gsDelta==null?"":gsDelta>=0?"up":"dn";
+      // Liquidity-depletion badge: warn when a meaningful share of simulated
+      // paths run out of liquid assets before the end of the projection.
+      let depHtml="";
+      if(r.dep && r.dep.prob>0.05){
+        const cy=currentYear();
+        const baseProb=b&&b.dep?b.dep.prob:null;
+        const baseNote=baseProb!=null?` · baseline ${(baseProb*100).toFixed(0)}%`:"";
+        const medYr=r.dep.medianYr!=null?` (median: ${cy+r.dep.medianYr}`+ (r.dep.medianUnfunded>0?`, ~${fmtMoney(r.dep.medianUnfunded)} short`:"") + `)`:"";
+        depHtml=`<div class="wi-depwarn">⚠ Liquid assets run out in ${(r.dep.prob*100).toFixed(0)}% of paths${medYr}${baseNote}</div>`;
+      }
       statsHtml=`<div class="wi-results">
         <div class="wi-stat">
           <div class="wi-stat-lbl">Median NW (end)</div>
@@ -16998,7 +17059,7 @@ function renderWhatIf(){
           <div class="wi-stat-val ${r.goalSucc!=null&&r.goalSucc>=70?'pos':r.goalSucc!=null&&r.goalSucc<40?'neg':''}">${gsStr}</div>
           <div class="wi-delta ${gsDeltaCls}">${gsDeltaFmt}</div>
         </div>
-      </div>`;
+      </div>${depHtml}`;
     } else {
       statsHtml=`<div style="font-size:12px;color:var(--text3)">Click Run to compute results.</div>`;
     }
