@@ -4292,7 +4292,7 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
 // ═══════════════════════════════════════════════════════════
 // VERSION — updated by build-standalone.pl on each build
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260716-1710";
+const APP_VERSION = "20260717-2223";
 
 // ═══════════════════════════════════════════════════════════
 // DATA
@@ -18511,8 +18511,41 @@ async function generatePDFReport(mode, previewWin){
     const acBar=[Math.round(ac[0]+(255-ac[0])*0.86), Math.round(ac[1]+(255-ac[1])*0.86), Math.round(ac[2]+(255-ac[2])*0.86)]; // pale band fill
     const acBar2=[Math.round(ac[0]+(255-ac[0])*0.93), Math.round(ac[1]+(255-ac[1])*0.93), Math.round(ac[2]+(255-ac[2])*0.93)]; // fainter band (sub-rows)
     const acDark=[Math.round(ac[0]*0.5), Math.round(ac[1]*0.5), Math.round(ac[2]*0.5)]; // deep accent for band text
+    // Tint toward white by fraction f (0..1) — used to derive theme-aware chart
+    // fills (fan-chart bands, projection cones) instead of hardcoded blues.
+    const tint=(c,f)=>[Math.round(c[0]+(255-c[0])*f), Math.round(c[1]+(255-c[1])*f), Math.round(c[2]+(255-c[2])*f)];
     const rptDateStr=new Date().toLocaleDateString(undefined,{year:"numeric",month:"long",day:"numeric"});
-    const TOTPG_TOKEN="{nbpg}";   // replaced with the real page total via putTotalPages()
+
+    // ── Design tokens: THE single source of visual truth for the whole report.
+    // Every helper and section must draw from these — no inline RGB/size
+    // literals in section bodies. (Stage-1 unification: previously ~9 different
+    // "muted gray" text colors, 5 gridline grays, 2 warning ambers, and two
+    // divergent pie palettes were scattered across sections.)
+    const INK      = [30,38,50];      // primary text / big values
+    const INK_SOFT = [55,55,55];      // table body text
+    const MUTED    = [110,118,130];   // captions, footnotes, secondary text
+    const FAINT    = [150,158,170];   // tertiary labels, chart tick text
+    const LINE     = [220,225,232];   // hairlines, table borders
+    const GRID     = [228,231,236];   // chart gridlines
+    const AXIS     = [170,176,186];   // chart axis strokes
+    const CARD_BG  = [250,251,253];   // card fill
+    const CARD_LN  = [219,225,233];   // card border
+    const GOOD     = [27,104,65];     // positive / on-track
+    const WARN     = [176,118,36];    // caution (the one amber)
+    const BAD      = [165,45,45];     // risk / negative
+    // Semantic category triplet (Personal / Market / Aspirational) — was
+    // hardcoded in three separate places.
+    const CAT_PERSONAL = GOOD, CAT_MARKET = [0,87,184], CAT_ASPIRE = [180,110,30];
+    // ONE pie/donut palette for asset-class charts (riskstatus and
+    // totalportfolio previously used palettes differing in 3 of 7 entries, so
+    // the same asset class changed color between pages).
+    const PIE_PALETTE = [[0,87,184],[0,164,166],[201,150,40],[0,135,90],[124,58,237],[230,120,30],[205,70,70]];
+    // Keyed asset-class colors: the SAME class always gets the SAME color on
+    // every chart (the two allocation pies used index-cycled palettes that
+    // disagreed in 3 of 7 entries).
+    const CLS_COLOR = {equity:[0,87,184], fixed_income:[0,164,166], cash:[201,150,40], real_estate:[0,135,90],
+      commodity:[230,120,30], alternative:[124,58,237], mixed:[150,160,175], crypto:[205,70,70], private_equity:[90,60,160]};
+    const GUT = 15;                   // standard chart left gutter (axis labels stay inside the margin)
 
     const CONFID_LABELS={confidential:"CONFIDENTIAL",restricted:"STRICTLY RESTRICTED",internal:"INTERNAL USE ONLY",none:""};
     const confidLabel=CONFID_LABELS[confidTxt]||"";
@@ -18539,6 +18572,7 @@ async function generatePDFReport(mode, previewWin){
     const ph=doc.internal.pageSize.getHeight();
     const M=18;                        // margin
     const CW=pw-M*2;                   // content width
+    const PAGE_BOTTOM=ph-14;           // ONE bottom bound for every page-break check
     let y=M;
     // Deferred page-break: re-armed after every section so each major section
     // starts on a fresh page (cleaner, more-spacious layout). Consumed by the
@@ -18622,9 +18656,9 @@ async function generatePDFReport(mode, previewWin){
         _lpH = localStorage.getItem("wa_rpt_logo_pos") || "cover_top";
         _hdrLogo = !!_ldH && (_lpH === "header_all" || _lpH === "header_last");
       } catch(_){}
-      doc.setFont("helvetica","normal"); doc.setFontSize(9); doc.setTextColor(130,138,150);
+      doc.setFont("helvetica","normal"); doc.setFontSize(9); doc.setTextColor(...MUTED);
       doc.text(rFor||"", M, 9.5);
-      doc.setFont("helvetica","bold"); doc.setFontSize(14.5); doc.setTextColor(35,45,60);
+      doc.setFont("helvetica","bold"); doc.setFontSize(14.5); doc.setTextColor(...INK);
       doc.splitTextToSize(currentSectionTitle||rTitle||"", CW-46).slice(0,1).forEach(l=>doc.text(l, M, 17.6));
       let _rfY = 10.5;
       if(_hdrLogo && placeLogo(_ldH, pw - M, 4, 34, 8.5, "top")){ _rfY = 17; }
@@ -18641,7 +18675,7 @@ async function generatePDFReport(mode, previewWin){
       // Footer (prepared-by · confidential · date | page) is stamped in one final
       // pass at the end, so every page can show "<n> of <total>".
     }
-    function checkY(need=20){if(y+need>ph-14) newPage();}
+    function checkY(need=20){if(y+need>PAGE_BOTTOM) newPage();}
 
     const _normTitle = s => String(s||"").toLowerCase().replace(/[^a-z0-9]+/g,"");
     // Filled brand-tint band used for in-page sub-sections (Assets, Liabilities, Goals…).
@@ -18695,8 +18729,8 @@ async function generatePDFReport(mode, previewWin){
             cellPadding: 2.8,
             overflow: "linebreak",
             fillColor: [255, 255, 255],
-            textColor: [55, 55, 55],
-            lineColor: [220, 225, 232],
+            textColor: INK_SOFT,
+            lineColor: LINE,
             lineWidth: 0.15
         },
 
@@ -18715,7 +18749,7 @@ async function generatePDFReport(mode, previewWin){
             fillColor: [255, 255, 255]
         },
 
-        tableLineColor: [220, 225, 232],
+        tableLineColor: LINE,
         tableLineWidth: 0.15,
 
         ...opts
@@ -18755,15 +18789,15 @@ async function generatePDFReport(mode, previewWin){
         const col = i%cols, row = Math.floor(i/cols);
         const x  = M + col*(cardW+gap);
         const yy = yTop + row*(cardH+gap);
-        doc.setFillColor(250,251,253); doc.setDrawColor(219,225,233); doc.setLineWidth(0.3);
+        doc.setFillColor(...CARD_BG); doc.setDrawColor(...CARD_LN); doc.setLineWidth(0.3);
         doc.roundedRect(x, yy, cardW, cardH, 1.4, 1.4, "FD");
         doc.setFillColor(...ac); doc.rect(x, yy, cardW, 1.1, "F");   // top accent strip
-        doc.setFont("helvetica","bold"); doc.setFontSize(6.6); doc.setTextColor(120,130,145);
+        doc.setFont("helvetica","bold"); doc.setFontSize(6.6); doc.setTextColor(...MUTED);
         doc.text(String(c.label||"").toUpperCase(), x+3.5, yy+6.4, {charSpace:0.35});
-        doc.setFont("helvetica","bold"); doc.setFontSize(opts.valSize||14); doc.setTextColor(28,38,54);
+        doc.setFont("helvetica","bold"); doc.setFontSize(opts.valSize||14); doc.setTextColor(...INK);
         doc.text(String(c.value==null?"—":c.value), x+3.5, yy+14.4);
         if(c.sub){ doc.setFont("helvetica","normal"); doc.setFontSize(6.8);
-          doc.setTextColor.apply(doc, c.subColor||[130,138,150]); doc.text(String(c.sub), x+3.5, yy+19.2); }
+          doc.setTextColor.apply(doc, c.subColor||MUTED); doc.text(String(c.sub), x+3.5, yy+19.2); }
       });
       y = yTop + rows*(cardH+gap) + 4;
       doc.setTextColor(40); doc.setFont("helvetica","normal"); doc.setFontSize(fsz);
@@ -18784,20 +18818,20 @@ async function generatePDFReport(mode, previewWin){
       cards.forEach((c,i)=>{
         const x = M + i*(cardW+gap), yy = yTop;
         const accent = c.accent || ac;
-        doc.setFillColor(250,251,253); doc.setDrawColor(219,225,233); doc.setLineWidth(0.3);
+        doc.setFillColor(...CARD_BG); doc.setDrawColor(...CARD_LN); doc.setLineWidth(0.3);
         doc.roundedRect(x, yy, cardW, cardH, 1.4, 1.4, "FD");
         doc.setFillColor.apply(doc, accent); doc.rect(x, yy, cardW, 1.4, "F");
         doc.setDrawColor.apply(doc, accent); doc.setLineWidth(0.5); doc.line(x+4, yy+7.5, x+10, yy+7.5);
         doc.setFont("helvetica","bold"); doc.setFontSize(6.8); doc.setTextColor.apply(doc, accent);
         doc.text(String(c.name||"").toUpperCase(), x+12, yy+9, {charSpace:0.4});
-        doc.setFont("helvetica","italic"); doc.setFontSize(10); doc.setTextColor(70,80,95);
+        doc.setFont("helvetica","italic"); doc.setFontSize(10); doc.setTextColor(...MUTED);
         doc.text(String(c.prob||""), x+4, yy+17);
-        doc.setFont("helvetica","bold"); doc.setFontSize(18); doc.setTextColor(25,35,50);
+        doc.setFont("helvetica","bold"); doc.setFontSize(18); doc.setTextColor(...INK);
         doc.text(String(c.value||"—"), x+4, yy+27);
         if(c.delta){ doc.setFont("helvetica","normal"); doc.setFontSize(7.4);
-          doc.setTextColor.apply(doc, c.deltaColor||[27,104,65]); doc.text(String(c.delta), x+4, yy+32.4); }
-        if(c.foot){ doc.setDrawColor(228,232,238); doc.setLineWidth(0.2); doc.line(x+4, yy+34.4, x+cardW-4, yy+34.4);
-          doc.setFont("helvetica","normal"); doc.setFontSize(6.3); doc.setTextColor(120,128,140);
+          doc.setTextColor.apply(doc, c.deltaColor||GOOD); doc.text(String(c.delta), x+4, yy+32.4); }
+        if(c.foot){ doc.setDrawColor(...LINE); doc.setLineWidth(0.2); doc.line(x+4, yy+34.4, x+cardW-4, yy+34.4);
+          doc.setFont("helvetica","normal"); doc.setFontSize(6.3); doc.setTextColor(...MUTED);
           doc.splitTextToSize(String(c.foot), cardW-8).slice(0,2).forEach((l,li)=>doc.text(l, x+4, yy+38+li*3)); }
       });
       y = yTop + cardH + 6;
@@ -18807,12 +18841,12 @@ async function generatePDFReport(mode, previewWin){
     // ── Donut funding ring — gray track + accent arc + centered % (goal funding)
     function donutRing(cx, cyc, R, pct, color, centerSub){
       const frac = Math.max(0, Math.min(1, (pct||0)/100));
-      drawWedge(cx, cyc, R, -Math.PI/2, -Math.PI/2 + Math.PI*2, [230,234,240]);      // track
+      drawWedge(cx, cyc, R, -Math.PI/2, -Math.PI/2 + Math.PI*2, GRID);      // track
       if(frac>0.0001) drawWedge(cx, cyc, R, -Math.PI/2, -Math.PI/2 + Math.PI*2*frac, color); // value arc
       doc.setFillColor(255,255,255); doc.circle(cx, cyc, R*0.64, "F");                // hole
       doc.setFont("helvetica","bold"); doc.setFontSize(R*0.62); doc.setTextColor.apply(doc, color);
       doc.text(Math.round(pct||0)+"%", cx, cyc+R*0.14, {align:"center"});
-      if(centerSub){ doc.setFont("helvetica","bold"); doc.setFontSize(5.6); doc.setTextColor(120,128,140);
+      if(centerSub){ doc.setFont("helvetica","bold"); doc.setFontSize(5.6); doc.setTextColor(...MUTED);
         doc.text(String(centerSub).toUpperCase(), cx, cyc+R*0.42, {align:"center", charSpace:0.4}); }
       doc.setTextColor(40); doc.setFont("helvetica","normal"); doc.setFontSize(fsz);
     }
@@ -18820,9 +18854,13 @@ async function generatePDFReport(mode, previewWin){
     // ── Fan Chart: draws a time-series wealth fan using jsPDF primitives ──
 function drawFanChart(){
   if(!lastSimPaths || lastSimPaths.length === 0) return;
-  const chartW = CW;
+  // Standard chart gutter: axis labels live INSIDE the content area (they used
+  // to hang left of the margin), and every chart's y-axis now aligns page to page.
+  const chartW = CW-GUT;
   const chartH = 55;
-  const chartX = M;
+  const chartX = M+GUT;
+  // Theme-aware band fills (were hardcoded blues that ignored the report theme).
+  const bandOuter = tint(ac,0.78), bandInner = tint(ac,0.35);
 
   checkY(chartH + 18);
 
@@ -18854,17 +18892,18 @@ function drawFanChart(){
   const my = (val) => chartY + chartH - ((val - lo) / (hi - lo)) * chartH;
 
   // Draw axes
-  doc.setDrawColor(180); doc.setLineWidth(0.25);
+  doc.setDrawColor(...AXIS); doc.setLineWidth(0.25);
   doc.line(chartX, chartY, chartX, chartY + chartH);           // Y axis
   doc.line(chartX, chartY + chartH, chartX + chartW, chartY + chartH); // X axis
 
   // Y-axis tick labels (5 ticks)
-  doc.setFont("helvetica","normal"); doc.setFontSize(6); doc.setTextColor(120);
+  doc.setFont("helvetica","normal"); doc.setFontSize(6); doc.setTextColor(...MUTED);
   for(let t = 0; t <= 4; t++){
     const val = lo + (hi - lo) * (t / 4);
     const yy  = my(val);
-    doc.setDrawColor(220); doc.setLineWidth(0.1);
+    doc.setDrawColor(...GRID); doc.setLineWidth(0.1);
     doc.line(chartX, yy, chartX + chartW, yy); // gridline
+    doc.setTextColor(...MUTED);
     doc.text(fmt(val), chartX - 1, yy + 1, {align:"right"});
   }
 
@@ -18873,7 +18912,7 @@ function drawFanChart(){
   const cy2  = (typeof currentYear === "function") ? currentYear() : new Date().getFullYear();
   for(let yr = 0; yr <= numYrs; yr += step){
     const xx = mx(yr);
-    doc.setTextColor(120);
+    doc.setTextColor(...MUTED);
     doc.text((cy2 + yr).toString(), xx, chartY + chartH + 4, {align:"center"});
   }
 
@@ -18893,10 +18932,10 @@ function drawFanChart(){
     doc.lines(moves, pts[0][0], pts[0][1], [1,1], "F", true);
   }
 
-  // Outer band: selected low–high percentiles (light blue)
-  fillBandDirect(p90, p10, 193, 220, 245);
-  // Inner band: p25–p75 interquartile (medium blue)
-  fillBandDirect(p75, p25, 91, 155, 213);
+  // Outer band: selected low–high percentiles (light accent tint)
+  fillBandDirect(p90, p10, ...bandOuter);
+  // Inner band: p25–p75 interquartile (medium accent tint)
+  fillBandDirect(p75, p25, ...bandInner);
 
   // Median / mid-percentile line
   doc.setDrawColor(...ac); doc.setLineWidth(0.6);
@@ -18910,29 +18949,29 @@ function drawFanChart(){
     const _ri=_retAge-_a1;
     if(_ri>0 && _ri<numYrs){
       const rx=mx(_ri);
-      doc.setDrawColor(150); doc.setLineWidth(0.3); doc.setLineDashPattern([1,1],0);
+      doc.setDrawColor(...FAINT); doc.setLineWidth(0.3); doc.setLineDashPattern([1,1],0);
       doc.line(rx, chartY, rx, chartY+chartH);
       doc.setLineDashPattern([],0);
-      doc.setFontSize(6); doc.setTextColor(120); doc.text("retirement", rx+1, chartY+4);
+      doc.setFontSize(6); doc.setTextColor(...MUTED); doc.text("retirement", rx+1, chartY+4);
     }
   }catch(_){}
 
   // Legend (reflects the selected band)
   y = chartY + chartH + 8;
   const legendItems = [
-    {label:bLow+"th–"+bHigh+"th percentile", r:193, g:220, b:245},
-    {label:"25th–75th percentile", r:91,  g:155, b:213},
+    {label:bLow+"th–"+bHigh+"th percentile", col:bandOuter},
+    {label:"25th–75th percentile", col:bandInner},
   ];
   let lx = chartX;
-  legendItems.forEach(({label,r,g,b})=>{
-    doc.setFillColor(r,g,b); doc.rect(lx,y-2.5,7,3,"F");
-    doc.setFont("helvetica","normal"); doc.setFontSize(6.5); doc.setTextColor(80);
+  legendItems.forEach(({label,col})=>{
+    doc.setFillColor(...col); doc.rect(lx,y-2.5,7,3,"F");
+    doc.setFont("helvetica","normal"); doc.setFontSize(6.5); doc.setTextColor(...MUTED);
     doc.text(label, lx+8.5, y);
     lx += 55;
   });
   doc.setDrawColor(...ac); doc.setLineWidth(0.6);
   doc.line(lx, y-1, lx+7, y-1);
-  doc.setFontSize(6.5); doc.setTextColor(80);
+  doc.setFontSize(6.5); doc.setTextColor(...MUTED);
   doc.text((bMid===50?"Median (50th)":"Mid ("+bMid+"th)"), lx+8.5, y);
   y += 6;
   doc.setTextColor(40); doc.setFont("helvetica","normal"); doc.setFontSize(fsz);
@@ -18966,24 +19005,24 @@ function drawFanChart(){
         }
         return {cf,pts}; });
       const ch=64; checkY(ch+26);
-      const cx=M+15, plotW=CW-15, cy0=y;
+      const cx=M+GUT, plotW=CW-GUT, cy0=y;
       const hi=(Math.max.apply(null, series.flatMap(s=>s.pts))*1.06)||1, lo=0;
       const mx=i=>cx+(i/yrs)*plotW, my=v=>cy0+ch-((v-lo)/(hi-lo))*ch;
       doc.setFontSize(6.5);
-      for(let t=0;t<=4;t++){ const v=lo+(hi-lo)*t/4, gy=my(v); doc.setDrawColor(228,231,236); doc.setLineWidth(0.15); doc.line(cx,gy,cx+plotW,gy); doc.setTextColor(110,118,130); doc.text(fmtMoney(v),cx-2,gy+1,{align:"right"}); }
+      for(let t=0;t<=4;t++){ const v=lo+(hi-lo)*t/4, gy=my(v); doc.setDrawColor(...GRID); doc.setLineWidth(0.15); doc.line(cx,gy,cx+plotW,gy); doc.setTextColor(...MUTED); doc.text(fmtMoney(v),cx-2,gy+1,{align:"right"}); }
       const xstep = yrs>30?10:(yrs>15?5:2);
-      for(let i=0;i<=yrs;i+=xstep){ const xx=mx(i); doc.setTextColor(110,118,130); doc.setFontSize(6.5); doc.text(String(cyr+i),xx,cy0+ch+4,{align:"center"}); doc.setTextColor(170); doc.setFontSize(5.6); doc.text("age "+(a1+i),xx,cy0+ch+7.6,{align:"center"}); }
-      doc.setDrawColor(170); doc.setLineWidth(0.3); doc.line(cx,cy0,cx,cy0+ch); doc.line(cx,cy0+ch,cx+plotW,cy0+ch);
+      for(let i=0;i<=yrs;i+=xstep){ const xx=mx(i); doc.setTextColor(...MUTED); doc.setFontSize(6.5); doc.text(String(cyr+i),xx,cy0+ch+4,{align:"center"}); doc.setTextColor(...FAINT); doc.setFontSize(5.6); doc.text("age "+(a1+i),xx,cy0+ch+7.6,{align:"center"}); }
+      doc.setDrawColor(...AXIS); doc.setLineWidth(0.3); doc.line(cx,cy0,cx,cy0+ch); doc.line(cx,cy0+ch,cx+plotW,cy0+ch);
       // soft cone fill between 80% (lower) and 30% (upper)
       const up=series[2].pts, dn=series[0].pts, pts=[];
       for(let i=0;i<=yrs;i++) pts.push([mx(i),my(up[i])]);
       for(let i=yrs;i>=0;i--) pts.push([mx(i),my(dn[i])]);
       const mv=[]; for(let i=1;i<pts.length;i++) mv.push([pts[i][0]-pts[i-1][0],pts[i][1]-pts[i-1][1]]);
-      doc.setFillColor(225,234,248); doc.setLineWidth(0); doc.lines(mv,pts[0][0],pts[0][1],[1,1],"F",true);
+      doc.setFillColor(...tint(ac,0.82)); doc.setLineWidth(0); doc.lines(mv,pts[0][0],pts[0][1],[1,1],"F",true);
       series.forEach(s=>{ doc.setDrawColor.apply(doc,s.cf.c); doc.setLineWidth(0.7); for(let i=1;i<=yrs;i++) doc.line(mx(i-1),my(s.pts[i-1]),mx(i),my(s.pts[i])); });
-      const rx=mx(Math.max(0,retAge-a1)); doc.setDrawColor(150); doc.setLineWidth(0.3); doc.setLineDashPattern([1,1],0); doc.line(rx,cy0,rx,cy0+ch); doc.setLineDashPattern([],0); doc.setFontSize(6); doc.setTextColor(120); doc.text("retirement",rx+1,cy0+4);
+      const rx=mx(Math.max(0,retAge-a1)); doc.setDrawColor(...FAINT); doc.setLineWidth(0.3); doc.setLineDashPattern([1,1],0); doc.line(rx,cy0,rx,cy0+ch); doc.setLineDashPattern([],0); doc.setFontSize(6); doc.setTextColor(...MUTED); doc.text("retirement",rx+1,cy0+4);
       y=cy0+ch+11;
-      let lx=cx; doc.setFontSize(7); series.forEach(s=>{ doc.setDrawColor.apply(doc,s.cf.c); doc.setLineWidth(1.1); doc.line(lx,y-1.2,lx+7,y-1.2); doc.setTextColor(70); doc.text(s.cf.lbl,lx+9,y); lx+=Math.min(95,plotW/3); });
+      let lx=cx; doc.setFontSize(7); series.forEach(s=>{ doc.setDrawColor.apply(doc,s.cf.c); doc.setLineWidth(1.1); doc.line(lx,y-1.2,lx+7,y-1.2); doc.setTextColor(...MUTED); doc.text(s.cf.lbl,lx+9,y); lx+=Math.min(95,plotW/3); });
       y+=7; doc.setTextColor(40); doc.setFont("helvetica","normal"); doc.setFontSize(fsz);
     }
 
@@ -19016,32 +19055,89 @@ function drawFanChart(){
       if(ages[ages.length-1]!==endAge) ages.push(endAge);
       const p50=ages.map(a=>spendAt(a,50));   // expected (50%) sustainable spend per retirement age
       const ch=64; checkY(ch+24);
-      const cx=M+15, plotW=CW-15, cy0=y;
+      const cx=M+GUT, plotW=CW-GUT, cy0=y;
       const hi=(Math.max.apply(null,p50)*1.1)||1, lo=0;
       const my=v=>cy0+ch-((v-lo)/(hi-lo))*ch;
       const n=ages.length, slot=plotW/n, bw=Math.min(slot*0.62,11);
       doc.setFontSize(6.5);
-      for(let t=0;t<=4;t++){ const v=lo+(hi-lo)*t/4, gy=my(v); doc.setDrawColor(228,231,236); doc.setLineWidth(0.15); doc.line(cx,gy,cx+plotW,gy); doc.setTextColor(110,118,130); doc.text(fmtMoney(v),cx-2,gy+1,{align:"right"}); }
-      doc.setDrawColor(170); doc.setLineWidth(0.3); doc.line(cx,cy0,cx,cy0+ch); doc.line(cx,cy0+ch,cx+plotW,cy0+ch);
+      for(let t=0;t<=4;t++){ const v=lo+(hi-lo)*t/4, gy=my(v); doc.setDrawColor(...GRID); doc.setLineWidth(0.15); doc.line(cx,gy,cx+plotW,gy); doc.setTextColor(...MUTED); doc.text(fmtMoney(v),cx-2,gy+1,{align:"right"}); }
+      doc.setDrawColor(...AXIS); doc.setLineWidth(0.3); doc.line(cx,cy0,cx,cy0+ch); doc.line(cx,cy0+ch,cx+plotW,cy0+ch);
       const lblEvery=Math.max(1,Math.ceil(ages.length/12));
-      ages.forEach((a,i)=>{ if(i%lblEvery===0 || i===ages.length-1){ const xx=cx+slot*i+slot/2; doc.setTextColor(110,118,130); doc.setFontSize(6.5); doc.text(String(a),xx,cy0+ch+4.5,{align:"center"}); } });
-      doc.setFontSize(7); doc.setTextColor(110,118,130); doc.text("Retirement age",cx+plotW/2,cy0+ch+9,{align:"center"});
+      ages.forEach((a,i)=>{ if(i%lblEvery===0 || i===ages.length-1){ const xx=cx+slot*i+slot/2; doc.setTextColor(...MUTED); doc.setFontSize(6.5); doc.text(String(a),xx,cy0+ch+4.5,{align:"center"}); } });
+      doc.setFontSize(7); doc.setTextColor(...MUTED); doc.text("Retirement age",cx+plotW/2,cy0+ch+9,{align:"center"});
       // single-colour bars = expected (50%) sustainable annual lifestyle
       ages.forEach((a,i)=>{ const xc=cx+slot*i+slot/2; const yT=my(p50[i]);
         doc.setFillColor.apply(doc,ac); doc.rect(xc-bw/2,yT,bw,Math.max(0.4,(cy0+ch)-yT),"F"); });
       y=cy0+ch+13;
-      doc.setFontSize(7); doc.setTextColor(70);
+      doc.setFontSize(7); doc.setTextColor(...MUTED);
       doc.setFillColor.apply(doc,ac); doc.rect(cx,y-2.6,4,3.4,"F"); doc.text("Expected (50%) sustainable annual spending by retirement age (today's $)",cx+6,y);
       y+=7; doc.setTextColor(40); doc.setFont("helvetica","normal"); doc.setFontSize(fsz);
     }
 
-    function para(txt,color=[80,80,80]){
+    function para(txt,color){
+      color = color || INK_SOFT;
       checkY(8);
-      doc.setFontSize(8); doc.setTextColor(...color); doc.setFont(undefined,"normal");
+      // Body text follows the user's font-size setting (used to hardcode 8).
+      doc.setFontSize(fsz); doc.setTextColor(...color); doc.setFont("helvetica","normal");
       const lines=doc.splitTextToSize(txt,CW);
-      lines.forEach(l=>{checkY(5); doc.text(l,M,y); y+=4.5;});
+      const lh=fsz*0.5+0.5;   // line height scales with the body size
+      lines.forEach(l=>{checkY(5); doc.text(l,M,y); y+=lh;});
       y+=2;
       doc.setTextColor(40);
+    }
+
+    // ── Bullet list — THE list renderer (educharts/wealthframework used to
+    //    hand-roll their own). items: array of strings.
+    function bullets(items, opts){
+      opts = opts || {};
+      const size = opts.size || fsz;
+      const wRegion = opts.w || CW-6;
+      const xLeft = opts.x != null ? opts.x : M;
+      doc.setFont("helvetica","normal"); doc.setFontSize(size); doc.setTextColor(...(opts.color||INK_SOFT));
+      const lh = size*0.5+0.6;
+      (items||[]).forEach(t=>{
+        const lines = doc.splitTextToSize(String(t), wRegion-5);
+        checkY(lines.length*lh+2);
+        doc.setFillColor(...ac); doc.circle(xLeft+1.2, y-1.1, 0.7, "F");
+        lines.forEach((l,li)=>{ doc.text(l, xLeft+4.2, y); y+=lh; });
+        y += 1.4;
+      });
+      y += 1.5;
+      doc.setTextColor(40); doc.setFontSize(fsz);
+    }
+
+    // ── Callout box — plain-language note in a card, house chrome.
+    function callout(title, body, opts){
+      opts = opts || {};
+      const accent = opts.accent || ac;
+      const lines = doc.splitTextToSize(String(body||""), CW-12);
+      const lh = 3.9;
+      const boxH = (title?6.5:3) + lines.length*lh + 4;
+      checkY(boxH+4);
+      doc.setFillColor(...CARD_BG); doc.setDrawColor(...CARD_LN); doc.setLineWidth(0.3);
+      doc.roundedRect(M, y, CW, boxH, 1.4, 1.4, "FD");
+      doc.setFillColor.apply(doc, accent); doc.rect(M, y, 1.5, boxH, "F");   // left accent edge
+      let yy = y+ (title?5.6:4.6);
+      if(title){ doc.setFont("helvetica","bold"); doc.setFontSize(7); doc.setTextColor.apply(doc, accent);
+        doc.text(String(title).toUpperCase(), M+5, yy, {charSpace:0.35}); yy += 4.6; }
+      doc.setFont("helvetica","normal"); doc.setFontSize(7.6); doc.setTextColor(...INK_SOFT);
+      lines.forEach(l=>{ doc.text(l, M+5, yy); yy += lh; });
+      y += boxH + 5;
+      doc.setTextColor(40); doc.setFontSize(fsz);
+    }
+
+    // ── Chart frame — standard chrome for every chart: optional title +
+    //    one-line caption above, consistent spacing below. Returns the plot
+    //    origin so callers draw inside it. (Stage-1: adopted by restyled
+    //    charts; new charts must use it.)
+    function chartFrame(title, caption, hNeeded){
+      checkY((hNeeded||60)+14);
+      if(title){ doc.setFont("helvetica","bold"); doc.setFontSize(9); doc.setTextColor(...INK);
+        doc.text(String(title), M, y); y += 4.4; }
+      if(caption){ doc.setFont("helvetica","normal"); doc.setFontSize(6.8); doc.setTextColor(...MUTED);
+        doc.text(String(caption), M, y); y += 4.2; }
+      doc.setTextColor(40); doc.setFont("helvetica","normal"); doc.setFontSize(fsz);
+      return { x: M+GUT, w: CW-GUT, yTop: y };
     }
 
     // Native bar chart (no Chart.js in PDF) — axes, bars, value + category labels.
@@ -19060,9 +19156,9 @@ function drawFanChart(){
       const n = bars.length || 1;
       const maxV = Math.max.apply(null, bars.map(b=>b.value).concat([0.0001]));
       const baseY = by0 + h;
-      doc.setDrawColor(225); doc.setLineWidth(0.2);
+      doc.setDrawColor(...GRID); doc.setLineWidth(0.2);
       for(let g=1; g<=4; g++){ const gyl = baseY - (h-6)*g/4; doc.line(x, gyl, x+w, gyl); }
-      doc.setDrawColor(170); doc.setLineWidth(0.4);
+      doc.setDrawColor(...AXIS); doc.setLineWidth(0.4);
       doc.line(x, by0, x, baseY); doc.line(x, baseY, x+w, baseY);
       const gap = w / n;
       const bw = Math.min(gap*0.5, 20);
@@ -19077,7 +19173,7 @@ function drawFanChart(){
         doc.setTextColor(Math.round(col[0]*0.8), Math.round(col[1]*0.8), Math.round(col[2]*0.8));
         const vlabel = opts.fmtVal==="pct" ? (b.value.toFixed(1)+"%") : fmt(b.value);
         doc.text(vlabel, bx+bw/2, ty-1.5, {align:"center"});
-        doc.setFont("helvetica","normal"); doc.setFontSize(6.6); doc.setTextColor(90);
+        doc.setFont("helvetica","normal"); doc.setFontSize(6.6); doc.setTextColor(...MUTED);
         doc.splitTextToSize(String(b.label==null?"":b.label), gap-1.5).forEach((l,li)=>{ doc.text(l, bx+bw/2, baseY+3.4+li*2.9, {align:"center"}); });
       });
       doc.setTextColor(40);
@@ -19101,11 +19197,11 @@ function drawFanChart(){
       const yat = v => baseY - ((v-lo)/((hi-lo)||1))*plotH;
       doc.setFont("helvetica","normal"); doc.setFontSize(6);
       for(let g=0; g<=4; g++){ const v = lo+(hi-lo)*g/4, gy = yat(v);
-        doc.setDrawColor(228); doc.setLineWidth(0.18); doc.line(px, gy, px+pw2, gy);
-        doc.setTextColor(155); doc.text(opts.fmtVal==="pct" ? (Math.round(v)+"%") : fmt(v), px-2, gy+1.1, {align:"right"}); }
-      doc.setDrawColor(170); doc.setLineWidth(0.4); doc.line(px, by0, px, baseY); doc.line(px, baseY, px+pw2, baseY);
+        doc.setDrawColor(...GRID); doc.setLineWidth(0.18); doc.line(px, gy, px+pw2, gy);
+        doc.setTextColor(...FAINT); doc.text(opts.fmtVal==="pct" ? (Math.round(v)+"%") : fmt(v), px-2, gy+1.1, {align:"right"}); }
+      doc.setDrawColor(...AXIS); doc.setLineWidth(0.4); doc.line(px, by0, px, baseY); doc.line(px, baseY, px+pw2, baseY);
       // x category labels
-      doc.setTextColor(95); doc.setFontSize(6.2);
+      doc.setTextColor(...MUTED); doc.setFontSize(6.2);
       xLabels.forEach((lb,i)=>{ const xi = xat(i); doc.splitTextToSize(String(lb), Math.max(13, pw2/npts)).forEach((l,li)=>{ doc.text(l, xi, baseY+3.6+li*2.7, {align:"center"}); }); });
       // series lines + point markers
       series.forEach((s,si)=>{
@@ -19142,9 +19238,9 @@ function drawFanChart(){
       const yat = v => baseY - ((v-lo)/((hi-lo)||1))*plotH;
       doc.setFont("helvetica","normal"); doc.setFontSize(6);
       for(let g=0; g<=4; g++){ const v = lo+(hi-lo)*g/4, gy = yat(v);
-        doc.setDrawColor(228); doc.setLineWidth(0.18); doc.line(px, gy, px+pw2, gy);
-        doc.setTextColor(155); doc.text(opts.fmtVal==="pct" ? (Math.round(v)+"%") : fmt(v), px-2, gy+1.1, {align:"right"}); }
-      doc.setDrawColor(170); doc.setLineWidth(0.4); doc.line(px, by0, px, baseY); doc.line(px, baseY, px+pw2, baseY);
+        doc.setDrawColor(...GRID); doc.setLineWidth(0.18); doc.line(px, gy, px+pw2, gy);
+        doc.setTextColor(...FAINT); doc.text(opts.fmtVal==="pct" ? (Math.round(v)+"%") : fmt(v), px-2, gy+1.1, {align:"right"}); }
+      doc.setDrawColor(...AXIS); doc.setLineWidth(0.4); doc.line(px, by0, px, baseY); doc.line(px, baseY, px+pw2, baseY);
       // filled area polygon (top edge, then back along the baseline)
       const poly = [];
       for(let i=0; i<npts; i++) poly.push([xat(i), yat(points[i])]);
@@ -19158,7 +19254,7 @@ function drawFanChart(){
       doc.setFillColor.apply(doc, col);
       for(let i=0; i<npts; i++) doc.circle(xat(i), yat(points[i]), 0.7, "F");
       // x labels
-      doc.setTextColor(95); doc.setFontSize(6.2);
+      doc.setTextColor(...MUTED); doc.setFontSize(6.2);
       xLabels.forEach((lb,i)=>{ const xi = xat(i); doc.splitTextToSize(String(lb), Math.max(13, pw2/npts)).forEach((l,li)=>{ doc.text(l, xi, baseY+3.6+li*2.7, {align:"center"}); }); });
       // value labels — every point when few, else just the endpoints
       doc.setFont("helvetica","bold"); doc.setFontSize(6.3); doc.setTextColor.apply(doc, col);
@@ -19386,7 +19482,9 @@ function drawFanChart(){
     doc.setFont("helvetica","bold"); doc.setTextColor(...PAPER);
     const heroSize = rTitle.length>26 ? 34 : 44;
     doc.setFontSize(heroSize);
-    const heroLines = doc.splitTextToSize(rTitle, CW);
+    // Wrap to the COVER's own margin system (CM), not the body CW — the M-based
+    // width let a full line overrun the cover's right margin by ~8mm.
+    const heroLines = doc.splitTextToSize(rTitle, pw-CM*2);
     let hy = cy0 + 16;
     heroLines.forEach((line, li)=>{
       if(li === heroLines.length-1){
@@ -19412,7 +19510,7 @@ function drawFanChart(){
     doc.setFont("helvetica","italic"); doc.setFontSize(12); doc.setTextColor(...COVER_WARM);
     const tagline = (rSub && rSub.length>=40) ? rSub
       : "A Monte Carlo projection of your household's position, portfolio, and long-term goals.";
-    doc.splitTextToSize(tagline, CW*0.62).forEach((l,i)=>{ doc.text(l, CM, hy+11+i*5.6); });
+    doc.splitTextToSize(tagline, (pw-CM*2)*0.62).forEach((l,i)=>{ doc.text(l, CM, hy+11+i*5.6); });
 
     // 6) Prepared-for block
     let py = ph - 44;
@@ -19634,8 +19732,21 @@ function drawFanChart(){
       const sum=arr=>arr.reduce((s,a)=>s+(+a.value||0),0);
       const colGap=12, colW=(CW-colGap)/2, Lx=M, Rx=M+colW+colGap;
       const colBar=(cx,yy,title)=>{ const h=7.6; doc.setFillColor.apply(doc,acBar); doc.rect(cx,yy-5.2,colW,h,"F"); doc.setFillColor(...ac); doc.rect(cx,yy-5.2,1.4,h,"F"); doc.setFont("helvetica","bold"); doc.setFontSize(10); doc.setTextColor.apply(doc,acDark); doc.text(title,cx+3.8,yy); return yy+h+2.5; };
-      const row=(cx,yy,label,value,o)=>{ o=o||{}; doc.setFont("helvetica",o.bold?"bold":"normal"); doc.setFontSize(o.bold?8.3:8); doc.setTextColor.apply(doc, o.bold?[45,52,64]:[0,87,184]); doc.text(String(label==null?"":label),cx+(o.indent||0),yy); if(value!=null){ doc.setTextColor.apply(doc, o.bold?[45,52,64]:[70,76,86]); doc.text(String(value),cx+colW-1,yy,{align:"right"}); } return yy+(o.gap||4.8); };
-      const subtot=(cx,yy,label,value)=>{ doc.setDrawColor(205); doc.setLineWidth(0.2); doc.line(cx+2,yy-2.6,cx+colW,yy-2.6); return row(cx,yy+1.4,label,value,{bold:true,indent:2,gap:6.4}); };
+      const row=(cx,yy,label,value,o)=>{ o=o||{}; doc.setFont("helvetica",o.bold?"bold":"normal"); doc.setFontSize(o.bold?8.3:8); doc.setTextColor.apply(doc, o.bold?INK:acDark); doc.text(String(label==null?"":label),cx+(o.indent||0),yy); if(value!=null){ doc.setTextColor.apply(doc, o.bold?INK:INK_SOFT); doc.text(String(value),cx+colW-1,yy,{align:"right"}); } return yy+(o.gap||4.8); };
+      const subtot=(cx,yy,label,value)=>{ doc.setDrawColor(...LINE); doc.setLineWidth(0.2); doc.line(cx+2,yy-2.6,cx+colW,yy-2.6); return row(cx,yy+1.4,label,value,{bold:true,indent:2,gap:6.4}); };
+      // Overflow guard: a long account list used to run past the footer band —
+      // cap each column's rows to the space left and roll the rest into a
+      // single "… plus N more" line (totals still sum the FULL arrays).
+      const listRows=(cx,startY,items)=>{
+        let yy=startY;
+        const capacity=Math.max(0, Math.floor((PAGE_BOTTOM-26-yy)/4.8));
+        const shown=items.length>capacity ? items.slice(0,Math.max(0,capacity-1)) : items;
+        shown.forEach(a=>{ yy=row(cx,yy,a.label||a.baseLabel||a.type,fmt(a.value),{indent:4}); });
+        const rest=items.length-shown.length;
+        if(rest>0){ const restSum=items.slice(shown.length).reduce((s,a)=>s+(+a.value||0),0);
+          yy=row(cx,yy,"… plus "+rest+" more",fmt(restSum),{indent:4}); }
+        return yy;
+      };
       let Ly=y, Ry=y;
       // ASSETS column
       Ly=colBar(Lx,Ly,"Assets");
@@ -19648,19 +19759,19 @@ function drawFanChart(){
       }
       if(liquidAssets.length){
         Ly=row(Lx,Ly,"Portfolio Assets",null,{bold:true});
-        liquidAssets.forEach(a=>{ Ly=row(Lx,Ly,a.label||a.baseLabel||a.type,fmt(a.value),{indent:4}); });
+        Ly=listRows(Lx,Ly,liquidAssets);
         Ly=subtot(Lx,Ly,"Total Portfolio Assets",fmt(sum(liquidAssets)));
       }
       if(lockedAssets.length){
         Ly=row(Lx,Ly,"Retirement & Locked Assets",null,{bold:true});
-        lockedAssets.forEach(a=>{ Ly=row(Lx,Ly,a.label||a.baseLabel||a.type,fmt(a.value),{indent:4}); });
+        Ly=listRows(Lx,Ly,lockedAssets);
         Ly=subtot(Lx,Ly,"Total Retirement & Locked",fmt(sum(lockedAssets)));
       }
       if(!assets.length && propV<=0 && otherV<=0 && insCash<=0) Ly=row(Lx,Ly,"No assets entered.",null,{});
       // LIABILITIES column
       Ry=colBar(Rx,Ry,"Liabilities");
       if(loans.length){
-        loans.forEach(l=>{ Ry=row(Rx,Ry,l.label||"Loan",fmt(l.bal),{}); });
+        Ry=listRows(Rx,Ry,loans.map(l=>({label:l.label||"Loan",value:l.bal})));
         Ry=subtot(Rx,Ry,"Total Liabilities",fmt(debtTot));
       } else { Ry=row(Rx,Ry,"No liabilities.",null,{}); }
       // bottom totals
@@ -20050,7 +20161,7 @@ function drawFanChart(){
         }
         if(rows.length) tbl(["Year","Projected vest proceeds (pre-tax)"], rows, {columnStyles:{0:{cellWidth:CW*0.3}}});
         kv([["Unvested in-the-money value today (not in net worth)", fmt(equityUnvestedValueNow())]]);
-        para("Vesting proceeds are treated as ordinary income in the year each tranche vests — they flow through tax, surplus, and savings in both the cash-flow projection and the Monte Carlo simulation. Option values assume exercise-and-sell at vest.", [120,120,120]);
+        para("Vesting proceeds are treated as ordinary income in the year each tranche vests — they flow through tax, surplus, and savings in both the cash-flow projection and the Monte Carlo simulation. Option values assume exercise-and-sell at vest.", MUTED);
       },
       // ─── ASSETS & LIABILITIES ──
       assets: () => {
@@ -20190,7 +20301,9 @@ function drawFanChart(){
         if(val("rptIncIPS") === "no") return;
         let d; try{ d = computeIPS(); }catch(e){ return; }
         const RP = k => RISK_PROFILES[k]?.label || k;
-        function sub(t){ checkY(11); doc.setFont("helvetica","bold"); doc.setFontSize(fsz+1.5); doc.setTextColor(...ac); doc.text(t, M, y); y+=4.8; doc.setFont("helvetica","normal"); doc.setTextColor(40); doc.setFontSize(fsz); }
+        // House band for sub-sections (was a band-less accent heading — the
+        // report's fourth competing heading style).
+        function sub(t){ subBar(t); }
         newPage();                         // formal document begins on its own page
         sectionH2("Investment Policy Statement");
         para('This Investment Policy Statement ("IPS") establishes the objectives, constraints, strategic asset allocation and governance policies agreed for the management of the household portfolio. It is a working framework — not a contract — and grants no discretionary authority.');
@@ -20266,7 +20379,7 @@ function drawFanChart(){
           doc.setTextColor(40); doc.setFontSize(fsz);
           y+=6;
         });
-        para("This IPS is a planning framework generated from client-supplied data and long-term capital market assumptions. It is not investment, tax, or legal advice. Expected returns are estimates, not guarantees; actual results will differ.", [120,120,120]);
+        para("This IPS is a planning framework generated from client-supplied data and long-term capital market assumptions. It is not investment, tax, or legal advice. Expected returns are estimates, not guarantees; actual results will differ.", MUTED);
       },
       // ─── PORTFOLIO ──
       port: () => {
@@ -20352,9 +20465,9 @@ function drawFanChart(){
         sectionH2("Investment Vehicle Fact Sheets");
         const anyLive = Object.values(factSheets).some(d => d !== null);
         if(!anyLive){
-          para("Fact sheet data unavailable — configure Morningstar Direct proxy in admin → API Keys to enable live fact sheets. Falling back to ticker-only summary.",[120,90,30]);
+          para("Fact sheet data unavailable — configure Morningstar Direct proxy in admin → API Keys to enable live fact sheets. Falling back to ticker-only summary.",WARN);
         } else {
-          para("Live Morningstar Direct data shown where available. Positions without live data fall back to the ticker-only summary.",[80,80,80]);
+          para("Live Morningstar Direct data shown where available. Positions without live data fall back to the ticker-only summary.");
         }
         const propTotalAlloc = proposals.reduce((s,p)=>s+(p.alloc||0),0) || 100;
         factPositions.forEach((p, idx)=>{
@@ -20362,12 +20475,8 @@ function drawFanChart(){
           const data = factSheets[tkr] || null;
           checkY(40);
           if(idx>0) y += 2;
-          doc.setFillColor(...acL);
-          doc.rect(M, y-3, CW, 7, "F");
-          doc.setFontSize(10); doc.setFont(undefined,"bold"); doc.setTextColor(...ac);
-          doc.text(`${tkr} — ${p.name||"Unnamed"}`, M+2, y+2);
-          doc.setFont(undefined,"normal"); doc.setTextColor(40);
-          y += 9;
+          // House section band (was a one-off acL band with its own type style).
+          subBar(`${tkr} — ${p.name||"Unnamed"}`);
           const ratingStr = data && data.rating!=null
             ? `${"★".repeat(data.rating)}${"☆".repeat(5-data.rating)} (${data.rating} stars)`
             : "Not available";
@@ -20390,21 +20499,20 @@ function drawFanChart(){
             ["3Y return", fmtPct(data?.ret3y)],
             ["5Y return", fmtPct(data?.ret5y)]
           ];
-          doc.autoTable({
-            startY: y,
-            head: [["Field","Value"]],
-            body: body,
-            margin: {left:M, right:M},
+          // Through tbl(): continuation pages get the running header + top
+          // margin (a direct doc.autoTable call here used to produce
+          // headerless spill pages).
+          tbl(["Field","Value"], body, {
             theme: "grid",
-            styles: {fontSize: Math.max(7,fsz-1), cellPadding: 1.6, overflow:"linebreak"},
+            styles: {fontSize: Math.max(7,fsz-1), cellPadding: 1.6, overflow:"linebreak", lineColor: LINE, lineWidth: 0.15, textColor: INK_SOFT},
             headStyles: {fillColor: ac, textColor:[255,255,255], fontStyle:"bold", fontSize: Math.max(7,fsz-1)},
             columnStyles: {0:{fontStyle:"bold", cellWidth: CW*0.40}, 1:{cellWidth: CW*0.60}}
           });
-          y = doc.lastAutoTable.finalY + 3;
+          y -= 4;   // tbl's post-gap is 7; keep the tighter fact-sheet rhythm
           checkY(20);
-          doc.setFontSize(8); doc.setFont(undefined,"bold"); doc.setTextColor(...ac);
+          doc.setFontSize(8); doc.setFont("helvetica","bold"); doc.setTextColor(...ac);
           doc.text("OVERVIEW (sourced from Morningstar):", M, y); y += 4;
-          doc.setFont(undefined,"normal"); doc.setTextColor(60);
+          doc.setFont("helvetica","normal"); doc.setTextColor(...INK_SOFT);
           const overviewText = (data && data.overview)
             ? data.overview
             : `No live overview available for ${tkr}. Configure the Morningstar Direct proxy in admin → API Keys to populate this section. Position data shown above is sourced from the proposal entry.`;
@@ -20412,9 +20520,9 @@ function drawFanChart(){
           ovLines.forEach(l => { checkY(5); doc.text(l, M, y); y += 4; });
           y += 2;
           checkY(16);
-          doc.setFontSize(8); doc.setFont(undefined,"bold"); doc.setTextColor(...ac);
+          doc.setFontSize(8); doc.setFont("helvetica","bold"); doc.setTextColor(...ac);
           doc.text("ANALYST OPINION:", M, y); y += 4;
-          doc.setFont(undefined,"normal"); doc.setTextColor(60);
+          doc.setFont("helvetica","normal"); doc.setTextColor(...INK_SOFT);
           const opinionText = (data && data.analystOpinion)
             ? data.analystOpinion
             : `No live analyst opinion available for ${tkr}. Live Morningstar analyst commentary requires an active Direct subscription wired through the configured proxy endpoint.`;
@@ -20507,12 +20615,15 @@ function drawFanChart(){
         catch(e){ para("Goal funding analysis unavailable — define goals and run the analysis."); return; }
         para("This overview compares the present-value (PV) cost of your goals — grossed up for tax — against the assets and future savings allocated to them in priority order. Each goal is discounted at a return matched to its confidence level (Essential 95%, Important 75%, Aspirational 55%).");
         // institutional two-column layout: assets-vs-goals stacked bar + per-goal cards
-        const _ink=[28,40,60], _mut=[95,105,120], _grid=[225,228,234], _gray=[238,240,243];
-        const _green=[27,104,65], _amber=[180,120,40], _red=[168,50,50];
+        // Design tokens (were section-local colors that drifted from the house set).
+        const _ink=INK, _mut=MUTED, _grid=CARD_LN;
+        const _green=GOOD, _amber=WARN, _red=BAD;
         const tierLbl={essential:"ESSENTIAL",important:"IMPORTANT",aspirational:"ASPIRATIONAL"};
-        const statBar=(x,w,yy,label,value)=>{ doc.setFillColor(..._gray); doc.rect(x,yy,w,8,"F");
+        // Column-scoped mini band — same family as subBar (accent-tint fill,
+        // accent left edge) but placeable at arbitrary x/width.
+        const statBar=(x,w,yy,label,value)=>{ doc.setFillColor(...acBar2); doc.rect(x,yy,w,8,"F");
           doc.setDrawColor(...ac); doc.setLineWidth(0.6); doc.line(x,yy,x,yy+8);
-          doc.setFont("helvetica","bold"); doc.setFontSize(8.5); doc.setTextColor(70,80,95); doc.text(String(label).toUpperCase(),x+3,yy+5.4);
+          doc.setFont("helvetica","bold"); doc.setFontSize(8.5); doc.setTextColor(...acDark); doc.text(String(label).toUpperCase(),x+3,yy+5.4);
           doc.setTextColor(..._ink); doc.text(value,x+w-3,yy+5.4,{align:"right"}); };
         const fundingPill=(rightX,cyy,pct)=>{ const col=pct>=0.85?_green:pct>=0.6?_amber:_red;
           doc.setFontSize(7.5); doc.setFont("helvetica","bold"); const txt=Math.round(pct*100)+"% FUNDED";
@@ -20550,7 +20661,7 @@ function drawFanChart(){
         statBar(rX,rW,topY,"Goals",st.rows.length+(st.rows.length===1?" goal":" goals"));
         let cyR=topY+12;
         st.rows.forEach(r=>{ const cardH=28;
-          if(cyR+cardH>ph-16){ newPage(); cyR=y; }
+          if(cyR+cardH>PAGE_BOTTOM){ newPage(); cyR=y; }
           doc.setDrawColor(..._grid); doc.setLineWidth(0.3); doc.setFillColor(252,253,254); doc.roundedRect(rX,cyR,rW,cardH,1.5,1.5,"FD");
           doc.setFont("helvetica","bold"); doc.setFontSize(7); doc.setTextColor(..._mut); doc.text(tierLbl[r.tier]||String(r.tier).toUpperCase(),rX+4,cyR+6);
           doc.setFontSize(11); doc.setTextColor(..._ink); doc.text(r.name,rX+4,cyR+12);
@@ -20560,7 +20671,7 @@ function drawFanChart(){
             doc.setTextColor(..._ink); doc.setFont("helvetica","bold"); doc.text(rr[1],rX+rW-4,ry,{align:"right"}); });
           cyR+=cardH+4; });
         y=Math.max(topY+12+74+14, cyR)+2;
-        para("Funding ratios at or above 100% indicate a fully funded goal; lower ratios indicate a present-value shortfall to close through added savings, return, or a revised goal. Hypothetical and not guaranteed.", [120,120,120]);
+        para("Funding ratios at or above 100% indicate a fully funded goal; lower ratios indicate a present-value shortfall to close through added savings, return, or a revised goal. Hypothetical and not guaranteed.", MUTED);
         // ── Estimated Future Income / Savings (Merrill "Key Factors" block) ──
         (function(){
           const cyNow=(typeof currentYear==="function")?currentYear():new Date().getFullYear();
@@ -20586,7 +20697,7 @@ function drawFanChart(){
           if(rows.length){
             subBar("Estimated Future Income / Savings");
             tbl(["Description","Time period","Annual amount"], rows);
-            para("Income and savings streams feeding the plan, as entered in the application. Salary grows with the assumed raise rate; pensions apply their own start age and indexation.", [120,120,120]);
+            para("Income and savings streams feeding the plan, as entered in the application. Salary grows with the assumed raise rate; pensions apply their own start age and indexation.", MUTED);
           }
         })();
       },
@@ -20634,7 +20745,7 @@ function drawFanChart(){
           return [c.lbl, basis, fmt(Math.max(0,wealth)), fmt(Math.max(0,spend))+" / yr"];
         });
         tbl(["Scenario","Basis","Wealth at retirement","Sustainable spend (today's $)"], rows);
-        para("Sustainable spend is shown in today's money and includes your projected pension / state-benefit income — the portfolio only funds spending above what pensions cover. It targets a 90% probability of the money lasting to age 90 (Monte-Carlo drawdown at the portfolio's expected return and volatility) — the same solver the app's lifestyle panel uses (current age "+a1+" → retirement "+retAge+" → age 90). Wealth at retirement is shown in future (at-retirement) dollars.", [120,120,120]);
+        para("Sustainable spend is shown in today's money and includes your projected pension / state-benefit income — the portfolio only funds spending above what pensions cover. It targets a 90% probability of the money lasting to age 90 (Monte-Carlo drawdown at the portfolio's expected return and volatility) — the same solver the app's lifestyle panel uses (current age "+a1+" → retirement "+retAge+" → age 90). Wealth at retirement is shown in future (at-retirement) dollars.", MUTED);
       },
       // ─── WEALTH ALLOCATION FRAMEWORK (Personal / Market / Aspirational) ──
       wealthframework: () => {
@@ -20646,17 +20757,17 @@ function drawFanChart(){
         (function(){
           const colW=(CW-12)/3;
           const cols=[
-            {t:"PERSONAL ASSETS", sub:"(personal risk)", col:[27,104,65],
+            {t:"PERSONAL ASSETS", sub:"(personal risk)", col:CAT_PERSONAL,
              head:"Preserve lifestyle / principal preservation / aimed at safety",
              body:"Assets directly related to protecting your minimum lifestyle: residence, personal property and cash reserves.",
              obj:"Do not jeopardize the basic standard of living. Reduce downside risk; accept below-market returns for reduced risk.",
              bench:"Inflation."},
-            {t:"MARKET ASSETS", sub:"(market risk)", col:[0,87,184],
+            {t:"MARKET ASSETS", sub:"(market risk)", col:CAT_MARKET,
              head:"Balance risk and return",
              body:"Assets that provide the potential means to maintain or improve your standard of living: diversified equities, bonds and liquid alternatives.",
              obj:"Maintain or improve lifestyle through market-level performance from a broadly diversified portfolio.",
              bench:"Risk-adjusted market return."},
-            {t:"ASPIRATIONAL ASSETS", sub:"(idiosyncratic risk)", col:[180,110,30],
+            {t:"ASPIRATIONAL ASSETS", sub:"(idiosyncratic risk)", col:CAT_ASPIRE,
              head:"Capitalize on unique opportunities",
              body:"Calculated, idiosyncratic risks taken to substantially increase your standard of living: concentrated stock, stock options, a private business, investment property, crypto.",
              obj:"Enhance lifestyle: increase upside by taking measured but significant risk.",
@@ -20704,7 +20815,7 @@ function drawFanChart(){
           ["Aspirational", "Idiosyncratic upside",        fmt(buckets.aspirational), pctOf(buckets.aspirational)],
           ["TOTAL",        "",                            fmt(total),                "100%"],
         ]);
-        para("Concentrated and idiosyncratic positions carry higher risk. The framework recommends limiting Aspirational exposure relative to the assets required to fund your essential goals.", [120,120,120]);
+        para("Concentrated and idiosyncratic positions carry higher risk. The framework recommends limiting Aspirational exposure relative to the assets required to fund your essential goals.", MUTED);
       },
       // ─── OVERVIEW: RISK CATEGORIES (your assets organized by risk type) ──
       riskcategories: () => {
@@ -20725,13 +20836,13 @@ function drawFanChart(){
           market:["Portfolio volatility","Sustained market downturn","Market shocks · geopolitical events","Sector & interest-rate conditions","Currency fluctuation","Higher taxation / change in tax laws"],
           aspirational:["Asset concentration","Loss of principal","Lack of liquidity","Higher taxation / change in tax laws"]
         };
-        [["PERSONAL ASSETS & RISKS","personal",[27,104,65]],["MARKET ASSETS & RISKS","market",[0,87,184]],["ASPIRATIONAL ASSETS & RISKS","aspirational",[180,110,30]]].forEach(([title,key,col])=>{
+        [["PERSONAL ASSETS & RISKS","personal",CAT_PERSONAL],["MARKET ASSETS & RISKS","market",CAT_MARKET],["ASPIRATIONAL ASSETS & RISKS","aspirational",CAT_ASPIRE]].forEach(([title,key,col])=>{
           subBar(title,{color:col});
           const rows=clamp(items[key]).map(x=>[x.l, x.v<0?"("+fmt(-x.v)+")":fmt(x.v)]);
           const tot=items[key].reduce((s,x)=>s+x.v,0);
           rows.push(["Subtotal", tot<0?"("+fmt(-tot)+")":fmt(tot)]);
           tbl(["Your assets","Value"],rows);
-          para("Key risks: "+RISKS[key].join(" · ")+".",[110,116,128]);
+          para("Key risks: "+RISKS[key].join(" · ")+".", MUTED);
         });
         subBar("Total Net Worth");
         tbl(["","Amount"],[["Total net worth (all categories, net of liabilities)",fmt(nw)]]);
@@ -20765,9 +20876,9 @@ function drawFanChart(){
         const pct=v=>totalW>0?(v/totalW*100).toFixed(2)+"%":"—";
         const colW=(CW-12)/3;
         const cols=[
-          {t:"PERSONAL RISK",v:buckets.personal,col:[27,104,65]},
-          {t:"MARKET RISK",v:buckets.market,col:[0,87,184]},
-          {t:"IDIOSYNCRATIC RISK",v:buckets.aspirational,col:[180,110,30]}
+          {t:"PERSONAL RISK",v:buckets.personal,col:CAT_PERSONAL},
+          {t:"MARKET RISK",v:buckets.market,col:CAT_MARKET},
+          {t:"IDIOSYNCRATIC RISK",v:buckets.aspirational,col:CAT_ASPIRE}
         ];
         checkY(30);
         const topY=y;
@@ -20784,14 +20895,16 @@ function drawFanChart(){
         // Market-assets pie by asset class
         if(buckets.market>0){
           const CLS_LBL={equity:"Equities",fixed_income:"Fixed income",cash:"Cash",real_estate:"Real estate",commodity:"Commodities",alternative:"Alternatives",mixed:"Mixed / funds",crypto:"Digital assets"};
-          const PAL=[[0,87,184],[91,155,213],[0,164,166],[201,150,40],[124,58,237],[230,120,30],[150,160,175]];
-          let segs=Object.entries(mktByCls).map(([k,v],i)=>({label:CLS_LBL[k]||k,value:v,color:PAL[i%PAL.length]}));
-          if(!segs.length) segs=[{label:"Market assets",value:buckets.market,color:[0,87,184]}];
-          checkY(56);
-          const pieY=y+24;
-          drawPieChart(M+CW/2,pieY,20,segs);
-          pieLegend(M+CW/2+30,pieY-16,CW/2-40,segs);
-          y=pieY+26;
+          // Keyed colors: an asset class renders identically on every chart.
+          let segs=Object.entries(mktByCls).map(([k,v],i)=>({label:CLS_LBL[k]||k,value:v,color:CLS_COLOR[k]||PIE_PALETTE[i%PIE_PALETTE.length]}));
+          if(!segs.length) segs=[{label:"Market assets",value:buckets.market,color:CLS_COLOR.equity}];
+          checkY(60);
+          // Same pie geometry as "A View of Your Total Portfolio" — the two
+          // allocation pies used different centers/radii one page apart.
+          const pieY=y+26;
+          drawPieChart(M+CW/2-30,pieY,22,segs);
+          pieLegend(M+CW/2+4,pieY-18,CW/2-20,segs);
+          y=pieY+30;
         }
         subBar("Category detail");
         tbl(["Category","Amount","% of total"],[
@@ -20801,7 +20914,7 @@ function drawFanChart(){
           ["Liabilities","("+fmt(debtTot)+")",totalW>0?(debtTot/totalW*100).toFixed(2)+"%":"—"],
           ["TOTAL ASSETS & LIABILITIES",fmt(totalW-debtTot),""],
         ]);
-        para("Percentages are of total assets across all three categories. Liabilities are shown against Personal risk following the framework convention.",[120,120,120]);
+        para("Percentages are of total assets across all three categories. Liabilities are shown against Personal risk following the framework convention.",MUTED);
       },
       // ─── A VIEW OF YOUR TOTAL PORTFOLIO (target allocation pie + totals) ──
       totalportfolio: () => {
@@ -20813,8 +20926,7 @@ function drawFanChart(){
         const prof=RISK_PROFILES[val("c1r")];
         para("Your "+(investments.length?"current investable portfolio":"profile-derived target allocation")+(prof?" ("+prof.label+")":"")+", valued at "+fmt(investableT)+".");
         const CLS_LBL={equity:"Equities (EQ)",fixed_income:"Fixed Income (FI)",cash:"Cash (CA)",real_estate:"Real Assets (RA)",commodity:"Commodities",alternative:"Alternatives / Hedge (HFS)",mixed:"Multi-asset funds",crypto:"Digital assets",private_equity:"Private Equity (PE)"};
-        const PAL=[[0,87,184],[178,80,42],[110,160,60],[124,58,237],[0,164,166],[230,160,40],[150,160,175]];
-        const segs=Object.entries(w).filter(([k,v])=>v>0.0001).map(([k,v],i)=>({label:CLS_LBL[k]||k,value:v*investableT,color:PAL[i%PAL.length]}));
+        const segs=Object.entries(w).filter(([k,v])=>v>0.0001).map(([k,v],i)=>({label:CLS_LBL[k]||k,value:v*investableT,color:CLS_COLOR[k]||PIE_PALETTE[i%PIE_PALETTE.length]}));
         checkY(60);
         const pieY=y+26;
         drawPieChart(M+CW/2-30,pieY,22,segs);
@@ -20861,7 +20973,7 @@ function drawFanChart(){
         doc.setFillColor(30,34,42); doc.triangle(M+62,y-3,M+60,y-1,M+62,y+1,"F"); doc.triangle(M+62,y-3,M+64,y-1,M+62,y+1,"F");
         doc.text((investments.length?"Current":"Target")+" allocation — return "+(port.geoMu*100).toFixed(1)+"% · risk "+(port.sigma*100).toFixed(1)+"%",M+67,y);
         y+=8;
-        para("A portfolio whose risk falls inside the shaded band is consistent with your stated investor profile. Note: the shaded region reflects volatility only — it does not guarantee any outcome.",[120,120,120]);
+        para("A portfolio whose risk falls inside the shaded band is consistent with your stated investor profile. Note: the shaded region reflects volatility only — it does not guarantee any outcome.", MUTED);
       },
       // ─── MEASURING PERFORMANCE OF ASSET CLASSES & ALLOCATIONS (CMA-based) ──
       performance: () => {
@@ -20906,7 +21018,7 @@ function drawFanChart(){
         tbl(["Series","Volatility (σ)","Avg annual return","Growth of "+fmt(startV)+" ("+yrsP+" yrs)"],
           lines.map(L=>[L.lbl,(L.p.sigma*100).toFixed(2)+"%",(L.p.geoMu*100).toFixed(2)+"%",fmt(grow(L.p.geoMu,yrsP))])
             .concat([["Inflation (CPI assumption)","—",(infP*100).toFixed(2)+"%",fmt(grow(infP,yrsP))]]));
-        para("Results are illustrative, based on the plan's capital market assumptions compounded deterministically; they do not reflect any actual portfolio, trading costs or taxes, and past performance does not guarantee future results.",[120,120,120]);
+        para("Results are illustrative, based on the plan's capital market assumptions compounded deterministically; they do not reflect any actual portfolio, trading costs or taxes, and past performance does not guarantee future results.", MUTED);
       },
       // ─── ANNUAL POTENTIAL WEALTH (year-by-year at confidence bands) ──
       potentialwealth: () => {
@@ -20960,7 +21072,7 @@ function drawFanChart(){
           ["Estimated total tax", fmt(s.totalTax)],
         ]);
         para("Spreading the tax-deferred pool across the low-income window moves it into the tax-free bucket at an estimated "+(s.windowTax*100).toFixed(0)+"% rate, rather than leaving it to grow the tax-deferred balance and force larger, higher-rate required withdrawals later.");
-        para("Illustrative, level-conversion estimate - not tax advice. The optimal amount depends on filling specific tax brackets, benefit/credit thresholds and other income. Confirm with a tax professional.", [120,120,120]);
+        para("Illustrative, level-conversion estimate - not tax advice. The optimal amount depends on filling specific tax brackets, benefit/credit thresholds and other income. Confirm with a tax professional.", MUTED);
       },
       // ─── TAX BUCKETS & WITHDRAWAL ORDER ──
       taxbuckets: () => {
@@ -20979,9 +21091,9 @@ function drawFanChart(){
         ]);
         para("Asset-location score: "+t.score+"/100 (100 = all growth assets sheltered from tax).");
         para("Recommended withdrawal order in retirement:");
-        w.order.forEach((o,i)=>para((i+1)+".  "+o.step+" — "+o.detail, [60,70,85]));
-        if(w.notes.length){ para("Observations:"); w.notes.forEach(n=>para("-  "+n, [150,110,40])); }
-        para("General sequencing guidance, not personal tax advice — bracket management, benefit thresholds and estate goals can change the optimal order. Confirm with a tax professional.", [120,120,120]);
+        w.order.forEach((o,i)=>para((i+1)+".  "+o.step+" — "+o.detail, INK_SOFT));
+        if(w.notes.length){ para("Observations:"); w.notes.forEach(n=>para("-  "+n, WARN)); }
+        para("General sequencing guidance, not personal tax advice — bracket management, benefit thresholds and estate goals can change the optimal order. Confirm with a tax professional.", MUTED);
       },
       // ─── REQUIRED MINIMUM WITHDRAWALS (RMD / RRIF / min pension) ──
       rmd: () => {
@@ -21005,7 +21117,7 @@ function drawFanChart(){
         const shown=s.rows.filter((r,i)=>i%step===0 || i===s.rows.length-1);
         tbl(["Age","Year","Pool (start)","Required %","Withdrawal","Est. tax","Pool (end)"],
           shown.map(r=>[r.age, r.year, fmt(r.startBal), (r.frac*100).toFixed(2)+"%", fmt(r.withdrawal), fmt(r.taxEst), fmt(r.endBal)]));
-        para("Required minimum withdrawals are forced taxable distributions; they need not be spent, but the tax is due whether or not the funds are needed. Roth-type accounts are generally exempt. Confirm current factors with a tax professional.", [120,120,120]);
+        para("Required minimum withdrawals are forced taxable distributions; they need not be spent, but the tax is due whether or not the funds are needed. Roth-type accounts are generally exempt. Confirm current factors with a tax professional.", MUTED);
       },
       // ─── ESTATE TRANSFER SUMMARY (lite) ──
       estate: () => {
@@ -21019,7 +21131,7 @@ function drawFanChart(){
           : "A simplified estimate based on current net worth plus life-insurance death benefits (run the simulation for a projected figure).");
         if(e.regime){
           const blab={estate:"Estate tax (on the estate)",inheritance:"Inheritance tax (on what heirs receive)",none:"No estate or inheritance tax",deemed:"No estate tax - capital gains at death",unknown:"Set manually"}[e.regime.basis]||e.regime.basis;
-          para((e.country?e.country+" - ":"")+blab+". "+e.regime.note+" Illustrative ~2024 default, editable in the app - not tax advice.", [90,100,115]);
+          para((e.country?e.country+" - ":"")+blab+". "+e.regime.note+" Illustrative ~2024 default, editable in the app - not tax advice.", MUTED);
         }
         kv([
           [e.fromProjection?"Median projected estate":"Current net worth", fmt(e.baseNW)],
@@ -21034,9 +21146,9 @@ function drawFanChart(){
           tbl(["Beneficiary","Relationship","Share","Receives"],
             beneficiaries.map(b=>[b.name, b.rel, (+b.share||0).toFixed(0)+"%", fmt(e.net*(+b.share||0)/100)]));
           if(e.totalShare !== 100)
-            para((e.totalShare<100?"Unallocated":"Over-allocated")+" share: "+(100-e.totalShare).toFixed(0)+"% ("+fmt(e.net*(100-e.totalShare)/100)+").", [180,120,40]);
+            para((e.totalShare<100?"Unallocated":"Over-allocated")+" share: "+(100-e.totalShare).toFixed(0)+"% ("+fmt(e.net*(100-e.totalShare)/100)+").", WARN);
         }
-        para("This summary ignores probate, state and inheritance taxes, trusts, basis step-up, and exemption portability. Consult an estate-planning professional.", [120,120,120]);
+        para("This summary ignores probate, state and inheritance taxes, trusts, basis step-up, and exemption portability. Consult an estate-planning professional.", MUTED);
       },
       // ─── CASH FLOW ──
       cf: () => {
@@ -21084,7 +21196,7 @@ function drawFanChart(){
         });
         rows.push(["YOUR PORTFOLIO", "100%", (port.arithMu*100).toFixed(2)+"%", (port.sigma*100).toFixed(2)+"%", (port.geoMu*100).toFixed(2)+"%", "—"]);
         tbl(["Asset class","Your weight","Arith μ","σ","Geo μ","Income"], rows);
-        para("Portfolio σ is computed from the full asset-class correlation matrix rather than a naive weighted average of individual volatilities, so diversification correctly reduces total portfolio risk.", [120,120,120]);
+        para("Portfolio σ is computed from the full asset-class correlation matrix rather than a naive weighted average of individual volatilities, so diversification correctly reduces total portfolio risk.", MUTED);
       },
       // ─── METHODOLOGY ──
       method: () => {
@@ -21106,26 +21218,19 @@ function drawFanChart(){
         const charts = EDU_CHARTS.filter(c => sel.includes(c.id));
         charts.forEach(c => {
           newPage();
-          // Title (serif) + subtitle + accent rule — institutional graph slide
-          doc.setFont("helvetica","bold"); doc.setFontSize(15); doc.setTextColor(28,40,60);
-          doc.text(c.title, M, y); y += 7;
-          doc.setFont("helvetica","bold"); doc.setFontSize(10.5); doc.setTextColor.apply(doc, ac);
-          doc.splitTextToSize(c.subtitle, CW).forEach(l => { doc.text(l, M, y); y += 5; });
-          y += 1;
-          doc.setDrawColor.apply(doc, ac); doc.setLineWidth(0.5); doc.line(M, y, pw-M, y); y += 9;
+          // House heading (was a bespoke 15pt title system — the report's fifth
+          // competing heading style) + muted caption line.
+          subBar(c.title, {size:12});
+          y += 2;
+          doc.setFont("helvetica","normal"); doc.setFontSize(9); doc.setTextColor(...MUTED);
+          doc.splitTextToSize(c.subtitle, CW).forEach(l => { doc.text(l, M, y); y += 4.6; });
+          y += 5;
           if(c.type === "emotioncycle"){
             // Full-width sentiment curve, with the takeaways stacked below it.
             const chH = 60, chY = y;
             drawEmotionCycle(M, chY, CW, chH);
             y = chY + chH + 13;
-            doc.setFont("helvetica","normal"); doc.setFontSize(9); doc.setTextColor(55);
-            c.points.forEach(pt => {
-              doc.setFillColor.apply(doc, ac); doc.circle(M+1, y-1.3, 0.7, "F");
-              const lines = doc.splitTextToSize(pt, CW-5);
-              lines.forEach((l,i) => { doc.text(l, M+4.5, y + i*4); });
-              y += lines.length*4 + 4.5;
-            });
-            y += 2;
+            bullets(c.points, {size:9});
           } else {
             // Chart on the left (~56%), bullet explanation on the right (~40%)
             const chartW = CW*0.56, chartH = 74, chartX = M, chartY = y;
@@ -21135,18 +21240,15 @@ function drawFanChart(){
             else if(ctype === "donut") drawDonutChartEdu(chartX, chartY, chartW, chartH, c, {fmtVal:c.fmtVal});
             else                       drawBarChart(chartX, chartY, chartW, chartH, c.bars, {fmtVal:c.fmtVal});
             const ex = M + chartW + 8, ew = CW - chartW - 8;
-            let ey = chartY + 6;
-            doc.setFont("helvetica","normal"); doc.setFontSize(9); doc.setTextColor(55);
-            c.points.forEach(pt => {
-              doc.setFillColor.apply(doc, ac); doc.circle(ex+1, ey-1.3, 0.7, "F");
-              const lines = doc.splitTextToSize(pt, ew-5);
-              lines.forEach((l,i) => { doc.text(l, ex+4.5, ey + i*4); });
-              ey += lines.length*4 + 4.5;
-            });
-            y = Math.max(chartY + chartH + 16, ey + 4);
+            // Side column rendered through the shared bullets() helper on a
+            // saved cursor, then resume below whichever column runs longer.
+            const ySaved = y; y = chartY + 6;
+            bullets(c.points, {x: ex, w: ew, size: 9});
+            const eyEnd = y;
+            y = Math.max(chartY + chartH + 16, Math.max(ySaved, eyEnd) + 2);
           }
           // Source / disclaimer footnote
-          doc.setFont("helvetica","italic"); doc.setFontSize(6.8); doc.setTextColor(140);
+          doc.setFont("helvetica","italic"); doc.setFontSize(6.8); doc.setTextColor(...MUTED);
           doc.splitTextToSize(c.source, CW).forEach(l => { doc.text(l, M, y); y += 3.2; });
           doc.setFont("helvetica","normal"); doc.setTextColor(40); doc.setFontSize(fsz);
         });
@@ -21156,12 +21258,12 @@ function drawFanChart(){
         if(val("rptIncGlossary") === "no") return;
         newPage();
         sectionH2("Glossary of Terms");
-        para("Definitions of the terms used throughout this report, provided for your convenience.", [110,110,110]);
+        para("Definitions of the terms used throughout this report, provided for your convenience.", MUTED);
         // Flowing two-column term + definition layout (institutional glossary style)
         const gutter = 8;
         const colW = (CW - gutter) / 2;
         const colX = [M, M + colW + gutter];
-        const bottom = ph - 14;
+        const bottom = PAGE_BOTTOM;
         let contentTop = y, col = 0, gy = contentTop;
         RPT_GLOSSARY.forEach(g => {
           const term = g[0], def = g[1];
@@ -21176,7 +21278,7 @@ function drawFanChart(){
           }
           doc.setFont("helvetica","bold"); doc.setFontSize(8.6); doc.setTextColor(...ac);
           termLines.forEach(l => { doc.text(l, colX[col], gy); gy += 3.7; });
-          doc.setFont("helvetica","normal"); doc.setFontSize(7.3); doc.setTextColor(70);
+          doc.setFont("helvetica","normal"); doc.setFontSize(7.3); doc.setTextColor(...INK_SOFT);
           defLines.forEach(l => { doc.text(l, colX[col], gy); gy += 3.3; });
           gy += 3.5;
         });
@@ -21194,7 +21296,7 @@ function drawFanChart(){
           // Custom user-provided disclosure REPLACES the standard one
           customDisc.split(/\n\s*\n/).forEach(block => {
             const txt = block.trim();
-            if(txt) para(txt, [80,80,80]);
+            if(txt) para(txt);
           });
         } else {
           const DISC = {
@@ -21202,7 +21304,7 @@ function drawFanChart(){
             advisor:"PROFESSIONAL USE NOTICE. This report has been prepared for advisor use and client presentation purposes only. It relies on client-supplied data and capital market assumptions that may differ materially from actual outcomes. Monte Carlo projections model stochastic return paths and carry inherent uncertainty — actual results will differ. Sequence-of-returns risk, behavioural factors, unexpected expenses, and changes in tax law are not fully captured in the model. Tax figures are simplified estimates and do not constitute tax advice. This document does not constitute investment advice, a personal financial plan, or a prospectus. The advisor should review all assumptions, validate all data inputs, and disclose all material conflicts of interest to the client prior to use. Not for redistribution to third parties.",
             minimal:"For educational purposes only. Not financial or tax advice — tax figures are simplified estimates. Consult a licensed advisor and a tax professional before making financial decisions.",
           };
-          para(DISC[discLvl]||DISC.standard, [80,80,80]);
+          para(DISC[discLvl]||DISC.standard);
         }
       }
     };
@@ -21231,11 +21333,11 @@ function drawFanChart(){
       const _tot = doc.internal.getNumberOfPages();
       for(let _p=2; _p<=_tot; _p++){   // page 1 is the navy cover — it carries its own meta row
         doc.setPage(_p);
-        doc.setDrawColor(205); doc.setLineWidth(0.3); doc.line(M, ph-11, pw-M, ph-11);
-        doc.setFont("helvetica","bold"); doc.setFontSize(7); doc.setTextColor(95);
+        doc.setDrawColor(...LINE); doc.setLineWidth(0.3); doc.line(M, ph-11, pw-M, ph-11);
+        doc.setFont("helvetica","bold"); doc.setFontSize(7); doc.setTextColor(...MUTED);
         doc.text("Prepared by:", M, ph-6.5);
         const _w = doc.getTextWidth("Prepared by: ");
-        doc.setFont("helvetica","normal"); doc.setTextColor(120);
+        doc.setFont("helvetica","normal"); doc.setTextColor(...MUTED);
         doc.text(rBy||"", M+_w, ph-6.5);
         doc.text("Date: "+rptDateStr+"     |     "+_p+" of "+_tot, pw-M, ph-6.5, {align:"right"});
         if(confidLabel){ doc.setFont("helvetica","bold"); doc.setTextColor(...ac); doc.text(confidLabel, pw/2, ph-6.5, {align:"center"}); }
