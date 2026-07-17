@@ -3846,7 +3846,7 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
 // ═══════════════════════════════════════════════════════════
 // VERSION — updated by build-standalone.pl on each build
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260717-2223";
+const APP_VERSION = "20260717-2241";
 
 // ═══════════════════════════════════════════════════════════
 // DATA
@@ -18133,6 +18133,9 @@ async function generatePDFReport(mode, previewWin){
     // first newPage()/sectionH2() a section calls — disabled sections that return
     // early never consume it, so no blank pages are produced.
     let _pendingPage=false;
+    let _pendingDivider=null;     // {n, ch}: chapter divider rendered lazily by the
+                                  // chapter's FIRST rendering section (a chapter whose
+                                  // sections all bail draws no divider and no blank page)
     let currentSectionTitle="";   // shown as the bold page title in the running header
     let _logoEmbed="";            // logo data URL, downscaled once below and reused on every page
 
@@ -18222,6 +18225,7 @@ async function generatePDFReport(mode, previewWin){
       doc.setTextColor(40); doc.setFont("helvetica","normal");
     }
     function newPage(){
+      if(_pendingDivider){ const d=_pendingDivider; _pendingDivider=null; _renderChapterDivider(d.n, d.ch); }
       doc.addPage();
       _pendingPage=false;   // a page break just happened; clear any deferred request
       drawRunningHeader();
@@ -18230,6 +18234,27 @@ async function generatePDFReport(mode, previewWin){
       // pass at the end, so every page can show "<n> of <total>".
     }
     function checkY(need=20){if(y+need>PAGE_BOTTOM) newPage();}
+
+    // ── Chapter divider — display-style page on the standard template (running
+    //    header + footer), drawn only when the chapter's first section renders.
+    function _renderChapterDivider(n, ch){
+      const _keepTitle = currentSectionTitle;
+      currentSectionTitle = ch.title;
+      doc.addPage(); drawRunningHeader(); y = 27;
+      const dy = ph*0.32;
+      doc.setFont("helvetica","bold"); doc.setFontSize(64); doc.setTextColor(...tint(ac,0.72));
+      doc.text(String(n), M, dy);
+      doc.setFillColor(...ac); doc.rect(M+1, dy+5, 26, 1.2, "F");
+      doc.setFont("helvetica","bold"); doc.setFontSize(24); doc.setTextColor(...INK);
+      doc.text(ch.title, M, dy+18);
+      if(ch.summary){
+        doc.setFont("helvetica","normal"); doc.setFontSize(10.5); doc.setTextColor(...MUTED);
+        doc.splitTextToSize(ch.summary, CW*0.72).forEach((l,i)=>doc.text(l, M, dy+28+i*5.6));
+      }
+      doc.setTextColor(40); doc.setFont("helvetica","normal"); doc.setFontSize(fsz);
+      _tocLog.push({type:"chapter", n:n, label:ch.title, page:doc.internal.getNumberOfPages()});
+      currentSectionTitle = _keepTitle;
+    }
 
     const _normTitle = s => String(s||"").toLowerCase().replace(/[^a-z0-9]+/g,"");
     // Filled brand-tint band used for in-page sub-sections (Assets, Liabilities, Goals…).
@@ -19129,6 +19154,7 @@ function drawFanChart(){
     };
     function rptLabelFor(k){
       let label = RPT_SECTION_LABELS[k] || k;
+      if(k === "howto")           label = "How to Read This Report";
       if(k === "about")           label = "About the Client";
       if(k === "factsheets")      label = "Investment Vehicle Fact Sheets";
       if(k === "port")            label = "Portfolio Analysis";
@@ -19145,99 +19171,52 @@ function drawFanChart(){
       if(k === "disc")            label = "Disclosures";
       return label;
     }
-    // Included sections (key + display label), in reading order.
-    const tocEntries = [];
-    userOrder.forEach(k => {
-      if(SECTION_PREDS[k] && SECTION_PREDS[k]()){
-        tocEntries.push({ key:k, label:rptLabelFor(k) });
-      }
-    });
-    // The report's six logical Parts. Every section key belongs to one Part;
-    // anything unmapped falls into a trailing "Additional" group so a future
-    // section can never silently disappear from the Contents.
-    const RPT_PARTS = [
-      { title:"I — Your Financial Picture",     keys:["exec","about","hh","inc","equity","assets","insurance"] },
-      { title:"II — Goals & Strategy",          keys:["goals","strategies","ips"] },
-      { title:"III — Portfolio",                keys:["port","totalportfolio","efficiency","performance","factsheets","wealthframework","riskcategories","riskstatus"] },
-      { title:"IV — Projections & Outcomes",    keys:["sim","fund","goalfunding","lifestyle","potentialwealth","cf"] },
-      { title:"V — Retirement Income & Estate", keys:["rmd","taxbuckets","roth","estate"] },
-      { title:"VI — Reference",                 keys:["educharts","cma","method","glossary","disc"] }
+    // ═══ Chapter structure (stage 2): the report reads as a story ═══
+    // Sections render grouped into chapters, each opened by a divider page.
+    // Within a chapter, sections keep the user's Page Order panel ordering;
+    // anything unmapped falls into the Appendix so a future section can never
+    // silently disappear from the report or its Contents.
+    const CHAPTERS = [
+      { title:"How to Read This Report", divider:false, keys:["howto"], summary:"" },
+      { title:"Where You Stand Today", divider:true, keys:["exec","about","hh","inc","equity","assets","insurance"],
+        summary:"The starting point: who is in the household, what you own and owe, what comes in and goes out each year, and the headline numbers of your plan today." },
+      { title:"Your Goals & Retirement Plan", divider:true, keys:["goals","strategies"],
+        summary:"What you are working toward - the goals you have set, when they fall due, and the retirement lifestyle the plan is designed to support." },
+      { title:"What the Future May Hold", divider:true, keys:["sim","fund","goalfunding","lifestyle","potentialwealth","cf"],
+        summary:"We replay your finances across many simulated market futures. These pages show the range of outcomes, how likely each goal is to be funded, and how your cash flow evolves over time." },
+      { title:"Your Investments", divider:true, keys:["ips","port","totalportfolio","efficiency","performance","factsheets","wealthframework","riskcategories","riskstatus"],
+        summary:"How your money is invested: the policy that governs the portfolio, what you hold today, how efficiently it is allocated, and the framework used to balance risk against your goals." },
+      { title:"Taxes & Estate", divider:true, keys:["rmd","taxbuckets","roth","estate"],
+        summary:"The rules and sequencing that decide how much of your wealth you keep: required withdrawals, tax-aware ordering, conversion windows, and what passes to your heirs." },
+      { title:"Appendix", divider:true, keys:["educharts","cma","method","glossary","disc"],
+        summary:"Reference material behind the numbers: educational charts, the capital-market assumptions, methodology, a glossary of terms, and important disclosures." },
     ];
-    // Group included sections under their Part, numbering continuously; drop
-    // empty Parts.
-    const _lblByKey = {}; tocEntries.forEach(e => { _lblByKey[e.key] = e.label; });
-    const _usedKey = {}; let _tocN = 0;
-    const tocGroups = [];
-    RPT_PARTS.forEach(p => {
-      const items = [];
-      p.keys.forEach(k => { if(_lblByKey[k] != null){ items.push({ n:(++_tocN), label:_lblByKey[k] }); _usedKey[k]=1; } });
-      if(items.length) tocGroups.push({ title:p.title, items });
+    // Effective chapter contents: Page Order decides inclusion AND relative
+    // order within each chapter; predicates hide data-empty sections up front.
+    const _ordIdx = {}; userOrder.forEach((k,i)=>{ _ordIdx[k]=i; });
+    const _mapped = new Set(); CHAPTERS.forEach(c=>c.keys.forEach(k=>_mapped.add(k)));
+    CHAPTERS.forEach(c=>{
+      c.list = c.keys
+        .filter(k => k==="howto" || (_ordIdx[k]!=null && SECTION_PREDS[k] && SECTION_PREDS[k]()))
+        .sort((a,b)=>((_ordIdx[a]!=null?_ordIdx[a]:-1)-(_ordIdx[b]!=null?_ordIdx[b]:-1)));
     });
-    const _leftover = tocEntries.filter(e => !_usedKey[e.key]).map(e => ({ n:(++_tocN), label:e.label }));
-    if(_leftover.length) tocGroups.push({ title:"— Additional", items:_leftover });
-    // Render the Contents on its OWN page (light theme) so the navy cover stays
-    // a clean hero. The running header shows "Contents" as the section title.
+    userOrder.forEach(k=>{ if(!_mapped.has(k) && SECTION_PREDS[k] && SECTION_PREDS[k]()) CHAPTERS[CHAPTERS.length-1].list.push(k); });
+
+    // ── Reserve the Contents page now; it is FILLED at the end of the render,
+    //    when every chapter's and section's real page number is known
+    //    (single render pass + back-patch — correct for any combination of
+    //    disabled sections). The running header shows "Contents".
     currentSectionTitle = "Contents";
     newPage();
-    // Big serif "Contents" heading with an accent underline
     doc.setFont("helvetica","bold"); doc.setFontSize(26); doc.setTextColor(...ac);
     doc.text("Contents", M, y+6);
     doc.setDrawColor(...ac); doc.setLineWidth(0.5); doc.line(M, y+10, M+30, y+10);
-    doc.setFont("helvetica","normal"); doc.setFontSize(9); doc.setTextColor(120,128,140);
-    doc.text("Sections included in this report, grouped by theme.", M, y+16);
-    y += 26;
-    doc.setFontSize(9.5);
-    // Two-column Contents grouped under Part headers. Parts are packed into the
-    // two columns balanced by height and never split; row heights scale down if
-    // needed so the whole Contents always fits on this one page.
-    (function drawToc(){
-      if(!tocGroups.length) return;
-      const startY  = y;
-      const bottomY = ph - 18;
-      const colGap  = 16;
-      const colW    = (CW - colGap) / 2;
-      const BItem = 6.4, BHead = 9.6, BGap = 4.5;
-      const baseH = g => BHead + g.items.length*BItem + BGap;
-      const total = tocGroups.reduce((s,g)=>s+baseH(g), 0);
-      // Fill column 1 until it passes half the total height; rest go to column 2.
-      let run=0, splitAt=1;
-      for(let i=0;i<tocGroups.length;i++){ run+=baseH(tocGroups[i]); if(run>=total/2){ splitAt=i+1; break; } }
-      splitAt = tocGroups.length>=2 ? Math.max(1, Math.min(splitAt, tocGroups.length-1)) : tocGroups.length;
-      const columns = [ tocGroups.slice(0,splitAt), tocGroups.slice(splitAt) ];
-      // Scale spacing so the taller column fits the page height. Reserve room
-      // for the top offset, the first line's baseline, and a bottom margin —
-      // otherwise a full 33-section report overruns the bottom in landscape.
-      const colBase = columns.map(gs => gs.reduce((s,g)=>s+baseH(g),0));
-      const usable = (bottomY - startY) - 14;
-      const scale = Math.min(1, usable / Math.max(1, Math.max.apply(null, colBase)));
-      const headH = BHead*scale, itemH = BItem*scale, pGap = BGap*scale;
-      columns.forEach((groups, ci) => {
-        const x = M + ci*(colW+colGap);
-        let yy = startY + 8;
-        groups.forEach(g => {
-          const seg = g.title.split(" — ");
-          const roman = seg[0], name = seg[1] || g.title;
-          doc.setFont("helvetica","bold"); doc.setFontSize(fsz-1.5); doc.setTextColor(...ac);
-          doc.text("PART "+roman, x, yy, {charSpace:0.8});
-          const rw = doc.getTextWidth("PART "+roman) + 3.4;
-          doc.setFont("helvetica","bold"); doc.setFontSize(fsz+1); doc.setTextColor(...acDark);
-          doc.text(name, x+rw, yy, {charSpace:0.2});
-          doc.setDrawColor(200,208,220); doc.setLineWidth(0.35); doc.line(x, yy+2.4, x+colW-2, yy+2.4);
-          yy += headH;
-          g.items.forEach(it => {
-            doc.setFont("helvetica","italic"); doc.setFontSize(10.5); doc.setTextColor(...ac);
-            doc.text(String(it.n).padStart(2,"0"), x, yy);
-            doc.setFont("helvetica","normal"); doc.setFontSize(9.3); doc.setTextColor(45,52,64);
-            const line = doc.splitTextToSize(it.label, colW - 14)[0];
-            doc.text(line, x+10, yy);
-            doc.setDrawColor(228,232,238); doc.setLineWidth(0.2); doc.line(x, yy+2.3, x+colW-2, yy+2.3);
-            yy += itemH;
-          });
-          yy += pGap;
-        });
-      });
-      doc.setFontSize(fsz);
-    })();
+    doc.setFont("helvetica","normal"); doc.setFontSize(9); doc.setTextColor(...MUTED);
+    doc.text("What this report covers, chapter by chapter, with page numbers.", M, y+16);
+    const _tocPageNo = doc.internal.getNumberOfPages();
+    const _tocStartY = y + 26;
+    const _tocLog = [];   // filled during rendering: {type:"chapter"|"section", n, label, page}
+    doc.setFontSize(fsz);
 
     // ── Native pie chart (filled slices via drawWedge) ──
     function drawPieChart(cx, cy, R, segs){
@@ -20863,15 +20842,118 @@ function drawFanChart(){
       }
     };
 
-    // ═══ Iterate the user-defined section order ═══
-    // (saved via the Page Order panel in the PDF Report tab — drag ↑↓ to reorder)
-    _pendingPage = true;   // first content section starts on a fresh page after the cover
-    userOrder.forEach(k => {
-      currentSectionTitle = rptLabelFor(k);   // drives the bold title in each page's running header
-      try { SECTIONS[k] && SECTIONS[k](); }
-      catch(e){ console.warn("PDF section '"+k+"' failed:", e); }
-      _pendingPage = true;   // re-arm: the next rendering section starts on its own page
+    // ── "How to Read This Report" — the plain-language explainer that opens
+    //    the chaptered narrative (stage 2). Uses only house helpers.
+    SECTIONS.howto = () => {
+      newPage();
+      sectionH2("How to Read This Report");
+      para("This report looks at your finances from many angles, but the core ideas are simple. This page explains them in plain terms so every chart that follows makes sense.");
+      subBar("What is a Monte Carlo simulation?");
+      para("Instead of assuming one fixed rate of return, we replay your financial life across a thousand simulated futures, each with a different, randomly drawn sequence of good and bad market years based on long-term market behaviour. The result is not one prediction but a RANGE of realistic outcomes - some strong, some average, some poor.");
+      subBar("How to read the fan chart");
+      bullets([
+        "The dark middle line is the MEDIAN: half of the simulated futures end above it, half below.",
+        "The inner shaded band covers the middle half of outcomes (25th to 75th percentile).",
+        "The outer band covers the low-to-high range selected for this report. Falling outside it is possible, just unlikely.",
+        "A dashed vertical line marks the planned retirement age.",
+      ]);
+      subBar("What does goal success mean?");
+      para("A goal 'succeeds' in one simulated future when the plan can pay for it from available liquid wealth when it comes due. A goal with 85% success was funded in 850 of 1,000 simulated futures. Higher is better - and 100% is not a guarantee; it means the goal was funded in every future we simulated.");
+      callout("Keep in mind", "Projections are estimates built from assumptions, not predictions. Their value is in comparing choices - retiring earlier versus later, saving more versus less - not in forecasting any exact number.");
+    };
+
+    // ═══ Render chapters → dividers → sections (stage 2) ═══
+    // The Page Order panel still controls inclusion and within-chapter order;
+    // chapters provide the narrative arc. Each section's REAL page number is
+    // captured as it renders (every rendering section opens a fresh page), so
+    // the Contents back-patch is correct for any combination of disabled
+    // sections — no predicate guessing.
+    _pendingPage = true;   // first content page starts fresh after the Contents
+    let _chapterN = 0, _secN = 0;
+    CHAPTERS.forEach(ch => {
+      if(!ch.list.length) return;              // predicate-empty chapter: skip entirely
+      _chapterN++;
+      let _chLogged = false;
+      if(ch.divider) _pendingDivider = { n:_chapterN, ch };
+      ch.list.forEach(k => {
+        currentSectionTitle = rptLabelFor(k);  // drives the bold title in each page's running header
+        const _pgBefore = doc.internal.getNumberOfPages();
+        const _divWasPending = !!_pendingDivider;
+        try { SECTIONS[k] && SECTIONS[k](); }
+        catch(e){ console.warn("PDF section '"+k+"' failed:", e); }
+        const _pgAfter = doc.internal.getNumberOfPages();
+        if(_pgAfter > _pgBefore){
+          // The divider (if it was pending) consumed one page before the section.
+          const _secPage = _pgBefore + 1 + ((_divWasPending && !_pendingDivider) ? 1 : 0);
+          _secN++;
+          if(!ch.divider && !_chLogged){ _tocLog.push({type:"chapter", n:_chapterN, label:ch.title, page:_secPage}); _chLogged = true; }
+          _tocLog.push({type:"section", n:_secN, label:rptLabelFor(k), page:_secPage});
+        }
+        _pendingPage = true;   // re-arm: the next rendering section starts on its own page
+      });
+      // Chapter rendered nothing at run time → no divider was drawn, drop it.
+      _pendingDivider = null;
     });
+
+    // ── Fill the reserved Contents page with the captured page numbers ──
+    try {
+      const _lastPage = doc.internal.getNumberOfPages();
+      doc.setPage(_tocPageNo);
+      (function fillToc(){
+        // Group the log: each chapter row + its section rows.
+        const groups = []; let cur = null;
+        _tocLog.forEach(t => {
+          if(t.type === "chapter"){ cur = { n:t.n, title:t.label, page:t.page, items:[] }; groups.push(cur); }
+          else if(cur){ cur.items.push(t); }
+          else { cur = { n:0, title:"", page:t.page, items:[t] }; groups.push(cur); }
+        });
+        if(!groups.length) return;
+        const startY  = _tocStartY;
+        const bottomY = ph - 18;
+        const colGap  = 16;
+        const colW    = (CW - colGap) / 2;
+        const BItem = 6.4, BHead = 9.6, BGap = 4.5;
+        const baseH = g => BHead + g.items.length*BItem + BGap;
+        const total = groups.reduce((s,g)=>s+baseH(g), 0);
+        let run=0, splitAt=1;
+        for(let i=0;i<groups.length;i++){ run+=baseH(groups[i]); if(run>=total/2){ splitAt=i+1; break; } }
+        splitAt = groups.length>=2 ? Math.max(1, Math.min(splitAt, groups.length-1)) : groups.length;
+        const columns = [ groups.slice(0,splitAt), groups.slice(splitAt) ];
+        const colBase = columns.map(gs => gs.reduce((s,g)=>s+baseH(g),0));
+        const usable = (bottomY - startY) - 14;
+        const scale = Math.min(1, usable / Math.max(1, Math.max.apply(null, colBase)));
+        const headH = BHead*scale, itemH = BItem*scale, pGap = BGap*scale;
+        columns.forEach((gs, ci) => {
+          const x = M + ci*(colW+colGap);
+          let yy = startY + 8;
+          gs.forEach(g => {
+            doc.setFont("helvetica","bold"); doc.setFontSize(fsz-1.5); doc.setTextColor(...ac);
+            doc.text("CHAPTER "+g.n, x, yy, {charSpace:0.8});
+            const rw = doc.getTextWidth("CHAPTER "+g.n) + 3.4;
+            doc.setFont("helvetica","bold"); doc.setFontSize(fsz+1); doc.setTextColor(...acDark);
+            doc.text(doc.splitTextToSize(g.title, colW-rw-14)[0], x+rw, yy, {charSpace:0.2});
+            if(g.page){ doc.setFont("helvetica","bold"); doc.setFontSize(fsz); doc.setTextColor(...acDark);
+              doc.text(String(g.page), x+colW-2, yy, {align:"right"}); }
+            doc.setDrawColor(...LINE); doc.setLineWidth(0.35); doc.line(x, yy+2.4, x+colW-2, yy+2.4);
+            yy += headH;
+            g.items.forEach(it => {
+              doc.setFont("helvetica","italic"); doc.setFontSize(10.5*scale>7?10.5*Math.max(scale,0.75):8); doc.setTextColor(...ac);
+              doc.text(String(it.n).padStart(2,"0"), x, yy);
+              doc.setFont("helvetica","normal"); doc.setFontSize(9.3); doc.setTextColor(...INK);
+              const line = doc.splitTextToSize(it.label, colW - 26)[0];
+              doc.text(line, x+10, yy);
+              doc.setFont("helvetica","normal"); doc.setFontSize(8.6); doc.setTextColor(...MUTED);
+              doc.text(String(it.page), x+colW-2, yy, {align:"right"});
+              doc.setDrawColor(...LINE); doc.setLineWidth(0.2); doc.line(x, yy+2.3, x+colW-2, yy+2.3);
+              yy += itemH;
+            });
+            yy += pGap;
+          });
+        });
+        doc.setFontSize(fsz); doc.setTextColor(40); doc.setFont("helvetica","normal");
+      })();
+      doc.setPage(_lastPage);
+    } catch(e){ console.warn("Contents fill failed:", e); }
 
     // ── Small logo bottom-right on the LAST page (when "header_last" is selected) ──
     try {
