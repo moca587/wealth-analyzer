@@ -4295,7 +4295,7 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
 // ═══════════════════════════════════════════════════════════
 // VERSION — updated by build-standalone.pl on each build
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260718-2021";
+const APP_VERSION = "20260718-2149";
 
 // ═══════════════════════════════════════════════════════════
 // DATA
@@ -19751,7 +19751,7 @@ function drawFanChart(){
       if(k === "about")           label = "About the Client";
       if(k === "factsheets")      label = "Investment Vehicle Fact Sheets";
       if(k === "port")            label = "Portfolio Analysis";
-      if(k === "sim")             label = "Monte Carlo Projection";
+      if(k === "sim")             label = "What Could Your Wealth Look Like";
       if(k === "fund")            label = "Goal Success Probability";
       if(k === "goalfunding")     label = "Key Factors: Goal Funding Status";
       if(k === "lifestyle")       label = "Potentially Achievable Lifestyle";
@@ -19775,10 +19775,12 @@ function drawFanChart(){
         summary:"The starting point: who is in the household, what you own and owe, what comes in and goes out each year, and the headline numbers of your plan today." },
       { title:"Your Goals & Retirement Plan", divider:true, keys:["goals","strategies"],
         summary:"What you are working toward - the goals you have set, when they fall due, and the retirement lifestyle the plan is designed to support." },
-      { title:"What the Future May Hold", divider:true, keys:["sim","fund","goalfunding","lifestyle","potentialwealth","cf"],
-        summary:"We replay your finances across many simulated market futures. These pages show the range of outcomes, how likely each goal is to be funded, and how your cash flow evolves over time." },
+      { title:"What the Future May Hold", divider:true, keys:["fund","goalfunding","lifestyle","cf"],
+        summary:"We replay your finances across many simulated market futures. These pages show how likely each goal is to be funded, the lifestyle your plan can sustain, and how your cash flow evolves over time." },
       { title:"Your Investments", divider:true, keys:["ips","port","totalportfolio","efficiency","performance","factsheets","wealthframework","riskcategories","riskstatus"],
         summary:"How your money is invested: the policy that governs the portfolio, what you hold today, how efficiently it is allocated, and the framework used to balance risk against your goals." },
+      { title:"Retirement", divider:true, keys:["sim","potentialwealth"],
+        summary:"What retirement could look like in numbers: your projected wealth from today to age 90 across many simulated market futures, and the year-by-year figures behind that chart at the conservative, expected and optimistic likelihood levels." },
       { title:"Taxes & Estate", divider:true, keys:["rmd","taxbuckets","roth","estate"],
         summary:"The rules and sequencing that decide how much of your wealth you keep: required withdrawals, tax-aware ordering, conversion windows, and what passes to your heirs." },
       { title:"Appendix", divider:true, keys:["educharts","cma","method","glossary","disc"],
