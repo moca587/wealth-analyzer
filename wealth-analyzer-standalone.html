@@ -4292,7 +4292,7 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
 // ═══════════════════════════════════════════════════════════
 // VERSION — updated by build-standalone.pl on each build
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260717-2241";
+const APP_VERSION = "20260718-0925";
 
 // ═══════════════════════════════════════════════════════════
 // DATA
@@ -18967,6 +18967,10 @@ function drawFanChart(){
   for(let i = 1; i <= numYrs; i++){
     doc.line(mx(i-1), my(p50[i-1]), mx(i), my(p50[i]));
   }
+  // End-value callout: the median's terminal value, labeled inside the plot
+  // so the reader doesn't have to trace back to the axis (stage 3).
+  doc.setFont("helvetica","bold"); doc.setFontSize(7); doc.setTextColor(...ac);
+  doc.text(fmt(p50[numYrs]), chartX+chartW-1, Math.max(chartY+3.5, my(p50[numYrs])-2), {align:"right"});
 
   // Retirement-age marker (dashed) — same convention as the wealth line chart
   try{
@@ -19163,6 +19167,53 @@ function drawFanChart(){
         doc.text(String(caption), M, y); y += 4.2; }
       doc.setTextColor(40); doc.setFont("helvetica","normal"); doc.setFontSize(fsz);
       return { x: M+GUT, w: CW-GUT, yTop: y };
+    }
+
+    // ── "In plain terms:" lead — the one-breath explanation that opens a
+    //    section for readers with no financial background (stage 3).
+    function plainLead(txt){
+      checkY(9);
+      doc.setFont("helvetica","italic"); doc.setFontSize(Math.max(7.6, fsz-0.2)); doc.setTextColor(...MUTED);
+      const pref = "In plain terms:  ";
+      const lines = doc.splitTextToSize(pref+txt, CW);
+      const lh = fsz*0.5+0.6;
+      lines.forEach(l=>{ checkY(5); doc.text(l, M, y); y += lh; });
+      y += 2.5;
+      doc.setFont("helvetica","normal"); doc.setTextColor(40); doc.setFontSize(fsz);
+    }
+
+    // ── Traffic-light meter bar — horizontal probability bar with a shape
+    //    marker so color-blind readers can still read the status:
+    //    ● green = on track (≥85) · ▲ amber = attention (60-84) · ■ red = at
+    //    risk (<60). Used for goal success and depletion (stage 3).
+    function meterBar(label, sublabel, pct){
+      pct = Math.max(0, Math.min(100, +pct||0));
+      const status = pct>=85 ? {col:GOOD, shape:"circle"} : pct>=60 ? {col:WARN, shape:"tri"} : {col:BAD, shape:"sq"};
+      const rowH = 11.5;
+      checkY(rowH+3);
+      const labW = Math.min(64, CW*0.34);
+      const barX = M+labW+4, barW = CW-labW-4-16, barH = 4.6, barY = y-0.6;
+      // label + sublabel
+      doc.setFont("helvetica","bold"); doc.setFontSize(8); doc.setTextColor(...INK);
+      doc.text(doc.splitTextToSize(String(label), labW)[0], M, y+2.2);
+      if(sublabel){ doc.setFont("helvetica","normal"); doc.setFontSize(6.4); doc.setTextColor(...MUTED);
+        doc.text(doc.splitTextToSize(String(sublabel), labW)[0], M, y+5.8); }
+      // track + fill
+      doc.setFillColor(...GRID); doc.roundedRect(barX, barY, barW, barH, 1, 1, "F");
+      if(pct>0.5){ doc.setFillColor(...status.col); doc.roundedRect(barX, barY, Math.max(2,barW*pct/100), barH, 1, 1, "F"); }
+      // zone ticks at 60 / 85
+      doc.setDrawColor(255,255,255); doc.setLineWidth(0.4);
+      [60,85].forEach(z=>{ const zx=barX+barW*z/100; doc.line(zx, barY, zx, barY+barH); });
+      // status shape + value
+      const sx = barX+barW+4, syc = barY+barH/2;
+      doc.setFillColor(...status.col);
+      if(status.shape==="circle") doc.circle(sx, syc, 1.5, "F");
+      else if(status.shape==="tri") doc.triangle(sx-1.6, syc+1.4, sx+1.6, syc+1.4, sx, syc-1.6, "F");
+      else doc.rect(sx-1.4, syc-1.4, 2.8, 2.8, "F");
+      doc.setFont("helvetica","bold"); doc.setFontSize(8.4); doc.setTextColor(...status.col);
+      doc.text(Math.round(pct)+"%", sx+3.4, syc+1.4);
+      y += rowH;
+      doc.setTextColor(40); doc.setFont("helvetica","normal"); doc.setFontSize(fsz);
     }
 
     // Native bar chart (no Chart.js in PDF) — axes, bars, value + category labels.
@@ -19966,6 +20017,7 @@ function drawFanChart(){
         if(val("rptIncExec") === "no") return;
         newPage();
         sectionH2("Executive Summary: Key Findings");
+        plainLead("One page with the numbers that matter most: what you are worth today, how much of it is working for you in investments, and whether more money comes in than goes out each year.");
         // Headline KPI grid (redesign) — the numbers a reader scans first.
         (function(){
           const investableK = investableAssetsValue();
@@ -20078,6 +20130,7 @@ function drawFanChart(){
         if(val("rptIncHH") === "no") return;
         checkY(30);
         sectionH2("Household Profile");
+        plainLead("Who this plan is for: the people in the household, where they live, and the risk comfort level and time horizon every later page is built on.");
         const hhRows=[
           ["Client 1 name",(val("c1f")||"—")+" "+(val("c1l")||"")],
           ["Client 1 age",a1age+" years"],
@@ -20101,6 +20154,43 @@ function drawFanChart(){
         if(val("rptIncInc") === "no") return;
         checkY(30);
         sectionH2("Income, Expenses & Tax");
+        plainLead("What comes in each year, what goes out, and what is left over to save. The gap between the two bars below is the fuel your plan runs on.");
+        // ── Money in vs money out — paired horizontal bars, surplus/deficit
+        //    highlighted in the gap (stage 3).
+        (function(){
+          const moneyIn = inc, moneyOut = tax + exp;
+          if(!(moneyIn>0 || moneyOut>0)) return;
+          const f = chartFrame("Money In vs Money Out", "Gross income vs taxes + living costs, per year. The difference is your surplus (green) or shortfall (red).", 34);
+          const maxV = Math.max(moneyIn, moneyOut, 1);
+          const bx = M+34, bw = CW-34-30, bh = 7, gap2 = 4;
+          const wOf = v => Math.max(1, bw*v/maxV);
+          let by = f.yTop+2;
+          const rowBar = (lbl, v, col) => {
+            doc.setFont("helvetica","bold"); doc.setFontSize(7); doc.setTextColor(...INK);
+            doc.text(lbl, M, by+bh-2);
+            doc.setFillColor(...col); doc.roundedRect(bx, by, wOf(v), bh, 1, 1, "F");
+            doc.setFont("helvetica","bold"); doc.setFontSize(7.4); doc.setTextColor(...INK);
+            doc.text(fmt(v), bx+wOf(v)+2.5, by+bh-2);
+            by += bh+gap2;
+          };
+          rowBar("Money in", moneyIn, tint(ac,0.15));
+          // money-out bar: tax segment (muted) + expenses segment (accent tint)
+          doc.setFont("helvetica","bold"); doc.setFontSize(7); doc.setTextColor(...INK);
+          doc.text("Money out", M, by+bh-2);
+          const wTax = Math.max(0, bw*tax/maxV), wExp = Math.max(0, bw*exp/maxV);
+          doc.setFillColor(...FAINT); doc.roundedRect(bx, by, Math.max(1,wTax), bh, 1, 1, "F");
+          doc.setFillColor(...tint(ac,0.55)); doc.rect(bx+wTax, by, Math.max(1,wExp), bh, "F");
+          doc.setFont("helvetica","bold"); doc.setFontSize(7.4); doc.setTextColor(...INK);
+          doc.text(fmt(moneyOut), bx+wTax+wExp+2.5, by+bh-2);
+          // surplus / deficit marker spanning the gap between bar ends
+          const gapCol = surplus>=0 ? GOOD : BAD;
+          doc.setFont("helvetica","bold"); doc.setFontSize(7.2); doc.setTextColor(...gapCol);
+          doc.text((surplus>=0?"Surplus ":"Shortfall ")+fmt(Math.abs(surplus))+"/yr", bx, by+bh+5);
+          doc.setFont("helvetica","normal"); doc.setFontSize(6.2); doc.setTextColor(...MUTED);
+          doc.text("Money out = taxes ("+fmt(tax)+", gray) + expenses ("+fmt(exp)+")", bx+bw*0.45, by+bh+5);
+          y = by+bh+10;
+          doc.setTextColor(40); doc.setFontSize(fsz);
+        })();
         const incRows=[
           ["Client 1 salary",          fmt(num("inc1",0))],
           ["Client 1 bonus / other",   fmt(num("inc2",0))],
@@ -20162,6 +20252,7 @@ function drawFanChart(){
         newPage();
         checkY(30);
         sectionH2("Net Worth Details");
+        plainLead("Everything you own, everything you owe, and the difference between them - your net worth. Working assets (investments) grow your plan; personal assets (home, valuables) support your lifestyle.");
         (function(){
           const isRet = a => (!a.liquid && (a.withdrawAge>0)) || (typeof TAX_DEFERRED_TYPES!=="undefined" && TAX_DEFERRED_TYPES.has(a.type));
           const isEdu = a => /529|resp\b|junior|education|jisa|coverdell/i.test((a.type||"")+" "+(a.label||""));
@@ -20227,7 +20318,58 @@ function drawFanChart(){
         if(val("rptIncGoals") === "no") return;
         checkY(30);
         sectionH2("Goals & Retirement Plan");
+        plainLead("The things you are saving for, laid out on a timeline: when each goal starts, how long it lasts, and how much it costs per year. Thicker bars are bigger goals.");
         if(goals.length>0){
+          // ── Goals timeline — Gantt-style bars on a year axis, amount-scaled
+          //    thickness, tier-colored (stage 3).
+          (function(){
+            const cy3 = currentYear();
+            const g0 = Math.min(cy3, Math.min.apply(null, goals.map(g=>g.startYear)));
+            const g1 = Math.max.apply(null, goals.map(g=>g.endYear).concat([g0+1]));
+            const span = Math.max(1, g1-g0);
+            const list = goals.slice(0, 10);
+            const rowH = 8.4, axisH = 8;
+            const f = chartFrame("Goal Timeline", "Each bar spans a goal's funding years; thickness reflects its annual amount. The dashed line marks planned retirement.", list.length*rowH + axisH + 6);
+            const labW = Math.min(56, CW*0.3);
+            const px = M+labW+3, pwd = CW-labW-3;
+            const xAt = yr => px + pwd*Math.max(0,Math.min(1,(yr-g0)/span));
+            const maxAmt = Math.max.apply(null, list.map(g=>g.amt).concat([1]));
+            const tierCol = t => t==="essential" ? acDark : t==="aspirational" ? WARN : ac;
+            let gy2 = f.yTop+3;
+            // year gridlines every ~5 yrs
+            const step5 = span>25?10:5;
+            doc.setFontSize(6); doc.setTextColor(...MUTED);
+            for(let yr=Math.ceil(g0/step5)*step5; yr<=g1; yr+=step5){
+              const xx = xAt(yr);
+              doc.setDrawColor(...GRID); doc.setLineWidth(0.12);
+              doc.line(xx, gy2-2, xx, gy2 + list.length*rowH);
+              doc.text(String(yr), xx, gy2 + list.length*rowH + 3.6, {align:"center"});
+            }
+            // retirement marker
+            try{
+              const a1=ageFromDOB(val("c1d"))||40, rYr=cy3+Math.max(0,num("retAge",65)-a1);
+              if(rYr>=g0 && rYr<=g1){ const rx=xAt(rYr);
+                doc.setDrawColor(...FAINT); doc.setLineWidth(0.3); doc.setLineDashPattern([1,1],0);
+                doc.line(rx, gy2-2, rx, gy2 + list.length*rowH);
+                doc.setLineDashPattern([],0);
+                doc.setFontSize(6); doc.setTextColor(...MUTED); doc.text("retirement", rx+1, gy2-0.4); }
+            }catch(_){}
+            list.forEach(g=>{
+              const bh2 = 2.2 + 3.8*(g.amt/maxAmt);   // amount-scaled thickness
+              const x0 = xAt(g.startYear), x1 = xAt(g.endYear+1);
+              doc.setFont("helvetica","normal"); doc.setFontSize(6.8); doc.setTextColor(...INK);
+              doc.text(doc.splitTextToSize(g.name||"(goal)", labW)[0], M, gy2+rowH/2+1);
+              doc.setFillColor(...tierCol(g.tier)); doc.roundedRect(x0, gy2+rowH/2-bh2/2, Math.max(2,x1-x0), bh2, 0.8, 0.8, "F");
+              doc.setFont("helvetica","normal"); doc.setFontSize(6); doc.setTextColor(...MUTED);
+              const lblX = Math.min(x1+2, px+pwd-14);
+              doc.text(fmt(g.amt)+"/yr", lblX, gy2+rowH/2+1);
+              gy2 += rowH;
+            });
+            if(goals.length>list.length){ doc.setFontSize(6.4); doc.setTextColor(...MUTED);
+              doc.text("… plus "+(goals.length-list.length)+" more goals (see table below)", M, gy2+2); gy2+=4; }
+            y = gy2 + axisH + 2;
+            doc.setTextColor(40); doc.setFontSize(fsz);
+          })();
           tbl(["Goal","Annual amount","Year range","Duration","Category","Tier"],
             goals.map(g=>[g.name, fmt(g.amt)+"/yr", g.startYear+"–"+g.endYear,
               (g.endYear-g.startYear+1)+" yrs", g.cat||"—", g.tier||"—"]));
@@ -20248,6 +20390,44 @@ function drawFanChart(){
           retRows.push(["Client 2 annual pension",fmt(num("penAnnual2",0))+" / yr"]);
         }
         checkY(30); sectionH2("Retirement Parameters"); kv(retRows);
+        // ── Retirement income stack — where a typical retirement year's money
+        //    comes from vs the spending need (stage 3, today's dollars).
+        (function(){
+          const need = num("retSpend",0);
+          if(!(need>0)) return;
+          const pen1 = num("penAnnual",0), pen2 = showC2?num("penAnnual2",0):0;
+          const fromPort = Math.max(0, need - pen1 - pen2);
+          const f = chartFrame("Where Retirement Income Comes From",
+            "A representative retirement year in today's money: pensions first, the portfolio covers the rest.", 30);
+          const bx = M+34, bw = CW-34-30, bh = 8;
+          const maxV = Math.max(need, pen1+pen2+fromPort, 1);
+          const wOf = v => Math.max(0, bw*v/maxV);
+          let by = f.yTop+2;
+          doc.setFont("helvetica","bold"); doc.setFontSize(7); doc.setTextColor(...INK);
+          doc.text("Need", M, by+bh-2.5);
+          doc.setFillColor(...GRID); doc.roundedRect(bx, by, wOf(need), bh, 1, 1, "F");
+          doc.setFont("helvetica","bold"); doc.setFontSize(7.4); doc.setTextColor(...INK);
+          doc.text(fmt(need)+"/yr", bx+wOf(need)+2.5, by+bh-2.5);
+          by += bh+4;
+          doc.setFont("helvetica","bold"); doc.setFontSize(7); doc.setTextColor(...INK);
+          doc.text("Sources", M, by+bh-2.5);
+          let sx2 = bx;
+          const seg = (v, col) => { if(v<=0) return; doc.setFillColor(...col); doc.rect(sx2, by, Math.max(1,wOf(v)), bh, "F"); sx2 += wOf(v); };
+          seg(pen1, acDark); seg(pen2, tint(ac,0.35)); seg(fromPort, WARN);
+          by += bh+5;
+          // legend
+          const leg = [["Pension / state benefits", acDark]].concat(pen2>0?[["Client 2 pension", tint(ac,0.35)]]:[]).concat([["Drawn from portfolio ("+fmt(fromPort)+"/yr)", WARN]]);
+          let lx2 = bx;
+          doc.setFontSize(6.4);
+          leg.forEach(([lbl,col])=>{ doc.setFillColor(...col); doc.rect(lx2, by-2.4, 3, 3, "F");
+            doc.setTextColor(...MUTED); doc.text(lbl, lx2+4.4, by); lx2 += doc.getTextWidth(lbl)+16; });
+          y = by+6;
+          doc.setTextColor(40); doc.setFontSize(fsz);
+          callout("What this means for you",
+            fromPort>0
+              ? "Pensions cover "+fmt(pen1+pen2)+" of your "+fmt(need)+" annual retirement need. The remaining "+fmt(fromPort)+" per year must come from your savings and investments - that drawdown is what the Monte Carlo chapter stress-tests."
+              : "Your expected pensions fully cover your stated retirement spending - your portfolio only needs to fund extras and emergencies.");
+        })();
       },
       // ─── PLAN STRATEGIES (narrative summary of the current plan) ──
       strategies: () => {
@@ -20285,6 +20465,7 @@ function drawFanChart(){
         function sub(t){ subBar(t); }
         newPage();                         // formal document begins on its own page
         sectionH2("Investment Policy Statement");
+        plainLead("The rulebook for how your money is invested: what you are aiming for, how much risk is acceptable, and how the portfolio is kept on course. Agreeing the rules up front is what keeps decisions steady when markets are not.");
         para('This Investment Policy Statement ("IPS") establishes the objectives, constraints, strategic asset allocation and governance policies agreed for the management of the household portfolio. It is a working framework — not a contract — and grants no discretionary authority.');
         kv([
           ["Client(s)", d.c1 + (d.c2?" & "+d.c2:"")],
@@ -20516,6 +20697,7 @@ function drawFanChart(){
         if(val("rptIncSim") === "no") return;
         checkY(30);
         sectionH2("Monte Carlo Projection");
+        plainLead("We replayed your financial life "+(lastSimPaths&&lastSimPaths.length?lastSimPaths.length.toLocaleString():"1,000")+" times with different market ups and downs. These pages show the range of where you could end up - not one prediction, but the realistic spread.");
         if(lastSimPaths&&lastSimPaths.length>0){
           const yrs=lastSimYrs;
           const inf=num("inf",3.8)/100;
@@ -20556,6 +20738,25 @@ function drawFanChart(){
             ]);
           })();
 
+          // ── Liquidity depletion gauge — % of simulated futures in which the
+          //    plan runs out of liquid assets (stage 3; uses the shortfall
+          //    stats the engine attaches to the paths array).
+          (function(){
+            const dep = lastSimPaths.depletion;
+            if(!dep || dep.prob <= 0.05) return;
+            checkY(34);
+            subBar("Will the Money Last?");
+            const okPct = Math.round((1-dep.prob)*100);
+            meterBar("Futures where liquid assets last", "through the full projection", okPct);
+            const depYr = dep.medianYr!=null ? (currentYear()+dep.medianYr) : null;
+            callout("What this means for you",
+              "In "+Math.round(dep.prob*100)+"% of the simulated futures, your cash and investments run out before the end of the projection"
+              + (depYr ? " (typically around "+depYr+")" : "")
+              + (dep.medianUnfunded>0 ? ", leaving roughly "+fmt(dep.medianUnfunded)+" of spending unfunded" : "")
+              + ". That does not make the plan hopeless - it means spending, savings, or retirement timing need attention. Small changes made early have an outsized effect.",
+              {accent: dep.prob>0.4 ? BAD : WARN});
+          })();
+
           checkY(40);
           const _pcts=[...new Set([_bL,25,_bM,75,_bH])].sort((a,b)=>a-b);
           tbl(["Percentile","Nominal wealth","Real (inflation-adj.)","vs "+(_bM===50?"Median":_bM+"th")],
@@ -20573,13 +20774,27 @@ function drawFanChart(){
         if(val("rptIncFund") === "no" || goals.length === 0) return;
         checkY(30);
         sectionH2("Goal Success Probability");
+        plainLead("For each goal: in what share of the simulated futures could the plan pay for it when it came due? Green means on track, amber needs attention, red is at risk - and the marker shape (circle, triangle, square) carries the same message for color-blind readers.");
         if(lastSimPaths&&lastSimPaths.length>0){
-          const rows=goals.map(g=>{
-            const p=(typeof goalSuccessFromPaths==="function")?goalSuccessFromPaths(g,lastSimPaths,lastSimYrs):null;
-            const pct=(p!=null)?Math.round(p)+"%":"—";
-            return [g.name, fmt(g.amt)+"/yr", g.startYear+"–"+g.endYear, pct];
-          });
+          const gp = goals.map(g=>({ g, p:(typeof goalSuccessFromPaths==="function")?goalSuccessFromPaths(g,lastSimPaths,lastSimYrs):null }));
+          // Traffic-light meter per goal (stage 3), table below for the detail.
+          gp.forEach(({g,p})=>{ if(p!=null) meterBar(g.name||"(goal)", fmt(g.amt)+"/yr · "+g.startYear+"–"+g.endYear, p); });
+          y += 2;
+          const rows=gp.map(({g,p})=>[g.name, fmt(g.amt)+"/yr", g.startYear+"–"+g.endYear, (p!=null)?Math.round(p)+"%":"—"]);
           tbl(["Goal","Annual amount","Years","Success probability"],rows);
+          (function(){
+            const ps = gp.filter(x=>x.p!=null).map(x=>x.p);
+            if(!ps.length) return;
+            const worst = gp.filter(x=>x.p!=null).sort((a,b)=>a.p-b.p)[0];
+            if(worst.p < 85){
+              callout("What this means for you",
+                "\""+(worst.g.name||"Your lowest-scoring goal")+"\" is funded in only "+Math.round(worst.p)+"% of simulated futures. The usual levers, in order of impact: delay the goal, trim its amount, or redirect savings toward it earlier. The What-If panel in the app can test each change in seconds.",
+                {accent: worst.p<60 ? BAD : WARN});
+            } else {
+              callout("What this means for you",
+                "Every goal is funded in at least "+Math.round(Math.min.apply(null,ps))+"% of simulated futures - the plan as entered carries them comfortably. Revisit after any large life change.");
+            }
+          })();
         } else {
           para("Run the simulation to populate funding status.");
         }
@@ -21060,6 +21275,7 @@ function drawFanChart(){
         if(!w || !(w.t.total>0)) return;
         newPage();
         sectionH2("Tax Buckets & Withdrawal Order");
+        plainLead("Not all accounts are taxed the same. Spending from them in the right ORDER in retirement can make the same savings last years longer - this page shows the recommended sequence.");
         const t=w.t, pc=v=>t.total>0?Math.round(v/t.total*100)+"%":"—";
         para("Your wealth grouped by how it is taxed, with a tax-efficient order in which to draw on it during retirement.");
         tbl(["Tax bucket","Balance","Share"],[
@@ -21083,6 +21299,7 @@ function drawFanChart(){
         const cn=(COUNTRY_ACCOUNTS[val("c1co")]&&COUNTRY_ACCOUNTS[val("c1co")].name)||"";
         const kindLbl={rmd:"US Required Minimum Distributions",rrif:"Canada RRIF minimum",minpension:"Australia minimum pension drawdown"}[s.rule.kind]||s.rule.kind;
         sectionH2("Required Minimum Withdrawals");
+        plainLead("Some retirement accounts legally require you to start withdrawing (and paying tax on) a minimum amount each year from a certain age - whether you need the money or not. This page estimates those forced withdrawals.");
         para((cn?cn+" - ":"")+kindLbl+". "+s.rule.note+" Pool projected at "+(s.growth*100).toFixed(1)+"%/yr; tax estimated at "+(s.effTax*100).toFixed(0)+"% effective. Illustrative - not tax advice.");
         kv([
           ["Rule", kindLbl],
@@ -21103,6 +21320,7 @@ function drawFanChart(){
         if(val("rptIncEstate") === "no" || (beneficiaries.length === 0 && insuranceDeathBenefit() <= 0)) return;
         checkY(40);
         sectionH2("Estate Transfer Summary");
+        plainLead("What would pass to your heirs, and roughly what tax would be due on it. A will and beneficiary designations decide WHO gets it; this page estimates HOW MUCH survives the transfer.");
         let e; try{ e = computeEstate(); }catch(_){ return; }
         if(!e) return;
         para(e.fromProjection
@@ -21135,6 +21353,7 @@ function drawFanChart(){
         checkY(30);
         const cfMode=val("rptIncCF");
         sectionH2("Cash-Flow Projection"+(cfMode==="summary"?" (5-year intervals)":""));
+        plainLead("Your financial life, year by year: income while you work, pensions and withdrawals after you retire, and what each year adds to - or takes from - your wealth.");
         // Net-worth-by-component stacked area (when the projection has been run)
         try {
           if(Array.isArray(lastCfComponents) && lastCfComponents.length>1){
