@@ -5463,24 +5463,39 @@ function mandatoryWithdrawalFrac(kind, age){
   if(kind==="minpension"){ return (typeof auSuperRate==="function"?auSuperRate(age):0)/100; }
   return 0;
 }
-// Project the mandatory-withdrawal schedule from the tax-deferred retirement pool.
+// Project the mandatory-withdrawal schedule from the tax-deferred retirement
+// pool. Owner-aware: each client's share (from the accounts' owner field, joint
+// split 50/50) follows that client's OWN age, so an older spouse's accounts
+// start their mandatory withdrawals when the spouse reaches the legal age —
+// not when the primary client does. Sub-schedules are merged by calendar year.
 function computeRMDSchedule(){
   const rule=rmdRuleFor(val("c1co"));
   const base=(typeof retirementAccountSeed==="function")?retirementAccountSeed():0;
+  const sh=(typeof retirementOwnerShares==="function")?retirementOwnerShares():{c1:1,c2:0};
   const a1=(typeof ageFromDOB==="function"?ageFromDOB(val("c1d")):40)||40;
+  const a2=(typeof ageFromDOB==="function"?ageFromDOB(val("c2d")):null)||a1;
   const planAge=Math.max((rule.startAge||73)+1, num("rdPlanAge",90));
   const growth=(typeof RET_POOL_MU!=="undefined")?RET_POOL_MU:0.035;
   let effTax=0.22; try{ const inc=getGrossIncome(); effTax=inc>0?Math.min(0.45,Math.max(0.10,computeIncomeTax(inc)/inc)):0.22; }catch(_){}
   const cy=(typeof currentYear==="function")?currentYear():new Date().getFullYear();
-  const rows=[]; let bal=base, totalW=0, totalTax=0;
-  if(rule.kind==="none" || !(base>0)) return {rule,base,a1,planAge,growth,effTax,rows,totalW:0,totalTax:0};
-  for(let age=a1; age<rule.startAge; age++){ bal*=(1+growth); }   // grow to the start age
-  for(let age=rule.startAge; age<=planAge; age++){
-    const frac=mandatoryWithdrawalFrac(rule.kind, age), w=bal*frac, tax=w*effTax;
-    rows.push({age, year:cy+(age-a1), startBal:bal, frac, withdrawal:w, taxEst:tax, endBal:Math.max(0,bal-w)});
-    totalW+=w; totalTax+=tax; bal=Math.max(0,bal-w)*(1+growth);
-  }
-  return {rule,base,a1,planAge,growth,effTax,rows,totalW,totalTax};
+  if(rule.kind==="none" || !(base>0)) return {rule,base,a1,planAge,growth,effTax,rows:[],totalW:0,totalTax:0,twoOwner:false};
+  const owners=[{share:sh.c1,age0:a1},{share:sh.c2,age0:a2}].filter(o=>o.share>0);
+  const byYear={};
+  owners.forEach(o=>{
+    let bal=base*o.share;
+    for(let age=o.age0; age<rule.startAge; age++) bal*=(1+growth);   // grow to that owner's start age
+    for(let age=Math.max(rule.startAge,o.age0); age<=planAge; age++){
+      const frac=mandatoryWithdrawalFrac(rule.kind, age), w=bal*frac;
+      const yr=cy+(age-o.age0);
+      const r=(byYear[yr]=byYear[yr]||{year:yr,startBal:0,withdrawal:0,taxEst:0,endBal:0});
+      r.startBal+=bal; r.withdrawal+=w; r.taxEst+=w*effTax; r.endBal+=Math.max(0,bal-w);
+      bal=Math.max(0,bal-w)*(1+growth);
+    }
+  });
+  const rows=Object.values(byYear).sort((x,y)=>x.year-y.year)
+    .map(r=>({...r, age:a1+(r.year-cy), frac:r.startBal>0?r.withdrawal/r.startBal:0}));
+  const totalW=rows.reduce((s,r)=>s+r.withdrawal,0), totalTax=rows.reduce((s,r)=>s+r.taxEst,0);
+  return {rule,base,a1,planAge,growth,effTax,rows,totalW,totalTax,twoOwner:owners.length>1};
 }
 function runRMDSchedule(){
   const st=$("rmdStatus"); if(st){ st.textContent="Projecting…"; st.style.color="var(--text3)"; }
@@ -5516,7 +5531,7 @@ function renderRMDSchedule(s){
     +card("Total required (to "+s.planAge+")",fmtMoney(s.totalW),"The sum of every mandatory withdrawal from today's retirement pool through your planning age, before tax.")
     +card("Est. tax on withdrawals",fmtMoney(s.totalTax),"Estimated tax on those mandatory withdrawals, using your effective income-tax rate. Illustrative — not tax advice.");
   h+='</div>';
-  h+='<div style="font-size:11px;color:var(--text3);line-height:1.6;margin-bottom:10px">'+_daEsc(cn)+': '+_daEsc(s.rule.note)+' Pool projected at '+(s.growth*100).toFixed(1)+'%/yr; tax estimated at '+(s.effTax*100).toFixed(0)+'% effective. Illustrative — not tax advice.</div>';
+  h+='<div style="font-size:11px;color:var(--text3);line-height:1.6;margin-bottom:10px">'+_daEsc(cn)+': '+_daEsc(s.rule.note)+' Pool projected at '+(s.growth*100).toFixed(1)+'%/yr; tax estimated at '+(s.effTax*100).toFixed(0)+'% effective.'+(s.twoOwner?' Each client\'s share of the pool (from the accounts\' owner field, joint split 50/50) follows that client\'s own age — the Age column shows the primary client\'s age, and Required % is the blended effective rate across both owners.':'')+' Illustrative — not tax advice.</div>';
   h+='<div style="overflow:auto"><table style="width:100%;border-collapse:collapse;font-size:12px"><tr style="color:var(--text3);text-align:left"><th style="padding:4px 8px">Age</th><th>Year</th><th>Pool (start)<span class="info-ic">i<span class="info-pop">Retirement-account balance at the start of the year, before this year\'s mandatory withdrawal is taken.</span></span></th><th>Required %<span class="info-ic">i<span class="info-pop">The statutory minimum withdrawal fraction for this age under your country\'s rule (e.g. IRS Uniform Lifetime Table) — Required % × Pool (start) = Withdrawal.</span></span></th><th>Withdrawal</th><th>Est. tax</th><th>Pool (end)<span class="info-ic">i<span class="info-pop">Balance remaining after the withdrawal, before this year\'s investment growth is applied to next year\'s starting pool.</span></span></th></tr>';
   h+=shown.map(r=>'<tr style="border-top:1px solid var(--border)"><td style="padding:4px 8px">'+r.age+'</td><td>'+r.year+'</td><td>'+fmtMoney(r.startBal)+'</td><td>'+(r.frac*100).toFixed(2)+'%</td><td>'+fmtMoney(r.withdrawal)+'</td><td>'+fmtMoney(r.taxEst)+'</td><td>'+fmtMoney(r.endBal)+'</td></tr>').join('');
   h+='</table></div>';
@@ -5558,7 +5573,11 @@ function computeRothConversion(){
   const windowStart=Math.max(retAge, a1);
   const windowEnd=Math.max(windowStart, forcedAge);
   const windowYears=Math.max(0, windowEnd-windowStart);
-  const deferredPool=(typeof retirementAccountSeed==="function")?retirementAccountSeed():0;
+  // The conversion window is defined by the PRIMARY client's ages (their
+  // retirement → their forced-withdrawal age), so only their share of the
+  // deferred pool (owner field; joint split 50/50) is in scope for it.
+  const _rcSh=(typeof retirementOwnerShares==="function")?retirementOwnerShares():{c1:1,c2:0};
+  const deferredPool=((typeof retirementAccountSeed==="function")?retirementAccountSeed():0)*_rcSh.c1;
   let effTax=0.22; try{ const inc=getGrossIncome(); effTax=inc>0?Math.min(0.45,Math.max(0.10,computeIncomeTax(inc)/inc)):0.22; }catch(_){}
   const windowTax=Math.max(0.10, effTax*0.75);   // lower bracket during the low-income window
   const annualConv=windowYears>0 ? deferredPool/windowYears : 0;
@@ -13795,6 +13814,24 @@ function portfolioInvestedSeed(){return investments.filter(i=>i.cls!=="cash").re
 function retirementAccountSeed(){
   return assets.filter(a=>!a.liquid && a.withdrawAge>0).reduce((s,a)=>s+a.value,0);
 }
+// Ownership split of that retirement pool, from each account's `owner` field:
+// c1-owned + half of joint vs c2-owned + half of joint. Accounts with no owner
+// (added before the owner selector existed) count toward the primary client —
+// the same primary-client default used everywhere else (country, tax, DOB).
+// With no second client visible, everything is c1's regardless of owner tags.
+function retirementOwnerShares(){
+  const hasC2=$("c2card") && $("c2card").style.display!=="none";
+  if(!hasC2) return {c1:1,c2:0};
+  let v1=0,v2=0;
+  assets.filter(a=>!a.liquid && a.withdrawAge>0).forEach(a=>{
+    const v=+a.value||0;
+    if(a.owner==="c2") v2+=v;
+    else if(a.owner==="joint"){ v1+=v/2; v2+=v/2; }
+    else v1+=v;
+  });
+  const t=v1+v2;
+  return t>0?{c1:v1/t,c2:v2/t}:{c1:0.5,c2:0.5};
+}
 
 // ─── Required Minimum Distribution / Mandatory Drawdown rules ───────────────
 // US: IRS Uniform Lifetime Table (SECURE 2.0, 2022+). RMD = balance / factor.
@@ -14297,6 +14334,7 @@ function runMC(years,sims,muOverride,sigOverride){
 
   // ── Retirement pool (RMD-managed) ──
   const retSeed=retirementAccountSeed();
+  const retSh=retirementOwnerShares(); // per-client split from the accounts' owner field
   const country=val("c1co")||"US";
   const liquidAcc=Math.max(0, totalAcc-retSeed); // exclude retirement accounts from liquid pool
   const pfTotal=pfInvested+pfCash;
@@ -14366,7 +14404,9 @@ function runMC(years,sims,muOverride,sigOverride){
 
     let inv = sumBuckets(assetBuckets); // starting investment balance. grow only investments
 
-    let retPot=retSeed; // retirement pool per simulation path
+    // Retirement pool per simulation path, split per owner (from the accounts'
+    // owner field) so each client's share follows their own age for RMD timing.
+    let retPot1=retSeed*retSh.c1, retPot2=retSeed*retSh.c2, retPot=retSeed;
     let income=baseInc, expense=baseExp;
     let loanState=loans.map(l=>({bal:l.bal,rate:l.rate/100,yrs:l.yrs}));
     const path=[];
@@ -14422,23 +14462,14 @@ function runMC(years,sims,muOverride,sigOverride){
       //    only drive the "Investments" pool. Voluntary 4% drawdown begins
       //    at retirement; mandatory rules apply from legal age. ──
       const retMu=RET_POOL_MU; // 3.5% across both accumulation and retirement
-      const retPotBefore=retPot; // prior year-end balance — IRS uses this as RMD base
-      retPot=retPot*(1+retMu);
+      // Per-owner sub-pools (real ownership shares, not an assumed 50/50):
+      // each client's share draws independently from their own retirement age.
+      const rp1Before=retPot1, rp2Before=retPot2; // prior year-end — IRS uses this as RMD base
+      retPot1*=(1+retMu); retPot2*=(1+retMu);
       let rmd=0;
-      if(retPotBefore>0){
-        if(showC2){
-          // Each client owns half the pool; draws independently from their own retirement age
-          const half=retPotBefore*0.5;
-          const c2Ret=c2AgeY>=retAge;
-          let rmd1=0,rmd2=0;
-          if(retired){rmd1=Math.max(calcRMD(half,age,country),half*0.04);}
-          if(c2Ret)  {rmd2=Math.max(calcRMD(half,c2AgeY,country),half*0.04);}
-          rmd=rmd1+rmd2;
-        } else {
-          if(retired){rmd=Math.max(calcRMD(retPotBefore,age,country),retPotBefore*0.04);}
-        }
-      }
-      retPot=Math.max(0, retPot-rmd);
+      if(rp1Before>0 && retired){ const r1=Math.max(calcRMD(rp1Before,age,country),rp1Before*0.04); retPot1=Math.max(0,retPot1-r1); rmd+=r1; }
+      if(rp2Before>0 && showC2 && c2AgeY>=retAge){ const r2=Math.max(calcRMD(rp2Before,c2AgeY,country),rp2Before*0.04); retPot2=Math.max(0,retPot2-r2); rmd+=r2; }
+      retPot=retPot1+retPot2;
       const totalPen=pen1+pen2+rmd; // drawdown credited as income
       const earnedInc=(retired?0:income)+equityVestIncomeYear(y); // earned income 
       const curExp=retired?retSpend*Math.pow(1+infY,y):expense; // earned expenses 
@@ -15937,6 +15968,7 @@ function renderCashFlow(){
   // Retirement account pool (tracked separately from liquid/invested pools)
   const country=val("c1co")||"US";
   const retSeed=retirementAccountSeed();
+  const retShCF=retirementOwnerShares(); // per-client split from the accounts' owner field
   const rmdStartAge=getRMDStartAge(country);
   let retPot=retSeed;
 
@@ -16047,7 +16079,7 @@ function renderCashFlow(){
   //   initCash — starting cash balance
   //   loopMu   — annual investment return (geometric mean = mu − 0.5σ², matching MC median)
   function runLoop(initInv, initCash, loopMu){
-    let iv=initInv, ca=initCash, rp=retSeed;
+    let iv=initInv, ca=initCash, rp=retSeed, rp1=retSeed*retShCF.c1, rp2=retSeed*retShCF.c2;
     let unfundedShortfall = 0;
     // Retirement pool: fixed extremely conservative rate — never tied to
     // the simulation's active μ (proposal-driven or otherwise). Only the
@@ -16073,23 +16105,18 @@ function renderCashFlow(){
       // AI Portfolio Builder / Investment Proposal results never affect
       // this pool. RMD computed from prior year-end balance per IRS rules.
       const retMu=loopRetMu;
+      // Per-owner sub-pools (real ownership shares from the accounts' owner
+      // field, not an assumed 50/50): each client's share draws independently
+      // from their own retirement age.
       const rpBefore=rp; // prior year-end balance — base for RMD calculation
-      rp=rp*(1+retMu);
-      const rpGrowth=rp-rpBefore;
+      const rp1Before=rp1, rp2Before=rp2;
+      rp1*=(1+retMu); rp2*=(1+retMu);
+      const rpGrowth=(rp1+rp2)-rpBefore;
       let rmd=0, rmd1=0, rmd2=0;
-      if(rpBefore>0){
-        if(showC2){
-          // Each client owns half the pool; draws independently from their own retirement age
-          const half=rpBefore*0.5;
-          const c2Retired=c2AgeY>=retAge;
-          if(retired)  {rmd1=Math.max(calcRMD(half,age,country),half*0.04);}
-          if(c2Retired){rmd2=Math.max(calcRMD(half,c2AgeY,country),half*0.04);}
-          rmd=rmd1+rmd2;
-        } else {
-          if(retired){rmd=Math.max(calcRMD(rpBefore,age,country),rpBefore*0.04); rmd1=rmd;}
-        }
-      }
-      rp=Math.max(0,rp-rmd);
+      if(rp1Before>0 && retired){ rmd1=Math.max(calcRMD(rp1Before,age,country),rp1Before*0.04); rp1=Math.max(0,rp1-rmd1); }
+      if(rp2Before>0 && showC2 && c2AgeY>=retAge){ rmd2=Math.max(calcRMD(rp2Before,c2AgeY,country),rp2Before*0.04); rp2=Math.max(0,rp2-rmd2); }
+      rmd=rmd1+rmd2;
+      rp=rp1+rp2;
       const pen=pen1+pen2+rmd;
       const tax=getApplyTax()?computeIncomeTax(earnedInc+pen):0;
       const livingExp=retired?retSpend*Math.pow(1+inf,y):ex;
@@ -21384,6 +21411,20 @@ function renderCHLumpSum(){
   if(note) note.textContent=filled?"Auto-filled from your Swiss pillar accounts on the Assets tab — edit to override.":"";
   const p2=+((p2El&&p2El.value)||0), p3a=+((p3El&&p3El.value)||0), total=p2+p3a;
   if(total<=0){ host.innerHTML='<div style="font-size:12px;color:var(--text3);padding:10px 0">Enter your 2nd pillar and/or pillar 3a balances above (or add them on the Assets tab) to estimate the lump-sum withdrawal tax.</div>'; return; }
+  // Per-spouse split from the accounts' owner field (joint 50/50, unowned →
+  // primary client). Same-year withdrawals are aggregated across spouses, but
+  // withdrawing in DIFFERENT years breaks that aggregation — each spouse's
+  // amount then rides the progressive scale separately.
+  const hasC2own=$("c2card") && $("c2card").style.display!=="none";
+  let own1=0, own2=0;
+  assets.forEach(a=>{
+    if(!(P2_TYPES.has(a.type)||P3A_TYPES.has(a.type))) return;
+    const v=+a.value||0;
+    if(hasC2own&&a.owner==="c2") own2+=v;
+    else if(hasC2own&&a.owner==="joint"){ own1+=v/2; own2+=v/2; }
+    else own1+=v;
+  });
+  const ownT=own1+own2;
   const tax1=chLumpTax(canton,total), rate1=chLumpRate(canton,total);
   const stag=n=>n*chLumpTax(canton,total/n);
   const tax2=stag(2), tax3=stag(3);
@@ -21411,6 +21452,12 @@ function renderCHLumpSum(){
   h+=row('All in one year',tax1,tax1);
   h+=row('Split over 2 years',tax2,tax1);
   h+=row('Split over 3 years',tax3,tax1);
+  if(ownT>0 && own1>0 && own2>0){
+    // Scale the owner split to the entered totals (manual overrides keep proportions)
+    const t1=total*own1/ownT, t2o=total*own2/ownT;
+    const taxSep=chLumpTax(canton,t1)+chLumpTax(canton,t2o);
+    h+=row('By spouse, in different years — '+_daEsc(assetOwnerName('c1'))+' ('+_fmtCHF(t1)+') & '+_daEsc(assetOwnerName('c2'))+' ('+_fmtCHF(t2o)+')',taxSep,tax1);
+  }
   h+='</div>';
   // Canton comparison
   h+='<div><div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:6px">Where you take it matters — same '+_fmtCHF(total)+', by canton</div>';
