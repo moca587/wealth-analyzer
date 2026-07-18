@@ -2006,6 +2006,7 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
   <div class="sdiv">
     <div class="slbl">Add Account</div>
     <div class="frow"><label class="flbl">Account type</label><select id="atype" class="w200" onchange="updateAssetNote()"></select></div>
+    <div class="frow"><label class="flbl">Owned by</label><select id="aowner" class="w200"></select></div>
     <div class="frow"><label class="flbl">Label (optional)</label><input id="albl" placeholder="e.g. Chase checking" class="w200"></div>
     <div class="frow"><label class="flbl">Balance / Value</label><input type="number" id="aval" placeholder="Amount" step="100" class="w140"><select id="accy" class="w120" style="margin-left:6px"></select></div>
     <div id="anote" class="rnote-box" style="display:none;margin-bottom:8px"></div>
@@ -7120,6 +7121,7 @@ function updateDisplays(){
   setT("n1",n1); setT("n2",n2);
   setT("il1",n1); setT("il2",n2);
   setT("pen-l1",n1); setT("pen-l2",n2);
+  try{ populateOwnerSelect(); }catch(_){}   // keep the asset "Owned by" names in sync
   // Ages
   const a1=ageFromDOB(val("c1d")); setT("a1",a1!=null?(n1+" • age "+a1):"Primary client");
   const a2=ageFromDOB(val("c2d")); setT("a2",a2!=null?(n2+" • age "+a2):"Secondary client");
@@ -7690,8 +7692,9 @@ function addAsset(){
   const v=num("aval",0); if(v<=0){alert("Enter a positive balance"); return;}
   const lbl=val("albl")||m.label;
   const ccy=val("accy")||CURRENT_CCY;
+  const owner=val("aowner")||"c1";
   if(_editingAssetId){
-    assets=assets.map(a=>a.id===_editingAssetId?{...a,label:lbl,value:v,ccy:ccy}:a);
+    assets=assets.map(a=>a.id===_editingAssetId?{...a,label:lbl,value:v,ccy:ccy,owner:owner}:a);
     _editingAssetId=null;
     $("assetAddBtn").textContent="+ Add Account";
     show("assetCancelBtn",false);
@@ -7700,7 +7703,7 @@ function addAsset(){
       id:"a"+(++assetSeq),
       type:m.value, group:m.group, label:lbl, baseLabel:m.label,
       value:v, liquid:m.liquid, country:$("acountry").value,
-      note:m.note||"", ccy:ccy, withdrawAge:m.withdrawAge,
+      note:m.note||"", ccy:ccy, withdrawAge:m.withdrawAge, owner:owner,
     });
   }
   $("aval").value=""; $("albl").value="";
@@ -7716,6 +7719,9 @@ function editAsset(id){
   $("aval").value=a.value;
   const accySel=$("accy");
   if(accySel && [...accySel.options].some(o=>o.value===a.ccy)) accySel.value=a.ccy;
+  populateOwnerSelect();
+  const ownSel=$("aowner"), aOwn=a.owner||"c1";
+  if(ownSel && [...ownSel.options].some(o=>o.value===aOwn)) ownSel.value=aOwn;
   _editingAssetId=id;
   $("assetAddBtn").textContent="Save changes";
   show("assetCancelBtn",true);
@@ -7734,8 +7740,27 @@ function delAsset(id){
   renderAssets();
   refreshTopMetrics();
 }
+// Owner of an account: primary client, secondary client, or jointly held.
+function assetOwnerName(o){
+  if(o==="c2") return (val("c2f")||"Client 2");
+  if(o==="joint") return "Joint";
+  return (val("c1f")||"Client 1");
+}
+// Populate the "Owned by" dropdown with the household's actual names; Client 2
+// only appears once a second client exists. Preserves the current selection.
+function populateOwnerSelect(){
+  const sel=$("aowner"); if(!sel) return;
+  const cur=sel.value||"c1";
+  const hasC2=$("c2card") && $("c2card").style.display!=="none";
+  let opts='<option value="c1">'+_daEsc(val("c1f")||"Client 1")+'</option>';
+  if(hasC2) opts+='<option value="c2">'+_daEsc(val("c2f")||"Client 2")+'</option>';
+  opts+='<option value="joint">Joint ownership</option>';
+  sel.innerHTML=opts;
+  sel.value=[...sel.options].some(o=>o.value===cur)?cur:"c1";
+}
 function renderAssets(){
   const list=$("assetList"); if(!list) return;
+  populateOwnerSelect();
   if(assets.length===0){ list.innerHTML='<div class="empty">No accounts added yet.</div>'; return; }
   // Group by `group`
   const groups={};
@@ -7755,10 +7780,14 @@ function renderAssets(){
       } else if(a.withdrawAge===0){
         ageBadge=`<span class="lbadge" style="background:rgba(139,109,206,.12);color:#5b4791;border-color:rgba(139,109,206,.3)">Duration-locked</span>`;
       }
+      const ownBadge = a.owner
+        ? `<span class="lbadge" style="background:rgba(0,87,184,.10);color:#0057b8;border-color:rgba(0,87,184,.25)">${a.owner==="joint"?"👥":"👤"} ${_daEsc(assetOwnerName(a.owner))}</span>`
+        : "";
       html += `<div class="asset-item">
         <div class="item-row">
           <span class="abadge" style="background:${gc.bg};color:${gc.text};border:1px solid ${gc.border}">${a.baseLabel||a.type}</span>
           <span style="font-weight:500;flex:1">${_daEsc(a.label)}</span>
+          ${ownBadge}
           <span style="font-variant-numeric:tabular-nums;font-weight:500">${fmtMoneyFull(a.value,ccyObj.sym)}</span>
           ${liqBadge}
           ${ageBadge}
