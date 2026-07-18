@@ -4301,7 +4301,7 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
 // ═══════════════════════════════════════════════════════════
 // VERSION — updated by build-standalone.pl on each build
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260718-2220";
+const APP_VERSION = "20260718-2236";
 
 // ═══════════════════════════════════════════════════════════
 // DATA
@@ -16423,7 +16423,11 @@ function renderCashFlow(){
   const tbody=$("cfBody"); if(!tbody) return;
   const a1=ageFromDOB(val("c1d"))||35;
   const retAge=num("retAge",65);
-  const horizon=Math.max(20, 90-a1);
+  // Project until EVERY client reaches age 90 — with a younger second client
+  // the horizon extends past the primary client's 90th year so both are covered.
+  const _cfHasC2=$("c2card") && $("c2card").style.display!=="none";
+  const _cfA2=_cfHasC2?(ageFromDOB(val("c2d"))||a1):null;
+  const horizon=Math.max(20, 90-a1, _cfA2!=null?90-_cfA2:0);
   const inf=num("inf",3.8)/100;
   const raise=num("raise",3)/100;
 
@@ -16819,7 +16823,7 @@ function renderCashFlow(){
 
     html+=`<tr class="${cls}">
       <td class="cf-l">${yearLabel}</td>
-      <td class="cf-l">${age}</td>
+      <td class="cf-l">${showC2?age+" / "+(age-a1+c2Age0):age}</td>
       <td class="cf-l"><span class="cf-phase ${retired?'ret':'work'}">${phase}</span></td>
       <td class="cf-tip-cell" data-cf-tip='${tipEarned.replace(/'/g,"&#39;")}'>${fmtMoney(earnedInc)}</td>
       <td class="${pen>0?'cf-pension':''} cf-tip-cell" data-cf-tip='${tipPen.replace(/'/g,"&#39;")}'>${pen>0?fmtMoney(pen)+(rmd>0?'<span style="font-size:10px;opacity:.7"> (incl. RMD)</span>':""):"—"}</td>
@@ -16854,7 +16858,7 @@ function renderCashFlow(){
     ?` · <strong>Ret. pool (${fmtMoney(retSeed)})</strong>: <strong>3.5%/yr always</strong> (extremely conservative — decoupled from household risk profile and AI/Proposal returns; only the Investments column tracks those). 4% voluntary drawdown from age ${retAge}, mandatory rules from age ${rmdStartAge}.`
     :"";
   setH("cfHeader",
-    `<strong>Median cash flow projection — Current Portfolio</strong> — age ${a1} to 90 (${horizon+1} years) &nbsp;`+
+    `<strong>Median cash flow projection — Current Portfolio</strong> — age ${a1} to ${a1+horizon} (${horizon+1} years${showC2?" · covers both clients to age 90":""}) &nbsp;`+
     `<span style="font-size:11px;background:var(--bg3);border:1px solid var(--border);border-radius:4px;padding:2px 8px;color:var(--text3)">Mode ${cfMode}</span><br>`+
     `<span style="font-size:12px;color:var(--text2)">${cfModeNote}</span><br>`+
     `<span style="font-size:11px;color:var(--text3)">`+
@@ -21589,7 +21593,10 @@ function drawFanChart(){
         const cfBody=$("cfBody");
         if(cfBody&&cfBody.rows.length>1&&cfBody.rows[0].cells.length>3){
           const step=cfMode==="summary"?5:1;
-          const filtered=Array.from(cfBody.rows).filter((_,i)=>i%step===0);
+          const _all=Array.from(cfBody.rows);
+          const filtered=_all.filter((_,i)=>i%step===0);
+          // Summary sampling must never drop the FINAL year (the age-90 row)
+          if(step>1 && (_all.length-1)%step!==0) filtered.push(_all[_all.length-1]);
           tbl(["Year","Age","Phase","Earned income","Pension/RMD","Tax","Expenses","Surplus","Net worth"],
             filtered.map(r=>{
               const c=r.cells;
