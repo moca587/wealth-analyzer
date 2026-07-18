@@ -21115,7 +21115,20 @@ function drawFanChart(){
       // ─── CASH FLOW ──
       cf: () => {
         if(val("rptIncCF") === "no") return;
-        checkY(30);
+        // The cash-flow table lives in the app DOM (#cfBody) and is filled by a
+        // DEFERRED renderCashFlow() after each simulation run — and cleared when
+        // a profile loads. renderCashFlow() is a deterministic projection from
+        // the inputs (no Monte Carlo dependency), so backfill it synchronously
+        // whenever the table is empty/stale; the report must never ship a stub
+        // where the analysis should be.
+        try {
+          const _b=$("cfBody");
+          if((!_b || _b.rows.length<=1 || (_b.rows[0]&&_b.rows[0].cells.length<=3)) && typeof renderCashFlow==="function") renderCashFlow();
+        } catch(e){ console.warn("cf backfill:", e); }
+        // Own page like every other section — checkY() tail-rendering could
+        // leave the section off the Contents (the chapter loop only logs
+        // sections that add at least one page).
+        newPage();
         const cfMode=val("rptIncCF");
         sectionH2("Cash-Flow Projection"+(cfMode==="summary"?" (5-year intervals)":""));
         plainLead("Your financial life, year by year: income while you work, pensions and withdrawals after you retire, and what each year adds to - or takes from - your wealth.");
