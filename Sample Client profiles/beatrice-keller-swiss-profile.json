@@ -1,6 +1,6 @@
 {
   "v": "1.1",
-  "savedAt": "2026-07-18T12:07:41.212Z",
+  "savedAt": "2026-07-18T16:45:00.000Z",
   "fields": {
     "c1f": "Béatrice",
     "c1l": "Keller",
@@ -107,7 +107,8 @@
       "country": "CH",
       "note": "Mandatory occupational pension fund.",
       "ccy": "CHF",
-      "withdrawAge": 65
+      "withdrawAge": 65,
+      "owner": "c1"
     },
     {
       "id": "a2",
@@ -120,7 +121,8 @@
       "country": "CH",
       "note": "Pillar 3a via securities account (higher long-term return potential).",
       "ccy": "CHF",
-      "withdrawAge": 60
+      "withdrawAge": 60,
+      "owner": "c1"
     },
     {
       "id": "a3",
@@ -133,7 +135,8 @@
       "country": "CH",
       "note": "Interest-bearing savings.",
       "ccy": "CHF",
-      "withdrawAge": null
+      "withdrawAge": null,
+      "owner": "joint"
     },
     {
       "id": "a4",
@@ -146,7 +149,8 @@
       "country": "CH",
       "note": "Swiss brokerage. Capital gains tax-free for private investors.",
       "ccy": "CHF",
-      "withdrawAge": null
+      "withdrawAge": null,
+      "owner": "joint"
     },
     {
       "id": "a5",
@@ -159,7 +163,36 @@
       "country": "CH",
       "note": "Standard Swiss account. esisuisse protected up to CHF 100,000.",
       "ccy": "CHF",
-      "withdrawAge": null
+      "withdrawAge": null,
+      "owner": "joint"
+    },
+    {
+      "id": "a6",
+      "type": "bvg_lpp",
+      "group": "Pension system (3 pillars)",
+      "label": "Pensionskasse Zürich Versicherung",
+      "baseLabel": "BVG/LPP – 2nd pillar (occupational)",
+      "value": 390000,
+      "liquid": false,
+      "country": "CH",
+      "note": "Mandatory occupational pension fund.",
+      "ccy": "CHF",
+      "withdrawAge": 65,
+      "owner": "c2"
+    },
+    {
+      "id": "a7",
+      "type": "pillar_3a_fund",
+      "group": "Pension system (3 pillars)",
+      "label": "3a Depot (finpension)",
+      "baseLabel": "Pillar 3a — Fund / Securities",
+      "value": 95000,
+      "liquid": false,
+      "country": "CH",
+      "note": "Pillar 3a via securities account (higher long-term return potential).",
+      "ccy": "CHF",
+      "withdrawAge": 60,
+      "owner": "c2"
     }
   ],
   "loans": [
@@ -169,7 +202,8 @@
       "label": "ZKB Festhypothek",
       "bal": 800000,
       "rate": 1.9,
-      "yrs": 20
+      "yrs": 20,
+      "owner": "joint"
     }
   ],
   "goals": [
@@ -374,8 +408,43 @@
       "note": ""
     }
   ],
-  "insurances": [],
-  "equityComp": [],
+  "insurances": [
+    {
+      "id": "p1",
+      "type": "term_life",
+      "label": "Swiss Life Risikoversicherung",
+      "insured": "c1",
+      "ben": 500000,
+      "cash": 0,
+      "prem": 1140,
+      "benef": "Thomas Keller"
+    },
+    {
+      "id": "p2",
+      "type": "term_life",
+      "label": "AXA Risikoversicherung",
+      "insured": "c2",
+      "ben": 400000,
+      "cash": 0,
+      "prem": 1020,
+      "benef": "Béatrice Keller"
+    }
+  ],
+  "equityComp": [
+    {
+      "id": "e1",
+      "kind": "rsu",
+      "label": "ZURN RSU 2026",
+      "tkr": "ZURN",
+      "shares": 120,
+      "strike": 0,
+      "price": 545,
+      "growth": 6,
+      "vestStart": 2027,
+      "vestYears": 4,
+      "owner": "c2"
+    }
+  ],
   "beneficiaries": [],
   "whatIfScenarios": [
     {
@@ -399,14 +468,14 @@
       }
     }
   ],
-  "assetSeq": 5,
+  "assetSeq": 7,
   "loanSeq": 1,
   "goalSeq": 2,
   "childSeq": 1,
   "invSeq": 7,
   "propSeq": 7,
-  "insSeq": 0,
-  "eqSeq": 0,
+  "insSeq": 2,
+  "eqSeq": 1,
   "benSeq": 0,
   "whatIfSeq": 2,
   "pfLinkedAccountId": "a4"
