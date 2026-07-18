@@ -4295,7 +4295,7 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
 // ═══════════════════════════════════════════════════════════
 // VERSION — updated by build-standalone.pl on each build
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260718-1624";
+const APP_VERSION = "20260718-1939";
 
 // ═══════════════════════════════════════════════════════════
 // DATA
@@ -21678,8 +21678,11 @@ function drawFanChart(){
           let yy = startY + 8;
           gs.forEach(g => {
             doc.setFont("helvetica","bold"); doc.setFontSize(fsz-1.5); doc.setTextColor(...ac);
-            doc.text("CHAPTER "+g.n, x, yy, {charSpace:0.8});
-            const rw = doc.getTextWidth("CHAPTER "+g.n) + 3.4;
+            const _eyeTxt = "CHAPTER "+g.n;
+            doc.text(_eyeTxt, x, yy, {charSpace:0.8});
+            // getTextWidth() ignores the charSpace used when drawing — add it back
+            // (0.8 per glyph) so the title can't paint over the letter-spaced eyebrow.
+            const rw = doc.getTextWidth(_eyeTxt) + _eyeTxt.length*0.8 + 3.4;
             doc.setFont("helvetica","bold"); doc.setFontSize(fsz+1); doc.setTextColor(...acDark);
             doc.text(doc.splitTextToSize(g.title, colW-rw-14)[0], x+rw, yy, {charSpace:0.2});
             if(g.page){ doc.setFont("helvetica","bold"); doc.setFontSize(fsz); doc.setTextColor(...acDark);
