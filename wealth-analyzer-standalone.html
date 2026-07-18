@@ -4230,6 +4230,12 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
       <div class="frow"><label class="flbl">Annual potential wealth</label>
         <select id="rptIncPotWealth" class="w180"><option value="yes" selected>Yes (if simulated)</option><option value="no">No</option></select>
       </div>
+      <div class="frow"><label class="flbl">Retirement pensions<span class="info-ic">i<span class="info-pop">State/occupational pensions and the claiming-age comparison; Swiss residents also get the pillar 2/3a lump-sum tax by canton and the annuity-vs-lump-sum break-even.</span></span></label>
+        <select id="rptIncPension" class="w180"><option value="yes" selected>Yes (if pension configured)</option><option value="no">No</option></select>
+      </div>
+      <div class="frow"><label class="flbl">What-if scenarios</label>
+        <select id="rptIncWhatIf" class="w180"><option value="yes" selected>Yes (if scenarios added)</option><option value="no">No</option></select>
+      </div>
       <div class="frow"><label class="flbl">Tax buckets &amp; withdrawal order</label>
         <select id="rptIncTaxBuckets" class="w180"><option value="yes" selected>Yes (if assets added)</option><option value="no">No</option></select>
       </div>
@@ -4295,7 +4301,7 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
 // ═══════════════════════════════════════════════════════════
 // VERSION — updated by build-standalone.pl on each build
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260718-2149";
+const APP_VERSION = "20260718-2159";
 
 // ═══════════════════════════════════════════════════════════
 // DATA
@@ -18036,7 +18042,7 @@ function gbRenderCMA(weights, port){
 // Order follows the institutional sample deck: Key Findings → Goal Funding →
 // profile/details → Net Worth Details → WAF overview → Risk Categories →
 // Current Status → IPS/Portfolio → Total Portfolio → Efficiency → Performance → …
-const RPT_DEFAULT_ORDER = ["exec","about","hh","inc","equity","assets","insurance","goals","strategies","ips","port","totalportfolio","efficiency","performance","factsheets","wealthframework","riskcategories","riskstatus","sim","fund","goalfunding","lifestyle","potentialwealth","cf","rmd","taxbuckets","roth","estate","educharts","cma","method","glossary","disc"];
+const RPT_DEFAULT_ORDER = ["exec","about","hh","inc","equity","assets","insurance","goals","strategies","ips","port","totalportfolio","efficiency","performance","factsheets","wealthframework","riskcategories","riskstatus","sim","fund","goalfunding","lifestyle","potentialwealth","cf","pension","whatif","rmd","taxbuckets","roth","estate","educharts","cma","method","glossary","disc"];
 const RPT_SECTION_LABELS = {
   exec:            "Executive Summary: Key Findings",
   about:           "About the Client (custom)",
@@ -18066,6 +18072,8 @@ const RPT_SECTION_LABELS = {
   roth:            "Roth-Style Conversion Window",
   estate:          "Estate Transfer Summary",
   cf:              "Cash-Flow Projection",
+  pension:         "Retirement Pensions",
+  whatif:          "What-If Scenarios",
   cma:             "Capital Market Assumptions",
   method:          "Methodology & Assumptions",
   educharts:       "Investor Education",
@@ -18103,6 +18111,8 @@ const RPT_SECTION_DESC = {
   roth:            "Low-income years where a Roth-style conversion may pay off.",
   estate:          "Estate / inheritance tax estimate and net to beneficiaries.",
   cf:              "Year-by-year cash-flow projection.",
+  pension:         "State/occupational pensions, claiming-age comparison — plus Swiss pillar lump-sum tax and annuity-vs-lump-sum for CH residents.",
+  whatif:          "Each saved what-if scenario re-simulated and compared to the baseline plan.",
   cma:             "Per-asset-class return, risk and correlation assumptions.",
   method:          "How the projections are built, plus key caveats.",
   educharts:       "The investor-education charts you selected, one per page.",
@@ -19740,6 +19750,10 @@ function drawFanChart(){
       estate:         () => val("rptIncEstate") !== "no" && (beneficiaries.length > 0 || insuranceDeathBenefit() > 0),
       cma:            () => val("rptIncCMA") !== "no",
       cf:             () => val("rptIncCF") !== "no",
+      pension:        () => val("rptIncPension") !== "no" && ((((val("penSrc")||"none")!=="none") && num("penAnnual",0)>0)
+                            || ($("c2card") && $("c2card").style.display!=="none" && ((val("penSrc2")||"none")!=="none") && num("penAnnual2",0)>0)
+                            || ((val("c1co")||"")==="CH" && assets.some(a=>["bvg_lpp","vested_benefits","pillar_3a_bank","pillar_3a_fund","pillar_3a_insurance","savings_3a_bank"].includes(a.type) && (+a.value||0)>0))),
+      whatif:         () => val("rptIncWhatIf") !== "no" && (typeof whatIfScenarios!=="undefined") && whatIfScenarios.length>0,
       method:         () => val("rptIncMethod") !== "no",
       educharts:       () => getSelectedEduCharts().length > 0,
       glossary:       () => val("rptIncGlossary") !== "no",
@@ -19775,12 +19789,12 @@ function drawFanChart(){
         summary:"The starting point: who is in the household, what you own and owe, what comes in and goes out each year, and the headline numbers of your plan today." },
       { title:"Your Goals & Retirement Plan", divider:true, keys:["goals","strategies"],
         summary:"What you are working toward - the goals you have set, when they fall due, and the retirement lifestyle the plan is designed to support." },
-      { title:"What the Future May Hold", divider:true, keys:["fund","goalfunding","lifestyle","cf"],
-        summary:"We replay your finances across many simulated market futures. These pages show how likely each goal is to be funded, the lifestyle your plan can sustain, and how your cash flow evolves over time." },
+      { title:"What the Future May Hold", divider:true, keys:["fund","goalfunding","lifestyle"],
+        summary:"We replay your finances across many simulated market futures. These pages show how likely each goal is to be funded and the lifestyle your plan can sustain." },
       { title:"Your Investments", divider:true, keys:["ips","port","totalportfolio","efficiency","performance","factsheets","wealthframework","riskcategories","riskstatus"],
         summary:"How your money is invested: the policy that governs the portfolio, what you hold today, how efficiently it is allocated, and the framework used to balance risk against your goals." },
-      { title:"Retirement", divider:true, keys:["sim","potentialwealth"],
-        summary:"What retirement could look like in numbers: your projected wealth from today to age 90 across many simulated market futures, and the year-by-year figures behind that chart at the conservative, expected and optimistic likelihood levels." },
+      { title:"Retirement", divider:true, keys:["sim","potentialwealth","cf","pension","whatif"],
+        summary:"What retirement could look like in numbers: your projected wealth to age 90 across many simulated futures, the year-by-year figures behind that chart, your cash flow over time, the pensions your plan counts on — including the Swiss pillar choices where they apply — and the what-if scenarios you asked us to test." },
       { title:"Taxes & Estate", divider:true, keys:["rmd","taxbuckets","roth","estate"],
         summary:"The rules and sequencing that decide how much of your wealth you keep: required withdrawals, tax-aware ordering, conversion windows, and what passes to your heirs." },
       { title:"Appendix", divider:true, keys:["educharts","cma","method","glossary","disc"],
@@ -21346,6 +21360,105 @@ function drawFanChart(){
         tbl(["Year","Age","Conservative (80%)","Expected (50%)","Optimistic (30%)"], rows);
       },
       // ─── ROTH-STYLE CONVERSION WINDOW ──
+      // ─── RETIREMENT PENSIONS (country-aware; Swiss pillar choices for CH residents) ──
+      pension: () => {
+        if(val("rptIncPension") === "no") return;
+        const cc=val("c1co")||"US";
+        const src1=val("penSrc")||"none", base1=src1==="none"?0:num("penAnnual",0), fra1=num("penStartAge",67);
+        const hasC2=$("c2card")&&$("c2card").style.display!=="none";
+        const src2=hasC2?(val("penSrc2")||"none"):"none";
+        const base2=src2==="none"?0:num("penAnnual2",0), fra2=num("penStartAge2",67);
+        const P2=new Set(["bvg_lpp","vested_benefits"]), P3=new Set(["pillar_3a_bank","pillar_3a_fund","pillar_3a_insurance","savings_3a_bank"]);
+        const p2Bal=assets.filter(a=>P2.has(a.type)).reduce((s,a)=>s+(+a.value||0),0);
+        const p3Bal=assets.filter(a=>P3.has(a.type)).reduce((s,a)=>s+(+a.value||0),0);
+        const isCH=cc==="CH", pillarTot=p2Bal+p3Bal;
+        if(!(base1>0 || base2>0 || (isCH&&pillarTot>0))) return;
+        newPage();
+        sectionH2("Retirement Pensions");
+        const cn=(COUNTRY_ACCOUNTS[cc]&&COUNTRY_ACCOUNTS[cc].name)||cc;
+        plainLead("The state and occupational pensions your plan counts on"+(isCH?", and the Swiss-specific choices around drawing them,":"")+" based on your residence country ("+cn+").");
+        const colaLbl={full:"Adjusts with inflation (full COLA)",partial:"Partial - 50% of inflation",none:"Fixed nominal - no adjustment"};
+        const n1=(val("c1f")||"Client 1"), n2=(val("c2f")||"Client 2");
+        const prows=[];
+        if(base1>0) prows.push([n1, fmt(base1)+"/yr", "age "+fra1, colaLbl[val("penCola")||"full"]||""]);
+        if(base2>0) prows.push([n2, fmt(base2)+"/yr", "age "+fra2, colaLbl[val("penCola2")||"full"]||""]);
+        if(prows.length){ para("Configured state pension / social security, credited in the simulation from each start age:"); tbl(["Client","Annual benefit","Starts","Inflation adjustment"], prows); }
+        if(base1>0){
+          const adj=num("caAdj",7)/100, life=num("caLife",90);
+          const ages=[]; for(let a=Math.max(58,fra1-5); a<=Math.min(75,fra1+3); a++) ages.push(a);
+          const crows=ages.map(a=>{ const annual=base1*Math.pow(1+adj,a-fra1); const years=Math.max(0,life-a+1); return {a,annual,total:annual*years}; });
+          const best=crows.reduce((m,r)=>r.total>m.total?r:m,crows[0]);
+          const planRow=crows.find(r=>r.a===fra1)||crows[0];
+          para("Claiming age matters: each year of early claiming reduces the annual benefit by "+num("caAdj",7).toFixed(1)+"%, each year of delay increases it by the same. Cumulative totals to age "+life+" for "+n1+" (nominal, before tax):");
+          tbl(["Claim at age","Annual benefit","Total by age "+life,"vs your plan"],
+            crows.map(r=>{ const d=r.total-planRow.total;
+              return [String(r.a)+(r.a===fra1?" (your plan)":"")+(r.a===best.a?" (best)":""), fmt(r.annual), fmt(r.total), d===0?"—":(d>0?"+":"-")+fmt(Math.abs(d))]; }));
+        }
+        if(isCH && pillarTot>0 && typeof chLumpTax==="function"){
+          const canton=(val("taxState")||val("c1st")||"ZH");
+          const cName=(typeof CH_CANTON_NAMES!=="undefined"&&CH_CANTON_NAMES[canton])||canton;
+          const t1=chLumpTax(canton,pillarTot)||0, r1=(typeof chLumpRate==="function"?chLumpRate(canton,pillarTot):0)||0;
+          const s2=2*chLumpTax(canton,pillarTot/2), s3=3*chLumpTax(canton,pillarTot/3);
+          para("Swiss pillars - drawing pillar 2 (BVG/LPP) and pillar 3a as a lump sum is taxed once, separately from income, at a reduced rate that varies by canton:");
+          kv([
+            ["Pillar 2 balance (BVG/LPP + vested benefits)", fmt(p2Bal)],
+            ["Pillar 3a balance", fmt(p3Bal)],
+            ["One-time withdrawal tax - "+cName, fmt(t1)+"  ("+r1.toFixed(2)+"% effective)"],
+            ["Net after tax", fmt(pillarTot-t1)],
+            ["Staggered over 2 years", fmt(s2)+"  (saves "+fmt(Math.max(0,t1-s2))+")"],
+            ["Staggered over 3 years", fmt(s3)+"  (saves "+fmt(Math.max(0,t1-s3))+")"],
+          ]);
+          if(hasC2){
+            let o1=0,o2=0;
+            assets.forEach(a=>{ if(!(P2.has(a.type)||P3.has(a.type))) return; const v=+a.value||0;
+              if(a.owner==="c2") o2+=v; else if(a.owner==="joint"){ o1+=v/2; o2+=v/2; } else o1+=v; });
+            if(o1>0&&o2>0){ const sep=chLumpTax(canton,o1)+chLumpTax(canton,o2);
+              para("Same-year withdrawals are aggregated across spouses. Withdrawing in different calendar years ("+n1+" "+fmt(o1)+" / "+n2+" "+fmt(o2)+") breaks that aggregation: total tax "+fmt(sep)+" - saves "+fmt(Math.max(0,t1-sep))+".", INK_SOFT); }
+          }
+          if(p2Bal>0){
+            const conv=num("anConv",6)/100, taxR=Math.min(1,Math.max(0,num("anTaxRate",18)/100)), rr=num("anReturn",3)/100;
+            const rAge=num("retAge",65), pAge=Math.max(rAge+1,num("anPlanAge",90));
+            const netAnn=p2Bal*conv*(1-taxR); const lumpT=chLumpTax(canton,p2Bal)||0; const netLump=p2Bal-lumpT;
+            const beAge=netAnn>0? rAge+netLump/netAnn : Infinity;
+            let bal=netLump, depAge=null;
+            for(let a=rAge; a<pAge; a++){ bal=bal*(1+rr)-netAnn; if(bal<=0){ depAge=a+1; bal=0; break; } }
+            para("Annuity or lump sum - the 2nd-pillar decision at retirement:");
+            kv([
+              ["As a lifelong annuity ("+(conv*100).toFixed(1)+"% conversion rate)", fmt(netAnn)+"/yr net of "+(taxR*100).toFixed(0)+"% income tax, for life"],
+              ["As a lump sum", fmt(netLump)+" net, after "+fmt(lumpT)+" one-time withdrawal tax"],
+              ["Break-even age (simple cash terms)", isFinite(beAge)?("about age "+Math.round(beAge)):"—"],
+              [depAge?("Lump sum invested at "+(rr*100).toFixed(1)+"%, drawn at the same income"):("Residual at age "+pAge+" if invested at "+(rr*100).toFixed(1)+"%"), depAge?("runs out at age "+depAge):fmt(bal)],
+            ]);
+            para("The annuity insures against outliving your money and typically carries a survivor pension (~60%); the lump sum keeps capital flexible and inheritable but carries the market and longevity risk. Many funds allow a partial split - confirm your fund's rules.", INK_SOFT);
+          }
+          para("Illustrative - cantonal effective rates from a January 2026 comparison (age 65, single, no church tax, cantonal capital). Your actual tax varies by commune, marital status and year. Not tax or financial advice.", MUTED);
+        } else if(prows.length){
+          para("Pension benefits are generally taxed as ordinary income; the simulation credits them from each configured start age with the selected inflation adjustment. Not tax advice.", MUTED);
+        }
+      },
+      // ─── WHAT-IF SCENARIOS ──
+      whatif: () => {
+        if(val("rptIncWhatIf") === "no") return;
+        if(typeof whatIfScenarios==="undefined" || !whatIfScenarios.length) return;
+        let base; try{ base=runBaselineWhatIf(); }catch(e){ return; }
+        newPage();
+        sectionH2("What-If Scenarios");
+        plainLead("Alternative futures you asked us to test. Each scenario re-runs the full Monte Carlo simulation with only the listed changes, then compares the outcome against your baseline plan.");
+        const chg=w=>{ const p=[];
+          if(w.retAgeOvr!=null && w.retAgeOvr!=="") p.push("retire at "+w.retAgeOvr);
+          if(+w.incChangePct) p.push("income "+(w.incChangePct>0?"+":"")+w.incChangePct+"%");
+          if(+w.extraExp) p.push("+"+fmt(w.extraExp)+"/yr expenses");
+          if(w.extraGoal) p.push(String(w.extraGoal.name)+" "+fmt(w.extraGoal.amt)+" in "+w.extraGoal.year);
+          return p.join("; ")||"no changes"; };
+        const rows=[["Baseline (current plan)","—",fmt(base.medNW),"—",base.goalSucc!=null?base.goalSucc.toFixed(0)+"%":"—"]];
+        whatIfScenarios.forEach(w=>{
+          let r; try{ r=runWhatIfScenario(w); }catch(e){ return; }
+          const dM=r.medNW-base.medNW;
+          rows.push([String(w.name||"Scenario"), chg(w), fmt(r.medNW), (dM>=0?"+":"-")+fmt(Math.abs(dM)), r.goalSucc!=null?r.goalSucc.toFixed(0)+"%":"—"]);
+        });
+        tbl(["Scenario","Changes","Median wealth","vs baseline","Goal success"], rows);
+        para("Median wealth is the 50th percentile of simulated net worth at the end of the projection horizon. Each scenario uses fresh random draws, so figures can wobble slightly between reports.", MUTED);
+      },
       roth: () => {
         if(val("rptIncRoth") === "no") return;
         let s; try{ s=computeRothConversion(); }catch(e){ return; }
