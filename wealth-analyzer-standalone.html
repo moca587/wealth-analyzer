@@ -4295,7 +4295,7 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
 // ═══════════════════════════════════════════════════════════
 // VERSION — updated by build-standalone.pl on each build
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260718-1939";
+const APP_VERSION = "20260718-2021";
 
 // ═══════════════════════════════════════════════════════════
 // DATA
@@ -19537,7 +19537,18 @@ function drawFanChart(){
     const rTitle    = val("rptTitle")||"Personal Wealth Analysis";
     const rBy       = val("rptPrepBy")||"Self-directed analysis";
     const rFirm     = val("rptFirm");
-    const rFor      = val("rptPrepFor")||((val("c1f")||"")+" "+(val("c1l")||"")).trim()||"—";
+    // Prepared-for: manual override wins; otherwise name the whole household —
+    // both clients when a second exists ("Béatrice & Thomas Keller" when they
+    // share a surname, else both full names joined with "&").
+    const rFor      = val("rptPrepFor") || (function(){
+      const f1=(val("c1f")||"").trim(), l1=(val("c1l")||"").trim();
+      const f2=(val("c2f")||"").trim(), l2=(val("c2l")||"").trim();
+      const one=(f1+" "+l1).trim();
+      const two=($("c2card")&&$("c2card").style.display!=="none")?(f2+" "+l2).trim():"";
+      if(!two) return one;
+      if(l1 && l1===l2 && f1 && f2) return f1+" & "+f2+" "+l1;
+      return one && two ? one+" & "+two : (one||two);
+    })() || "—";
     const rRef      = val("rptRef");
     const rSub      = val("rptSubtitle");
 
