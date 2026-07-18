@@ -2421,7 +2421,7 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
     <span class="ptitle-line"></span>
   </div>
   <div class="dropdown-body" id="goalFundingWrap">
-  <div class="cf-header" style="margin-top:8px">Each goal is scored two ways: the <strong>simulated probability</strong> of being fully funded (from the Monte Carlo paths) and the <strong>present-value funding ratio</strong> (priority-weighted, discounted at a risk-adjusted rate, Merrill-style). Run the simulation to populate both.</div>
+  <div class="cf-header" style="margin-top:8px">Each goal is scored two ways: the <strong>simulated probability</strong> of being fully funded (from the Monte Carlo paths) and the <strong>present-value funding ratio</strong> (priority-weighted, discounted at a risk-adjusted rate). Run the simulation to populate both.</div>
   <div id="goalFundingSummary"></div>
   <div id="goalFundingList"><div class="pf-empty">Run the simulation to populate funding status.</div></div>
   <div class="cf-legend">
@@ -2437,12 +2437,12 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
 <!-- Goals-Based Analysis (moved from its own tab) -->
 <div class="panel" id="goalsBasedPanel" style="border-left:4px solid #7c3aed">
   <div class="ptitle section-dropdown" onclick="toggleDropdown('goalsBasedBody')" style="margin:0">
-    🎯 Goals-Based Analysis <span class="dropdown-hint">Merrill funding-ratio method · click to expand</span>
+    🎯 Goals-Based Analysis <span class="dropdown-hint">institutional funding-ratio method · click to expand</span>
     <span class="ptitle-line"></span>
   </div>
   <div class="dropdown-body" id="goalsBasedBody">
     <div style="font-size:12.5px;color:var(--text2);line-height:1.6;margin:10px 0 12px">
-      Institutional methodology modeled on the Merrill Lynch Wealth Management Analysis, using per-asset-class capital market assumptions with a full correlation matrix for accurate portfolio risk. This feeds the <strong>Goal Funding</strong> panel above (present-value cost, priority-weighted discount rate, funding ratio) — this section shows the underlying assumptions and your Wealth Allocation Framework.
+      Institutional goals-based methodology using per-asset-class capital market assumptions with a full correlation matrix for accurate portfolio risk. This feeds the <strong>Goal Funding</strong> panel above (present-value cost, priority-weighted discount rate, funding ratio) — this section shows the underlying assumptions and your Wealth Allocation Framework.
     </div>
     <div style="margin-bottom:14px;display:flex;gap:10px;flex-wrap:wrap;align-items:center">
       <button class="btn-primary" onclick="runGoalsBased()" style="font-size:13px;padding:9px 20px">▶ Run / refresh</button>
@@ -2462,14 +2462,14 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
   </div>
 </div>
 
-<!-- Wealth Allocation Framework (moved here — Merrill three-bucket) -->
+<!-- Wealth Allocation Framework (moved here — three-bucket) -->
 <div class="panel" id="simWealthFwPanel">
   <div class="ptitle section-dropdown" onclick="toggleDropdown('simWealthFwBody')" style="margin:0">
     Wealth Allocation Framework <span class="dropdown-hint">Personal / Market / Aspirational · click to expand</span>
     <span class="ptitle-line"></span>
   </div>
   <div class="dropdown-body" id="simWealthFwBody">
-    <div style="font-size:12px;color:var(--text3);margin:10px 0 14px;line-height:1.6">Merrill's three-bucket framework organizes assets by risk-return role: <strong style="color:var(--green)">Personal</strong> (preserve lifestyle — residence, cash), <strong style="color:var(--accent)">Market</strong> (balance risk &amp; return — diversified equities/bonds), and <strong style="color:#7c3aed">Aspirational</strong> (idiosyncratic upside — concentrated stock, business, crypto, investment property).</div>
+    <div style="font-size:12px;color:var(--text3);margin:10px 0 14px;line-height:1.6">The three-bucket wealth allocation framework organizes assets by risk-return role: <strong style="color:var(--green)">Personal</strong> (preserve lifestyle — residence, cash), <strong style="color:var(--accent)">Market</strong> (balance risk &amp; return — diversified equities/bonds), and <strong style="color:#7c3aed">Aspirational</strong> (idiosyncratic upside — concentrated stock, business, crypto, investment property).</div>
     <div id="gbWealth"><div style="color:var(--text3);font-size:12px">Add assets to see your wealth allocation.</div></div>
   </div>
 </div>
@@ -3537,7 +3537,7 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
 
 </div>
 
-<!-- ═══ GOALS-BASED ANALYSIS (Merrill-style) ═══ -->
+<!-- ═══ GOALS-BASED ANALYSIS (institutional-style) ═══ -->
 <!-- RECOMMENDATIONS -->
 <div class="tab" id="tab-recommendations">
   <div class="panel" style="background:linear-gradient(135deg,#fff,#f0f7f2);border-left:4px solid #1b6841">
@@ -14011,7 +14011,7 @@ function getEffectiveReturnParams(){
 const RET_POOL_MU = 0.035; // 3.5% nominal — both accumulation and retirement
 
 // ═══════════════════════════════════════════════════════════════════
-// CAPITAL MARKET ASSUMPTIONS (Merrill-style) — canonical for the WHOLE app.
+// CAPITAL MARKET ASSUMPTIONS (institutional-style) — canonical for the WHOLE app.
 // Per-asset-class arithmetic μ, σ, geometric μ, income yield (annual %).
 // These now drive the core simulation engine, portfolio metrics,
 // comparison, and the Goals-Based Analysis tab — one source of truth.
@@ -15052,7 +15052,7 @@ function runSim(){
 
 // ─── Goal & Retirement Funding Status in the Simulation tab ───
 // Combines the Monte Carlo simulated-success rate with the PV-based,
-// priority-weighted funding ratio (Merrill-style) into one per-goal view.
+// priority-weighted funding ratio (institutional-style) into one per-goal view.
 function renderCombinedGoalFunding(paths,yrs){
   const summaryHost = document.getElementById("goalFundingSummary");
   const listHost = document.getElementById("goalFundingList");
@@ -17391,7 +17391,7 @@ async function fetchMorningstarFactSheet(ticker){
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// GOALS-BASED ANALYSIS ENGINE (Merrill-style)
+// GOALS-BASED ANALYSIS ENGINE (institutional-style)
 // The capital market assumptions (CMA), correlation matrix (CMA_CORR),
 // cmaCorr(), normInv(), gbPortfolioRisk() and gbReturnAtConfidence()
 // are now defined canonically near the core portfolio metrics so the
@@ -17430,7 +17430,7 @@ function gbAssetClassWeights(){
   return ALLOC[risk] || ALLOC.moderate;
 }
 
-// Priority → probability-of-success confidence level (Merrill convention)
+// Priority → probability-of-success confidence level (institutional convention)
 const GB_PRIORITY_CONF = { essential:95, important:75, aspirational:55 };
 
 // Main goals-based analysis
@@ -17554,7 +17554,7 @@ function gbRenderWealth(){
     h += '</div>';
   });
   h += '</div>';
-  h += '<div style="font-size:11px;color:var(--text3);margin-top:12px">Total categorized: <strong>'+fmtMoney(total)+'</strong>. Concentrated/idiosyncratic positions (business, concentrated stock, investment property, crypto) carry higher risk — Merrill recommends limiting Aspirational exposure relative to your essential-goal funding needs.</div>';
+  h += '<div style="font-size:11px;color:var(--text3);margin-top:12px">Total categorized: <strong>'+fmtMoney(total)+'</strong>. Concentrated/idiosyncratic positions (business, concentrated stock, investment property, crypto) carry higher risk — a common institutional guideline is to limit Aspirational exposure relative to your essential-goal funding needs.</div>';
   setH("gbWealth", h);
 }
 
@@ -18146,7 +18146,7 @@ async function generatePDFReport(mode, previewWin){
     };
     const ac=THEMES[themeKey]||THEMES.blue;   // accent RGB array
     const acL=[Math.min(255,ac[0]+170),Math.min(255,ac[1]+170),Math.min(255,ac[2]+170)]; // light tint
-    // Merrill-style header/footer + section-bar palette (light tint band, deep text)
+    // institutional-style header/footer + section-bar palette (light tint band, deep text)
     const acBar=[Math.round(ac[0]+(255-ac[0])*0.86), Math.round(ac[1]+(255-ac[1])*0.86), Math.round(ac[2]+(255-ac[2])*0.86)]; // pale band fill
     const acBar2=[Math.round(ac[0]+(255-ac[0])*0.93), Math.round(ac[1]+(255-ac[1])*0.93), Math.round(ac[2]+(255-ac[2])*0.93)]; // fainter band (sub-rows)
     const acDark=[Math.round(ac[0]*0.5), Math.round(ac[1]*0.5), Math.round(ac[2]*0.5)]; // deep accent for band text
@@ -19886,7 +19886,7 @@ function drawFanChart(){
         para("A visual summary of your balance sheet. The bar chart compares total assets, total liabilities and the resulting net worth. The two pie charts break down what your assets are made of and where your debts sit, so you can see your biggest concentrations at a glance.");
         try { drawNetWorthSummary(); }
         catch(e){ console.warn("Net Worth Summary failed:", e); doc.setFont("helvetica","italic"); doc.setTextColor(120); doc.text("Net Worth Summary unavailable for this data.", M, y+8); }
-        // Page 3+ — Net Worth Details (Merrill-style categorized statement)
+        // Page 3+ — Net Worth Details (institutional-style categorized statement)
         currentSectionTitle = "Net Worth Details";
         newPage();
         checkY(30);
@@ -20438,7 +20438,7 @@ function drawFanChart(){
           para("Run the simulation to populate funding status.");
         }
       },
-      // ─── GOAL FUNDING STATUS (PV funding ratios — Merrill methodology) ──
+      // ─── GOAL FUNDING STATUS (PV funding ratios — institutional methodology) ──
       goalfunding: () => {
         if(val("rptIncGoalFunding") === "no" || goals.length === 0) return;
         newPage();
@@ -20505,7 +20505,7 @@ function drawFanChart(){
           cyR+=cardH+4; });
         y=Math.max(topY+12+74+14, cyR)+2;
         para("Funding ratios at or above 100% indicate a fully funded goal; lower ratios indicate a present-value shortfall to close through added savings, return, or a revised goal. Hypothetical and not guaranteed.", MUTED);
-        // ── Estimated Future Income / Savings (Merrill "Key Factors" block) ──
+        // ── Estimated Future Income / Savings ("Key Factors" block) ──
         (function(){
           const cyNow=(typeof currentYear==="function")?currentYear():new Date().getFullYear();
           const retA=num("retAge",65);
