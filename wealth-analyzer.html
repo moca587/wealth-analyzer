@@ -17600,13 +17600,12 @@ function gbRenderCMA(weights, port){
 // Order follows the institutional sample deck: Key Findings → Goal Funding →
 // profile/details → Net Worth Details → WAF overview → Risk Categories →
 // Current Status → IPS/Portfolio → Total Portfolio → Efficiency → Performance → …
-const RPT_DEFAULT_ORDER = ["exec","about","hh","inc","equity","assets","insurance","goals","strategies","ips","port","totalportfolio","efficiency","performance","factsheets","wealthframework","riskcategories","riskstatus","sim","fund","goalfunding","lifestyle","potentialwealth","cf","pension","whatif","rmd","taxbuckets","roth","estate","educharts","cma","method","glossary","disc"];
+const RPT_DEFAULT_ORDER = ["exec","about","hh","inc","assets","insurance","goals","strategies","ips","port","totalportfolio","efficiency","performance","factsheets","wealthframework","riskcategories","riskstatus","sim","fund","goalfunding","lifestyle","potentialwealth","cf","pension","whatif","rmd","taxbuckets","roth","estate","educharts","cma","method","glossary","disc"];
 const RPT_SECTION_LABELS = {
   exec:            "Executive Summary: Key Findings",
   about:           "About the Client (custom)",
   hh:              "Household Profile",
   inc:             "Income, Expenses & Tax",
-  equity:          "Equity Compensation",
   assets:          "Net Worth Details",
   insurance:       "Insurance Inventory",
   goals:           "Goals & Retirement Plan",
@@ -17650,8 +17649,7 @@ const RPT_SECTION_DESC = {
   about:           "Your custom 'About the client' narrative.",
   hh:              "Client(s) and dependants — names, ages and residence.",
   inc:             "Gross income, expenses and the income-tax breakdown (brackets, child benefits, net).",
-  equity:          "Stock options and RSUs — grants, vesting and projected value.",
-  assets:          "Accounts and holdings by type, plus loans/liabilities and net worth.",
+  assets:          "Accounts and holdings by type, plus loans/liabilities and net worth. Includes equity compensation (grants, vesting and projected value).",
   insurance:       "Life and other policies — cover, premiums and cash value.",
   goals:           "Each goal with target year, cost and priority, plus retirement parameters.",
   strategies:      "Plain-language summary of the plan's key strategies.",
@@ -19283,7 +19281,6 @@ function drawFanChart(){
       about:      () => !!customAbout,
       hh:         () => val("rptIncHH") !== "no",
       inc:        () => val("rptIncInc") !== "no",
-      equity:     () => val("rptIncEquity") !== "no" && equityComp.length > 0,
       assets:     () => val("rptIncAssets") !== "no",
       insurance:  () => val("rptIncInsurance") !== "no" && insurances.length > 0,
       goals:      () => val("rptIncGoals") !== "no",
@@ -19343,7 +19340,7 @@ function drawFanChart(){
     // silently disappear from the report or its Contents.
     const CHAPTERS = [
       { title:"How to Read This Report", divider:false, keys:["howto"], summary:"" },
-      { title:"Where You Stand Today", divider:true, keys:["exec","about","hh","inc","equity","assets","insurance"],
+      { title:"Where You Stand Today", divider:true, keys:["exec","about","hh","inc","assets","insurance"],
         summary:"The starting point: who is in the household, what you own and owe, what comes in and goes out each year, and the headline numbers of your plan today." },
       { title:"Your Goals & Retirement Plan", divider:true, keys:["goals","strategies"],
         summary:"What you are working toward - the goals you have set, when they fall due, and the retirement lifestyle the plan is designed to support." },
@@ -19486,6 +19483,29 @@ function drawFanChart(){
       doc.setFont("helvetica","bold"); doc.setFontSize(11.5); doc.setTextColor(255,255,255);
       doc.text("Net Worth",M+4,by); doc.text(fmt(nw),pw-M-4,by,{align:"right"});
       y=by+10; doc.setTextColor(40); doc.setFont("helvetica","normal");
+    }
+    // ── Equity Compensation — folded into the Net Worth Statement as a subsection.
+    //    Unvested equity is balance-sheet-adjacent context but is deliberately NOT
+    //    counted in net worth (see the info-only line + footnote), so it renders
+    //    right below the statement rather than as its own chapter page.
+    function drawEquityComp(){
+      if(val("rptIncEquity") === "no" || equityComp.length === 0) return;
+      checkY(40);
+      subBar("Equity Compensation");
+      tbl(["Grant","Type","Shares","Strike","Price","Growth","Vesting"],
+        equityComp.map(g=>[ g.label+(g.tkr?" ("+g.tkr+")":""), EQ_KIND_LABELS[g.kind]||g.kind,
+          (+g.shares||0).toLocaleString(), g.kind==="rsu"?"—":fmt(g.strike||0), fmt(g.price||0),
+          (+g.growth||0).toFixed(1)+"%/yr", g.vestStart+"–"+((+g.vestStart||0)+Math.max(1,+g.vestYears||1)-1)]));
+      // Projected vest proceeds for the next 10 years
+      const cy2=currentYear();
+      const rows=[];
+      for(let yv=0; yv<10; yv++){
+        const v=equityVestIncomeYear(yv);
+        if(v>0) rows.push([String(cy2+yv), fmt(v)]);
+      }
+      if(rows.length) tbl(["Year","Projected vest proceeds (pre-tax)"], rows, {columnStyles:{0:{cellWidth:CW*0.3}}});
+      kv([["Unvested in-the-money value today (not in net worth)", fmt(equityUnvestedValueNow())]]);
+      para("Vesting proceeds are treated as ordinary income in the year each tranche vests — they flow through tax, surplus, and savings in both the cash-flow projection and the Monte Carlo simulation. Option values assume exercise-and-sell at vest.", MUTED);
     }
     // ── Net Worth Summary: bar (Assets/Liabilities/Net Worth) + asset & liability pies ──
     function drawNetWorthSummary(){
@@ -19963,26 +19983,6 @@ function drawFanChart(){
         incRows.push(["Annual surplus / deficit",fmt(surplus)+(surplus<0?" ⚠":"")]);
         kv(incRows);
       },
-      // ─── EQUITY COMPENSATION ──
-      equity: () => {
-        if(val("rptIncEquity") === "no" || equityComp.length === 0) return;
-        checkY(30);
-        sectionH2("Equity Compensation");
-        tbl(["Grant","Type","Shares","Strike","Price","Growth","Vesting"],
-          equityComp.map(g=>[ g.label+(g.tkr?" ("+g.tkr+")":""), EQ_KIND_LABELS[g.kind]||g.kind,
-            (+g.shares||0).toLocaleString(), g.kind==="rsu"?"—":fmt(g.strike||0), fmt(g.price||0),
-            (+g.growth||0).toFixed(1)+"%/yr", g.vestStart+"–"+((+g.vestStart||0)+Math.max(1,+g.vestYears||1)-1)]));
-        // Projected vest proceeds for the next 10 years
-        const cy2=currentYear();
-        const rows=[];
-        for(let yv=0; yv<10; yv++){
-          const v=equityVestIncomeYear(yv);
-          if(v>0) rows.push([String(cy2+yv), fmt(v)]);
-        }
-        if(rows.length) tbl(["Year","Projected vest proceeds (pre-tax)"], rows, {columnStyles:{0:{cellWidth:CW*0.3}}});
-        kv([["Unvested in-the-money value today (not in net worth)", fmt(equityUnvestedValueNow())]]);
-        para("Vesting proceeds are treated as ordinary income in the year each tranche vests — they flow through tax, surplus, and savings in both the cash-flow projection and the Monte Carlo simulation. Option values assume exercise-and-sell at vest.", MUTED);
-      },
       // ─── ASSETS & LIABILITIES ──
       assets: () => {
         if(val("rptIncAssets") === "no") return;
@@ -19992,6 +19992,10 @@ function drawFanChart(){
         newPage();
         try { drawNetWorthStatement(); }
         catch(e){ console.warn("Net Worth Statement failed:", e); doc.setFont("helvetica","italic"); doc.setTextColor(120); doc.text("Net Worth Statement unavailable for this data.", M, y+8); }
+        // Equity Compensation — folded in here as a subsection of the Net Worth
+        // Statement (unvested equity is not counted in net worth; info-only line).
+        try { drawEquityComp(); }
+        catch(e){ console.warn("Equity Compensation failed:", e); }
         // Page 2 — Net Worth Summary (bar + asset/liability pies)
         currentSectionTitle = "Net Worth Summary";
         newPage();
