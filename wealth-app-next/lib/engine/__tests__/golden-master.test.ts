@@ -23,7 +23,7 @@
 // ─────────────────────────────────────────────────────────────────
 
 import { describe, it, expect } from "vitest";
-import { runMonteCarlo } from "@/lib/engine/monte-carlo";
+import { runMonteCarlo } from "@/lib/engine/monte-carlo-old";
 import type { WealthPlan, SimulationInput, SimulationResult } from "@/lib/engine/types";
 
 const ASOF = 2026;

@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { runMonteCarlo } from "../monte-carlo";
+import { runMonteCarlo } from "../monte-carlo-old";
 import type { SimulationInput, WealthPlan } from "../types";
 
 // Creates a test Wealth Plan with sensible defaults, allowing overrides for specific test cases.

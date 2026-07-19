@@ -14,7 +14,7 @@
 // ─────────────────────────────────────────────────────────────────
 
 import { describe, it, expect } from "vitest";
-import { runMonteCarlo } from "@/lib/engine/monte-carlo";
+import { runMonteCarlo } from "@/lib/engine/monte-carlo-old";
 import { portfolioReturnParams, estimateIncomeTax } from "@/lib/engine/financial-math";
 import { ASSET_CLASS_CMA } from "@/lib/engine/constants";
 import { migratePlan } from "@/lib/plan/migrate";

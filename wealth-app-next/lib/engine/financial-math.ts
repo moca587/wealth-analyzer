@@ -4,7 +4,7 @@
 // Ported from the wealth-analyzer.html script block.
 // ─────────────────────────────────────────────────────────────────
 
-import { IRS_UNIFORM_LIFETIME, ASSET_CLASS_CMA, assetCorrelation, TAX_BRACKETS } from "./constants";
+import { IRS_UNIFORM_LIFETIME, ASSET_CLASS_CMA, assetCorrelation, TAX_BRACKETS, RRIF_RATES } from "./constants";
 import type { AssetClass } from "./types";
 
 /**
@@ -14,8 +14,12 @@ import type { AssetClass } from "./types";
  * deterministic/reproducible runs (tests, cached-result invalidation).
  */
 export function boxMuller(rng: () => number = Math.random): number {
-  const u = Math.max(1e-12, rng());
-  const v = rng();
+  let u = 0;
+  let v = 0;
+
+  while (u === 0) u = rng();
+  while (v === 0) v = rng();
+
   return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
 }
 
@@ -41,6 +45,8 @@ export function createSeededRandom(seed: number): () => number {
  * @param years  loan term in years
  */
 export function calcMortgagePayment(principal: number, annualRatePct: number, years: number): number {
+  if (principal <= 0 || years <= 0) return 0;
+
   const m = annualRatePct / 100 / 12;
   const n = years * 12;
   if (m === 0) return principal / n;
@@ -131,52 +137,157 @@ export function estimateIncomeTax(taxableIncome: number, country = "US"): number
 }
 
 /**
- * Required Minimum Distribution (US IRS, 401k/IRA after age 73).
- * Returns 0 if balance ≤ 0 or age < 73.
+ * Retirement-account mandatory or modeled withdrawals by country.
+ * Uses the legacy Wealth Analyzer rules for US, Canada, Australia,
+ * Europe, Switzerland, supported Asian countries, and fallback regions.
  */
-export function calcRMD(balance: number, age: number): number {
-  if (balance <= 0 || age < 73) return 0;
-  const factor =
-    IRS_UNIFORM_LIFETIME[age] ||
-    IRS_UNIFORM_LIFETIME[Math.max(73, Math.min(100, Math.round(age / 5) * 5))] ||
-    7.3;
-  return balance / factor;
+export function calcRMD(
+  balance: number,
+  age: number,
+  country: string
+): number {
+  if (balance <= 0) return 0;
+
+  if (country === "US") {
+    if (age < 73) return 0;
+
+    const factor =
+      IRS_UNIFORM_LIFETIME[Math.min(age, 120)] ?? 2.0;
+
+    return balance / factor;
+  }
+
+  if (country === "CA") {
+    if (age < 71) return 0;
+
+    const rate =
+      (RRIF_RATES[Math.min(age, 94)] ?? 20) / 100;
+
+    return balance * rate;
+  }
+
+  if (country === "AU") {
+    if (age < 60) return 0;
+    return balance * auSuperRate(age) / 100;
+  }
+
+  if (
+    country === "GB" ||
+    country === "EU" ||
+    country === "CH"
+  ) {
+    return age >= 57 ? balance * 0.04 : 0;
+  }
+
+  if (
+    country === "JP" ||
+    country === "SG" ||
+    country === "HK" ||
+    country === "KR" ||
+    country === "TW"
+  ) {
+    return age >= 60 ? balance * 0.04 : 0;
+  }
+
+  return age >= 72 ? balance * 0.04 : 0;
 }
 
 /**
  * Compute the retirement "number" — the lump sum needed at retirement
  * to fund the remaining lifetime of spending.
  */
+export interface RetirementNumberResult {
+  pvAtRet: number;
+  pvToday: number;
+  yearsToRet: number;
+  yearsInRet: number;
+  annualSpend: number;
+  discountRate: number;
+  inf: number;
+  planAge: number;
+}
+
 export function calcRetirementNumber(
   currentAge: number,
   retirementAge: number,
   annualSpend: number,
-  inflation: number,    // decimal
-  discountRate: number  // decimal, default 0.068
-): { pvAtRet: number; pvToday: number; yToRet: number; yIn: number } {
-  const yToRet = Math.max(0, retirementAge - currentAge);
-  const yIn = Math.max(0, 98 - retirementAge);
-  const realRate = (discountRate - inflation) / (1 + inflation);
-  const nomSpend = annualSpend * Math.pow(1 + inflation, yToRet);
+  inflation: number,
+  lifeExpectancy: number,
+  discountRate = 0.068
+): RetirementNumberResult {
+  const yearsToRet = Math.max(0, retirementAge - currentAge);
+
+  const effectiveLifeExpectancy =
+    Number.isFinite(lifeExpectancy) && lifeExpectancy > 0
+      ? lifeExpectancy
+      : 80;
+
+  const planAge = Math.max(
+    98,
+    Math.round(effectiveLifeExpectancy) + 15
+  );
+
+  const yearsInRet = Math.max(0, planAge - retirementAge);
+
+  const realRate =
+    (discountRate - inflation) / (1 + inflation);
+
+  const nominalSpend =
+    annualSpend * Math.pow(1 + inflation, yearsToRet);
+
   let pvAtRet: number;
-  if (Math.abs(realRate) < 1e-10 || yIn <= 0) {
-    pvAtRet = nomSpend * yIn;
+
+  if (Math.abs(realRate) < 0.0001 || yearsInRet <= 0) {
+    pvAtRet = nominalSpend * yearsInRet;
   } else {
-    pvAtRet = (nomSpend * (1 - Math.pow(1 + realRate, -yIn))) / realRate;
+    pvAtRet =
+      nominalSpend *
+      (1 - Math.pow(1 + realRate, -yearsInRet)) /
+      realRate;
   }
-  return { pvAtRet, pvToday: pvAtRet / Math.pow(1 + discountRate, yToRet), yToRet, yIn };
+
+  const pvToday =
+    pvAtRet / Math.pow(1 + discountRate, yearsToRet);
+
+  return {
+    pvAtRet,
+    pvToday,
+    yearsToRet,
+    yearsInRet,
+    annualSpend,
+    discountRate,
+    inf: inflation,
+    planAge,
+  };
 }
 
 /**
  * Calculate a person's age in years given their date of birth (ISO string)
  * and an as-of date (defaults to today).
  */
-export function ageFromDOB(dobIso: string, asOf: Date = new Date()): number {
+export function ageFromDOB(
+  dobIso: string,
+  asOf: Date = new Date()
+): number | null {
+  if (!dobIso) return null;
+
   const dob = new Date(dobIso);
+
+  if (Number.isNaN(dob.getTime())) {
+    return null;
+  }
+
   let age = asOf.getFullYear() - dob.getFullYear();
   const m = asOf.getMonth() - dob.getMonth();
-  if (m < 0 || (m === 0 && asOf.getDate() < dob.getDate())) age--;
-  return Math.max(0, age);
+
+  if (
+    m < 0 ||
+    (m === 0 && asOf.getDate() < dob.getDate())
+  ) {
+    age--;
+  }
+
+  return age;
 }
 
 /** Format a number as a currency string with the given ISO currency code */
@@ -190,4 +301,398 @@ export function formatMoney(amount: number, currency = "USD", locale = "en-US"):
   } catch {
     return `${currency} ${amount.toFixed(0)}`;
   }
+}
+
+export function auSuperRate(age: number): number {
+  if (age < 60) return 0;
+  if (age < 65) return 4;
+  if (age < 75) return 5;
+  if (age < 80) return 6;
+  if (age < 85) return 7;
+  if (age < 90) return 9;
+  if (age < 95) return 11;
+  return 14;
+}
+
+export function getRMDStartAge(country: string): number {
+  if (country === "US") return 73;
+  if (country === "CA") return 71;
+  if (country === "AU") return 60;
+
+  if (
+    country === "GB" ||
+    country === "EU" ||
+    country === "CH"
+  ) {
+    return 57;
+  }
+
+  if (
+    country === "JP" ||
+    country === "SG" ||
+    country === "HK" ||
+    country === "KR" ||
+    country === "TW"
+  ) {
+    return 60;
+  }
+
+  return 72;
+}
+
+export interface PortfolioClassWeight {
+  cls: string;
+  weight: number;
+}
+
+export interface CapitalMarketAssumption {
+  arith: number;
+  sigma: number;
+}
+
+export const CMA: Record<
+  string,
+  CapitalMarketAssumption
+> = {
+  equity: {
+    arith: 8.58,
+    sigma: 15.93,
+  },
+
+  fixed_income: {
+    arith: 4.01,
+    sigma: 6.28,
+  },
+
+  cash: {
+    arith: 2.54,
+    sigma: 2.47,
+  },
+
+  real_estate: {
+    arith: 4.57,
+    sigma: 10.3,
+  },
+
+  commodity: {
+    arith: 4.57,
+    sigma: 10.3,
+  },
+
+  alternative: {
+    arith: 7,
+    sigma: 10,
+  },
+
+  hedge_fund: {
+    arith: 6.5,
+    sigma: 7,
+  },
+
+  private_equity: {
+    arith: 11.03,
+    sigma: 23.05,
+  },
+
+  structured: {
+    arith: 5.5,
+    sigma: 8,
+  },
+
+  mixed: {
+    arith: 6,
+    sigma: 9,
+  },
+
+  crypto: {
+    arith: 20,
+    sigma: 65,
+  },
+
+  other: {
+    arith: 6,
+    sigma: 12,
+  },
+};
+
+export const CMA_CORR: Record<
+  string,
+  Record<string, number>
+> = {
+  equity: {
+    equity: 1.0,
+    fixed_income: 0.019,
+    cash: 0.286,
+    real_estate: 0.128,
+    commodity: 0.128,
+    alternative: 0.636,
+    private_equity: 0.696,
+    crypto: 0.5,
+  },
+
+  fixed_income: {
+    equity: 0.019,
+    fixed_income: 1.0,
+    cash: 0.281,
+    real_estate: -0.153,
+    commodity: -0.153,
+    alternative: 0.038,
+    private_equity: 0.001,
+    crypto: 0.1,
+  },
+
+  cash: {
+    equity: 0.286,
+    fixed_income: 0.281,
+    cash: 1.0,
+    real_estate: 0.25,
+    commodity: 0.25,
+    alternative: 0.281,
+    private_equity: 0.06,
+    crypto: 0.05,
+  },
+
+  real_estate: {
+    equity: 0.128,
+    fixed_income: -0.153,
+    cash: 0.25,
+    real_estate: 1.0,
+    commodity: 0.6,
+    alternative: 0.144,
+    private_equity: 0.079,
+    crypto: 0.2,
+  },
+
+  commodity: {
+    equity: 0.128,
+    fixed_income: -0.153,
+    cash: 0.25,
+    real_estate: 0.6,
+    commodity: 1.0,
+    alternative: 0.144,
+    private_equity: 0.079,
+    crypto: 0.3,
+  },
+
+  alternative: {
+    equity: 0.636,
+    fixed_income: 0.038,
+    cash: 0.281,
+    real_estate: 0.144,
+    commodity: 0.144,
+    alternative: 1.0,
+    private_equity: 0.613,
+    crypto: 0.4,
+  },
+
+  private_equity: {
+    equity: 0.696,
+    fixed_income: 0.001,
+    cash: 0.06,
+    real_estate: 0.079,
+    commodity: 0.079,
+    alternative: 0.613,
+    private_equity: 1.0,
+    crypto: 0.45,
+  },
+
+  crypto: {
+    equity: 0.5,
+    fixed_income: 0.1,
+    cash: 0.05,
+    real_estate: 0.2,
+    commodity: 0.3,
+    alternative: 0.4,
+    private_equity: 0.45,
+    crypto: 1.0,
+  },
+
+  structured: {
+    equity: 0.45,
+    fixed_income: 0.5,
+    cash: 0.3,
+    real_estate: 0.25,
+    commodity: 0.2,
+    alternative: 0.4,
+    private_equity: 0.35,
+    crypto: 0.15,
+    structured: 1.0,
+  },
+
+  hedge_fund: {
+    equity: 0.55,
+    fixed_income: 0.15,
+    cash: 0.1,
+    real_estate: 0.25,
+    commodity: 0.3,
+    alternative: 0.55,
+    private_equity: 0.5,
+    structured: 0.35,
+    crypto: 0.3,
+    hedge_fund: 1.0,
+  },
+};
+
+
+export function cmaCorrelation(
+  classA: string,
+  classB: string,
+): number {
+  if (classA === classB) {
+    return 1;
+  }
+
+  const direct =
+    CMA_CORR[classA]?.[classB];
+
+  if (direct != null) {
+    return direct;
+  }
+
+  const reverse =
+    CMA_CORR[classB]?.[classA];
+
+  if (reverse != null) {
+    return reverse;
+  }
+
+  return 0.3;
+}
+
+export function gbPortfolioRisk(
+  holdings: PortfolioClassWeight[],
+): number {
+  let variance = 0;
+
+  for (const holdingA of holdings) {
+    const cmaA =
+      CMA[holdingA.cls] ?? CMA.mixed;
+
+    const sigmaA =
+      (cmaA.sigma ?? 12) / 100;
+
+    for (const holdingB of holdings) {
+      const cmaB =
+        CMA[holdingB.cls] ?? CMA.mixed;
+
+      const sigmaB =
+        (cmaB.sigma ?? 12) / 100;
+
+      variance +=
+        holdingA.weight *
+        holdingB.weight *
+        sigmaA *
+        sigmaB *
+        cmaCorrelation(
+          holdingA.cls,
+          holdingB.cls,
+        );
+    }
+  }
+
+  return Math.sqrt(
+    Math.max(0, variance),
+  );
+}
+
+export interface EffectiveReturnParams {
+  mu: number;
+  sig: number;
+}
+
+export function getEffectiveReturnParamsGross(
+  investments: Array<{
+    cls?: string;
+    val: number;
+  }>,
+): EffectiveReturnParams | null {
+  // HTML behavior:
+  // only non-cash holdings determine invested return parameters.
+  const nonCashHoldings =
+    investments.filter(
+      (investment) =>
+        investment.cls !== "cash" &&
+        Number(investment.val) > 0,
+    );
+
+  const totalValue =
+    nonCashHoldings.reduce(
+      (sum, investment) =>
+        sum +
+        Number(investment.val),
+      0,
+    );
+
+  if (totalValue <= 0) {
+    return null;
+  }
+
+  const weights: PortfolioClassWeight[] =
+    nonCashHoldings.map(
+      (investment) => {
+        const assetClass =
+          investment.cls &&
+          CMA[investment.cls]
+            ? investment.cls
+            : "mixed";
+
+        return {
+          cls: assetClass,
+          weight:
+            Number(investment.val) /
+            totalValue,
+        };
+      },
+    );
+
+  const mu =
+    weights.reduce(
+      (sum, holding) => {
+        const assumption =
+          CMA[holding.cls] ??
+          CMA.mixed;
+
+        return (
+          sum +
+          holding.weight *
+            ((assumption.arith ?? 7) /
+              100)
+        );
+      },
+      0,
+    );
+
+  return {
+    mu,
+    sig: gbPortfolioRisk(weights),
+  };
+}
+
+export function calculatePercentile(
+  sortedValues: readonly number[],
+  percentile: number,
+): number {
+  if (sortedValues.length === 0) {
+    return 0;
+  }
+
+  const index =
+    (percentile / 100) *
+    (sortedValues.length - 1);
+
+  const lowerIndex = Math.floor(index);
+  const upperIndex = Math.ceil(index);
+
+  if (lowerIndex === upperIndex) {
+    return sortedValues[lowerIndex];
+  }
+
+  const weight = index - lowerIndex;
+
+  return (
+    sortedValues[lowerIndex] +
+    (sortedValues[upperIndex] -
+      sortedValues[lowerIndex]) *
+      weight
+  );
 }

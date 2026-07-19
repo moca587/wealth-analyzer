@@ -14,7 +14,7 @@
 import { describe, it, expect } from "vitest";
 import { migratePlan } from "@/lib/plan/migrate";
 import { parsePlan } from "@/lib/plan/schema";
-import { runMonteCarlo } from "@/lib/engine/monte-carlo";
+import { runMonteCarlo } from "@/lib/engine/monte-carlo-old";
 import { estimateIncomeTax } from "@/lib/engine/financial-math";
 import type { WealthPlan, SimulationResult } from "@/lib/engine/types";
 

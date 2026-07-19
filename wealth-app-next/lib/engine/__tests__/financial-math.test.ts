@@ -66,23 +66,67 @@ describe("annuityPV", () => {
 });
 
 describe("calcRMD", () => {
-  test("returns 0 before RMD age (73)", () => {
-    expect(calcRMD(500000, 72)).toBe(0);
+  test("returns 0 before US RMD age 73", () => {
+    expect(calcRMD(500000, 72, "US")).toBe(0);
   });
 
   test("returns 0 for a zero or negative balance", () => {
-    expect(calcRMD(0, 80)).toBe(0);
-    expect(calcRMD(-100, 80)).toBe(0);
+    expect(calcRMD(0, 80, "US")).toBe(0);
+    expect(calcRMD(-100, 80, "US")).toBe(0);
   });
 
-  test("uses the IRS Uniform Lifetime factor at an exact table age", () => {
-    expect(calcRMD(265000, 73)).toBeCloseTo(265000 / 26.5, 6);
+  test("uses the IRS Uniform Lifetime factor at age 73", () => {
+    expect(calcRMD(265000, 73, "US")).toBeCloseTo(
+      265000 / 26.5,
+      6
+    );
   });
 
-  test("falls back to the nearest-5 rounded age when the exact age is missing from the table", () => {
-    // 77 isn't in the sparse fallback path used once age > table's dense range;
-    // exact-age entries exist here (73-80), so this should hit the direct lookup.
-    expect(calcRMD(229000, 77)).toBeCloseTo(229000 / 22.9, 6);
+  test("uses the exact IRS factor at age 77", () => {
+    expect(calcRMD(229000, 77, "US")).toBeCloseTo(
+      229000 / 22.9,
+      6
+    );
+  });
+
+  test("uses the final IRS factor for ages above 120", () => {
+    expect(calcRMD(200000, 125, "US")).toBeCloseTo(
+      200000 / 2.0,
+      6
+    );
+  });
+
+  test("Canada starts RRIF withdrawals at age 71", () => {
+    expect(calcRMD(500000, 70, "CA")).toBe(0);
+
+    expect(calcRMD(500000, 71, "CA")).toBeCloseTo(
+      500000 * 0.0528,
+      6
+    );
+  });
+
+  test("Australia uses the account-based pension minimum rate", () => {
+    expect(calcRMD(500000, 59, "AU")).toBe(0);
+
+    expect(calcRMD(500000, 65, "AU")).toBeCloseTo(
+      500000 * 0.05,
+      6
+    );
+  });
+
+  test("Switzerland uses the legacy 4% modeled withdrawal from age 57", () => {
+    expect(calcRMD(500000, 56, "CH")).toBe(0);
+    expect(calcRMD(500000, 57, "CH")).toBe(20000);
+  });
+
+  test("supported Asian countries use 4% from age 60", () => {
+    expect(calcRMD(500000, 59, "JP")).toBe(0);
+    expect(calcRMD(500000, 60, "JP")).toBe(20000);
+  });
+
+  test("unknown countries use the fallback rule from age 72", () => {
+    expect(calcRMD(500000, 71, "ZZ")).toBe(0);
+    expect(calcRMD(500000, 72, "ZZ")).toBe(20000);
   });
 });
 
@@ -95,9 +139,11 @@ describe("ageFromDOB", () => {
     expect(ageFromDOB("1990-06-15", new Date("2026-06-14"))).toBe(35);
   });
 
-  test("never returns a negative age", () => {
-    expect(ageFromDOB("2030-01-01", new Date("2026-01-01"))).toBe(0);
-  });
+  test("returns a negative age for a future DOB", () => {
+  expect(
+    ageFromDOB("2030-01-01", new Date("2026-01-01"))
+  ).toBe(-4);
+});
 });
 
 describe("formatMoney", () => {

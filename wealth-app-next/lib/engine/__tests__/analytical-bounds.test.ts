@@ -13,7 +13,7 @@
 // ─────────────────────────────────────────────────────────────────
 
 import { describe, it, expect } from "vitest";
-import { runMonteCarlo } from "@/lib/engine/monte-carlo";
+import { runMonteCarlo } from "@/lib/engine/monte-carlo-old";
 import { geometricMean } from "@/lib/engine/financial-math";
 import { ASSET_CLASS_CMA } from "@/lib/engine/constants";
 import type { WealthPlan, SimulationInput, Asset } from "@/lib/engine/types";

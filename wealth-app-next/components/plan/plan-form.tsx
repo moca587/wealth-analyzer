@@ -3,9 +3,8 @@
 import { useEffect, useState } from "react";
 import { apiFetch } from "@/lib/tenancy/client";
 import { useRouter } from "next/navigation";
+
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { emptyPlan, newId } from "@/lib/plan/default-plan";
 import { HouseholdSection } from "./sections/household-section";
@@ -65,37 +64,38 @@ export function PlanForm({
   // Warn before leaving with unsaved changes — the app relies on an explicit
   // Save (no autosave), so a stray back/close shouldn't discard a full plan.
   useEffect(() => {
-    if (!dirty) return;
-    const handler = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = ""; };
-    window.addEventListener("beforeunload", handler);
-    return () => window.removeEventListener("beforeunload", handler);
-  }, [dirty]);
+    if (!initialPlan) return;
 
-  // ─── Income/expense/loan/goal helpers ─────────────────────────
-  const addIncome = () => set({ incomes: [...plan.incomes, { id: newId(), clientId: plan.clients[0].id, source: "", amount: 0 }] });
-  const updateIncome = (id: string, patch: Partial<IncomeStream>) =>
-    set({ incomes: plan.incomes.map((x) => (x.id === id ? { ...x, ...patch } : x)) });
-  const removeIncome = (id: string) => set({ incomes: plan.incomes.filter((x) => x.id !== id) });
+    setPlan(initialPlan);
+    setJsonText(JSON.stringify(initialPlan, null, 2));
+  }, [initialPlan]);
 
-  const addExpense = () => set({ expenses: [...plan.expenses, { id: newId(), name: "", amount: 0 }] });
-  const updateExpense = (id: string, patch: Partial<ExpenseCategory>) =>
-    set({ expenses: plan.expenses.map((x) => (x.id === id ? { ...x, ...patch } : x)) });
-  const removeExpense = (id: string) => set({ expenses: plan.expenses.filter((x) => x.id !== id) });
+  function importJsonText() {
+    try {
+      const raw: unknown = JSON.parse(jsonText);
+      const result = legacyWealthPlanSchema.safeParse(raw);
 
-  const addLoan = () => set({ loans: [...plan.loans, { id: newId(), type: "Mortgage", bal: 0, rate: 6.5, yrs: 30 }] });
-  const updateLoan = (id: string, patch: Partial<Loan>) =>
-    set({ loans: plan.loans.map((x) => (x.id === id ? { ...x, ...patch } : x)) });
-  const removeLoan = (id: string) => set({ loans: plan.loans.filter((x) => x.id !== id) });
+      if (!result.success) {
+        const errors = result.error.issues
+          .map((issue) => {
+            const path = issue.path.join(".") || "(root)";
+            return `${path}: ${issue.message}`;
+          })
+          .join("\n");
 
-  const addGoal = () => set({ goals: [...plan.goals, { id: newId(), name: "", amt: 0, startYear: thisYear + 10, endYear: thisYear + 10, tier: "important" }] });
-  const updateGoal = (id: string, patch: Partial<Goal>) =>
-    set({ goals: plan.goals.map((x) => (x.id === id ? { ...x, ...patch } : x)) });
-  const removeGoal = (id: string) => set({ goals: plan.goals.filter((x) => x.id !== id) });
+        setMessage(`Invalid legacy profile:\n${errors}`);
+        return;
+      }
 
-  // Replace the whole plan (used by import) — stamp updatedAt via set().
-  const replacePlan = (next: WealthPlan) => set({ ...next });
+      setPlan(result.data);
+      setJsonText(JSON.stringify(result.data, null, 2));
+      setMessage("JSON profile validated successfully.");
+    } catch {
+      setMessage("The text is not valid JSON.");
+    }
+  }
 
-  // ─── Save to Postgres via /api/plan ───────────────────────────
+  // Take current plan, send it to API, and save it in Supabase
   async function save() {
     setSaving(true);
     setSaved("idle");
@@ -275,8 +275,14 @@ function SectionList<T extends { id: string }>({
           <div key={r.id} className="grid sm:grid-cols-2 lg:grid-cols-5 gap-3 p-4 rounded-lg border border-border bg-muted/30">
             {renderRow(r)}
           </div>
-        ))}
-      </CardContent>
-    </Card>
+
+          {message && (
+            <pre className="whitespace-pre-wrap rounded-md border bg-muted p-4 text-sm">
+              {message}
+            </pre>
+          )}
+        </CardContent>
+      </Card>
+    </div>
   );
 }

@@ -16970,8 +16970,19 @@ function runMC(years,sims,muOverride,sigOverride){
     for(let y=0;y<=years;y++){
       // Chronological snapshot first — net of any cumulative unfunded shortfall,
       // so paths that ran out of liquid assets keep falling instead of flooring.
-      const debtTotal=loanState.reduce((s,l)=>s+l.bal,0);
-      path.push(cash+inv+prop+other+retPot-debtTotal-unfunded);
+
+      // const debtTotal=loanState.reduce((s,l)=>s+l.bal,0);
+      // path.push(cash+inv+prop+other+retPot-debtTotal-unfunded);
+
+      // const debtTotal = loanState.reduce((s, l) => s + l.bal, 0);
+      // path.push(
+      //   cash + inv + prop + other + retPot - debtTotal
+      // );
+
+      const debtTotal = loanState.reduce((s, l) => s + l.bal, 0);
+      path.push(
+        Math.max(0, cash + inv) + prop + other + retPot - debtTotal - unfunded
+      );
 
       if (y === years) break;
 
