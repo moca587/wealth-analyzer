@@ -4236,18 +4236,6 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
       <div class="frow"><label class="flbl">What-if scenarios</label>
         <select id="rptIncWhatIf" class="w180"><option value="yes" selected>Yes (if scenarios added)</option><option value="no">No</option></select>
       </div>
-      <div class="frow"><label class="flbl">Tax buckets &amp; withdrawal order</label>
-        <select id="rptIncTaxBuckets" class="w180"><option value="yes" selected>Yes (if assets added)</option><option value="no">No</option></select>
-      </div>
-      <div class="frow"><label class="flbl">Roth-style conversion window<span class="info-ic">i<span class="info-pop">Shows the years where moving money from tax-deferred to tax-free accounts (a "Roth conversion") is likely cheapest — typically low-income years between retirement and when mandatory withdrawals begin.</span></span></label>
-        <select id="rptIncRoth" class="w180"><option value="yes" selected>Yes (if applicable)</option><option value="no">No</option></select>
-      </div>
-      <div class="frow"><label class="flbl">Required minimum withdrawals<span class="info-ic">i<span class="info-pop"><strong>Required Minimum Distributions (RMDs).</strong> The government-mandated minimum amount that must be withdrawn each year from tax-deferred retirement accounts once you reach the applicable age, per your country's rule.</span></span></label>
-        <select id="rptIncRMD" class="w180"><option value="yes" selected>Yes (if country has a rule)</option><option value="no">No</option></select>
-      </div>
-      <div class="frow"><label class="flbl">Estate transfer summary</label>
-        <select id="rptIncEstate" class="w180"><option value="yes" selected>Yes (if beneficiaries/insurance)</option><option value="no">No</option></select>
-      </div>
       <div class="frow"><label class="flbl">Capital market assumptions<span class="info-ic">i<span class="info-pop"><strong>Capital Market Assumptions (CMA).</strong> The expected-return, volatility, and inflation assumptions used to drive the Monte Carlo simulation for each asset class.</span></span></label>
         <select id="rptIncCMA" class="w180"><option value="yes" selected>Yes</option><option value="no">No</option></select>
       </div>
@@ -4301,7 +4289,7 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
 // ═══════════════════════════════════════════════════════════
 // VERSION — updated by build-standalone.pl on each build
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260719-1647";
+const APP_VERSION = "20260719-1755";
 
 // ═══════════════════════════════════════════════════════════
 // DATA
@@ -18046,12 +18034,12 @@ function gbRenderCMA(weights, port){
 // Order follows the institutional sample deck: Key Findings → Goal Funding →
 // profile/details → Net Worth Details → WAF overview → Risk Categories →
 // Current Status → IPS/Portfolio → Total Portfolio → Efficiency → Performance → …
-const RPT_DEFAULT_ORDER = ["exec","about","hh","inc","assets","insurance","goals","strategies","ips","port","totalportfolio","efficiency","performance","factsheets","wealthframework","riskcategories","riskstatus","sim","fund","goalfunding","lifestyle","potentialwealth","cf","pension","whatif","rmd","taxbuckets","roth","estate","educharts","cma","method","glossary","disc"];
+const RPT_DEFAULT_ORDER = ["exec","about","hh","inc","assets","insurance","goals","strategies","ips","port","totalportfolio","efficiency","performance","factsheets","wealthframework","riskcategories","riskstatus","sim","fund","goalfunding","lifestyle","potentialwealth","cf","pension","whatif","educharts","cma","method","glossary","disc"];
 const RPT_SECTION_LABELS = {
   exec:            "Executive Summary: Key Findings",
   about:           "About the Client (custom)",
   hh:              "Household Profile",
-  inc:             "Income, Expenses & Tax",
+  inc:             "Income & Expenses",
   assets:          "Net Worth Details",
   insurance:       "Insurance Inventory",
   goals:           "Goals & Retirement Plan",
@@ -18070,10 +18058,6 @@ const RPT_SECTION_LABELS = {
   lifestyle:       "Potentially Achievable Lifestyle",
   wealthframework: "Overview: Wealth Allocation Framework",
   potentialwealth: "Annual Potential Wealth",
-  rmd:             "Required Minimum Withdrawals",
-  taxbuckets:      "Tax Buckets & Withdrawal Order",
-  roth:            "Roth-Style Conversion Window",
-  estate:          "Estate Transfer Summary",
   cf:              "Cash-Flow Projection",
   pension:         "Retirement Pensions",
   whatif:          "What-If Scenarios",
@@ -18108,10 +18092,6 @@ const RPT_SECTION_DESC = {
   lifestyle:       "Sustainable annual spending by retirement age (bar chart + table).",
   wealthframework: "Personal / Market / Aspirational bucket allocation.",
   potentialwealth: "Projected portfolio value each year to age 90 (chart + table).",
-  rmd:             "Required minimum withdrawal schedule and estimated tax.",
-  taxbuckets:      "Tax-free / deferred / taxable mix and the recommended withdrawal order.",
-  roth:            "Low-income years where a Roth-style conversion may pay off.",
-  estate:          "Estate / inheritance tax estimate and net to beneficiaries.",
   cf:              "Year-by-year cash-flow projection.",
   pension:         "State/occupational pensions, claiming-age comparison — plus Swiss pillar lump-sum tax and annuity-vs-lump-sum for CH residents.",
   whatif:          "Each saved what-if scenario re-simulated and compared to the baseline plan.",
@@ -18145,11 +18125,9 @@ const RPT_GLOSSARY = [
   ["Percentile (Pessimistic / Optimistic)", "A ranking within the simulated outcomes. The 10th percentile (pessimistic) is beaten by 90% of paths; the 90th (optimistic) by only 10%."],
   ["Potentially Achievable Lifestyle", "The sustainable, inflation-adjusted annual spending the portfolio could support through retirement at a given confidence level."],
   ["Present Value (PV)", "The today's-money equivalent of future cash flows, discounted at a risk- and confidence-adjusted return."],
-  ["Required Minimum Distribution (RMD)", "Mandatory annual withdrawals from tax-deferred retirement accounts from a statutory age (e.g. IRS RMD at 73, Canadian RRIF at 71, Australian Super at 60)."],
   ["Retirement Pool", "The combined locked retirement accounts. Grown at a fixed conservative 3.5%/yr in this analysis — intentionally insulated from the household's investment risk choices."],
   ["Risk Profile", "Your investor categorization, from conservative to aggressive. Sets the expected-return and volatility assumptions when no explicit portfolio drives the simulation."],
   ["Standard Deviation (Volatility, σ)", "The dispersion of returns around the average — the core measure of investment risk. Higher σ means wider swings in outcomes."],
-  ["Tax Drag (CGT Turnover)", "The reduction in effective return caused by realizing taxable gains each year, modelled as: effective return ≈ gross × (1 − CGT rate × turnover)."],
   ["Time Horizon", "How long until the money is needed. Longer horizons can support more volatility because there is more time to recover from downturns."],
   ["Wealth Allocation Framework", "Classification of assets into Personal (preserve lifestyle), Market (balance risk and return), and Aspirational (concentrated upside) buckets."],
   ["Yield", "Annual income (dividends or interest) produced by an investment, expressed as a percentage of its price."]
@@ -19745,10 +19723,6 @@ function drawFanChart(){
       efficiency:     () => val("rptIncPort") !== "no",
       performance:    () => val("rptIncCMA") !== "no",
       potentialwealth:() => val("rptIncPotWealth") !== "no" && lastSimPaths && lastSimPaths.length > 0,
-      rmd:            () => val("rptIncRMD") !== "no" && (typeof rmdRuleFor==="function") && rmdRuleFor(val("c1co")).kind !== "none" && (typeof retirementAccountSeed==="function") && retirementAccountSeed() > 0,
-      taxbuckets:     () => val("rptIncTaxBuckets") !== "no" && (typeof computeWithdrawalOrder==="function") && (function(){ try{ return computeWithdrawalOrder().t.total > 0; }catch(_){ return false; } })(),
-      roth:           () => val("rptIncRoth") !== "no" && (typeof computeRothConversion==="function") && (function(){ try{ const r=computeRothConversion(); return r.mech.avail!==false && r.deferredPool>0 && r.windowYears>0; }catch(_){ return false; } })(),
-      estate:         () => val("rptIncEstate") !== "no" && (beneficiaries.length > 0 || insuranceDeathBenefit() > 0),
       cma:            () => val("rptIncCMA") !== "no",
       cf:             () => val("rptIncCF") !== "no",
       pension:        () => val("rptIncPension") !== "no" && ((((val("penSrc")||"none")!=="none") && num("penAnnual",0)>0)
@@ -19796,8 +19770,6 @@ function drawFanChart(){
         summary:"How your money is invested: the policy that governs the portfolio, what you hold today, how efficiently it is allocated, and the framework used to balance risk against your goals." },
       { title:"Retirement", divider:true, keys:["sim","potentialwealth","cf","pension","whatif"],
         summary:"What retirement could look like in numbers: your projected wealth to age 90 across many simulated futures, the year-by-year figures behind that chart, your cash flow over time, the pensions your plan counts on — including the Swiss pillar choices where they apply — and the what-if scenarios you asked us to test." },
-      { title:"Taxes & Estate", divider:true, keys:["rmd","taxbuckets","roth","estate"],
-        summary:"The rules and sequencing that decide how much of your wealth you keep: required withdrawals, tax-aware ordering, conversion windows, and what passes to your heirs." },
       { title:"Appendix", divider:true, keys:["educharts","cma","method","glossary","disc"],
         summary:"Reference material behind the numbers: educational charts, the capital-market assumptions, methodology, a glossary of terms, and important disclosures." },
     ];
@@ -20157,7 +20129,7 @@ function drawFanChart(){
         // Headline KPI grid (redesign) — the numbers a reader scans first.
         (function(){
           const investableK = investableAssetsValue();
-          const surplus = (typeof inc!=="undefined") ? (inc - (typeof tax!=="undefined"?tax:0) - (typeof exp!=="undefined"?exp:0)) : null;
+          const surplus = (typeof inc!=="undefined" && typeof getNetSurplus==="function") ? getNetSurplus() : null;
           kpiGrid([
             {label:"Net Worth",         value:fmt(nw),          sub:"Assets minus liabilities"},
             {label:"Total Assets",      value:fmt(totA),        sub:"Investment + personal"},
@@ -20366,18 +20338,19 @@ function drawFanChart(){
         y += 26 + 6;
         doc.setTextColor(40); doc.setFont("helvetica","normal"); doc.setFontSize(fsz);
       },
-      // ─── INCOME, EXPENSES & TAX ──
+      // ─── INCOME & EXPENSES ──
       inc: () => {
         if(val("rptIncInc") === "no") return;
         checkY(30);
-        sectionH2("Income, Expenses & Tax");
-        plainLead("What comes in each year, what goes out, and what is left over to save. The gap between the two bars below is the fuel your plan runs on.");
-        // ── Money in vs money out — paired horizontal bars, surplus/deficit
-        //    highlighted in the gap (stage 3).
+        sectionH2("Income & Expenses");
+        plainLead("What comes in each year, what goes out on living costs and obligations, and what is left over to save and invest toward your goals.");
+        // ── Money in vs money out — money out is a single 'total outgoings' bar
+        //    (living costs + loan payments + other annual obligations), so the gap
+        //    equals the true surplus, which the engine already nets internally.
         (function(){
-          const moneyIn = inc, moneyOut = tax + exp;
+          const moneyIn = inc, moneyOut = Math.max(0, inc - surplus);
           if(!(moneyIn>0 || moneyOut>0)) return;
-          const f = chartFrame("Money In vs Money Out", "Gross income vs taxes + living costs, per year. The difference is your surplus (green) or shortfall (red).", 34);
+          const f = chartFrame("Money In vs Money Out", "What comes in vs what goes out each year. The difference is your surplus (green) or shortfall (red).", 34);
           const maxV = Math.max(moneyIn, moneyOut, 1);
           const bx = M+34, bw = CW-34-30, bh = 7, gap2 = 4;
           const wOf = v => Math.max(1, bw*v/maxV);
@@ -20391,43 +20364,42 @@ function drawFanChart(){
             by += bh+gap2;
           };
           rowBar("Money in", moneyIn, tint(ac,0.15));
-          // money-out bar: tax segment (muted) + expenses segment (accent tint)
-          doc.setFont("helvetica","bold"); doc.setFontSize(7); doc.setTextColor(...INK);
-          doc.text("Money out", M, by+bh-2);
-          const wTax = Math.max(0, bw*tax/maxV), wExp = Math.max(0, bw*exp/maxV);
-          doc.setFillColor(...FAINT); doc.roundedRect(bx, by, Math.max(1,wTax), bh, 1, 1, "F");
-          doc.setFillColor(...tint(ac,0.55)); doc.rect(bx+wTax, by, Math.max(1,wExp), bh, "F");
-          doc.setFont("helvetica","bold"); doc.setFontSize(7.4); doc.setTextColor(...INK);
-          doc.text(fmt(moneyOut), bx+wTax+wExp+2.5, by+bh-2);
-          // surplus / deficit marker spanning the gap between bar ends
+          rowBar("Money out", moneyOut, tint(ac,0.55));
           const gapCol = surplus>=0 ? GOOD : BAD;
           doc.setFont("helvetica","bold"); doc.setFontSize(7.2); doc.setTextColor(...gapCol);
-          doc.text((surplus>=0?"Surplus ":"Shortfall ")+fmt(Math.abs(surplus))+"/yr", bx, by+bh+5);
+          doc.text((surplus>=0?"Surplus ":"Shortfall ")+fmt(Math.abs(surplus))+"/yr", bx, by+1);
           doc.setFont("helvetica","normal"); doc.setFontSize(6.2); doc.setTextColor(...MUTED);
-          doc.text("Money out = taxes ("+fmt(tax)+", gray) + expenses ("+fmt(exp)+")", bx+bw*0.45, by+bh+5);
-          y = by+bh+10;
+          doc.text("Money out covers your living costs, loan payments and other annual obligations.", bx+bw*0.34, by+1);
+          y = by+7;
           doc.setTextColor(40); doc.setFontSize(fsz);
         })();
+        // Income sources
+        subBar("Income");
         const incRows=[
-          ["Client 1 salary",          fmt(num("inc1",0))],
-          ["Client 1 bonus / other",   fmt(num("inc2",0))],
+          ["Client 1 salary",        fmt(num("inc1",0))],
+          ["Client 1 bonus / other", fmt(num("inc2",0))],
         ];
         if(showC2){
-          incRows.push(["Client 2 salary",   fmt(num("inc1b",0))]);
-          incRows.push(["Client 2 bonus",    fmt(num("inc2b",0))]);
+          incRows.push(["Client 2 salary", fmt(num("inc1b",0))]);
+          incRows.push(["Client 2 bonus",  fmt(num("inc2b",0))]);
         }
-        incRows.push(["Gross household income",  fmt(inc)]);
-        incRows.push(["Estimated income tax",    fmt(tax)+" ("+(inc>0?(tax/inc*100).toFixed(1):0)+"% effective)"]);
-        if(children.length>0) incRows.push(["Child / family benefit saving", fmt(getChildTaxSaving(inc))]);
-        incRows.push(["Net after-tax income",    fmt(inc-tax)]);
-        incRows.push(["",""]);
-        incRows.push(["Living expenses",         fmt(num("expL",0))]);
-        incRows.push(["Insurance / health",      fmt(num("expI",0))]);
-        incRows.push(["Other expenses",          fmt(num("expO",0))]);
-        incRows.push(["Total annual expenses",   fmt(exp)]);
-        incRows.push(["Annual savings target",   fmt(sav)]);
-        incRows.push(["Annual surplus / deficit",fmt(surplus)+(surplus<0?" ⚠":"")]);
-        kv(incRows);
+        incRows.push(["Total household income", fmt(inc)]);
+        tbl(["Source","Amount"], incRows, {columnStyles:{0:{cellWidth:CW*0.6}}});
+        // Expenses
+        subBar("Expenses");
+        tbl(["Category","Amount"], [
+          ["Living expenses",       fmt(num("expL",0))],
+          ["Insurance / health",    fmt(num("expI",0))],
+          ["Other expenses",        fmt(num("expO",0))],
+          ["Total annual expenses", fmt(exp)],
+        ], {columnStyles:{0:{cellWidth:CW*0.6}}});
+        // What's left to save & invest
+        subBar("What's left to save & invest");
+        kv([
+          ["Annual savings target",              fmt(sav)],
+          ["Annual surplus available to invest", fmt(surplus)+(surplus<0?" ⚠":"")],
+        ]);
+        para("Your surplus is what remains each year after living costs, loan repayments and other annual obligations — the money your plan puts to work toward your goals.", MUTED);
       },
       // ─── ASSETS & LIABILITIES ──
       assets: () => {
@@ -20689,7 +20661,6 @@ function drawFanChart(){
         tbl(["Dimension","Policy"],[
           ["Time horizon", d.yrsToRet>0?`~${d.yrsToRet} yrs to retirement (age ${d.retAge}), then a multi-decade decumulation horizon.`:`In or near decumulation; horizon spans the remaining retirement period.`],
           ["Liquidity", `Cash reserve ~6-12 months' expenses (${fmt(d.reserveLo)}-${fmt(d.reserveHi)}). Goals due within 3 yrs funded from cash/short fixed income${d.nearTermNeed>0?` (near-term need ~${fmt(d.nearTermNeed)}/yr)`:""}. Current liquid: ${(d.liquidPct*100).toFixed(0)}% of investable.`],
-          ["Taxes", `Jurisdiction ${d.country}; estimated effective rate ${(d.effTax*100).toFixed(0)}%. Use tax-advantaged accounts first; apply asset location and loss harvesting.`],
           ["Legal/regulatory", `Managed under the laws of ${d.country}. A planning framework, not a discretionary mandate; the client retains decision authority.`],
           ["Unique circumstances", (d.concentrated.length?`Concentrated holdings: ${d.concentrated.map(c=>c.name+" ("+c.pct.toFixed(0)+"%)").join(", ")} (each >20% of portfolio). `:"")+"Held-away assets and ESG/values preferences recorded as applicable."]
         ],{columnStyles:{0:{fontStyle:"bold",cellWidth:CW*0.22}}});
@@ -20719,7 +20690,7 @@ function drawFanChart(){
         } else {
           para("No portfolio holdings entered; current-versus-policy drift will appear once holdings are recorded.");
         }
-        para("Rebalancing policy: rebalance when any class deviates from target by more than 5 percentage points or 25% (relative), whichever is greater; otherwise review at least annually. Direct new cash flows to underweight classes to limit turnover and tax.");
+        para("Rebalancing policy: rebalance when any class deviates from target by more than 5 percentage points or 25% (relative), whichever is greater; otherwise review at least annually. Direct new cash flows to underweight classes to limit turnover.");
         sub("6. Monitoring & review");
         para("Performance is assessed against a blended benchmark weighted to the policy allocation, over a full market cycle (3-5 years). The IPS is reviewed at least annually and upon material changes to circumstances, goals or market regime.");
         sub("7. Roles & responsibilities");
@@ -21548,105 +21519,6 @@ function drawFanChart(){
         tbl(["Scenario","Changes","Median wealth","vs baseline","Goal success"], rows);
         para("Median wealth is the 50th percentile of simulated net worth at the end of the projection horizon. Each scenario uses fresh random draws, so figures can wobble slightly between reports.", MUTED);
       },
-      roth: () => {
-        if(val("rptIncRoth") === "no") return;
-        let s; try{ s=computeRothConversion(); }catch(e){ return; }
-        if(!s || s.mech.avail===false || !(s.deferredPool>0) || s.windowYears<=0) return;
-        newPage();
-        const cn=(COUNTRY_ACCOUNTS[val("c1co")]&&COUNTRY_ACCOUNTS[val("c1co")].name)||"";
-        sectionH2("Roth-Style Conversion Window");
-        para((cn?cn+" - ":"")+s.mech.name+(s.mech.avail==="partial"?" (analogous strategy)":"")+". "+s.mech.note);
-        kv([
-          ["Low-income window", "age "+s.windowStart+"-"+s.windowEnd+"  ("+s.windowYears+" years)"],
-          ["Tax-deferred pool today", fmt(s.deferredPool)],
-          ["Suggested level conversion / yr", fmt(s.annualConv)],
-          ["Estimated tax rate in window", (s.windowTax*100).toFixed(0)+"%"],
-          ["Estimated tax / yr", fmt(s.taxPerYear)],
-          ["Total converted over window", fmt(s.totalConverted)],
-          ["Estimated total tax", fmt(s.totalTax)],
-        ]);
-        para("Spreading the tax-deferred pool across the low-income window moves it into the tax-free bucket at an estimated "+(s.windowTax*100).toFixed(0)+"% rate, rather than leaving it to grow the tax-deferred balance and force larger, higher-rate required withdrawals later.");
-        para("Illustrative, level-conversion estimate - not tax advice. The optimal amount depends on filling specific tax brackets, benefit/credit thresholds and other income. Confirm with a tax professional.", MUTED);
-      },
-      // ─── TAX BUCKETS & WITHDRAWAL ORDER ──
-      taxbuckets: () => {
-        if(val("rptIncTaxBuckets") === "no") return;
-        let w; try{ w=computeWithdrawalOrder(); }catch(e){ return; }
-        if(!w || !(w.t.total>0)) return;
-        newPage();
-        sectionH2("Tax Buckets & Withdrawal Order");
-        plainLead("Not all accounts are taxed the same. Spending from them in the right ORDER in retirement can make the same savings last years longer - this page shows the recommended sequence.");
-        const t=w.t, pc=v=>t.total>0?Math.round(v/t.total*100)+"%":"—";
-        para("Your wealth grouped by how it is taxed, with a tax-efficient order in which to draw on it during retirement.");
-        tbl(["Tax bucket","Balance","Share"],[
-          ["Tax-free (Roth / ISA / TFSA / NISA)", fmt(t.taxFree), pc(t.taxFree)],
-          ["Tax-deferred (401k / IRA / RRSP / pension)", fmt(t.taxDeferred), pc(t.taxDeferred)],
-          ["Taxable (brokerage / cash / other)", fmt(t.taxable), pc(t.taxable)],
-          ["Total", fmt(t.total), "100%"]
-        ]);
-        para("Asset-location score: "+t.score+"/100 (100 = all growth assets sheltered from tax).");
-        para("Recommended withdrawal order in retirement:");
-        w.order.forEach((o,i)=>para((i+1)+".  "+o.step+" — "+o.detail, INK_SOFT));
-        if(w.notes.length){ para("Observations:"); w.notes.forEach(n=>para("-  "+n, WARN)); }
-        para("General sequencing guidance, not personal tax advice — bracket management, benefit thresholds and estate goals can change the optimal order. Confirm with a tax professional.", MUTED);
-      },
-      // ─── REQUIRED MINIMUM WITHDRAWALS (RMD / RRIF / min pension) ──
-      rmd: () => {
-        if(val("rptIncRMD") === "no") return;
-        let s; try{ s=computeRMDSchedule(); }catch(e){ return; }
-        if(s.rule.kind==="none" || !s.rows.length) return;
-        newPage();
-        const cn=(COUNTRY_ACCOUNTS[val("c1co")]&&COUNTRY_ACCOUNTS[val("c1co")].name)||"";
-        const kindLbl={rmd:"US Required Minimum Distributions",rrif:"Canada RRIF minimum",minpension:"Australia minimum pension drawdown"}[s.rule.kind]||s.rule.kind;
-        sectionH2("Required Minimum Withdrawals");
-        plainLead("Some retirement accounts legally require you to start withdrawing (and paying tax on) a minimum amount each year from a certain age - whether you need the money or not. This page estimates those forced withdrawals.");
-        para((cn?cn+" - ":"")+kindLbl+". "+s.rule.note+" Pool projected at "+(s.growth*100).toFixed(1)+"%/yr; tax estimated at "+(s.effTax*100).toFixed(0)+"% effective. Illustrative - not tax advice.");
-        kv([
-          ["Rule", kindLbl],
-          ["Mandatory from age", String(s.rule.startAge)],
-          ["Tax-deferred pool (today)", fmt(s.base)],
-          ["Total required withdrawals (to age "+s.planAge+")", fmt(s.totalW)],
-          ["Estimated tax on those withdrawals", fmt(s.totalTax)],
-        ]);
-        checkY(30);
-        const step=s.rows.length>22?5:1;
-        const shown=s.rows.filter((r,i)=>i%step===0 || i===s.rows.length-1);
-        tbl(["Age","Year","Pool (start)","Required %","Withdrawal","Est. tax","Pool (end)"],
-          shown.map(r=>[r.age, r.year, fmt(r.startBal), (r.frac*100).toFixed(2)+"%", fmt(r.withdrawal), fmt(r.taxEst), fmt(r.endBal)]));
-        para("Required minimum withdrawals are forced taxable distributions; they need not be spent, but the tax is due whether or not the funds are needed. Roth-type accounts are generally exempt. Confirm current factors with a tax professional.", MUTED);
-      },
-      // ─── ESTATE TRANSFER SUMMARY (lite) ──
-      estate: () => {
-        if(val("rptIncEstate") === "no" || (beneficiaries.length === 0 && insuranceDeathBenefit() <= 0)) return;
-        checkY(40);
-        sectionH2("Estate Transfer Summary");
-        plainLead("What would pass to your heirs, and roughly what tax would be due on it. A will and beneficiary designations decide WHO gets it; this page estimates HOW MUCH survives the transfer.");
-        let e; try{ e = computeEstate(); }catch(_){ return; }
-        if(!e) return;
-        para(e.fromProjection
-          ? "A simplified estimate of what transfers at the end of the projection, using the median Monte Carlo net worth plus life-insurance death benefits."
-          : "A simplified estimate based on current net worth plus life-insurance death benefits (run the simulation for a projected figure).");
-        if(e.regime){
-          const blab={estate:"Estate tax (on the estate)",inheritance:"Inheritance tax (on what heirs receive)",none:"No estate or inheritance tax",deemed:"No estate tax - capital gains at death",unknown:"Set manually"}[e.regime.basis]||e.regime.basis;
-          para((e.country?e.country+" - ":"")+blab+". "+e.regime.note+" Illustrative ~2024 default, editable in the app - not tax advice.", MUTED);
-        }
-        kv([
-          [e.fromProjection?"Median projected estate":"Current net worth", fmt(e.baseNW)],
-          ["Life insurance death benefits", fmt(e.death)],
-          ["Gross estate", fmt(e.gross)],
-          ["Estate tax exemption", fmt(e.exemption)],
-          ["Estate tax ("+(e.rate*100).toFixed(0)+"% above exemption)", fmt(e.tax)],
-          ["Net to beneficiaries", fmt(e.net)],
-        ]);
-        if(beneficiaries.length > 0){
-          checkY(30);
-          tbl(["Beneficiary","Relationship","Share","Receives"],
-            beneficiaries.map(b=>[b.name, b.rel, (+b.share||0).toFixed(0)+"%", fmt(e.net*(+b.share||0)/100)]));
-          if(e.totalShare !== 100)
-            para((e.totalShare<100?"Unallocated":"Over-allocated")+" share: "+(100-e.totalShare).toFixed(0)+"% ("+fmt(e.net*(100-e.totalShare)/100)+").", WARN);
-        }
-        para("This summary ignores probate, state and inheritance taxes, trusts, basis step-up, and exemption portability. Consult an estate-planning professional.", MUTED);
-      },
       // ─── CASH FLOW ──
       cf: () => {
         if(val("rptIncCF") === "no") return;
@@ -21682,12 +21554,12 @@ function drawFanChart(){
           const filtered=_all.filter((_,i)=>i%step===0);
           // Summary sampling must never drop the FINAL year (the age-90 row)
           if(step>1 && (_all.length-1)%step!==0) filtered.push(_all[_all.length-1]);
-          tbl(["Year","Age","Phase","Earned income","Pension/RMD","Tax","Expenses","Surplus","Net worth"],
+          tbl(["Year","Age","Phase","Earned income","Pension","Expenses","Surplus","Net worth"],
             filtered.map(r=>{
               const c=r.cells;
-              if(c.length<14) return Array(9).fill("—");
+              if(c.length<14) return Array(8).fill("—");
               return [c[0]?.textContent||"",c[1]?.textContent||"",c[2]?.textContent||"",
-                c[3]?.textContent||"",c[4]?.textContent||"",c[5]?.textContent||"",
+                c[3]?.textContent||"",c[4]?.textContent||"",
                 c[6]?.textContent||"",c[9]?.textContent||"",c[14]?.textContent||""];
             }));
         } else {
@@ -21721,8 +21593,8 @@ function drawFanChart(){
         para("Asset growth: Investment accounts grow at the sampled portfolio return. Property appreciates stochastically at 3% ± 2% per year. Retirement pool grows at a fixed 3.5% nominal across both accumulation and retirement (intentionally conservative, decoupled from household risk and AI portfolio). Cash earns no explicit return.");
         para("Savings & surplus: The annual savings target is deposited to cash each year if surplus allows. Positive residual surplus (above savings) is treated as discretionary spending. Deficits draw from cash first, then investments.");
         para("Debt amortisation: Each loan amortises annually using standard mortgage math. Interest and principal separation is computed per loan at each simulation step.");
-        para("Tax: Income tax is estimated from configurable bracket tables for the selected country. Child/family benefit offsets are applied per country rules. Tax drag on investment returns is modelled through a CGT turnover drag.");
-        para("Retirement drawdown: Voluntary 4% drawdown begins at the configured retirement age. When two clients are present, the pool is split equally and each half draws independently based on each client's own retirement age. Mandatory drawdown rules (IRS RMD, RRIF, Australian Super) apply from the relevant statutory age.");
+        para("Net figures: Projections apply prevailing income and investment taxes internally so that surplus, cash flow and net worth stay realistic. This report does not itemise, display or advise on tax — consult a qualified tax professional for tax matters.");
+        para("Retirement drawdown: Voluntary 4% drawdown begins at the configured retirement age. When two clients are present, the pool is split equally and each half draws independently based on each client's own retirement age. Any statutory minimum withdrawals are applied from the relevant age where they exist.");
         para("Inflation: All expenses, retirement spend, and pension COLA adjustments compound at the configured annual inflation rate.");
       },
       // ─── INVESTOR EDUCATION CHARTS (advisor-selected) ──
@@ -21814,9 +21686,9 @@ function drawFanChart(){
           });
         } else {
           const DISC = {
-            standard:"This report has been prepared for educational and planning purposes only. It does not constitute investment, tax, or legal advice. All tax figures shown are simplified estimates — this report does not provide tax advice; consult a qualified tax professional regarding your personal situation. Monte Carlo projections rely on randomly sampled returns based on configurable assumptions and do not predict actual future market behaviour. Past performance is not a reliable indicator of future results. All projections are estimates and actual results will differ, potentially significantly. Inflation, tax, and regulatory changes are not modelled dynamically. Consult a licensed financial professional before making any financial decisions. This document is not a prospectus or offering document.",
-            advisor:"PROFESSIONAL USE NOTICE. This report has been prepared for advisor use and client presentation purposes only. It relies on client-supplied data and capital market assumptions that may differ materially from actual outcomes. Monte Carlo projections model stochastic return paths and carry inherent uncertainty — actual results will differ. Sequence-of-returns risk, behavioural factors, unexpected expenses, and changes in tax law are not fully captured in the model. Tax figures are simplified estimates and do not constitute tax advice. This document does not constitute investment advice, a personal financial plan, or a prospectus. The advisor should review all assumptions, validate all data inputs, and disclose all material conflicts of interest to the client prior to use. Not for redistribution to third parties.",
-            minimal:"For educational purposes only. Not financial or tax advice — tax figures are simplified estimates. Consult a licensed advisor and a tax professional before making financial decisions.",
+            standard:"This report has been prepared for educational and planning purposes only. It does not constitute investment, tax, or legal advice, and does not provide tax advice — consult a qualified tax professional regarding your personal situation. Monte Carlo projections rely on randomly sampled returns based on configurable assumptions and do not predict actual future market behaviour. Past performance is not a reliable indicator of future results. All projections are estimates and actual results will differ, potentially significantly. Inflation, tax, and regulatory changes are not modelled dynamically. Consult a licensed financial professional before making any financial decisions. This document is not a prospectus or offering document.",
+            advisor:"PROFESSIONAL USE NOTICE. This report has been prepared for advisor use and client presentation purposes only. It relies on client-supplied data and capital market assumptions that may differ materially from actual outcomes. Monte Carlo projections model stochastic return paths and carry inherent uncertainty — actual results will differ. Sequence-of-returns risk, behavioural factors, unexpected expenses, and changes in tax law are not fully captured in the model. This report does not constitute tax advice. This document does not constitute investment advice, a personal financial plan, or a prospectus. The advisor should review all assumptions, validate all data inputs, and disclose all material conflicts of interest to the client prior to use. Not for redistribution to third parties.",
+            minimal:"For educational purposes only. Not financial, tax, or legal advice. Consult a licensed advisor and a tax professional before making financial decisions.",
           };
           para(DISC[discLvl]||DISC.standard);
         }
