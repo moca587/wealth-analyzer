@@ -4301,7 +4301,7 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
 // ═══════════════════════════════════════════════════════════
 // VERSION — updated by build-standalone.pl on each build
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260719-1603";
+const APP_VERSION = "20260719-1632";
 
 // ═══════════════════════════════════════════════════════════
 // DATA
@@ -20244,26 +20244,107 @@ function drawFanChart(){
       // ─── HOUSEHOLD PROFILE ──
       hh: () => {
         if(val("rptIncHH") === "no") return;
-        checkY(30);
+        checkY(118);
         sectionH2("Household Profile");
-        plainLead("Who this plan is for: the people in the household, where they live, and the risk comfort level and time horizon every later page is built on.");
-        const hhRows=[
-          ["Client 1 name",(val("c1f")||"—")+" "+(val("c1l")||"")],
-          ["Client 1 age",a1age+" years"],
-          ["Country / region",COUNTRY_ACCOUNTS[val("c1co")]?.name||val("c1co")||"—"],
-          ["Risk profile",RISK_PROFILES[val("c1r")]?.label||"—"],
-          ["Time horizon",HORIZON_PROFILES[val("c1h")]?.label||"—"],
-          ["Desired retirement age",num("retAge",65)+" years"],
-        ];
+        plainLead("Who this plan is for — the people in the household, where they live, and the risk comfort and time horizon every later page is built on.");
+
+        // ── data ─────────────────────────────────────────────────────────
+        const _ini = nm => { const p=String(nm||"").trim().split(/\s+/); return (((p[0]||"")[0]||"")+((p[1]||"")[0]||"")).toUpperCase() || "C"; };
+        const _riskLbl = k => RISK_PROFILES[k]?.label || "—";
+        const _horLbl  = k => HORIZON_PROFILES[k]?.label || "—";
+        const _muSig   = k => { const r=RISK_PROFILES[k]; return r ? ("~"+r.retMean.toFixed(1)+"% · vol "+r.retVol+"%") : "—"; };
+        // Every client card lists the SAME four person-specific stats, so the
+        // two cards read symmetrically. Shared plan facts (retirement age,
+        // residence, currency, children) live in the Household strip below.
+        const _personRows = (rKey, hKey, ageStr) => [
+          ["Age", ageStr], ["Risk profile", _riskLbl(rKey)],
+          ["Time horizon", _horLbl(hKey)], ["Return / vol", _muSig(rKey)] ];
+        const c1name = ((val("c1f")||"")+" "+(val("c1l")||"")).trim() || "Client 1";
+        const people = [{
+          initials:_ini(c1name), name:c1name, role: showC2?"Client 1":"Primary client",
+          rows:_personRows(val("c1r"), val("c1h"), a1age+" yrs")
+        }];
         if(showC2){
-          hhRows.push(["Client 2 name",(val("c2f")||"—")+" "+(val("c2l")||"")]);
-          hhRows.push(["Client 2 age",(ageFromDOB(val("c2d"))||"—")+" years"]);
-          hhRows.push(["Client 2 risk",RISK_PROFILES[val("c2r")]?.label||"—"]);
+          const c2name = ((val("c2f")||"")+" "+(val("c2l")||"")).trim() || "Client 2";
+          const c2age = ageFromDOB(val("c2d"));
+          people.push({
+            initials:_ini(c2name), name:c2name, role:"Client 2",
+            rows:_personRows(val("c2r"), val("c2h"), (c2age!=null?c2age:"—")+" yrs")
+          });
         }
-        if(children.length>0){
-          hhRows.push(["Children",children.map(c=>(c.first||"Child")+(c.dob?" (age "+ageFromDOB(c.dob)+")":"")).join(", ")]);
+        // household-level facts (residence, currency, retirement, children)
+        const _cName = COUNTRY_ACCOUNTS[val("c1co")]?.name || val("c1co") || "—";
+        let _canton = val("c1st");
+        if(val("c1co")==="CH" && typeof CH_CANTON_NAMES!=="undefined" && CH_CANTON_NAMES[_canton]) _canton = CH_CANTON_NAMES[_canton];
+        const _same = (a,b) => String(a).localeCompare(String(b), undefined, {sensitivity:"base"})===0;
+        const residence = [val("c1ci"), _canton, _cName].map(s=>String(s||"").trim())
+          .filter(Boolean).filter((s,i,a)=>a.findIndex(o=>_same(o,s))===i) // drop repeated city/canton names
+          .join(", ") || "—";
+        const ccy = (typeof CURRENT_CCY!=="undefined" && CURRENT_CCY) || "USD";
+        const kidStr = children.length ? children.map(c=>(c.first||"Child")+(c.dob?" ("+ageFromDOB(c.dob)+")":"")).join(", ") : "None on file";
+        const hhFacts = [ ["Residence", residence], ["Reporting currency", ccy],
+                          ["Target retirement", "Age "+num("retAge",65)], ["Children", kidStr] ];
+
+        // ── drawing helpers ──────────────────────────────────────────────
+        const CARD_H = showC2 ? 49 : 39;   // taller for the 2×2 stat grid; compact for a single 1×4 row
+        const _fit = (txt, maxW, size, style) => { doc.setFont("helvetica",style||"normal"); let s=size; doc.setFontSize(s); while(s>6 && doc.getTextWidth(String(txt))>maxW){ s-=0.3; doc.setFontSize(s);} return s; };
+        function statGrid(x0, y0, w, stats, ncol){
+          const cellW = w/ncol;
+          stats.forEach((st,i)=>{
+            const cx = x0 + (i%ncol)*cellW, cy = y0 + Math.floor(i/ncol)*11;
+            doc.setFont("helvetica","bold"); doc.setFontSize(6.3); doc.setTextColor(...MUTED);
+            doc.text(String(st[0]).toUpperCase(), cx, cy, {charSpace:0.3});
+            const s=_fit(st[1], cellW-3, 9.2, "bold");
+            doc.setFont("helvetica","bold"); doc.setFontSize(s); doc.setTextColor(...INK);
+            doc.text(String(st[1]), cx, cy+4.9);
+          });
         }
-        kv(hhRows);
+        function personCard(x, yy, w, p, ncol){
+          doc.setFillColor(...CARD_BG); doc.setDrawColor(...CARD_LN); doc.setLineWidth(0.3);
+          doc.roundedRect(x, yy, w, CARD_H, 1.8, 1.8, "FD");
+          doc.setFillColor(...ac); doc.rect(x+1.8, yy, w-3.6, 1.1, "F");   // accent top
+          const cx=x+12, cy=yy+13, r=7.6;
+          doc.setFillColor(...ac); doc.circle(cx, cy, r, "F");
+          doc.setFont("helvetica","bold"); doc.setFontSize(9.5); doc.setTextColor(255,255,255);
+          doc.text(p.initials, cx, cy+3.2, {align:"center"});
+          const ns=_fit(p.name, w-30, 12.5, "bold");
+          doc.setFont("helvetica","bold"); doc.setFontSize(ns); doc.setTextColor(...INK);
+          doc.text(p.name, x+23, yy+11.6);
+          doc.setFont("helvetica","normal"); doc.setFontSize(7); doc.setTextColor(...MUTED);
+          doc.text(String(p.role).toUpperCase(), x+23, yy+16.6, {charSpace:0.6});
+          doc.setDrawColor(...LINE); doc.setLineWidth(0.3); doc.line(x+6, yy+23, x+w-6, yy+23);
+          statGrid(x+6.5, yy+29.5, w-13, p.rows, ncol);
+        }
+        function factsStrip(x, yy, w){
+          const H=26;
+          doc.setFillColor(...acBar); doc.setDrawColor(...CARD_LN); doc.setLineWidth(0.3);
+          doc.roundedRect(x, yy, w, H, 1.8, 1.8, "FD");
+          doc.setFillColor(...ac); doc.rect(x, yy+2.5, 1.6, H-5, "F");   // accent tab
+          doc.setFont("helvetica","bold"); doc.setFontSize(7); doc.setTextColor(...acDark);
+          doc.text("HOUSEHOLD", x+6, yy+7.2, {charSpace:0.6});
+          const cellW=(w-9)/hhFacts.length;
+          hhFacts.forEach((f,i)=>{
+            const cx=x+6+i*cellW;
+            doc.setFont("helvetica","bold"); doc.setFontSize(6.1); doc.setTextColor(...MUTED);
+            doc.text(String(f[0]).toUpperCase(), cx, yy+14, {charSpace:0.3});
+            doc.setFont("helvetica","normal"); doc.setFontSize(8); doc.setTextColor(...INK_SOFT);
+            doc.text(doc.splitTextToSize(String(f[1]), cellW-3).slice(0,2), cx, yy+18.4);
+          });
+        }
+
+        // ── layout ───────────────────────────────────────────────────────
+        const yTop=y;
+        if(showC2){
+          const gap=5, w=(CW-gap)/2;
+          personCard(M,           yTop, w, people[0], 2);
+          personCard(M+w+gap,     yTop, w, people[1], 2);
+        } else {
+          personCard(M, yTop, CW, people[0], 4);
+        }
+        y = yTop + CARD_H + 5;
+        factsStrip(M, y, CW);
+        y += 26 + 6;
+        doc.setTextColor(40); doc.setFont("helvetica","normal"); doc.setFontSize(fsz);
       },
       // ─── INCOME, EXPENSES & TAX ──
       inc: () => {
