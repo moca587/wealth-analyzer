@@ -21360,44 +21360,79 @@ function drawFanChart(){
         if(!groups.length) return;
         const startY  = _tocStartY;
         const bottomY = ph - 18;
-        const colGap  = 16;
-        const colW    = (CW - colGap) / 2;
+        const usable  = (bottomY - startY) - 14;
         const BItem = 6.4, BHead = 9.6, BGap = 4.5;
         const baseH = g => BHead + g.items.length*BItem + BGap;
-        const total = groups.reduce((s,g)=>s+baseH(g), 0);
-        let run=0, splitAt=1;
-        for(let i=0;i<groups.length;i++){ run+=baseH(groups[i]); if(run>=total/2){ splitAt=i+1; break; } }
-        splitAt = groups.length>=2 ? Math.max(1, Math.min(splitAt, groups.length-1)) : groups.length;
-        const columns = [ groups.slice(0,splitAt), groups.slice(splitAt) ];
-        const colBase = columns.map(gs => gs.reduce((s,g)=>s+baseH(g),0));
-        const usable = (bottomY - startY) - 14;
-        const scale = Math.min(1, usable / Math.max(1, Math.max.apply(null, colBase)));
+        const H = groups.map(baseH);
+        // Split chapter blocks into n ordered columns minimising the tallest
+        // column (chapter blocks never split mid-chapter).
+        function bestSplit(n){
+          if(groups.length < n) n = groups.length;
+          let best = null;
+          (function rec(start, colsLeft, cuts){
+            if(colsLeft === 1){
+              const bounds=[0, ...cuts, H.length]; let maxH=0;
+              for(let b=0;b<bounds.length-1;b++){ let s=0; for(let i=bounds[b];i<bounds[b+1];i++) s+=H[i]; maxH=Math.max(maxH,s); }
+              if(!best || maxH < best.maxH) best={maxH, cuts:[...cuts]};
+              return;
+            }
+            for(let c=start+1;c<=H.length-(colsLeft-1);c++) rec(c, colsLeft-1, [...cuts,c]);
+          })(0, n, []);
+          return best;
+        }
+        // Prefer the classic 2-column look; add a 3rd column instead of
+        // shrinking the type below ~85% (rows compressed while fonts stayed
+        // full-size used to make the rules cut through the next row's text).
+        const two   = bestSplit(2);
+        const three = groups.length >= 3 ? bestSplit(3) : null;
+        const s2 = Math.min(1, usable/Math.max(1, two.maxH));
+        const useThree = three && s2 < 0.85 && Math.min(1, usable/Math.max(1, three.maxH)) > s2;
+        const chosen = useThree ? three : two;
+        const cuts = [0, ...chosen.cuts, groups.length];
+        const columns = []; for(let b=0;b<cuts.length-1;b++) columns.push(groups.slice(cuts[b], cuts[b+1]));
+        const nCols = columns.length;
+        const colGap = nCols>2 ? 12 : 16;
+        const colW   = (CW - (nCols-1)*colGap) / nCols;
+        const scale  = Math.min(1, usable / Math.max(1, chosen.maxH));
+        // EVERYTHING scales together — row pitch, fonts, offsets and rule
+        // positions — so the geometry stays proportional at any density and a
+        // rule can never intersect the text above or below it.
         const headH = BHead*scale, itemH = BItem*scale, pGap = BGap*scale;
+        const fEye=(fsz-1.5)*scale, fTitle=(fsz+1)*scale, fHpg=fsz*scale;
+        const fNum=Math.max(6,10.5*scale), fLbl=9.3*scale, fPg=8.6*scale;
         columns.forEach((gs, ci) => {
           const x = M + ci*(colW+colGap);
           let yy = startY + 8;
           gs.forEach(g => {
-            doc.setFont("helvetica","bold"); doc.setFontSize(fsz-1.5); doc.setTextColor(...ac);
+            doc.setFont("helvetica","bold"); doc.setFontSize(fEye); doc.setTextColor(...ac);
             const _eyeTxt = "CHAPTER "+g.n;
-            doc.text(_eyeTxt, x, yy, {charSpace:0.8});
+            doc.text(_eyeTxt, x, yy, {charSpace:0.8*scale});
             // getTextWidth() ignores the charSpace used when drawing — add it back
-            // (0.8 per glyph) so the title can't paint over the letter-spaced eyebrow.
-            const rw = doc.getTextWidth(_eyeTxt) + _eyeTxt.length*0.8 + 3.4;
-            doc.setFont("helvetica","bold"); doc.setFontSize(fsz+1); doc.setTextColor(...acDark);
-            doc.text(doc.splitTextToSize(g.title, colW-rw-14)[0], x+rw, yy, {charSpace:0.2});
-            if(g.page){ doc.setFont("helvetica","bold"); doc.setFontSize(fsz); doc.setTextColor(...acDark);
+            // (per glyph) so the title can't paint over the letter-spaced eyebrow.
+            const rw = doc.getTextWidth(_eyeTxt) + _eyeTxt.length*0.8*scale + 3.4*scale;
+            doc.setFont("helvetica","bold"); doc.setTextColor(...acDark);
+            // Fit the title: step the size down (never below 8.5pt) before truncating
+            let _tfs=fTitle; doc.setFontSize(_tfs);
+            while(_tfs>8.5 && doc.getTextWidth(g.title)>colW-rw-12){ _tfs-=0.3; doc.setFontSize(_tfs); }
+            doc.text(doc.splitTextToSize(g.title, colW-rw-12)[0], x+rw, yy, {charSpace:0.2});
+            if(g.page){ doc.setFont("helvetica","bold"); doc.setFontSize(fHpg); doc.setTextColor(...acDark);
               doc.text(String(g.page), x+colW-2, yy, {align:"right"}); }
-            doc.setDrawColor(...LINE); doc.setLineWidth(0.35); doc.line(x, yy+2.4, x+colW-2, yy+2.4);
+            doc.setDrawColor(...LINE); doc.setLineWidth(0.35); doc.line(x, yy+2.4*scale, x+colW-2, yy+2.4*scale);
             yy += headH;
             g.items.forEach(it => {
-              doc.setFont("helvetica","italic"); doc.setFontSize(10.5*scale>7?10.5*Math.max(scale,0.75):8); doc.setTextColor(...ac);
+              doc.setFont("helvetica","italic"); doc.setFontSize(fNum); doc.setTextColor(...ac);
               doc.text(String(it.n).padStart(2,"0"), x, yy);
-              doc.setFont("helvetica","normal"); doc.setFontSize(9.3); doc.setTextColor(...INK);
-              const line = doc.splitTextToSize(it.label, colW - 26)[0];
-              doc.text(line, x+10, yy);
-              doc.setFont("helvetica","normal"); doc.setFontSize(8.6); doc.setTextColor(...MUTED);
+              doc.setFont("helvetica","normal"); doc.setTextColor(...INK);
+              // Fit the label into the space up to the page-number gutter:
+              // step the size down (never below 7pt) before truncating.
+              const _lblW = colW - 14 - 10*scale;
+              let _lfs=fLbl; doc.setFontSize(_lfs);
+              while(_lfs>7 && doc.getTextWidth(it.label)>_lblW){ _lfs-=0.3; doc.setFontSize(_lfs); }
+              const line = doc.splitTextToSize(it.label, _lblW)[0];
+              doc.text(line, x+10*scale, yy);
+              doc.setFont("helvetica","normal"); doc.setFontSize(fPg); doc.setTextColor(...MUTED);
               doc.text(String(it.page), x+colW-2, yy, {align:"right"});
-              doc.setDrawColor(...LINE); doc.setLineWidth(0.2); doc.line(x, yy+2.3, x+colW-2, yy+2.3);
+              doc.setDrawColor(...LINE); doc.setLineWidth(0.2); doc.line(x, yy+2.3*scale, x+colW-2, yy+2.3*scale);
               yy += itemH;
             });
             yy += pGap;
