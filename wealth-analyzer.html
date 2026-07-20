@@ -20088,26 +20088,38 @@ function drawFanChart(){
             y = gy2 + axisH + 2;
             doc.setTextColor(40); doc.setFontSize(fsz);
           })();
-          tbl(["Goal","Annual amount","Year range","Duration","Category","Tier"],
-            goals.map(g=>[g.name, fmt(g.amt)+"/yr", g.startYear+"–"+g.endYear,
-              (g.endYear-g.startYear+1)+" yrs", g.cat||"—", g.tier||"—"]));
+          // priority (tier) colour legend explaining the timeline bars above
+          (function(){
+            const _tl=[["Essential",acDark],["Important",ac],["Aspirational",WARN]];
+            let _lx=M; doc.setFont("helvetica","normal"); doc.setFontSize(6.6); doc.setTextColor(...MUTED);
+            doc.text("Priority:", _lx, y); _lx += doc.getTextWidth("Priority:")+4;
+            _tl.forEach(([lbl,col])=>{ doc.setFillColor(...col); doc.roundedRect(_lx, y-2.3, 3, 3, 0.6,0.6,"F");
+              doc.setTextColor(...MUTED); doc.text(lbl, _lx+4.3, y); _lx += doc.getTextWidth(lbl)+13; });
+            y += 6; doc.setTextColor(40);
+          })();
+          const _cap = s => (s&&String(s).trim()) ? String(s).charAt(0).toUpperCase()+String(s).slice(1) : "—";
+          tbl(["Goal","Category","Cost / year","When","Priority"],
+            goals.map(g=>{ const yrs=g.endYear-g.startYear+1;
+              return [g.name||"(goal)", _cap(g.cat), fmt(g.amt)+" / yr",
+                g.startYear+"–"+g.endYear+"  ("+yrs+" yr"+(yrs===1?"":"s")+")", _cap(g.tier)]; }),
+            {columnStyles:{2:{halign:"right"}}});
         } else { para("No goals defined."); }
-        checkY(20);
-        const retRows=[
-          ["Desired retirement age",num("retAge",65)+" years"],
-          ["Retirement spend (today's $)",fmt(num("retSpend",0))+" / yr"],
-          ["Inflation rate assumption",num("inf",3.8).toFixed(1)+"% / yr"],
-          ["Retirement account pool (seed)",fmt(retirementAccountSeed())],
-          ["Pension / SS source",val("penSrc")||"—"],
-          ["Pension / SS start age",num("penStartAge",67)+" years"],
-          ["Annual pension / SS",fmt(num("penAnnual",0))+" / yr"],
-        ];
-        if(showC2){
-          retRows.push(["Client 2 pension source",val("penSrc2")||"—"]);
-          retRows.push(["Client 2 pension start",num("penStartAge2",67)+" years"]);
-          retRows.push(["Client 2 annual pension",fmt(num("penAnnual2",0))+" / yr"]);
-        }
-        checkY(30); sectionH2("Retirement Parameters"); kv(retRows);
+        checkY(40); sectionH2("Retirement Parameters");
+        // Headline numbers as scannable cards, then a plain-language pension summary.
+        kpiGrid([
+          {label:"Retire at",         value:"Age "+num("retAge",65),        sub:"planned"},
+          {label:"Annual spend",      value:fmt(num("retSpend",0)),         sub:"in today's money"},
+          {label:"Inflation assumed", value:num("inf",3.8).toFixed(1)+"%",  sub:"per year"},
+        ], {cols:3, h:20, valSize:14});
+        const _penLbl = c => { c=String(c||"none"); return (c==="none"||!c) ? "None" : c.replace(/_/g," ").replace(/\b\w/g,m=>m.toUpperCase()); };
+        const paramRows=[["Retirement savings pool (today)", fmt(retirementAccountSeed())]];
+        if((val("penSrc")||"none")!=="none" || num("penAnnual",0)>0)
+          paramRows.push([(showC2?(val("c1f")||"Client 1")+" — ":"")+"Pension / state benefit",
+            _penLbl(val("penSrc"))+"  ·  "+fmt(num("penAnnual",0))+" / yr from age "+num("penStartAge",67)]);
+        if(showC2 && ((val("penSrc2")||"none")!=="none" || num("penAnnual2",0)>0))
+          paramRows.push([(val("c2f")||"Client 2")+" — Pension / state benefit",
+            _penLbl(val("penSrc2"))+"  ·  "+fmt(num("penAnnual2",0))+" / yr from age "+num("penStartAge2",67)]);
+        kv(paramRows);
         // ── Retirement income stack — where a typical retirement year's money
         //    comes from vs the spending need (stage 3, today's dollars).
         (function(){
