@@ -4289,7 +4289,7 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
 // ═══════════════════════════════════════════════════════════
 // VERSION — updated by build-standalone.pl on each build
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260720-1003";
+const APP_VERSION = "20260720-1037";
 
 // ═══════════════════════════════════════════════════════════
 // DATA
@@ -18034,7 +18034,7 @@ function gbRenderCMA(weights, port){
 // Order follows the institutional sample deck: Key Findings → Goal Funding →
 // profile/details → Net Worth Details → WAF overview → Risk Categories →
 // Current Status → IPS/Portfolio → Total Portfolio → Efficiency → Performance → …
-const RPT_DEFAULT_ORDER = ["exec","about","hh","inc","assets","insurance","goals","strategies","ips","port","totalportfolio","efficiency","performance","factsheets","wealthframework","riskcategories","riskstatus","sim","fund","goalfunding","lifestyle","potentialwealth","cf","pension","whatif","educharts","cma","method","glossary","disc"];
+const RPT_DEFAULT_ORDER = ["hh","about","exec","inc","assets","insurance","goals","strategies","ips","port","totalportfolio","efficiency","performance","factsheets","wealthframework","riskcategories","riskstatus","sim","fund","goalfunding","lifestyle","potentialwealth","cf","pension","whatif","educharts","cma","method","glossary","disc"];
 const RPT_SECTION_LABELS = {
   exec:            "Executive Summary: Key Findings",
   about:           "About the Client (custom)",
@@ -19760,7 +19760,7 @@ function drawFanChart(){
     // silently disappear from the report or its Contents.
     const CHAPTERS = [
       { title:"How to Read This Report", divider:false, keys:["howto"], summary:"" },
-      { title:"Where You Stand Today", divider:true, keys:["exec","about","hh","inc","assets","insurance"],
+      { title:"Where You Stand Today", divider:true, keys:["hh","about","exec","inc","assets","insurance"],
         summary:"The starting point: who is in the household, what you own and owe, what comes in and goes out each year, and the headline numbers of your plan today." },
       { title:"Your Goals & Retirement Plan", divider:true, keys:["goals","strategies"],
         summary:"What you are working toward - the goals you have set, when they fall due, and the retirement lifestyle the plan is designed to support." },
