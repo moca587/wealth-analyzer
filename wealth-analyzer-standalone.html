@@ -4289,7 +4289,7 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
 // ═══════════════════════════════════════════════════════════
 // VERSION — updated by build-standalone.pl on each build
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260720-1600";
+const APP_VERSION = "20260720-1619";
 
 // ═══════════════════════════════════════════════════════════
 // DATA
@@ -18034,7 +18034,7 @@ function gbRenderCMA(weights, port){
 // Order follows the institutional sample deck: Key Findings → Goal Funding →
 // profile/details → Net Worth Details → WAF overview → Risk Categories →
 // Current Status → IPS/Portfolio → Total Portfolio → Efficiency → Performance → …
-const RPT_DEFAULT_ORDER = ["hh","about","exec","inc","assets","insurance","goals","strategies","ips","port","totalportfolio","efficiency","performance","wealthframework","riskcategories","riskstatus","sim","fund","goalfunding","lifestyle","potentialwealth","cf","pension","whatif","factsheets","educharts","cma","method","glossary","disc"];
+const RPT_DEFAULT_ORDER = ["hh","about","exec","inc","assets","insurance","goals","strategies","ips","port","proposal","totalportfolio","efficiency","performance","wealthframework","riskcategories","riskstatus","sim","fund","goalfunding","lifestyle","potentialwealth","cf","pension","whatif","factsheets","educharts","cma","method","glossary","disc"];
 const RPT_SECTION_LABELS = {
   exec:            "Executive Summary: Key Findings",
   about:           "About the Client (custom)",
@@ -18051,6 +18051,7 @@ const RPT_SECTION_LABELS = {
   performance:     "Asset Class & Allocation Performance",
   ips:             "Investment Policy Statement",
   port:            "Portfolio Analysis",
+  proposal:        "Proposed Portfolio",
   factsheets:      "Investment Fact Sheets",
   sim:             "Monte Carlo Projection",
   fund:            "Goal Success Probability",
@@ -18085,6 +18086,7 @@ const RPT_SECTION_DESC = {
   strategies:      "Plain-language summary of the plan's key strategies.",
   ips:             "Investment Policy Statement — objectives, constraints and target allocation.",
   port:            "Current holdings, weights, expected return and risk.",
+  proposal:        "The proposed target portfolio — holdings, allocation and how it compares with your current mix.",
   factsheets:      "One fact sheet per proposal position — returns, risk and fees.",
   sim:             "Monte Carlo projection — percentile fan chart and outcome table.",
   fund:            "Probability of reaching each goal.",
@@ -19711,6 +19713,7 @@ function drawFanChart(){
       strategies: () => val("rptIncStrategies") !== "no",
       ips:        () => val("rptIncIPS") !== "no",
       port:       () => val("rptIncPort") !== "no" && investments.length > 0,
+      proposal:   () => val("rptIncPort") !== "no" && proposals.length > 0,
       factsheets: () => wantFactsheets && factPositions.length > 0,
       sim:            () => val("rptIncSim") !== "no",
       fund:           () => val("rptIncFund") !== "no",
@@ -19766,7 +19769,7 @@ function drawFanChart(){
         summary:"What you are working toward - the goals you have set, when they fall due, and the retirement lifestyle the plan is designed to support." },
       { title:"What the Future May Hold", divider:true, keys:["fund","goalfunding","lifestyle"],
         summary:"We replay your finances across many simulated market futures. These pages show how likely each goal is to be funded and the lifestyle your plan can sustain." },
-      { title:"Your Investments", divider:true, keys:["ips","port","totalportfolio","efficiency","performance","wealthframework","riskcategories","riskstatus"],
+      { title:"Your Investments", divider:true, keys:["ips","port","proposal","totalportfolio","efficiency","performance","wealthframework","riskcategories","riskstatus"],
         summary:"How your money is invested: the policy that governs the portfolio, what you hold today, how efficiently it is allocated, and the framework used to balance risk against your goals." },
       { title:"Retirement", divider:true, keys:["sim","potentialwealth","cf","pension","whatif"],
         summary:"What retirement could look like in numbers: your projected wealth to age 90 across many simulated futures, the year-by-year figures behind that chart, your cash flow over time, the pensions your plan counts on — including the Swiss pillar choices where they apply — and the what-if scenarios you asked us to test." },
@@ -20796,22 +20799,77 @@ function drawFanChart(){
             });
             y=rowY+pieR*2+18;
           }
-          if(proposals.length){
-            const pByClass=aggregate(proposals,"alloc", clsOf, clsLbl);
-            if(meaningful(pByClass) && meaningful(byClass)){
-              checkY(60);
-              subBar("Current vs Proposed Allocation");
-              para("Your current asset-class mix beside the proposed mix, so the changes the proposal would make are easy to see.", [110,118,130]);
-              const colW=CW/2, pieR=15, rowY=y;
-              [{t:"Current",s:byClass},{t:"Proposed",s:pByClass}].forEach((c,ci)=>{ const cx0=M+colW*ci;
-                doc.setFont("helvetica","bold"); doc.setFontSize(8.5); doc.setTextColor.apply(doc,acDark); doc.text(c.t, cx0, rowY);
-                drawPieChart(cx0+pieR+1, rowY+pieR+5, pieR, c.s);
-                pieLegend(cx0+pieR*2+6, rowY+3, colW-(pieR*2+10), c.s);
-              });
-              y=rowY+pieR*2+16;
-            }
-          }
         } catch(e){ console.warn("allocation pies failed:", e); }
+      },
+      // ─── PROPOSED PORTFOLIO (target holdings + current-vs-proposed comparison) ──
+      proposal: () => {
+        if(val("rptIncPort") === "no" || proposals.length === 0) return;
+        newPage();
+        sectionH2("Proposed Portfolio");
+        plainLead("The portfolio we propose for you: the target holdings, how they divide across asset classes, and how that compares with what you hold today.");
+        const propTot = proposals.reduce((s,p)=>s+(+p.alloc||0),0) || 100;
+        const amt = num("prAmount",0);
+        // ── Proposed holdings table ──
+        subBar("Proposed holdings");
+        const head = amt>0 ? ["Position","Ticker","Asset class","Allocation","Amount","Yield","Cost"]
+                           : ["Position","Ticker","Asset class","Allocation","Yield","Cost"];
+        const rows = proposals.map(p=>{
+          const r=[p.name||"—", p.tkr||"—", (INV_CLASS_LABELS[p.cls]||p.cls||"—")+(p.subcat?" · "+p.subcat:""), (+p.alloc||0).toFixed(1)+"%"];
+          if(amt>0) r.push(fmt(amt*(+p.alloc||0)/100));
+          r.push(p.yld!=null?(+p.yld).toFixed(2)+"%":"—", p.er!=null?(+p.er).toFixed(2)+"%":"—");
+          return r;
+        });
+        const wYld = proposals.reduce((s,p)=>s+(+p.yld||0)*(+p.alloc||0),0)/propTot;
+        const wEr  = proposals.reduce((s,p)=>s+(+p.er||0)*(+p.alloc||0),0)/propTot;
+        const totRow = ["Total","","",propTot.toFixed(1)+"%"];
+        if(amt>0) totRow.push(fmt(amt));
+        totRow.push(wYld.toFixed(2)+"%", wEr.toFixed(2)+"%");
+        rows.push(totRow);
+        tbl(head, rows, {columnStyles:{3:{halign:"right"}}});
+        // ── Allocation pie + current-vs-proposed comparison ──
+        try {
+          const aggregate=(items,wKey,keyFn,labelFn)=>{ const m={}; items.forEach(it=>{ const w=+it[wKey]||0; if(w<=0) return; const k=keyFn(it)||"—"; m[k]=(m[k]||0)+w; }); return Object.keys(m).map((k,i)=>({label:String(labelFn(k)), value:m[k], color:CHART_PALETTE[i%CHART_PALETTE.length]})); };
+          const clsOf=it=>(typeof effClass==="function"?effClass(it):it.cls);
+          const clsLbl=k=>(typeof INV_CLASS_LABELS!=="undefined"&&INV_CLASS_LABELS[k])||k;
+          const pByClass=aggregate(proposals,"alloc", clsOf, clsLbl);
+          const byClass=investments.length?aggregate(investments,"val", clsOf, clsLbl):[];
+          if(byClass.length && pByClass.length){
+            checkY(62);
+            subBar("Current vs Proposed");
+            para("Your current asset-class mix beside the proposed mix, so the changes the proposal would make are easy to see.", [110,118,130]);
+            const colW=CW/2, pieR=15, rowY=y;
+            [{t:"Current",s:byClass},{t:"Proposed",s:pByClass}].forEach((c,ci)=>{ const cx0=M+colW*ci;
+              doc.setFont("helvetica","bold"); doc.setFontSize(8.5); doc.setTextColor.apply(doc,acDark); doc.text(c.t, cx0, rowY);
+              drawPieChart(cx0+pieR+1, rowY+pieR+5, pieR, c.s);
+              pieLegend(cx0+pieR*2+6, rowY+3, colW-(pieR*2+10), c.s);
+            });
+            y=rowY+pieR*2+16;
+            // key metrics side by side
+            try {
+              const curP=getEffectiveReturnParams(); const curMu=+curP.mu||0;
+              let propGrossMu=curMu+(+getPortfolioAdvisoryFeePct()||0);
+              const m=computePortfolioMetrics(proposals,"alloc"); propGrossMu=+m.grossMu||propGrossMu;
+              const propMu=Math.max(0, propGrossMu-(+getProposalAdvisoryFeePct()||0));
+              const curVal=investments.reduce((s,i)=>s+(+i.val||0),0)||1;
+              const curYld=investments.reduce((s,i)=>s+(+i.yld||0)*(+i.val||0),0)/curVal;
+              const curEr =investments.reduce((s,i)=>s+(+i.er||0)*(+i.val||0),0)/curVal;
+              checkY(30);
+              tbl(["Metric","Current","Proposed"],[
+                ["Expected return (per year)", (curMu*100).toFixed(1)+"%", (propMu*100).toFixed(1)+"%"],
+                ["Income yield", curYld>0?curYld.toFixed(2)+"%":"—", wYld.toFixed(2)+"%"],
+                ["Cost (weighted expense ratio)", curEr>0?curEr.toFixed(2)+"%":"—", wEr.toFixed(2)+"%"],
+                ["Number of holdings", String(investments.length), String(proposals.length)],
+              ], {columnStyles:{0:{fontStyle:"bold",cellWidth:CW*0.44}}});
+            } catch(e){ console.warn("proposal metrics failed:", e); }
+          } else if(pByClass.length){
+            checkY(56);
+            subBar("Proposed asset-class mix");
+            para("How the proposed portfolio divides across asset classes.", [110,118,130]);
+            drawPieChart(M+18, y+17, 16, pByClass);
+            pieLegend(M+44, y+3, CW-62, pByClass);
+            y += 40;
+          }
+        } catch(e){ console.warn("proposed allocation failed:", e); }
       },
       // ─── INVESTMENT VEHICLE FACT SHEETS (Morningstar) ──
       factsheets: () => {
