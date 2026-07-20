@@ -17594,7 +17594,7 @@ const RPT_SECTION_LABELS = {
   about:           "About the Client (custom)",
   hh:              "Household Profile",
   inc:             "Income & Expenses",
-  assets:          "Net Worth Details",
+  assets:          "Net Worth Statement",
   insurance:       "Insurance Inventory",
   goals:           "Goals & Retirement Plan",
   strategies:      "Plan Strategies",
@@ -19998,66 +19998,21 @@ function drawFanChart(){
         newPage();
         try { drawNetWorthStatement(); }
         catch(e){ console.warn("Net Worth Statement failed:", e); doc.setFont("helvetica","italic"); doc.setTextColor(120); doc.text("Net Worth Statement unavailable for this data.", M, y+8); }
-        // Equity Compensation — folded in here as a subsection of the Net Worth
-        // Statement (unvested equity is not counted in net worth; info-only line).
-        try { drawEquityComp(); }
-        catch(e){ console.warn("Equity Compensation failed:", e); }
-        // Page 2 — Net Worth Summary (bar + asset/liability pies)
+        // Equity Compensation — on its OWN page (still within the Net Worth
+        // Statement section) so it is clearly visible, not crammed under the
+        // balance sheet.
+        if(val("rptIncEquity") !== "no" && equityComp.length > 0){
+          currentSectionTitle = "Net Worth Statement";
+          newPage();
+          try { drawEquityComp(); }
+          catch(e){ console.warn("Equity Compensation failed:", e); }
+        }
+        // Net Worth Summary (bar + asset/liability pies)
         currentSectionTitle = "Net Worth Summary";
         newPage();
         para("A visual summary of your balance sheet. The bar chart compares total assets, total liabilities and the resulting net worth. The two pie charts break down what your assets are made of and where your debts sit, so you can see your biggest concentrations at a glance.");
         try { drawNetWorthSummary(); }
         catch(e){ console.warn("Net Worth Summary failed:", e); doc.setFont("helvetica","italic"); doc.setTextColor(120); doc.text("Net Worth Summary unavailable for this data.", M, y+8); }
-        // Page 3+ — Net Worth Details (institutional-style categorized statement)
-        currentSectionTitle = "Net Worth Details";
-        newPage();
-        checkY(30);
-        sectionH2("Net Worth Details");
-        plainLead("Everything you own, everything you owe, and the difference between them - your net worth. Working assets (investments) grow your plan; personal assets (home, valuables) support your lifestyle.");
-        (function(){
-          const isRet = a => (!a.liquid && (a.withdrawAge>0)) || (typeof TAX_DEFERRED_TYPES!=="undefined" && TAX_DEFERRED_TYPES.has(a.type));
-          const isEdu = a => /529|resp\b|junior|education|jisa|coverdell/i.test((a.type||"")+" "+(a.label||""));
-          const personal=[], retirement=[], portfolio=[], education=[];
-          assets.forEach(a=>{
-            const row=[a.label, a.baseLabel||a.type, fmt(a.value)];
-            if(isEdu(a)) education.push(row);
-            else if(isRet(a)) retirement.push(row);
-            else portfolio.push(row);
-          });
-          if(num("aProp",0)>0)       personal.push(["Home / Real estate","Real estate",fmt(num("aProp",0))]);
-          if(insuranceCashValue()>0) personal.push(["Insurance cash value","Life / annuity",fmt(insuranceCashValue())]);
-          if(num("aOther",0)>0)      personal.push(["Other personal assets","Misc.",fmt(num("aOther",0))]);
-          const pfExtra = investableAssetsValue() - totalAccountValue();
-          if(pfExtra>0.5) portfolio.push(["Portfolio holdings (Investments tab)","Securities",fmt(pfExtra)]);
-          // Category subtotals computed from source data (not parsed back from fmt)
-          const vPersonal = num("aProp",0)+insuranceCashValue()+num("aOther",0);
-          const vRet      = assets.filter(a=>!isEdu(a)&&isRet(a)).reduce((s,a)=>s+(+a.value||0),0);
-          const vEdu      = assets.filter(isEdu).reduce((s,a)=>s+(+a.value||0),0);
-          const vPort     = totA - vPersonal - vRet - vEdu;
-          if(personal.length){ subBar("Personal Assets");
-            tbl(["Asset","Type","Value"], personal.concat([["Total Personal Assets","",fmt(vPersonal)]])); }
-          if(retirement.length||portfolio.length){ subBar("Investment Assets");
-            const invRows=[];
-            if(retirement.length){ invRows.push(["— Retirement assets —","",""]); retirement.forEach(r=>invRows.push(r)); invRows.push(["Total Retirement Assets","",fmt(vRet)]); }
-            if(portfolio.length){ invRows.push(["— Portfolio assets —","",""]); portfolio.forEach(r=>invRows.push(r)); invRows.push(["Total Portfolio Assets","",fmt(Math.max(0,vPort))]); }
-            invRows.push(["Total Investment Assets","",fmt(vRet+Math.max(0,vPort))]);
-            tbl(["Asset","Type","Value"], invRows); }
-          if(education.length){ subBar("Education Assets");
-            tbl(["Asset","Type","Value"], education.concat([["Total Education Assets","",fmt(vEdu)]])); }
-          checkY(24);
-          subBar("Liabilities");
-          if(loans.length>0){
-            tbl(["Loan","Balance","Rate","Remaining yrs","Monthly payment"],
-              loans.map(l=>[l.label,"("+fmt(l.bal)+")",l.rate.toFixed(2)+"%",l.yrs||"—",fmt(loanMonthly(l))])
-                .concat([["Total Liabilities","("+fmt(debtTot)+")","","",""]]));
-          } else { para("No liabilities entered."); }
-          subBar("Summary");
-          tbl(["","Amount"],[
-            ["Total Assets", fmt(totA)],
-            ["Total Liabilities", "("+fmt(debtTot)+")"],
-            ["Net Worth", fmt(nw)],
-          ]);
-        })();
       },
       // ─── INSURANCE INVENTORY ──
       insurance: () => {
@@ -20270,6 +20225,7 @@ function drawFanChart(){
         sub("Risk / return positioning (efficient frontier)");
         para("Each dot is a model risk profile plotted by its expected return and volatility; the dashed line is the efficient-frontier fit. The highlighted dot is this household's policy positioning.", [110,118,130]);
         try { checkY(82); drawEfficientFrontier(M, y, CW, 64); y += 64 + 6; } catch(e){ console.warn("efficient frontier failed:", e); }
+        newPage();   // current allocation, rebalancing & monitoring start on a clean page
         sub("5. Current allocation & rebalancing");
         if(d.driftRows){
           tbl(["Asset class","Policy","Current","Drift","Status"],
@@ -20280,7 +20236,39 @@ function drawFanChart(){
         }
         para("Rebalancing policy: rebalance when any class deviates from target by more than 5 percentage points or 25% (relative), whichever is greater; otherwise review at least annually. Direct new cash flows to underweight classes to limit turnover.");
         sub("6. Monitoring & review");
-        para("Performance is assessed against a blended benchmark weighted to the policy allocation, over a full market cycle (3-5 years). The IPS is reviewed at least annually and upon material changes to circumstances, goals or market regime.");
+        para("Monitoring is continuous; formal review is scheduled. Between reviews the portfolio is watched for drift away from the policy weights and for any breach of the ranges set in section 4. Performance is judged over a full market cycle (3-5 years) rather than on short-term moves — a strategy that fits your goals can still lag in any single year, and reacting to noise is one of the surest ways to erode long-run returns.");
+        para("Results are measured against a blended benchmark built from your own policy weights, so the portfolio is compared with its target mix rather than any single headline index:", [110,118,130]);
+        // Blended-benchmark composition (= policy weights) — the pie the portfolio is judged against
+        try {
+          const _bseg = (d.allocRows||[]).filter(r=>(+r.target||0)>0).map((r,i)=>({label:String(r.label)+" "+(+r.target||0)+"%", value:+r.target||0, color:CHART_PALETTE[i%CHART_PALETTE.length]}));
+          if(_bseg.length){
+            checkY(46);
+            drawPieChart(M+18, y+17, 16, _bseg);
+            pieLegend(M+44, y+3, CW-62, _bseg);
+            y += 40;
+          }
+        } catch(e){ console.warn("benchmark pie failed:", e); }
+        // What we monitor — focus area / measure / threshold-cadence
+        checkY(52);
+        tbl(["Focus area","How it is measured","Threshold / cadence"],[
+          ["Allocation drift","Each class weight vs its policy target","Rebalance at ±5 pts or ±25% (relative)"],
+          ["Performance","Total return vs the blended policy benchmark","Judged over a full cycle (3-5 yrs)"],
+          ["Risk","Portfolio volatility vs your profile's band","Flag if sustained outside the band"],
+          ["Goal funding","Present-value funding ratio of stated goals","Reviewed at least annually"],
+          ["Costs","Fund + advisory costs vs value added","Reviewed annually"],
+          ["Concentration","Largest single-holding weight","Flag any position above 20%"],
+        ],{columnStyles:{0:{fontStyle:"bold",cellWidth:CW*0.24}}});
+        // Live monitoring snapshot — where the portfolio stands right now
+        try {
+          const _gc=[27,104,65], _ac=[176,118,36];
+          kpiGrid([
+            {label:"Allocation", value:(d.rebalanceNeeded?"Rebalance":"On policy"), sub:"vs policy bands", subColor:(d.rebalanceNeeded?_ac:_gc)},
+            (d.fundingRatio!=null?{label:"Goals funded", value:Math.round(d.fundingRatio*100)+"%", sub:"present-value basis", subColor:(d.fundingRatio>=1?_gc:_ac)}:null),
+            {label:"Liquidity", value:(d.liquidPct*100).toFixed(0)+"%", sub:"of investable in cash"},
+            {label:"Largest holding", value:(d.concentrated&&d.concentrated.length?d.concentrated[0].pct.toFixed(0)+"%":"under 20%"), sub:"single-position weight", subColor:(d.concentrated&&d.concentrated.length?_ac:_gc)},
+          ].filter(Boolean), {cols:4, h:20, valSize:12.5});
+        } catch(e){ console.warn("monitoring snapshot failed:", e); }
+        para("A review is also triggered off-cycle by: a change in your goals or time horizon; a material change in income, wealth or family circumstances; a shift in market regime or in the long-term capital-market assumptions; or any policy breach flagged above. At each review the objectives, risk tolerance, allocation and constraints are re-confirmed and the policy updated where needed.");
         sub("7. Roles & responsibilities");
         tbl(["Party","Responsibilities"],[
           ["Client(s)","Provide complete, accurate information; fund the plan; approve the policy and changes; give timely notice of material changes."],
