@@ -4289,7 +4289,7 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
 // ═══════════════════════════════════════════════════════════
 // VERSION — updated by build-standalone.pl on each build
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260719-1755";
+const APP_VERSION = "20260720-0949";
 
 // ═══════════════════════════════════════════════════════════
 // DATA
@@ -20344,62 +20344,96 @@ function drawFanChart(){
         checkY(30);
         sectionH2("Income & Expenses");
         plainLead("What comes in each year, what goes out on living costs and obligations, and what is left over to save and invest toward your goals.");
+        const moneyIn = inc, moneyOut = Math.max(0, inc - surplus);
+        const gapCol = surplus>=0 ? GOOD : BAD;
         // ── Money in vs money out — money out is a single 'total outgoings' bar
         //    (living costs + loan payments + other annual obligations), so the gap
         //    equals the true surplus, which the engine already nets internally.
         (function(){
-          const moneyIn = inc, moneyOut = Math.max(0, inc - surplus);
           if(!(moneyIn>0 || moneyOut>0)) return;
-          const f = chartFrame("Money In vs Money Out", "What comes in vs what goes out each year. The difference is your surplus (green) or shortfall (red).", 34);
+          const f = chartFrame("Money In vs Money Out", "What comes in vs what goes out each year. The difference is your surplus (green) or shortfall (red).", 32);
           const maxV = Math.max(moneyIn, moneyOut, 1);
-          const bx = M+34, bw = CW-34-30, bh = 7, gap2 = 4;
+          const bx = M+34, bw = CW-34-32, bh = 7.5, gap2 = 4;
           const wOf = v => Math.max(1, bw*v/maxV);
           let by = f.yTop+2;
           const rowBar = (lbl, v, col) => {
-            doc.setFont("helvetica","bold"); doc.setFontSize(7); doc.setTextColor(...INK);
-            doc.text(lbl, M, by+bh-2);
-            doc.setFillColor(...col); doc.roundedRect(bx, by, wOf(v), bh, 1, 1, "F");
-            doc.setFont("helvetica","bold"); doc.setFontSize(7.4); doc.setTextColor(...INK);
-            doc.text(fmt(v), bx+wOf(v)+2.5, by+bh-2);
+            doc.setFont("helvetica","bold"); doc.setFontSize(7.2); doc.setTextColor(...INK);
+            doc.text(lbl, M, by+bh-2.4);
+            doc.setFillColor(...col); doc.roundedRect(bx, by, wOf(v), bh, 1.2, 1.2, "F");
+            doc.setFont("helvetica","bold"); doc.setFontSize(7.8); doc.setTextColor(...INK);
+            doc.text(fmt(v), bx+wOf(v)+2.5, by+bh-2.4);
             by += bh+gap2;
           };
           rowBar("Money in", moneyIn, tint(ac,0.15));
           rowBar("Money out", moneyOut, tint(ac,0.55));
-          const gapCol = surplus>=0 ? GOOD : BAD;
-          doc.setFont("helvetica","bold"); doc.setFontSize(7.2); doc.setTextColor(...gapCol);
-          doc.text((surplus>=0?"Surplus ":"Shortfall ")+fmt(Math.abs(surplus))+"/yr", bx, by+1);
-          doc.setFont("helvetica","normal"); doc.setFontSize(6.2); doc.setTextColor(...MUTED);
-          doc.text("Money out covers your living costs, loan payments and other annual obligations.", bx+bw*0.34, by+1);
-          y = by+7;
+          // surplus pill sitting in the gap between the bar ends
+          const pill=(surplus>=0?"Surplus ":"Shortfall ")+fmt(Math.abs(surplus))+" / yr";
+          doc.setFont("helvetica","bold"); doc.setFontSize(8.4);
+          const pillW=doc.getTextWidth(pill)+7;
+          doc.setFillColor(Math.round(gapCol[0]+(255-gapCol[0])*0.85), Math.round(gapCol[1]+(255-gapCol[1])*0.85), Math.round(gapCol[2]+(255-gapCol[2])*0.85));
+          doc.roundedRect(bx, by-1, pillW, 7.6, 2, 2, "F");
+          doc.setTextColor(...gapCol); doc.text(pill, bx+3.5, by+4.2);
+          doc.setFont("helvetica","normal"); doc.setFontSize(6.3); doc.setTextColor(...MUTED);
+          doc.text("Money out covers living costs, loan payments and other annual obligations.", bx+pillW+6, by+4.2);
+          y = by+11;
           doc.setTextColor(40); doc.setFontSize(fsz);
         })();
-        // Income sources
-        subBar("Income");
-        const incRows=[
-          ["Client 1 salary",        fmt(num("inc1",0))],
-          ["Client 1 bonus / other", fmt(num("inc2",0))],
-        ];
-        if(showC2){
-          incRows.push(["Client 2 salary", fmt(num("inc1b",0))]);
-          incRows.push(["Client 2 bonus",  fmt(num("inc2b",0))]);
-        }
-        incRows.push(["Total household income", fmt(inc)]);
-        tbl(["Source","Amount"], incRows, {columnStyles:{0:{cellWidth:CW*0.6}}});
-        // Expenses
-        subBar("Expenses");
-        tbl(["Category","Amount"], [
-          ["Living expenses",       fmt(num("expL",0))],
-          ["Insurance / health",    fmt(num("expI",0))],
-          ["Other expenses",        fmt(num("expO",0))],
-          ["Total annual expenses", fmt(exp)],
-        ], {columnStyles:{0:{cellWidth:CW*0.6}}});
-        // What's left to save & invest
-        subBar("What's left to save & invest");
-        kv([
-          ["Annual savings target",              fmt(sav)],
-          ["Annual surplus available to invest", fmt(surplus)+(surplus<0?" ⚠":"")],
-        ]);
-        para("Your surplus is what remains each year after living costs, loan repayments and other annual obligations — the money your plan puts to work toward your goals.", MUTED);
+        // ── Income | Expenses — two side-by-side cards (client-friendly, one page) ──
+        (function(){
+          const gap=6, w=(CW-gap)/2, PH=54;
+          checkY(PH+4);
+          const yTop=y;
+          const panel=(x, title, rows, total)=>{
+            doc.setFillColor(...CARD_BG); doc.setDrawColor(...CARD_LN); doc.setLineWidth(0.3);
+            doc.roundedRect(x, yTop, w, PH, 2, 2, "FD");
+            doc.setFillColor(...ac); doc.rect(x, yTop+2.6, 1.6, PH-5.2, "F");
+            doc.setFont("helvetica","bold"); doc.setFontSize(9); doc.setTextColor(...acDark);
+            doc.text(title.toUpperCase(), x+6.5, yTop+8.6, {charSpace:0.6});
+            doc.setDrawColor(...LINE); doc.setLineWidth(0.3); doc.line(x+6.5, yTop+11.6, x+w-6, yTop+11.6);
+            let ry=yTop+18.4;
+            rows.forEach(r=>{
+              doc.setFont("helvetica","normal"); doc.setFontSize(8.2); doc.setTextColor(...INK_SOFT);
+              doc.text(String(r[0]), x+6.5, ry);
+              doc.setFont("helvetica","bold"); doc.setTextColor(...INK);
+              doc.text(String(r[1]), x+w-6, ry, {align:"right"});
+              ry += 6.7;
+            });
+            const ty=yTop+PH-6.5;
+            doc.setDrawColor(...LINE); doc.setLineWidth(0.5); doc.line(x+6.5, ty-4.8, x+w-6, ty-4.8);
+            doc.setFont("helvetica","bold"); doc.setFontSize(9.2); doc.setTextColor(...INK);
+            doc.text(String(total[0]), x+6.5, ty);
+            doc.text(String(total[1]), x+w-6, ty, {align:"right"});
+          };
+          const incRows=[["Client 1 salary", fmt(num("inc1",0))],["Client 1 bonus / other", fmt(num("inc2",0))]];
+          if(showC2){ incRows.push(["Client 2 salary", fmt(num("inc1b",0))]); incRows.push(["Client 2 bonus", fmt(num("inc2b",0))]); }
+          panel(M, "Income", incRows, ["Total household income", fmt(inc)]);
+          panel(M+w+gap, "Expenses", [
+            ["Living expenses", fmt(num("expL",0))],
+            ["Insurance / health", fmt(num("expI",0))],
+            ["Other expenses", fmt(num("expO",0))],
+          ], ["Total annual expenses", fmt(exp)]);
+          y = yTop+PH+6;
+          doc.setTextColor(40); doc.setFont("helvetica","normal"); doc.setFontSize(fsz);
+        })();
+        // ── Surplus highlight band — the hero outcome, tinted green (or red) ──
+        (function(){
+          const H=21;
+          checkY(H+2);
+          const bandFill=[Math.round(gapCol[0]+(255-gapCol[0])*0.9), Math.round(gapCol[1]+(255-gapCol[1])*0.9), Math.round(gapCol[2]+(255-gapCol[2])*0.9)];
+          doc.setFillColor(...bandFill); doc.setDrawColor(...CARD_LN); doc.setLineWidth(0.3);
+          doc.roundedRect(M, y, CW, H, 2, 2, "FD");
+          doc.setFillColor(...gapCol); doc.rect(M, y+2.6, 1.8, H-5.2, "F");
+          doc.setFont("helvetica","bold"); doc.setFontSize(6.6); doc.setTextColor(...MUTED);
+          doc.text((surplus>=0?"ANNUAL SURPLUS AVAILABLE TO INVEST":"ANNUAL SHORTFALL"), M+7.5, y+7.4, {charSpace:0.5});
+          doc.setFont("helvetica","bold"); doc.setFontSize(16); doc.setTextColor(...gapCol);
+          doc.text(fmt(Math.abs(surplus))+" / yr", M+7.5, y+16.2);
+          doc.setFont("helvetica","normal"); doc.setFontSize(7.6); doc.setTextColor(...INK_SOFT);
+          doc.text("Of this, your plan sets aside "+fmt(sav)+" to savings each year.", pw-M-7, y+7.6, {align:"right"});
+          doc.setFontSize(6.5); doc.setTextColor(...MUTED);
+          doc.splitTextToSize("Surplus is what remains after living costs, loan repayments and other annual obligations — the money your plan puts to work toward your goals.", CW*0.44).forEach((ln,i)=>doc.text(ln, pw-M-7, y+12.4+i*3.4, {align:"right"}));
+          y += H+6;
+          doc.setTextColor(40); doc.setFont("helvetica","normal"); doc.setFontSize(fsz);
+        })();
       },
       // ─── ASSETS & LIABILITIES ──
       assets: () => {
