@@ -20274,19 +20274,6 @@ function drawFanChart(){
           ["Client(s)","Provide complete, accurate information; fund the plan; approve the policy and changes; give timely notice of material changes."],
           ["Adviser/preparer","Implement and monitor within policy; report results; recommend changes; disclose material conflicts of interest."]
         ],{columnStyles:{0:{fontStyle:"bold",cellWidth:CW*0.22}}});
-        sub("8. Acknowledgement");
-        para("The undersigned acknowledge that they have reviewed and agree to this Investment Policy Statement.");
-        const sigParties = [d.c1]; if(d.c2) sigParties.push(d.c2); sigParties.push("Adviser");
-        doc.setDrawColor(120); doc.setLineWidth(0.3);
-        sigParties.forEach(p=>{
-          checkY(16); y+=9;
-          doc.line(M, y, M+70, y);              // signature line
-          doc.line(pw-M-42, y, pw-M, y);        // date line
-          doc.setFontSize(7.5); doc.setTextColor(90);
-          doc.text(p, M, y+4); doc.text("Date", pw-M-42, y+4);
-          doc.setTextColor(40); doc.setFontSize(fsz);
-          y+=6;
-        });
         para("This IPS is a planning framework generated from client-supplied data and long-term capital market assumptions. It is not investment, tax, or legal advice. Expected returns are estimates, not guarantees; actual results will differ.", MUTED);
       },
       // ─── PORTFOLIO ──
