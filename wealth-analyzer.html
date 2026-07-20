@@ -17588,7 +17588,7 @@ function gbRenderCMA(weights, port){
 // Order follows the institutional sample deck: Key Findings → Goal Funding →
 // profile/details → Net Worth Details → WAF overview → Risk Categories →
 // Current Status → IPS/Portfolio → Total Portfolio → Efficiency → Performance → …
-const RPT_DEFAULT_ORDER = ["hh","about","exec","inc","assets","insurance","goals","strategies","ips","port","totalportfolio","efficiency","performance","factsheets","wealthframework","riskcategories","riskstatus","sim","fund","goalfunding","lifestyle","potentialwealth","cf","pension","whatif","educharts","cma","method","glossary","disc"];
+const RPT_DEFAULT_ORDER = ["hh","about","exec","inc","assets","insurance","goals","strategies","ips","port","totalportfolio","efficiency","performance","wealthframework","riskcategories","riskstatus","sim","fund","goalfunding","lifestyle","potentialwealth","cf","pension","whatif","factsheets","educharts","cma","method","glossary","disc"];
 const RPT_SECTION_LABELS = {
   exec:            "Executive Summary: Key Findings",
   about:           "About the Client (custom)",
@@ -19320,10 +19320,12 @@ function drawFanChart(){
         summary:"What you are working toward - the goals you have set, when they fall due, and the retirement lifestyle the plan is designed to support." },
       { title:"What the Future May Hold", divider:true, keys:["fund","goalfunding","lifestyle"],
         summary:"We replay your finances across many simulated market futures. These pages show how likely each goal is to be funded and the lifestyle your plan can sustain." },
-      { title:"Your Investments", divider:true, keys:["ips","port","totalportfolio","efficiency","performance","factsheets","wealthframework","riskcategories","riskstatus"],
+      { title:"Your Investments", divider:true, keys:["ips","port","totalportfolio","efficiency","performance","wealthframework","riskcategories","riskstatus"],
         summary:"How your money is invested: the policy that governs the portfolio, what you hold today, how efficiently it is allocated, and the framework used to balance risk against your goals." },
       { title:"Retirement", divider:true, keys:["sim","potentialwealth","cf","pension","whatif"],
         summary:"What retirement could look like in numbers: your projected wealth to age 90 across many simulated futures, the year-by-year figures behind that chart, your cash flow over time, the pensions your plan counts on — including the Swiss pillar choices where they apply — and the what-if scenarios you asked us to test." },
+      { title:"Investment Fact Sheets", divider:true, keys:["factsheets"],
+        summary:"Detailed reference sheets for each proposed investment vehicle — historical and expected returns, risk and fees." },
       { title:"Appendix", divider:true, keys:["educharts","cma","method","glossary","disc"],
         summary:"Reference material behind the numbers: educational charts, the capital-market assumptions, methodology, a glossary of terms, and important disclosures." },
     ];
