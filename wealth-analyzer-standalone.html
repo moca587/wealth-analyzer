@@ -4289,7 +4289,7 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
 // ═══════════════════════════════════════════════════════════
 // VERSION — updated by build-standalone.pl on each build
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260720-1554";
+const APP_VERSION = "20260720-1600";
 
 // ═══════════════════════════════════════════════════════════
 // DATA
@@ -17740,7 +17740,7 @@ function ipsHtmlSection(d){
     <tr><th style="width:35%">Client(s)</th><td>${d.c1}${d.c2?" &amp; "+d.c2:""}</td></tr>
     <tr><th>Jurisdiction</th><td>${d.country}</td></tr>
     <tr><th>Effective date</th><td>${new Date().toLocaleDateString()}</td></tr>
-    <tr><th>Review cadence</th><td>At least annually, and upon material life or market events</td></tr>
+    <tr><th>Plan review</th><td>At least annually, and on life events or market events</td></tr>
   </table>`;
   html += h3("1 &middot; Investment objectives");
   html += `<p>The household is in a primarily <strong>${d.yrsToRet>0?"accumulation":"decumulation"}</strong> phase${d.yrsToRet>0?` (~${d.yrsToRet} years to the planned retirement age of ${d.retAge})`:""}. The strategic allocation set out below carries an expected long-term return of <strong>${(d.port.geoMu*100).toFixed(1)}%</strong> per year (geometric, nominal) with estimated volatility of <strong>${(d.port.sigma*100).toFixed(1)}%</strong>. After assumed inflation of ${(d.inflation*100).toFixed(1)}%, the expected <em>real</em> return is approximately <strong>${(d.realGeo*100).toFixed(1)}%</strong> per year.${d.fundingRatio!=null?` Current analysis indicates stated goals are approximately <strong>${Math.round(d.fundingRatio*100)}%</strong> funded on a present-value basis.`:""}</p>`;
@@ -20647,7 +20647,7 @@ function drawFanChart(){
           ["Client(s)", d.c1 + (d.c2?" & "+d.c2:"")],
           ["Jurisdiction", d.country],
           ["Effective date", new Date().toLocaleDateString()],
-          ["Review cadence", "At least annually, and on material life or market events"]
+          ["Plan review", "At least annually, and on life events or market events"]
         ]);
         sub("1. Investment objectives");
         para((d.yrsToRet>0?`The household is in a primarily accumulation phase (~${d.yrsToRet} years to retirement at age ${d.retAge}). `:`The household is in or near decumulation. `)+
@@ -21129,11 +21129,11 @@ function drawFanChart(){
           }
           const spendNom = _solveSustainableSpendMC(Math.max(0,wealth), yearsInRet, P.mu, P.sig, inflation, 90, 150, pens);
           const spend = spendNom / Math.pow(1+inflation, yrsToRet);   // nominal-at-retirement → today's money
-          const basis = haveMC ? "Monte Carlo · "+(100-c.p)+"th pct"
-                               : (gbReturnAtConfidence(port.geoMu, port.sigma, yrsToRet, c.p)*100).toFixed(1)+"% / yr";
+          const _pctile = 100 - c.p;
+          const basis = _pctile<=35 ? "If markets are weaker" : _pctile>=65 ? "If markets are stronger" : "If markets are typical";
           return [c.lbl, basis, fmt(Math.max(0,wealth)), fmt(Math.max(0,spend))+" / yr"];
         });
-        tbl(["Scenario","Basis","Wealth at retirement","Sustainable spend (today's $)"], rows);
+        tbl(["Scenario","Market assumption","Wealth at retirement","Sustainable spend (today's $)"], rows);
         para("Sustainable spend is shown in today's money and includes your projected pension / state-benefit income — the portfolio only funds spending above what pensions cover. It targets a 90% probability of the money lasting to age 90 (Monte-Carlo drawdown at the portfolio's expected return and volatility) — the same solver the app's lifestyle panel uses (current age "+a1+" → retirement "+retAge+" → age 90). Wealth at retirement is shown in future (at-retirement) dollars.", MUTED);
       },
       // ─── WEALTH ALLOCATION FRAMEWORK (Personal / Market / Aspirational) ──
