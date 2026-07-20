@@ -4192,7 +4192,7 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
       <div class="frow"><label class="flbl">Assets &amp; liabilities</label>
         <select id="rptIncAssets" class="w180"><option value="yes" selected>Yes</option><option value="no">No</option></select>
       </div>
-      <div class="frow"><label class="flbl">Insurance inventory</label>
+      <div class="frow"><label class="flbl">Protection &amp; insurance</label>
         <select id="rptIncInsurance" class="w180"><option value="yes" selected>Yes (if policies added)</option><option value="no">No</option></select>
       </div>
       <div class="frow"><label class="flbl">Goals &amp; retirement plan</label>
@@ -4289,7 +4289,7 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
 // ═══════════════════════════════════════════════════════════
 // VERSION — updated by build-standalone.pl on each build
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260720-1047";
+const APP_VERSION = "20260720-1547";
 
 // ═══════════════════════════════════════════════════════════
 // DATA
@@ -18041,7 +18041,7 @@ const RPT_SECTION_LABELS = {
   hh:              "Household Profile",
   inc:             "Income & Expenses",
   assets:          "Net Worth Statement",
-  insurance:       "Insurance Inventory",
+  insurance:       "Protection & Insurance",
   goals:           "Goals & Retirement Plan",
   strategies:      "Plan Strategies",
   riskcategories:  "Overview: Risk Categories",
@@ -20466,7 +20466,7 @@ function drawFanChart(){
       insurance: () => {
         if(val("rptIncInsurance") === "no" || insurances.length === 0) return;
         checkY(30);
-        sectionH2("Insurance Inventory");
+        sectionH2("Protection & Insurance");
         const who = p => p.insured==="c2" ? ((val("c2f")||"Client 2")) : ((val("c1f")||"Client 1"));
         tbl(["Policy","Type","Insured","Benefit","Cash value","Premium / yr","Beneficiary"],
           insurances.map(p=>[p.label, INS_TYPE_LABELS[p.type]||p.type, who(p),
