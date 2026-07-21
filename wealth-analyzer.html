@@ -3799,8 +3799,8 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
       </div>
       <div class="frow"><label class="flbl">Cash-flow projection</label>
         <select id="rptIncCF" class="w180">
-          <option value="summary" selected>Summary (every 5 yrs)</option>
-          <option value="full">Full (every year)</option>
+          <option value="summary">Summary (every 5 yrs)</option>
+          <option value="full" selected>Full (every year)</option>
           <option value="no">Do not include</option>
         </select>
       </div>
@@ -20391,8 +20391,13 @@ function drawFanChart(){
           const clsLbl=k=>(typeof INV_CLASS_LABELS!=="undefined"&&INV_CLASS_LABELS[k])||k;
           const pByClass=aggregate(proposals,"alloc", clsOf, clsLbl);
           const byClass=investments.length?aggregate(investments,"val", clsOf, clsLbl):[];
+          // Proposed segments sum the allocation %; convert to money so the
+          // legend shows CHF, not the raw percentage (was printing "CHF 55").
+          // Basis: the proposed amount if set, else the current portfolio total.
+          const propBasis = amt>0 ? amt : byClass.reduce((s,b)=>s+(+b.value||0),0);
+          if(propBasis>0) pByClass.forEach(seg=>{ seg.value = propBasis*(+seg.value||0)/100; });
           if(byClass.length && pByClass.length){
-            checkY(62);
+            newPage();   // keep the pies + metric box together on their own page
             subBar("Current vs Proposed");
             para("Your current asset-class mix beside the proposed mix, so the changes the proposal would make are easy to see.", [110,118,130]);
             const colW=CW/2, pieR=15, rowY=y;
@@ -21203,14 +21208,31 @@ function drawFanChart(){
           const filtered=_all.filter((_,i)=>i%step===0);
           // Summary sampling must never drop the FINAL year (the age-90 row)
           if(step>1 && (_all.length-1)%step!==0) filtered.push(_all[_all.length-1]);
-          tbl(["Year","Age","Phase","Earned income","Pension","Expenses","Surplus","Net worth"],
+          // Mirror the app's cash-flow table column-for-column (same order, same
+          // data), minus the Income-tax column (cell 5) — this report never
+          // displays tax. Cell indices into #cfBody rows: 0 Year, 1 Age, 2 Phase,
+          // 3 Earned income, 4 Pension/SS/RMD, 6 Expenses, 7 Debt service,
+          // 8 Savings target, 9 Surplus, 10 Goal outflow, 11 Cash, 12 Investments,
+          // 13 Ret. pool, 14 Net worth, 15 Notes. Dense 15-col schedule → smaller
+          // font + right-aligned money columns so it fits the landscape width;
+          // tbl() paginates and repeats the header on continuation pages.
+          const CFCOLS=[0,1,2,3,4,6,7,8,9,10,11,12,13,14,15];
+          // Explicit widths (mm) summing to ~237mm so the 15-col schedule fits
+          // inside the landscape content width on BOTH Letter and A4 (with a
+          // margin to spare); Notes takes the widest slot, money columns are
+          // right-aligned. tbl() paginates and repeats the header per page.
+          const cfW=[10,11,14,15,16,14,14,14,14,14,14,15,14,16,28];
+          const cfA=["center","center","left","right","right","right","right","right","right","right","right","right","right","right","left"];
+          const cfColStyles={}; cfW.forEach((w,i)=>{ cfColStyles[i]={cellWidth:w,halign:cfA[i]}; });
+          tbl(["Year","Age","Phase","Earned income","Pension / SS / RMD","Expenses","Debt service","Savings target","Surplus","Goal outflow","Cash","Investments","Ret. pool","Net worth","Notes"],
             filtered.map(r=>{
               const c=r.cells;
-              if(c.length<14) return Array(8).fill("—");
-              return [c[0]?.textContent||"",c[1]?.textContent||"",c[2]?.textContent||"",
-                c[3]?.textContent||"",c[4]?.textContent||"",
-                c[6]?.textContent||"",c[9]?.textContent||"",c[14]?.textContent||""];
-            }));
+              if(c.length<15) return Array(CFCOLS.length).fill("—");
+              return CFCOLS.map(i=>(c[i]?.textContent||"").trim());
+            }),
+            { styles:{fontSize:6.2, cellPadding:1.2, overflow:"linebreak"},
+              headStyles:{fontSize:6.2},
+              columnStyles:cfColStyles });
         } else {
           para("Run the simulation to populate the cash-flow table.");
         }
