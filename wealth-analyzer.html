@@ -17611,7 +17611,7 @@ const RPT_SECTION_LABELS = {
   port:            "Portfolio Analysis",
   proposal:        "Proposed Portfolio",
   factsheets:      "Investment Fact Sheets",
-  sim:             "Monte Carlo Projection",
+  sim:             "Wealth Projection",
   fund:            "Goal Success Probability",
   goalfunding:     "Key Factors: Goal Funding Status",
   lifestyle:       "Potentially Achievable Lifestyle",
@@ -17646,7 +17646,7 @@ const RPT_SECTION_DESC = {
   port:            "Current holdings, weights, expected return and risk.",
   proposal:        "The proposed target portfolio — holdings, allocation and how it compares with your current mix.",
   factsheets:      "One fact sheet per proposal position — returns, risk and fees.",
-  sim:             "Monte Carlo projection — percentile fan chart and outcome table.",
+  sim:             "Simulated wealth projection — percentile fan chart and outcome table.",
   fund:            "Probability of reaching each goal.",
   goalfunding:     "Present-value funding ratio per goal — assets and savings vs cost.",
   lifestyle:       "Sustainable annual spending by retirement age (bar chart + table).",
@@ -17674,13 +17674,13 @@ const RPT_GLOSSARY = [
   ["Correlation", "How closely two asset classes move together (−1 to +1). Combining assets with low correlation lowers total portfolio risk."],
   ["Diversification", "Spreading investments across asset classes so portfolio volatility is lower than the weighted average of its parts; computed here via the full correlation matrix."],
   ["Essential / Important / Aspirational", "Goal priorities: Essential goals are needs and are tested at 95% confidence; Important goals at 75%; Aspirational goals (wants) at 55%."],
-  ["Expected Return (Arithmetic)", "The simple average annual return assumed for an asset class or portfolio. Used as the input mean for the Monte Carlo engine."],
+  ["Expected Return (Arithmetic)", "The simple average annual return assumed for an asset class or portfolio. Used as the input mean for the simulation."],
   ["Expense Ratio", "A fund's internal annual operating cost as a percentage of assets, charged by the fund issuer and already reflected in fund performance."],
   ["Geometric (Compound) Return", "The constant annual growth rate that produces the same cumulative result over time; approximately the arithmetic mean minus half the variance."],
   ["Goal Funding Ratio", "The present value of the resources allocated to a goal divided by the present value of the goal's cost. 100% or more means the goal is fully funded."],
   ["Liquid vs Locked Assets", "Liquid assets (cash, brokerage) can be spent at any time. Locked assets (pension and retirement accounts) are subject to withdrawal-age rules."],
-  ["Median (50th Percentile)", "The middle simulated outcome — half of all Monte Carlo paths finish above this value and half below."],
-  ["Monte Carlo Simulation", "A technique that projects wealth under hundreds of randomized market-return paths, producing a distribution of outcomes instead of a single forecast."],
+  ["Median (50th Percentile)", "The middle simulated outcome — half of all simulated outcomes finish above this value and half below."],
+  ["Market Simulation", "A technique that projects wealth under hundreds of randomized market-return paths, producing a distribution of outcomes instead of a single forecast."],
   ["Net Worth", "Total assets (accounts, portfolio, property, other) minus total liabilities (loans and other debts)."],
   ["Percentile (Pessimistic / Optimistic)", "A ranking within the simulated outcomes. The 10th percentile (pessimistic) is beaten by 90% of paths; the 90th (optimistic) by only 10%."],
   ["Potentially Achievable Lifestyle", "The sustainable, inflation-adjusted annual spending the portfolio could support through retirement at a given confidence level."],
@@ -19486,7 +19486,7 @@ function drawFanChart(){
       }
       if(rows.length) tbl(["Year","Projected vest proceeds (pre-tax)"], rows, {columnStyles:{0:{cellWidth:CW*0.3}}});
       kv([["Unvested in-the-money value today (not in net worth)", fmt(equityUnvestedValueNow())]]);
-      para("Vesting proceeds are treated as ordinary income in the year each tranche vests — they flow through tax, surplus, and savings in both the cash-flow projection and the Monte Carlo simulation. Option values assume exercise-and-sell at vest.", MUTED);
+      para("Vesting proceeds are treated as ordinary income in the year each tranche vests — they flow through tax, surplus, and savings in both the cash-flow projection and the market simulation. Option values assume exercise-and-sell at vest.", MUTED);
     }
     // ── Net Worth Summary: bar (Assets/Liabilities/Net Worth) + asset & liability pies ──
     function drawNetWorthSummary(){
@@ -19766,8 +19766,8 @@ function drawFanChart(){
           const rg = goals.find(g=>g.cat==="retirement");
           const p = goalSuccessFromPaths(rg, lastSimPaths, lastSimYrs)||0;
           bullet(p>=70
-            ? "Based on the information in this analysis, your income and investment assets may be sufficient to support your retirement goals ("+p.toFixed(0)+"% Monte-Carlo success)."
-            : "Based on the information in this analysis, your current assets and savings may NOT be sufficient for your retirement goals ("+p.toFixed(0)+"% Monte-Carlo success) — consider the What-If scenarios reviewed with your advisor.");
+            ? "Based on the information in this analysis, your income and investment assets may be sufficient to support your retirement goals ("+p.toFixed(0)+"% simulated success)."
+            : "Based on the information in this analysis, your current assets and savings may NOT be sufficient for your retirement goals ("+p.toFixed(0)+"% simulated success) — consider the What-If scenarios reviewed with your advisor.");
         }
         try{
           const port2 = gbPortfolioRisk(gbAssetClassWeights());
@@ -20162,7 +20162,7 @@ function drawFanChart(){
           doc.setTextColor(40); doc.setFontSize(fsz);
           callout("What this means for you",
             fromPort>0
-              ? "Pensions cover "+fmt(pen1+pen2)+" of your "+fmt(need)+" annual retirement need. The remaining "+fmt(fromPort)+" per year must come from your savings and investments - that drawdown is what the Monte Carlo chapter stress-tests."
+              ? "Pensions cover "+fmt(pen1+pen2)+" of your "+fmt(need)+" annual retirement need. The remaining "+fmt(fromPort)+" per year must come from your savings and investments - that drawdown is what the wealth-projection pages stress-test."
               : "Your expected pensions fully cover your stated retirement spending - your portfolio only needs to fund extras and emergencies.");
         })();
       },
@@ -20507,7 +20507,7 @@ function drawFanChart(){
       sim: () => {
         if(val("rptIncSim") === "no") return;
         checkY(30);
-        sectionH2("Monte Carlo Projection");
+        sectionH2("Wealth Projection");
         plainLead("We replayed your financial life "+(lastSimPaths&&lastSimPaths.length?lastSimPaths.length.toLocaleString():"1,000")+" times with different market ups and downs. These pages show the range of where you could end up - not one prediction, but the realistic spread.");
         if(lastSimPaths&&lastSimPaths.length>0){
           const yrs=lastSimYrs;
@@ -20577,7 +20577,7 @@ function drawFanChart(){
               return [p+"th", fmt(v), fmt(df(v)), p===_bM?"—":(v>=med?"+":"")+((v/med-1)*100).toFixed(0)+"%"];
             }));
         } else {
-          para("Run the simulation to include Monte Carlo results.",[136,136,136]);
+          para("Run the simulation to see the projected range.",[136,136,136]);
         }
       },
       // ─── GOAL SUCCESS PROBABILITY (Monte-Carlo based) ──
@@ -20750,7 +20750,7 @@ function drawFanChart(){
           return [c.lbl, basis, fmt(Math.max(0,wealth)), fmt(Math.max(0,spend))+" / yr"];
         });
         tbl(["Scenario","Market assumption","Wealth at retirement","Sustainable spend (today's $)"], rows);
-        para("Sustainable spend is shown in today's money and includes your projected pension / state-benefit income — the portfolio only funds spending above what pensions cover. It targets a 90% probability of the money lasting to age 90 (Monte-Carlo drawdown at the portfolio's expected return and volatility) — the same solver the app's lifestyle panel uses (current age "+a1+" → retirement "+retAge+" → age 90). Wealth at retirement is shown in future (at-retirement) dollars.", MUTED);
+        para("Sustainable spend is shown in today's money and includes your projected pension / state-benefit income — the portfolio only funds spending above what pensions cover. It targets a 90% probability of the money lasting to age 90 (a simulated drawdown at the portfolio's expected return and volatility) — the same solver the app's lifestyle panel uses (current age "+a1+" → retirement "+retAge+" → age 90). Wealth at retirement is shown in future (at-retirement) dollars.", MUTED);
       },
       // ─── WEALTH ALLOCATION FRAMEWORK (Personal / Market / Aspirational) ──
       wealthframework: () => {
@@ -21152,7 +21152,7 @@ function drawFanChart(){
         let base; try{ base=runBaselineWhatIf(); }catch(e){ return; }
         newPage();
         sectionH2("What-If Scenarios");
-        plainLead("Alternative futures you asked us to test. Each scenario re-runs the full Monte Carlo simulation with only the listed changes, then compares the outcome against your baseline plan.");
+        plainLead("Alternative futures you asked us to test. Each scenario re-runs the full market simulation with only the listed changes, then compares the outcome against your baseline plan.");
         const chg=w=>{ const p=[];
           if(w.retAgeOvr!=null && w.retAgeOvr!=="") p.push("retire at "+w.retAgeOvr);
           if(+w.incChangePct) p.push("income "+(w.incChangePct>0?"+":"")+w.incChangePct+"%");
@@ -21335,8 +21335,8 @@ function drawFanChart(){
           });
         } else {
           const DISC = {
-            standard:"This report has been prepared for educational and planning purposes only. It does not constitute investment, tax, or legal advice, and does not provide tax advice — consult a qualified tax professional regarding your personal situation. Monte Carlo projections rely on randomly sampled returns based on configurable assumptions and do not predict actual future market behaviour. Past performance is not a reliable indicator of future results. All projections are estimates and actual results will differ, potentially significantly. Inflation, tax, and regulatory changes are not modelled dynamically. Consult a licensed financial professional before making any financial decisions. This document is not a prospectus or offering document.",
-            advisor:"PROFESSIONAL USE NOTICE. This report has been prepared for advisor use and client presentation purposes only. It relies on client-supplied data and capital market assumptions that may differ materially from actual outcomes. Monte Carlo projections model stochastic return paths and carry inherent uncertainty — actual results will differ. Sequence-of-returns risk, behavioural factors, unexpected expenses, and changes in tax law are not fully captured in the model. This report does not constitute tax advice. This document does not constitute investment advice, a personal financial plan, or a prospectus. The advisor should review all assumptions, validate all data inputs, and disclose all material conflicts of interest to the client prior to use. Not for redistribution to third parties.",
+            standard:"This report has been prepared for educational and planning purposes only. It does not constitute investment, tax, or legal advice, and does not provide tax advice — consult a qualified tax professional regarding your personal situation. The market simulations rely on randomly sampled returns based on configurable assumptions and do not predict actual future market behaviour. Past performance is not a reliable indicator of future results. All projections are estimates and actual results will differ, potentially significantly. Inflation, tax, and regulatory changes are not modelled dynamically. Consult a licensed financial professional before making any financial decisions. This document is not a prospectus or offering document.",
+            advisor:"PROFESSIONAL USE NOTICE. This report has been prepared for advisor use and client presentation purposes only. It relies on client-supplied data and capital market assumptions that may differ materially from actual outcomes. These simulations model stochastic return paths and carry inherent uncertainty — actual results will differ. Sequence-of-returns risk, behavioural factors, unexpected expenses, and changes in tax law are not fully captured in the model. This report does not constitute tax advice. This document does not constitute investment advice, a personal financial plan, or a prospectus. The advisor should review all assumptions, validate all data inputs, and disclose all material conflicts of interest to the client prior to use. Not for redistribution to third parties.",
             minimal:"For educational purposes only. Not financial, tax, or legal advice. Consult a licensed advisor and a tax professional before making financial decisions.",
           };
           para(DISC[discLvl]||DISC.standard);
@@ -21350,7 +21350,7 @@ function drawFanChart(){
       newPage();
       sectionH2("How to Read This Report");
       para("This report looks at your finances from many angles, but the core ideas are simple. This page explains them in plain terms so every chart that follows makes sense.");
-      subBar("What is a Monte Carlo simulation?");
+      subBar("What is a market simulation?");
       para("Instead of assuming one fixed rate of return, we replay your financial life across a thousand simulated futures, each with a different, randomly drawn sequence of good and bad market years based on long-term market behaviour. The result is not one prediction but a RANGE of realistic outcomes - some strong, some average, some poor.");
       subBar("How to read the fan chart");
       bullets([
