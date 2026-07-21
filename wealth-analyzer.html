@@ -19132,15 +19132,12 @@ function drawFanChart(){
       setT("rptStatus","Generating PDF…");
     }
 
-    // ══ COVER PAGE — clean WHITE hero (printable; was a navy full-bleed hero) ═════
-    // Palette tokens below are cover-local; re-pointed to dark ink / muted grey /
-    // theme-blue accent for a white background so the page prints without a heavy
-    // ink-hungry navy ground.
-    const NAVY_TOP=[10,61,143], NAVY_BOT=[4,24,58];   // (retained for reference; the cover is now a printable WHITE page)
-    // Cover text/accent tokens re-pointed for a WHITE background: dark ink for the
-    // main text, muted grey for labels, theme-blue for accents. Names are kept so
-    // the cover body below is unchanged; only their values (and the paint) flipped.
-    const PAPER=[28,36,48], BLUE_SOFT=ac.slice(), COVER_MUTED=[110,118,130], COVER_WARM=[52,60,72];
+    // ══ COVER PAGE — navy full-bleed hero (matches the approved redesign) ══════
+    // Palette used only on the cover / openers (deep navy ground, warm paper ink,
+    // soft-blue accent). Kept local so the rest of the report's light theme is
+    // untouched.
+    const NAVY_TOP=[10,61,143], NAVY_BOT=[4,24,58];   // #0a3d8f → #04183a
+    const PAPER=[253,251,246], BLUE_SOFT=[96,168,250], COVER_MUTED=[150,162,184], COVER_WARM=[224,224,216];
     const CM = 22;   // cover margin
 
     // Logo prep (also reused by the running header on every page)
@@ -19160,10 +19157,19 @@ function drawFanChart(){
       } catch(e){ console.warn("logo render failed:", e); }
     }
 
-    // 1) White background — clean and printable (was a navy gradient hero). A thin
-    //    theme-accent rule runs along the top edge as a premium finishing touch.
-    doc.setFillColor(255,255,255); doc.rect(0,0,pw,ph,"F");
-    doc.setFillColor(...ac); doc.rect(0,0,pw,2.4,"F");
+    // 1) Navy vertical gradient background — simulated with graduated bands
+    //    (jsPDF has no native gradient; bands are opaque so Acrobat stays fast).
+    (function paintNavy(){
+      const bands=54;
+      for(let i=0;i<bands;i++){
+        const t=i/(bands-1);
+        doc.setFillColor(
+          Math.round(NAVY_TOP[0]+(NAVY_BOT[0]-NAVY_TOP[0])*t),
+          Math.round(NAVY_TOP[1]+(NAVY_BOT[1]-NAVY_TOP[1])*t),
+          Math.round(NAVY_TOP[2]+(NAVY_BOT[2]-NAVY_TOP[2])*t));
+        doc.rect(0, (ph/bands)*i, pw, ph/bands+0.4, "F");
+      }
+    })();
 
     // 2) Brand mark + wordmark (top-left). Uploaded logo wins; else a small
     //    soft-blue "P" tile + firm name, matching the mockup's brand lock-up.
@@ -19237,7 +19243,7 @@ function drawFanChart(){
 
     // 7) Bottom meta row — Date · Reference · Confidential (right-aligned)
     const metaY = ph - 16;
-    doc.setDrawColor(...LINE); doc.setLineWidth(0.3); doc.line(CM, metaY-7, pw-CM, metaY-7);
+    doc.setDrawColor(60,78,120); doc.setLineWidth(0.3); doc.line(CM, metaY-7, pw-CM, metaY-7);
     const metaCell=(label,value,x,align)=>{
       doc.setFont("helvetica","normal"); doc.setFontSize(6.8); doc.setTextColor(...COVER_MUTED);
       doc.text(label, x, metaY-2.5, {charSpace:0.8, align});
