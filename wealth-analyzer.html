@@ -21725,6 +21725,17 @@ function renderCHLumpSum(){
     h+=(penalty>0?' A modelled early-withdrawal penalty of '+earlyPenPct.toFixed(1)+'% ('+_fmtCHF(penalty)+') is deducted from your proceeds.':' No percentage penalty is modelled (set one in the field above to test a scenario).');
     h+='</div>';
   }
+  // Explicit early-withdrawal calculation: Balance → tax → penalty → net
+  if(penalty>0){
+    h+='<div style="margin-bottom:14px">';
+    h+='<div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:6px">How the net is worked out — early withdrawal at age '+withdrawAge+'</div>';
+    const brow=(lbl,val,neg,sub,strong)=>'<div style="display:flex;justify-content:space-between;gap:12px;padding:'+(strong?'8px':'6px')+' 12px;background:var(--bg3);border-radius:8px;margin-bottom:4px;font-size:13px'+(strong?';font-weight:700;border-top:2px solid var(--border2)':'')+'"><span style="color:var(--text2)">'+lbl+(sub?' <span style="color:var(--text3);font-size:11px">'+sub+'</span>':'')+'</span><span style="font-variant-numeric:tabular-nums;color:'+(neg?'var(--red)':'var(--text)')+'">'+(neg?'− ':'')+_fmtCHF(val)+'</span></div>';
+    h+=brow('Balance withdrawn', total, false, '2nd pillar '+_fmtCHF(p2)+' + 3a '+_fmtCHF(p3a), false);
+    h+=brow('Capital-withdrawal tax', tax1, true, '('+rate1.toFixed(2)+'% effective)', false);
+    h+=brow('Early-withdrawal penalty', penalty, true, '('+earlyPenPct.toFixed(1)+'% of balance)', false);
+    h+=brow('Net proceeds', netPocket, false, '', true);
+    h+='</div>';
+  }
   // Staggering
   h+='<div style="margin-bottom:14px">';
   h+='<div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:6px">Staggering across calendar years<span class="info-ic">i<span class="info-pop">The rate is progressive on the amount withdrawn per year, and same-year withdrawals (both pillars, and a spouse\'s) are added together. Splitting the payout across separate tax years lowers each year\'s rate. In practice you can stagger by holding several 3a accounts and closing them in different years; a 2nd-pillar fund is usually paid in one tranche, so confirm what your fund allows.</span></span></div>';
