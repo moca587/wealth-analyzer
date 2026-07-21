@@ -4293,7 +4293,7 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
 // ═══════════════════════════════════════════════════════════
 // VERSION — updated by build-standalone.pl on each build
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260721-1506";
+const APP_VERSION = "20260721-2346";
 
 // ═══════════════════════════════════════════════════════════
 // DATA
@@ -22191,6 +22191,13 @@ function renderCHLumpSum(){
     h+='<div style="font-size:11.5px;color:var(--text2);line-height:1.6;margin-bottom:14px;padding:9px 12px;background:rgba(217,138,45,.08);border-radius:8px;border:1px solid var(--border)">';
     h+='<strong style="color:var(--amber)">Taking it before age 60.</strong> You normally can\'t cash out your pillar 2 or pillar 3a before about age 60. It\'s only allowed early for a few reasons: buying or paying down your own home, starting your own business, leaving Switzerland for good, or a disability pension. You still pay the one-time tax.';
     h+=(penalty>0?' On top of that, the '+earlyPenPct.toFixed(1)+'% penalty you entered ('+_fmtCHF(penalty)+') comes off what you keep.':' No penalty is applied here — enter one in the field above if you want to test one.');
+    h+='</div>';
+  } else if(earlyPenPct>0){
+    // A penalty was entered but the withdrawal age is 60+, so isEarly is false and
+    // it is intentionally NOT applied — say so explicitly, otherwise the field
+    // silently does nothing and reads as broken.
+    h+='<div style="font-size:11.5px;color:var(--text2);line-height:1.6;margin-bottom:14px;padding:9px 12px;background:rgba(217,138,45,.08);border-radius:8px;border:1px solid var(--border)">';
+    h+='<strong style="color:var(--amber)">Penalty not applied.</strong> You entered a '+earlyPenPct.toFixed(1)+'% early-withdrawal penalty, but your planned withdrawal age is '+withdrawAge+' — pillar 2 and pillar 3a can be drawn from about age 60 with no penalty, so it does not apply here. Lower the withdrawal age below 60 to model an early-withdrawal penalty.';
     h+='</div>';
   }
   // Explicit early-withdrawal calculation: Balance → tax → penalty → net
