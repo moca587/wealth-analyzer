@@ -4293,7 +4293,7 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
 // ═══════════════════════════════════════════════════════════
 // VERSION — updated by build-standalone.pl on each build
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260721-1229";
+const APP_VERSION = "20260721-1400";
 
 // ═══════════════════════════════════════════════════════════
 // DATA
@@ -19677,7 +19677,7 @@ function drawFanChart(){
     doc.setDrawColor(...BLUE_SOFT); doc.setLineWidth(0.6); doc.line(CM, hy+2, CM+26, hy+2);
     doc.setFont("helvetica","italic"); doc.setFontSize(12); doc.setTextColor(...COVER_WARM);
     const tagline = (rSub && rSub.length>=40) ? rSub
-      : "A Monte Carlo projection of your household's position, portfolio, and long-term goals.";
+      : "A long-term roadmap for your household's wealth, portfolio, and goals.";
     doc.splitTextToSize(tagline, (pw-CM*2)*0.62).forEach((l,i)=>{ doc.text(l, CM, hy+11+i*5.6); });
 
     // 6) Prepared-for block
