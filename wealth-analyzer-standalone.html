@@ -4293,7 +4293,7 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
 // ═══════════════════════════════════════════════════════════
 // VERSION — updated by build-standalone.pl on each build
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260721-1109";
+const APP_VERSION = "20260721-1121";
 
 // ═══════════════════════════════════════════════════════════
 // DATA
@@ -22169,6 +22169,17 @@ function renderCHLumpSum(){
     h+='<div style="font-size:11.5px;color:var(--text2);line-height:1.6;margin-bottom:14px;padding:9px 12px;background:rgba(217,138,45,.08);border-radius:8px;border:1px solid var(--border)">';
     h+='<strong style="color:var(--amber)">Early withdrawal (before age 60).</strong> Pillar 2 / 3a can normally be drawn only from ~age 60. Before that it is permitted only for buying or amortising your main home, becoming self-employed, leaving Switzerland permanently, or on a disability pension — the capital-withdrawal tax above still applies.';
     h+=(penalty>0?' A modelled early-withdrawal penalty of '+earlyPenPct.toFixed(1)+'% ('+_fmtCHF(penalty)+') is deducted from your proceeds.':' No percentage penalty is modelled (set one in the field above to test a scenario).');
+    h+='</div>';
+  }
+  // Explicit early-withdrawal calculation: Balance → tax → penalty → net
+  if(penalty>0){
+    h+='<div style="margin-bottom:14px">';
+    h+='<div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:6px">How the net is worked out — early withdrawal at age '+withdrawAge+'</div>';
+    const brow=(lbl,val,neg,sub,strong)=>'<div style="display:flex;justify-content:space-between;gap:12px;padding:'+(strong?'8px':'6px')+' 12px;background:var(--bg3);border-radius:8px;margin-bottom:4px;font-size:13px'+(strong?';font-weight:700;border-top:2px solid var(--border2)':'')+'"><span style="color:var(--text2)">'+lbl+(sub?' <span style="color:var(--text3);font-size:11px">'+sub+'</span>':'')+'</span><span style="font-variant-numeric:tabular-nums;color:'+(neg?'var(--red)':'var(--text)')+'">'+(neg?'− ':'')+_fmtCHF(val)+'</span></div>';
+    h+=brow('Balance withdrawn', total, false, '2nd pillar '+_fmtCHF(p2)+' + 3a '+_fmtCHF(p3a), false);
+    h+=brow('Capital-withdrawal tax', tax1, true, '('+rate1.toFixed(2)+'% effective)', false);
+    h+=brow('Early-withdrawal penalty', penalty, true, '('+earlyPenPct.toFixed(1)+'% of balance)', false);
+    h+=brow('Net proceeds', netPocket, false, '', true);
     h+='</div>';
   }
   // Staggering
