@@ -3152,6 +3152,8 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
   <div class="frow"><label class="flbl">Canton of residence</label><select id="chCanton" class="w220" onchange="renderCHLumpSum()"></select></div>
   <div class="frow"><label class="flbl">2nd pillar (BVG/LPP) balance</label><input type="number" id="chP2" step="1000" min="0" placeholder="0" class="w160" oninput="this.dataset.touched='1';renderCHLumpSum()"><span style="font-size:11px;color:var(--text3);margin-left:6px">CHF</span></div>
   <div class="frow"><label class="flbl">Pillar 3a balance</label><input type="number" id="chP3a" step="1000" min="0" placeholder="0" class="w160" oninput="this.dataset.touched='1';renderCHLumpSum()"><span style="font-size:11px;color:var(--text3);margin-left:6px">CHF</span></div>
+  <div class="frow"><label class="flbl">Planned withdrawal age<span class="info-ic">i<span class="info-pop">Pillar 2 and pillar 3a can normally be drawn at the earliest 5 years before the AHV reference age — so from about <strong>age 60</strong>. Withdrawing earlier is only permitted for specific purposes: buying or amortising your main home, becoming self-employed, leaving Switzerland permanently, or a disability pension.</span></span></label><input type="number" id="chWithdrawAge" step="1" min="40" max="75" value="65" class="w120" oninput="renderCHLumpSum()"><span style="font-size:11px;color:var(--text3);margin-left:6px">yrs</span></div>
+  <div class="frow"><label class="flbl">Early-withdrawal penalty<span class="info-ic">i<span class="info-pop">Swiss pillars impose <strong>no standard percentage penalty</strong> — early withdrawal is instead restricted to the purposes above, and the capital-withdrawal tax still applies. Use this to model any fund-specific reduction or a scenario penalty applied to the balance if you draw <strong>before age 60</strong>. Default 0%.</span></span></label><input type="number" id="chEarlyPenalty" step="0.5" min="0" max="50" value="0" class="w120" oninput="renderCHLumpSum()"><span style="font-size:11px;color:var(--text3);margin-left:6px">% if before 60</span></div>
   <div id="chLumpFillNote" style="font-size:10.5px;color:var(--text3);margin:-2px 0 10px"></div>
   <div id="chLumpResult"></div>
   <div style="font-size:11px;color:var(--text3);line-height:1.6;margin-top:12px;padding:8px 12px;background:var(--bg3);border-radius:var(--rs);border:1px solid var(--border)">
@@ -3175,6 +3177,7 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
       <div class="frow"><label class="flbl">2nd pillar (BVG/LPP) capital</label><input type="number" id="anCap" step="1000" min="0" placeholder="0" class="w160" oninput="this.dataset.touched='1';renderCHAnnuity()"><span style="font-size:11px;color:var(--text3);margin-left:6px">CHF</span></div>
       <div class="frow"><label class="flbl">Conversion rate<span class="info-ic">i<span class="info-pop">The <em>Umwandlungssatz</em> — the % of your capital your fund pays as an annual pension for life. The BVG mandatory minimum is 6.8%; many funds' effective (enveloping) rate on the over-obligatory part is now ~5–5.5%. Ask your fund for its rate at your retirement age.</span></span></label><input type="number" id="anConv" step="0.1" min="0" value="6.0" class="w120" oninput="renderCHAnnuity()"><span style="font-size:11px;color:var(--text3);margin-left:6px">%</span></div>
       <div class="frow"><label class="flbl">Retire at age</label><input type="number" id="anRetAge" step="1" min="55" max="75" value="65" class="w120" oninput="renderCHAnnuity()"></div>
+      <div class="frow"><label class="flbl">Early-retirement cut<span class="info-ic">i<span class="info-pop">Drawing your 2nd-pillar pension before the reference age (65) lowers the conversion rate your fund applies — typically about <strong>0.1–0.2 percentage points</strong> for each year early, which reduces your lifelong pension. Set your fund's figure; 0 disables it.</span></span></label><input type="number" id="anEarlyCut" step="0.05" min="0" max="1" value="0.15" class="w120" oninput="renderCHAnnuity()"><span style="font-size:11px;color:var(--text3);margin-left:6px">%pt / yr early</span></div>
     </div>
     <div>
       <div class="frow"><label class="flbl">Plan through age</label><input type="number" id="anPlanAge" step="1" min="70" max="105" value="90" class="w120" oninput="renderCHAnnuity()"></div>
@@ -4290,7 +4293,7 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
 // ═══════════════════════════════════════════════════════════
 // VERSION — updated by build-standalone.pl on each build
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260721-1051";
+const APP_VERSION = "20260721-1100";
 
 // ═══════════════════════════════════════════════════════════
 // DATA
@@ -22130,6 +22133,14 @@ function renderCHLumpSum(){
   const cheapest=all[0], dearest=all[all.length-1], avg=all.reduce((s,x)=>s+x.tax,0)/all.length;
   const myRank=all.findIndex(x=>x.c===canton)+1;
   const gv=r=>r<6?"var(--green)":(r<9?"var(--amber)":"var(--red)");
+  // Early-withdrawal option: pillar 2 / 3a can normally be drawn only from ~age 60
+  // (5 years before the AHV reference age); before that it is restricted to specific
+  // purposes and any modelled early-withdrawal penalty is deducted from the proceeds.
+  const withdrawAge=+(($("chWithdrawAge")&&$("chWithdrawAge").value)||65);
+  const earlyPenPct=Math.min(50,Math.max(0,+(($("chEarlyPenalty")&&$("chEarlyPenalty").value)||0)));
+  const isEarly=withdrawAge<60;
+  const penalty=isEarly?total*earlyPenPct/100:0;
+  const netPocket=total-tax1-penalty;
   let h='';
   // Headline
   h+='<div style="display:flex;gap:14px;flex-wrap:wrap;align-items:stretch;margin-bottom:14px">';
@@ -22140,9 +22151,16 @@ function renderCHLumpSum(){
   h+='</div>';
   h+='<div style="flex:1;min-width:200px;padding:14px 16px;background:var(--bg3);border-radius:10px;border:1px solid var(--border)">';
   h+='<div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Net in your pocket</div>';
-  h+='<div style="font-size:30px;font-weight:800;color:var(--text)">'+_fmtCHF(total-tax1)+'</div>';
-  h+='<div style="font-size:12px;color:var(--text3);margin-top:3px">after the one-time capital-withdrawal tax</div>';
+  h+='<div style="font-size:30px;font-weight:800;color:var(--text)">'+_fmtCHF(netPocket)+'</div>';
+  h+='<div style="font-size:12px;color:var(--text3);margin-top:3px">after the one-time capital-withdrawal tax'+(penalty>0?' and '+_fmtCHF(penalty)+' early-withdrawal penalty':'')+'</div>';
   h+='</div></div>';
+  // Early-withdrawal restriction note
+  if(isEarly){
+    h+='<div style="font-size:11.5px;color:var(--text2);line-height:1.6;margin-bottom:14px;padding:9px 12px;background:rgba(217,138,45,.08);border-radius:8px;border:1px solid var(--border)">';
+    h+='<strong style="color:var(--amber)">Early withdrawal (before age 60).</strong> Pillar 2 / 3a can normally be drawn only from ~age 60. Before that it is permitted only for buying or amortising your main home, becoming self-employed, leaving Switzerland permanently, or on a disability pension — the capital-withdrawal tax above still applies.';
+    h+=(penalty>0?' A modelled early-withdrawal penalty of '+earlyPenPct.toFixed(1)+'% ('+_fmtCHF(penalty)+') is deducted from your proceeds.':' No percentage penalty is modelled (set one in the field above to test a scenario).');
+    h+='</div>';
+  }
   // Staggering
   h+='<div style="margin-bottom:14px">';
   h+='<div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:6px">Staggering across calendar years<span class="info-ic">i<span class="info-pop">The rate is progressive on the amount withdrawn per year, and same-year withdrawals (both pillars, and a spouse\'s) are added together. Splitting the payout across separate tax years lowers each year\'s rate. In practice you can stagger by holding several 3a accounts and closing them in different years; a 2nd-pillar fund is usually paid in one tranche, so confirm what your fund allows.</span></span></div>';
@@ -22176,6 +22194,11 @@ function renderCHAnnuity(){
   const cap=+((capEl&&capEl.value)||0);
   const conv=+(($("anConv")&&$("anConv").value)||6)/100;
   const retAge=+(($("anRetAge")&&$("anRetAge").value)||65);
+  // Early-retirement reduction: drawing the pension before the reference age (65)
+  // lowers the conversion rate the fund applies (~0.1–0.2 pp per year early).
+  const earlyCut=Math.min(1,Math.max(0,+(($("anEarlyCut")&&$("anEarlyCut").value)||0)));
+  const yearsEarly=Math.max(0, 65-retAge);
+  const convEff=Math.max(0, conv - yearsEarly*earlyCut/100);
   const planAge=+(($("anPlanAge")&&$("anPlanAge").value)||90);
   const taxRate=Math.min(1,Math.max(0,+(($("anTaxRate")&&$("anTaxRate").value)||18)/100));
   const r=+(($("anReturn")&&$("anReturn").value)||3)/100;
@@ -22183,7 +22206,7 @@ function renderCHAnnuity(){
   const years=Math.max(1,planAge-retAge);
   if(cap<=0){ host.innerHTML='<div style="font-size:12px;color:var(--text3);padding:10px 0">Enter your 2nd-pillar capital above to compare taking it as an annuity vs a lump sum.</div>'; return; }
   // Annuity path (pension taxed as income for life)
-  const grossAnnuity=cap*conv, netAnnuity=grossAnnuity*(1-taxRate), annuityTotalNet=netAnnuity*years;
+  const grossAnnuity=cap*convEff, netAnnuity=grossAnnuity*(1-taxRate), annuityTotalNet=netAnnuity*years;
   // Lump-sum path (taxed once at the canton's capital-withdrawal rate, then invested & drawn at the same net income)
   const lumpTax=chLumpTax(canton,cap)||0, netLump=cap-lumpTax;
   let bal=netLump, depleteAge=null;
@@ -22197,7 +22220,7 @@ function renderCHAnnuity(){
   h+='<div style="flex:1;min-width:220px;padding:14px 16px;background:var(--bg3);border-radius:10px;border:1px solid var(--border);border-top:3px solid var(--accent)">';
   h+='<div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Annuity (lifelong pension)</div>';
   h+='<div style="font-size:27px;font-weight:800;color:var(--text)">'+F(netAnnuity)+'<span style="font-size:14px;font-weight:600;color:var(--text3)">/yr net</span></div>';
-  h+='<div style="font-size:11.5px;color:var(--text3);margin-top:4px">'+F(grossAnnuity)+' gross at '+(conv*100).toFixed(1)+'% conversion, less '+(taxRate*100).toFixed(0)+'% income tax · paid for life</div>';
+  h+='<div style="font-size:11.5px;color:var(--text3);margin-top:4px">'+F(grossAnnuity)+' gross at '+(convEff*100).toFixed(2)+'% conversion'+((yearsEarly>0&&earlyCut>0)?' <span style="color:var(--amber)">(cut from '+(conv*100).toFixed(1)+'% for retiring '+yearsEarly+' yr'+(yearsEarly>1?'s':'')+' early)</span>':'')+', less '+(taxRate*100).toFixed(0)+'% income tax · paid for life</div>';
   h+='<div style="font-size:11.5px;color:var(--text2);margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">By age '+planAge+': <strong>'+F(annuityTotalNet)+'</strong> received<br><span style="color:var(--text3)">no market or longevity risk; leaves no capital to heirs</span></div>';
   h+='</div>';
   h+='<div style="flex:1;min-width:220px;padding:14px 16px;background:var(--bg3);border-radius:10px;border:1px solid var(--border);border-top:3px solid var(--gold)">';
