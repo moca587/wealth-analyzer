@@ -4293,7 +4293,7 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
 // ═══════════════════════════════════════════════════════════
 // VERSION — updated by build-standalone.pl on each build
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260721-1100";
+const APP_VERSION = "20260721-1109";
 
 // ═══════════════════════════════════════════════════════════
 // DATA
@@ -21544,15 +21544,21 @@ function drawFanChart(){
           const cName=(typeof CH_CANTON_NAMES!=="undefined"&&CH_CANTON_NAMES[canton])||canton;
           const t1=chLumpTax(canton,pillarTot)||0, r1=(typeof chLumpRate==="function"?chLumpRate(canton,pillarTot):0)||0;
           const s2=2*chLumpTax(canton,pillarTot/2), s3=3*chLumpTax(canton,pillarTot/3);
+          // Early-withdrawal option (mirrors the app panel): before ~age 60 a modelled penalty applies.
+          const wAge=num("chWithdrawAge",65), ePenPct=Math.min(50,Math.max(0,num("chEarlyPenalty",0)));
+          const early=wAge<60, penalty=early?pillarTot*ePenPct/100:0;
           para("Swiss pillars - drawing pillar 2 (BVG/LPP) and pillar 3a as a lump sum is taxed once, separately from income, at a reduced rate that varies by canton:");
-          kv([
+          const lumpRows=[
             ["Pillar 2 balance (BVG/LPP + vested benefits)", fmt(p2Bal)],
             ["Pillar 3a balance", fmt(p3Bal)],
             ["One-time withdrawal tax - "+cName, fmt(t1)+"  ("+r1.toFixed(2)+"% effective)"],
-            ["Net after tax", fmt(pillarTot-t1)],
-            ["Staggered over 2 years", fmt(s2)+"  (saves "+fmt(Math.max(0,t1-s2))+")"],
-            ["Staggered over 3 years", fmt(s3)+"  (saves "+fmt(Math.max(0,t1-s3))+")"],
-          ]);
+          ];
+          if(penalty>0) lumpRows.push(["Early-withdrawal penalty ("+ePenPct.toFixed(1)+"%, drawing at age "+wAge+")", fmt(penalty)]);
+          lumpRows.push(["Net after tax"+(penalty>0?" and penalty":""), fmt(pillarTot-t1-penalty)]);
+          lumpRows.push(["Staggered over 2 years", fmt(s2)+"  (saves "+fmt(Math.max(0,t1-s2))+")"]);
+          lumpRows.push(["Staggered over 3 years", fmt(s3)+"  (saves "+fmt(Math.max(0,t1-s3))+")"]);
+          kv(lumpRows);
+          if(early) para("Planned withdrawal age "+wAge+" is before ~60. Pillar 2 / 3a can normally be drawn only from about age 60 (5 years before the AHV reference age); earlier withdrawal is permitted only for specific purposes - buying or amortising a main home, becoming self-employed, permanent emigration, or a disability pension.", INK_SOFT);
           if(hasC2){
             let o1=0,o2=0;
             assets.forEach(a=>{ if(!(P2.has(a.type)||P3.has(a.type))) return; const v=+a.value||0;
@@ -21563,13 +21569,17 @@ function drawFanChart(){
           if(p2Bal>0){
             const conv=num("anConv",6)/100, taxR=Math.min(1,Math.max(0,num("anTaxRate",18)/100)), rr=num("anReturn",3)/100;
             const rAge=num("retAge",65), pAge=Math.max(rAge+1,num("anPlanAge",90));
-            const netAnn=p2Bal*conv*(1-taxR); const lumpT=chLumpTax(canton,p2Bal)||0; const netLump=p2Bal-lumpT;
+            // Early-retirement reduction (mirrors the app panel): retiring before the
+            // reference age 65 lowers the conversion rate, cutting the lifelong pension.
+            const eCut=Math.min(1,Math.max(0,num("anEarlyCut",0.15))), yrsEarly=Math.max(0,65-rAge);
+            const convEff=Math.max(0, conv - yrsEarly*eCut/100);
+            const netAnn=p2Bal*convEff*(1-taxR); const lumpT=chLumpTax(canton,p2Bal)||0; const netLump=p2Bal-lumpT;
             const beAge=netAnn>0? rAge+netLump/netAnn : Infinity;
             let bal=netLump, depAge=null;
             for(let a=rAge; a<pAge; a++){ bal=bal*(1+rr)-netAnn; if(bal<=0){ depAge=a+1; bal=0; break; } }
             para("Annuity or lump sum - the 2nd-pillar decision at retirement:");
             kv([
-              ["As a lifelong annuity ("+(conv*100).toFixed(1)+"% conversion rate)", fmt(netAnn)+"/yr net of "+(taxR*100).toFixed(0)+"% income tax, for life"],
+              ["As a lifelong annuity ("+(convEff*100).toFixed(2)+"% conversion rate"+((yrsEarly>0&&eCut>0)?", cut from "+(conv*100).toFixed(1)+"% for retiring "+yrsEarly+" yr"+(yrsEarly>1?"s":"")+" early":"")+")", fmt(netAnn)+"/yr net of "+(taxR*100).toFixed(0)+"% income tax, for life"],
               ["As a lump sum", fmt(netLump)+" net, after "+fmt(lumpT)+" one-time withdrawal tax"],
               ["Break-even age (simple cash terms)", isFinite(beAge)?("about age "+Math.round(beAge)):"—"],
               [depAge?("Lump sum invested at "+(rr*100).toFixed(1)+"%, drawn at the same income"):("Residual at age "+pAge+" if invested at "+(rr*100).toFixed(1)+"%"), depAge?("runs out at age "+depAge):fmt(bal)],
