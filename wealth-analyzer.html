@@ -2339,6 +2339,48 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
     <div style="font-size:11px;color:var(--gold);margin-top:4px" id="goalHomeMortgageNote" style="display:none"></div>
   </div>
 </div>
+
+<!-- What-If Scenarios -->
+<div class="panel">
+  <div class="ptitle section-dropdown" onclick="toggleDropdown('whatIfBody')">
+    What-If Scenarios <span class="dropdown-hint">click to expand</span>
+    <span class="ptitle-line"></span>
+  </div>
+  <div class="dropdown-body" id="whatIfBody">
+  <div style="font-size:12px;color:var(--text3);margin-bottom:14px">Model alternative futures — earlier retirement, a second home, education costs, income changes — and compare each scenario's median wealth and goal success against the baseline plan.</div>
+
+  <!-- Scenario list -->
+  <div id="whatIfList"><div class="cmp-empty">No scenarios added yet. Define a scenario below and click Run.</div></div>
+
+  <!-- Add / edit form -->
+  <div class="sdiv">
+    <div class="slbl">Add Scenario</div>
+    <div class="frow"><label class="flbl">Scenario name</label><input id="wiName" placeholder="e.g. Early retirement at 55" class="w220"></div>
+    <div class="frow"><label class="flbl">Override retire age</label>
+      <input type="number" id="wiRetAge" placeholder="Leave blank for default" step="1" class="w140">
+      <span style="font-size:11px;color:var(--text3);margin-left:6px">yrs</span>
+    </div>
+    <div class="frow"><label class="flbl">Income change %</label>
+      <input type="number" id="wiIncChange" value="0" step="1" class="w120">
+      <span style="font-size:11px;color:var(--text3);margin-left:6px">% of current gross (neg = reduction)</span>
+    </div>
+    <div class="frow"><label class="flbl">Extra annual expense</label>
+      <input type="number" id="wiExtraExp" value="0" step="500" class="w140">
+      <span style="font-size:11px;color:var(--text3);margin-left:6px">per year (ongoing)</span>
+    </div>
+    <div style="font-size:11px;font-weight:600;color:var(--text2);margin:10px 0 6px;letter-spacing:.04em;text-transform:uppercase">One-Time Goal (optional)</div>
+    <div class="frow"><label class="flbl">Goal name</label><input id="wiGoalName" placeholder="e.g. Buy beach house" class="w200"></div>
+    <div class="frow"><label class="flbl">Goal amount</label><input type="number" id="wiGoalAmt" value="0" step="1000" class="w140"></div>
+    <div class="frow"><label class="flbl">Goal year</label><input type="number" id="wiGoalYear" placeholder="e.g. 2032" step="1" class="w120"></div>
+    <div id="wiStatus" style="font-size:12px;color:var(--text3);margin-bottom:6px"></div>
+    <div style="display:flex;gap:8px;margin-top:4px">
+      <button id="wiAddBtn" class="btn-primary" onclick="addWhatIf()" style="flex:1">▶ Run Scenario</button>
+      <button id="wiCancelBtn" class="btn-secondary" onclick="cancelEditWhatIf()" style="display:none">✕ Cancel</button>
+    </div>
+  </div>
+  </div>
+</div>
+
 </div>
 
 <!-- ═══ SIMULATION ═══ -->
@@ -3492,47 +3534,6 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
 <div class="panel">
   <div class="ptitle">Plan Likelihood</div>
   <div id="cmpRecommend" class="cmp-recommend">Add positions to either Portfolio or Investment Proposal, then run the comparison.</div>
-</div>
-
-<!-- What-If Scenarios -->
-<div class="panel">
-  <div class="ptitle section-dropdown" onclick="toggleDropdown('whatIfBody')">
-    What-If Scenarios <span class="dropdown-hint">click to expand</span>
-    <span class="ptitle-line"></span>
-  </div>
-  <div class="dropdown-body" id="whatIfBody">
-  <div style="font-size:12px;color:var(--text3);margin-bottom:14px">Model alternative futures — earlier retirement, a second home, education costs, income changes — and compare each scenario's median wealth and goal success against the baseline plan.</div>
-
-  <!-- Scenario list -->
-  <div id="whatIfList"><div class="cmp-empty">No scenarios added yet. Define a scenario below and click Run.</div></div>
-
-  <!-- Add / edit form -->
-  <div class="sdiv">
-    <div class="slbl">Add Scenario</div>
-    <div class="frow"><label class="flbl">Scenario name</label><input id="wiName" placeholder="e.g. Early retirement at 55" class="w220"></div>
-    <div class="frow"><label class="flbl">Override retire age</label>
-      <input type="number" id="wiRetAge" placeholder="Leave blank for default" step="1" class="w140">
-      <span style="font-size:11px;color:var(--text3);margin-left:6px">yrs</span>
-    </div>
-    <div class="frow"><label class="flbl">Income change %</label>
-      <input type="number" id="wiIncChange" value="0" step="1" class="w120">
-      <span style="font-size:11px;color:var(--text3);margin-left:6px">% of current gross (neg = reduction)</span>
-    </div>
-    <div class="frow"><label class="flbl">Extra annual expense</label>
-      <input type="number" id="wiExtraExp" value="0" step="500" class="w140">
-      <span style="font-size:11px;color:var(--text3);margin-left:6px">per year (ongoing)</span>
-    </div>
-    <div style="font-size:11px;font-weight:600;color:var(--text2);margin:10px 0 6px;letter-spacing:.04em;text-transform:uppercase">One-Time Goal (optional)</div>
-    <div class="frow"><label class="flbl">Goal name</label><input id="wiGoalName" placeholder="e.g. Buy beach house" class="w200"></div>
-    <div class="frow"><label class="flbl">Goal amount</label><input type="number" id="wiGoalAmt" value="0" step="1000" class="w140"></div>
-    <div class="frow"><label class="flbl">Goal year</label><input type="number" id="wiGoalYear" placeholder="e.g. 2032" step="1" class="w120"></div>
-    <div id="wiStatus" style="font-size:12px;color:var(--text3);margin-bottom:6px"></div>
-    <div style="display:flex;gap:8px;margin-top:4px">
-      <button id="wiAddBtn" class="btn-primary" onclick="addWhatIf()" style="flex:1">▶ Run Scenario</button>
-      <button id="wiCancelBtn" class="btn-secondary" onclick="cancelEditWhatIf()" style="display:none">✕ Cancel</button>
-    </div>
-  </div>
-  </div>
 </div>
 
 </div>
