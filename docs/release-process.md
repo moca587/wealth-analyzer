@@ -29,7 +29,7 @@ Run from the repository root:
 ```bash
 npm run legacy:build     # regenerate all standalones from source (needs Perl), then validate
 npm run legacy:check     # validate the committed artifacts WITHOUT rebuilding
-npm run ci               # app tests + type-check + Next build + legacy:check
+npm run ci               # app tests + type-check + lint + Next build + legacy:check
 ```
 
 The app-only checks:
@@ -38,6 +38,7 @@ The app-only checks:
 npm run app:install      # npm ci in wealth-app-next
 npm run app:test         # vitest run
 npm run app:typecheck    # tsc --noEmit
+npm run app:lint         # next lint
 npm run app:build        # next build
 ```
 
@@ -71,9 +72,9 @@ For each app:
 
 ## CI
 
-The workflow (`.github/workflows/ci.yml`) installs `wealth-app-next` deps
+The workflow (`.github/workflows/ci.yml`) installs `wealth-app-next` dependencies
 (cached), runs the unit tests, type-check, and Next build, then validates the
-legacy artifacts. CI **validates** the committed standalones rather than
+legacy artifacts. The root `npm run ci` command also runs the dedicated lint step. CI **validates** the committed standalones rather than
 rebuilding them — so a stale or drifted artifact fails the PR instead of being
 silently regenerated. It runs on every push to `main` and every PR (active and
 green).
