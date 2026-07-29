@@ -466,6 +466,19 @@
         "amt": 400000,
         "year": 2032
       }
+    },
+    {
+      "id": "wi3",
+      "name": "Pillar 2 früh beziehen – CHF 300k mit 58",
+      "retAgeOvr": null,
+      "incChangePct": 0,
+      "extraExp": 0,
+      "extraGoal": null,
+      "penDraw": {
+        "age": 58,
+        "amt": 300000,
+        "cutPct": 6.2
+      }
     }
   ],
   "assetSeq": 7,
@@ -477,6 +490,6 @@
   "insSeq": 2,
   "eqSeq": 1,
   "benSeq": 0,
-  "whatIfSeq": 2,
+  "whatIfSeq": 3,
   "pfLinkedAccountId": "a4"
 }
