@@ -452,7 +452,12 @@ function ApplyPanel({ envelope }: { envelope: FeedEnvelope }) {
 
       const changes = diffPlan(base, envelope);
       // Pre-select everything that would actually change something.
-      setSelected(new Set(changes.filter((c) => c.kind !== "unchanged").map((c) => c.key)));
+      // Rows the merge flagged as risky start UNCHECKED. They are the ones the
+      // engine could not resolve safely on its own — a foreign-currency amount
+      // with no conversion, a loan with no rate or term, a retirement block
+      // missing the age it needs. Pre-ticking those would let an advisor apply
+      // a number nobody verified by clicking through the default.
+      setSelected(new Set(changes.filter((c) => c.kind !== "unchanged" && !c.risky).map((c) => c.key)));
       setState({ phase: "review", plan: base, changes });
     } catch (e) {
       setState({ phase: "error", message: e instanceof Error ? e.message : "Could not prepare the merge" });
@@ -592,9 +597,17 @@ function ApplyPanel({ envelope }: { envelope: FeedEnvelope }) {
                       : "bg-muted text-muted-foreground")}>
                     {c.kind === "create" ? "new" : c.kind === "update" ? "update" : "current"}
                   </span>
+                  {c.risky && (
+                    <span className="ml-1.5 rounded bg-orange-500/10 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-orange-700">
+                      check
+                    </span>
+                  )}
                   <span className="block text-xs text-muted-foreground">
                     {c.before !== undefined && c.kind === "update" ? `${c.before} → ${c.after}` : c.after}
                   </span>
+                  {c.warning && (
+                    <span className="mt-0.5 block text-xs text-orange-700">{c.warning}</span>
+                  )}
                 </span>
               </label>
             ))}

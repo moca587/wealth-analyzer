@@ -139,6 +139,13 @@ function v6Reason(ip: string): string | null {
     return v4Reason(v4) ?? null;
   };
   if (x.slice(0, 5).every((n) => n === 0) && x[5] === 0xffff) return inner() ?? null;
+  // IPv4-compatible IPv6 (::a.b.c.d, i.e. ::/96). Deprecated but still
+  // routable on some stacks, and `::169.254.169.254` is a literal spelling of
+  // the cloud-metadata address — judge the embedded v4, and reject the range
+  // outright since nothing legitimate uses it.
+  if (x.slice(0, 6).every((n) => n === 0)) return inner() ?? "IPv4-compatible IPv6";
+  // ::ffff:0:a.b.c.d — the "IPv4-translated" sibling of the mapped form.
+  if (x.slice(0, 4).every((n) => n === 0) && x[4] === 0xffff && x[5] === 0) return inner() ?? "IPv4-translated IPv6";
   if (x[0] === 0x0064 && x[1] === 0xff9b) return inner() ?? "NAT64";
   if (x[0] === 0x2002) {
     // 6to4 — embedded v4 sits in hextets 1-2
@@ -191,7 +198,10 @@ export function validateFeedUrl(raw: string): { ok: true; url: URL } | { ok: fal
   if (url.username || url.password) {
     return { ok: false, reason: "credentials embedded in the URL are not allowed — use the authentication fields" };
   }
-  const host = url.hostname.toLowerCase().replace(/^\[|\]$/g, "");
+  // Normalize the FQDN trailing dot: "localhost." and "localhost" address the
+  // same host, so leaving it on let a trailing dot walk straight past the
+  // internal-name blocklist (and wrongly failed an allowlisted FQDN).
+  const host = url.hostname.toLowerCase().replace(/^\[|\]$/g, "").replace(/\.+$/, "");
   if (!host) return { ok: false, reason: "missing host" };
 
   const allowed = allowlist();
@@ -248,6 +258,23 @@ export interface SafeFetchResult { body: string; contentType: string; finalUrl: 
  */
 export async function safeFetch(rawUrl: string, headers: Record<string, string>): Promise<SafeFetchResult> {
   let current = rawUrl;
+  const origin = (u: URL) => `${u.protocol}//${u.host}`;
+  const startOrigin = (() => { try { return origin(new URL(rawUrl)); } catch { return ""; } })();
+
+  // Headers that carry the custodian credential. Setting redirect:"manual"
+  // opts out of the platform's own protection, so we must re-scope these
+  // ourselves: a 302 to another origin (or a downgrade to http) would
+  // otherwise hand a live bank token to whoever the Location points at.
+  const isCredential = (k: string) => /^(authorization|proxy-authorization|cookie)$/i.test(k)
+    || /(^|-)(api[-_]?key|auth[-_]?token|access[-_]?token|secret|token)$/i.test(k);
+  const scopeHeaders = (target: URL): Record<string, string> => {
+    const sameOrigin = startOrigin && origin(target) === startOrigin;
+    const secure = target.protocol === "https:" || new URL(rawUrl).protocol === "http:";
+    if (sameOrigin && secure) return headers;
+    const safe: Record<string, string> = {};
+    for (const [k, val] of Object.entries(headers)) if (!isCredential(k)) safe[k] = val;
+    return safe;
+  };
 
   for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
     const v = validateFeedUrl(current);
@@ -260,7 +287,7 @@ export async function safeFetch(rawUrl: string, headers: Record<string, string>)
     try {
       res = await fetch(v.url, {
         method: "GET",
-        headers,
+        headers: scopeHeaders(v.url),
         redirect: "manual",     // we re-validate every hop ourselves
         signal: controller.signal,
         cache: "no-store",
@@ -319,6 +346,16 @@ export async function safeFetch(rawUrl: string, headers: Record<string, string>)
         contentType: res.headers.get("content-type") || "",
         finalUrl: v.url.toString(),
       };
+    } catch (e) {
+      // A stall mid-body aborts the stream, which surfaces as a raw
+      // DOMException rather than our own error type — normalize it so the
+      // route can map it to a sensible status and message.
+      if (e instanceof FeedFetchError) throw e;
+      const msg = e instanceof Error ? e.message : String(e);
+      throw new FeedFetchError(
+        controller.signal.aborted ? `request timed out after ${FEED_FETCH_TIMEOUT_MS / 1000}s while reading the response` : msg,
+        controller.signal.aborted ? "timeout" : "network"
+      );
     } finally {
       clearTimeout(timer);
     }

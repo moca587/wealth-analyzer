@@ -77,6 +77,8 @@ const assetSchema = z.object({
   country: countryCodeEnum.optional(),
   cls: assetClassEnum.optional(),
   note: z.string().optional(),
+  // Stable origin key for records created by a data feed (see Asset.feedRef).
+  feedRef: z.string().max(200).optional(),
 });
 
 const loanSchema = z.object({
@@ -86,6 +88,7 @@ const loanSchema = z.object({
   bal: money,
   rate: finiteNumber.min(0).max(100),
   yrs: finiteNumber.min(0).max(100),
+  feedRef: z.string().max(200).optional(),
 });
 
 const goalSchema = z

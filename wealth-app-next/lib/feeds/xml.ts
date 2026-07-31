@@ -65,6 +65,21 @@ export class XmlNode {
     }
     return null;
   }
+
+  /**
+   * Direct children with this local name. Needed wherever a descendant
+   * search would reach into a nested structure that means something else —
+   * e.g. a camt <Bal> whose <CdtLine><Amt> is an overdraft LIMIT, not the
+   * balance, and would otherwise be picked up by first("Amt").
+   */
+  kids(name: string): XmlNode[] {
+    return this.children.filter((c) => c.name === name);
+  }
+
+  /** First direct child with this local name. */
+  kid(name: string): XmlNode | null {
+    return this.children.find((c) => c.name === name) ?? null;
+  }
 }
 
 function localName(qualified: string): string {
@@ -149,7 +164,16 @@ export class XMLParser {
         continue;
       }
 
-      const gt = src.indexOf(">", lt);
+      // Find the tag's closing '>' while respecting quoted attribute values —
+      // a legal unescaped '>' inside an attribute would otherwise truncate the
+      // tag, drop its attributes and leak the remainder into text content.
+      let gt = -1, quote: string | null = null;
+      for (let j = lt + 1; j < src.length; j++) {
+        const ch = src[j];
+        if (quote) { if (ch === quote) quote = null; }
+        else if (ch === '"' || ch === "'") quote = ch;
+        else if (ch === ">") { gt = j; break; }
+      }
       if (gt < 0) return null;
       let tag = src.slice(lt + 1, gt).trim();
 

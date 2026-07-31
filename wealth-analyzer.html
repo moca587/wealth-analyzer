@@ -9790,9 +9790,21 @@ function siDetectFormat(name,text){
 }
 
 // ── Locale-aware number parse → falls back to _daNum for K/M/B ────────
+// Strings that look like a DATE must never become money. Stripping separators
+// turned a "Value Date" cell of 2026-08-31 into 20,260,831 — and since every
+// European bank statement carries a date column right beside the amount, a
+// column-matching miss produced a 20-million-franc position that looked
+// plausible enough to apply.
+const SI_DATE_LIKE=[
+  /^\d{4}-\d{1,2}-\d{1,2}(?:[T ]\d.*)?$/,   // 2026-08-31, 2026-08-31T00:00:00Z
+  /^\d{1,2}[./-]\d{1,2}[./-]\d{2,4}$/,      // 31.08.2026, 31/08/26, 8-31-2026
+  /^\d{4}\/\d{1,2}\/\d{1,2}$/,              // 2026/08/31
+  /^\d{1,2}[.-][A-Za-z]{3}[.-]\d{2,4}$/     // 31-Aug-2026
+];
 function siNum(str,decimalMark){
   if(str==null) return null;
   let s=String(str).trim(); if(!s) return null;
+  for(let i=0;i<SI_DATE_LIKE.length;i++){ if(SI_DATE_LIKE[i].test(s)) return null; }
   if(/[kmb]\s*$/i.test(s) && /^[\s$€£¥]*[\d.,]+\s*[kmb]\s*$/i.test(s)){ const d=_daNum(str); if(d!=null) return d; }
   let neg=false;
   if(/^\(.*\)$/.test(s)){ neg=true; s=s.slice(1,-1); }
@@ -10263,15 +10275,25 @@ function fdFromCamt(text,srcLabel){
     for(let i=0;i<all.length;i++){ if(all[i].localName===name) res.push(all[i]); }
     return res;
   };
+  // DIRECT child only. `tag()` walks the whole subtree, so tag(bal,"Amt")
+  // happily returned the <Amt> nested inside a <CdtLine> — the account's
+  // overdraft LIMIT — whenever the bank listed the credit line before the
+  // balance. A CHF 12,500 current account then imported as CHF 500,000.
+  const kid=(el,name)=>{
+    if(!el||!el.children) return null;
+    for(let i=0;i<el.children.length;i++){ if(el.children[i].localName===name) return el.children[i]; }
+    return null;
+  };
   const stmts=tags(doc,"Stmt").concat(tags(doc,"Rpt")).concat(tags(doc,"Ntfctn"));
   stmts.forEach((st,si)=>{
     const acctEl=tag(st,"Acct");
     const iban=acctEl?(tag(acctEl,"IBAN")||tag(acctEl,"Othr")):null;
     const ibanTxt=iban?(iban.localName==="IBAN"?iban.textContent:(tag(iban,"Id")?tag(iban,"Id").textContent:"")):"";
-    const nmEl=acctEl?tag(acctEl,"Nm"):null;
-    const ccyEl=acctEl?tag(acctEl,"Ccy"):null;
-    const ownerEl=acctEl?tag(acctEl,"Ownr"):null;
-    const ownerNm=ownerEl?tag(ownerEl,"Nm"):null;
+    // Direct children: <Acct> also contains <Ownr><Nm>, so a subtree lookup
+    // for "Nm" returns the account HOLDER whenever the account itself is
+    // unnamed — the very fallback this is trying to avoid.
+    const nmEl=kid(acctEl,"Nm");
+    const ccyEl=kid(acctEl,"Ccy");
     // Pick the closing booked balance
     let amount=null, ccy=ccyEl?ccyEl.textContent.trim():"", used="";
     const prefer=["CLBD","CLAV","PRCD","ITBD"];
@@ -10280,20 +10302,30 @@ function fdFromCamt(text,srcLabel){
       for(const b of bals){
         const cd=tag(b,"Cd");
         if(cd && cd.textContent.trim().toUpperCase()===code){
-          const amtEl=tag(b,"Amt");
+          const amtEl=kid(b,"Amt");
           if(!amtEl) continue;
           let v=siNum(amtEl.textContent,"period");
           if(v==null) continue;
-          const ind=tag(b,"CdtDbtInd");
+          // CdtDbtInd carries the sign; the amount itself is a magnitude. Some
+          // banks send it already signed, and negating that flipped an
+          // overdraft back into a positive asset.
+          const ind=kid(b,"CdtDbtInd");
+          v=Math.abs(v);
           if(ind && /DBIT/i.test(ind.textContent)) v=-v;
-          if(!ccy) ccy=(amtEl.getAttribute("Ccy")||"").trim();
+          // The balance's own Ccy is authoritative — a multi-currency account
+          // declares a base currency that the individual balance may not use.
+          ccy=(amtEl.getAttribute("Ccy")||"").trim()||ccy;
           amount=v; used=code; break;
         }
       }
       if(amount!=null) break;
     }
     if(amount==null) return;
-    const label=(nmEl&&nmEl.textContent.trim())||(ownerNm&&ownerNm.textContent.trim())||(ibanTxt?("Account "+ibanTxt.slice(-6)):("Account "+(si+1)));
+    // The ACCOUNT's own name, never the account HOLDER's. Falling back to the
+    // owner gave every statement in a multi-account file the same label
+    // ("Hans Müller"), so a current account, a savings account and a pension
+    // all arrived indistinguishable and collapsed onto one another on review.
+    const label=(nmEl&&nmEl.textContent.trim())||(ibanTxt?("Account "+ibanTxt.slice(-6)):("Account "+(si+1)));
     const srcTxt="ISO 20022 camt · "+(srcLabel||"statement")+" · "+used+(ibanTxt?(" · "+ibanTxt):"");
     if(amount<0){
       out.liabilities.push({_ok:0.85,_src:srcTxt,type:"other",label:label+" (overdrawn)",balance:Math.abs(amount),ratePct:null,years:null});

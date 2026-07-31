@@ -31,14 +31,28 @@ export function detectFormat(text: string, contentType = ""): Exclude<FeedFormat
     } catch { /* fall through — malformed JSON is reported by the adapter */ }
     return "crm";
   }
-  if (/<Document[^>]*camt\.|<BkToCstmrStmt|<BkToCstmrAcctRpt|<BkToCstmrDbtCdtNtfctn/i.test(head)) return "camt";
-  if (/<OFX>/i.test(head) || /^\s*OFXHEADER:/im.test(head) || /<\?OFX/i.test(head)) return "ofx";
-  if (ct.includes("csv") || /[,;\t|].*\n/.test(head)) return "csv";
+  // camt markers are searched across the WHOLE payload: banks routinely wrap
+  // the document in a SOAP envelope whose header alone exceeds 2500 chars,
+  // and a windowed search then misfiled it as CSV.
+  if (/<Document[^>]*camt\.|<BkToCstmrStmt|<BkToCstmrAcctRpt|<BkToCstmrDbtCdtNtfctn/i.test(text)) return "camt";
+  if (/<OFX>/i.test(head) || /^\s*OFXHEADER:/im.test(head) || /<\?OFX/i.test(text)) return "ofx";
+  // Explicit about the line ending rather than relying on `.` (which does match
+  // \r) so the CRLF case every Excel-exported custodian CSV uses is obvious.
+  if (ct.includes("csv") || /[,;\t|][^\n]*\r?\n/.test(head)) return "csv";
   return "unknown";
 }
 
 // ─── wa.feed/v1 (native) ──────────────────────────────────────────
-const NUMERIC_KEYS = ["value", "val", "balance", "propertyValue", "otherValue", "amt", "primary", "secondary", "er", "yld", "ratePct", "years"];
+// EVERY numeric field the model declares. Omitting a key here does not
+// fail loudly — the downstream `typeof x === "number"` checks simply skip
+// the field, so a stringy "35'000" goal amount or "2033" start year was
+// silently dropped and the goal landed in the current year at zero.
+const NUMERIC_KEYS = [
+  "value", "val", "balance", "propertyValue", "otherValue", "amt",
+  "primary", "secondary", "raisePct", "er", "yld", "ratePct", "years",
+  "amount", "startYear", "endYear",
+  "retirementAge", "annualSpending", "planToAge",
+];
 
 export function fromWaJson(input: unknown, srcLabel: string): FeedEnvelope {
   const obj = input as Record<string, unknown> | null;
@@ -127,6 +141,36 @@ function normCountry(v: string): string {
   return COUNTRY_NAMES[s.toLowerCase()] || "";
 }
 
+/**
+ * Normalize a CRM date of birth to YYYY-MM-DD, or "" when it isn't a date.
+ * A blind .slice(0,10) turned an epoch-millisecond value like 452217600000
+ * into "4522176000" and stored that as the client's date of birth.
+ */
+function normDob(v: string): string {
+  const s = String(v || "").trim();
+  if (!s) return "";
+  const iso = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (iso) return `${iso[1]}-${iso[2]}-${iso[3]}`;
+  // Epoch seconds or milliseconds (CRMs export both; lengths vary by era).
+  if (/^\d{9,14}$/.test(s)) {
+    const ms = s.length <= 10 ? Number(s) * 1000 : Number(s);
+    const d = new Date(ms);
+    return Number.isNaN(d.getTime()) ? "" : d.toISOString().slice(0, 10);
+  }
+  // dd.mm.yyyy / dd/mm/yyyy — day-first, the European convention these
+  // CRMs export. Ambiguous with US mm/dd; only accept when unambiguous.
+  const dmy = s.match(/^(\d{1,2})[./](\d{1,2})[./](\d{4})$/);
+  if (dmy) {
+    const day = Number(dmy[1]), month = Number(dmy[2]);
+    if (day > 12 && month <= 12) {
+      return `${dmy[3]}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+    }
+    return "";   // genuinely ambiguous — better absent than wrong
+  }
+  const parsed = new Date(s);
+  return Number.isNaN(parsed.getTime()) ? "" : parsed.toISOString().slice(0, 10);
+}
+
 export function fromCrmJson(input: unknown, srcLabel: string): FeedEnvelope {
   const out = emptyEnvelope();
   let rows: unknown[] = [];
@@ -140,23 +184,53 @@ export function fromCrmJson(input: unknown, srcLabel: string): FeedEnvelope {
 
   // Only two adults map onto the plan model (client1 + client2); the rest
   // of a CRM page would silently overwrite them, so they are ignored here.
-  for (const [idx, raw] of rows.slice(0, 2).entries()) {
-    if (!raw || typeof raw !== "object" || Array.isArray(raw)) continue;
-    const get = picker(raw as Record<string, unknown>);
-    const first = get(["firstName", "first", "givenName", "forename"]);
-    const last = get(["lastName", "last", "familyName", "surname"]);
-    if (!first && !last) continue;
+  const named = rows
+    .filter((r): r is Record<string, unknown> => !!r && typeof r === "object" && !Array.isArray(r))
+    .map((r) => {
+      const get = picker(r);
+      const rel = get(["relationship", "role", "contactType", "householdRole"]).toLowerCase();
+      return {
+        get,
+        first: get(["firstName", "first", "givenName", "forename"]),
+        last: get(["lastName", "last", "familyName", "surname"]),
+        spouseFlag: /spouse|partner|husband|wife|ehepartner|conjoint/.test(rel),
+      };
+    })
+    .filter((p) => p.first || p.last);
 
-    const rel = get(["relationship", "role", "contactType", "householdRole"]).toLowerCase();
-    const isSpouse = idx > 0 || /spouse|partner|husband|wife|ehepartner|conjoint/.test(rel);
+  // Assign slots by ROLE, not by position. Ordering alone meant that a CRM
+  // page listing the spouse first made BOTH people client2 — the second
+  // record overwrote the first and one of the couple vanished.
+  const primaryIdx = named.findIndex((p) => !p.spouseFlag);
+  const slotOf = (i: number): 0 | 1 => {
+    if (primaryIdx < 0) return i === 0 ? 0 : 1;      // everyone flagged spouse: keep order
+    if (i === primaryIdx) return 0;
+    return 1;
+  };
+  const taken = new Set<number>();
+  const people = named
+    .map((p, i) => ({ p, slot: slotOf(i) }))
+    .filter(({ slot }) => { if (taken.has(slot)) return false; taken.add(slot); return true; });
+
+  for (const { p, slot } of people) {
+    const get = p.get;
+    const first = p.first;
+    const last = p.last;
+    const isSpouse = slot === 1;
     const who = isSpouse ? "client2" : "client1";
     const src = `CRM · ${srcLabel} · ${isSpouse ? "client 2" : "client 1"}`;
+    const rawDob = get(["dateOfBirth", "birthDate", "dob", "birthdate"]);
 
     const person: FeedHousehold = {
       _ok: 0.9, _src: src,
       role: who,
       first, last,
-      dob: get(["dateOfBirth", "birthDate", "dob", "birthdate"]).slice(0, 10),
+      dob: normDob(rawDob),
+      // Preserve a date we REFUSED to interpret (an ambiguous 12.03.1971 could
+      // be March 12 or December 3). The merge layer turns this into a visible
+      // "enter it by hand" note; without it the DOB just vanished, and a client
+      // with no DOB has no retirement horizon.
+      dobRaw: rawDob && !normDob(rawDob) ? rawDob : undefined,
       street: get(["street", "address1", "addressLine1", "mailingStreet", "billingStreet"]),
       city: get(["city", "mailingCity", "billingCity", "town", "locality"]),
       postal: get(["postalCode", "zip", "zipCode", "mailingPostalCode", "postcode"]),
@@ -190,40 +264,83 @@ export function fromCamt(text: string, srcLabel: string, defaultCountry = "CH"):
   const statements = [
     ...doc.find("Stmt"), ...doc.find("Rpt"), ...doc.find("Ntfctn"),
   ];
+  if (!statements.length) {
+    throw new FeedFormatError("camt payload contains no Stmt/Rpt/Ntfctn statement");
+  }
+
+  let skipped = 0;
   statements.forEach((st, si) => {
     const acct = st.first("Acct");
     const iban = acct?.first("IBAN")?.text() || acct?.first("Othr")?.first("Id")?.text() || "";
+    // The account's OWN name only. Acct/Ownr/Nm is the account HOLDER, which
+    // is identical for every account in a statement — using it made all of a
+    // client's accounts share one label, so they collapsed onto a single plan
+    // record and overwrote each other on the next sync.
     const name = acct?.first("Nm")?.text() || "";
-    const owner = acct?.first("Ownr")?.first("Nm")?.text() || "";
-    let ccy = acct?.first("Ccy")?.text() || "";
+    const acctCcy = acct?.first("Ccy")?.text() || "";
 
+    // Balances are DIRECT children of the statement; a <Bal> nested deeper
+    // (inside an entry, say) is not this account's balance.
+    const balances = st.kids("Bal");
     let amount: number | null = null;
     let usedCode = "";
+    let balCcy = "";
     for (const code of BALANCE_PREFERENCE) {
-      for (const bal of st.find("Bal")) {
-        if (bal.first("Cd")?.text().trim().toUpperCase() !== code) continue;
-        const amtEl = bal.first("Amt");
+      for (const bal of balances) {
+        const tp = bal.kid("Tp")?.first("Cd")?.text().trim().toUpperCase();
+        if (tp !== code) continue;
+        // Direct child only: <Bal><CdtLine><Amt> is an overdraft LIMIT, and
+        // reading it as the balance imported a credit facility as cash.
+        const amtEl = bal.kid("Amt");
         if (!amtEl) continue;
         const v = parseFeedNumber(amtEl.text());
         if (v == null) continue;
-        const ind = bal.first("CdtDbtInd")?.text() || "";
-        amount = /DBIT/i.test(ind) ? -v : v;
-        if (!ccy) ccy = amtEl.attr("Ccy") || "";
+        const ind = bal.kid("CdtDbtInd")?.text() || "";
+        // CdtDbtInd carries the sign; the amount itself is unsigned in ISO
+        // 20022. Taking abs() first stops a negative <Amt> with DBIT from
+        // double-negating into a positive "asset".
+        amount = /DBIT/i.test(ind) ? -Math.abs(v) : Math.abs(v);
+        balCcy = amtEl.attr("Ccy") || "";
         usedCode = code;
         break;
       }
       if (amount != null) break;
     }
-    if (amount == null) return;
+    if (amount == null) { skipped++; return; }
 
-    const label = name || owner || (iban ? `Account ${iban.slice(-6)}` : `Account ${si + 1}`);
+    // The balance's own currency wins over the account's declared one.
+    const ccy = balCcy || acctCcy;
+    const label = name || (iban ? `Account ${iban.slice(-6)}` : `Account ${si + 1}`);
     const src = `ISO 20022 camt · ${srcLabel} · ${usedCode}${iban ? ` · ${iban}` : ""}`;
     if (amount < 0) {
-      out.liabilities.push({ _ok: 0.85, _src: src, type: "other", label: `${label} (overdrawn)`, balance: Math.abs(amount), ratePct: null, years: null });
+      out.liabilities.push({
+        _ok: 0.85, _src: src, type: "other",
+        label, balance: Math.abs(amount), ratePct: null, years: null,
+        // Stable identity so a later credit balance can find and clear this
+        // record instead of stranding it (see apply.ts liability matching).
+        accountRef: iban || label,
+      });
     } else {
-      out.assets.push({ _ok: 0.9, _src: src, label, accountTypeHint: "Bank account", value: amount, country: defaultCountry, ccy: ccy || undefined, propertyValue: null, otherValue: null });
+      out.assets.push({
+        _ok: 0.9, _src: src, label,
+        // Pass the account's real name as the type hint so downstream
+        // classification can see "Freizügigkeitskonto"/"Privatkonto" and set
+        // liquidity and asset class correctly. A hardcoded "Bank account"
+        // made every account liquid and "mixed".
+        accountTypeHint: name || "Bank account",
+        value: amount, country: defaultCountry, ccy: ccy || undefined,
+        propertyValue: null, otherValue: null,
+        accountRef: iban || label,
+      });
     }
   });
+
+  if (!out.assets.length && !out.liabilities.length) {
+    throw new FeedFormatError(
+      `camt payload had ${statements.length} statement(s) but no usable closing balance ` +
+      `(looked for ${BALANCE_PREFERENCE.join("/")}). ${skipped} statement(s) skipped.`
+    );
+  }
   return out;
 }
 
@@ -233,11 +350,25 @@ function ofxTag(block: string, tag: string): string {
   return m ? m[1].trim() : "";
 }
 
+/** Split an OFX document into its per-account response blocks. */
+function ofxStatements(text: string): Array<{ kind: "inv" | "bank" | "cc"; body: string }> {
+  const out: Array<{ kind: "inv" | "bank" | "cc"; body: string }> = [];
+  const grab = (tag: string, kind: "inv" | "bank" | "cc") => {
+    // SGML OFX often omits closing tags; fall back to "until the next
+    // statement opener or end of document".
+    const re = new RegExp(`<${tag}>([\\s\\S]*?)(?:<\\/${tag}>|(?=<(?:INVSTMTRS|STMTRS|CCSTMTRS)>)|$)`, "gi");
+    for (const m of text.matchAll(re)) out.push({ kind, body: m[1] });
+  };
+  grab("INVSTMTRS", "inv");
+  grab("STMTRS", "bank");
+  grab("CCSTMTRS", "cc");
+  return out;
+}
+
 export function fromOfx(text: string, srcLabel: string, defaultCountry = "US"): FeedEnvelope {
   const out = emptyEnvelope();
-  const ccy = ofxTag(text, "CURDEF") || undefined;
 
-  // Securities master: <SECINFO> blocks keyed by unique id.
+  // Securities master is document-wide and shared by every account.
   const secs: Record<string, { name: string; tkr: string }> = {};
   for (const m of text.matchAll(/<SECINFO>([\s\S]*?)<\/SECINFO>/gi)) {
     const b = m[1];
@@ -246,44 +377,98 @@ export function fromOfx(text: string, srcLabel: string, defaultCountry = "US"): 
   }
 
   const POS: Record<string, string> = { POSSTOCK: "stock", POSMF: "mutual_fund", POSBOND: "bond", POSOPT: "alternative", POSOTHER: "alternative" };
-  for (const tag of Object.keys(POS)) {
-    for (const m of text.matchAll(new RegExp(`<${tag}>([\\s\\S]*?)<\\/${tag}>`, "gi"))) {
-      const b = m[1];
-      const uid = ofxTag(b, "UNIQUEID");
-      const mkt = parseFeedNumber(ofxTag(b, "MKTVAL"));
-      const units = parseFeedNumber(ofxTag(b, "UNITS"));
-      const price = parseFeedNumber(ofxTag(b, "UNITPRICE"));
-      const val = mkt ?? (units != null && price != null ? units * price : null);
-      if (val == null || !(val > 0)) continue;
-      const info = secs[uid] || { name: "", tkr: "" };
-      const type = POS[tag];
-      out.holdings.push({
-        _ok: mkt != null ? 0.9 : 0.6,
-        _src: `OFX ${tag}${uid ? ` ${uid}` : ""} · ${srcLabel}`,
-        name: info.name || info.tkr || uid || "Position",
-        tkr: info.tkr || (uid && uid.length <= 6 ? uid : ""),
-        val, type,
-        cls: type === "bond" ? "fixed_income" : type === "stock" || type === "mutual_fund" ? "equity" : "alternative",
-        region: "other", er: null, yld: null, note: "",
+  const docCcy = ofxTag(text, "CURDEF") || undefined;
+
+  // Each account is processed on its OWN block. Reading AVAILCASH/LEDGERBAL/
+  // ACCTTYPE from the whole document only ever saw the FIRST occurrence, so
+  // every account after the first lost its cash, and a combined bank+card
+  // download booked the checking balance as credit-card debt.
+  const statements = ofxStatements(text);
+  const blocks = statements.length ? statements : [{ kind: "bank" as const, body: text }];
+
+  for (const [i, st] of blocks.entries()) {
+    const body = st.body;
+    const ccy = ofxTag(body, "CURDEF") || docCcy;
+    const acctId = ofxTag(body, "ACCTID");
+    const ref = acctId || `${st.kind}-${i + 1}`;
+    const suffix = acctId ? ` ${acctId.slice(-4)}` : blocks.length > 1 ? ` ${i + 1}` : "";
+
+    if (st.kind === "inv") {
+      for (const tag of Object.keys(POS)) {
+        for (const m of body.matchAll(new RegExp(`<${tag}>([\\s\\S]*?)<\\/${tag}>`, "gi"))) {
+          const b = m[1];
+          const uid = ofxTag(b, "UNIQUEID");
+          const mkt = parseFeedNumber(ofxTag(b, "MKTVAL"));
+          const units = parseFeedNumber(ofxTag(b, "UNITS"));
+          const price = parseFeedNumber(ofxTag(b, "UNITPRICE"));
+          const val = mkt ?? (units != null && price != null ? units * price : null);
+          if (val == null || !Number.isFinite(val) || val === 0) continue;
+          const info = secs[uid] || { name: "", tkr: "" };
+          const type = POS[tag];
+          const name = info.name || info.tkr || uid || "Position";
+          // A short position / negative market value is a liability, not a
+          // negative asset (which the plan schema rejects outright).
+          if (val < 0) {
+            out.liabilities.push({
+              _ok: 0.7, _src: `OFX ${tag} short${uid ? ` ${uid}` : ""} · ${srcLabel}`,
+              type: "other", label: `${name} (short)`, balance: Math.abs(val),
+              ratePct: null, years: null, accountRef: ref,
+            });
+            continue;
+          }
+          out.holdings.push({
+            _ok: mkt != null ? 0.9 : 0.6,
+            _src: `OFX ${tag}${uid ? ` ${uid}` : ""} · ${srcLabel}`,
+            name,
+            tkr: info.tkr || (uid && uid.length <= 6 ? uid : ""),
+            val, type,
+            cls: type === "bond" ? "fixed_income" : type === "stock" || type === "mutual_fund" ? "equity" : "alternative",
+            region: "other", er: null, yld: null, note: "",
+          });
+        }
+      }
+      const cash = parseFeedNumber(ofxTag(body, "AVAILCASH"));
+      if (cash != null && cash > 0) {
+        out.assets.push({
+          _ok: 0.9, _src: `OFX INVBAL AVAILCASH · ${srcLabel}`,
+          label: `Brokerage cash${suffix}`, accountTypeHint: "Brokerage cash",
+          value: cash, country: defaultCountry, ccy, propertyValue: null, otherValue: null,
+          accountRef: ref,
+        });
+      }
+      continue;
+    }
+
+    const ledgerIdx = body.search(/<LEDGERBAL>/i);
+    const ledger = ledgerIdx >= 0 ? parseFeedNumber(ofxTag(body.slice(ledgerIdx, ledgerIdx + 300), "BALAMT")) : null;
+    if (ledger == null) continue;
+
+    if (st.kind === "cc") {
+      // Card balances are conventionally reported negative when money is owed.
+      if (Math.abs(ledger) > 0) {
+        out.liabilities.push({
+          _ok: 0.8, _src: `OFX CCSTMTRS balance · ${srcLabel}`,
+          type: "cc", label: `Credit card${suffix}`, balance: Math.abs(ledger),
+          ratePct: null, years: null, accountRef: ref,
+        });
+      }
+      continue;
+    }
+
+    const at = (ofxTag(body, "ACCTTYPE") || "CHECKING").toUpperCase();
+    const label = `${at.charAt(0)}${at.slice(1).toLowerCase()} account${suffix}`;
+    if (ledger < 0) {
+      out.liabilities.push({
+        _ok: 0.8, _src: `OFX LEDGERBAL (${at}) overdrawn · ${srcLabel}`,
+        type: "other", label, balance: Math.abs(ledger), ratePct: null, years: null, accountRef: ref,
+      });
+    } else if (ledger > 0) {
+      out.assets.push({
+        _ok: 0.9, _src: `OFX LEDGERBAL (${at}) · ${srcLabel}`,
+        label, accountTypeHint: at, value: ledger,
+        country: defaultCountry, ccy, propertyValue: null, otherValue: null, accountRef: ref,
       });
     }
-  }
-
-  const cash = parseFeedNumber(ofxTag(text, "AVAILCASH"));
-  if (cash != null && cash > 0) {
-    out.assets.push({ _ok: 0.9, _src: `OFX INVBAL AVAILCASH · ${srcLabel}`, label: "Brokerage cash", accountTypeHint: "Brokerage cash", value: cash, country: defaultCountry, ccy, propertyValue: null, otherValue: null });
-  }
-
-  const isInv = /<INVSTMTRS>|<INVACCTFROM>|<POSSTOCK>|<POSMF>/i.test(text);
-  const isCC = /<CCSTMTRS>|<CCACCTFROM>/i.test(text);
-  const isBank = /<STMTRS>|<BANKACCTFROM>/i.test(text);
-  const ledgerIdx = text.search(/<LEDGERBAL>/i);
-  const ledger = ledgerIdx >= 0 ? parseFeedNumber(ofxTag(text.slice(ledgerIdx, ledgerIdx + 300), "BALAMT")) : null;
-  if (isCC && ledger != null && Math.abs(ledger) > 0) {
-    out.liabilities.push({ _ok: 0.8, _src: `OFX CCSTMTRS balance · ${srcLabel}`, type: "cc", label: "Credit card", balance: Math.abs(ledger), ratePct: null, years: null });
-  } else if (isBank && !isInv && ledger != null && ledger > 0) {
-    const at = (ofxTag(text, "ACCTTYPE") || "CHECKING").toUpperCase();
-    out.assets.push({ _ok: 0.9, _src: `OFX LEDGERBAL (${at}) · ${srcLabel}`, label: `${at.charAt(0)}${at.slice(1).toLowerCase()} account`, accountTypeHint: at, value: ledger, country: defaultCountry, ccy, propertyValue: null, otherValue: null });
   }
   return out;
 }
@@ -292,76 +477,181 @@ export function fromOfx(text: string, srcLabel: string, defaultCountry = "US"): 
 // Server-side there is no interactive mapping step, so columns are
 // matched by header name. Unmatched files fail loudly rather than
 // guessing positionally and inventing numbers.
-function splitCsvLine(line: string, delim: string): string[] {
-  const out: string[] = [];
-  let cur = "", inQuotes = false;
-  for (let i = 0; i < line.length; i++) {
-    const ch = line[i];
+/**
+ * Tokenize an ENTIRE CSV document, honouring quoted fields that contain the
+ * delimiter, CR/LF, or escaped quotes. Splitting on newlines first (the old
+ * approach) silently destroyed any row with a quoted multi-line description —
+ * a common shape in custodian exports.
+ */
+function parseCsvRows(text: string, delim: string): string[][] {
+  const rows: string[][] = [];
+  let row: string[] = [];
+  let cur = "";
+  let inQuotes = false;
+  const src = text.replace(/^﻿/, "");   // strip BOM
+
+  for (let i = 0; i < src.length; i++) {
+    const ch = src[i];
     if (inQuotes) {
-      if (ch === '"') { if (line[i + 1] === '"') { cur += '"'; i++; } else inQuotes = false; }
-      else cur += ch;
-    } else if (ch === '"') inQuotes = true;
-    else if (ch === delim) { out.push(cur); cur = ""; }
-    else cur += ch;
+      if (ch === '"') {
+        if (src[i + 1] === '"') { cur += '"'; i++; }
+        else inQuotes = false;
+      } else cur += ch;
+      continue;
+    }
+    if (ch === '"') { inQuotes = true; continue; }
+    if (ch === delim) { row.push(cur); cur = ""; continue; }
+    if (ch === "\r") { if (src[i + 1] === "\n") i++; row.push(cur); rows.push(row); row = []; cur = ""; continue; }
+    if (ch === "\n") { row.push(cur); rows.push(row); row = []; cur = ""; continue; }
+    cur += ch;
   }
-  out.push(cur);
-  return out.map((s) => s.trim());
+  row.push(cur);
+  rows.push(row);
+  return rows
+    .map((r) => r.map((c) => c.trim()))
+    .filter((r) => r.some((c) => c !== ""));
 }
+
+/** Pick the delimiter by consistency across rows, not just the header. */
+function detectDelimiter(text: string): string {
+  const sample = text.replace(/^﻿/, "").split(/\r?\n/).filter((l) => l.trim()).slice(0, 10);
+  let best = ",", bestScore = -1;
+  for (const d of [";", ",", "\t", "|"]) {
+    const counts = sample.map((l) => (l.match(new RegExp(`\\${d}`, "g")) || []).length);
+    if (!counts.length || counts[0] === 0) continue;
+    const consistent = counts.filter((c) => c === counts[0]).length / counts.length;
+    const score = counts[0] * consistent;
+    if (score > bestScore) { bestScore = score; best = d; }
+  }
+  return best;
+}
+
+// Header tokens that must NEVER be taken for a money column. "Value date"
+// (Valuta/Valutadatum) appears in virtually every European bank export, and
+// substring-matching "value" against it made the relay import the DATE as the
+// amount — 2026-08-31 arrived as 20,260,831.
+const NON_MONEY_HEADER = /(date|datum|valuta|zeit|time|jahr|year|isin|cusip|valor|symbol|ticker|waehrung|währung|currency|ccy|anzahl|quantity|units|shares|stück|stueck)/;
 
 export function fromCsv(text: string, srcLabel: string, defaultCountry = "US"): FeedEnvelope {
   const out = emptyEnvelope();
-  const lines = text.split(/\r?\n/).filter((l) => l.trim());
-  if (!lines.length) return out;
+  const delim = detectDelimiter(text);
+  const rows = parseCsvRows(text, delim);
+  if (rows.length < 2) return out;
 
-  const delim = [",", ";", "\t", "|"]
-    .map((d) => ({ d, n: (lines[0].match(new RegExp(`\\${d}`, "g")) || []).length }))
-    .sort((a, b) => b.n - a.n)[0].d;
+  const headers = rows[0].map((h) => h.toLowerCase().replace(/[\s_\-.]/g, ""));
+  const dataRows = rows.slice(1);
 
-  const headers = splitCsvLine(lines[0], delim).map((h) => h.toLowerCase().replace(/[\s_\-.]/g, ""));
-  const col = (...names: string[]) => {
-    for (const n of names) {
-      const i = headers.findIndex((h) => h === n || h.includes(n));
-      if (i >= 0) return i;
+  /**
+   * Resolve a column: exact match first across all candidates, then prefix,
+   * then substring — and never a column whose header is a date/identifier.
+   */
+  const col = (names: string[], opts: { money?: boolean } = {}) => {
+    const eligible = (i: number) => !(opts.money && NON_MONEY_HEADER.test(headers[i]));
+    for (const pass of ["exact", "prefix", "includes"] as const) {
+      for (const n of names) {
+        const i = headers.findIndex((h, idx) =>
+          eligible(idx) && (pass === "exact" ? h === n : pass === "prefix" ? h.startsWith(n) : h.includes(n))
+        );
+        if (i >= 0) return i;
+      }
     }
     return -1;
   };
-  const cName = col("name", "security", "description", "instrument", "position", "holding");
-  const cTkr = col("ticker", "symbol", "isin", "cusip", "valor");
-  const cVal = col("marketvalue", "value", "amount", "balance", "marktwert");
-  const cQty = col("quantity", "units", "shares", "qty");
-  const cPrice = col("price", "unitprice", "kurs");
-  const cCcy = col("currency", "ccy", "waehrung");
-  const cAcct = col("account", "konto", "portfolio");
+
+  const cName = col(["name", "security", "bezeichnung", "description", "beschreibung", "instrument", "position", "holding", "titel", "wertpapier", "fund"]);
+  const cTkr = col(["ticker", "symbol", "isin", "cusip", "valor"]);
+  const cVal = col(["marketvalue", "marktwert", "value", "amount", "betrag", "balance", "saldo", "wert", "gegenwert"], { money: true });
+  const cQty = col(["quantity", "anzahl", "units", "shares", "qty", "stück", "stueck", "nominal"]);
+  const cPrice = col(["price", "kurs", "unitprice", "preis"]);
+  const cCcy = col(["currency", "ccy", "waehrung", "währung", "whg"]);
+  const cAcct = col(["account", "konto", "portfolio", "depot", "iban"]);
 
   if (cVal < 0 && (cQty < 0 || cPrice < 0)) {
     throw new FeedFormatError(
-      "CSV has no recognizable value column — expected a header like 'Market Value', 'Value', 'Amount' or 'Quantity' + 'Price'"
+      `CSV has no recognizable value column (headers: ${rows[0].join(", ")}) — expected something like ` +
+      `'Market Value', 'Marktwert', 'Betrag', 'Saldo', or 'Quantity' + 'Price'`
     );
   }
+  // Rows describe securities when there is a name column; otherwise they are
+  // account balances. A file with BOTH an account column and no name column
+  // used to label every security by its portfolio id, discarding the
+  // instrument names entirely — now that only happens when there is genuinely
+  // no name-like column at all.
   const accountsOnly = cName < 0 && cAcct >= 0;
+  if (cName < 0 && cAcct < 0) {
+    throw new FeedFormatError(
+      `CSV has a value column but no name or account column (headers: ${rows[0].join(", ")}) — ` +
+      `cannot tell what each row refers to`
+    );
+  }
 
-  for (const line of lines.slice(1)) {
-    const cells = splitCsvLine(line, delim);
-    if (!cells.some((c) => c)) continue;
+  // Infer the file's decimal convention once, from the money-ish cells, so
+  // "250.000" is read the way this particular custodian meant it.
+  const decimal = inferDecimalMark(dataRows, [cVal, cPrice].filter((i) => i >= 0));
+
+  for (const cells of dataRows) {
     const at = (i: number) => (i >= 0 && i < cells.length ? cells[i] : "");
-    let value = parseFeedNumber(at(cVal));
+    let value = parseFeedNumber(at(cVal), { decimal });
     if (value == null) {
-      const q = parseFeedNumber(at(cQty)), p = parseFeedNumber(at(cPrice));
+      const q = parseFeedNumber(at(cQty), { decimal });
+      const p = parseFeedNumber(at(cPrice), { decimal });
       if (q != null && p != null) value = q * p;
     }
-    if (value == null || !Number.isFinite(value) || value === 0) continue;
+    if (value == null || !Number.isFinite(value)) continue;
 
     const label = at(cName) || at(cAcct);
     if (!label) continue;
     const ccy = at(cCcy) || undefined;
+    const src = `CSV · ${srcLabel}`;
 
+    // A negative balance is a debt, not a negative asset. Emitting it as an
+    // asset made the whole merge fail Zod validation (assets must be >= 0)
+    // with an error naming no row, so the advisor could not act on it.
+    if (value < 0) {
+      out.liabilities.push({
+        _ok: 0.8, _src: src, type: "other", label,
+        balance: Math.abs(value), ratePct: null, years: null,
+        accountRef: at(cAcct) || label,
+      });
+      continue;
+    }
     if (accountsOnly) {
-      out.assets.push({ _ok: 0.85, _src: `CSV · ${srcLabel}`, label, accountTypeHint: "Account", value, country: defaultCountry, ccy, propertyValue: null, otherValue: null });
+      out.assets.push({
+        _ok: 0.85, _src: src, label, accountTypeHint: label,
+        value, country: defaultCountry, ccy, propertyValue: null, otherValue: null,
+        accountRef: at(cAcct) || label,
+      });
     } else {
-      out.holdings.push({ _ok: 0.85, _src: `CSV · ${srcLabel}`, name: label, tkr: at(cTkr), val: value, type: "etf", cls: "equity", region: "other", er: null, yld: null, note: "" });
+      out.holdings.push({
+        _ok: 0.85, _src: src, name: label, tkr: at(cTkr), val: value,
+        type: "etf", cls: "equity", region: "other", er: null, yld: null, note: "",
+      });
     }
   }
   return out;
+}
+
+/**
+ * Decide whether this file writes decimals with "." or ",". Looks for an
+ * unambiguous witness (a value carrying BOTH separators, or one whose lone
+ * separator is followed by other than 3 digits) and returns undefined when
+ * the file gives no evidence either way.
+ */
+function inferDecimalMark(rows: string[][], cols: number[]): "." | "," | undefined {
+  let dot = 0, comma = 0;
+  for (const cells of rows) {
+    for (const i of cols) {
+      const raw = (i >= 0 && i < cells.length ? cells[i] : "").replace(/[\s   '’]/g, "");
+      if (!/\d/.test(raw)) continue;
+      const lc = raw.lastIndexOf(","), ld = raw.lastIndexOf(".");
+      if (lc >= 0 && ld >= 0) { if (lc > ld) comma++; else dot++; continue; }
+      if (lc >= 0 && raw.length - lc - 1 !== 3) comma++;
+      else if (ld >= 0 && raw.length - ld - 1 !== 3) dot++;
+    }
+  }
+  if (dot > comma) return ".";
+  if (comma > dot) return ",";
+  return undefined;
 }
 
 // ─── Dispatch ─────────────────────────────────────────────────────
