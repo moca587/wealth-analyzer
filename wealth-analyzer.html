@@ -2987,6 +2987,7 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
   <div class="ptitle" style="justify-content:space-between">
     <span>Holdings</span>
     <span style="display:flex;gap:8px">
+      <button class="btn-secondary" onclick="openFeedPanel()" style="font-size:11px;padding:4px 10px">🔌 Data feeds</button>
       <button class="btn-secondary" onclick="openStatementImporter()" style="font-size:11px;padding:4px 10px">⭳ Import statement</button>
       <button class="btn-secondary" onclick="openDataAgent()" style="font-size:11px;padding:4px 10px">✦ AI Data Agent</button>
     </span>
@@ -3022,8 +3023,83 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
       <span id="siStatus" style="font-size:12px;color:var(--text3);margin-left:6px"></span>
     </div>
   </div>
+  <!-- Data feeds panel (hidden by default) — custodian + CRM connections over the wa.feed/v1 model -->
+  <div id="feedPanel" class="panel" style="display:none;background:var(--bg3);border:1px solid rgba(90,140,220,.30);margin-bottom:14px">
+    <div class="ptitle" style="margin:0 0 6px">🔌 Data feeds — custodians &amp; CRM</div>
+    <div class="da-note">Pull positions, balances and client records straight from a custodian or CRM endpoint. Every connector normalizes into the same <strong>wa.feed/v1</strong> data model and lands in the standard review screen, so nothing is written until you approve it. Credentials stay in this browser (localStorage) and are sent only to the endpoint you configure.</div>
+
+    <!-- Saved connections -->
+    <div id="feedList" style="margin:10px 0"></div>
+
+    <!-- Add / edit a connection -->
+    <div class="sdiv">
+      <div class="slbl" id="feedFormTitle">Add connection</div>
+      <div class="frow"><label class="flbl">Name</label><input id="fdName" placeholder="e.g. Swissquote positions" class="w220"></div>
+      <div class="frow"><label class="flbl">System type</label>
+        <select id="fdKind" class="w180">
+          <option value="custodian">Custodian / bank</option>
+          <option value="crm">CRM / client records</option>
+        </select>
+      </div>
+      <div class="frow"><label class="flbl">Endpoint URL</label><input id="fdUrl" placeholder="https://api.custodian.com/v1/positions" class="w360"></div>
+      <div class="frow"><label class="flbl">Payload format</label>
+        <select id="fdFormat" class="w220">
+          <option value="auto">Auto-detect</option>
+          <option value="wa">wa.feed/v1 JSON (native)</option>
+          <option value="crm">CRM contact JSON</option>
+          <option value="camt">ISO 20022 camt.052/053/054 XML</option>
+          <option value="ofx">OFX / QFX</option>
+          <option value="csv">CSV</option>
+        </select>
+      </div>
+      <div class="frow"><label class="flbl">Authentication</label>
+        <select id="fdAuth" class="w180" onchange="fdToggleAuth()">
+          <option value="none">None / public</option>
+          <option value="bearer">Bearer token</option>
+          <option value="apikey">API key header</option>
+          <option value="basic">Basic (user:pass)</option>
+        </select>
+        <input id="fdHeader" placeholder="X-API-Key" class="w140" style="display:none;margin-left:6px">
+      </div>
+      <div class="frow" id="fdSecretRow" style="display:none"><label class="flbl">Secret</label><input id="fdSecret" type="password" placeholder="token / key / user:pass" class="w300"><span style="font-size:11px;color:var(--text3);margin-left:6px">stored in this browser only</span></div>
+      <div style="display:flex;gap:8px;margin-top:6px">
+        <button class="btn-primary" onclick="fdSaveConnection()">Save connection</button>
+        <button class="btn-secondary" id="fdCancelBtn" onclick="fdCancelEdit()" style="display:none">Cancel edit</button>
+      </div>
+    </div>
+
+    <!-- Paste / offline mode: same adapters, no network -->
+    <div class="sdiv">
+      <div class="slbl">Paste a payload (no network)</div>
+      <div style="font-size:11.5px;color:var(--text3);margin-bottom:6px">Test a connector, or import an export your custodian/CRM sent by file: paste the body below and it runs through the identical adapter + review path.</div>
+      <div class="frow"><label class="flbl">Format</label>
+        <select id="fdPasteFormat" class="w220">
+          <option value="auto">Auto-detect</option>
+          <option value="wa">wa.feed/v1 JSON (native)</option>
+          <option value="crm">CRM contact JSON</option>
+          <option value="camt">ISO 20022 camt XML</option>
+          <option value="ofx">OFX / QFX</option>
+          <option value="csv">CSV</option>
+        </select>
+        <button class="btn-secondary" onclick="fdLoadSample()" style="font-size:11px;padding:4px 10px;margin-left:6px">Load sample payload</button>
+      </div>
+      <textarea id="fdPaste" rows="5" placeholder='{"schema":"wa.feed/v1", "assets":[…]}' style="width:100%;font-family:var(--fm,monospace);font-size:11.5px;padding:8px;border-radius:var(--rs);border:1px solid var(--border);background:var(--bg2);color:var(--text)"></textarea>
+      <div style="display:flex;gap:8px;margin-top:6px;align-items:center">
+        <button class="btn-primary" onclick="fdRunPaste()">Parse &amp; review</button>
+        <button class="btn-secondary" onclick="show('feedPanel',false)">Close</button>
+        <span id="fdStatus" style="font-size:12px;color:var(--text3);margin-left:6px"></span>
+      </div>
+    </div>
+
+    <div style="font-size:11px;color:var(--text3);margin-top:10px;line-height:1.6">
+      <strong>Schema:</strong> <code>wa.feed/v1</code> — an endpoint returns <code>{schema, source, household[], income[], expenses[], assets[], liabilities[], holdings[], goals[], retirement[]}</code>. Click <em>Show data-model spec</em> for the full field list your custodian or CRM team can build against.
+      <button class="btn-secondary" onclick="fdShowSpec()" style="font-size:10.5px;padding:3px 8px;margin-left:6px">Show data-model spec</button>
+      <div style="margin-top:6px"><strong>Browser limits:</strong> a direct browser call needs the endpoint to allow this origin via CORS. If it doesn't, point the URL at your own proxy or use the paste box above — the adapters are identical either way.</div>
+    </div>
+  </div>
   <div id="aiReviewModal" style="display:none"></div>
   <div id="siMapModal" style="display:none"></div>
+  <div id="fdSpecModal" style="display:none"></div>
   <div id="pfList"><div class="pf-empty">No investments added.</div></div>
   <div class="sdiv">
     <div class="slbl">Add Investment</div>
@@ -3852,7 +3928,7 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
 // ═══════════════════════════════════════════════════════════
 // VERSION — updated by build-standalone.pl on each build
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260722-1524";
+const APP_VERSION = "20260731-0845";
 
 // ═══════════════════════════════════════════════════════════
 // DATA
@@ -9426,6 +9502,7 @@ function normalizeExtraction(raw){
 // ── Main entry ───────────────────────────────────────────────────────────────
 async function runDataAgent(){
   const st=$("aiAgentStatus");
+  _fdActiveLabel=""; _daSourceLabel="AI Data Agent";   // keep provenance honest
   if(!getAIKey()){ daKeyNote(); if(st){st.textContent="⚠ Add your AI key first."; st.style.color="var(--amber)";} return; }
   const inp=$("aiAgentFiles"), files=inp&&inp.files?Array.from(inp.files):[];
   if(!files.length){ if(st){st.textContent="⚠ Choose one or more files first."; st.style.color="var(--amber)";} return; }
@@ -9571,6 +9648,12 @@ function _daMatchAccount(country,hint){
   if(best) return best;
   const g0=c.groups[0], a0=g0&&g0.accounts[0]; return a0?{type:a0.value,group:g0.group,liquid:a0.liquid}:{type:"other",group:"Other assets",liquid:true};
 }
+// Provenance label for whatever produced the current extraction — the AI Data
+// Agent, the statement importer, or a custodian/CRM feed. Written into the
+// note on each imported record so the origin is visible in the app later.
+let _daSourceLabel="AI Data Agent";
+function _daImportSource(){ return _daSourceLabel||"AI Data Agent"; }
+
 function applyDataAgent(){
   if(!_daExtraction) return;
   const x=_daExtraction; let n=0; let needC2=false;
@@ -9606,7 +9689,7 @@ function applyDataAgent(){
   // Assets
   x.assets.forEach((a0,i)=>{ if(!_daChecked("assets",i)) return; const r=_daCollect("assets",i); const v=parseFloat(r.value); if(!(v>0)) return; n++;
     const ctry=r.country||val("c1co")||"US"; const mk=_daMatchAccount(ctry,r.accountTypeHint);
-    assets.push({id:"a"+(++assetSeq),type:mk.type,group:mk.group,label:r.label||mk.type,baseLabel:r.label||mk.type,value:v,liquid:mk.liquid,country:ctry,note:(r.accountTypeHint?("AI: "+r.accountTypeHint):"Imported by AI Data Agent")}); });
+    assets.push({id:"a"+(++assetSeq),type:mk.type,group:mk.group,label:r.label||mk.type,baseLabel:r.label||mk.type,value:v,liquid:mk.liquid,country:ctry,note:(r.accountTypeHint?(_daImportSource()+": "+r.accountTypeHint):("Imported by "+_daImportSource()))}); });
 
   // Liabilities
   x.liabilities.forEach((l0,i)=>{ if(!_daChecked("liabilities",i)) return; const r=_daCollect("liabilities",i); const b=parseFloat(r.balance); if(!(b>0)) return; n++;
@@ -9623,7 +9706,7 @@ function applyDataAgent(){
   x.holdings.forEach((h0,i)=>{ if(!_daChecked("holdings",i)) return; const r=_daCollect("holdings",i); const v=parseFloat(r.val); if(!(v>0)||!r.name) return; n++;
     investments.push({id:"inv"+(++invSeq),name:r.name,tkr:r.tkr||"",
       type:(r.type in INV_TYPE_LABELS)?r.type:"other", cls:(r.cls in INV_CLASS_LABELS)?r.cls:"other", region:(r.region in INV_REGION_LABELS)?r.region:"other",
-      val:v, er:(r.er!==""&&r.er!=null&&isFinite(+r.er))?+r.er:null, yld:(r.yld!==""&&r.yld!=null&&isFinite(+r.yld))?+r.yld:null, note:"Imported by AI Data Agent"}); });
+      val:v, er:(r.er!==""&&r.er!=null&&isFinite(+r.er))?+r.er:null, yld:(r.yld!==""&&r.yld!=null&&isFinite(+r.yld))?+r.yld:null, note:"Imported by "+_daImportSource()}); });
 
   // Retirement plan → spending, retirement ages, and each client's pension.
   (x.retirement||[]).forEach((r0,i)=>{ if(!_daChecked("retirement",i)) return; const r=_daCollect("retirement",i); let touched=false;
@@ -9893,6 +9976,7 @@ function siParseOFX(text){
 async function siRun(){
   const inp=$("siFiles"), files=inp&&inp.files?Array.from(inp.files):[];
   if(!files.length){ siStatus("⚠ Choose one or more files first.","var(--amber)"); return; }
+  _fdActiveLabel="";   // file import, not a feed — keep provenance honest
   _siAccum=_siEmpty(); _siQueue=[]; _siCcySeen=new Set(); _siSkipped=0;
   siStatus("Reading "+files.length+" file"+(files.length>1?"s":"")+"…");
   for(const f of files){
@@ -9917,6 +10001,7 @@ function siProcessNextCSV(){
   siRenderMapModal();
 }
 function siFinishImport(){
+  if(!_fdActiveLabel) _daSourceLabel="statement import";
   siDedupe(_siAccum);
   const total=Object.keys(_siAccum).reduce((s,k)=>s+_siAccum[k].length,0);
   if(!total){ siStatus("No positions or balances detected. Try the AI Data Agent for non-standard files.","var(--amber)"); return; }
@@ -9977,6 +10062,395 @@ function siDedupe(merged){
   (typeof assets!=="undefined"?assets:[]).forEach(a=>{ asKeys.add(_siNormKey(a.label)+"|"+(a.country||"")); });
   merged.assets.forEach(a=>{ if(asKeys.has(_siNormKey(a.label)+"|"+(a.country||""))){ a._ok=0.5; a._src="Possible duplicate of an existing account — "+a._src; } });
   return merged;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   DIRECT DATA FEEDS — custodian & CRM connectors over wa.feed/v1.
+   One normalized data model: every adapter (native JSON, CRM contact
+   JSON, ISO 20022 camt, OFX/QFX, CSV) emits the SAME extraction shape
+   the Statement Importer and AI Data Agent produce, so all three share
+   renderReviewModal() + applyDataAgent() — nothing is written to the
+   app until the advisor approves it, and there is exactly one apply path.
+   Credentials live in localStorage only and are sent solely to the
+   configured endpoint.
+   ═══════════════════════════════════════════════════════════════════ */
+const WA_FEED_SCHEMA="wa.feed/v1";
+let _fdEditingId=null;
+
+function fdStatus(msg,color){ const s=$("fdStatus"); if(s){ s.textContent=msg||""; s.style.color=color||"var(--text3)"; } }
+function fdLoadConns(){ try{ const a=JSON.parse(localStorage.getItem("wa_feeds")||"[]"); return Array.isArray(a)?a:[]; }catch(_){ return []; } }
+function fdSaveConns(list){ try{ localStorage.setItem("wa_feeds",JSON.stringify(list)); }catch(e){ fdStatus("✗ Could not save connections: "+e.message,"var(--red)"); } }
+
+function openFeedPanel(){
+  const p=$("feedPanel"); if(!p) return;
+  const showing=p.style.display!=="none" && p.style.display!=="";
+  show("feedPanel",!showing);
+  if(!showing){ fdStatus(""); fdRenderList(); fdToggleAuth(); }
+}
+function fdToggleAuth(){
+  const a=val("fdAuth");
+  show("fdSecretRow", a!=="none");
+  const h=$("fdHeader"); if(h) h.style.display=(a==="apikey")?"":"none";
+}
+function fdRenderList(){
+  const host=$("feedList"); if(!host) return;
+  const list=fdLoadConns();
+  if(!list.length){ host.innerHTML='<div class="pf-empty" style="font-size:12px">No connections yet — add one below, or paste a payload to test the adapters.</div>'; return; }
+  host.innerHTML=list.map(c=>{
+    const badge=c.kind==="crm"?"CRM":"Custodian";
+    const auth=c.auth==="none"?"public":(c.auth==="bearer"?"bearer token":(c.auth==="apikey"?("header "+(c.header||"X-API-Key")):"basic auth"));
+    const last=c.lastRun?("last run "+c.lastRun):"never run";
+    return `<div style="display:flex;align-items:center;gap:10px;padding:8px 10px;border:1px solid var(--border);border-radius:var(--rs);background:var(--bg2);margin-bottom:6px">
+      <span style="font-size:10px;font-weight:700;letter-spacing:.05em;padding:2px 7px;border-radius:20px;background:${c.kind==="crm"?"rgba(124,58,237,.14)":"rgba(90,140,220,.14)"};color:${c.kind==="crm"?"#7c3aed":"#3f7fd0"}">${badge}</span>
+      <span style="flex:1;min-width:0">
+        <div style="font-size:12.5px;font-weight:600;color:var(--text)">${_daEsc(c.name||"(unnamed)")}</div>
+        <div style="font-size:10.5px;color:var(--text3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${_daEsc(c.url||"")} · ${_daEsc(String(c.format||"auto"))} · ${_daEsc(auth)} · ${_daEsc(last)}</div>
+      </span>
+      <button class="btn-primary" style="font-size:10.5px;padding:4px 10px" onclick="fdRunConnection('${c.id}')">Fetch</button>
+      <button class="btn-secondary" style="font-size:10.5px;padding:4px 8px" onclick="fdEditConnection('${c.id}')">Edit</button>
+      <button class="btn-x" style="font-size:10.5px;padding:3px 7px" onclick="fdDeleteConnection('${c.id}')">✕</button>
+    </div>`;
+  }).join("");
+}
+function fdSaveConnection(){
+  const name=val("fdName").trim(), url=val("fdUrl").trim();
+  if(!name){ fdStatus("⚠ Give the connection a name.","var(--amber)"); return; }
+  if(!/^https?:\/\//i.test(url)){ fdStatus("⚠ Enter a full endpoint URL starting with http:// or https://","var(--amber)"); return; }
+  const list=fdLoadConns();
+  const rec={ id:_fdEditingId||("fd"+Date.now().toString(36)), name, url,
+    kind:val("fdKind")||"custodian", format:val("fdFormat")||"auto",
+    auth:val("fdAuth")||"none", header:val("fdHeader").trim()||"X-API-Key",
+    secret:val("fdSecret")||"", lastRun:(_fdEditingId?(list.find(x=>x.id===_fdEditingId)||{}).lastRun:"")||"" };
+  if(_fdEditingId){ const i=list.findIndex(x=>x.id===_fdEditingId); if(i>=0) list[i]=rec; else list.push(rec); }
+  else list.push(rec);
+  fdSaveConns(list); fdCancelEdit(); fdRenderList();
+  fdStatus("✓ Connection saved.","var(--green)");
+}
+function fdEditConnection(id){
+  const c=fdLoadConns().find(x=>x.id===id); if(!c) return;
+  _fdEditingId=id;
+  ["fdName","fdUrl","fdHeader","fdSecret"].forEach(k=>{ const el=$(k); if(el) el.value=""; });
+  $("fdName").value=c.name||""; $("fdUrl").value=c.url||"";
+  $("fdKind").value=c.kind||"custodian"; $("fdFormat").value=c.format||"auto";
+  $("fdAuth").value=c.auth||"none"; $("fdHeader").value=c.header||"X-API-Key"; $("fdSecret").value=c.secret||"";
+  fdToggleAuth();
+  setT("feedFormTitle","Edit connection"); show("fdCancelBtn",true);
+}
+function fdCancelEdit(){
+  _fdEditingId=null;
+  ["fdName","fdUrl","fdSecret"].forEach(k=>{ const el=$(k); if(el) el.value=""; });
+  setT("feedFormTitle","Add connection"); show("fdCancelBtn",false);
+}
+function fdDeleteConnection(id){
+  const list=fdLoadConns().filter(x=>x.id!==id);
+  fdSaveConns(list); if(_fdEditingId===id) fdCancelEdit(); fdRenderList();
+}
+
+// ── Format detection (content-sniffing, same spirit as siDetectFormat) ──
+function fdDetectFormat(text){
+  const head=String(text||"").slice(0,2500);
+  if(/^\s*[\[{]/.test(head)){
+    try{ const o=JSON.parse(text);
+      if(o && (o.schema===WA_FEED_SCHEMA || o.holdings || o.assets || o.liabilities)) return "wa";
+    }catch(_){}
+    return "crm";   // any other JSON is treated as contact records
+  }
+  if(/<Document[^>]*camt\.|<BkToCstmrStmt|<BkToCstmrAcctRpt|<BkToCstmrDbtCdtNtfctn/i.test(head)) return "camt";
+  if(/<OFX>/i.test(head) || /^\s*OFXHEADER:/im.test(head) || /<\?OFX/i.test(head)) return "ofx";
+  if(/[,;\t|].*\n/.test(head)) return "csv";
+  return "unknown";
+}
+
+// ── Adapter: native wa.feed/v1 envelope ────────────────────────────────
+function fdFromWaJson(obj,srcLabel){
+  const out=_siEmpty();
+  const src=(obj && obj.source && (obj.source.system||obj.source.name)) || srcLabel || "feed";
+  const buckets=["household","income","expenses","assets","liabilities","goals","holdings","retirement"];
+  buckets.forEach(b=>{
+    const rows=Array.isArray(obj&&obj[b])?obj[b]:[];
+    rows.forEach(r=>{
+      if(!r || typeof r!=="object") return;
+      const row=Object.assign({},r);
+      row._ok=(typeof r._ok==="number")?r._ok:0.9;
+      row._src=r._src||(WA_FEED_SCHEMA+" · "+src+" · "+b);
+      // Numeric coercion — a feed may legitimately send strings.
+      ["value","val","balance","propertyValue","otherValue","amt","primary","secondary"].forEach(k=>{
+        if(row[k]!=null && row[k]!=="" && typeof row[k]!=="number"){ const n=siNum(String(row[k]),"auto"); if(n!=null) row[k]=n; }
+      });
+      out[b].push(row);
+    });
+  });
+  return out;
+}
+
+// ── Adapter: generic CRM contact JSON → household rows ─────────────────
+// Accepts a bare array or the common envelopes (records/contacts/data/
+// value/results) used by Salesforce, HubSpot, Dynamics/OData and friends,
+// and resolves field names case- and separator-insensitively.
+function fdFromCrmJson(obj,srcLabel){
+  const out=_siEmpty();
+  let rows=[];
+  if(Array.isArray(obj)) rows=obj;
+  else if(obj && typeof obj==="object"){
+    const envelope=["records","contacts","data","value","results","items","clients"].find(k=>Array.isArray(obj[k]));
+    rows=envelope?obj[envelope]:[obj];
+  }
+  // Key normalizer: case/separator-insensitive, and tolerant of Salesforce
+  // custom-field suffixes (Risk_Profile__c → riskprofile) and CRM prefixes.
+  const _norm=k=>String(k).toLowerCase().replace(/__(c|pc)$/,"").replace(/[\s_\-.]/g,"");
+  const pick=(o,names)=>{
+    const flat={}; Object.keys(o||{}).forEach(k=>{ const n=_norm(k); if(flat[n]==null||flat[n]==="") flat[n]=o[k]; });
+    for(const n of names){ const k=_norm(n); if(flat[k]!=null && flat[k]!=="") return flat[k]; }
+    return "";
+  };
+  const RISK={very_conservative:1,conservative:1,moderately_conservative:1,moderate:1,moderately_aggressive:1,aggressive:1,very_aggressive:1};
+  const normRisk=v=>{ const s=String(v||"").toLowerCase().trim().replace(/[\s\-]+/g,"_"); return RISK[s]?s:""; };
+  const normHorizon=v=>{ const s=String(v||"").toLowerCase();
+    if(/15|long/.test(s)) return "15_plus"; if(/10/.test(s)) return "10_15";
+    if(/5\s*[-–to]+\s*10|medium/.test(s)) return "5_10"; if(/1|short/.test(s)) return "1_5"; return ""; };
+  const normCountry=v=>{ const s=String(v||"").trim(); if(/^[A-Za-z]{2}$/.test(s)) return s.toUpperCase();
+    const M={switzerland:"CH",schweiz:"CH",suisse:"CH","united states":"US",usa:"US","united kingdom":"GB",uk:"GB",germany:"DE",deutschland:"DE",france:"FR",italy:"IT",spain:"ES",austria:"AT",canada:"CA",australia:"AU"};
+    return M[s.toLowerCase()]||""; };
+  rows.slice(0,2).forEach((r,idx)=>{
+    if(!r||typeof r!=="object") return;
+    const first=pick(r,["firstName","first","givenName","forename"]);
+    const last=pick(r,["lastName","last","familyName","surname"]);
+    if(!first && !last) return;
+    const rel=String(pick(r,["relationship","role","contactType","householdRole"])||"").toLowerCase();
+    const isSpouse=idx>0 || /spouse|partner|husband|wife|ehepartner/.test(rel);
+    out.household.push({
+      _ok:0.9, _src:"CRM · "+(srcLabel||"contact record")+" · "+(isSpouse?"client 2":"client 1"),
+      role:isSpouse?"client2":"client1",
+      first:String(first||""), last:String(last||""),
+      dob:String(pick(r,["dateOfBirth","birthDate","dob","birthdate"])||"").slice(0,10),
+      street:String(pick(r,["street","address1","addressLine1","mailingStreet","billingStreet"])||""),
+      city:String(pick(r,["city","mailingCity","billingCity","town","locality"])||""),
+      postal:String(pick(r,["postalCode","zip","zipCode","mailingPostalCode","postcode"])||""),
+      state:String(pick(r,["state","canton","province","region","mailingState"])||""),
+      country:normCountry(pick(r,["country","mailingCountry","billingCountry","countryCode"])),
+      relationship:isSpouse?"spouse":"",
+      riskTolerance:normRisk(pick(r,["riskProfile","riskTolerance","risk","investorProfile"])),
+      timeHorizon:normHorizon(pick(r,["timeHorizon","horizon","investmentHorizon"]))
+    });
+    // Income, when the CRM carries it
+    const inc=pick(r,["annualIncome","income","salary","grossIncome"]);
+    const incN=inc===""?null:siNum(String(inc),"auto");
+    if(incN!=null && incN>0){
+      out.income.push({_ok:0.8,_src:"CRM · "+(srcLabel||"contact record")+" · annual income",
+        who:isSpouse?"client2":"client1", primary:incN, secondary:null, raisePct:null});
+    }
+  });
+  return out;
+}
+
+// ── Adapter: ISO 20022 camt.052 / camt.053 / camt.054 → account balances ──
+// The European/Swiss custodian standard. Takes the closing booked balance
+// (CLBD, falling back to CLAV/PRCD) per statement account.
+function fdFromCamt(text,srcLabel){
+  const out=_siEmpty();
+  let doc=null;
+  try{ doc=new DOMParser().parseFromString(text,"application/xml"); }catch(_){ return out; }
+  if(!doc || doc.getElementsByTagName("parsererror").length) return out;
+  const tag=(el,name)=>{ // namespace-agnostic local-name lookup
+    const all=el.getElementsByTagName("*");
+    for(let i=0;i<all.length;i++){ if(all[i].localName===name) return all[i]; }
+    return null;
+  };
+  const tags=(el,name)=>{
+    const res=[], all=el.getElementsByTagName("*");
+    for(let i=0;i<all.length;i++){ if(all[i].localName===name) res.push(all[i]); }
+    return res;
+  };
+  const stmts=tags(doc,"Stmt").concat(tags(doc,"Rpt")).concat(tags(doc,"Ntfctn"));
+  stmts.forEach((st,si)=>{
+    const acctEl=tag(st,"Acct");
+    const iban=acctEl?(tag(acctEl,"IBAN")||tag(acctEl,"Othr")):null;
+    const ibanTxt=iban?(iban.localName==="IBAN"?iban.textContent:(tag(iban,"Id")?tag(iban,"Id").textContent:"")):"";
+    const nmEl=acctEl?tag(acctEl,"Nm"):null;
+    const ccyEl=acctEl?tag(acctEl,"Ccy"):null;
+    const ownerEl=acctEl?tag(acctEl,"Ownr"):null;
+    const ownerNm=ownerEl?tag(ownerEl,"Nm"):null;
+    // Pick the closing booked balance
+    let amount=null, ccy=ccyEl?ccyEl.textContent.trim():"", used="";
+    const prefer=["CLBD","CLAV","PRCD","ITBD"];
+    const bals=tags(st,"Bal");
+    for(const code of prefer){
+      for(const b of bals){
+        const cd=tag(b,"Cd");
+        if(cd && cd.textContent.trim().toUpperCase()===code){
+          const amtEl=tag(b,"Amt");
+          if(!amtEl) continue;
+          let v=siNum(amtEl.textContent,"period");
+          if(v==null) continue;
+          const ind=tag(b,"CdtDbtInd");
+          if(ind && /DBIT/i.test(ind.textContent)) v=-v;
+          if(!ccy) ccy=(amtEl.getAttribute("Ccy")||"").trim();
+          amount=v; used=code; break;
+        }
+      }
+      if(amount!=null) break;
+    }
+    if(amount==null) return;
+    const label=(nmEl&&nmEl.textContent.trim())||(ownerNm&&ownerNm.textContent.trim())||(ibanTxt?("Account "+ibanTxt.slice(-6)):("Account "+(si+1)));
+    const srcTxt="ISO 20022 camt · "+(srcLabel||"statement")+" · "+used+(ibanTxt?(" · "+ibanTxt):"");
+    if(amount<0){
+      out.liabilities.push({_ok:0.85,_src:srcTxt,type:"other",label:label+" (overdrawn)",balance:Math.abs(amount),ratePct:null,years:null});
+    } else {
+      out.assets.push({_ok:0.9,_src:srcTxt,label:label,accountTypeHint:"Bank account",
+        value:amount,country:val("c1co")||"CH",ccy:ccy||CURRENT_CCY,propertyValue:null,otherValue:null});
+    }
+    if(ccy && _fdCcySeen) _fdCcySeen.add(ccy);
+  });
+  return out;
+}
+
+// ── Adapter dispatch ───────────────────────────────────────────────────
+let _fdCcySeen=null;
+let _fdActiveLabel="";   // set while a feed owns the shared review pipeline
+function fdAdapt(text,format,srcLabel){
+  let fmt=(format&&format!=="auto")?format:fdDetectFormat(text);
+  if(fmt==="wa"||fmt==="crm"){
+    let obj; try{ obj=JSON.parse(text); }catch(e){ throw new Error("payload is not valid JSON — "+e.message); }
+    return { fmt, ext:(fmt==="wa")?fdFromWaJson(obj,srcLabel):fdFromCrmJson(obj,srcLabel) };
+  }
+  if(fmt==="camt") return { fmt, ext:fdFromCamt(text,srcLabel) };
+  if(fmt==="ofx")  return { fmt, ext:siParseOFX(text) };
+  if(fmt==="csv")  return { fmt, ext:null };   // CSV needs the mapping stage
+  throw new Error("unrecognized payload format — pick one explicitly in the Format dropdown");
+}
+
+// Hand the result to the SHARED review pipeline (or the CSV mapper).
+function fdDeliver(text,fmt,srcLabel){
+  _fdCcySeen=new Set();
+  _fdActiveLabel=srcLabel||"data feed";
+  _daSourceLabel="feed · "+_fdActiveLabel;
+  const r=fdAdapt(text,fmt,srcLabel);
+  if(r.fmt==="csv"){
+    _siAccum=_siEmpty(); _siCcySeen=new Set(); _siSkipped=0;
+    _siQueue=[{name:srcLabel||"feed.csv",text}];
+    fdStatus("CSV received — map the columns to finish.","var(--text3)");
+    siProcessNextCSV();
+    return null;
+  }
+  const ext=r.ext||_siEmpty();
+  const total=Object.keys(ext).reduce((s,k)=>s+ext[k].length,0);
+  if(!total){ fdStatus("✗ Connected, but no positions, balances or contacts were found in the payload.","var(--amber)"); return 0; }
+  siDedupe(ext);
+  _daExtraction=ext;
+  const foreign=[..._fdCcySeen].filter(c=>c&&c!==CURRENT_CCY);
+  let msg="✓ "+total+" record"+(total!==1?"s":"")+" normalized via "+WA_FEED_SCHEMA+" ("+r.fmt+") — review below.";
+  if(foreign.length) msg+=" ⚠ Amounts in "+foreign.join("/")+" shown as-is (not FX-converted).";
+  fdStatus(msg, foreign.length?"var(--amber)":"var(--green)");
+  renderReviewModal();
+  return total;
+}
+
+// ── Live fetch ─────────────────────────────────────────────────────────
+async function fdRunConnection(id){
+  const list=fdLoadConns(); const c=list.find(x=>x.id===id);
+  if(!c){ fdStatus("✗ Connection not found.","var(--red)"); return; }
+  fdStatus("Connecting to "+c.name+"…");
+  const headers={"Accept":"application/json, application/xml, text/csv, text/plain, */*"};
+  if(c.auth==="bearer" && c.secret) headers["Authorization"]="Bearer "+c.secret;
+  else if(c.auth==="apikey" && c.secret) headers[c.header||"X-API-Key"]=c.secret;
+  else if(c.auth==="basic" && c.secret){ try{ headers["Authorization"]="Basic "+btoa(c.secret); }catch(_){ } }
+  let text="";
+  try{
+    const res=await fetch(c.url,{method:"GET",headers,mode:"cors",credentials:"omit"});
+    if(!res.ok){ fdStatus("✗ "+c.name+": endpoint returned HTTP "+res.status+" "+(res.statusText||""),"var(--red)"); return; }
+    text=await res.text();
+  }catch(e){
+    fdStatus("✗ "+c.name+": "+e.message+" — if this is a CORS block, the endpoint must allow this origin, or point the URL at your own proxy. You can also paste the payload below.","var(--red)");
+    return;
+  }
+  if(!text.trim()){ fdStatus("✗ "+c.name+": the endpoint returned an empty body.","var(--amber)"); return; }
+  try{
+    const n=fdDeliver(text,c.format,c.name);
+    if(n!==0){ c.lastRun=new Date().toISOString().slice(0,16).replace("T"," "); fdSaveConns(list); fdRenderList(); }
+  }catch(e){ fdStatus("✗ "+c.name+": "+e.message,"var(--red)"); }
+}
+
+function fdRunPaste(){
+  const text=val("fdPaste");
+  if(!text.trim()){ fdStatus("⚠ Paste a payload first (or click “Load sample payload”).","var(--amber)"); return; }
+  try{ fdDeliver(text,val("fdPasteFormat"),"pasted payload"); }
+  catch(e){ fdStatus("✗ "+e.message,"var(--red)"); }
+}
+
+function fdLoadSample(){
+  const cy=(typeof currentYear==="function")?currentYear():new Date().getFullYear();
+  const sample={
+    schema:WA_FEED_SCHEMA,
+    source:{system:"Example Custodian AG",kind:"custodian",generatedAt:new Date().toISOString()},
+    household:[{role:"client1",first:"Béatrice",last:"Keller",dob:"1978-04-12",city:"Zürich",postal:"8001",state:"ZH",country:"CH",riskTolerance:"moderate",timeHorizon:"15_plus"}],
+    assets:[{label:"Custody account 8842",accountTypeHint:"Securities account (Depot)",value:350000,country:"CH",ccy:"CHF"},
+            {label:"Settlement account CHF",accountTypeHint:"Bank account",value:35000,country:"CH",ccy:"CHF"}],
+    holdings:[{name:"iShares Core SPI",tkr:"CHSPI",val:90000,type:"etf",cls:"equity",region:"dev_intl",er:0.10,yld:2.6},
+              {name:"Vanguard FTSE All-World",tkr:"VWRL",val:105000,type:"etf",cls:"equity",region:"global",er:0.22,yld:1.9},
+              {name:"Nestlé",tkr:"NESN",val:30000,type:"stock",cls:"equity",region:"dev_intl"}],
+    liabilities:[{type:"mortgage",label:"Lombard facility",balance:120000,ratePct:2.4,years:5}],
+    income:[],expenses:[],goals:[],retirement:[]
+  };
+  const el=$("fdPaste"); if(el) el.value=JSON.stringify(sample,null,2);
+  const f=$("fdPasteFormat"); if(f) f.value="wa";
+  fdStatus("Sample wa.feed/v1 payload loaded — click “Parse & review”.","var(--text3)");
+}
+
+function fdShowSpec(){
+  const m=$("fdSpecModal"); if(!m) return;
+  const row=(f,t,d)=>`<tr><td style="padding:3px 8px;font-family:monospace;font-size:11px;color:var(--gold)">${f}</td><td style="padding:3px 8px;font-size:11px;color:var(--text3)">${t}</td><td style="padding:3px 8px;font-size:11.5px;color:var(--text2)">${d}</td></tr>`;
+  m.innerHTML=`<div class="da-modal-bg" onclick="show('fdSpecModal',false)"></div>
+  <div class="da-modal">
+    <div class="da-modal-h"><span class="ptitle" style="margin:0">Data-model spec — ${WA_FEED_SCHEMA}</span><button class="btn-x" onclick="show('fdSpecModal',false)">✕</button></div>
+    <div class="da-modal-body" style="font-size:12px;line-height:1.65">
+      <p style="color:var(--text2)">An endpoint returns a single JSON object. Every array is optional; send only what your system holds. Each record may carry <code>_ok</code> (0–1 confidence) and <code>_src</code> (provenance shown in the review screen).</p>
+      <pre style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--rs);padding:10px;font-size:11px;overflow:auto">{
+  "schema": "${WA_FEED_SCHEMA}",
+  "source": { "system": "Custodian AG", "kind": "custodian", "generatedAt": "2026-07-20T09:00:00Z" },
+  "household": [...], "income": [...], "expenses": [...],
+  "assets": [...], "liabilities": [...], "holdings": [...],
+  "goals": [...], "retirement": [...]
+}</pre>
+      <div class="da-sec"><div class="da-sec-h">holdings[] — securities positions</div>
+      <table style="width:100%;border-collapse:collapse">
+        ${row("name","string","Instrument name (required)")}
+        ${row("tkr","string","Ticker / symbol")}
+        ${row("val","number","Market value in the account currency (required)")}
+        ${row("type","enum","etf · mutual_fund · stock · bond · alternative")}
+        ${row("cls","enum","equity · fixed_income · real_estate · commodity · cash · mixed · hedge_fund · private_equity · structured · alternative")}
+        ${row("region","enum","us · dev_intl · emerging · global · other")}
+        ${row("er / yld","number","Expense ratio % / yield %")}
+      </table></div>
+      <div class="da-sec"><div class="da-sec-h">assets[] — accounts &amp; balances</div>
+      <table style="width:100%;border-collapse:collapse">
+        ${row("label","string","Account label (required)")}
+        ${row("value","number","Balance (required)")}
+        ${row("accountTypeHint","string","Free text — matched to the country account taxonomy")}
+        ${row("country","ISO-2","Account jurisdiction, e.g. CH")}
+        ${row("ccy","ISO-3","Account currency, e.g. CHF")}
+      </table></div>
+      <div class="da-sec"><div class="da-sec-h">liabilities[] — loans &amp; credit</div>
+      <table style="width:100%;border-collapse:collapse">
+        ${row("label","string","Loan label")}
+        ${row("balance","number","Outstanding balance (required)")}
+        ${row("type","enum","mortgage · auto · student · cc · other")}
+        ${row("ratePct / years","number","Interest rate % / remaining term")}
+      </table></div>
+      <div class="da-sec"><div class="da-sec-h">household[] — client records (CRM)</div>
+      <table style="width:100%;border-collapse:collapse">
+        ${row("role","enum","client1 · client2 · child")}
+        ${row("first / last","string","Names")}
+        ${row("dob","YYYY-MM-DD","Date of birth")}
+        ${row("street / city / postal / state / country","string","Address; country as ISO-2")}
+        ${row("relationship","enum","spouse · partner · other (client2 only)")}
+        ${row("riskTolerance","enum","very_conservative … very_aggressive")}
+        ${row("timeHorizon","enum","1_5 · 5_10 · 10_15 · 15_plus")}
+      </table></div>
+      <div class="da-sec"><div class="da-sec-h">Other supported wire formats</div>
+      <div style="color:var(--text2)">If your custodian or CRM cannot emit the native model, the same connection accepts <strong>ISO 20022 camt.052/053/054</strong> XML (closing booked balance per account), <strong>OFX/QFX</strong>, <strong>CSV</strong> (with a column-mapping step), and <strong>generic CRM contact JSON</strong> — arrays or <code>records/contacts/data/value/results</code> envelopes, with case-insensitive field matching for Salesforce, HubSpot and Dynamics-style records. All of them normalize into the model above before the review screen.</div></div>
+    </div>
+  </div>`;
+  show("fdSpecModal",true);
 }
 
 // ── Stage-1 column-mapping modal ─────────────────────────────────────
