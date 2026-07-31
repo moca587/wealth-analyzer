@@ -226,14 +226,57 @@ wealth-app-next/
 │   └── monte-carlo.ts   ←   runMonteCarlo(input)
 ├── lib/plan/            ← schema.ts (Zod), default-plan.ts, migrate.ts, import-export.ts
 ├── lib/data/            ← country-accounts.ts (GENERATED — see below)
+├── lib/feeds/           ← custodian/CRM relay: model.ts (wa.feed/v1), adapters.ts,
+│                          ssrf.ts (SSRF guard), crypto.ts (AES-GCM), xml.ts, schema.ts
 ├── lib/supabase/        ← browser + server clients (@supabase/ssr)
 ├── components/plan/     ← PlanForm + sections/{household,children,assets,import-export}
 ├── components/sim/      ← sim runner + chart
 ├── app/                 ← (auth)/{login,signup}, app/ (gated), app/plan, app/simulate,
-│                            api/plan, preview/plan (dev-only, 404s in prod)
+│                            api/plan, api/feeds, preview/plan (dev-only, 404s in prod)
 ├── middleware.ts        ← Supabase session refresh + /app/* auth gate
-└── supabase/migrations/001_init.sql  ← profiles + simulations tables, RLS, signup trigger
+└── supabase/migrations/ ← 001_init.sql (profiles + simulations),
+                            002_feeds.sql (feed_connections + RLS)
 ```
+
+### Feed relay — `/api/feeds` (custodian & CRM direct feeds)
+The single-file app can pull custodian/CRM data itself, but a browser-direct
+call needs the endpoint to send CORS headers, and putting a long-lived
+custodian credential in a browser is not something a bank will bless. This
+relay holds the credential server-side and answers with the SAME
+**`wa.feed/v1`** model the legacy "Data feeds" panel consumes — point a
+connection at `/api/feeds/<id>` and that panel works unchanged.
+
+- `GET/POST /api/feeds` — list/create connections. `GET /api/feeds/<id>` RUNS
+  the relay (fetch upstream → normalize → `wa.feed/v1`); PATCH/DELETE manage.
+  All owner-scoped by RLS + explicit `user_id` filters; a foreign row 404s
+  rather than 403s (don't confirm it exists). `runtime = "nodejs"` is required
+  (node:crypto + node:dns).
+- **`lib/feeds/ssrf.ts` is the security boundary — read it before touching the
+  relay.** The relay fetches a URL the *user* supplies from *our* network, so
+  without it this is an SSRF primitive (cloud metadata at 169.254.169.254,
+  anything in the VPC, loopback). Guards: scheme allowlist, no embedded
+  credentials, DNS resolution with EVERY resolved address range-checked
+  (defeats DNS rebinding by name), manual redirect following with each hop
+  re-validated, 15s timeout, 5 MB streaming cap. Optional
+  `FEEDS_HOST_ALLOWLIST` pins it to named hosts. Residual TOCTOU window
+  between DNS check and connect is documented in the file header.
+- **Credentials are encrypted at rest** (AES-256-GCM, `FEEDS_ENCRYPTION_KEY`
+  in the server env only) so a leaked DB dump doesn't expose custodian
+  tokens. Fails CLOSED: no key → refuses to store a secret (503) rather than
+  persisting plaintext. Secrets are never returned by any route (`toPublic()`
+  maps ciphertext → `hasSecret: boolean`).
+- Adapters (`adapters.ts`, pure/testable): native `wa.feed/v1`, generic CRM
+  contact JSON (Salesforce `__c` suffixes, HubSpot `properties` bags, OData
+  envelopes, bare arrays), ISO 20022 **camt.052/053/054** (closing booked
+  balance, CLBD→CLAV→PRCD→ITBD, `CdtDbtInd` sends debits to liabilities),
+  OFX/QFX, and CSV (header-matched; refuses to guess when no value column is
+  found). `xml.ts` is a hand-rolled parser that **skips DOCTYPE/ENTITY
+  entirely**, making XXE and billion-laughs impossible by construction —
+  don't swap it for a full DOM parser without re-checking that.
+- 47 tests under `lib/feeds/__tests__/` cover the SSRF ranges (incl. IPv4-mapped
+  IPv6, NAT64/6to4 wrappers, decimal/octal IP encodings), a `safeFetch` test
+  that starts a REAL loopback server and asserts it is never hit, XXE
+  immunity, crypto tamper-detection, and adapter mapping.
 
 ### Review-driven hardening (Petros's "Top 5 plans", all complete + merged)
 1. **Build/test/dep baseline** — clean `npm ci`; `/login` `useSearchParams` moved
