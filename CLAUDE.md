@@ -286,9 +286,25 @@ connection at `/api/feeds/<id>` and that panel works unchanged.
   pages) so users see the HTTP status instead of `Unexpected token '<'`.
   `/preview/feeds` renders it outside the auth gate for design review (404s in
   production, and the API still requires a session so no data is exposed).
-- **Not wired yet:** applying a fetched envelope into the stored `WealthPlan`.
-  "Test fetch" deliberately previews only — merging into a plan (dedupe against
-  existing assets/holdings, review UI, undo) is the next piece of work.
+- **Apply-to-plan** (`lib/feeds/apply.ts`, pure + 19 tests): `diffPlan(plan,
+  envelope)` classifies every record as create/update/unchanged against the
+  saved plan, then `applyChanges(plan, changes, selection)` returns a NEW plan
+  with only the selected ones. The safety contract, each pinned by a test:
+  never deletes; an update only writes fields the feed actually sent (a payload
+  missing `rate` won't blank a loan's rate); re-running is idempotent (matched
+  on a normalized natural key, so no duplicates); the input plan is never
+  mutated (it doubles as the undo snapshot); and the merged plan is re-validated
+  with `parsePlan` before it is PUT, so a feed can't persist something the
+  schema rejects. Income carries a client INDEX and re-resolves the owner
+  against the plan being written to — a stale client id would otherwise fail
+  validation. Account matching treats country as a disambiguator only (requiring
+  it to match duplicated country-less accounts). Feed-only classes
+  (`private_equity`/`hedge`/`structured`) fold into `alternative`; annual
+  expenses convert to the plan's monthly field; pension-type hints set
+  `liquid: false`.
+- **UI flow:** Test fetch → preview → "Review & apply to plan…" → per-record
+  checkboxes grouped by section with before → after values → Apply → one-click
+  Undo (re-PUTs the pre-apply snapshot).
 
 ### Review-driven hardening (Petros's "Top 5 plans", all complete + merged)
 1. **Build/test/dep baseline** — clean `npm ci`; `/login` `useSearchParams` moved

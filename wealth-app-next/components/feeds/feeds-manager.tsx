@@ -18,6 +18,9 @@ import { Select } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { FeedConnectionPublic } from "@/lib/feeds/schema";
 import { FEED_BUCKETS, type FeedEnvelope } from "@/lib/feeds/model";
+import { diffPlan, applyChanges, summarize, type PlanChange } from "@/lib/feeds/apply";
+import { parsePlan } from "@/lib/plan/schema";
+import type { WealthPlan } from "@/lib/engine/types";
 
 const KIND_LABEL: Record<string, string> = { custodian: "Custodian", crm: "CRM" };
 const FORMAT_LABEL: Record<string, string> = {
@@ -255,7 +258,12 @@ export function FeedsManager() {
                       <strong>Fetch failed.</strong> {run.message}
                     </div>
                   )}
-                  {run.status === "ok" && <RunPreview envelope={run.envelope} />}
+                  {run.status === "ok" && (
+                    <>
+                      <RunPreview envelope={run.envelope} />
+                      <ApplyPanel envelope={run.envelope} />
+                    </>
+                  )}
                 </div>
               )}
             </div>
@@ -394,6 +402,218 @@ function RunPreview({ envelope }: { envelope: FeedEnvelope }) {
       </details>
       <p className="text-[11px] text-muted-foreground">
         This is a connection test — nothing has been written to your plan.
+      </p>
+    </div>
+  );
+}
+
+// ─── Apply to plan ────────────────────────────────────────────────
+// Loads the saved plan, diffs the envelope against it, lets the advisor
+// choose what to write, then PUTs the merged plan. The pre-apply plan is
+// kept in memory so a mistaken apply can be reverted in one click.
+type ApplyState =
+  | { phase: "idle" }
+  | { phase: "loading" }
+  | { phase: "review"; plan: WealthPlan; changes: PlanChange[] }
+  | { phase: "saving"; plan: WealthPlan; changes: PlanChange[] }
+  | { phase: "done"; applied: number; previous: WealthPlan }
+  | { phase: "reverting"; previous: WealthPlan }
+  | { phase: "reverted" }
+  | { phase: "error"; message: string };
+
+const SECTION_LABEL: Record<string, string> = {
+  clients: "Household", children: "Dependents", incomes: "Income", expenses: "Expenses",
+  assets: "Accounts & holdings", loans: "Liabilities", goals: "Goals", retirement: "Retirement",
+};
+
+function ApplyPanel({ envelope }: { envelope: FeedEnvelope }) {
+  const [state, setState] = useState<ApplyState>({ phase: "idle" });
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+
+  async function review() {
+    setState({ phase: "loading" });
+    try {
+      const res = await fetch("/api/plan");
+      const body = await readJson(res);
+      if (!res.ok) throw new Error(String(body.error || `Could not load your plan (HTTP ${res.status})`));
+
+      // A never-saved plan comes back null — start from a blank one so a feed
+      // can populate a fresh account. A stored-but-invalid plan is NOT merged
+      // into: overwriting it could destroy data the advisor can still recover.
+      const raw = body.plan;
+      let base: WealthPlan;
+      if (raw) {
+        const parsed = parsePlan(raw);
+        if (!parsed.ok) throw new Error("Your saved plan couldn't be read safely, so nothing was merged into it. Open Your plan first to repair it.");
+        base = parsed.plan;
+      } else {
+        base = (await import("@/lib/plan/default-plan")).emptyPlan();
+      }
+
+      const changes = diffPlan(base, envelope);
+      // Pre-select everything that would actually change something.
+      setSelected(new Set(changes.filter((c) => c.kind !== "unchanged").map((c) => c.key)));
+      setState({ phase: "review", plan: base, changes });
+    } catch (e) {
+      setState({ phase: "error", message: e instanceof Error ? e.message : "Could not prepare the merge" });
+    }
+  }
+
+  async function save(plan: WealthPlan, changes: PlanChange[]) {
+    setState({ phase: "saving", plan, changes });
+    try {
+      const merged = applyChanges(plan, changes, selected);
+      const check = parsePlan(merged);
+      if (!check.ok) {
+        // Refuse to write something the schema rejects rather than let the
+        // API bounce it back with a field path the advisor can't act on.
+        throw new Error("The merged plan failed validation, so nothing was saved. Please report this feed payload.");
+      }
+      const res = await fetch("/api/plan", {
+        method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(merged),
+      });
+      const body = await readJson(res);
+      if (!res.ok) throw new Error(String(body.error || `Save failed (HTTP ${res.status})`));
+      const applied = changes.filter((c) => selected.has(c.key) && c.kind !== "unchanged").length;
+      setState({ phase: "done", applied, previous: plan });
+    } catch (e) {
+      setState({ phase: "error", message: e instanceof Error ? e.message : "Could not save the plan" });
+    }
+  }
+
+  async function revert(previous: WealthPlan) {
+    setState({ phase: "reverting", previous });
+    try {
+      const res = await fetch("/api/plan", {
+        method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(previous),
+      });
+      const body = await readJson(res);
+      if (!res.ok) throw new Error(String(body.error || `Undo failed (HTTP ${res.status})`));
+      setState({ phase: "reverted" });
+    } catch (e) {
+      setState({ phase: "error", message: e instanceof Error ? e.message : "Could not undo" });
+    }
+  }
+
+  if (state.phase === "idle") {
+    return (
+      <div className="mt-3">
+        <Button size="sm" variant="outline" onClick={review}>Review &amp; apply to plan…</Button>
+      </div>
+    );
+  }
+  if (state.phase === "loading") return <p className="mt-3 text-sm text-muted-foreground">Loading your plan…</p>;
+
+  if (state.phase === "error") {
+    return (
+      <div className="mt-3 space-y-2">
+        <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
+          {state.message}
+        </div>
+        <Button size="sm" variant="outline" onClick={() => setState({ phase: "idle" })}>Back</Button>
+      </div>
+    );
+  }
+
+  if (state.phase === "done") {
+    return (
+      <div className="mt-3 space-y-2">
+        <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/5 px-3 py-2 text-sm text-emerald-700">
+          <strong>Applied {state.applied} change{state.applied === 1 ? "" : "s"} to your plan.</strong>{" "}
+          Open <em>Your plan</em> to review, or undo to restore the previous version.
+        </div>
+        <div className="flex gap-2">
+          <Button size="sm" variant="outline" onClick={() => revert(state.previous)}>Undo this apply</Button>
+          <Button size="sm" variant="outline" onClick={() => setState({ phase: "idle" })}>Done</Button>
+        </div>
+      </div>
+    );
+  }
+  if (state.phase === "reverting") return <p className="mt-3 text-sm text-muted-foreground">Restoring…</p>;
+  if (state.phase === "reverted") {
+    return (
+      <div className="mt-3 rounded-lg border border-border bg-muted/40 px-3 py-2 text-sm">
+        Your plan has been restored to the version from before this apply.
+      </div>
+    );
+  }
+
+  // review / saving
+  const { changes, plan } = state;
+  const counts = summarize(changes);
+  const actionable = changes.filter((c) => c.kind !== "unchanged");
+  const sections = Array.from(new Set(changes.map((c) => c.section)));
+  const chosen = actionable.filter((c) => selected.has(c.key)).length;
+
+  const toggle = (key: string) =>
+    setSelected((s) => { const n = new Set(s); if (n.has(key)) n.delete(key); else n.add(key); return n; });
+
+  return (
+    <div className="mt-3 space-y-3 rounded-lg border border-border bg-background p-3">
+      <div className="flex flex-wrap items-center gap-3">
+        <span className="text-sm font-semibold">Review changes</span>
+        <span className="text-xs text-muted-foreground">
+          {counts.create} new · {counts.update} updated · {counts.unchanged} already current
+        </span>
+        {actionable.length > 0 && (
+          <button type="button"
+                  className="text-xs text-accent underline underline-offset-2"
+                  onClick={() => setSelected(selected.size === actionable.length ? new Set() : new Set(actionable.map((c) => c.key)))}>
+            {selected.size === actionable.length ? "Clear all" : "Select all"}
+          </button>
+        )}
+      </div>
+
+      {!actionable.length && (
+        <p className="text-sm text-muted-foreground">
+          Your plan already matches this feed — there is nothing to apply.
+        </p>
+      )}
+
+      {sections.map((section) => {
+        const rows = changes.filter((c) => c.section === section);
+        if (!rows.length) return null;
+        return (
+          <div key={section} className="space-y-1">
+            <div className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+              {SECTION_LABEL[section] ?? section}
+            </div>
+            {rows.map((c) => (
+              <label key={c.key}
+                     className={"flex items-start gap-2 rounded-md px-2 py-1.5 text-sm " +
+                       (c.kind === "unchanged" ? "opacity-50" : "hover:bg-muted/50 cursor-pointer")}>
+                <input type="checkbox" className="mt-1" disabled={c.kind === "unchanged"}
+                       checked={selected.has(c.key)} onChange={() => toggle(c.key)} />
+                <span className="min-w-0 flex-1">
+                  <span className="font-medium">{c.label}</span>
+                  <span className={"ml-2 rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase " +
+                    (c.kind === "create" ? "bg-emerald-500/10 text-emerald-600"
+                      : c.kind === "update" ? "bg-amber-500/10 text-amber-700"
+                      : "bg-muted text-muted-foreground")}>
+                    {c.kind === "create" ? "new" : c.kind === "update" ? "update" : "current"}
+                  </span>
+                  <span className="block text-xs text-muted-foreground">
+                    {c.before !== undefined && c.kind === "update" ? `${c.before} → ${c.after}` : c.after}
+                  </span>
+                </span>
+              </label>
+            ))}
+          </div>
+        );
+      })}
+
+      <div className="flex flex-wrap gap-2 pt-1">
+        <Button size="sm" onClick={() => save(plan, changes)}
+                disabled={state.phase === "saving" || !chosen}>
+          {state.phase === "saving" ? "Applying…" : `Apply ${chosen} change${chosen === 1 ? "" : "s"}`}
+        </Button>
+        <Button size="sm" variant="outline" onClick={() => setState({ phase: "idle" })}
+                disabled={state.phase === "saving"}>
+          Cancel
+        </Button>
+      </div>
+      <p className="text-[11px] text-muted-foreground">
+        Applying never deletes anything: records are added or updated, and you can undo immediately afterwards.
       </p>
     </div>
   );
