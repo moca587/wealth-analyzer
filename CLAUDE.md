@@ -264,7 +264,11 @@ connection at `/api/feeds/<id>` and that panel works unchanged.
   in the server env only) so a leaked DB dump doesn't expose custodian
   tokens. Fails CLOSED: no key → refuses to store a secret (503) rather than
   persisting plaintext. Secrets are never returned by any route (`toPublic()`
-  maps ciphertext → `hasSecret: boolean`).
+  maps ciphertext → `hasSecret: boolean`). **Only real key material is
+  accepted** — 64 hex chars or 43-char base64. A passphrase is REJECTED; the
+  old sha256 fallback made fail-closed unreachable (every string, `changeme`
+  included, produced a working key, so a stolen dump was brute-forcible
+  offline). Generate with `openssl rand -base64 32`.
 - Adapters (`adapters.ts`, pure/testable): native `wa.feed/v1`, generic CRM
   contact JSON (Salesforce `__c` suffixes, HubSpot `properties` bags, OData
   envelopes, bare arrays), ISO 20022 **camt.052/053/054** (closing booked
@@ -273,10 +277,20 @@ connection at `/api/feeds/<id>` and that panel works unchanged.
   found). `xml.ts` is a hand-rolled parser that **skips DOCTYPE/ENTITY
   entirely**, making XXE and billion-laughs impossible by construction —
   don't swap it for a full DOM parser without re-checking that.
-- 57 tests under `lib/feeds/__tests__/` cover the SSRF ranges (incl. IPv4-mapped
+- Tests under `lib/feeds/__tests__/` cover the SSRF ranges (incl. IPv4-mapped
   IPv6, NAT64/6to4 wrappers, decimal/octal IP encodings), a `safeFetch` test
   that starts a REAL loopback server and asserts it is never hit, XXE
   immunity, crypto tamper-detection, connection validation, and adapter mapping.
+  Two of these files carry most of the weight:
+  - **`hardening.test.ts`** — one regression per confirmed defect from the
+    2026-07-31 adversarial pass (see "Feed hardening" below). Read a failure
+    here as a real client-money bug returning, not a brittle assertion.
+  - **`wire-to-engine.test.ts`** — the only test that crosses every seam:
+    raw camt XML + CRLF Swiss-apostrophe CSV + CRM JSON → `detectFormat` →
+    `adaptFeed` → `diffPlan` → `applyChanges` → `parsePlan` → `runMonteCarlo`.
+    Layers passing in isolation proved nothing about the joins between them
+    (a schema-legal plan the engine NaNs, an envelope the merge drops). Also
+    asserts a re-sync of the same three payloads is a byte-level no-op.
 - **UI:** `/app/feeds` (`components/feeds/feeds-manager.tsx`) — list, add, edit,
   delete, and "Test fetch" which runs the relay and previews the normalized
   records without writing anything. The secret input is cleared after save and
@@ -305,6 +319,60 @@ connection at `/api/feeds/<id>` and that panel works unchanged.
 - **UI flow:** Test fetch → preview → "Review & apply to plan…" → per-record
   checkboxes grouped by section with before → after values → Apply → one-click
   Undo (re-PUTs the pre-apply snapshot).
+
+### Feed hardening (2026-07-31) — read before touching the feed path
+An adversarial pass over the whole feed stack. Every item below is a defect
+that was REPRODUCED, then fixed and pinned in `hardening.test.ts`. The theme:
+for a feed the dangerous failure is not a crash but a plausible **wrong
+number** landing silently in a client's plan, so the fixes bias toward
+refusing/flagging over guessing.
+
+- **A date must never become money.** Stripping separators turned a
+  `2026-08-31` Value Date cell into 20,260,831 — and every European statement
+  puts a date column beside the amount, so one column-match miss produced a
+  20-million-franc position. Guarded in BOTH products (`parseFeedNumber` and
+  legacy `siNum`). Same pass: sign is read before stripping (`CHF -240'000`,
+  trailing minus, DR/CR, parens), scientific notation and percentages parse,
+  and a repeated separator must group in threes (`1.2.3.4` is not 1234).
+- **camt fixes, in both products.** `<CdtLine><Amt>` (the overdraft LIMIT) was
+  read as the balance — a CHF 12,500 account imported as CHF 500,000; balance
+  lookups are now DIRECT-CHILD only (`kids`/`kid` in `xml.ts`, `kid()` in the
+  legacy adapter). Accounts were labelled with the account HOLDER's name, so
+  every statement in a multi-account file collapsed onto one row. An
+  already-negative amount carrying `DBIT` was double-negated back into a
+  positive asset — magnitude first, then `CdtDbtInd`. Balance `Ccy` beats
+  account `Ccy`. **If you touch either camt adapter, re-run the browser check:
+  the legacy one is only covered by tests via the standalone.**
+- **Kind-scoped matching.** A cash line named "Pensionskasse UBS" could
+  overwrite a CHF 480,000 pension with CHF 5,000. A holding may no longer
+  match an account-like record at all (`ACCOUNT_LIKE`/`LOCKED` in apply.ts).
+- **`resolve()` distinguishes three outcomes** — matched / genuinely new /
+  *duplicate of a row already claimed in this payload*. Folding the third into
+  "new" made a duplicated row create a fresh plan record on every subsequent
+  sync, so the plan grew a phantom account per refresh and never converged.
+- **Income no longer falls back to client 1.** When the CRM introduces the
+  spouse in the same payload, client 2 has no income to match; the fallback
+  made both salaries resolve to client 1's single record and the second
+  overwrote the first — CHF 435,000 of household income arrived as CHF 285,000.
+- **`risky` vs `warning` are different things.** `risky` (unticked by default
+  in the review UI) means "applying this writes a WRONG number": foreign
+  currency with no conversion, an account total that duplicates the positions
+  in the same feed (net worth 2x), a retirement age the feed never sent.
+  Correct-but-incomplete rows — a mortgage balance with no rate — get a
+  `warning` and stay SELECTED, because omitting an CHF 840,000 debt overstates
+  net worth by more than any rate assumption distorts it. Don't collapse these
+  two back together.
+- **Relay egress is scrubbed** (`lib/feeds/redact.ts`): credentials, query
+  strings (custodians put keys there), and resolved IPs (a blocked host was
+  otherwise an internal-network oracle) never reach `last_status` or the
+  browser. Upstream failures map to distinct statuses instead of a blanket 502.
+- **PATCH enforces the auth/secret invariant POST already had.** It was
+  reachable in two steps (switch to `bearer` without a secret, or clear the
+  secret while auth stays `bearer`), after which the relay fetched anonymously
+  and normalized the custodian's HTML login page into the plan. GET refuses
+  that state outright. Also: per-user run throttle, UTF-8 basic auth (RFC 7617).
+- **SSRF:** `::/96` and `::ffff:0:` closed, trailing-dot hosts normalized,
+  credentials no longer replayed across a cross-origin redirect.
 
 ### Review-driven hardening (Petros's "Top 5 plans", all complete + merged)
 1. **Build/test/dep baseline** — clean `npm ci`; `/login` `useSearchParams` moved
