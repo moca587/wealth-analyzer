@@ -273,10 +273,22 @@ connection at `/api/feeds/<id>` and that panel works unchanged.
   found). `xml.ts` is a hand-rolled parser that **skips DOCTYPE/ENTITY
   entirely**, making XXE and billion-laughs impossible by construction —
   don't swap it for a full DOM parser without re-checking that.
-- 47 tests under `lib/feeds/__tests__/` cover the SSRF ranges (incl. IPv4-mapped
+- 57 tests under `lib/feeds/__tests__/` cover the SSRF ranges (incl. IPv4-mapped
   IPv6, NAT64/6to4 wrappers, decimal/octal IP encodings), a `safeFetch` test
   that starts a REAL loopback server and asserts it is never hit, XXE
-  immunity, crypto tamper-detection, and adapter mapping.
+  immunity, crypto tamper-detection, connection validation, and adapter mapping.
+- **UI:** `/app/feeds` (`components/feeds/feeds-manager.tsx`) — list, add, edit,
+  delete, and "Test fetch" which runs the relay and previews the normalized
+  records without writing anything. The secret input is cleared after save and
+  the API only ever reports `hasSecret`, so no credential is ever held in React
+  state or serialized into props. On edit, a blank secret means "keep the stored
+  one". `readJson()` handles non-JSON error bodies (gateway/framework HTML error
+  pages) so users see the HTTP status instead of `Unexpected token '<'`.
+  `/preview/feeds` renders it outside the auth gate for design review (404s in
+  production, and the API still requires a session so no data is exposed).
+- **Not wired yet:** applying a fetched envelope into the stored `WealthPlan`.
+  "Test fetch" deliberately previews only — merging into a plan (dedupe against
+  existing assets/holdings, review UI, undo) is the next piece of work.
 
 ### Review-driven hardening (Petros's "Top 5 plans", all complete + merged)
 1. **Build/test/dep baseline** — clean `npm ci`; `/login` `useSearchParams` moved

@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 const items = [
   { href: "/app",          label: "Dashboard",    emoji: "🏠" },
   { href: "/app/plan",     label: "Your plan",    emoji: "📋" },
+  { href: "/app/feeds",    label: "Data feeds",   emoji: "🔌" },
   { href: "/app/simulate", label: "Simulation",   emoji: "🎲" },
   { href: "/app/report",   label: "Report",       emoji: "📄" }
 ];
