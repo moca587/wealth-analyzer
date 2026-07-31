@@ -208,10 +208,12 @@ and validated data. The engine/data are ported as pure modules; the UI is
 rebuilt as React components rather than copied.
 
 ### Stack
-Next.js 14 (App Router) · TypeScript · Tailwind + shadcn-style UI · Supabase
-(Postgres + Auth + Row-Level Security) · Zod (validation) · Vitest (tests) ·
-Chart.js via `react-chartjs-2`. Node 20. ESLint pinned to 8.x (peer-conflicts
-with `eslint-config-next@14`; install documented, not `--legacy-peer-deps`).
+Next.js 15 (App Router) · React 19 · TypeScript · Tailwind + shadcn-style UI ·
+Supabase (Postgres + Auth + Row-Level Security) · Zod (validation) · Vitest
+(tests) · Chart.js via `react-chartjs-2`. Node 20+. ESLint 8.x with
+`eslint-config-next@15`. (Upgraded from Next 14/React 18 to clear the Next.js
+security advisories — `cookies()` is async in 15, so `lib/supabase/server.ts`
+`createClient()` is async and its callers `await` it.)
 
 ### Layout
 ```
@@ -224,14 +226,85 @@ wealth-app-next/
 │   └── monte-carlo.ts   ←   runMonteCarlo(input)
 ├── lib/plan/            ← schema.ts (Zod), default-plan.ts, migrate.ts, import-export.ts
 ├── lib/data/            ← country-accounts.ts (GENERATED — see below)
+├── lib/feeds/           ← custodian/CRM relay: model.ts (wa.feed/v1), adapters.ts,
+│                          ssrf.ts (SSRF guard), crypto.ts (AES-GCM), xml.ts, schema.ts
 ├── lib/supabase/        ← browser + server clients (@supabase/ssr)
 ├── components/plan/     ← PlanForm + sections/{household,children,assets,import-export}
 ├── components/sim/      ← sim runner + chart
 ├── app/                 ← (auth)/{login,signup}, app/ (gated), app/plan, app/simulate,
-│                            api/plan, preview/plan (dev-only, 404s in prod)
+│                            api/plan, api/feeds, preview/plan (dev-only, 404s in prod)
 ├── middleware.ts        ← Supabase session refresh + /app/* auth gate
-└── supabase/migrations/001_init.sql  ← profiles + simulations tables, RLS, signup trigger
+└── supabase/migrations/ ← 001_init.sql (profiles + simulations),
+                            002_feeds.sql (feed_connections + RLS)
 ```
+
+### Feed relay — `/api/feeds` (custodian & CRM direct feeds)
+The single-file app can pull custodian/CRM data itself, but a browser-direct
+call needs the endpoint to send CORS headers, and putting a long-lived
+custodian credential in a browser is not something a bank will bless. This
+relay holds the credential server-side and answers with the SAME
+**`wa.feed/v1`** model the legacy "Data feeds" panel consumes — point a
+connection at `/api/feeds/<id>` and that panel works unchanged.
+
+- `GET/POST /api/feeds` — list/create connections. `GET /api/feeds/<id>` RUNS
+  the relay (fetch upstream → normalize → `wa.feed/v1`); PATCH/DELETE manage.
+  All owner-scoped by RLS + explicit `user_id` filters; a foreign row 404s
+  rather than 403s (don't confirm it exists). `runtime = "nodejs"` is required
+  (node:crypto + node:dns).
+- **`lib/feeds/ssrf.ts` is the security boundary — read it before touching the
+  relay.** The relay fetches a URL the *user* supplies from *our* network, so
+  without it this is an SSRF primitive (cloud metadata at 169.254.169.254,
+  anything in the VPC, loopback). Guards: scheme allowlist, no embedded
+  credentials, DNS resolution with EVERY resolved address range-checked
+  (defeats DNS rebinding by name), manual redirect following with each hop
+  re-validated, 15s timeout, 5 MB streaming cap. Optional
+  `FEEDS_HOST_ALLOWLIST` pins it to named hosts. Residual TOCTOU window
+  between DNS check and connect is documented in the file header.
+- **Credentials are encrypted at rest** (AES-256-GCM, `FEEDS_ENCRYPTION_KEY`
+  in the server env only) so a leaked DB dump doesn't expose custodian
+  tokens. Fails CLOSED: no key → refuses to store a secret (503) rather than
+  persisting plaintext. Secrets are never returned by any route (`toPublic()`
+  maps ciphertext → `hasSecret: boolean`).
+- Adapters (`adapters.ts`, pure/testable): native `wa.feed/v1`, generic CRM
+  contact JSON (Salesforce `__c` suffixes, HubSpot `properties` bags, OData
+  envelopes, bare arrays), ISO 20022 **camt.052/053/054** (closing booked
+  balance, CLBD→CLAV→PRCD→ITBD, `CdtDbtInd` sends debits to liabilities),
+  OFX/QFX, and CSV (header-matched; refuses to guess when no value column is
+  found). `xml.ts` is a hand-rolled parser that **skips DOCTYPE/ENTITY
+  entirely**, making XXE and billion-laughs impossible by construction —
+  don't swap it for a full DOM parser without re-checking that.
+- 57 tests under `lib/feeds/__tests__/` cover the SSRF ranges (incl. IPv4-mapped
+  IPv6, NAT64/6to4 wrappers, decimal/octal IP encodings), a `safeFetch` test
+  that starts a REAL loopback server and asserts it is never hit, XXE
+  immunity, crypto tamper-detection, connection validation, and adapter mapping.
+- **UI:** `/app/feeds` (`components/feeds/feeds-manager.tsx`) — list, add, edit,
+  delete, and "Test fetch" which runs the relay and previews the normalized
+  records without writing anything. The secret input is cleared after save and
+  the API only ever reports `hasSecret`, so no credential is ever held in React
+  state or serialized into props. On edit, a blank secret means "keep the stored
+  one". `readJson()` handles non-JSON error bodies (gateway/framework HTML error
+  pages) so users see the HTTP status instead of `Unexpected token '<'`.
+  `/preview/feeds` renders it outside the auth gate for design review (404s in
+  production, and the API still requires a session so no data is exposed).
+- **Apply-to-plan** (`lib/feeds/apply.ts`, pure + 19 tests): `diffPlan(plan,
+  envelope)` classifies every record as create/update/unchanged against the
+  saved plan, then `applyChanges(plan, changes, selection)` returns a NEW plan
+  with only the selected ones. The safety contract, each pinned by a test:
+  never deletes; an update only writes fields the feed actually sent (a payload
+  missing `rate` won't blank a loan's rate); re-running is idempotent (matched
+  on a normalized natural key, so no duplicates); the input plan is never
+  mutated (it doubles as the undo snapshot); and the merged plan is re-validated
+  with `parsePlan` before it is PUT, so a feed can't persist something the
+  schema rejects. Income carries a client INDEX and re-resolves the owner
+  against the plan being written to — a stale client id would otherwise fail
+  validation. Account matching treats country as a disambiguator only (requiring
+  it to match duplicated country-less accounts). Feed-only classes
+  (`private_equity`/`hedge`/`structured`) fold into `alternative`; annual
+  expenses convert to the plan's monthly field; pension-type hints set
+  `liquid: false`.
+- **UI flow:** Test fetch → preview → "Review & apply to plan…" → per-record
+  checkboxes grouped by section with before → after values → Apply → one-click
+  Undo (re-PUTs the pre-apply snapshot).
 
 ### Review-driven hardening (Petros's "Top 5 plans", all complete + merged)
 1. **Build/test/dep baseline** — clean `npm ci`; `/login` `useSearchParams` moved
@@ -266,13 +339,133 @@ wealth-app-next/
 - **`app/preview/plan`** renders `PlanForm` with sample data outside the auth
   gate for design review; it `notFound()`s in production.
 
+### Quality safety net (audit Plan E)
+The engine is guarded by three layers of tests under `lib/engine/__tests__/`
+(all seeded + `asOfYear`-anchored, so runs are byte-reproducible):
+- **`golden-master.test.ts`** — 5 canonical plans frozen to expected
+  percentiles / goal-success / retirement stats. Any numeric drift trips it.
+  Regenerate intentionally with `GEN_GOLDEN=1 npx vitest run golden-master`
+  (prints a JSON blob to paste into `EXPECTED`), then review the diff.
+- **`analytical-bounds.test.ts`** — pins the engine to first-principles truth
+  (single-class median = `initial·e^(drift·T)` exactly, mean = `initial·e^(μT)`
+  within 3 sample-SE — the log-normal closed forms; mean ≥ median skew;
+  percentile ordering; equity out-grows/out-spreads cash; diversification
+  lowers spread).
+  This is the honest replacement for a legacy-vs-SaaS parity harness: the SaaS
+  engine is **no longer a port** of `wealth-analyzer.html` `runMC()` (it
+  re-models with per-class CMAs + correlation + progressive tax + two-pool
+  decumulation), so a numeric parity test would compare two intentionally
+  different models.
+- **`pipeline.test.ts`** — "E2E-lite": raw legacy-shaped export →
+  `migratePlan` → `parsePlan` → `runMonteCarlo` → report-coherence asserts.
+  Also pins the **retirement double-count fix**: when `retirement.enabled`, the
+  engine excludes `cat === "Retirement"` goals from goal-funding (the
+  decumulation loop already models that spend via `retirement.annualSpending`),
+  so a plan carrying BOTH — as the sample report/plan previews do — no longer
+  double-counts. Those goals report their success as the retirement money-lasts
+  probability rather than an always-zero funded flag. The test asserts that
+  adding an overlapping retirement goal is a no-op on decumulation success.
+
+**Engine v2 (loan debt-service fix):** `amortizeLoan` used to compute
+`principalPaid` that no caller consumed — debt amortized down with **no cash
+outflow**, so a mortgage cost $0 and inflated net worth by the principal. The
+sim loop now deducts full debt service (interest + principal) from working-year
+surplus and retirement-year need; paying principal moves cash to equity, so a
+payment nets to costing exactly the interest. Expense categories are assumed to
+EXCLUDE debt service on tracked loans (the plan form's expenses section and the
+report methodology now say so; the report's cash-flow table shows a debt-service
+row and nets it from surplus). Also: the retirement gross-up tax rate is based
+on spending + debt service (a mortgage paid from the deferred pool isn't
+tax-free); a malformed `dob` can't NaN the retirement horizon; degenerate loans
+(`yrs <= 0` with balance) freeze instead of vanishing; `years` input is clamped
+(`[1,100]`, floored, non-finite → 30) so `years: 0` can't emit NaN; and
+`hashPlan` embeds an `ENGINE_VERSION` (byte-pinned by a test — bump it on any
+model change, never silently repin) so persisted results keyed by `inputHash`
+can't collide across model changes. Golden master regenerated for the two
+loan-bearing scenarios (loan-free scenarios were byte-identical — RNG stream
+untouched). All of this was adversarially reviewed by a 4-lens agent panel
+(financial-math, regression, test-adequacy via mutant runs, edge-cases).
+
+**Determinism knob:** `runMonteCarlo` accepts an optional `asOfYear`
+(`SimulationInput`) that fixes goal-year offsets and the primary client's age;
+omit it for live runs (defaults to the current year).
+
+### Audit hardening (2026-07) — `all-plans.test.ts` + `hardening.test.ts`
+`all-plans.test.ts` runs ONE rich two-client household (7 asset classes,
+taxable + muni income, mortgage, goals, retirement to 95, two pensions,
+RMD-triggering 401k) end-to-end, proving Plans B/C/D-data/E compose. A
+verification+adversarial workflow then probed the engine; the confirmed bugs
+were fixed (all golden-safe — the frozen snapshots did not move) and pinned by
+`hardening.test.ts`:
+- **Return multiplier floored at 0** and applied only to a positive balance —
+  a long-only pool can't flip negative from a >100% down-draw (was projecting
+  −$78M for a $200k crypto position), and a cash shortfall no longer compounds
+  at the market rate.
+- **RMDs are age-based (73), not coupled to `retirementAge`** — a client
+  working past 73 is now forced to draw the deferred pool (IRS-correct).
+- **A term-expired loan with a balance is kept** (was silently erased).
+- **`Button asChild`** now renders via a minimal Slot (no Radix) so the primary
+  CTAs are styled `<a>`s, not invalid `<button><a>` (`components/ui/button.tsx`).
+- **Schema guards**: reject `planToAge ≤ retirementAge` when retirement is
+  enabled (avoids a falsely-reassuring 100% success) and duplicate goal ids
+  (they collapse in the engine's per-goal maps).
+
+**Deferred modelling notes** (need a product decision / would move goldens, so
+NOT changed): working income is held nominal (no wage-growth term while
+expenses inflate); the `IRS_UNIFORM_LIFETIME` table is sparse (nearest-5
+fallback for missing ages); pensions with `startAge < retirementAge` aren't
+credited during working years; `/login?error=auth` isn't surfaced to the user.
+
+### Stress campaign (2026-07) — engine passed, findings recorded
+A 6-agent stress workflow (statistical validity vs closed form, 600-plan
+property fuzz, 7 common-random-number sensitivity sweeps, performance/scale,
+pipeline fuzz, seed/convergence) found **zero hard failures**: no NaN/crash,
+percentiles ordered everywhere, all 7 sensitivity directions correct, 120k fuzz
+paths clean, huge plan (120 assets × 1000 sims × 70 yrs) runs in ~186ms with
+linear sims-scaling, 12-seed estimates cluster (p50 rel-sd 5.4%), migrate/parse
+never throws (incl. prototype-pollution attempts). Deterministic + `asOfYear`
+semantics exact.
+
+**Return model — switched to TRUE log-normal (2026-07-09, product decision):**
+the engine now applies the drawn log-return exponentially —
+`pool *= exp((μ−σ²/2) + σZ)` — so the stated CMA arithmetic mean μ is actually
+delivered (`E[terminal] = V0·e^(μT)`) and the median grows at the geometric
+rate (`V0·e^((μ−σ²/2)T)`), the volatility drag counted exactly once. The prior
+formula (inherited from legacy `runMC()`) applied the same draw ARITHMETICALLY
+(`pool *= 1+annRet`), double-counting the drag: 30-yr equity delivered mean
+≈7.0× / median ≈5.0× vs the CMA-faithful 10.9×/7.5×. Impact of the switch
+(all goldens regenerated + reviewed): medians +20–60% scaling with equity
+share × horizon; retirement money-lasts probabilities +12–13pp; cash/bond
+plans nearly unchanged; a long-only pool can now never hit exactly 0 from
+returns (e^x > 0). Property appreciation stays arithmetic 3%±2% in the SaaS
+(σ too small to matter).
+
+**Correction (2026-07-09):** an earlier version of this note claimed the
+legacy `wealth-analyzer.html` still used the arithmetic formula. Reading the
+code disproved that: the legacy main app has applied returns exponentially
+all along — per-class buckets (`buckets[cls] * Math.exp(r)`, commit 2493e01),
+property (`Math.exp(propLogR)`, commit 4569095 by steslic), and the drawdown
+MCs. The arithmetic double-count was introduced **in the SaaS port**, which
+copied the `(μ−σ²/2)+σZ` draw but dropped the `exp()`. With the SaaS fix the
+two engines now agree in model form (the SaaS adds correlation/tax/two-pool
+structure on top). Two true stragglers were fixed the same day: the Avaloq
+edition's property line (was `prop*(1+propR)`) and the admin console's
+test-bench `runMC` (was `nw*(1+r)`).
+
+**Minor (recorded, not fixed):** no distress flag for accumulation-phase
+insolvency (deep-negative net worth reports without a qualitative warning);
+goal `startYear/endYear` unbounded ints; `migratePlan` coerces garbage numerics
+to 0 (a `amt:'abc'` goal becomes a $0 goal at 100% success); no length cap on
+`notes` (5MB string passes to JSONB); sims=200 reads ~5pp rosier on
+money-lasts than converged 1000-sim runs.
+
 ### Running it
 ```bash
 cd wealth-app-next
 cp .env.local.example .env.local   # real Supabase creds, or placeholders to just boot the UI
 npm install
 npm run dev        # http://localhost:3000  (or PORT=3100 npm run dev)
-npm run type-check && npm run test && npm run build
+npm run type-check && npm run test && npm run lint && npm run build
 ```
 `.env.local` is gitignored. Placeholder Supabase values are enough to render the
 UI (including `/preview/plan`); real values are needed for auth/persistence.
@@ -280,7 +473,8 @@ UI (including `/preview/plan`); real values are needed for auth/persistence.
 ### Release & CI (whole repo)
 The legacy standalones and the SaaS app share one pipeline, driven from the
 **repo root** `package.json`:
-- `npm run ci` — app tests + type-check + Next build + `legacy:check`.
+- `npm run ci` — app tests + type-check + **lint** (`app:lint` → `next lint`,
+  config in `wealth-app-next/.eslintrc.json`) + Next build + `legacy:check`.
 - `npm run legacy:build` — regenerate every `*-standalone.html` via the Perl
   builders, then validate (needs Perl).
 - `npm run legacy:check` — `scripts/release/check-artifacts.mjs`; validates each
@@ -290,6 +484,11 @@ The legacy standalones and the SaaS app share one pipeline, driven from the
   green). See `docs/release-process.md` for source-of-truth vs generated files.
 - The push token here lacks GitHub's `workflow` scope — workflow YAML changes go
   through the GitHub web UI, not a push from this environment.
+- **Pending web-UI edit:** `.github/workflows/ci.yml` still runs test /
+  type-check / build / `legacy:check` as separate steps but has **no lint
+  step** — add one (`run: npm run app:lint`) after "Type-check" so CI enforces
+  the lint the root `ci` script already includes. (`next build` also lints now
+  that `.eslintrc.json` exists, so lint is enforced at build time regardless.)
 
 ---
 

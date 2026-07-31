@@ -80,6 +80,10 @@ export default function LandingPage() {
             <Link href="/signup" className="hover:text-foreground">Sign up</Link>
           </div>
         </div>
+        <div className="container mt-4 text-xs">
+          Educational planning tool. Wealth Analyzer does not provide investment, tax, or legal advice — tax figures are
+          simplified estimates. Consult a licensed advisor and a tax professional before making decisions.
+        </div>
       </footer>
     </div>
   );

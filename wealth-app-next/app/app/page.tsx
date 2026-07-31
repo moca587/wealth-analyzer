@@ -11,7 +11,7 @@ function isPopulatedPlan(plan: unknown): plan is WealthPlan {
 }
 
 export default async function Dashboard() {
-  const supabase = createClient();
+  const supabase = await createClient();
   const { data: profile } = await supabase
     .from("profiles")
     .select("plan, display_name")

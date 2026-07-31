@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, FormEvent } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { friendlyAuthError } from "@/lib/auth-errors";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -27,11 +28,11 @@ export default function SignupPage() {
       password,
       options: {
         data: { display_name: displayName || email.split("@")[0] },
-        emailRedirectTo: `${process.env.NEXT_PUBLIC_APP_URL || window.location.origin}/app`
+        emailRedirectTo: `${process.env.NEXT_PUBLIC_APP_URL || window.location.origin}/auth/callback?next=/app`
       }
     });
     setLoading(false);
-    if (error) { setError(error.message); return; }
+    if (error) { setError(friendlyAuthError(error.message)); return; }
     // If email confirmation is enabled in Supabase settings, user must confirm before login.
     if (data.session) {
       router.push("/app");
@@ -111,7 +112,7 @@ export default function SignupPage() {
           {loading ? "Creating account…" : "Create account"}
         </Button>
         <p className="text-xs text-muted-foreground text-center">
-          By signing up you agree to use this tool for educational purposes — it is not financial advice.
+          By signing up you agree to use this tool for educational purposes — it does not provide financial, tax, or legal advice.
         </p>
       </form>
 

@@ -29,7 +29,7 @@ Run from the repository root:
 ```bash
 npm run legacy:build     # regenerate all standalones from source (needs Perl), then validate
 npm run legacy:check     # validate the committed artifacts WITHOUT rebuilding
-npm run ci               # app tests + type-check + Next build + legacy:check
+npm run ci               # app tests + type-check + lint + Next build + legacy:check
 ```
 
 The app-only checks:
@@ -38,6 +38,7 @@ The app-only checks:
 npm run app:install      # npm ci in wealth-app-next
 npm run app:test         # vitest run
 npm run app:typecheck    # tsc --noEmit
+npm run app:lint         # next lint
 npm run app:build        # next build
 ```
 
@@ -71,23 +72,17 @@ For each app:
 
 ## CI
 
-The workflow (`.github/ci-workflow.yml`) installs `wealth-app-next` deps
+The workflow (`.github/workflows/ci.yml`) installs `wealth-app-next` dependencies
 (cached), runs the unit tests, type-check, and Next build, then validates the
-legacy artifacts. CI **validates** the committed standalones rather than
+legacy artifacts. The root `npm run ci` command also runs the dedicated lint step. CI **validates** the committed standalones rather than
 rebuilding them — so a stale or drifted artifact fails the PR instead of being
-silently regenerated.
+silently regenerated. It runs on every push to `main` and every PR (active and
+green).
 
-**Activation:** the file ships at `.github/ci-workflow.yml` because the token
-that committed it lacks GitHub's `workflow` scope (pushes touching
-`.github/workflows/` are rejected without it). To turn it on, move it into place
-from the GitHub web UI or a `workflow`-scoped credential:
-
-```bash
-git mv .github/ci-workflow.yml .github/workflows/ci.yml
-git commit -m "Activate CI workflow" && git push
-```
-
-Once at `.github/workflows/ci.yml` it runs on every push to `main` and every PR.
+> **Note for this environment:** the push token here lacks GitHub's `workflow`
+> scope, so changes to any file under `.github/workflows/` cannot be pushed from
+> the CLI — they must be made via the GitHub web UI. (The workflow was originally
+> activated that way.)
 
 ## Notes / future work
 

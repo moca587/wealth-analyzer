@@ -60,12 +60,40 @@ export function SimRunner({ plan }: { plan: WealthPlan }) {
         <>
           <Card>
             <CardHeader>
-              <CardTitle>Net worth projection — {sims.toLocaleString()} paths, {years} years</CardTitle>
+              <CardTitle>Net worth projection — {sims.toLocaleString()} paths, {result.years} years</CardTitle>
             </CardHeader>
             <CardContent>
               <SimChart result={result} currency={plan.currency} />
             </CardContent>
           </Card>
+
+          {result.retirement && (() => {
+            const succ = result.retirement.successProbability;
+            const tone = succ >= 0.85 ? "text-emerald-600" : succ >= 0.6 ? "text-amber-500" : "text-destructive";
+            const bar = succ >= 0.85 ? "bg-emerald-500" : succ >= 0.6 ? "bg-amber-500" : "bg-destructive";
+            return (
+              <Card>
+                <CardHeader><CardTitle>Will your money last?</CardTitle></CardHeader>
+                <CardContent>
+                  <div className="flex items-center gap-6 flex-wrap">
+                    <div>
+                      <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">Success probability</div>
+                      <div className={`font-display text-4xl ${tone}`}>{(succ * 100).toFixed(0)}%</div>
+                    </div>
+                    <div className="flex-1 min-w-[220px]">
+                      <div className="h-3 rounded-full bg-muted overflow-hidden">
+                        <div className={`h-full rounded-full transition-all ${bar}`} style={{ width: `${Math.min(100, Math.max(0, succ * 100))}%` }} />
+                      </div>
+                      <div className="text-xs text-muted-foreground mt-2">
+                        Retiring at age {result.retirement.retirementAge}, modelled through age {result.retirement.planToAge}.{" "}
+                        {(result.retirement.depletionProbability * 100).toFixed(0)}% of scenarios run the portfolio to zero before then.
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })()}
 
           <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
             {[
@@ -110,8 +138,9 @@ export function SimRunner({ plan }: { plan: WealthPlan }) {
 
           <div className="text-xs text-muted-foreground border-t border-border pt-4">
             <strong>Important:</strong> Monte Carlo results are illustrative projections based on the inputs you provided
-            and assumed risk/return parameters. They are not predictions, guarantees, or financial advice. Real outcomes
-            will differ. Consult a licensed advisor before making decisions.
+            and assumed risk/return parameters. They are not predictions, guarantees, or financial, tax, or investment
+            advice. Tax figures are simplified estimates — this tool does not provide tax advice. Real outcomes
+            will differ. Consult a licensed advisor and a tax professional before making decisions.
           </div>
         </>
       )}

@@ -93,6 +93,29 @@ export interface Goal {
   endYear: number;    // calendar year (>= startYear)
 }
 
+/** A pension / annuity / state benefit that pays out from a given age. */
+export interface Pension {
+  id: string;
+  label: string;
+  clientId?: string;
+  annualAmount: number;   // annual payout, in plan currency (today's dollars)
+  startAge: number;       // age the benefit begins
+  colaRate?: number;      // annual cost-of-living adjustment (decimal); default 0
+}
+
+/**
+ * Retirement / decumulation settings. When `enabled`, the simulation runs an
+ * accumulate→decumulate life-cycle: the primary client's salary stops at
+ * `retirementAge`, `annualSpending` replaces working expenses, pensions are
+ * credited as income, and the portfolio is drawn down to fund the gap.
+ */
+export interface Retirement {
+  enabled?: boolean;
+  retirementAge: number;   // age the primary client stops working
+  annualSpending: number;  // desired annual retirement spend (today's dollars)
+  planToAge?: number;      // model horizon age (default 90)
+}
+
 // ─── Top-level plan ───────────────────────────────────────────────
 export interface WealthPlan {
   version: number;
@@ -106,6 +129,8 @@ export interface WealthPlan {
   assets: Asset[];
   loans: Loan[];
   goals: Goal[];
+  retirement?: Retirement;
+  pensions?: Pension[];
   notes?: string;
   createdAt: string;      // ISO
   updatedAt: string;      // ISO
@@ -118,6 +143,13 @@ export interface SimulationInput {
   years: number;              // typically 30-40
   /** Fixes the PRNG for a byte-identical repeat run (tests, cache checks). Omit for a real random run. */
   seed?: number;
+  /**
+   * Base calendar year the run is anchored to. Drives goal-year offsets and the
+   * primary client's current age. Omit for a live run (defaults to the current
+   * year); pass an explicit value so a seeded run is fully reproducible and does
+   * not drift as the wall clock advances (golden-master tests rely on this).
+   */
+  asOfYear?: number;
 }
 
 export interface SimulationResult {
@@ -137,6 +169,16 @@ export interface SimulationResult {
   final: {
     p10: number; p25: number; p50: number; p75: number; p90: number;
     mean: number;
+  };
+  /** Retirement "will my money last?" summary — present only when the plan enables retirement. */
+  retirement?: {
+    enabled: boolean;
+    /** Fraction of sims whose portfolio never runs out before planToAge (higher is better). */
+    successProbability: number;
+    /** Fraction of sims that deplete before planToAge (1 − successProbability). */
+    depletionProbability: number;
+    retirementAge: number;
+    planToAge: number;
   };
   runMs: number;
 }

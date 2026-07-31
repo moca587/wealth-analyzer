@@ -1108,7 +1108,7 @@ function toggleQuestionnairePreview(){
 // ═══════════════════════════════════════════════════════════
 // VERSION + UTILS
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260708-1001";
+const APP_VERSION = "20260731-2140";
 const $ = (id) => document.getElementById(id);
 const $$ = (sel, ctx) => Array.from((ctx||document).querySelectorAll(sel));
 
@@ -2397,7 +2397,7 @@ function runMC(startNW,muPct,sigPct,years,sims,annSavings){
     let nw=startNW;
     for(let y=0;y<years;y++){
       const r=(mu-0.5*sig*sig)+sig*boxMuller();
-      nw=nw*(1+r)+annSavings;
+      nw=nw*Math.exp(r)+annSavings;
     }
     ends.push(nw);
   }
@@ -3470,7 +3470,7 @@ const TB_FUNCS = {
   calcMortgagePayment:{formula:"P × r(1+r)^n / ((1+r)^n − 1) monthly",inputs:[{id:"principal",label:"Principal ($)",def:500000},{id:"rate",label:"Annual rate (%)",def:6.5},{id:"years",label:"Years",def:30}],run:(i)=>calcMortgagePayment(+i.principal,+i.rate,+i.years)},
   calcRMD:{formula:"RMD = balance / IRS_ULT[age]",inputs:[{id:"balance",label:"Balance ($)",def:500000},{id:"age",label:"Age",def:75}],run:(i)=>calcRMD(+i.balance,+i.age,"US")},
   calcRetirementNumber:{formula:"PV of inflation-adjusted annuity to age 98",inputs:[{id:"curAge",label:"Current age",def:40},{id:"retAge",label:"Retirement age",def:65},{id:"spend",label:"Annual spend ($)",def:80000},{id:"inf",label:"Inflation",def:0.038},{id:"disc",label:"Discount",def:0.068}],run:(i)=>calcRetirementNumber(+i.curAge,+i.retAge,+i.spend,+i.inf,+i.disc)},
-  runMC:{formula:"Log-normal MC: (μ−0.5σ²) + σ × N(0,1)",inputs:[{id:"nw",label:"Start NW ($)",def:500000},{id:"mu",label:"μ (%)",def:7},{id:"sig",label:"σ (%)",def:12},{id:"years",label:"Years",def:20},{id:"sims",label:"Sims",def:500},{id:"sav",label:"Savings ($)",def:30000}],run:(i)=>runMC(+i.nw,+i.mu,+i.sig,+i.years,+i.sims,+i.sav)},
+  runMC:{formula:"Log-normal MC: NW × e^((μ−0.5σ²) + σ×N(0,1))",inputs:[{id:"nw",label:"Start NW ($)",def:500000},{id:"mu",label:"μ (%)",def:7},{id:"sig",label:"σ (%)",def:12},{id:"years",label:"Years",def:20},{id:"sims",label:"Sims",def:500},{id:"sav",label:"Savings ($)",def:30000}],run:(i)=>runMC(+i.nw,+i.mu,+i.sig,+i.years,+i.sims,+i.sav)},
   boxMuller:{formula:"z = √(−2lnU₁) × cos(2πU₂)",inputs:[],run:()=>boxMuller()},
   calcBracketTax:{formula:"Σ income_in_band × rate",inputs:[{id:"income",label:"Income ($)",def:100000},{id:"state",label:"State (CA/NY/TX)",def:"CA"}],run:(i)=>{const s=LOCAL_TAX.US.states[i.state]; if(!s) throw new Error("Unknown state"); return calcBracketTax(s.brackets, +i.income);}}
 };
