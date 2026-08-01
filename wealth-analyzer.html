@@ -10761,21 +10761,58 @@ function ordToWire(ticket,format){
 }
 
 /** Normalize whatever the PM system answered into something displayable. */
-function ordReadResponse(body,httpStatus){
-  const out={ok:httpStatus>=200&&httpStatus<300,ref:"",accepted:null,rejected:[],raw:""};
-  if(typeof body==="string"){ out.raw=body.slice(0,400); return out; }
-  if(!body||typeof body!=="object"){ return out; }
+/**
+ * Normalize whatever the PM system answered.
+ *
+ * The rule is POSITIVE ACKNOWLEDGEMENT: an order counts as staged only when
+ * the endpoint said so in a way we can read — a 2xx, a JSON object, and
+ * either a reference or a non-zero accepted count.
+ *
+ * Treating a bare 2xx as success was a real defect here: an expired
+ * credential, a WAF interstitial, or a URL typo’d onto a health endpoint all
+ * answer 200 with an HTML page, and this screen painted that green as
+ * “Staged in the PM system” — which stops anyone looking again. Anything we
+ * cannot positively read is UNKNOWN, never staged and never a plain failure,
+ * because the ticket may well have been staged before the page interposed.
+ */
+function ordReadResponse(body,httpStatus,contentType){
+  const httpOk=httpStatus>=200&&httpStatus<300;
+  const out={ok:false,state:"unknown",ref:"",accepted:null,rejected:[],raw:"",uncertainty:""};
+  const unknown=function(why){ out.state="unknown"; out.ok=false; out.uncertainty=why; return out; };
+  const reject=function(why){ out.state="rejected"; out.ok=false; if(why) out.rejected.push(why); return out; };
+
+  if(body==null||typeof body==="string"||typeof body!=="object"||Array.isArray(body)){
+    out.raw=typeof body==="string"?body.slice(0,400):"";
+    const snip=(typeof body==="string"&&body.trim())?(": "+body.trim().slice(0,160)):"";
+    if(!httpOk) return reject("the endpoint returned HTTP "+httpStatus+snip);
+    return unknown("The endpoint answered HTTP "+httpStatus+" but not with a JSON order acknowledgement, "
+      +"so the ticket’s status could not be confirmed. Check the PM system before re-sending.");
+  }
+  var _ct=String(contentType||"").split(";")[0].trim().toLowerCase();
+  if(_ct&&_ct!=="application/json"&&_ct.slice(-5)!=="+json"){
+    return unknown("The endpoint answered with content-type \""+String(contentType).split(";")[0]
+      +"\", not JSON, so the ticket’s status could not be confirmed. Check the PM system before re-sending.");
+  }
+
   out.ref=body.orderId||body.reference||body.clientReference||body.id||body.ticketId||"";
   const arr=Array.isArray(body.orders)?body.orders:Array.isArray(body.results)?body.results:null;
   if(arr){
-    const bad=function(o){ return o.status&&/reject|error|fail/i.test(String(o.status)); };
+    const bad=function(o){ return (o.status&&/reject|error|fail|denied|refus/i.test(String(o.status)))||!!o.error; };
     out.accepted=arr.filter(function(o){ return !bad(o); }).length;
     out.rejected=arr.filter(bad).map(function(o){
       return (o.externalReference||o.reference||o.isin||"line")+": "+(o.message||o.error||o.status);
     });
   }
+  // A top-level error beats a 200 — some gateways answer 200 with {"error":…}.
+  const topErr=body.error||body.errorMessage;
+  if(topErr) out.rejected.push(String(topErr).slice(0,200));
   try{ out.raw=JSON.stringify(body).slice(0,400); }catch(_){ }
-  return out;
+
+  if(out.rejected.length) return reject("");
+  if(!httpOk) return reject("the endpoint returned HTTP "+httpStatus);
+  if(out.ref||(out.accepted!=null&&out.accepted>0)){ out.state="staged"; out.ok=true; return out; }
+  return unknown("The endpoint answered HTTP "+httpStatus+" with JSON carrying no order reference and no "
+    +"accepted lines, so the ticket’s status could not be confirmed. Check the PM system before re-sending.");
 }
 
 
@@ -10864,12 +10901,18 @@ function ordRenderReview(){
 
   if(_ordPending.sent&&_ordPending.result){
     const r=_ordPending.result;
-    const good=r.ok&&!(r.rejected||[]).length;
+    // THREE outcomes. "unknown" is not a failure: the ticket may have been
+    // staged before the endpoint answered with something unreadable, so the
+    // advisor must be told to check rather than told it failed (which invites
+    // a re-send, and that is how one portfolio becomes two).
+    const st=r.state||(r.ok&&!(r.rejected||[]).length?'staged':'rejected');
+    const tone=st==='staged'?{bg:'rgba(5,150,105,.08)',bd:'rgba(5,150,105,.3)',fg:'var(--green)',t:'Staged in the PM system'}
+             :st==='unknown'?{bg:'rgba(217,119,6,.08)',bd:'rgba(217,119,6,.35)',fg:'#b45309',t:'Could not confirm — check the PM system'}
+             :{bg:'rgba(220,38,38,.08)',bd:'rgba(220,38,38,.3)',fg:'var(--red)',t:'The PM system reported a problem'};
     h+='<div style="margin-top:14px;padding:10px 14px;border-radius:var(--rs);background:'
-      +(good?'rgba(5,150,105,.08)':'rgba(220,38,38,.08)')+';border:1px solid '
-      +(good?'rgba(5,150,105,.3)':'rgba(220,38,38,.3)')+'">'
-      +'<div style="font-size:12px;font-weight:700;color:'+(good?'var(--green)':'var(--red)')+'">'
-      +(good?'Staged in the PM system':'The PM system reported a problem')+'</div>'
+      +tone.bg+';border:1px solid '+tone.bd+'">'
+      +'<div style="font-size:12px;font-weight:700;color:'+tone.fg+'">'+tone.t+'</div>'
+      +(r.uncertainty?('<div style="font-size:12px;color:var(--text2);margin-top:4px">'+_daEsc(r.uncertainty)+'</div>'):'')
       +'<div style="font-size:12px;color:var(--text2);margin-top:4px">'
       +(r.ref?('Reference: <code>'+_daEsc(r.ref)+'</code><br>'):'')
       +(r.accepted!=null?(r.accepted+' line(s) accepted.<br>'):'')
@@ -10936,7 +10979,7 @@ async function ordSend(){
     catch(_){ headers["Authorization"]="Basic "+btoa(route.secret); }
   }
 
-  let httpStatus=0, parsed=null, errMsg="";
+  let httpStatus=0, parsed=null, errMsg="", _ordCtype="";
   try{
     // redirect:"manual" — a 3xx must NOT be followed. 307/308 would replay the
     // whole order body to whatever Location names, and while fetch strips
@@ -10954,6 +10997,8 @@ async function ordSend(){
       throw new Error("the endpoint redirected — point the connection at the final URL");
     }
     httpStatus=res.status;
+    const ctype=(res.headers&&res.headers.get)?(res.headers.get("content-type")||""):"";
+    _ordCtype=ctype;
     const txt=await res.text();
     try{ parsed=JSON.parse(txt); }catch(_){ parsed=txt; }
   }catch(e){
@@ -10967,27 +11012,30 @@ async function ordSend(){
     ? {ok:false,ref:"",accepted:null,rejected:["Could not reach the PM system: "+errMsg
         +". If this was a timeout the ticket may already be staged — check there before re-sending. "
         +"Use “Retry this ticket” rather than BUY: it reuses this reference, so a PM system that honours it will not stage the order twice."],raw:""}
-    : ordReadResponse(parsed,httpStatus);
+    : ordReadResponse(parsed,httpStatus,_ordCtype);
 
   _ordPending.sending=false; _ordPending.sent=true; _ordPending.result=result;
+
+  const good=result.state==='staged';
+  const unsure=result.state==='unknown';
 
   ordAppendLog({
     at:new Date().toISOString(), ticketId:ticket.ticketId, endpoint:route.url,
     format:route.format||"wa", account:ticket.account.id,
     positions:ticket.totals.positions, amount:ticket.totals.amount, currency:ticket.totals.currency,
-    httpStatus:httpStatus, ok:!!(result.ok&&!(result.rejected||[]).length),
+    httpStatus:httpStatus, ok:!!good, state:result.state||(good?'staged':'rejected'),
     ref:result.ref, note:(result.rejected||[]).join(" · ").slice(0,300)
   });
 
   ordRenderReview();
   ordRenderLog();
-  const good=result.ok&&!(result.rejected||[]).length;
   // Remember the reference only while the outcome is not a clean success, so
   // the next BUY on an unresolved ticket can reuse it rather than mint a new one.
   _ordRetryId=good?null:ticket.ticketId;
   ordStatus(good?("✓ Ticket "+ticket.ticketId+" staged — "+ticket.totals.positions+" order(s) sent to "+(route.name||"PM system"))
-                :("✗ Send reported a problem — see the review screen and the log below."),
-            good?"var(--green)":"var(--red)");
+           :unsure?("⚠ Ticket "+ticket.ticketId+" — outcome not confirmed. Check "+(route.name||"the PM system")+" before re-sending.")
+                  :("✗ Send reported a problem — see the review screen and the log below."),
+            good?"var(--green)":unsure?"#b45309":"var(--red)");
 }
 
 // ── Routing config + audit log UI ────────────────────────────────────
