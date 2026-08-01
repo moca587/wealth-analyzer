@@ -39,7 +39,11 @@ export function ticketToWire(ticket: OrderTicket, format: OrderFormat): unknown 
         // Identifier preference: ISIN, then CUSIP, then the exchange symbol.
         // Avaloq books on one identifier, so send the most specific available
         // rather than a bag the far side must choose from.
+        // ISIN first, then the national identifiers, then the exchange symbol.
+        // Valor outranks CUSIP here because Avaloq is a Swiss system that
+        // books on it natively.
         instrument: l.instrument.isin ? { isin: l.instrument.isin }
+                  : l.instrument.valor ? { valor: l.instrument.valor }
                   : l.instrument.cusip ? { cusip: l.instrument.cusip }
                   : { symbol: l.instrument.ticker },
         transactionType: l.side,
@@ -65,6 +69,7 @@ export function ticketToWire(ticket: OrderTicket, format: OrderFormat): unknown 
         side: l.side,
         isin: l.instrument.isin || null,
         cusip: l.instrument.cusip || null,
+        valor: l.instrument.valor || null,
         symbol: l.instrument.ticker || null,
         name: l.instrument.name,
         amount: l.amount,

@@ -18,7 +18,8 @@
 import { z } from "zod";
 import { validateFeedUrl } from "@/lib/feeds/ssrf";
 import { ORDER_SCHEMA, round2, sameMoney, sumLines, type OrderTicket } from "./model";
-import { isValidIsin, isValidCusip, normalizeCusip, checkIdentifierAgreement } from "./identifiers";
+import { isValidIsin, isValidCusip, normalizeCusip, checkIdentifierAgreement,
+         isValidValorFormat, normalizeValor, checkValorAgreement } from "./identifiers";
 
 export const orderFormatEnum = z.enum(["wa", "avaloq", "generic"]);
 export const orderAuthEnum = z.enum(["none", "bearer", "apikey", "basic"]);
@@ -136,6 +137,7 @@ const money = z.number().finite().nonnegative().max(1_000_000_000, "amount is im
 const instrumentSchema = z.object({
   isin: z.string().trim().max(12).optional().default(""),
   cusip: z.string().trim().max(12).optional().default(""),
+  valor: z.string().trim().max(12).optional().default(""),
   ticker: z.string().trim().max(20).optional().default(""),
   name: z.string().trim().max(200).optional().default(""),
   vehicle: z.string().trim().max(40).optional().default(""),
@@ -252,10 +254,10 @@ export function checkTicket(
   // Identity: a line the PM system cannot resolve must not be sent, and one
   // bad line blocks the whole ticket — a partially-placed order is worse
   // than one that never left.
-  const unidentified = ticket.lines.filter((l) => !l.instrument.isin && !l.instrument.cusip && !l.instrument.ticker);
+  const unidentified = ticket.lines.filter((l) => !l.instrument.isin && !l.instrument.cusip && !l.instrument.valor && !l.instrument.ticker);
   if (unidentified.length) {
     errors.push(
-      `${unidentified.length} line(s) carry no ISIN, CUSIP or ticker: ` +
+      `${unidentified.length} line(s) carry no ISIN, CUSIP, Valor or ticker: ` +
       unidentified.map((l) => l.instrument.name || l.lineId).join(", ")
     );
   }
@@ -283,9 +285,20 @@ export function checkTicket(
   // Both identifiers present and individually valid is NOT enough — they must
   // describe the SAME security. A custodian cannot catch this; it would simply
   // book whichever one the wire format carries.
+  const badValor = ticket.lines.filter((l) => l.instrument.valor && !isValidValorFormat(l.instrument.valor));
+  if (badValor.length) {
+    errors.push(
+      `${badValor.length} line(s) carry a Valor that is not a plain number: ` +
+      badValor.map((l) => `${l.instrument.valor} (${l.instrument.name || l.lineId})`).join(", ")
+    );
+  }
+
   for (const l of ticket.lines) {
-    const agree = checkIdentifierAgreement(l.instrument.cusip || "", l.instrument.isin || "");
-    if (!agree.ok) errors.push(`${l.instrument.name || l.lineId}: ${agree.conflict}`);
+    const who = l.instrument.name || l.lineId;
+    const c = checkIdentifierAgreement(l.instrument.cusip || "", l.instrument.isin || "");
+    if (!c.ok) errors.push(`${who}: ${c.conflict}`);
+    const v = checkValorAgreement(l.instrument.valor || "", l.instrument.isin || "");
+    if (!v.ok) errors.push(`${who}: ${v.conflict}`);
   }
 
   // A hard server-side ceiling. checkTicket re-derives the total from the
@@ -321,6 +334,7 @@ export function checkTicket(
       ...l.instrument,
       isin: (l.instrument.isin || "").toUpperCase(),
       cusip: normalizeCusip(l.instrument.cusip || ""),
+      valor: normalizeValor(l.instrument.valor || ""),
       ticker: (l.instrument.ticker || "").toUpperCase(),
     },
     amount: round2(l.amount),
@@ -332,4 +346,4 @@ export function checkTicket(
 
 // ISIN/CUSIP arithmetic lives in ./identifiers — re-exported so existing
 // importers of this module keep working.
-export { isValidIsin, isValidCusip } from "./identifiers";
+export { isValidIsin, isValidCusip, isValidValorFormat, valorToIsin, isinToValor } from "./identifiers";

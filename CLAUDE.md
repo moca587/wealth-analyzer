@@ -409,8 +409,29 @@ network, verifiable against published check digits:
   US/CA ISIN (`isinToCusip`), so a US line still carries it to the PM system
   with nothing typed. Pasting a CUSIP into the universal ticker box still
   resolves it: `detectInputType` recognises one by its check digit.
-  **The genuinely missing identifier for this market is Valor** — zero support
-  today, and what an Avaloq-based EAM sees on every statement.
+- **Valor (Swiss Valorennummer) IS a first-class field**, and the contrast with
+  CUSIP is the point: the field earns its place when the market actually uses
+  the identifier. Two properties shape the code and must not be smoothed over:
+  1. **A Valor has NO check digit.** It is an ordinal, so a typo is simply a
+     different valid Valor and no arithmetic catches it. Verified empirically:
+     three single-digit typos of Nestlé's Valor all produced structurally
+     valid CH ISINs. They happened to resolve to nothing — that is the
+     sparseness of the number space, not a guarantee. The real defence is
+     showing the resolved instrument NAME for a human to confirm.
+  2. **Valor → CH ISIN is exact only for Swiss-DOMICILED issues**, where the
+     Valor is the ISIN's national number. SIX also assigns Valoren to foreign
+     instruments listed here — an Irish UCITS keeps its IE ISIN — so the
+     derived ISIN is a CANDIDATE. It is therefore filled in ONLY after OpenFIGI
+     resolves it, never on the arithmetic alone. `checkValorAgreement`
+     consequently ignores a non-CH ISIN beside a Valor: that is the normal
+     case for a Swiss portfolio, and flagging it would fire on most holdings.
+- **OpenFIGI does NOT accept `ID_VALOREN`** (verified against the live API —
+  it returns "Invalid value for idType"; the supported national types are
+  ID_CUSIP, ID_SEDOL, ID_WERTPAPIER, ID_CINS, ID_COMMON). So a Valor is
+  resolved via the CH ISIN it implies, which is also what makes the
+  resolve-before-filling rule necessary rather than merely cautious.
+- Wire preference is ISIN → Valor → CUSIP → symbol; Valor outranks CUSIP
+  because Avaloq is a Swiss system that books on it natively.
 - **Market data**: OpenFIGI (already used for ISIN) is generalized to
   `openFigiMap(idType, idValue, hintCc)`; `ID_CUSIP` resolves directly to a
   ticker, which then feeds the existing Yahoo quote/performance path. Verified

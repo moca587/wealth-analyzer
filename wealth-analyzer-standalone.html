@@ -3800,6 +3800,7 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
         </select>
       </div>
       <div class="fld"><label>ISIN <span style="color:var(--text3);font-weight:400">(for order routing)</span></label><input id="prIsin" placeholder="e.g. IE00B4L5Y983" maxlength="12" style="text-transform:uppercase"></div>
+      <div class="fld"><label>Valor <span style="color:var(--text3);font-weight:400">(Swiss)</span></label><input id="prValor" placeholder="e.g. 3886335" maxlength="12" oninput="onValorInput('pr')" onblur="onValorBlur('pr')"></div>
       <div class="fld"><label>Weight %</label><input type="number" id="prAlloc" placeholder="0" min="0" max="100" step="0.1"></div>
       <div class="fld"><label>10yr Exp Return %</label><input type="number" id="prExp" placeholder="0" step="0.1"></div>
       <div class="fld"><label>Expense Ratio %</label><input type="number" id="prErIn" placeholder="0" min="0" max="10" step="0.01"></div>
@@ -4455,7 +4456,7 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
 // ═══════════════════════════════════════════════════════════
 // VERSION — updated by build-standalone.pl on each build
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260801-2222";
+const APP_VERSION = "20260801-2233";
 
 // ═══════════════════════════════════════════════════════════
 // DATA
@@ -11094,6 +11095,7 @@ function ordBuildTicket(ticketId){
       instrument:{
         isin:String(p.isin||"").trim().toUpperCase(),
         cusip:normalizeCusip(p.cusip||""),
+        valor:normalizeValor(p.valor||""),
         ticker:String(p.tkr||"").trim().toUpperCase(),
         name:p.name||"",
         vehicle:p.vehicle||"",
@@ -11137,9 +11139,9 @@ function ordValidate(ticket){
   if(!(ticket.totals.amount>0)) errors.push("Set a target amount in Proposal Setup — without it every order line is zero.");
   if(!ticket.account.id) errors.push("No custody account. Orders must book to an account; enter one in Order Routing.");
 
-  const unidentified=ticket.lines.filter(function(l){ return !l.instrument.isin && !l.instrument.cusip && !l.instrument.ticker; });
+  const unidentified=ticket.lines.filter(function(l){ return !l.instrument.isin && !l.instrument.cusip && !l.instrument.valor && !l.instrument.ticker; });
   if(unidentified.length){
-    errors.push(unidentified.length+" position(s) have no ISIN, CUSIP or ticker, so the PM system cannot identify them: "
+    errors.push(unidentified.length+" position(s) have no ISIN, CUSIP, Valor or ticker, so the PM system cannot identify them: "
       +unidentified.map(function(l){ return l.instrument.name||l.lineId; }).join(", "));
   }
   // A CUSIP carries its own check digit, so a transposition is caught here
@@ -11149,10 +11151,18 @@ function ordValidate(ticket){
     errors.push(badCusip.length+" position(s) carry a CUSIP that fails its check digit: "
       +badCusip.map(function(l){ return l.instrument.cusip+" ("+(l.instrument.name||l.lineId)+")"; }).join(", "));
   }
-  // Both identifiers valid is not enough — they must name the SAME security.
+  const badValor=ticket.lines.filter(function(l){ return l.instrument.valor && !isValidValorFormat(l.instrument.valor); });
+  if(badValor.length){
+    errors.push(badValor.length+" position(s) carry a Valor that is not a plain number: "
+      +badValor.map(function(l){ return l.instrument.valor+" ("+(l.instrument.name||l.lineId)+")"; }).join(", "));
+  }
+  // Identifiers that are individually valid must still name the SAME security.
   ticket.lines.forEach(function(l){
-    const ag=checkIdentifierAgreement(l.instrument.cusip||"",l.instrument.isin||"");
-    if(!ag.ok) errors.push((l.instrument.name||l.lineId)+": "+ag.conflict);
+    const who=l.instrument.name||l.lineId;
+    const ac=checkIdentifierAgreement(l.instrument.cusip||"",l.instrument.isin||"");
+    if(!ac.ok) errors.push(who+": "+ac.conflict);
+    const av=checkValorAgreement(l.instrument.valor||"",l.instrument.isin||"");
+    if(!av.ok) errors.push(who+": "+av.conflict);
   });
 
   const zero=ticket.lines.filter(function(l){ return !(l.amount>0); });
@@ -11190,7 +11200,10 @@ function ordToWire(ticket,format){
           externalReference: ticket.ticketId+"."+l.lineId,   // idempotency, per line
           portfolioId: ticket.account.id,
           // Most specific identifier available: ISIN, then CUSIP, then symbol.
+        // ISIN first, then the national identifiers, then the symbol. Valor
+        // outranks CUSIP because Avaloq is a Swiss system that books on it.
         instrument: l.instrument.isin ? {isin:l.instrument.isin}
+                  : l.instrument.valor ? {valor:l.instrument.valor}
                   : l.instrument.cusip ? {cusip:l.instrument.cusip}
                   : {symbol:l.instrument.ticker},
           transactionType: l.side,
@@ -11214,7 +11227,7 @@ function ordToWire(ticket,format){
       orders: ticket.lines.map(function(l){
         return {
           reference: ticket.ticketId+"."+l.lineId,
-          side: l.side, isin: l.instrument.isin||null, cusip: l.instrument.cusip||null, symbol: l.instrument.ticker||null,
+          side: l.side, isin: l.instrument.isin||null, cusip: l.instrument.cusip||null, valor: l.instrument.valor||null, symbol: l.instrument.ticker||null,
           name: l.instrument.name, amount: l.amount, currency: l.currency, type: l.orderType
         };
       })
@@ -11342,22 +11355,23 @@ function ordRenderReview(){
   h+='<table style="width:100%;border-collapse:collapse;font-size:12px">'
     +'<thead><tr style="text-align:left;color:var(--text3);font-size:10px;text-transform:uppercase;letter-spacing:.07em">'
     +'<th style="padding:6px 4px">Side</th><th style="padding:6px 4px">Instrument</th>'
-    +'<th style="padding:6px 4px">ISIN</th><th style="padding:6px 4px">CUSIP</th><th style="padding:6px 4px">Ticker</th>'
+    +'<th style="padding:6px 4px">ISIN</th><th style="padding:6px 4px">Valor</th><th style="padding:6px 4px">CUSIP</th><th style="padding:6px 4px">Ticker</th>'
     +'<th style="padding:6px 4px;text-align:right">Weight</th><th style="padding:6px 4px;text-align:right">Amount</th>'
     +'</tr></thead><tbody>';
   ticket.lines.forEach(function(l){
-    const noId=!l.instrument.isin&&!l.instrument.cusip&&!l.instrument.ticker;
+    const noId=!l.instrument.isin&&!l.instrument.cusip&&!l.instrument.valor&&!l.instrument.ticker;
     h+='<tr style="border-top:1px solid var(--border)'+(noId?';background:rgba(220,38,38,.06)':'')+'">'
       +'<td style="padding:7px 4px"><span style="font-weight:700;color:var(--green)">BUY</span></td>'
       +'<td style="padding:7px 4px">'+_daEsc(l.instrument.name||"&mdash;")+'</td>'
       +'<td style="padding:7px 4px;font-family:var(--fm,monospace)">'+(l.instrument.isin?_daEsc(l.instrument.isin):'<span style="color:var(--text3)">&mdash;</span>')+'</td>'
+      +'<td style="padding:7px 4px;font-family:var(--fm,monospace)">'+(l.instrument.valor?_daEsc(l.instrument.valor):'<span style="color:var(--text3)">&mdash;</span>')+'</td>'
       +'<td style="padding:7px 4px;font-family:var(--fm,monospace)">'+(l.instrument.cusip?_daEsc(l.instrument.cusip):'<span style="color:var(--text3)">&mdash;</span>')+'</td>'
       +'<td style="padding:7px 4px;font-family:var(--fm,monospace)">'+(l.instrument.ticker?_daEsc(l.instrument.ticker):'<span style="color:var(--text3)">&mdash;</span>')+'</td>'
       +'<td style="padding:7px 4px;text-align:right">'+fmtPct(l.weightPct)+'</td>'
       +'<td style="padding:7px 4px;text-align:right;font-weight:600">'+ordMoney(l.amount,l.currency)+'</td></tr>';
   });
   h+='</tbody><tfoot><tr style="border-top:2px solid var(--border);font-weight:700">'
-    +'<td colspan="6" style="padding:8px 4px;text-align:right">Total</td>'
+    +'<td colspan="7" style="padding:8px 4px;text-align:right">Total</td>'
     +'<td style="padding:8px 4px;text-align:right">'+ordMoney(ticket.totals.amount,ticket.totals.currency)+'</td></tr></tfoot></table>';
 
   h+='<div style="font-size:11px;color:var(--text3);margin-top:12px">Ticket <code>'+_daEsc(ticket.ticketId)+'</code> &mdash; '
@@ -14165,10 +14179,10 @@ function addProposal(){
   const exp=parseFloat(val("prExp")), er=parseFloat(val("prErIn")), yld=parseFloat(val("prYldIn"));
   const note=val("prNote").trim();
   if(!name||isNaN(alloc)||alloc<=0){alert("Enter name and allocation %"); return;}
-  proposals.push({id:"pr"+(++propSeq),name,tkr,isin:val("prIsin").trim().toUpperCase(),cusip:(isinToCusip(val("prIsin").trim().toUpperCase())||""),vehicle,cls,alloc,
+  proposals.push({id:"pr"+(++propSeq),name,tkr,isin:val("prIsin").trim().toUpperCase(),cusip:(isinToCusip(val("prIsin").trim().toUpperCase())||""),valor:(normalizeValor(val("prValor"))||isinToValor(val("prIsin").trim().toUpperCase())||""),vehicle,cls,alloc,
     exp:isNaN(exp)?null:exp,er:isNaN(er)?null:er,yld:isNaN(yld)?null:yld,note,
     metrics:(_lastFundPerf&&_lastFundPerf.tkr&&tkr&&_lastFundPerf.tkr===tkr.toUpperCase())?_lastFundPerf.metrics:null});
-  ["prName","prTkr","prIsin","prAlloc","prExp","prErIn","prYldIn","prNote"].forEach(id=>$(id).value="");
+  ["prName","prTkr","prIsin","prValor","prAlloc","prExp","prErIn","prYldIn","prNote"].forEach(id=>$(id).value="");
   setT("prTkrHint","");
   try{ renderFundPerf('pr',null); }catch(_){}  _lastFundPerf=null;   // clear fetched-performance panel after add
   renderProposals(); renderProposalMetrics(); renderProposalBars(); drawProposalPie();
@@ -14207,7 +14221,7 @@ function renderProposals(){
     return `<div class="pr-row">
       <span class="pv-tag pv-${p.vehicle}">${PROP_VEHICLE_LABELS[p.vehicle]||p.vehicle}</span>
       <span class="prname">${_daEsc(p.name)}</span>
-      <span style="color:var(--text3);font-size:11px">${_daEsc(p.tkr||"—")}${(p.isin||p.cusip)?`<span style="font-family:var(--fm,monospace);margin-left:6px">${p.isin?_daEsc(p.isin):""}${(p.isin&&p.cusip)?" · ":""}${p.cusip?_daEsc(p.cusip):""}</span>`:""}</span>
+      <span style="color:var(--text3);font-size:11px">${_daEsc(p.tkr||"—")}${(p.isin||p.cusip||p.valor)?`<span style="font-family:var(--fm,monospace);margin-left:6px">${[p.isin,p.valor?("Valor "+p.valor):"",p.cusip].filter(Boolean).map(_daEsc).join(" · ")}</span>`:""}</span>
       <span style="color:var(--text2)">${INV_CLASS_LABELS[p.cls]||p.cls}${p.subcat?` <span style="color:var(--text3)">· ${_daEsc(p.subcat)}</span>`:""}</span>
       <span style="color:var(--text);font-variant-numeric:tabular-nums;font-weight:600">${p.alloc.toFixed(1)}%${target>0?'<br><span style="font-size:10px;color:var(--text3);font-weight:400">'+fmtMoney(dollar)+'</span>':''}</span>
       <span style="color:var(--text2);font-variant-numeric:tabular-nums">${p.exp!=null?p.exp.toFixed(1)+"%":"—"}</span>
@@ -14379,7 +14393,7 @@ function resetProposalForm(){
   // prIsin MUST be in this list. It is what a custodian books on,
   // so an identifier surviving a form reset attaches the previous security to
   // the next position the advisor enters.
-  ["prName","prTkr","prIsin","prAlloc","prExp","prErIn","prYldIn","prNote"].forEach(id=>{const el=$(id); if(el) el.value="";});
+  ["prName","prTkr","prIsin","prValor","prAlloc","prExp","prErIn","prYldIn","prNote"].forEach(id=>{const el=$(id); if(el) el.value="";});
   ["prVehicle","prClass"].forEach(id=>{const el=$(id); if(el) el.selectedIndex=0;});
   setT("prTkrHint","");
   const st=$("prAvStatus"); if(st) st.textContent="";
@@ -14534,6 +14548,60 @@ function checkIdentifierAgreement(cusip,isin){
   return {ok:true,derivedIsin:derived||undefined};
 }
 
+
+// ─── Valorennummer (Swiss) ───────────────────────────────────────
+// The identifier a Swiss EAM actually sees: SIX assigns it, Avaloq books on
+// it, and it is on every Swiss custodian statement.
+//
+// It differs from a CUSIP in two ways that shape everything below:
+//  1. A Valor HAS NO CHECK DIGIT — it is an ordinal, not a coded identifier.
+//     A mistyped Valor is just a different valid Valor, so no arithmetic
+//     catches it. The number space is sparse enough that a typo usually
+//     resolves to nothing, but that is luck; the real defence is showing the
+//     resolved instrument NAME for a human to confirm.
+//  2. Valor -> ISIN is exact ONLY for Swiss-domiciled issues, where the Valor
+//     IS the national number inside a CH ISIN. SIX also assigns Valoren to
+//     FOREIGN instruments listed here — an Irish UCITS keeps its IE ISIN — so
+//     the derived CH ISIN is a CANDIDATE to be confirmed by resolution, never
+//     something to store unchecked.
+function normalizeValor(v){
+  const s=String(v==null?'':v).trim().replace(/[\s.'-]/g,'');
+  if(!/^[0-9]+$/.test(s)) return '';
+  return s.replace(/^0+/,'');
+}
+/** FORMAT only. A Valor cannot be validated the way a CUSIP can. */
+function isValidValorFormat(v){ return /^[1-9][0-9]{0,8}$/.test(normalizeValor(v)); }
+/** The CH ISIN a Valor implies — exact for Swiss issues, a candidate otherwise. */
+function valorToIsin(v){
+  const n=normalizeValor(v);
+  if(!isValidValorFormat(n)) return null;
+  const nsin=n.padStart(9,'0');
+  const chk=isinCheckDigit('CH'+nsin);
+  return chk===null?null:('CH'+nsin+chk);
+}
+/** The Valor inside a CH ISIN. Null for any other jurisdiction. */
+function isinToValor(isin){
+  const s=String(isin||'').trim().toUpperCase();
+  if(!isValidIsinStrict(s)||s.slice(0,2)!=='CH') return null;
+  const nsin=s.slice(2,11);
+  if(!/^[0-9]{9}$/.test(nsin)) return null;
+  return normalizeValor(nsin);
+}
+/** Only a CH ISIN can disagree with a Valor; a foreign one is the normal case. */
+function checkValorAgreement(valor,isin){
+  const v=normalizeValor(valor), i=String(isin||'').trim().toUpperCase();
+  if(!v||!i) return {ok:true};
+  if(!isValidValorFormat(v)||!isValidIsinStrict(i)) return {ok:true};
+  if(i.slice(0,2)!=='CH') return {ok:true};
+  const derived=valorToIsin(v);
+  if(derived&&derived!==i){
+    return {ok:false,derivedIsin:derived,
+      conflict:'Valor '+v+' corresponds to ISIN '+derived+', but the ISIN entered is '+i
+        +'. These are different securities — check which one is correct.'};
+  }
+  return {ok:true,derivedIsin:derived||undefined};
+}
+
 function detectInputType(raw){
   const s=(raw||'').trim();
   // ISIN: exactly 2 alpha + 10 alphanumeric = 12 chars total
@@ -14542,6 +14610,10 @@ function detectInputType(raw){
   // Demanding the check digit is what stops a 9-character search phrase
   // being taken for an identifier and resolved to the wrong security.
   if(/^[A-Za-z0-9*@#]{8}[0-9]$/.test(s) && isValidCusip(s)) return 'cusip';
+  // Valor: 6-9 digits. There is no check digit to confirm with, so the floor
+  // of 6 is what keeps numeric Asian tickers (Tokyo 4, Hong Kong up to 5)
+  // from being taken for one.
+  if(/^[0-9]{6,9}$/.test(s)) return 'valor';
   // Ticker with optional exchange suffix (e.g. VUSA.L, IWDA.AS, BX, VOO)
   if(/^[A-Za-z0-9]{1,7}(\.[A-Za-z]{1,3})?$/.test(s)&&!s.includes(' ')) return 'ticker';
   // Everything else = fund name search
@@ -14760,10 +14832,48 @@ function mapToAssetClass(quoteType,sector,category){
  * path is built to avoid. A genuine disagreement is surfaced by
  * checkIdentifierAgreement at validation time instead.
  */
-function _applyResolvedIds(prefix,cusip,isin){
+function _applyResolvedIds(prefix,cusip,isin,valor){
   const cEl=$(prefix+'Cusip'), iEl=$(prefix+'Isin');
   if(cEl&&cusip&&!cEl.value.trim()) cEl.value=cusip;
   if(iEl&&isin&&!iEl.value.trim()) iEl.value=isin;
+  const vEl=$(prefix+'Valor');
+  if(vEl&&valor&&!vEl.value.trim()) vEl.value=valor;
+}
+
+/**
+ * Live feedback while a Valor is typed.
+ *
+ * Deliberately does NOT claim the derived ISIN is correct. A Valor has no
+ * check digit, and the CH derivation only holds for Swiss-domiciled issues,
+ * so the honest statement at this point is 'if this is a Swiss issue, the
+ * ISIN would be X' — confirmed only once it resolves to a named instrument.
+ */
+function onValorInput(prefix){
+  const el=$(prefix+'Valor'), hint=$(prefix+'TkrHint');
+  if(!el||!hint) return;
+  const v=normalizeValor(el.value);
+  if(!v){ hint.textContent=''; return; }
+  if(!isValidValorFormat(v)){
+    hint.textContent='✗ A Valor is a plain number (up to 9 digits).';
+    hint.style.color='#a83232'; return;
+  }
+  const typedIsin=(val(prefix+'Isin')||'').trim().toUpperCase();
+  const ag=checkValorAgreement(v,typedIsin);
+  if(!ag.ok){ hint.textContent='✗ '+ag.conflict; hint.style.color='#a83232'; return; }
+  hint.textContent='Valor '+v+' — leave the field to look it up. (No check digit exists, so this is confirmed only by the name that comes back.)';
+  hint.style.color='var(--text3)';
+}
+/** Resolve on blur through the unified lookup, so pricing arrives too. */
+async function onValorBlur(prefix){
+  const el=$(prefix+'Valor'); if(!el) return;
+  const v=normalizeValor(el.value);
+  if(!isValidValorFormat(v)) return;
+  const tEl=$(prefix+'Tkr');
+  if(tEl&&!tEl.value.trim()){
+    tEl.value=v;
+    try{ await fetchInstrumentLive(prefix); }catch(_){ }
+    if(tEl.value.trim()===v) tEl.value='';
+  }
 }
 
 // Main unified instrument lookup
@@ -14803,8 +14913,36 @@ async function fetchInstrumentLive(prefix){
       symbol=figiData.ticker+suffix;
       // A US/CA ISIN contains its CUSIP, so fill that in too — the advisor
       // typed one identifier and gets both, with no extra call.
-      _applyResolvedIds(prefix,isinToCusip(raw)||'',String(raw).trim().toUpperCase());
+      _applyResolvedIds(prefix,isinToCusip(raw)||'',String(raw).trim().toUpperCase(),isinToValor(raw)||'');
       setStatus('ISIN → '+symbol+' ('+figiData.exchCode+'), fetching quote…');
+    } else if(inputType==='valor'){
+      // A Valor is resolved through the CH ISIN it would imply. That
+      // derivation is exact ONLY for a Swiss-domiciled issue, so the ISIN is
+      // filled in only once OpenFIGI confirms it names a real instrument —
+      // never on the arithmetic alone, which would invent an ISIN for any
+      // foreign instrument that merely has a SIX listing.
+      const vv=normalizeValor(raw);
+      const candidate=valorToIsin(vv);
+      if(!candidate){ setStatus('⚠ '+raw+' is not a usable Valor.','#a83232'); return; }
+      setStatus('Valor '+vv+' → checking '+candidate+' via OpenFIGI…');
+      try{
+        figiData=await openFigiMap('ID_ISIN',candidate,'CH');
+      }catch(e){
+        setStatus('⚠ Could not reach OpenFIGI ('+e.message+'). Valor '+vv+' would be ISIN '+candidate
+          +' IF this is a Swiss-domiciled issue — confirm before using it.','#a83232');
+        return;
+      }
+      if(!figiData||!figiData.ticker){
+        // The common honest outcome: either a typo, or a foreign instrument
+        // whose Valor is only a SIX listing number. Fill nothing.
+        setStatus('⚠ Valor '+vv+' did not resolve. It may be mistyped, or it may belong to a '
+          +'non-Swiss instrument listed here — those keep their own ISIN. Enter the ISIN directly.','#a83232');
+        return;
+      }
+      _applyResolvedIds(prefix,'',candidate,vv);
+      const vsuffix=FIGI_SUFFIX[figiData.exchCode]||'';
+      symbol=figiData.ticker+vsuffix;
+      setStatus('Valor '+vv+' → '+figiData.name+' ('+symbol+') — confirm this is the intended security.');
     } else if(inputType==='cusip'){
       // A CUSIP gives us the ISIN for free — pure arithmetic, no network —
       // so even if OpenFIGI is unreachable the advisor still leaves with a

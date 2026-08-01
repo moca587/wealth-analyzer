@@ -148,3 +148,92 @@ export function checkIdentifierAgreement(cusip: string, isin: string): Identifie
   }
   return { ok: true, derivedIsin: derived ?? undefined };
 }
+
+// ─── Valorennummer (Swiss) ───────────────────────────────────────
+//
+// The identifier a Swiss EAM actually sees: SIX assigns it, Avaloq books on
+// it, and it appears on every Swiss custodian statement.
+//
+// It behaves DIFFERENTLY from a CUSIP in two ways that matter, and the code
+// below is shaped by both:
+//
+//  1. A Valor HAS NO CHECK DIGIT. It is an ordinal, not a coded identifier.
+//     A mistyped Valor is simply a different valid Valor, so no arithmetic
+//     can catch it. In practice the number space is sparse enough that a
+//     typo usually resolves to nothing — that is luck, not a guarantee, and
+//     the only real defence is showing the resolved instrument NAME for a
+//     human to confirm.
+//
+//  2. Valor → ISIN is exact ONLY for Swiss-domiciled issues, where the Valor
+//     IS the national number inside a CH ISIN. SIX also assigns Valoren to
+//     FOREIGN instruments listed in Switzerland — an Irish UCITS ETF has a
+//     Valor but keeps its IE ISIN. Deriving "CH" + that Valor would invent an
+//     ISIN for a different security. So the derived ISIN is a CANDIDATE to be
+//     confirmed by resolution, never something to store unchecked.
+//
+// (Contrast lib/orders/identifiers.ts cusipToIsin, where the CUSIP *is* the
+// US national number by construction and the derivation is unconditional.)
+
+/**
+ * Format check only — a Valor cannot be validated the way a CUSIP can.
+ * Digits, 1–9 of them, non-zero. Nothing more can be asserted offline.
+ */
+export function isValidValorFormat(valor: string | number): boolean {
+  const s = normalizeValor(valor);
+  return /^[1-9][0-9]{0,8}$/.test(s);
+}
+
+/** Trim, drop separators and leading zeros. Valors are written unpadded. */
+export function normalizeValor(valor: string | number): string {
+  const s = String(valor ?? "").trim().replace(/[\s.'-]/g, "");
+  if (!/^[0-9]+$/.test(s)) return "";
+  return s.replace(/^0+/, "");
+}
+
+/**
+ * The CH ISIN a Valor implies. Exact for Swiss-domiciled issues; a
+ * CANDIDATE for anything else — see the note above. Callers must confirm it
+ * resolves before treating it as the instrument's ISIN.
+ */
+export function valorToIsin(valor: string | number): string | null {
+  const v = normalizeValor(valor);
+  if (!isValidValorFormat(v)) return null;
+  const nsin = v.padStart(9, "0");
+  const check = isinCheckDigit("CH" + nsin);
+  return check === null ? null : `CH${nsin}${check}`;
+}
+
+/** The Valor inside a CH ISIN. Null for any other jurisdiction. */
+export function isinToValor(isin: string): string | null {
+  const s = String(isin || "").trim().toUpperCase();
+  if (!isValidIsin(s) || s.slice(0, 2) !== "CH") return null;
+  const nsin = s.slice(2, 11);
+  if (!/^[0-9]{9}$/.test(nsin)) return null;      // CH ISINs are all-numeric NSINs
+  return normalizeValor(nsin);
+}
+
+/**
+ * Cross-check a Valor against an ISIN when both are present.
+ *
+ * Only a CH ISIN can disagree with a Valor. A foreign ISIN beside a Valor is
+ * the NORMAL case for an instrument listed on SIX but domiciled elsewhere —
+ * flagging it would fire on most of a Swiss portfolio.
+ */
+export function checkValorAgreement(valor: string | number, isin: string): IdentifierAgreement {
+  const v = normalizeValor(valor);
+  const i = String(isin || "").trim().toUpperCase();
+  if (!v || !i) return { ok: true };
+  if (!isValidValorFormat(v) || !isValidIsin(i)) return { ok: true };
+  if (i.slice(0, 2) !== "CH") return { ok: true };        // foreign domicile, SIX listing
+
+  const derived = valorToIsin(v);
+  if (derived && derived !== i) {
+    return {
+      ok: false,
+      derivedIsin: derived,
+      conflict: `Valor ${v} corresponds to ISIN ${derived}, but the ISIN entered is ${i}. ` +
+                `These are different securities — check which one is correct.`,
+    };
+  }
+  return { ok: true, derivedIsin: derived ?? undefined };
+}

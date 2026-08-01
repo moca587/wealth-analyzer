@@ -7,6 +7,7 @@ import {
   cusipCheckDigit, isValidCusip, normalizeCusip,
   isinCheckDigit, isValidIsin, cusipToIsin, isinToCusip,
   checkIdentifierAgreement,
+  isValidValorFormat, normalizeValor, valorToIsin, isinToValor, checkValorAgreement,
 } from "../identifiers";
 
 /** name, CUSIP, ISIN — all independently published. */
@@ -150,5 +151,103 @@ describe("cross-checking a CUSIP against an ISIN", () => {
   it("leaves malformed input to the shape validators", () => {
     expect(checkIdentifierAgreement("bogus", "US0378331005").ok).toBe(true);
     expect(checkIdentifierAgreement("037833100", "notanisin").ok).toBe(true);
+  });
+});
+
+// ═══ Valorennummer ═══════════════════════════════════════════════
+/** name, Valor, published CH ISIN — real Swiss listed securities. */
+const SWISS: [string, number, string][] = [
+  ["Nestlé",            3886335,  "CH0038863350"],
+  ["Roche GS",          1203204,  "CH0012032048"],
+  ["Novartis",          1200526,  "CH0012005267"],
+  ["UBS Group",         24476758, "CH0244767585"],
+  ["Swisscom",          874251,   "CH0008742519"],
+  ["Zurich Insurance",  1107539,  "CH0011075394"],
+  ["ABB",               1222171,  "CH0012221716"],
+  ["Swiss Re",          12688156, "CH0126881561"],
+  ["Richemont",         21048333, "CH0210483332"],
+  ["Geberit",           3017040,  "CH0030170408"],
+];
+
+describe("Valor ↔ CH ISIN", () => {
+  it("derives the published ISIN for real Swiss securities", () => {
+    for (const [name, valor, isin] of SWISS) {
+      expect(valorToIsin(valor), name).toBe(isin);
+    }
+  });
+
+  it("round-trips back out of the CH ISIN, unpadded", () => {
+    for (const [name, valor, isin] of SWISS) {
+      expect(isinToValor(isin), name).toBe(String(valor));
+    }
+  });
+
+  it("zero-pads to the 9-digit national number", () => {
+    // Swisscom's Valor is 6 digits; the ISIN's NSIN is always 9.
+    expect(valorToIsin(874251)).toBe("CH0008742519");
+    expect(valorToIsin("000874251")).toBe("CH0008742519");   // already padded
+  });
+
+  it("normalizes the separators Swiss statements use", () => {
+    expect(normalizeValor(" 3'886'335 ")).toBe("3886335");
+    expect(normalizeValor("3.886.335")).toBe("3886335");
+    expect(normalizeValor("0003886335")).toBe("3886335");
+    expect(valorToIsin("3'886'335")).toBe("CH0038863350");
+  });
+
+  it("will not pull a Valor out of a non-CH ISIN", () => {
+    expect(isinToValor("US0378331005")).toBeNull();
+    expect(isinToValor("IE00B4L5Y983")).toBeNull();
+  });
+
+  it("refuses an alphanumeric NSIN even on a CH ISIN", () => {
+    // A CH ISIN's national number is all digits; anything else is not a Valor.
+    expect(isinToValor("CH00A8863350")).toBeNull();
+  });
+
+  it("validates FORMAT only — a Valor carries no check digit", () => {
+    // This is the honest limit. 3886335 is Nestlé; 3886336 is simply a
+    // different valid Valor, and no arithmetic distinguishes them. Only
+    // resolving it and showing the name can.
+    expect(isValidValorFormat(3886335)).toBe(true);
+    expect(isValidValorFormat(3886336)).toBe(true);
+    expect(valorToIsin(3886336)).not.toBe(valorToIsin(3886335));
+    // and both derive to structurally valid ISINs
+    expect(isValidIsin(valorToIsin(3886336)!)).toBe(true);
+
+    for (const bad of ["", "0", "abc", "12345678901", "12a345"]) {
+      expect(isValidValorFormat(bad), bad).toBe(false);
+    }
+  });
+});
+
+describe("cross-checking a Valor against an ISIN", () => {
+  it("agrees for a Swiss security", () => {
+    for (const [name, valor, isin] of SWISS) {
+      const r = checkValorAgreement(valor, isin);
+      expect(r.ok, name).toBe(true);
+      expect(r.derivedIsin, name).toBe(isin);
+    }
+  });
+
+  it("catches a Valor and CH ISIN naming different securities", () => {
+    // Nestlé's Valor with Roche's ISIN.
+    const r = checkValorAgreement(3886335, "CH0012032048");
+    expect(r.ok).toBe(false);
+    expect(r.derivedIsin).toBe("CH0038863350");
+    expect(r.conflict).toMatch(/different securities/i);
+  });
+
+  it("does NOT flag a foreign ISIN beside a Valor", () => {
+    // The normal case for a Swiss portfolio: an Irish UCITS listed on SIX
+    // has a Valor AND keeps its IE ISIN. Flagging this would fire on most
+    // holdings and train advisors to ignore the warning.
+    expect(checkValorAgreement(24476758, "IE00B4L5Y983").ok).toBe(true);
+    expect(checkValorAgreement(1203204, "US0378331005").ok).toBe(true);
+  });
+
+  it("stays quiet when only one identifier is present", () => {
+    expect(checkValorAgreement(3886335, "").ok).toBe(true);
+    expect(checkValorAgreement("", "CH0038863350").ok).toBe(true);
   });
 });
