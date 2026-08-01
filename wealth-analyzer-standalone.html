@@ -4389,7 +4389,7 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
 // ═══════════════════════════════════════════════════════════
 // VERSION — updated by build-standalone.pl on each build
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260801-1615";
+const APP_VERSION = "20260801-1627";
 
 // ═══════════════════════════════════════════════════════════
 // DATA
@@ -12810,8 +12810,8 @@ function buildExpandedRationale(p, fund, simpleBrief, rec){
 // ═══════════════════════════════════════════════════════════
 
 // Sentiment lexicons (same as admin)
-const ENG_POS_WORDS = {"overweight":3,"overweigh":3,"long position":2,"net long":3,"bullish":3,"favor":2,"prefer":2,"outperform":2,"buy":2,"attractive":2,"compelling":2,"upside":2,"tailwind":2,"constructive":2,"high conviction":3,"structural growth":3,"tactical overweight":3,"strategic overweight":3,"best ideas":2,"top pick":3,"recommend":2,"accumulate":2,"add":1};
-const ENG_NEG_WORDS = {"underweight":3,"underweigh":3,"short position":2,"net short":3,"bearish":3,"avoid":2,"cautious":2,"underperform":2,"sell":2,"expensive":1,"stretched":2,"headwind":2,"downside":2,"negative":1,"high conviction underweight":4,"tactical underweight":3,"structural underweight":3,"underperforming":2,"reduce":1,"trim":1,"exit":2};
+const ENG_POS_WORDS = {"overweight":3,"overweigh":3,"long position":2,"net long":3,"bullish":3,"favor":2,"prefer":2,"outperform":2,"buy":2,"attractive":2,"compelling":2,"upside":2,"tailwind":2,"constructive":2,"high conviction":3,"structural growth":3,"tactical overweight":3,"strategic overweight":3,"best ideas":2,"top pick":3,"recommend":2,"accumulate":2,"add":1,"supportive":2,"accommodative":2,"dovish":2,"de-escalation":2,"soft landing":2,"resilient":2,"recovery":2,"disinflation":2};
+const ENG_NEG_WORDS = {"underweight":3,"underweigh":3,"short position":2,"net short":3,"bearish":3,"avoid":2,"cautious":2,"underperform":2,"sell":2,"expensive":1,"stretched":2,"headwind":2,"downside":2,"negative":1,"high conviction underweight":4,"tactical underweight":3,"structural underweight":3,"underperforming":2,"reduce":1,"trim":1,"exit":2,"restrictive":2,"hawkish":2,"escalation":2,"recession":3,"stagflation":3,"hard landing":3,"deterioration":2,"fragile":2,"elevated risk":2,"widening":1};
 
 const ENG_CLASS_KEYWORDS = {
   equity: ["equit","stocks","stock market","S&P","S&P 500","SPY","russell","Magnificent 7","large-cap","small-cap","mid-cap","value stocks","growth stocks","dividend grow","dividend payer"],
@@ -12836,6 +12836,112 @@ const ENG_THEME_KEYWORDS = {
   defense:["defense","military","aerospace","LMT","RTX","NOC"],
   cybersecurity:["cybersecurity","cyber","CRWD","PANW","ZS"]
 };
+
+// ── 5-bucket points system (ported from the admin engine — keep in sync) ──
+
+const ENG_DRIVER_KEYWORDS = {
+  cycle:        ["business cycle","late cycle","late-cycle","early cycle","early-cycle","mid-cycle","cycle turn","expansion phase","recovery","slowdown","soft landing","hard landing","recession","downturn"],
+  rates:        ["rates","interest rate","policy rate","fed funds","rate environment","rate path","yield curve","rate cut","rate hike","duration","terminal rate","FOMC","ECB","real yield","tightening","easing","hawkish","dovish","restrictive","accommodative"],
+  inflation:    ["inflation","CPI","PCE","disinflation","deflation","price pressure","wage growth","stagflation"],
+  growth:       ["GDP","economic growth","labor market","payroll","PMI","consumer spending","capex cycle"],
+  geopolitics:  ["geopolit","war","conflict","sanction","tariff","trade tension","trade war","political risk","escalation","de-escalation","supply disruption"],
+  fx:           ["dollar","USD","currency","exchange rate","euro","yen","FX","dedollariz","currency hedg"],
+  credit:       ["credit spread","default rate","credit cycle","leverage","refinanc","credit condition","spreads remain tight","spread widening"],
+  valuation:    ["valuation","multiple","P/E","price-to-earnings","expensive","cheap","rich valuation","discount to NAV"],
+  earnings:     ["earnings","EPS","profit margin","revenue growth","guidance","earnings breadth","margin resilience"],
+  liquidity:    ["liquidity","fund flows","positioning","risk appetite","volatility regime"],
+  policy:       ["fiscal","deficit","government spending","tax policy","stimulus","regulation","monetary policy","central bank"]
+};
+
+const ENG_SECTOR_KEYWORDS = {
+  technology: ["technology","tech","software","semiconductor","AI","artificial intelligence","NVDA","MSFT","GOOGL","META","TSM","cybersecurity","XLK","QQQ"],
+  healthcare: ["health","pharma","biotech","medical device","GLP-1","longevity","gene therapy","LLY","NOVO","XLV"],
+  financials: ["financial","bank","insurance","fintech","JPM","BAC","XLF"],
+  energy: ["energy","oil","gas","E&P","XOM","CVX","XLE"],
+  industrials: ["industrial","aerospace","defense","LMT","RTX","BA","NOC","reshoring"],
+  consumer_discretionary: ["consumer discretionary","retail","auto","AMZN","TSLA"],
+  consumer_staples: ["consumer staples","staples","KO","PG","XLP"],
+  utilities: ["utilities","power","grid","XLU"],
+  real_estate_sector: ["REIT","real estate","SPG"],
+  comm_services: ["communications","comm services","telco","XLC"],
+  materials: ["materials","metals","mining","XLB"]
+};
+
+const DRIVER_PHRASING = {
+  cycle:       {ow:"cycle supportive",        uw:"late-cycle / slowdown risk",  n:"cycle mixed"},
+  rates:       {ow:"rates a tailwind",        uw:"rates a headwind",            n:"rates balanced"},
+  geopolitics: {ow:"geopolitical risk easing",uw:"geopolitical risk elevated",  n:"geopolitical risk contained"},
+  fx:          {ow:"FX supportive",           uw:"FX a headwind",               n:"FX neutral"},
+  inflation:   {ow:"disinflation supportive", uw:"inflation pressure",          n:"inflation stable"},
+  credit:      {ow:"credit conditions easy",  uw:"credit conditions tightening",n:"credit conditions stable"},
+  valuation:   {ow:"valuations supportive",   uw:"valuations stretched",        n:"valuations fair"},
+  growth:      {ow:"growth resilient",        uw:"growth deteriorating",        n:"growth steady"}
+};
+
+function driverPhrase(signals, key){
+  const e = bucketPoints(signals, "drivers", key);
+  const map = DRIVER_PHRASING[key];
+  if(!map) return null;
+  if(!e || e.total === 0) return null;   // never assert a backdrop with no evidence
+  const word = e.stance === "overweight" ? map.ow : (e.stance === "underweight" ? map.uw : map.n);
+  return `${word} (${e.ow}/${e.neutral}/${e.uw} OW·N·UW across ${e.providerCount} source${e.providerCount>1?"s":""})`;
+}
+
+function marketContextLine(signals){
+  const parts = ["cycle","rates","geopolitics","fx"].map(k => driverPhrase(signals, k)).filter(Boolean);
+  return parts.length ? "Backdrop: " + parts.join("; ") : "";
+}
+
+function bucketPoints(signals, bucket, key){
+  return (signals.points && signals.points[bucket] && signals.points[bucket][key]) || null;
+}
+
+function bucketStance(signals, bucket, key){
+  const e = bucketPoints(signals, bucket, key);
+  return e ? e.stance : "neutral";
+}
+
+function stanceScore(signals, bucket, key){
+  const e = bucketPoints(signals, bucket, key);
+  if(!e) return 0;
+  // Scaled by conviction so a 5-1 split counts for more than a 3-2 split.
+  return e.stance === "overweight" ? e.conviction : (e.stance === "underweight" ? e.conviction : 0);
+}
+
+function fundBucketKeys(f){
+  const hay = ((f.name||"") + " " + (f.tkr||"")).toLowerCase();
+  const regions = [];
+  const r = (f.region||"").toLowerCase();
+  if(/us|domestic|total market|s&p|500/.test(r + " " + hay)) regions.push("us");
+  if(/europe|eafe|developed international|ex-us/.test(r + " " + hay)) regions.push("europe","developed_intl");
+  if(/emerging|em\b/.test(r + " " + hay)) regions.push("emerging");
+  if(/japan/.test(hay)) regions.push("japan");
+  if(/china/.test(hay)) regions.push("china");
+  if(/india/.test(hay)) regions.push("india");
+  const sectors = [];
+  if(/tech|semiconductor|software|xlk|qqq|soxx|smh/.test(hay)) sectors.push("technology");
+  if(/health|biotech|pharma|xlv/.test(hay)) sectors.push("healthcare");
+  if(/financ|bank|xlf/.test(hay)) sectors.push("financials");
+  if(/energy|oil|xle/.test(hay)) sectors.push("energy");
+  if(/industrial|aerospace|defen|xli/.test(hay)) sectors.push("industrials");
+  if(/utilit|xlu/.test(hay)) sectors.push("utilities");
+  if(/real estate|reit|xlre|schh/.test(hay)) sectors.push("real_estate_sector");
+  if(/material|mining|xlb/.test(hay)) sectors.push("materials");
+  if(/staple|xlp/.test(hay)) sectors.push("consumer_staples");
+  if(/discretionary|xly/.test(hay)) sectors.push("consumer_discretionary");
+  const themes = [];
+  if(/ai|semiconductor|robot|data center|soxx|smh|botz/.test(hay)) themes.push("ai");
+  if(/clean|solar|renewab|esg|sustainab|icln|tan/.test(hay)) themes.push("decarbonization");
+  if(/cyber|crwd|panw|hack|bug/.test(hay)) themes.push("cybersecurity");
+  if(/defen|aerospace|ita|ppa/.test(hay)) themes.push("defense");
+  if(/dividend|vig|schd|vym/.test(hay)) themes.push("dividend_growth");
+  if(/quality|qual/.test(hay)) themes.push("quality_factor");
+  if(/bitcoin|crypto|ibit|fbtc|eth/.test(hay)) themes.push("cryptocurrency");
+  if(/water|infrastructure|pho|igf/.test(hay)) themes.push("water_infrastructure");
+  return {regions, sectors, themes};
+}
+
+function engPrettyDriver(k){ return String(k).replace(/_/g," ").replace(/\b\w/g, c => c.toUpperCase()); }
 
 // Pretty labels
 const ENG_PRETTY_CLASS = {equity:"Equity",fixed_income:"Fixed Income",real_estate:"Real Estate",commodity:"Commodity",cash:"Cash",mixed:"Mixed",alternative:"Alternative"};
@@ -12944,10 +13050,13 @@ function engExtractItemSignals(item, providerName){
   const rawText = (item.title||"")+" "+(item.summary||"");
   const itemSentiment = _engScoreSentiment(rawText);
   const clauses = _engClauses(rawText).map(c => ({text:c, sent:_engScoreSentiment(c)}));
-  const sig = {classes:{},regions:{},themes:{},tickers:[],sentiment:itemSentiment,providerName,item};
-  // Topic sentiment = sentiment of the clause the topic appears in, so one item
-  // can be bullish on some topics and bearish on others. A mention with no
-  // directional language scores 0 instead of defaulting to +1.
+  // Magnitude is kept for the allocation tilt it calibrates; the 3-point stance
+  // (+1 overweight / 0 neutral / -1 underweight) is what the points system
+  // aggregates, because it is comparable across sources and buckets.
+  const sig = {classes:{},sectors:{},regions:{},themes:{},drivers:{},
+               stances:{classes:{},sectors:{},regions:{},themes:{},drivers:{}},
+               tickers:[],sentiment:itemSentiment,providerName,item};
+  const toStance = v => (v > 0 ? 1 : (v < 0 ? -1 : 0));
   function voteFor(phrases, key){
     let matched = false, best = null;
     for(const c of clauses){
@@ -12961,17 +13070,17 @@ function engExtractItemSignals(item, providerName){
     if(!matched) return null;
     return best !== null ? best : itemSentiment;
   }
-  function detect(map, container){
+  function detect(map, container, bucket){
     for(const [k,phrases] of Object.entries(map)){
       const v = voteFor(phrases, k);
-      if(v !== null) container[k] = (container[k]||0) + v;
+      if(v !== null){ container[k] = (container[k]||0) + v; sig.stances[bucket][k] = toStance(v); }
     }
   }
-  detect(ENG_CLASS_KEYWORDS, sig.classes);
-  detect(ENG_REGION_KEYWORDS, sig.regions);
-  for(const [k,phrases] of Object.entries(ENG_THEME_KEYWORDS)){
-    if(phrases.some(ph=>_engPhraseRegex(ph, "", true).test(_engScrub(rawText, k)))) sig.themes[k] = (sig.themes[k]||0)+1;
-  }
+  detect(ENG_CLASS_KEYWORDS,  sig.classes, "classes");
+  detect(ENG_SECTOR_KEYWORDS, sig.sectors, "sectors");
+  detect(ENG_REGION_KEYWORDS, sig.regions, "regions");
+  detect(ENG_DRIVER_KEYWORDS, sig.drivers, "drivers");
+  detect(ENG_THEME_KEYWORDS,  sig.themes,  "themes");
   // Ticker mention extract
   const matches = rawText.match(/\b[A-Z]{2,5}\b/g) || [];
   sig.tickers = matches.filter(t => ENG_KNOWN_TICKERS.has(t));
@@ -12982,7 +13091,11 @@ function engAggregateSignals(){
   // Read research from admin's shared cache
   let cfg = {};
   try { cfg = JSON.parse(localStorage.getItem("wa_research_config")||"{}"); } catch(_){}
-  const agg = {classes:{},regions:{},themes:{},tickers:{},totalItems:0,providerCount:0,providers:[]};
+  const agg = {classes:{},sectors:{},regions:{},themes:{},drivers:{},tickers:{},
+               // 3-point tally per bucket key — the layer the decision reads
+               points:{classes:{},sectors:{},regions:{},themes:{},drivers:{}},
+               totalItems:0, scoredItems:0, sharedDuplicatesSkipped:0,
+               providerCount:0, providers:[]};
   // providers = every provider that MENTIONED the topic; providersFor/Against
   // = direction-consistent, so "N providers overweight X" cannot be inflated by
   // providers that were neutral on X or actively underweight it.
@@ -12994,23 +13107,68 @@ function engAggregateSignals(){
     else if(vote < 0) container[key].providersAgainst.add(providerName);
     if(container[key].items.length < 5) container[key].items.push({title:(item.title||"").slice(0,120), provider:providerName});
   }
+  // One research view = one point, in exactly one of three columns.
+  function tally(bucket, key, stance, providerName){
+    const b = agg.points[bucket];
+    if(!b[key]) b[key] = {ow:0, neutral:0, uw:0, providers:new Set(), owProviders:new Set(), uwProviders:new Set()};
+    const e = b[key];
+    if(stance > 0){ e.ow++; e.owProviders.add(providerName); }
+    else if(stance < 0){ e.uw++; e.uwProviders.add(providerName); }
+    else e.neutral++;
+    e.providers.add(providerName);
+  }
+  const _sharedSeen = new Set();
   Object.entries(cfg).forEach(([pid, c]) => {
     if(c.enabled === false) return;
-    const items = (c.items || []).slice(0,30);
+    // Read EVERY cached item — this used to stop at the first 30 per provider,
+    // silently discarding most of the library.
+    const items = (c.items || []);
     if(items.length === 0) return;
     agg.providerCount++;
     agg.providers.push(pid);
     agg.totalItems += items.length;
     items.forEach(item => {
+      // Shared baseline themes come from one pool every provider draws on, so
+      // the same text recurs across sources. Counting it once per provider
+      // would manufacture consensus out of duplication.
+      if(item.shared){
+        const key = String(item.title || "").trim().toLowerCase();
+        if(_sharedSeen.has(key)){ agg.sharedDuplicatesSkipped++; return; }
+        _sharedSeen.add(key);
+      }
+      agg.scoredItems++;
       const sig = engExtractItemSignals(item, pid);
       Object.entries(sig.classes).forEach(([k,v]) => bump(agg.classes,k,v,pid,item));
+      Object.entries(sig.sectors).forEach(([k,v]) => bump(agg.sectors,k,v,pid,item));
       Object.entries(sig.regions).forEach(([k,v]) => bump(agg.regions,k,v,pid,item));
       Object.entries(sig.themes).forEach(([k,v]) => bump(agg.themes,k,v,pid,item));
+      Object.entries(sig.drivers).forEach(([k,v]) => bump(agg.drivers,k,v,pid,item));
+      Object.entries(sig.stances).forEach(([bucket, keys]) => {
+        Object.entries(keys).forEach(([k, st]) => tally(bucket, k, st, pid));
+      });
       sig.tickers.forEach(t => {
         if(!agg.tickers[t]) agg.tickers[t] = {count:0, providers:new Set()};
         agg.tickers[t].count++;
         agg.tickers[t].providers.add(pid);
       });
+    });
+  });
+  // Resolve each bucket entry into a stance. Requires enough views in that
+  // direction (>=3), a clear net margin, and a lopsided split — so a couple of
+  // stray mentions cannot move a bucket.
+  Object.keys(agg.points).forEach(bucket => {
+    Object.entries(agg.points[bucket]).forEach(([key, e]) => {
+      e.providers = Array.from(e.providers);
+      e.owProviders = Array.from(e.owProviders);
+      e.uwProviders = Array.from(e.uwProviders);
+      e.providerCount = e.providers.length;
+      e.total = e.ow + e.neutral + e.uw;
+      e.net = e.ow - e.uw;
+      const directional = e.ow + e.uw;
+      e.conviction = directional ? +(e.net / directional).toFixed(2) : 0;
+      e.stance = (e.ow >= 3 && e.net >= 3 && e.conviction >= 0.5) ? "overweight"
+               : (e.uw >= 3 && e.net <= -3 && e.conviction <= -0.5) ? "underweight"
+               : "neutral";
     });
   });
   // Convert Sets → arrays + counts
@@ -13023,7 +13181,7 @@ function engAggregateSignals(){
     o.againstCount = o.providersAgainst.length;
     o.agreeCount = o.votes > 0 ? o.forCount : (o.votes < 0 ? o.againstCount : 0);
   }); }
-  norm(agg.classes); norm(agg.regions); norm(agg.themes);
+  norm(agg.classes); norm(agg.sectors); norm(agg.regions); norm(agg.themes); norm(agg.drivers);
   Object.values(agg.tickers).forEach(o => { o.providers = Array.from(o.providers); o.providerCount = o.providers.length; });
   return agg;
 }
@@ -13128,6 +13286,18 @@ function runDeterministicEngine(brief){
       // universe filter above) — without this the stated preference had no
       // effect on which funds were picked.
       if(esgPref === "prefer" && f.esg) score += 1.2;
+      // ── Points-system alignment ────────────────────────────────────────
+      // Region, sector and theme points were computed and then discarded: only
+      // asset class and explicit ticker mentions moved selection. A fund now
+      // earns (or loses) score for sitting in a bucket the research is
+      // overweight (or underweight) on — conviction-scaled, capped at ±2 so a
+      // research-named fund still leads.
+      const _bk = fundBucketKeys(f);
+      let _align = 0;
+      _bk.regions.forEach(k => { _align += stanceScore(signals, "regions", k) * 0.8; });
+      _bk.sectors.forEach(k => { _align += stanceScore(signals, "sectors", k) * 0.6; });
+      _bk.themes.forEach(k  => { _align += stanceScore(signals, "themes",  k) * 0.5; });
+      score += Math.max(-2, Math.min(2, _align));
       if(used.sponsors.has(f.sponsor)) score -= 0.3;
       // Risk-profile fit
       if(brief.risk === "very_conservative" && f.sigma > 10) score -= 0.5;
@@ -13164,6 +13334,17 @@ function runDeterministicEngine(brief){
       // Domicile / regulatory rationale
       if(f.ucits) rationaleParts.push(`UCITS-passportable (${f.dom}-domiciled) — eligible for ${brief.country||"non-US"} resident under PRIIPs`);
       else if(f.dom && f.dom !== "US") rationaleParts.push(`${f.dom}-listed — locally accessible for ${brief.country} resident`);
+      // Which overweighted buckets this fund sits in — why this one and not
+      // another in the same sleeve
+      const _abk = fundBucketKeys(f);
+      const _aligned = []
+        .concat(_abk.regions.filter(k => bucketStance(signals,"regions",k) === "overweight").map(k => (ENG_PRETTY_REGION[k]||k) + " (region OW)"))
+        .concat(_abk.sectors.filter(k => bucketStance(signals,"sectors",k) === "overweight").map(k => (ENG_PRETTY_CLASS[k]||k.replace(/_/g," ")) + " (sector OW)"))
+        .concat(_abk.themes .filter(k => bucketStance(signals,"themes", k) === "overweight").map(k => (ENG_PRETTY_THEME[k]||k.replace(/_/g," ")) + " (theme OW)"));
+      if(_aligned.length) rationaleParts.push("Aligned with " + _aligned.slice(0,3).join(", "));
+      // Market backdrop — investment cycle, rates, geopolitical risk, FX
+      const _ctx = marketContextLine(signals);
+      if(_ctx) rationaleParts.push(_ctx);
 
       positions.push({
         ticker: f.tkr,
@@ -13187,9 +13368,19 @@ function runDeterministicEngine(brief){
     });
   });
 
-  // Renormalize weights to sum to exactly 100
+  // Renormalize weights to sum to exactly 100. Rounding each weight to 1dp
+  // independently lets the total drift (8 positions could land on 100.1%), so
+  // the residual is absorbed into the largest position — a client-facing
+  // proposal has to add up.
   const totalW = positions.reduce((s,p) => s + p.weight, 0);
-  if(totalW > 0) positions.forEach(p => { p.weight = +(p.weight * 100 / totalW).toFixed(1); });
+  if(totalW > 0){
+    positions.forEach(p => { p.weight = +(p.weight * 100 / totalW).toFixed(1); });
+    const _drift = +(100 - positions.reduce((s,p) => s + p.weight, 0)).toFixed(1);
+    if(Math.abs(_drift) >= 0.1 && positions.length){
+      const _big = positions.reduce((a,b) => a.weight >= b.weight ? a : b);
+      _big.weight = +(_big.weight + _drift).toFixed(1);
+    }
+  }
 
   // ── Step 4: portfolio aggregates from real fund metrics ──
   const fundLookup = ticker => AI_FUND_UNIVERSE.find(x => x.tkr === ticker);
