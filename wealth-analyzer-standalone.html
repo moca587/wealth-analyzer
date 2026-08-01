@@ -4470,7 +4470,7 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
 // ═══════════════════════════════════════════════════════════
 // VERSION — updated by build-standalone.pl on each build
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260801-2206";
+const APP_VERSION = "20260801-2223";
 
 // ═══════════════════════════════════════════════════════════
 // DATA
@@ -12865,6 +12865,27 @@ const AI_FUND_UNIVERSE = [
   {tkr:"WSML",name:"iShares MSCI World Small Cap UCITS ETF (Acc)",cls:"equity",vehicle:"etf",er:0.35,yld:0.0,sponsor:"BlackRock",dom:"IE",ucits:true,ccy:"USD"},
   {tkr:"AGGU",name:"iShares Core Global Aggregate Bond UCITS ETF USD Hedged (Acc)",cls:"fixed_income",vehicle:"etf",er:0.10,yld:0.0,sponsor:"BlackRock",dom:"IE",ucits:true,ccy:"USD"},
   {tkr:"IEGA",name:"iShares Core Euro Government Bond UCITS ETF",cls:"fixed_income",vehicle:"etf",er:0.09,yld:2.8,sponsor:"BlackRock",dom:"IE",ucits:true,ccy:"EUR"},
+  // --- UCITS alternatives: fills a sleeve that had no eligible fund at all ---
+  // Strategy-diverse on purpose (listed PE, managed futures, market neutral,
+  // macro, event driven, multi-strategy, long/short, insurance-linked) so the
+  // sleeve is fillable across risk profiles rather than by one lucky match.
+  {tkr:"IPRV",name:"iShares Listed Private Equity UCITS ETF",cls:"alternative",vehicle:"etf",er:0.75,yld:2.5,sponsor:"BlackRock",dom:"IE",ucits:true,ccy:"USD"},
+  {tkr:"DWSCK",name:"DWS Concept Kaldemorgen LC EUR (absolute return multi-asset)",cls:"alternative",vehicle:"mutual_fund",er:1.55,yld:1.5,sponsor:"DWS",dom:"LU",ucits:true,ccy:"EUR"},
+  {tkr:"JPGMO",name:"JPMorgan Investment Funds Global Macro Opportunities A EUR",cls:"alternative",vehicle:"mutual_fund",er:1.70,yld:0.0,sponsor:"JPMorgan",dom:"LU",ucits:true,ccy:"EUR"},
+  {tkr:"MANTGR",name:"Man AHL TargetRisk D USD (systematic multi-asset)",cls:"alternative",vehicle:"mutual_fund",er:0.90,yld:0.0,sponsor:"Man Group",dom:"IE",ucits:true,ccy:"USD"},
+  {tkr:"MANTRD",name:"Man AHL Trend Alternative DNY USD (managed futures)",cls:"alternative",vehicle:"mutual_fund",er:1.30,yld:0.0,sponsor:"Man Group",dom:"IE",ucits:true,ccy:"USD"},
+  {tkr:"PICTAT",name:"Pictet TR Atlas I EUR (equity market neutral)",cls:"alternative",vehicle:"mutual_fund",er:1.60,yld:0.0,sponsor:"Pictet",dom:"LU",ucits:true,ccy:"EUR"},
+  {tkr:"PICTDA",name:"Pictet TR Diversified Alpha I EUR (multi-strategy)",cls:"alternative",vehicle:"mutual_fund",er:1.55,yld:0.0,sponsor:"Pictet",dom:"LU",ucits:true,ccy:"EUR"},
+  {tkr:"SGAIBT",name:"Schroder GAIA BlueTrend C USD (managed futures)",cls:"alternative",vehicle:"mutual_fund",er:1.75,yld:0.0,sponsor:"Schroders",dom:"LU",ucits:true,ccy:"USD"},
+  {tkr:"SGAICB",name:"Schroder GAIA Cat Bond C USD (insurance-linked securities)",cls:"alternative",vehicle:"mutual_fund",er:1.45,yld:0.0,sponsor:"Schroders",dom:"LU",ucits:true,ccy:"USD"},
+  {tkr:"GAMSCB",name:"GAM Star Cat Bond Institutional USD (insurance-linked securities)",cls:"alternative",vehicle:"mutual_fund",er:1.15,yld:0.0,sponsor:"GAM",dom:"IE",ucits:true,ccy:"USD"},
+  {tkr:"NORA10",name:"Nordea 1 Alpha 10 MA Fund BI EUR (multi-asset absolute return)",cls:"alternative",vehicle:"mutual_fund",er:1.05,yld:0.0,sponsor:"Nordea",dom:"LU",ucits:true,ccy:"EUR"},
+  {tkr:"BSFGED",name:"BlackRock Strategic Funds Global Event Driven A2 USD",cls:"alternative",vehicle:"mutual_fund",er:1.60,yld:0.0,sponsor:"BlackRock",dom:"LU",ucits:true,ccy:"USD"},
+  {tkr:"LUMMWT",name:"Lumyna MW TOPS UCITS A USD (Marshall Wace long/short equity)",cls:"alternative",vehicle:"mutual_fund",er:1.75,yld:0.0,sponsor:"Lumyna",dom:"IE",ucits:true,ccy:"USD"},
+  {tkr:"JUPGAR",name:"Jupiter Merian Global Equity Absolute Return I USD",cls:"alternative",vehicle:"mutual_fund",er:0.90,yld:0.0,sponsor:"Jupiter",dom:"IE",ucits:true,ccy:"USD"},
+  {tkr:"ELEVAR",name:"Eleva Absolute Return Europe I EUR (long/short equity)",cls:"alternative",vehicle:"mutual_fund",er:1.50,yld:0.0,sponsor:"Eleva",dom:"LU",ucits:true,ccy:"EUR"},
+  {tkr:"BNYGRR",name:"BNY Mellon Global Real Return EUR (absolute return multi-asset)",cls:"alternative",vehicle:"mutual_fund",er:1.10,yld:1.5,sponsor:"BNY Mellon",dom:"IE",ucits:true,ccy:"EUR"},
+
 ];
 
 // FUND METRICS ENRICHMENT — populate performance & risk stats on every
@@ -13169,6 +13190,26 @@ const FUND_OVERRIDES = {
   WSML:{mu:9.0,sigma:18.0,holdings:3300,aum:4.5,beta:1.05,inception:2018},
   AGGU:{mu:4.6,sigma:5.0,holdings:9000,aum:3.0,beta:0.08,inception:2019},
   IEGA:{mu:3.2,sigma:5.5,holdings:400,aum:4.0,beta:0.10},
+  // --- UCITS alternatives. maxDD is set explicitly where the sigma-derived
+  //     default would understate a real historical drawdown (listed PE in the
+  //     GFC, cat bonds in the 2017 hurricane season, CTAs in a trend reversal).
+  IPRV:{mu:9.0,sigma:25.0,holdings:80,aum:0.9,beta:1.20,maxDD:-60.0,inception:2007},
+  DWSCK:{mu:5.5,sigma:8.0,holdings:250,aum:9.0,beta:0.35,maxDD:-14.0,inception:2011},
+  JPGMO:{mu:5.0,sigma:7.5,holdings:300,aum:2.5,beta:0.20,maxDD:-12.0,inception:2013},
+  MANTGR:{mu:5.5,sigma:9.0,holdings:60,aum:2.0,beta:0.35,maxDD:-15.0,inception:2014},
+  MANTRD:{mu:6.0,sigma:12.0,holdings:80,aum:1.5,beta:0.05,maxDD:-18.0,inception:2015},
+  PICTAT:{mu:5.0,sigma:5.5,holdings:200,aum:3.0,beta:0.10,maxDD:-9.0,inception:2014},
+  PICTDA:{mu:4.8,sigma:4.5,holdings:400,aum:1.5,beta:0.15,maxDD:-8.0,inception:2018},
+  SGAIBT:{mu:6.0,sigma:13.0,holdings:150,aum:0.9,beta:0.05,maxDD:-20.0,inception:2012},
+  SGAICB:{mu:7.0,sigma:5.0,holdings:120,aum:1.3,beta:0.05,maxDD:-16.0,inception:2013},
+  GAMSCB:{mu:6.8,sigma:4.5,holdings:100,aum:2.5,beta:0.05,maxDD:-14.0,inception:2017},
+  NORA10:{mu:5.2,sigma:5.0,holdings:500,aum:1.2,beta:0.20,maxDD:-9.0,inception:2017},
+  BSFGED:{mu:5.5,sigma:6.5,holdings:180,aum:1.8,beta:0.25,maxDD:-11.0,inception:2015},
+  LUMMWT:{mu:6.5,sigma:8.0,holdings:400,aum:3.0,beta:0.25,maxDD:-12.0,inception:2013},
+  JUPGAR:{mu:4.8,sigma:6.0,holdings:300,aum:0.6,beta:0.05,maxDD:-12.0,inception:2009},
+  ELEVAR:{mu:5.5,sigma:6.5,holdings:120,aum:2.0,beta:0.20,maxDD:-11.0,inception:2018},
+  BNYGRR:{mu:5.0,sigma:6.0,holdings:300,aum:3.5,beta:0.30,maxDD:-12.0,inception:2010},
+
 };
 
 // Deterministic per-ticker hash for stable jitter
@@ -13903,32 +13944,32 @@ function fundBucketKeys(f){
   const hay = ((f.name||"") + " " + (f.tkr||"")).toLowerCase();
   const regions = [];
   const r = (f.region||"").toLowerCase();
-  if(/us|domestic|total market|s&p|500/.test(r + " " + hay)) regions.push("us");
+  if(/\bus\b|\bu\.s\.?|\busa\b|domestic|total market|total stock market|s&p|\b500\b|\brussell\b|dow jones|nasdaq/.test(r + " " + hay)) regions.push("us");
   if(/europe|eafe|developed international|ex-us/.test(r + " " + hay)) regions.push("europe","developed_intl");
-  if(/emerging|em\b/.test(r + " " + hay)) regions.push("emerging");
+  if(/emerging|\bem\b/.test(r + " " + hay)) regions.push("emerging");
   if(/japan/.test(hay)) regions.push("japan");
   if(/china/.test(hay)) regions.push("china");
   if(/india/.test(hay)) regions.push("india");
   const sectors = [];
-  if(/tech|semiconductor|software|xlk|qqq|soxx|smh/.test(hay)) sectors.push("technology");
-  if(/health|biotech|pharma|xlv/.test(hay)) sectors.push("healthcare");
-  if(/financ|bank|xlf/.test(hay)) sectors.push("financials");
-  if(/energy|oil|xle/.test(hay)) sectors.push("energy");
-  if(/industrial|aerospace|defen|xli/.test(hay)) sectors.push("industrials");
-  if(/utilit|xlu/.test(hay)) sectors.push("utilities");
-  if(/real estate|reit|xlre|schh/.test(hay)) sectors.push("real_estate_sector");
-  if(/material|mining|xlb/.test(hay)) sectors.push("materials");
-  if(/staple|xlp/.test(hay)) sectors.push("consumer_staples");
-  if(/discretionary|xly/.test(hay)) sectors.push("consumer_discretionary");
+  if(/tech|semiconductor|software|\bxlk\b|qqq|nasdaq.?100|\bsoxx\b|\bsmh\b/.test(hay)) sectors.push("technology");
+  if(/health|biotech|pharma|\bxlv\b/.test(hay)) sectors.push("healthcare");
+  if(/financ|bank|\bxlf\b/.test(hay)) sectors.push("financials");
+  if(/energy|\boil\b|\bxle\b/.test(hay)) sectors.push("energy");
+  if(/industrial|aerospace|defen|\bxli\b/.test(hay)) sectors.push("industrials");
+  if(/utilit|\bxlu\b/.test(hay)) sectors.push("utilities");
+  if(/real estate|reit|\bxlre\b|\bschh\b/.test(hay)) sectors.push("real_estate_sector");
+  if(/material|mining|\bxlb\b/.test(hay)) sectors.push("materials");
+  if(/staple|\bxlp\b/.test(hay)) sectors.push("consumer_staples");
+  if(/discretionary|\bxly\b/.test(hay)) sectors.push("consumer_discretionary");
   const themes = [];
-  if(/ai|semiconductor|robot|data center|soxx|smh|botz/.test(hay)) themes.push("ai");
-  if(/clean|solar|renewab|esg|sustainab|icln|tan/.test(hay)) themes.push("decarbonization");
-  if(/cyber|crwd|panw|hack|bug/.test(hay)) themes.push("cybersecurity");
-  if(/defen|aerospace|ita|ppa/.test(hay)) themes.push("defense");
-  if(/dividend|vig|schd|vym/.test(hay)) themes.push("dividend_growth");
+  if(/\bai\b|artificial intelligence|semiconductor|robot|data cent|\bsoxx\b|\bsmh\b|\bbotz\b|\baiq\b/.test(hay)) themes.push("ai");
+  if(/clean|solar|renewab|\besg\b|sustainab|\bicln\b|\btan\b/.test(hay)) themes.push("decarbonization");
+  if(/cyber|\bcrwd\b|\bpanw\b|hack|\bbug\b/.test(hay)) themes.push("cybersecurity");
+  if(/defen|aerospace|\bita\b|\bppa\b/.test(hay)) themes.push("defense");
+  if(/dividend|\bvig\b|\bschd\b|\bvym\b/.test(hay)) themes.push("dividend_growth");
   if(/quality|qual/.test(hay)) themes.push("quality_factor");
-  if(/bitcoin|crypto|ibit|fbtc|eth/.test(hay)) themes.push("cryptocurrency");
-  if(/water|infrastructure|pho|igf/.test(hay)) themes.push("water_infrastructure");
+  if(/bitcoin|crypto|\bibit\b|\bfbtc\b|\beth\b|ethereum/.test(hay)) themes.push("cryptocurrency");
+  if(/water|infrastructure|\bpho\b|\bigf\b/.test(hay)) themes.push("water_infrastructure");
   return {regions, sectors, themes};
 }
 
