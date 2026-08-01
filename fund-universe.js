@@ -598,6 +598,19 @@ const FUND_UNIVERSE = [
   {tkr:"FLOT",name:"iShares Floating Rate Bond",cls:"cash",vehicle:"etf",er:0.15,yld:5.4,sponsor:"BlackRock"},
   {tkr:"FLRN",name:"SPDR Bloomberg Investment Grade Floating Rate",cls:"cash",vehicle:"etf",er:0.15,yld:5.4,sponsor:"State Street"},
 
+  // ─── UCITS MONEY MARKET / ULTRA-SHORT (non-US eligible) ───
+  // Every fund above is US-listed, so a UCITS-only client (CH/DE/SG/BR and the
+  // rest of the PRIIPs world) previously had ZERO eligible cash funds — the
+  // sleeve could not be filled and its weight had to be reallocated. These are
+  // the liquid European money-market and ultra-short lines that fill it.
+  // Yields are stated on the FUND_DATA_AS_OF (2024-12-31) basis like the rest of
+  // the dataset — EUR at the then-prevailing ESTR/ECB level, GBP and USD higher.
+  {tkr:"XEON",name:"Xtrackers II EUR Overnight Rate Swap UCITS ETF 1C",cls:"cash",vehicle:"etf",er:0.10,yld:3.0,sponsor:"DWS/Xtrackers",dom:"LU",ucits:true,ccy:"EUR"},
+  {tkr:"ERNE",name:"iShares € Ultrashort Bond UCITS ETF",cls:"cash",vehicle:"etf",er:0.09,yld:3.4,sponsor:"BlackRock",dom:"IE",ucits:true,ccy:"EUR"},
+  {tkr:"ERNA",name:"iShares $ Ultrashort Bond UCITS ETF USD (Acc)",cls:"cash",vehicle:"etf",er:0.09,yld:5.0,sponsor:"BlackRock",dom:"IE",ucits:true,ccy:"USD"},
+  {tkr:"ERNS",name:"iShares £ Ultrashort Bond UCITS ETF",cls:"cash",vehicle:"etf",er:0.09,yld:4.8,sponsor:"BlackRock",dom:"IE",ucits:true,ccy:"GBP"},
+  {tkr:"IB01",name:"iShares $ Treasury Bond 0-1yr UCITS ETF USD (Acc)",cls:"cash",vehicle:"etf",er:0.07,yld:4.6,sponsor:"BlackRock",dom:"IE",ucits:true,ccy:"USD"},
+
   // ─── CRYPTO / SPOT BITCOIN/ETHER ───
   {tkr:"IBIT",name:"iShares Bitcoin Trust",cls:"crypto",vehicle:"alternative",er:0.25,yld:0.0,sponsor:"BlackRock"},
   {tkr:"FBTC",name:"Fidelity Wise Origin Bitcoin",cls:"crypto",vehicle:"alternative",er:0.25,yld:0.0,sponsor:"Fidelity"},
@@ -940,8 +953,14 @@ const CLASS_DEFAULTS = {
   crypto:       {mu:25.0, sigma:65.0, holdings:1,    aum:10,  beta:1.80, r1y:80.0, r3y:25.0, r5y:30.0, r10y:0.0}
 };
 
-// Explicit performance overrides for flagship funds (~2024 actuals, rounded)
+// Explicit performance overrides for flagship funds.
 // Format: {mu,sigma,holdings,aum(B USD),beta,r1y,r3y,r5y,r10y,maxDD,sharpe(optional)}
+// A trailing-return field of 0 is a SENTINEL meaning "the fund is younger than
+// this window"; enrichment converts it to null so it is never displayed or fed
+// to the model as a real 0.0% return. Figures are a point-in-time snapshot —
+// surface FUND_DATA_AS_OF wherever they are shown rather than implying they are
+// live market data.
+const FUND_DATA_AS_OF = "2024-12-31";
 const FUND_OVERRIDES = {
   // ─── US Large Cap Core ───
   VOO:{mu:10.5,sigma:15.0,holdings:503,aum:1100,beta:1.00,r1y:24.2,r3y:9.8,r5y:14.8,r10y:12.5,maxDD:-23.9},
@@ -1017,6 +1036,16 @@ const FUND_OVERRIDES = {
   HYG:{mu:7.0,sigma:9.0,holdings:1230,aum:14,beta:0.55,r1y:9.0,r3y:1.5,r5y:3.5,r10y:4.0,maxDD:-23.5},
   MUB:{mu:3.5,sigma:5.0,holdings:5550,aum:38,beta:0.05,r1y:3.0,r3y:-0.5,r5y:1.0,r10y:2.5,maxDD:-11.0},
   BIL:{mu:5.2,sigma:0.4,holdings:18,aum:38,beta:0.00,r1y:5.3,r3y:3.2,r5y:1.9,r10y:1.2,maxDD:-0.2},
+  // ─── UCITS money market / ultra-short ───
+  // TER and fund size are the published figures; the return series uses the 0
+  // sentinel for windows a line has not run (converted to null = "n/a", never
+  // shown as a real 0.0% return). μ reflects the currency's short rate at the
+  // FUND_DATA_AS_OF basis, not a forecast.
+  XEON:{mu:3.0,sigma:0.3,holdings:1,aum:22.4,beta:0.00,r1y:3.8,r3y:2.4,r5y:1.3,r10y:0.4,maxDD:-0.1},
+  ERNE:{mu:3.4,sigma:0.6,holdings:280,aum:3.4,beta:0.02,r1y:4.1,r3y:2.3,r5y:1.4,r10y:0,maxDD:-1.2},
+  ERNA:{mu:5.0,sigma:0.6,holdings:340,aum:2.6,beta:0.02,r1y:5.4,r3y:3.4,r5y:2.4,r10y:0,maxDD:-1.4},
+  ERNS:{mu:4.8,sigma:0.6,holdings:200,aum:0.9,beta:0.02,r1y:5.1,r3y:3.2,r5y:2.0,r10y:0,maxDD:-1.3},
+  IB01:{mu:4.6,sigma:0.4,holdings:20,aum:8.5,beta:0.00,r1y:5.0,r3y:3.1,r5y:0,r10y:0,maxDD:-0.3},
   // ─── Real Estate ───
   VNQ:{mu:7.0,sigma:18.0,holdings:160,aum:35,beta:0.85,r1y:9.0,r3y:-1.5,r5y:4.0,r10y:6.5,maxDD:-35.0},
   // ─── Commodities ───
@@ -1080,8 +1109,18 @@ function _fundHash(tkr){
     f.te = ov.te ?? (f.vehicle === "mutual_fund"
       ? +(1.5 + (h % 25) / 10).toFixed(2)
       : +(0.05 + (h % 25) / 100).toFixed(2));
-    // Inception year — flagships before 2010, others 2010-2022
-    f.inception = ov.inception ?? (FUND_OVERRIDES[f.tkr] ? 2005 : 2010 + (h % 13));
+    // Trailing returns: FUND_OVERRIDES uses 0.0 as a "fund is younger than this
+    // period" sentinel. Left as 0.0 it renders as a real 0.0% annualized return
+    // (e.g. a 2024-launched fund showing "10y: 0.0%") and drags portfolio
+    // aggregates toward zero. Normalize the sentinel to null = no track record.
+    ["r1y","r3y","r5y","r10y"].forEach(k => {
+      if(ov[k] === 0) f[k] = null;
+    });
+    // Inception year — only when actually curated. It used to be fabricated
+    // (every override fund got 2005, everything else 2010+hash), which stated a
+    // false launch year for funds that launched in 2024 and fed an "inception
+    // >= 5 years ago" quality screen with invented data.
+    f.inception = ov.inception ?? null;
     // Income type — derive from yield
     f.income = f.yld >= 4 ? "high" : (f.yld >= 2 ? "moderate" : "low");
   });

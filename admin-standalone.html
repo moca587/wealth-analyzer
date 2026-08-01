@@ -1143,7 +1143,7 @@ function toggleQuestionnairePreview(){
 // ═══════════════════════════════════════════════════════════
 // VERSION + UTILS
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260801-2057";
+const APP_VERSION = "20260801-2142";
 const $ = (id) => document.getElementById(id);
 const $$ = (sel, ctx) => Array.from((ctx||document).querySelectorAll(sel));
 
@@ -1930,6 +1930,19 @@ const FUND_UNIVERSE = [
   {tkr:"FLOT",name:"iShares Floating Rate Bond",cls:"cash",vehicle:"etf",er:0.15,yld:5.4,sponsor:"BlackRock"},
   {tkr:"FLRN",name:"SPDR Bloomberg Investment Grade Floating Rate",cls:"cash",vehicle:"etf",er:0.15,yld:5.4,sponsor:"State Street"},
 
+  // ─── UCITS MONEY MARKET / ULTRA-SHORT (non-US eligible) ───
+  // Every fund above is US-listed, so a UCITS-only client (CH/DE/SG/BR and the
+  // rest of the PRIIPs world) previously had ZERO eligible cash funds — the
+  // sleeve could not be filled and its weight had to be reallocated. These are
+  // the liquid European money-market and ultra-short lines that fill it.
+  // Yields are stated on the FUND_DATA_AS_OF (2024-12-31) basis like the rest of
+  // the dataset — EUR at the then-prevailing ESTR/ECB level, GBP and USD higher.
+  {tkr:"XEON",name:"Xtrackers II EUR Overnight Rate Swap UCITS ETF 1C",cls:"cash",vehicle:"etf",er:0.10,yld:3.0,sponsor:"DWS/Xtrackers",dom:"LU",ucits:true,ccy:"EUR"},
+  {tkr:"ERNE",name:"iShares € Ultrashort Bond UCITS ETF",cls:"cash",vehicle:"etf",er:0.09,yld:3.4,sponsor:"BlackRock",dom:"IE",ucits:true,ccy:"EUR"},
+  {tkr:"ERNA",name:"iShares $ Ultrashort Bond UCITS ETF USD (Acc)",cls:"cash",vehicle:"etf",er:0.09,yld:5.0,sponsor:"BlackRock",dom:"IE",ucits:true,ccy:"USD"},
+  {tkr:"ERNS",name:"iShares £ Ultrashort Bond UCITS ETF",cls:"cash",vehicle:"etf",er:0.09,yld:4.8,sponsor:"BlackRock",dom:"IE",ucits:true,ccy:"GBP"},
+  {tkr:"IB01",name:"iShares $ Treasury Bond 0-1yr UCITS ETF USD (Acc)",cls:"cash",vehicle:"etf",er:0.07,yld:4.6,sponsor:"BlackRock",dom:"IE",ucits:true,ccy:"USD"},
+
   // ─── CRYPTO / SPOT BITCOIN/ETHER ───
   {tkr:"IBIT",name:"iShares Bitcoin Trust",cls:"crypto",vehicle:"alternative",er:0.25,yld:0.0,sponsor:"BlackRock"},
   {tkr:"FBTC",name:"Fidelity Wise Origin Bitcoin",cls:"crypto",vehicle:"alternative",er:0.25,yld:0.0,sponsor:"Fidelity"},
@@ -2354,6 +2367,16 @@ const FUND_OVERRIDES = {
   HYG:{mu:7.0,sigma:9.0,holdings:1230,aum:14,beta:0.55,r1y:9.0,r3y:1.5,r5y:3.5,r10y:4.0,maxDD:-23.5},
   MUB:{mu:3.5,sigma:5.0,holdings:5550,aum:38,beta:0.05,r1y:3.0,r3y:-0.5,r5y:1.0,r10y:2.5,maxDD:-11.0},
   BIL:{mu:5.2,sigma:0.4,holdings:18,aum:38,beta:0.00,r1y:5.3,r3y:3.2,r5y:1.9,r10y:1.2,maxDD:-0.2},
+  // ─── UCITS money market / ultra-short ───
+  // TER and fund size are the published figures; the return series uses the 0
+  // sentinel for windows a line has not run (converted to null = "n/a", never
+  // shown as a real 0.0% return). μ reflects the currency's short rate at the
+  // FUND_DATA_AS_OF basis, not a forecast.
+  XEON:{mu:3.0,sigma:0.3,holdings:1,aum:22.4,beta:0.00,r1y:3.8,r3y:2.4,r5y:1.3,r10y:0.4,maxDD:-0.1},
+  ERNE:{mu:3.4,sigma:0.6,holdings:280,aum:3.4,beta:0.02,r1y:4.1,r3y:2.3,r5y:1.4,r10y:0,maxDD:-1.2},
+  ERNA:{mu:5.0,sigma:0.6,holdings:340,aum:2.6,beta:0.02,r1y:5.4,r3y:3.4,r5y:2.4,r10y:0,maxDD:-1.4},
+  ERNS:{mu:4.8,sigma:0.6,holdings:200,aum:0.9,beta:0.02,r1y:5.1,r3y:3.2,r5y:2.0,r10y:0,maxDD:-1.3},
+  IB01:{mu:4.6,sigma:0.4,holdings:20,aum:8.5,beta:0.00,r1y:5.0,r3y:3.1,r5y:0,r10y:0,maxDD:-0.3},
   // ─── Real Estate ───
   VNQ:{mu:7.0,sigma:18.0,holdings:160,aum:35,beta:0.85,r1y:9.0,r3y:-1.5,r5y:4.0,r10y:6.5,maxDD:-35.0},
   // ─── Commodities ───
@@ -2427,7 +2450,7 @@ function _fundHash(tkr){
     // Inception year — only when actually curated. It used to be fabricated
     // (every override fund got 2005, everything else 2010+hash), which stated a
     // false launch year for funds that launched in 2024 and fed an "inception
-    // ≥ 5 years ago" quality screen with invented data.
+    // >= 5 years ago" quality screen with invented data.
     f.inception = ov.inception ?? null;
     // Income type — derive from yield
     f.income = f.yld >= 4 ? "high" : (f.yld >= 2 ? "moderate" : "low");
@@ -5681,6 +5704,13 @@ function aggregateAllSignals(selectedProviderIds){
   return aggregate;
 }
 
+// Currency blocs — a CHF or DKK client is far better served by a EUR
+// money-market line than a USD one when no fund exists in their own currency,
+// because the FX exposure is a fraction of the size.
+const CCY_BLOC = {EUR:"EUR", CHF:"EUR", DKK:"EUR", SEK:"EUR", NOK:"EUR", PLN:"EUR",
+                  USD:"USD", CAD:"USD", HKD:"USD", SGD:"USD",
+                  GBP:"GBP", JPY:"JPY", AUD:"AUD"};
+
 // Risk profile → strategic asset allocation baseline (in %)
 const RISK_TO_ALLOCATION = {
   very_conservative:        {equity:20, fixed_income:60, real_estate:5,  commodity:5,  cash:10, alternative:0},
@@ -5886,6 +5916,19 @@ function pickFundsForClass(targetClass, targetWeight, brief, signals, used){
     bk.themes.forEach(k  => { align += stanceScore(signals, "themes",  k) * 0.5; });
     score += Math.max(-2, Math.min(2, align));
     f._align = +align.toFixed(2);
+    // ── Currency match on the CASH sleeve ────────────────────────────────
+    // Sharpe is computed against a single USD risk-free, so a EUR money-market
+    // fund yielding 3% scores a NEGATIVE Sharpe against a USD fund yielding 5%
+    // and loses — which had the engine putting a Swiss client's cash in
+    // unhedged USD. Comparing nominal yields across currencies is meaningless;
+    // cash is the one sleeve where the client's own currency is the whole point.
+    if(targetClass === "cash"){
+      const want = (brief.currency || "USD").toUpperCase();
+      const has = (f.ccy || "USD").toUpperCase();
+      if(has === want) score += 3;
+      else if(CCY_BLOC[want] && CCY_BLOC[want] === CCY_BLOC[has]) score += 1; // same bloc (e.g. CHF↔EUR)
+      else score -= 2;
+    }
     // Diversity penalty
     if(used.sponsors.has(f.sponsor)) score -= 0.3;
     // Risk-profile fit: penalize if fund vol incompatible
@@ -6077,6 +6120,19 @@ function buildPortfolioFromEngine(brief, signals){
   unfillable.forEach(({cls, weight}) => risks.push(
     `${prettyClass(cls)} sleeve (${weight}% target) has no ${brief.country || "US"}-eligible fund in the universe — reallocated to ${cls === "cash" ? "fixed income" : "the remaining sleeves"}`
   ));
+  // Cash held in a currency other than the client's is an FX exposure in the one
+  // sleeve that is supposed to carry none — say so rather than leaving it implied.
+  (function(){
+    const want = (brief.currency || "USD").toUpperCase();
+    const offCcy = positions.filter(p => {
+      const f = FUND_UNIVERSE.find(x => x.tkr === p.ticker);
+      return f && f.cls === "cash" && (f.ccy || "USD").toUpperCase() !== want;
+    });
+    offCcy.forEach(p => {
+      const f = FUND_UNIVERSE.find(x => x.tkr === p.ticker);
+      risks.push(`Cash sleeve held in ${(f.ccy||"USD").toUpperCase()} (${p.ticker}) against a ${want} client — no ${want} money-market line is available in the eligible universe, so this carries FX risk`);
+    });
+  })();
 
   // Top themes (for the summary)
   const topThemes = Object.entries(signals.themes).sort((a,b) => b[1].votes - a[1].votes).slice(0, 5).map(([t,d]) => prettyTheme(t) + " ("+d.providerCount+" providers)");
