@@ -279,7 +279,7 @@ textarea{font-family:var(--fm);font-size:12px;width:100%;min-height:70px;resize:
 <div class="tab" id="tab-agent">
   <div class="hero purple">
     <h1>🤖 AI Portfolio Construction Agent</h1>
-    <p>Synthesizes research from 16 institutional sources, the client's financial plan, and a curated fund universe to produce a complete portfolio recommendation. Powered by AI.</p>
+    <p>Synthesizes research from <span class="js-prov-count">16</span> institutional sources, the client's financial plan, and a curated fund universe to produce a complete portfolio recommendation. Powered by AI.</p>
   </div>
 
   <!-- Master switch: show / hide the AI Portfolio Builder in the client-facing app -->
@@ -368,7 +368,7 @@ Down payment | 2028 | 150000</textarea>
   </div>
 
   <div class="panel">
-    <div class="ptitle">② Research Sources <span style="color:var(--green);font-weight:600">— all 16 enabled by default</span></div>
+    <div class="ptitle">② Research Sources <span style="color:var(--green);font-weight:600">— all <span class="js-prov-count">16</span> enabled by default</span></div>
     <div class="pdesc">All institutional sources are automatically pulled when you open this tab. <strong style="color:var(--green)">Auto-refresh runs every 5 minutes</strong>. Uncheck any you want to exclude from the agent's reasoning.</div>
     <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center">
       <button class="btn-ghost" data-action="manualResearchRefresh">↻ Pull latest now</button>
@@ -382,7 +382,7 @@ Down payment | 2028 | 150000</textarea>
   <div class="panel" style="background:linear-gradient(135deg,#fff,#f0fdf4);border-color:rgba(0,135,90,.25)">
     <div class="ptitle" style="color:var(--green)">③ Build Portfolio — Deterministic Research Engine</div>
     <div class="pdesc">
-      The <strong>Research Engine</strong> scans every cached research item across all 16 institutions, extracts <strong>asset-class signals</strong>, <strong>theme votes</strong>, <strong>sector calls</strong>, and <strong>regional positioning</strong> via keyword matching. It then picks funds from the universe based on consensus strength and your constraints. <strong>Every decision is explained with full citations to the underlying research.</strong> No LLM call required — runs instantly and is fully deterministic + auditable.
+      The <strong>Research Engine</strong> scans every cached research item across all <span class="js-prov-count">16</span> institutions, extracts <strong>asset-class signals</strong>, <strong>theme votes</strong>, <strong>sector calls</strong>, and <strong>regional positioning</strong> via keyword matching. It then picks funds from the universe based on consensus strength and your constraints. <strong>Every decision is explained with full citations to the underlying research.</strong> No LLM call required — runs instantly and is fully deterministic + auditable.
     </div>
     <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
       <button class="btn" data-action="runResearchEngine" style="background:var(--green);font-size:14px;padding:11px 24px">🔬 Build with Research Engine</button>
@@ -442,7 +442,7 @@ Down payment | 2028 | 150000</textarea>
       <div style="background:#fff;border:1px solid var(--line);border-left:4px solid #00875a;border-radius:8px;padding:16px 20px;margin-bottom:12px">
         <div style="font-weight:700;font-size:14px;color:#00875a;margin-bottom:8px">STAGE 2 — Cross-Provider Consensus Aggregation</div>
         <div style="font-size:12.5px;line-height:1.7;color:var(--ink2)">
-          Net votes summed across all 16 providers. For each signal (e.g. "overweight Equity"), the engine tracks:
+          Net votes summed across all <span class="js-prov-count">16</span> providers. For each signal (e.g. "overweight Equity"), the engine tracks:
           <ul style="margin:8px 0 0 20px">
             <li><strong>Total net votes</strong>: sum of all signed sentiments across all items mentioning this signal</li>
             <li><strong>Provider count</strong>: number of unique institutions endorsing the position</li>
@@ -523,7 +523,7 @@ Down payment | 2028 | 150000</textarea>
         <div style="font-size:12.5px;line-height:1.7;color:var(--ink2)">
           Every fund pick gets a multi-part rationale:
           <ul style="margin:8px 0 0 20px">
-            <li><strong>Consensus citation:</strong> "<em>N/16 providers overweight [class] (+X net votes)</em>"</li>
+            <li><strong>Consensus citation:</strong> "<em>N/<span class="js-prov-count">16</span> providers overweight [class] (+X net votes)</em>"</li>
             <li><strong>Specific ticker mentions:</strong> if applicable, "<em>VTI explicitly mentioned by BlackRock, Vanguard + 2 more</em>"</li>
             <li><strong>Cost rationale:</strong> "<em>Low expense ratio (0.03%)</em>"</li>
             <li><strong>Constraint match:</strong> "<em>ETF wrapper preferred for high tax sensitivity</em>" or "<em>ESG-flagged matches preference</em>"</li>
@@ -592,7 +592,7 @@ Citations:<br>
 <div class="tab" id="tab-research">
   <div class="hero">
     <h1>📚 Research Library</h1>
-    <p>16 institutional sources from the world's largest wealth managers, investment banks, private banks, and analyst platforms. Refresh feeds and the AI Agent uses them when building portfolios.</p>
+    <p><span class="js-prov-count">16</span> institutional sources from the world's largest wealth managers, investment banks, private banks, and analyst platforms. Refresh feeds and the AI Agent uses them when building portfolios.</p>
   </div>
   <div class="panel">
     <div class="ptitle">Sources <span style="color:var(--green);font-weight:600">— auto-refresh every 5 minutes</span></div>
@@ -1110,7 +1110,7 @@ function toggleQuestionnairePreview(){
 // ═══════════════════════════════════════════════════════════
 // VERSION + UTILS
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260801-1243";
+const APP_VERSION = "20260801-1520";
 const $ = (id) => document.getElementById(id);
 const $$ = (sel, ctx) => Array.from((ctx||document).querySelectorAll(sel));
 
@@ -1273,6 +1273,14 @@ function googleNewsQuery(firmName){
 
 const RESEARCH_PROVIDERS = [
   {id:"bofa_ml",   name:"Bank of America / Merrill Lynch", type:"Wirehouse",       color:"#dc1e2d", letter:"M", feed:"https://newsroom.bankofamerica.com/feed/", feed2:googleNewsQuery("Bank of America research"), feed3:googleNewsQuery("Merrill Lynch wealth")},
+  // The two flagship BofA/Merrill house publications, tracked separately from
+  // the general newsroom feed above because they carry the actual investment
+  // views an advisor cites: the CIO's monthly portfolio positioning (Viewpoint)
+  // and the Research Investment Committee's monthly cross-asset report (RIC).
+  // Neither publishes a public RSS feed, so the news-query fallback used by the
+  // other subscription-only houses applies; `homepage` links the real source.
+  {id:"ml_viewpoint", name:"Merrill CIO Viewpoint",        type:"CIO House View",  color:"#012169", letter:"V", homepage:"https://www.ml.com/registration/cio-monthly-viewpoint.html", feed:googleNewsQuery("Merrill Chief Investment Office Viewpoint"), feed2:googleNewsQuery("Merrill CIO asset allocation"), feed3:googleNewsQuery("Merrill Lynch Chief Investment Office outlook")},
+  {id:"bofa_ric",     name:"BofA RIC Report",              type:"Global Research", color:"#e31837", letter:"R", homepage:"https://business.bofa.com/en-us/content/global-research-about.html", feed:googleNewsQuery("BofA RIC Report Research Investment Committee"), feed2:googleNewsQuery("BofA Global Research investment themes"), feed3:googleNewsQuery("BofA Research Investment Committee allocation")},
   {id:"jpm",       name:"J.P. Morgan Asset Management",    type:"Wirehouse",       color:"#7b1f2a", letter:"J", feed:"https://am.jpmorgan.com/us/en/asset-management/adv/insights/market-insights/feed/", feed2:googleNewsQuery("JPMorgan Asset Management"), feed3:googleNewsQuery("JPMorgan strategist outlook")},
   {id:"ms",        name:"Morgan Stanley Wealth",           type:"Wirehouse",       color:"#0066b3", letter:"M", feed:"https://www.morganstanley.com/ideas/feed/rss", feed2:"https://feeds.megaphone.fm/morganstanleythoughts", feed3:googleNewsQuery("Morgan Stanley GIC")},
   {id:"citi",      name:"Citi Private Bank",               type:"Private Bank",    color:"#0563bf", letter:"C", feed:googleNewsQuery("Citi Private Bank"), feed2:googleNewsQuery("Citigroup wealth outlook"), feed3:googleNewsQuery("Citi Global Wealth")},
@@ -2509,6 +2517,46 @@ const CURATED_RESEARCH = {
     {t:"Crypto: 1-3% bitcoin allocation appropriate for diversification", s:"BofA Digital Assets group views BTC as portfolio diversifier with low correlation to equities."},
     {t:"Currency: USD overvalued long-term — diversify with EUR/JPY exposure", s:""}
   ],
+  // ── Merrill CIO Viewpoint ────────────────────────────────────────────────
+  // Monthly CIO e-report: market view plus asset allocation and portfolio
+  // positioning guidance. Tactical weightings are 12-18 month tilts expressed
+  // RELATIVE to the CIO Strategic Asset Allocation, and the asset allocation
+  // tables are published per liquidity tier — so the entries here are framed as
+  // positioning guidance rather than standalone market calls.
+  ml_viewpoint:[
+    {t:"Tactical tilts are 12-18 month deviations from the Strategic Asset Allocation, not standalone bets", s:"CIO asset class views are expressed relative to the SAA of a multi-asset portfolio; the strategic allocation remains the anchor."},
+    {t:"Equities: favor quality — profitable, cash-generative companies over lower-quality cyclicals", s:"A durable CIO preference expressed within the strategic equity weight rather than as a market-timing call."},
+    {t:"Fixed income: prefer high-quality core bonds as the portfolio's primary diversifier", s:"Investment-grade duration is the standing diversifier against an equity drawdown."},
+    {t:"Diversification across and within asset classes remains the primary risk control", s:"CIO emphasizes breadth over concentration when index leadership narrows."},
+    {t:"Rebalancing discipline: return to target weights after large market moves", s:"Systematic rebalancing enforces sell-high/buy-low and keeps portfolio risk aligned to the SAA."},
+    {t:"Portfolio tiering: match each liquidity tier to the time horizon of the need it funds", s:"Viewpoint asset allocation tables are published per tier so near-term needs are not exposed to long-horizon risk."},
+    {t:"International developed equities: the valuation gap versus US large caps favors maintaining strategic exposure", s:""},
+    {t:"Alternatives for qualified investors: diversification beyond traditional market beta", s:"Considered where liquidity, lockups and suitability permit."},
+    {t:"Cash: hold planned operating liquidity — avoid over-allocating cash against long-horizon goals", s:"Cash reduces near-term volatility but carries reinvestment and purchasing-power risk over full cycles."},
+    {t:"Staying invested through volatility beats attempting to time entries and exits", s:"CIO repeatedly notes that missing a small number of best days materially lowers long-run outcomes."},
+    {t:"Municipal bonds for taxable accounts in higher brackets", s:"After-tax yield comparison drives the allocation decision, not headline yield."},
+    {t:"Gold and real assets as portfolio diversifiers rather than return engines", s:""},
+    {t:"Risk management: size single-stock and concentrated positions against the whole balance sheet", s:""}
+  ],
+  // ── BofA RIC Report ──────────────────────────────────────────────────────
+  // Monthly Research Investment Committee publication: analysts share
+  // investment themes and actionable ideas, including cross-asset allocation
+  // recommendations. Entries reflect the RIC's thematic, multi-year framing.
+  bofa_ric:[
+    {t:"Cross-asset allocation: the committee's recommended stance across equities, credit and commodities", s:"RIC synthesizes BofA Global Research sector and strategy teams into one asset allocation view."},
+    {t:"Thematic investing: secular themes prioritized over cyclical trades", s:"RIC favors multi-year structural shifts that survive a full business cycle."},
+    {t:"AI infrastructure and data-center capex as a multi-year investment theme", s:"Power, cooling, networking and semiconductor supply chains as the picks-and-shovels expression."},
+    {t:"Reshoring and supply chain reconfiguration drive sustained industrial capex", s:""},
+    {t:"Demographics and healthcare innovation: aging populations reshape long-run demand", s:""},
+    {t:"Energy transition raises commodity intensity — favor upstream and grid infrastructure", s:"Electrification is metals-intensive; grid capex is a long-cycle constraint."},
+    {t:"Index concentration risk: diversify away from cap-weighted mega-cap exposure", s:"RIC flags equal-weight and broader-breadth expressions when index leadership narrows."},
+    {t:"Credit: maintain a quality bias — prefer investment grade over high yield when spreads are tight", s:""},
+    {t:"Emerging markets: selectivity by country fundamentals rather than broad EM beta", s:""},
+    {t:"Defense and security spending as a structural, policy-supported theme", s:""},
+    {t:"Value versus growth leadership tends to follow the rate and inflation regime", s:""},
+    {t:"Small caps: valuation dispersion versus large caps creates selective opportunity", s:""},
+    {t:"Real assets and infrastructure as an inflation-aware diversifier", s:""}
+  ],
   jpm:[
     {t:"Guide to the Markets: 60/40 portfolio 6-8% expected return next decade", s:"JPM AM long-term capital market assumptions show normalized returns after 2022 bond reset."},
     {t:"EM equities: Tactical underweight, structural overweight India", s:"Indian equities 4Y CAGR projected 11-13% USD-terms, highest among major EMs."},
@@ -3055,6 +3103,7 @@ function kpiCard(label, value, sub, tone){
 // any without cached items show a loading spinner that resolves as the
 // background refresh completes.
 function renderAgentPicker(){
+  syncProviderCounts();
   const picker = $("agResearch");
   if(!picker) return;
   picker.innerHTML = RESEARCH_PROVIDERS.map(p => {
@@ -3076,9 +3125,9 @@ let _agentRefreshInProgress = false;
 async function autoRefreshAllResearch(silent){
   if(_agentRefreshInProgress) return;
   _agentRefreshInProgress = true;
-  if(!silent) toast("Pulling research from 16 sources…","ok");
+  if(!silent) toast(`Pulling research from ${RESEARCH_PROVIDERS.length} sources…`,"ok");
   const status = $("agStatus");
-  if(status && !silent) status.textContent = "📡 Refreshing 16 institutional sources…";
+  if(status && !silent) status.textContent = `📡 Refreshing ${RESEARCH_PROVIDERS.length} institutional sources…`;
   let done = 0, ok = 0;
   // Parallel refresh with cap of 4 concurrent (be polite to corsproxy)
   const queue = RESEARCH_PROVIDERS.slice();
@@ -3093,13 +3142,13 @@ async function autoRefreshAllResearch(silent){
         if(el){ el.textContent = cnt + ' items'; el.style.color = cnt > 0 ? 'var(--green)' : 'var(--amber)'; }
       } catch(_){}
       done++;
-      if(status && !silent) status.textContent = `📡 Refreshed ${done}/16 sources (${ok} with data)…`;
+      if(status && !silent) status.textContent = `📡 Refreshed ${done}/${RESEARCH_PROVIDERS.length} sources (${ok} with data)…`;
     }
   });
   await Promise.all(workers);
   _agentRefreshInProgress = false;
-  if(status && !silent) status.textContent = `✓ ${ok}/16 sources ready — click 🤖 Build Portfolio Now`;
-  addLog("ok", `Auto-refreshed research: ${ok}/16 sources have items`);
+  if(status && !silent) status.textContent = `✓ ${ok}/${RESEARCH_PROVIDERS.length} sources ready — click 🤖 Build Portfolio Now`;
+  addLog("ok", `Auto-refreshed research: ${ok}/${RESEARCH_PROVIDERS.length} sources have items`);
   // If the Research Library tab is currently active, re-render it live
   if(document.getElementById("tab-research")?.classList.contains("active")){
     try { renderResearch(); } catch(_){}
@@ -3136,7 +3185,7 @@ window.toggleAIBuilderFeature = toggleAIBuilderFeature;
 function renderAgent(){
   // 0. Reflect the AI Builder feature-flag state on the master switch
   renderAIBuilderSwitch();
-  // 1. Render the picker with all 16 sources TICKED
+  // 1. Render the picker with every source TICKED
   renderAgentPicker();
   // 2. Trigger background auto-refresh (non-blocking)
   setTimeout(() => autoRefreshAllResearch(false), 100);
@@ -3202,7 +3251,7 @@ async function runAgent(){
   const research = checked.map(id => {
     const p = RESEARCH_PROVIDERS.find(x => x.id===id);
     const cfg = getProviderCfg(id);
-    // Send top 20 items per source (was 8) — gives agent ~320 data points across 16 sources
+    // Send top 20 items per source (was 8) — ~20 data points per enabled source
     const items = (cfg.items||[]).slice(0,20).map(it => {
       const s = it.summary && it.summary.length > 30 && !it.summary.startsWith("Institutional view") && !it.summary.startsWith(p.name.split(" ")[0]) ? " — " + it.summary.slice(0,120) : "";
       return "  • " + it.title + s;
@@ -3473,7 +3522,7 @@ function manualResearchRefresh(){
 }
 function tickAllResearch(){
   $$("#agResearch input[type=checkbox]").forEach(cb => cb.checked = true);
-  toast("All 16 sources ticked","ok");
+  toast(`All ${RESEARCH_PROVIDERS.length} sources ticked`,"ok");
 }
 function untickAllResearch(){
   $$("#agResearch input[type=checkbox]").forEach(cb => cb.checked = false);
@@ -3526,7 +3575,14 @@ setInterval(updateAutoRefreshIndicator, 1000);
 // ═══════════════════════════════════════════════════════════
 // RENDER: RESEARCH
 // ═══════════════════════════════════════════════════════════
+// Fills every <span class="js-prov-count"> with the live provider count, so the
+// copy in the UI can never drift from RESEARCH_PROVIDERS when a source is added.
+function syncProviderCounts(){
+  document.querySelectorAll(".js-prov-count").forEach(el => { el.textContent = RESEARCH_PROVIDERS.length; });
+}
+
 function renderResearch(){
+  syncProviderCounts();
   const list = $("rpList");
   if(!list) return;
   list.innerHTML = RESEARCH_PROVIDERS.map(p => {
@@ -3546,6 +3602,7 @@ function renderResearch(){
       <div style="font-size:11px;color:var(--ink3)">Last: ${lr}</div>
       <div class="rp-actions">
         <button class="rp-mini" data-action="refreshOne" data-prov="${p.id}">↻ Refresh</button>
+        ${p.homepage ? `<a class="rp-mini" href="${p.homepage}" target="_blank" rel="noopener noreferrer" style="text-decoration:none;display:inline-block">↗ Publication</a>` : ""}
       </div>
     </div>`;
   }).join("");
@@ -3581,7 +3638,7 @@ async function refreshOne(el){
   renderResearch();
 }
 async function refreshAll(){
-  $("refreshStatus").textContent = "Refreshing all 16…";
+  $("refreshStatus").textContent = `Refreshing all ${RESEARCH_PROVIDERS.length}…`;
   for(const p of RESEARCH_PROVIDERS){ try { await refreshProvider(p.id); } catch(_){}; }
   $("refreshStatus").textContent = "✓ Done";
   renderResearch();
@@ -4976,7 +5033,7 @@ function _engIsAcronym(ph){ return /^[A-Z][A-Z0-9&.\-]{0,5}$/.test(String(ph).tr
 const _engRxCache = new Map();
 function _engPhraseRegex(ph, flags, allowTail){
   const p = String(ph).trim();
-  const key = p + " " + (flags || "") + " " + (allowTail ? 1 : 0);
+  const key = p + "\u0000" + (flags || "") + "\u0000" + (allowTail ? 1 : 0);
   let re = _engRxCache.get(key);
   if(!re){
     const lead = /^\w/.test(p) ? "\\b" : "";
@@ -6381,6 +6438,7 @@ function startLivePoll(){
 function init(){
   $("ver").textContent = "v"+APP_VERSION;
   function safe(name, fn){ try { fn(); } catch(e){ console.error("["+name+"]",e); addLog("err",name+": "+e.message); } }
+  safe("providerCounts", syncProviderCounts);
   safe("dashboard", renderDashboard);
   safe("aiBuilderSwitch", renderAIBuilderSwitch);
   safe("startLivePoll", startLivePoll);

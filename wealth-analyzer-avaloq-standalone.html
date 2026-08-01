@@ -3300,7 +3300,7 @@ input[type=date]{color-scheme:light}
 // ═══════════════════════════════════════════════════════════
 // VERSION — updated by build-standalone.pl on each build
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260801-1243";
+const APP_VERSION = "20260801-1520";
 
 // ═══════════════════════════════════════════════════════════
 // DATA
@@ -9188,7 +9188,7 @@ function _engIsAcronym(ph){ return /^[A-Z][A-Z0-9&.\-]{0,5}$/.test(String(ph).tr
 const _engRxCache = new Map();
 function _engPhraseRegex(ph, flags, allowTail){
   const p = String(ph).trim();
-  const key = p + " " + (flags || "") + " " + (allowTail ? 1 : 0);
+  const key = p + "\u0000" + (flags || "") + "\u0000" + (allowTail ? 1 : 0);
   let re = _engRxCache.get(key);
   if(!re){
     const lead = /^\w/.test(p) ? "\\b" : "";
