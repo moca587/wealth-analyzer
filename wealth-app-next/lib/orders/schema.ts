@@ -18,6 +18,7 @@
 import { z } from "zod";
 import { validateFeedUrl } from "@/lib/feeds/ssrf";
 import { ORDER_SCHEMA, round2, sameMoney, sumLines, type OrderTicket } from "./model";
+import { isValidIsin, isValidCusip, normalizeCusip, checkIdentifierAgreement } from "./identifiers";
 
 export const orderFormatEnum = z.enum(["wa", "avaloq", "generic"]);
 export const orderAuthEnum = z.enum(["none", "bearer", "apikey", "basic"]);
@@ -134,6 +135,7 @@ const money = z.number().finite().nonnegative().max(1_000_000_000, "amount is im
 
 const instrumentSchema = z.object({
   isin: z.string().trim().max(12).optional().default(""),
+  cusip: z.string().trim().max(12).optional().default(""),
   ticker: z.string().trim().max(20).optional().default(""),
   name: z.string().trim().max(200).optional().default(""),
   vehicle: z.string().trim().max(40).optional().default(""),
@@ -250,10 +252,10 @@ export function checkTicket(
   // Identity: a line the PM system cannot resolve must not be sent, and one
   // bad line blocks the whole ticket — a partially-placed order is worse
   // than one that never left.
-  const unidentified = ticket.lines.filter((l) => !l.instrument.isin && !l.instrument.ticker);
+  const unidentified = ticket.lines.filter((l) => !l.instrument.isin && !l.instrument.cusip && !l.instrument.ticker);
   if (unidentified.length) {
     errors.push(
-      `${unidentified.length} line(s) carry neither an ISIN nor a ticker: ` +
+      `${unidentified.length} line(s) carry no ISIN, CUSIP or ticker: ` +
       unidentified.map((l) => l.instrument.name || l.lineId).join(", ")
     );
   }
@@ -268,6 +270,22 @@ export function checkTicket(
       `${badIsin.length} line(s) carry an ISIN that fails its check digit: ` +
       badIsin.map((l) => `${l.instrument.isin} (${l.instrument.name || l.lineId})`).join(", ")
     );
+  }
+
+  const badCusip = ticket.lines.filter((l) => l.instrument.cusip && !isValidCusip(l.instrument.cusip));
+  if (badCusip.length) {
+    errors.push(
+      `${badCusip.length} line(s) carry a CUSIP that fails its check digit: ` +
+      badCusip.map((l) => `${l.instrument.cusip} (${l.instrument.name || l.lineId})`).join(", ")
+    );
+  }
+
+  // Both identifiers present and individually valid is NOT enough — they must
+  // describe the SAME security. A custodian cannot catch this; it would simply
+  // book whichever one the wire format carries.
+  for (const l of ticket.lines) {
+    const agree = checkIdentifierAgreement(l.instrument.cusip || "", l.instrument.isin || "");
+    if (!agree.ok) errors.push(`${l.instrument.name || l.lineId}: ${agree.conflict}`);
   }
 
   // A hard server-side ceiling. checkTicket re-derives the total from the
@@ -302,6 +320,7 @@ export function checkTicket(
     instrument: {
       ...l.instrument,
       isin: (l.instrument.isin || "").toUpperCase(),
+      cusip: normalizeCusip(l.instrument.cusip || ""),
       ticker: (l.instrument.ticker || "").toUpperCase(),
     },
     amount: round2(l.amount),
@@ -311,24 +330,6 @@ export function checkTicket(
   return { ok: errors.length === 0, errors, ticket };
 }
 
-/** ISIN check digit (ISO 6166), so an obvious typo is caught before it is sent. */
-export function isValidIsin(isin: string): boolean {
-  const s = (isin || "").trim().toUpperCase();
-  if (!/^[A-Z]{2}[A-Z0-9]{9}[0-9]$/.test(s)) return false;
-  const digits = s
-    .slice(0, 11)
-    .split("")
-    .map((c) => (/[A-Z]/.test(c) ? String(c.charCodeAt(0) - 55) : c))
-    .join("");
-  // Luhn over the expanded string, with the check digit appended.
-  const full = digits + s[11];
-  let sum = 0;
-  let dbl = false;
-  for (let i = full.length - 1; i >= 0; i--) {
-    let d = full.charCodeAt(i) - 48;
-    if (dbl) { d *= 2; if (d > 9) d -= 9; }
-    sum += d;
-    dbl = !dbl;
-  }
-  return sum % 10 === 0;
-}
+// ISIN/CUSIP arithmetic lives in ./identifiers — re-exported so existing
+// importers of this module keep working.
+export { isValidIsin, isValidCusip } from "./identifiers";

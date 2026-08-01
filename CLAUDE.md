@@ -378,6 +378,33 @@ adversarial pass found the opposite behaviour:
   only — never upstream body text, which routinely echoes the account, the
   client name, and sometimes the credential.
 
+**Instrument identifiers — ISIN, CUSIP, ticker** (`lib/orders/identifiers.ts`,
+mirrored in the legacy app above `detectInputType`). All arithmetic, no
+network, verifiable against published check digits:
+- For US/CA issuers an ISIN IS the country code + the 9-char CUSIP + an ISIN
+  check digit, so `cusipToIsin` / `isinToCusip` are exact. `cusipToIsin`
+  defaults to `US` and never guesses CA — nothing inside a CUSIP distinguishes
+  them, and guessing yields a valid-looking ISIN for a different security.
+- `checkIdentifierAgreement` is the highest-value check: two identifiers on one
+  row that name DIFFERENT securities is an error no custodian can catch (it
+  books whichever the wire carries). Both being individually valid is not
+  enough. A non-US/CA ISIN beside a CUSIP is deliberately NOT flagged —
+  cross-listing is legitimate and a false alarm trains people to click through
+  the real one.
+- `detectInputType` classifies a 9-char string as a CUSIP only if its CHECK
+  DIGIT validates, so a 9-character search phrase is not resolved as an
+  identifier.
+- Wire preference is ISIN → CUSIP → symbol (Avaloq books on one identifier);
+  the generic dialect sends all three. `ticketFingerprint` APPENDS the CUSIP
+  only when present, so tickets without one keep their pre-existing hash and a
+  stored fingerprint still matches on retry.
+- **Market data**: OpenFIGI (already used for ISIN) is generalized to
+  `openFigiMap(idType, idValue, hintCc)`; `ID_CUSIP` resolves directly to a
+  ticker, which then feeds the existing Yahoo quote/performance path. Verified
+  live: CUSIP 037833100 → US0378331005 → AAPL → "Apple Inc.". If OpenFIGI is
+  unreachable the flow still fills the derived ISIN and says so rather than
+  substituting a guess.
+
 **Legacy side** (`wealth-analyzer.html`, Investment Proposal tab): the same
 ticket shape, built by `ordBuildTicket`, reviewed line-by-line before any
 send. Three defects found and fixed there in the same pass:

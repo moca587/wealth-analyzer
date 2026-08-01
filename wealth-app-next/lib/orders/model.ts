@@ -27,6 +27,12 @@ export type OrderSide = "BUY";
 export interface OrderInstrument {
   /** ISIN — what a European custodian actually books on. */
   isin?: string;
+  /**
+   * CUSIP — the US/Canadian identifier. For those issuers it determines the
+   * ISIN outright (see lib/orders/identifiers.ts), so the two must agree when
+   * both are present.
+   */
+  cusip?: string;
   /** Exchange ticker. Accepted, but many custodians will not resolve it. */
   ticker?: string;
   name?: string;
@@ -120,13 +126,21 @@ export function sameMoney(a: number, b: number): boolean {
  */
 export function ticketFingerprint(t: OrderTicket): string {
   const lines = t.lines
-    .map((l) => [
-      (l.instrument.isin || "").toUpperCase(),
-      (l.instrument.ticker || "").toUpperCase(),
-      l.side,
-      round2(l.amount).toFixed(2),
-      (l.currency || "").toUpperCase(),
-    ].join("|"))
+    .map((l) => {
+      const base = [
+        (l.instrument.isin || "").toUpperCase(),
+        (l.instrument.ticker || "").toUpperCase(),
+        l.side,
+        round2(l.amount).toFixed(2),
+        (l.currency || "").toUpperCase(),
+      ].join("|");
+      // CUSIP is APPENDED only when present, so adding the field did not
+      // change the fingerprint of any ticket that carries none — a stored
+      // fingerprint from before this field existed still matches, and a
+      // retry of such a ticket is still recognised as a retry.
+      const cusip = (l.instrument.cusip || "").toUpperCase();
+      return cusip ? `${base}|C:${cusip}` : base;
+    })
     .sort();                       // line ORDER is not part of the instruction
   return [
     (t.account.id || "").trim(),
