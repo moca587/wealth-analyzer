@@ -1143,7 +1143,7 @@ function toggleQuestionnairePreview(){
 // ═══════════════════════════════════════════════════════════
 // VERSION + UTILS
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260801-1547";
+const APP_VERSION = "20260801-1615";
 const $ = (id) => document.getElementById(id);
 const $$ = (sel, ctx) => Array.from((ctx||document).querySelectorAll(sel));
 
@@ -2968,6 +2968,11 @@ function expandResearchForProvider(providerId){
       // manufactured recency the data does not have.
       date: CURATED_RESEARCH_AS_OF,
       curated: true,
+      // These come from ONE shared COMMON_THEMES pool that every provider draws
+      // from, so the same text appears under many providers. Flagged so the
+      // points tally can count each distinct theme once instead of mistaking
+      // replication for cross-provider consensus.
+      shared: true,
       summary: `${firmShort} positioning — curated baseline theme as of ${CURATED_RESEARCH_AS_OF}; configure live RSS for current views.`
     };
   });
@@ -5276,7 +5281,12 @@ const POS_WORDS = {
   "overweight":3, "overweigh":3, "long position":2, "net long":3, "bullish":3, "favor":2, "prefer":2, "outperform":2,
   "buy":2, "attractive":2, "compelling":2, "upside":2, "tailwind":2, "constructive":2,
   "high conviction":3, "structural growth":3, "tactical overweight":3, "strategic overweight":3,
-  "best ideas":2, "top pick":3, "recommend":2, "accumulate":2, "add":1
+  "best ideas":2, "top pick":3, "recommend":2, "accumulate":2, "add":1,
+  // Macro-directional vocabulary — needed so the market-driver bucket can take
+  // a direction. Without these a driver mention scores 0 and every backdrop
+  // reads "neutral".
+  "supportive":2, "accommodative":2, "dovish":2, "de-escalation":2,
+  "soft landing":2, "resilient":2, "recovery":2, "disinflation":2
 };
 const NEG_WORDS = {
   // "short" alone was removed: in institutional research "short duration",
@@ -5285,7 +5295,11 @@ const NEG_WORDS = {
   "underweight":3, "underweigh":3, "short position":2, "net short":3, "bearish":3, "avoid":2, "cautious":2, "underperform":2,
   "sell":2, "expensive":1, "stretched":2, "headwind":2, "downside":2, "negative":1,
   "high conviction underweight":4, "tactical underweight":3, "structural underweight":3,
-  "underperforming":2, "reduce":1, "trim":1, "exit":2
+  "underperforming":2, "reduce":1, "trim":1, "exit":2,
+  // Macro-directional vocabulary (see POS_WORDS) — a driver mentioned as a
+  // headwind must register as one.
+  "restrictive":2, "hawkish":2, "escalation":2, "recession":3, "stagflation":3,
+  "hard landing":3, "deterioration":2, "fragile":2, "elevated risk":2, "widening":1
 };
 
 // Asset class keywords — each item maps phrases to a class
@@ -5336,6 +5350,25 @@ const THEME_KEYWORDS = {
   // equity theme on every bond item.
   dividend_growth: ["dividend grow","dividend payer","VIG","yield+","income equity","equity income"],
   quality_factor: ["quality factor","quality bias","quality growth","high ROE","margin stability"]
+};
+
+// ── MARKET DRIVERS ────────────────────────────────────────────────────────
+// The fifth scoring bucket. Regions/classes/sectors/themes describe WHAT to
+// hold; drivers describe the macro backdrop that justifies it — and they are
+// what an advisor is actually asked about in a review. `cycle`, `rates`,
+// `geopolitics` and `fx` are surfaced in every position rationale.
+const DRIVER_KEYWORDS = {
+  cycle:        ["business cycle","late cycle","late-cycle","early cycle","early-cycle","mid-cycle","cycle turn","expansion phase","recovery","slowdown","soft landing","hard landing","recession","downturn"],
+  rates:        ["interest rate","policy rate","fed funds","yield curve","rate cut","rate hike","duration","terminal rate","FOMC","ECB","real yield","tightening","easing","hawkish","dovish","restrictive","accommodative"],
+  inflation:    ["inflation","CPI","PCE","disinflation","deflation","price pressure","wage growth","stagflation"],
+  growth:       ["GDP","economic growth","labor market","payroll","PMI","consumer spending","capex cycle"],
+  geopolitics:  ["geopolit","war","conflict","sanction","tariff","trade tension","trade war","political risk","escalation","de-escalation","supply disruption"],
+  fx:           ["dollar","USD","currency","exchange rate","euro","yen","FX","dedollariz","currency hedg"],
+  credit:       ["credit spread","default rate","credit cycle","leverage","refinanc","credit condition","spreads remain tight","spread widening"],
+  valuation:    ["valuation","multiple","P/E","price-to-earnings","expensive","cheap","rich valuation","discount to NAV"],
+  earnings:     ["earnings","EPS","profit margin","revenue growth","guidance","earnings breadth","margin resilience"],
+  liquidity:    ["liquidity","fund flows","positioning","risk appetite","volatility regime"],
+  policy:       ["fiscal","deficit","government spending","tax policy","stimulus","regulation","monetary policy","central bank"]
 };
 
 // Ticker mention extractor — looks for explicit $TICK or TICK in caps
@@ -5453,17 +5486,26 @@ function extractItemSignals(item, providerName){
   const itemSentiment = _engScoreSentiment(rawText);
   const clauses = _engClauses(rawText).map(c => ({text: c, sent: _engScoreSentiment(c)}));
 
-  // Classify by topic
+  // Classify by topic.
+  // Two parallel readings of the same match:
+  //   • the raw magnitude (kept for the allocation tilt, which is calibrated on it)
+  //   • a 3-POINT STANCE — +1 overweight / 0 neutral / -1 underweight — which is
+  //     what the points system aggregates. Magnitude answers "how strongly is
+  //     this stated", stance answers "which way does this provider lean", and
+  //     only the second is comparable across sources and buckets.
   const signals = {
     classes: {},   // {equity: +3, fixed_income: -1, ...}
     sectors: {},   // {technology: +2, ...}
     regions: {},   // {japan: +3, china: -2, ...}
-    themes: {},    // {ai: 1, decarbonization: 1, ...}
+    themes: {},    // {ai: +1, decarbonization: 0, ...}
+    drivers: {},   // {rates: -1, geopolitics: -1, fx: 0, cycle: +1, ...}
+    stances: {classes:{}, sectors:{}, regions:{}, themes:{}, drivers:{}},
     tickers: extractTickerMentions(rawText),
     sentiment: itemSentiment,
     providerName: providerName,
     item: item
   };
+  const toStance = v => (v > 0 ? 1 : (v < 0 ? -1 : 0));
 
   // Sentiment for a topic = sentiment of the clause it is mentioned in (falls
   // back to the item as a whole). A mention with no directional language scores
@@ -5481,19 +5523,23 @@ function extractItemSignals(item, providerName){
     if(!matched) return null;
     return best !== null ? best : itemSentiment;
   }
-  function detect(map, container){
+  function detect(map, container, bucket){
     for(const [key, phrases] of Object.entries(map)){
       const v = voteFor(phrases, key);
-      if(v !== null) container[key] = (container[key] || 0) + v;
+      if(v !== null){
+        container[key] = (container[key] || 0) + v;
+        signals.stances[bucket][key] = toStance(v);
+      }
     }
   }
-  detect(CLASS_KEYWORDS, signals.classes);
-  detect(SECTOR_KEYWORDS, signals.sectors);
-  detect(REGION_KEYWORDS, signals.regions);
-  // Themes — count mentions even without explicit sentiment
-  for(const [key, phrases] of Object.entries(THEME_KEYWORDS)){
-    if(phrases.some(ph => _engPhraseRegex(ph, "", true).test(_engScrub(rawText, key)))) signals.themes[key] = (signals.themes[key] || 0) + 1;
-  }
+  detect(CLASS_KEYWORDS,  signals.classes, "classes");
+  detect(SECTOR_KEYWORDS, signals.sectors, "sectors");
+  detect(REGION_KEYWORDS, signals.regions, "regions");
+  detect(DRIVER_KEYWORDS, signals.drivers, "drivers");
+  // Themes are directional too now — a theme mentioned as a headwind should not
+  // read the same as one mentioned as a tailwind, which a pure mention count
+  // could not express.
+  detect(THEME_KEYWORDS,  signals.themes,  "themes");
   return signals;
 }
 
@@ -5504,14 +5550,21 @@ function aggregateAllSignals(selectedProviderIds){
     sectors: {},
     regions: {},
     themes: {},
+    drivers: {},
+    // The 3-point tally, one entry per bucket key: how many research views were
+    // overweight / neutral / underweight. This is the layer the decision reads.
+    points: {classes:{}, sectors:{}, regions:{}, themes:{}, drivers:{}},
     tickers: {},
     citationsByClass: {},
     citationsBySector: {},
     citationsByTheme: {},
     citationsByRegion: {},
     totalItems: 0,
+    scoredItems: 0,              // items that actually contributed points
+    sharedDuplicatesSkipped: 0,  // shared baseline themes already counted
     providerCount: 0
   };
+  const _sharedSeen = new Set();
 
   // providers      = every provider that MENTIONED this topic (any direction)
   // providersFor / providersAgainst = direction-consistent counts, so a
@@ -5525,25 +5578,77 @@ function aggregateAllSignals(selectedProviderIds){
     else if(vote < 0) container[key].providersAgainst.add(providerName);
     if(container[key].items.length < 8) container[key].items.push({title: item.title.slice(0,120), provider: providerName});
   }
+  // One research view = one point, in exactly one of three columns.
+  function tally(bucket, key, stance, providerName){
+    const b = aggregate.points[bucket];
+    if(!b[key]) b[key] = {ow:0, neutral:0, uw:0, providers:new Set(), owProviders:new Set(), uwProviders:new Set()};
+    const e = b[key];
+    if(stance > 0){ e.ow++; e.owProviders.add(providerName); }
+    else if(stance < 0){ e.uw++; e.uwProviders.add(providerName); }
+    else e.neutral++;
+    e.providers.add(providerName);
+  }
 
   selectedProviderIds.forEach(pid => {
     const p = RESEARCH_PROVIDERS.find(x => x.id === pid);
     if(!p) return;
     aggregate.providerCount++;
     const cfg = getProviderCfg(pid);
-    const items = (cfg.items || []).slice(0, 30); // Scan top 30 per provider
+    // Read EVERY cached item. This used to stop at the first 30 per provider,
+    // which silently discarded most of the library once the curated catalogues
+    // and ingested issues were in place.
+    const items = (cfg.items || []);
     aggregate.totalItems += items.length;
     items.forEach(item => {
+      // Shared baseline themes are drawn from one pool by every provider, so
+      // the identical text recurs across sources. Counting it once per provider
+      // would manufacture consensus out of duplication — score each distinct
+      // shared item only the first time it is seen.
+      if(item.shared){
+        const key = String(item.title || "").trim().toLowerCase();
+        if(_sharedSeen.has(key)){ aggregate.sharedDuplicatesSkipped++; return; }
+        _sharedSeen.add(key);
+      }
+      aggregate.scoredItems++;
       const sig = extractItemSignals(item, p.name);
       Object.entries(sig.classes).forEach(([k,v]) => bump(aggregate.classes, k, v, p.name, item));
       Object.entries(sig.sectors).forEach(([k,v]) => bump(aggregate.sectors, k, v, p.name, item));
       Object.entries(sig.regions).forEach(([k,v]) => bump(aggregate.regions, k, v, p.name, item));
       Object.entries(sig.themes).forEach(([k,v]) => bump(aggregate.themes, k, v, p.name, item));
+      Object.entries(sig.drivers).forEach(([k,v]) => bump(aggregate.drivers, k, v, p.name, item));
+      // 3-point tally across all five buckets
+      Object.entries(sig.stances).forEach(([bucket, keys]) => {
+        Object.entries(keys).forEach(([k, st]) => tally(bucket, k, st, p.name));
+      });
       sig.tickers.forEach(t => {
         if(!aggregate.tickers[t]) aggregate.tickers[t] = {count:0, providers:new Set()};
         aggregate.tickers[t].count++;
         aggregate.tickers[t].providers.add(p.name);
       });
+    });
+  });
+
+  // Resolve each bucket entry into a stance from its three point columns.
+  // Requires BOTH a net margin and a majority lean, so one stray view cannot
+  // flip a bucket that is otherwise balanced.
+  Object.keys(aggregate.points).forEach(bucket => {
+    Object.entries(aggregate.points[bucket]).forEach(([key, e]) => {
+      e.providers = Array.from(e.providers);
+      e.owProviders = Array.from(e.owProviders);
+      e.uwProviders = Array.from(e.uwProviders);
+      e.providerCount = e.providers.length;
+      e.total = e.ow + e.neutral + e.uw;
+      e.net = e.ow - e.uw;
+      const directional = e.ow + e.uw;
+      e.conviction = directional ? +(e.net / directional).toFixed(2) : 0;
+      // A call needs three things: enough views in that direction (>=3, so a
+      // couple of stray mentions cannot move a bucket), a clear net margin, and
+      // a lopsided split. Without the absolute floor, "2 overweight / 43 neutral
+      // / 0 underweight" scored conviction 1.0 and read OVERWEIGHT off two
+      // sentences.
+      e.stance = (e.ow >= 3 && e.net >= 3 && e.conviction >= 0.5) ? "overweight"
+               : (e.uw >= 3 && e.net <= -3 && e.conviction <= -0.5) ? "underweight"
+               : "neutral";
     });
   });
 
@@ -5564,6 +5669,7 @@ function aggregateAllSignals(selectedProviderIds){
   normalize(aggregate.sectors);
   normalize(aggregate.regions);
   normalize(aggregate.themes);
+  normalize(aggregate.drivers);
   Object.values(aggregate.tickers).forEach(c => {
     c.providers = Array.from(c.providers);
     c.providerCount = c.providers.length;
@@ -5638,6 +5744,90 @@ function isFundEligibleForCountry(fund, country){
 }
 
 // Pick specific funds for each asset class given the universe + signals + constraints
+// ═══════════════════════════════════════════════════════════
+// POINTS → DECISION
+// ═══════════════════════════════════════════════════════════
+// Look up a bucket entry's resolved stance. Everything downstream reads the
+// points tally through these, so the decision rule lives in one place.
+// The four drivers an advisor is always asked to explain, phrased in the terms
+// each one is actually discussed in — a negative stance on rates is a headwind,
+// a negative stance on geopolitics is elevated risk, and so on. Reads the same
+// points tally as everything else, so the narrative cannot drift from the data.
+const DRIVER_PHRASING = {
+  cycle:       {ow:"cycle supportive",        uw:"late-cycle / slowdown risk",  n:"cycle mixed"},
+  rates:       {ow:"rates a tailwind",        uw:"rates a headwind",            n:"rates balanced"},
+  geopolitics: {ow:"geopolitical risk easing",uw:"geopolitical risk elevated",  n:"geopolitical risk contained"},
+  fx:          {ow:"FX supportive",           uw:"FX a headwind",               n:"FX neutral"},
+  inflation:   {ow:"disinflation supportive", uw:"inflation pressure",          n:"inflation stable"},
+  credit:      {ow:"credit conditions easy",  uw:"credit conditions tightening",n:"credit conditions stable"},
+  valuation:   {ow:"valuations supportive",   uw:"valuations stretched",        n:"valuations fair"},
+  growth:      {ow:"growth resilient",        uw:"growth deteriorating",        n:"growth steady"}
+};
+function driverPhrase(signals, key){
+  const e = bucketPoints(signals, "drivers", key);
+  const map = DRIVER_PHRASING[key];
+  if(!map) return null;
+  if(!e || e.total === 0) return null;   // never assert a backdrop with no evidence
+  const word = e.stance === "overweight" ? map.ow : (e.stance === "underweight" ? map.uw : map.n);
+  return `${word} (${e.ow}/${e.neutral}/${e.uw} OW·N·UW across ${e.providerCount} source${e.providerCount>1?"s":""})`;
+}
+// Cycle, rates, geopolitical risk and FX — always in this order, and silently
+// skipped when the research carries no view rather than inventing one.
+function marketContextLine(signals){
+  const parts = ["cycle","rates","geopolitics","fx"].map(k => driverPhrase(signals, k)).filter(Boolean);
+  return parts.length ? "Backdrop: " + parts.join("; ") : "";
+}
+
+function bucketPoints(signals, bucket, key){
+  return (signals.points && signals.points[bucket] && signals.points[bucket][key]) || null;
+}
+function bucketStance(signals, bucket, key){
+  const e = bucketPoints(signals, bucket, key);
+  return e ? e.stance : "neutral";
+}
+function stanceScore(signals, bucket, key){
+  const e = bucketPoints(signals, bucket, key);
+  if(!e) return 0;
+  // Scaled by conviction so a 5-1 split counts for more than a 3-2 split.
+  return e.stance === "overweight" ? e.conviction : (e.stance === "underweight" ? e.conviction : 0);
+}
+// Map a fund onto the region / sector / theme keys the points system uses, so a
+// fund can be credited for sitting in an overweighted bucket. Region comes off
+// the fund record; sector and theme are inferred from its name and ticker,
+// which is all the universe carries.
+function fundBucketKeys(f){
+  const hay = ((f.name||"") + " " + (f.tkr||"")).toLowerCase();
+  const regions = [];
+  const r = (f.region||"").toLowerCase();
+  if(/us|domestic|total market|s&p|500/.test(r + " " + hay)) regions.push("us");
+  if(/europe|eafe|developed international|ex-us/.test(r + " " + hay)) regions.push("europe","developed_intl");
+  if(/emerging|em\b/.test(r + " " + hay)) regions.push("emerging");
+  if(/japan/.test(hay)) regions.push("japan");
+  if(/china/.test(hay)) regions.push("china");
+  if(/india/.test(hay)) regions.push("india");
+  const sectors = [];
+  if(/tech|semiconductor|software|xlk|qqq|soxx|smh/.test(hay)) sectors.push("technology");
+  if(/health|biotech|pharma|xlv/.test(hay)) sectors.push("healthcare");
+  if(/financ|bank|xlf/.test(hay)) sectors.push("financials");
+  if(/energy|oil|xle/.test(hay)) sectors.push("energy");
+  if(/industrial|aerospace|defen|xli/.test(hay)) sectors.push("industrials");
+  if(/utilit|xlu/.test(hay)) sectors.push("utilities");
+  if(/real estate|reit|xlre|schh/.test(hay)) sectors.push("real_estate_sector");
+  if(/material|mining|xlb/.test(hay)) sectors.push("materials");
+  if(/staple|xlp/.test(hay)) sectors.push("consumer_staples");
+  if(/discretionary|xly/.test(hay)) sectors.push("consumer_discretionary");
+  const themes = [];
+  if(/ai|semiconductor|robot|data center|soxx|smh|botz/.test(hay)) themes.push("ai");
+  if(/clean|solar|renewab|esg|sustainab|icln|tan/.test(hay)) themes.push("decarbonization");
+  if(/cyber|crwd|panw|hack|bug/.test(hay)) themes.push("cybersecurity");
+  if(/defen|aerospace|ita|ppa/.test(hay)) themes.push("defense");
+  if(/dividend|vig|schd|vym/.test(hay)) themes.push("dividend_growth");
+  if(/quality|qual/.test(hay)) themes.push("quality_factor");
+  if(/bitcoin|crypto|ibit|fbtc|eth/.test(hay)) themes.push("cryptocurrency");
+  if(/water|infrastructure|pho|igf/.test(hay)) themes.push("water_infrastructure");
+  return {regions, sectors, themes};
+}
+
 function pickFundsForClass(targetClass, targetWeight, brief, signals, used){
   // Candidate funds in this class
   let candidates = FUND_UNIVERSE.filter(f => f.cls === targetClass);
@@ -5680,6 +5870,19 @@ function pickFundsForClass(targetClass, targetWeight, brief, signals, used){
               - drawdownPenalty * 0.8;
     // Research conviction boost
     if(signals.tickers[f.tkr]) score += 2 + (signals.tickers[f.tkr].count * 0.3);
+    // ── Points-system alignment ──────────────────────────────────────────
+    // Region, sector and theme points used to be computed and then thrown away:
+    // only asset class and explicit ticker mentions influenced selection. A fund
+    // now earns (or loses) score for sitting in a bucket the research is
+    // overweight (or underweight) on. Weighted below ticker conviction so a
+    // named fund still leads, and conviction-scaled so a narrow split moves less.
+    const bk = fundBucketKeys(f);
+    let align = 0;
+    bk.regions.forEach(k => { align += stanceScore(signals, "regions", k) * 0.8; });
+    bk.sectors.forEach(k => { align += stanceScore(signals, "sectors", k) * 0.6; });
+    bk.themes.forEach(k  => { align += stanceScore(signals, "themes",  k) * 0.5; });
+    score += Math.max(-2, Math.min(2, align));
+    f._align = +align.toFixed(2);
     // Diversity penalty
     if(used.sponsors.has(f.sponsor)) score -= 0.3;
     // Risk-profile fit: penalize if fund vol incompatible
@@ -5744,6 +5947,16 @@ function buildPortfolioFromEngine(brief, signals){
       // Domicile-based regulatory rationale
       if(fund.ucits) rationaleParts.push(`UCITS-passportable (${fund.dom}-domiciled) — eligible for ${brief.country || "non-US"} resident under PRIIPs`);
       else if(fund.dom && fund.dom !== "US") rationaleParts.push(`${fund.dom}-listed — locally accessible for ${brief.country} resident`);
+      // Bucket alignment — why this fund rather than another in the same sleeve
+      const _bk = fundBucketKeys(fund);
+      const aligned = []
+        .concat(_bk.regions.filter(k => bucketStance(signals,"regions",k) === "overweight").map(k => prettyRegion(k) + " (region OW)"))
+        .concat(_bk.sectors.filter(k => bucketStance(signals,"sectors",k) === "overweight").map(k => prettyClass(k) + " (sector OW)"))
+        .concat(_bk.themes .filter(k => bucketStance(signals,"themes", k) === "overweight").map(k => prettyTheme(k) + " (theme OW)"));
+      if(aligned.length) rationaleParts.push("Aligned with " + aligned.slice(0,3).join(", "));
+      // Market backdrop — the four drivers an advisor is always asked about
+      const ctx = marketContextLine(signals);
+      if(ctx) rationaleParts.push(ctx);
 
       positions.push({
         ticker: fund.tkr,
@@ -5977,6 +6190,43 @@ function renderEngineResult(r){
   </div>`;
 
   // SIGNAL EXTRACTION HEATMAP
+  // ── Points system: the OW / neutral / UW tally behind every decision ──
+  if(r.signals.points){
+    const S = r.signals;
+    const pretty = {classes:["Asset class", prettyClass], regions:["Geographic region", prettyRegion],
+                    sectors:["Market sector", prettyClass], themes:["Themes", prettyTheme],
+                    drivers:["Market drivers", k=>k.replace(/_/g," ").replace(/\b\w/g,c=>c.toUpperCase())]};
+    h += `<div class="ablock"><h3 style="color:var(--blue)">🧮 Points system — ${S.scoredItems} distinct research views scored`
+       + (S.sharedDuplicatesSkipped ? ` <span style="font-weight:400;font-size:12px;color:var(--ink3)">(${S.sharedDuplicatesSkipped} shared baseline duplicates counted once)</span>` : "")
+       + `</h3>`;
+    h += `<div style="font-size:11.5px;color:var(--ink3);margin-bottom:10px">Every view lands in exactly one column — overweight, neutral or underweight. A bucket is only called when at least 3 views point the same way, the net margin is 3+, and the split is at least 2:1.</div>`;
+    Object.entries(pretty).forEach(([bucket, [label, fmtKey]]) => {
+      const rows = Object.entries(S.points[bucket] || {})
+        .filter(([,e]) => e.total > 0)
+        .sort((a,b) => b[1].net - a[1].net)
+        .slice(0, 8);
+      if(!rows.length) return;
+      h += `<div style="margin-bottom:12px"><div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--ink3);margin-bottom:5px">${label}</div>`;
+      h += `<div style="display:grid;grid-template-columns:1.4fr 46px 46px 46px 62px 96px;gap:0;border:1px solid var(--line);border-radius:6px;overflow:hidden;font-size:11.5px">`;
+      h += ["", "OW", "N", "UW", "Net", "Call"].map((c,i) =>
+        `<div style="padding:4px 8px;background:var(--ink);color:#fff;font-weight:600;${i>0?'text-align:center':''}">${c}</div>`).join("");
+      rows.forEach(([k, e]) => {
+        const col = e.stance === "overweight" ? "var(--green)" : (e.stance === "underweight" ? "var(--red)" : "var(--ink3)");
+        const tag = e.stance === "overweight" ? "OVERWEIGHT" : (e.stance === "underweight" ? "UNDERWEIGHT" : "neutral");
+        h += `<div style="padding:4px 8px;border-top:1px solid var(--line)">${escapeHtml(fmtKey(k))}</div>`
+           + `<div style="padding:4px 8px;border-top:1px solid var(--line);text-align:center;color:var(--green)">${e.ow}</div>`
+           + `<div style="padding:4px 8px;border-top:1px solid var(--line);text-align:center;color:var(--ink3)">${e.neutral}</div>`
+           + `<div style="padding:4px 8px;border-top:1px solid var(--line);text-align:center;color:var(--red)">${e.uw}</div>`
+           + `<div style="padding:4px 8px;border-top:1px solid var(--line);text-align:center;font-weight:600">${e.net>0?'+':''}${e.net}</div>`
+           + `<div style="padding:4px 8px;border-top:1px solid var(--line);text-align:center;font-weight:700;color:${col}">${tag}</div>`;
+      });
+      h += `</div></div>`;
+    });
+    const ctx = marketContextLine(S);
+    if(ctx) h += `<div style="font-size:12px;color:var(--ink2);padding:8px 12px;background:rgba(0,87,184,.05);border-radius:6px"><strong>${escapeHtml(ctx)}</strong></div>`;
+    h += `</div>`;
+  }
+
   h += `<div class="ablock"><h3 style="color:var(--green)">📊 Asset Class Consensus (Net Votes Across ${r.signals.providerCount} Providers)</h3>`;
   const sortedClasses = Object.entries(r.signals.classes).sort((a,b) => b[1].votes - a[1].votes);
   sortedClasses.forEach(([cls, d]) => {
