@@ -606,6 +606,38 @@ Citations:<br>
     <div id="monthlyIssueBanner"></div>
     <div class="rp" id="rpList"></div>
   </div>
+
+  <!-- ─── Ingest a monthly issue you are entitled to ─── -->
+  <div class="panel">
+    <div class="ptitle section-dropdown" data-action="toggleIngest" style="margin:0;cursor:pointer">
+      📥 Ingest a monthly issue <span style="font-weight:400;color:var(--ink3);font-size:12px">— paste or upload an issue you have access to · click to expand</span>
+    </div>
+    <div id="ingestBody" style="display:none;padding-top:14px">
+      <div class="pdesc" style="margin-bottom:12px">
+        For subscription publications (CIO Viewpoint, RIC Report, US 1 List) the console cannot fetch the issue itself — the feeds behind them only carry
+        <em>news about</em> the report. Paste the text of an issue <strong>you are entitled to</strong>, or upload it as .txt / .md / .pdf, and it will be
+        parsed into research items, tagged with the issue month, and fed to the engine like any other source. Nothing is uploaded anywhere; parsing happens in this browser.
+      </div>
+      <div style="display:grid;grid-template-columns:minmax(200px,1fr) 150px;gap:10px;margin-bottom:10px">
+        <label style="font-size:12px;font-weight:600;color:var(--ink2)">Publication
+          <select id="ingestProvider" style="width:100%;margin-top:4px"></select>
+        </label>
+        <label style="font-size:12px;font-weight:600;color:var(--ink2)">Issue month
+          <input type="month" id="ingestMonth" style="width:100%;margin-top:4px">
+        </label>
+      </div>
+      <textarea id="ingestText" rows="8" placeholder="Paste the issue text here — headings, bullets and paragraphs are all handled." style="width:100%;font-family:var(--fm);font-size:12px;padding:10px;margin-bottom:10px"></textarea>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px">
+        <input type="file" id="ingestFile" accept=".txt,.md,.text,.pdf" style="font-size:12px">
+        <button class="btn-ghost" data-action="previewIngest">🔍 Parse &amp; preview</button>
+        <button class="btn" data-action="commitIngest" id="ingestCommitBtn" disabled>📥 Ingest</button>
+        <button class="btn-ghost" data-action="clearIngest">✕ Clear</button>
+        <span id="ingestStatus" style="font-size:11.5px;color:var(--ink3)"></span>
+      </div>
+      <div id="ingestPreview"></div>
+    </div>
+  </div>
+
   <div class="panel">
     <div class="ptitle">Latest Items</div>
     <div id="rpFeed" style="max-height:600px;overflow-y:auto"></div>
@@ -1111,7 +1143,7 @@ function toggleQuestionnairePreview(){
 // ═══════════════════════════════════════════════════════════
 // VERSION + UTILS
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260801-1541";
+const APP_VERSION = "20260801-1547";
 const $ = (id) => document.getElementById(id);
 const $$ = (sel, ctx) => Array.from((ctx||document).querySelectorAll(sel));
 
@@ -3638,6 +3670,211 @@ function monthlyIssueStatus(p, cfg, now){
 // Operator marks the issue ingested once its content is actually in the library.
 // Deliberately explicit: a feed refresh pulls NEWS ABOUT the report, not the
 // report, so refreshing must never silently claim the issue was ingested.
+// ═══════════════════════════════════════════════════════════
+// ISSUE INGESTION — paste/upload an issue the operator is entitled to
+// ═══════════════════════════════════════════════════════════
+// The subscription publications cannot be fetched by the console: their feeds
+// carry news ABOUT the report, never the report. This path lets an entitled
+// operator bring the issue in by hand. Everything runs in this browser — no
+// upload, no third-party call — and items are stamped with the issue month so
+// they can never masquerade as live-dated research.
+
+// Lines that are page furniture rather than research content.
+const _INGEST_NOISE = [
+  /^\s*page\s+\d+/i, /^\s*\d+\s*$/, /^\s*\d+\s+of\s+\d+\s*$/i,
+  /past performance/i, /is not (a guarantee|indicative)/i,
+  /^\s*source[s]?\s*:/i, /^\s*exhibit\s+\d+/i, /^\s*chart\s+\d+/i,
+  /all rights reserved/i, /^\s*©/, /\bmember sipc\b/i, /\bfdic\b/i,
+  /not bank guaranteed/i, /may lose value/i, /^\s*disclosur/i,
+  /important disclosures/i, /^\s*https?:\/\//i, /^\s*www\./i,
+  /this material (was|is) prepared/i, /investment products/i,
+  /^\s*[-–—_=*]{3,}\s*$/,
+  // All-caps mastheads and section rules ("CHIEF INVESTMENT OFFICE",
+  // "IMPORTANT INFORMATION"). Research prose always carries lower case, so a
+  // short line without any is furniture rather than content.
+  /^[^a-z]{4,40}$/
+];
+function _ingestIsNoise(line){
+  const t = line.trim();
+  if(t.length < 4) return true;
+  return _INGEST_NOISE.some(rx => rx.test(t));
+}
+// Turn raw issue text into {title, summary} research items. Deliberately
+// conservative: it would rather drop an ambiguous fragment than manufacture a
+// research item out of a page header.
+function parseIssueText(raw, limit){
+  const max = limit || 60;
+  const text = String(raw || "")
+    .replace(/\r\n?/g, "\n")
+    .replace(/­/g, "")          // soft hyphens from PDF extraction
+    .replace(/-\n(?=[a-z])/g, "")    // de-hyphenate words split across lines
+    .replace(/[ \t]+/g, " ");
+  const items = [];
+  const seen = new Set();
+  // A research item needs some substance: at least 4 words, or a colon (which
+  // is how positioning lines read — "Cash: hold planned liquidity only").
+  // Without this, mastheads and section headers ("Viewpoint", "Asset Class
+  // Views", "Portfolio construction") become research items.
+  const hasSubstance = t => /:/.test(t) || t.split(/\s+/).filter(Boolean).length >= 4;
+  const push = (title, summary) => {
+    let t = String(title || "").trim().replace(/^[•▪◦·\-–—*]\s*/, "").replace(/\s+/g, " ");
+    if(t.length < 12 || items.length >= max || !hasSubstance(t)) return;
+    if(t.length > 180) t = t.slice(0, 177).replace(/\s+\S*$/, "") + "…";
+    const key = t.toLowerCase().slice(0, 80);
+    if(seen.has(key)) return;
+    seen.add(key);
+    let s = String(summary || "").trim().replace(/\s+/g, " ");
+    if(s.length > 320) s = s.slice(0, 317).replace(/\s+\S*$/, "") + "…";
+    items.push({title: t, summary: s});
+  };
+
+  text.split(/\n\s*\n/).forEach(block => {
+    const lines = block.split("\n").map(l => l.trim()).filter(l => l && !_ingestIsNoise(l));
+    if(lines.length === 0) return;
+    // Bullet list → one item per bullet
+    const bullets = lines.filter(l => /^[•▪◦·\-–—*]\s+/.test(l) || /^\d+[.)]\s+/.test(l));
+    if(bullets.length >= 2){
+      bullets.forEach(b => push(b.replace(/^\d+[.)]\s*/, ""), ""));
+      return;
+    }
+    // A short opening line is only a section heading if it carries no sentence
+    // punctuation at all — otherwise a wrapped paragraph whose first line
+    // happens to be short gets mistaken for one, truncating the title
+    // mid-sentence ("...favoring quality equities. Balance"). If the candidate
+    // heading has no substance on its own the block falls through to reflow so
+    // the body underneath is never dropped.
+    const head = lines[0];
+    const looksHeading = lines.length > 1 && head.length < 80
+      && !/[.!?;,:]$/.test(head) && !/[.!?]\s/.test(head)
+      && head.split(/\s+/).length <= 8;
+    if(looksHeading && hasSubstance(head)){
+      push(head, lines.slice(1).join(" "));
+      return;
+    }
+    // Otherwise the block is a wrapped paragraph. Reflow it before splitting —
+    // treating each wrapped line as a unit truncated titles mid-sentence
+    // ("...favoring quality equities. Balance").
+    const para = lines.join(" ").replace(/\s+/g, " ").trim();
+    if(para.length <= 180){ push(para, ""); return; }
+    const m = para.match(/^(.{40,180}?[.!?])\s+(.*)$/);
+    if(m) push(m[1], m[2]);
+    else push(para, "");
+  });
+  return items;
+}
+
+let _ingestParsed = null;
+function toggleIngest(){
+  const b = $("ingestBody"); if(!b) return;
+  b.style.display = b.style.display === "none" ? "block" : "none";
+  if(b.style.display === "block") renderIngestProviders();
+}
+function renderIngestProviders(){
+  const sel = $("ingestProvider"); if(!sel || sel.options.length) return;
+  const monthly = RESEARCH_PROVIDERS.filter(p => p.cadence === "monthly");
+  const others  = RESEARCH_PROVIDERS.filter(p => p.cadence !== "monthly");
+  sel.innerHTML =
+    `<optgroup label="Monthly publications">${monthly.map(p => `<option value="${p.id}">${escapeHtml(p.name)}</option>`).join("")}</optgroup>` +
+    `<optgroup label="Other sources">${others.map(p => `<option value="${p.id}">${escapeHtml(p.name)}</option>`).join("")}</optgroup>`;
+  const m = $("ingestMonth");
+  if(m && !m.value) m.value = currentIssueYM();
+}
+// PDF support uses the vendored pdf.js, loaded only when a PDF is actually
+// chosen so the console stays light and still works without it.
+function _loadPdfJs(){
+  if(window.pdfjsLib) return Promise.resolve(window.pdfjsLib);
+  return new Promise((resolve, reject) => {
+    const s = document.createElement("script");
+    s.src = "vendor/pdf.min.js";
+    s.onload = () => {
+      try { if(window.pdfjsLib) window.pdfjsLib.GlobalWorkerOptions.workerSrc = "vendor/pdf.worker.min.js"; } catch(_){}
+      window.pdfjsLib ? resolve(window.pdfjsLib) : reject(new Error("pdf.js did not initialise"));
+    };
+    s.onerror = () => reject(new Error("vendor/pdf.min.js not reachable"));
+    document.head.appendChild(s);
+  });
+}
+async function _readIngestFile(file){
+  if(/\.pdf$/i.test(file.name)){
+    const pdfjs = await _loadPdfJs();
+    const buf = await file.arrayBuffer();
+    const doc = await pdfjs.getDocument({data: buf}).promise;
+    const pages = [];
+    for(let i = 1; i <= doc.numPages; i++){
+      const page = await doc.getPage(i);
+      const tc = await page.getTextContent();
+      pages.push(tc.items.map(t => t.str).join(" "));
+    }
+    return pages.join("\n\n");
+  }
+  return await file.text();
+}
+async function previewIngest(){
+  const status = $("ingestStatus"), host = $("ingestPreview");
+  const commit = $("ingestCommitBtn");
+  _ingestParsed = null; if(commit) commit.disabled = true;
+  let raw = ($("ingestText") && $("ingestText").value) || "";
+  const f = $("ingestFile") && $("ingestFile").files && $("ingestFile").files[0];
+  if(f){
+    status.textContent = "Reading " + f.name + "…";
+    try { raw = await _readIngestFile(f); }
+    catch(e){
+      status.textContent = "";
+      host.innerHTML = `<div class="code" style="background:#7f1d1d">Could not read ${escapeHtml(f.name)}: ${escapeHtml(e.message)}<br>Paste the text instead.</div>`;
+      return;
+    }
+  }
+  if(!raw.trim()){ status.textContent = "Nothing to parse — paste text or choose a file."; host.innerHTML = ""; return; }
+  const items = parseIssueText(raw);
+  if(items.length === 0){
+    status.textContent = "";
+    host.innerHTML = `<div class="code" style="background:#7f1d1d">No research items could be extracted — the text may be mostly page furniture or images.</div>`;
+    return;
+  }
+  _ingestParsed = items;
+  if(commit){ commit.disabled = false; commit.textContent = `📥 Ingest ${items.length} item${items.length>1?'s':''}`; }
+  status.textContent = `${items.length} item${items.length>1?'s':''} parsed from ${(raw.length/1024).toFixed(1)} KB`;
+  host.innerHTML = `<div style="max-height:320px;overflow-y:auto;border:1px solid var(--line);border-radius:8px">${
+    items.map((it,i) => `<div style="padding:8px 12px;border-bottom:1px solid var(--line);font-size:12px">
+      <div style="font-weight:600;color:var(--ink)">${i+1}. ${escapeHtml(it.title)}</div>
+      ${it.summary ? `<div style="color:var(--ink3);margin-top:2px">${escapeHtml(it.summary)}</div>` : ""}
+    </div>`).join("")}</div>
+    <div style="font-size:11px;color:var(--ink3);margin-top:6px">Review before ingesting — anything that looks like a page header or disclaimer can be removed by editing the pasted text and re-parsing.</div>`;
+}
+function commitIngest(){
+  if(!_ingestParsed || !_ingestParsed.length) return;
+  const pid = $("ingestProvider") && $("ingestProvider").value;
+  const ym  = ($("ingestMonth") && $("ingestMonth").value) || currentIssueYM();
+  const p = RESEARCH_PROVIDERS.find(x => x.id === pid);
+  if(!p){ toast("Pick a publication first","err"); return; }
+  const cfg = getProviderCfg(pid);
+  const existing = cfg.items || [];
+  // Ingested issue items are stamped with the ISSUE month, flagged as an issue,
+  // and put ahead of the news items so the engine reads the report first.
+  const stamped = _ingestParsed.map(it => ({
+    title: it.title,
+    summary: it.summary || `${p.name} — ${ym} issue.`,
+    date: ym + "-01",
+    issueYM: ym,
+    source: "issue"
+  }));
+  // Replace any previously ingested items for the same issue month
+  const kept = existing.filter(it => !(it.source === "issue" && it.issueYM === ym));
+  setProviderCfg(pid, {items: stamped.concat(kept), lastIssueYM: ym, lastRefresh: Date.now()});
+  addLog("ok", `Ingested ${stamped.length} items into ${p.name} (${ym} issue)`);
+  toast(`✓ ${stamped.length} items ingested — ${p.name} ${ym}`, "ok");
+  clearIngest();
+  renderResearch();
+}
+function clearIngest(){
+  _ingestParsed = null;
+  if($("ingestText")) $("ingestText").value = "";
+  if($("ingestFile")) $("ingestFile").value = "";
+  if($("ingestPreview")) $("ingestPreview").innerHTML = "";
+  if($("ingestStatus")) $("ingestStatus").textContent = "";
+  const c = $("ingestCommitBtn"); if(c){ c.disabled = true; c.textContent = "📥 Ingest"; }
+}
+
 function markIssue(el){ markIssueIngested(el.dataset.prov); }
 function markIssueIngested(pid){
   const ym = currentIssueYM();
@@ -6618,6 +6855,11 @@ window.refreshOne = refreshOne;
 window.markIssue = markIssue;
 window.markIssueIngested = markIssueIngested;
 window.monthlyIssuesOutstanding = monthlyIssuesOutstanding;
+window.toggleIngest = toggleIngest;
+window.previewIngest = previewIngest;
+window.commitIngest = commitIngest;
+window.clearIngest = clearIngest;
+window.parseIssueText = parseIssueText;
 window.toggleProvider = toggleProvider;
 window.runTb = runTb;
 window.runTbStress = runTbStress;
