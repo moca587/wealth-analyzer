@@ -1143,7 +1143,7 @@ function toggleQuestionnairePreview(){
 // ═══════════════════════════════════════════════════════════
 // VERSION + UTILS
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260801-2142";
+const APP_VERSION = "20260801-2147";
 const $ = (id) => document.getElementById(id);
 const $$ = (sel, ctx) => Array.from((ctx||document).querySelectorAll(sel));
 
@@ -1649,12 +1649,12 @@ const FUND_UNIVERSE = [
   {tkr:"BIBL",name:"Inspire 100 ETF",cls:"equity",vehicle:"etf",er:0.35,yld:1.0,sponsor:"Inspire",esg:true},
 
   // ─── US TREASURIES — Short ───
-  {tkr:"BIL",name:"SPDR Bloomberg 1-3 Month T-Bill",cls:"cash",vehicle:"etf",er:0.14,yld:5.2,sponsor:"State Street"},
-  {tkr:"SGOV",name:"iShares 0-3 Month Treasury",cls:"cash",vehicle:"etf",er:0.07,yld:5.2,sponsor:"BlackRock"},
-  {tkr:"SHV",name:"iShares Short Treasury Bond",cls:"cash",vehicle:"etf",er:0.15,yld:5.2,sponsor:"BlackRock"},
-  {tkr:"USFR",name:"WisdomTree Floating Rate Treasury",cls:"cash",vehicle:"etf",er:0.15,yld:5.3,sponsor:"WisdomTree"},
-  {tkr:"TFLO",name:"iShares Treasury Floating Rate",cls:"cash",vehicle:"etf",er:0.15,yld:5.3,sponsor:"BlackRock"},
-  {tkr:"CLTL",name:"Invesco Treasury Collateral",cls:"cash",vehicle:"etf",er:0.08,yld:5.2,sponsor:"Invesco"},
+  {tkr:"BIL",name:"SPDR Bloomberg 1-3 Month T-Bill",cls:"cash",vehicle:"etf",er:0.14,yld:5.2,sponsor:"State Street",ccy:"USD",act40:true},
+  {tkr:"SGOV",name:"iShares 0-3 Month Treasury",cls:"cash",vehicle:"etf",er:0.07,yld:5.2,sponsor:"BlackRock",ccy:"USD",act40:true},
+  {tkr:"SHV",name:"iShares Short Treasury Bond",cls:"cash",vehicle:"etf",er:0.15,yld:5.2,sponsor:"BlackRock",ccy:"USD",act40:true},
+  {tkr:"USFR",name:"WisdomTree Floating Rate Treasury",cls:"cash",vehicle:"etf",er:0.15,yld:5.3,sponsor:"WisdomTree",ccy:"USD",act40:true},
+  {tkr:"TFLO",name:"iShares Treasury Floating Rate",cls:"cash",vehicle:"etf",er:0.15,yld:5.3,sponsor:"BlackRock",ccy:"USD",act40:true},
+  {tkr:"CLTL",name:"Invesco Treasury Collateral",cls:"cash",vehicle:"etf",er:0.08,yld:5.2,sponsor:"Invesco",ccy:"USD",act40:true},
   {tkr:"SHY",name:"iShares 1-3 Year Treasury",cls:"fixed_income",vehicle:"etf",er:0.15,yld:4.7,sponsor:"BlackRock"},
   {tkr:"SCHO",name:"Schwab Short-Term US Treasury",cls:"fixed_income",vehicle:"etf",er:0.03,yld:4.7,sponsor:"Schwab"},
   {tkr:"VGSH",name:"Vanguard Short-Term Treasury",cls:"fixed_income",vehicle:"etf",er:0.04,yld:4.6,sponsor:"Vanguard"},
@@ -1917,18 +1917,25 @@ const FUND_UNIVERSE = [
   {tkr:"PSEP",name:"Innovator S&P 500 Power Buffer September",cls:"alternative",vehicle:"etf",er:0.79,yld:0.0,sponsor:"Innovator"},
 
   // ─── CASH / MONEY MARKET ───
-  {tkr:"VMFXX",name:"Vanguard Federal Money Market",cls:"cash",vehicle:"money_market",er:0.11,yld:5.3,sponsor:"Vanguard"},
-  {tkr:"VMSXX",name:"Vanguard Tax-Exempt Money Market",cls:"cash",vehicle:"money_market",er:0.15,yld:3.4,sponsor:"Vanguard"},
-  {tkr:"VUSXX",name:"Vanguard Treasury Money Market",cls:"cash",vehicle:"money_market",er:0.09,yld:5.2,sponsor:"Vanguard"},
-  {tkr:"SPAXX",name:"Fidelity Government Money Market",cls:"cash",vehicle:"money_market",er:0.42,yld:5.0,sponsor:"Fidelity"},
-  {tkr:"FZDXX",name:"Fidelity Money Market Premium",cls:"cash",vehicle:"money_market",er:0.40,yld:5.1,sponsor:"Fidelity"},
-  {tkr:"FDLXX",name:"Fidelity Treasury Only Money Market",cls:"cash",vehicle:"money_market",er:0.42,yld:5.0,sponsor:"Fidelity"},
-  {tkr:"SWVXX",name:"Schwab Value Advantage Money",cls:"cash",vehicle:"money_market",er:0.34,yld:5.1,sponsor:"Schwab"},
-  {tkr:"SNOXX",name:"Schwab Treasury Money Fund",cls:"cash",vehicle:"money_market",er:0.34,yld:5.0,sponsor:"Schwab"},
-  {tkr:"SUTXX",name:"Schwab US Treasury Money Fund",cls:"cash",vehicle:"money_market",er:0.34,yld:5.0,sponsor:"Schwab"},
-  {tkr:"UTIXX",name:"American Century US Government Money",cls:"cash",vehicle:"money_market",er:0.40,yld:4.9,sponsor:"American Century"},
-  {tkr:"FLOT",name:"iShares Floating Rate Bond",cls:"cash",vehicle:"etf",er:0.15,yld:5.4,sponsor:"BlackRock"},
-  {tkr:"FLRN",name:"SPDR Bloomberg Investment Grade Floating Rate",cls:"cash",vehicle:"etf",er:0.15,yld:5.4,sponsor:"State Street"},
+  {tkr:"VMFXX",name:"Vanguard Federal Money Market",cls:"cash",vehicle:"money_market",er:0.11,yld:5.3,sponsor:"Vanguard",ccy:"USD",act40:true},
+  {tkr:"VMSXX",name:"Vanguard Tax-Exempt Money Market",cls:"cash",vehicle:"money_market",er:0.15,yld:3.4,sponsor:"Vanguard",ccy:"USD",act40:true},
+  {tkr:"VUSXX",name:"Vanguard Treasury Money Market",cls:"cash",vehicle:"money_market",er:0.09,yld:5.2,sponsor:"Vanguard",ccy:"USD",act40:true},
+  {tkr:"SPAXX",name:"Fidelity Government Money Market",cls:"cash",vehicle:"money_market",er:0.42,yld:5.0,sponsor:"Fidelity",ccy:"USD",act40:true},
+  {tkr:"FZDXX",name:"Fidelity Money Market Premium",cls:"cash",vehicle:"money_market",er:0.40,yld:5.1,sponsor:"Fidelity",ccy:"USD",act40:true},
+  {tkr:"FDLXX",name:"Fidelity Treasury Only Money Market",cls:"cash",vehicle:"money_market",er:0.42,yld:5.0,sponsor:"Fidelity",ccy:"USD",act40:true},
+  {tkr:"SWVXX",name:"Schwab Value Advantage Money",cls:"cash",vehicle:"money_market",er:0.34,yld:5.1,sponsor:"Schwab",ccy:"USD",act40:true},
+  {tkr:"SNOXX",name:"Schwab Treasury Money Fund",cls:"cash",vehicle:"money_market",er:0.34,yld:5.0,sponsor:"Schwab",ccy:"USD",act40:true},
+  {tkr:"SUTXX",name:"Schwab US Treasury Money Fund",cls:"cash",vehicle:"money_market",er:0.34,yld:5.0,sponsor:"Schwab",ccy:"USD",act40:true},
+  {tkr:"UTIXX",name:"American Century US Government Money",cls:"cash",vehicle:"money_market",er:0.40,yld:4.9,sponsor:"American Century",ccy:"USD",act40:true},
+  {tkr:"FLOT",name:"iShares Floating Rate Bond",cls:"cash",vehicle:"etf",er:0.15,yld:5.4,sponsor:"BlackRock",ccy:"USD",act40:true},
+  {tkr:"FLRN",name:"SPDR Bloomberg Investment Grade Floating Rate",cls:"cash",vehicle:"etf",er:0.15,yld:5.4,sponsor:"State Street",ccy:"USD",act40:true},
+
+  // ─── 1940 ACT ULTRA-SHORT ETFs (US-registered) ───
+  // The largest ultra-short 40-Act ETFs, absent until now: JPST alone holds
+  // more assets than the rest of the ETF cash sleeve combined.
+  {tkr:"JPST",name:"JPMorgan Ultra-Short Income ETF",cls:"cash",vehicle:"etf",er:0.18,yld:5.3,sponsor:"J.P. Morgan",ccy:"USD",act40:true},
+  {tkr:"ICSH",name:"iShares Ultra Short Duration Bond Active ETF",cls:"cash",vehicle:"etf",er:0.08,yld:5.3,sponsor:"BlackRock",ccy:"USD",act40:true},
+  {tkr:"GBIL",name:"Goldman Sachs Access Treasury 0-1 Year ETF",cls:"cash",vehicle:"etf",er:0.12,yld:5.0,sponsor:"Goldman Sachs",ccy:"USD",act40:true},
 
   // ─── UCITS MONEY MARKET / ULTRA-SHORT (non-US eligible) ───
   // Every fund above is US-listed, so a UCITS-only client (CH/DE/SG/BR and the
@@ -2367,6 +2374,10 @@ const FUND_OVERRIDES = {
   HYG:{mu:7.0,sigma:9.0,holdings:1230,aum:14,beta:0.55,r1y:9.0,r3y:1.5,r5y:3.5,r10y:4.0,maxDD:-23.5},
   MUB:{mu:3.5,sigma:5.0,holdings:5550,aum:38,beta:0.05,r1y:3.0,r3y:-0.5,r5y:1.0,r10y:2.5,maxDD:-11.0},
   BIL:{mu:5.2,sigma:0.4,holdings:18,aum:38,beta:0.00,r1y:5.3,r3y:3.2,r5y:1.9,r10y:1.2,maxDD:-0.2},
+  // ─── 1940 Act ultra-short ETFs ───
+  JPST:{mu:5.3,sigma:0.5,holdings:700,aum:39,beta:0.02,r1y:5.5,r3y:3.6,r5y:2.6,r10y:0,maxDD:-1.0},
+  ICSH:{mu:5.3,sigma:0.5,holdings:400,aum:7.8,beta:0.02,r1y:5.5,r3y:3.6,r5y:2.5,r10y:1.8,maxDD:-1.0},
+  GBIL:{mu:5.0,sigma:0.3,holdings:40,aum:7.5,beta:0.00,r1y:5.2,r3y:3.3,r5y:2.2,r10y:0,maxDD:-0.3},
   // ─── UCITS money market / ultra-short ───
   // TER and fund size are the published figures; the return series uses the 0
   // sentinel for windows a line has not run (converted to null = "n/a", never
