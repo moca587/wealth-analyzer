@@ -3300,7 +3300,7 @@ input[type=date]{color-scheme:light}
 // ═══════════════════════════════════════════════════════════
 // VERSION — updated by build-standalone.pl on each build
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260801-0951";
+const APP_VERSION = "20260801-1243";
 
 // ═══════════════════════════════════════════════════════════
 // DATA
@@ -9132,7 +9132,7 @@ function buildExpandedRationale(p, fund, simpleBrief, rec){
 // ═══════════════════════════════════════════════════════════
 
 // Sentiment lexicons (same as admin)
-const ENG_POS_WORDS = {"overweight":3,"overweigh":3,"long":2,"bullish":3,"favor":2,"prefer":2,"outperform":2,"buy":2,"attractive":2,"compelling":2,"upside":2,"tailwind":2,"constructive":2,"high conviction":3,"structural growth":3,"tactical overweight":3,"strategic overweight":3,"best ideas":2,"top pick":3,"recommend":2,"accumulate":2,"add":1};
+const ENG_POS_WORDS = {"overweight":3,"overweigh":3,"long position":2,"net long":3,"bullish":3,"favor":2,"prefer":2,"outperform":2,"buy":2,"attractive":2,"compelling":2,"upside":2,"tailwind":2,"constructive":2,"high conviction":3,"structural growth":3,"tactical overweight":3,"strategic overweight":3,"best ideas":2,"top pick":3,"recommend":2,"accumulate":2,"add":1};
 const ENG_NEG_WORDS = {"underweight":3,"underweigh":3,"short position":2,"net short":3,"bearish":3,"avoid":2,"cautious":2,"underperform":2,"sell":2,"expensive":1,"stretched":2,"headwind":2,"downside":2,"negative":1,"high conviction underweight":4,"tactical underweight":3,"structural underweight":3,"underperforming":2,"reduce":1,"trim":1,"exit":2};
 
 const ENG_CLASS_KEYWORDS = {
@@ -9174,21 +9174,39 @@ const ENG_KNOWN_TICKERS = new Set([...AI_FUND_UNIVERSE.map(f=>f.tkr),"NVDA","MSF
 // acronyms match case-sensitively so the "AI" keyword no longer fires on the
 // letters inside "sustainable", "maintain", "against", "remains", "supply chain".
 function _engEsc(s){ return String(s).replace(/[.*+?^${}()|[\]\\]/g, "\\$&"); }
+// A phrase is treated as an acronym when it is short and mostly capitals (AI,
+// EM, US, ML, HY, IG, REIT, CTA, BDC, S&P, NVDA…).
 function _engIsAcronym(ph){ return /^[A-Z][A-Z0-9&.\-]{0,5}$/.test(String(ph).trim()); }
-// allowTail=true for TOPIC keywords so noun stems match inflections
-// (bond->bonds, equit->equities, tech->technology). Sentiment words use
-// allowTail=false so "add" cannot match "additional". Acronyms admit only a
-// plural "s" -- "AI" must not match "AIG", and case-sensitivity keeps it off
-// "sustainable"/"maintain"/"supply chain".
+// allowTail=true is used for TOPIC keywords so noun stems still match their
+// inflections (bond→bonds, equit→equities, tech→technology). Sentiment words
+// use allowTail=false so "add" cannot match "additional" or "long" match
+// "longevity". Acronyms only ever admit a plural "s" — "AI" must not match
+// "AIG", and case-sensitivity keeps it off "sustainable"/"maintain"/"chain".
+// Compiled patterns are memoized: a full aggregation runs every lexicon phrase
+// against every item (~480 items x ~200 phrases), so recompiling each time was
+// the dominant cost.
+const _engRxCache = new Map();
 function _engPhraseRegex(ph, flags, allowTail){
   const p = String(ph).trim();
-  const lead = /^\w/.test(p) ? "\\b" : "";
-  const tail = !/\w$/.test(p) ? ""
-    : _engIsAcronym(p) ? "(?:s)?\\b"
-    : allowTail ? "\\w*"
-    : "\\b";
-  return new RegExp(lead + _engEsc(p) + tail, (_engIsAcronym(p) ? "" : "i") + (flags || ""));
+  const key = p + " " + (flags || "") + " " + (allowTail ? 1 : 0);
+  let re = _engRxCache.get(key);
+  if(!re){
+    const lead = /^\w/.test(p) ? "\\b" : "";
+    const tail = !/\w$/.test(p) ? ""                    // ends in punctuation (U.S., S&P.)
+      : _engIsAcronym(p) ? "(?:s)?\\b"
+      : allowTail ? "\\w*"
+      : "\\b";
+    re = new RegExp(lead + _engEsc(p) + tail, (_engIsAcronym(p) ? "" : "i") + (flags || ""));
+    _engRxCache.set(key, re);
+  }
+  // A cached /g/ regex carries lastIndex between calls — reset or exec() would
+  // resume mid-string and silently skip matches.
+  re.lastIndex = 0;
+  return re;
 }
+// Sentiment for one span of text: every lexicon phrase is matched with word
+// boundaries, longest first, and a shorter phrase overlapping an already-matched
+// span is skipped so nothing is counted twice.
 function _engScoreSentiment(span){
   const entries = [];
   for(const [w, wt] of Object.entries(ENG_POS_WORDS)) entries.push({w, wt, sign: 1});
@@ -9201,21 +9219,49 @@ function _engScoreSentiment(span){
     let m, hit = false;
     while((m = re.exec(span)) !== null){
       const s = m.index, t = s + m[0].length;
-      if(taken.some(r => s < r[1] && t > r[0])) continue;
+      if(taken.some(r => s < r[1] && t > r[0])) continue; // inside a longer phrase
       taken.push([s, t]);
       hit = true;
     }
-    if(hit) score += e.sign * e.wt;
+    if(hit) score += e.sign * e.wt; // presence-weighted, matching the original calibration
   }
   return score;
 }
+// Split an item into clauses so a single item can express opposite views, e.g.
+// "Overweight Technology, Financials; Underweight Real Estate, Utilities" —
+// which previously netted to sentiment 0 and then defaulted every one of those
+// five sectors to +1, recording the underweights as bullish.
 function _engClauses(text){
-  return String(text)
+  // Decimal points and dotted abbreviations must not create clause boundaries.
+  // Splitting naively on "." shattered "ER 0.03%" into "ER 0" / "03%" and
+  // "U.S. equities" into "U" / "S" / "equities", which separated a topic from
+  // the sentiment word describing it — in a mixed item that misattributed the
+  // direction (e.g. "Equities returned 8.5% and remain attractive; real estate
+  // underweight" scored equities NEGATIVE). Protect them, split, then restore.
+  const PH = String.fromCharCode(1); // sentinel that cannot occur in research text
+  const guarded = String(text)
+    .replace(/(\d)\.(\d)/g, "$1" + PH + "$2")                  // 0.03, 4.5, 8.5
+    .replace(/\b([A-Za-z])\.(?=[A-Za-z]\.)/g, "$1" + PH)       // U.S. / e.g. (first dot)
+    .replace(/\b([A-Za-z])\.(?=\s|$)/g, "$1" + PH);            // trailing single-letter abbrev
+  return guarded
     .split(/[;.]|\s+(?:but|while|whereas|although|though|versus|vs\.?)\s+/i)
-    .map(s => s.trim())
+    .map(s => s.split(PH).join(".").trim())
     .filter(Boolean);
 }
 
+// Phrases that must NOT count as a mention of a topic. These are terms that
+// contain a topic keyword but mean something else entirely — "free cash flow"
+// is a fundamentals metric, not the cash asset class; "dividend yield" is an
+// equity metric, not fixed income. Without these the engine voted the wrong
+// asset class on very common research prose.
+const ENG_TOPIC_EXCLUSIONS = {
+  cash:         /\bcash[-\s]?flows?\b/gi,
+  fixed_income: /\bdividend[-\s]yields?\b|\bearnings\syield\b|\bfree\scash\sflow\syield\b/gi
+};
+function _engScrub(text, key){
+  const ex = ENG_TOPIC_EXCLUSIONS[key];
+  return ex ? String(text).replace(ex, " ") : text;
+}
 function engExtractItemSignals(item, providerName){
   const rawText = (item.title||"")+" "+(item.summary||"");
   const itemSentiment = _engScoreSentiment(rawText);
@@ -9224,28 +9270,29 @@ function engExtractItemSignals(item, providerName){
   // Topic sentiment = sentiment of the clause the topic appears in, so one item
   // can be bullish on some topics and bearish on others. A mention with no
   // directional language scores 0 instead of defaulting to +1.
-  function voteFor(phrases){
+  function voteFor(phrases, key){
     let matched = false, best = null;
     for(const c of clauses){
-      if(phrases.some(ph => _engPhraseRegex(ph, "", true).test(c.text))){
+      const t = _engScrub(c.text, key);
+      if(phrases.some(ph => _engPhraseRegex(ph, "", true).test(t))){
         matched = true;
         if(c.sent !== 0 && (best === null || Math.abs(c.sent) > Math.abs(best))) best = c.sent;
       }
     }
-    if(!matched && phrases.some(ph => _engPhraseRegex(ph, "", true).test(rawText))) matched = true;
+    if(!matched && phrases.some(ph => _engPhraseRegex(ph, "", true).test(_engScrub(rawText, key)))) matched = true;
     if(!matched) return null;
     return best !== null ? best : itemSentiment;
   }
   function detect(map, container){
     for(const [k,phrases] of Object.entries(map)){
-      const v = voteFor(phrases);
+      const v = voteFor(phrases, k);
       if(v !== null) container[k] = (container[k]||0) + v;
     }
   }
   detect(ENG_CLASS_KEYWORDS, sig.classes);
   detect(ENG_REGION_KEYWORDS, sig.regions);
   for(const [k,phrases] of Object.entries(ENG_THEME_KEYWORDS)){
-    if(phrases.some(ph=>_engPhraseRegex(ph, "", true).test(rawText))) sig.themes[k] = (sig.themes[k]||0)+1;
+    if(phrases.some(ph=>_engPhraseRegex(ph, "", true).test(_engScrub(rawText, k)))) sig.themes[k] = (sig.themes[k]||0)+1;
   }
   // Ticker mention extract
   const matches = rawText.match(/\b[A-Z]{2,5}\b/g) || [];
