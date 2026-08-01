@@ -2851,7 +2851,7 @@ input[type=date]{color-scheme:light}
 // ═══════════════════════════════════════════════════════════
 // VERSION — updated by build-standalone.pl on each build
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260731-2140";
+const APP_VERSION = "20260801-0951";
 
 // ═══════════════════════════════════════════════════════════
 // DATA
@@ -8684,7 +8684,7 @@ function buildExpandedRationale(p, fund, simpleBrief, rec){
 
 // Sentiment lexicons (same as admin)
 const ENG_POS_WORDS = {"overweight":3,"overweigh":3,"long":2,"bullish":3,"favor":2,"prefer":2,"outperform":2,"buy":2,"attractive":2,"compelling":2,"upside":2,"tailwind":2,"constructive":2,"high conviction":3,"structural growth":3,"tactical overweight":3,"strategic overweight":3,"best ideas":2,"top pick":3,"recommend":2,"accumulate":2,"add":1};
-const ENG_NEG_WORDS = {"underweight":3,"underweigh":3,"short":2,"bearish":3,"avoid":2,"cautious":2,"underperform":2,"sell":2,"expensive":1,"stretched":2,"headwind":2,"downside":2,"negative":1,"high conviction underweight":4,"tactical underweight":3,"structural underweight":3,"underperforming":2,"reduce":1,"trim":1,"exit":2};
+const ENG_NEG_WORDS = {"underweight":3,"underweigh":3,"short position":2,"net short":3,"bearish":3,"avoid":2,"cautious":2,"underperform":2,"sell":2,"expensive":1,"stretched":2,"headwind":2,"downside":2,"negative":1,"high conviction underweight":4,"tactical underweight":3,"structural underweight":3,"underperforming":2,"reduce":1,"trim":1,"exit":2};
 
 const ENG_CLASS_KEYWORDS = {
   equity: ["equit","stocks","stock market","S&P","S&P 500","SPY","russell","Magnificent 7","large-cap","small-cap","mid-cap","value stocks","growth stocks","dividend grow","dividend payer"],
@@ -8718,25 +8718,85 @@ const ENG_PRETTY_REGION = {us:"US",europe:"Europe",japan:"Japan",china:"China",i
 // Universe ticker set for mention detection
 const ENG_KNOWN_TICKERS = new Set([...AI_FUND_UNIVERSE.map(f=>f.tkr),"NVDA","MSFT","GOOGL","GOOG","META","AAPL","TSLA","AMZN","JPM","BAC","XOM","CVX","LLY","NOVO","LMT","RTX","CRWD","PANW","ZS","UNH","JNJ","TSM","ASML"]);
 
+
+// ── Matching primitives (see admin.html for the full rationale) ────────────
+// Word boundaries stop "overweight" from also firing the truncated "overweigh"
+// entry; longest-phrase-wins stops "tactical overweight" scoring 3+3(+3);
+// acronyms match case-sensitively so the "AI" keyword no longer fires on the
+// letters inside "sustainable", "maintain", "against", "remains", "supply chain".
+function _engEsc(s){ return String(s).replace(/[.*+?^${}()|[\]\\]/g, "\\$&"); }
+function _engIsAcronym(ph){ return /^[A-Z][A-Z0-9&.\-]{0,5}$/.test(String(ph).trim()); }
+// allowTail=true for TOPIC keywords so noun stems match inflections
+// (bond->bonds, equit->equities, tech->technology). Sentiment words use
+// allowTail=false so "add" cannot match "additional". Acronyms admit only a
+// plural "s" -- "AI" must not match "AIG", and case-sensitivity keeps it off
+// "sustainable"/"maintain"/"supply chain".
+function _engPhraseRegex(ph, flags, allowTail){
+  const p = String(ph).trim();
+  const lead = /^\w/.test(p) ? "\\b" : "";
+  const tail = !/\w$/.test(p) ? ""
+    : _engIsAcronym(p) ? "(?:s)?\\b"
+    : allowTail ? "\\w*"
+    : "\\b";
+  return new RegExp(lead + _engEsc(p) + tail, (_engIsAcronym(p) ? "" : "i") + (flags || ""));
+}
+function _engScoreSentiment(span){
+  const entries = [];
+  for(const [w, wt] of Object.entries(ENG_POS_WORDS)) entries.push({w, wt, sign: 1});
+  for(const [w, wt] of Object.entries(ENG_NEG_WORDS)) entries.push({w, wt, sign: -1});
+  entries.sort((a, b) => b.w.length - a.w.length);
+  const taken = [];
+  let score = 0;
+  for(const e of entries){
+    const re = _engPhraseRegex(e.w, "g");
+    let m, hit = false;
+    while((m = re.exec(span)) !== null){
+      const s = m.index, t = s + m[0].length;
+      if(taken.some(r => s < r[1] && t > r[0])) continue;
+      taken.push([s, t]);
+      hit = true;
+    }
+    if(hit) score += e.sign * e.wt;
+  }
+  return score;
+}
+function _engClauses(text){
+  return String(text)
+    .split(/[;.]|\s+(?:but|while|whereas|although|though|versus|vs\.?)\s+/i)
+    .map(s => s.trim())
+    .filter(Boolean);
+}
+
 function engExtractItemSignals(item, providerName){
-  const text = ((item.title||"")+" "+(item.summary||"")).toLowerCase();
   const rawText = (item.title||"")+" "+(item.summary||"");
-  let pos=0, neg=0;
-  for(const [w,wt] of Object.entries(ENG_POS_WORDS)) if(text.includes(w)) pos+=wt;
-  for(const [w,wt] of Object.entries(ENG_NEG_WORDS)) if(text.includes(w)) neg+=wt;
-  const sentiment = pos - neg;
-  const sig = {classes:{},regions:{},themes:{},tickers:[],sentiment,providerName,item};
+  const itemSentiment = _engScoreSentiment(rawText);
+  const clauses = _engClauses(rawText).map(c => ({text:c, sent:_engScoreSentiment(c)}));
+  const sig = {classes:{},regions:{},themes:{},tickers:[],sentiment:itemSentiment,providerName,item};
+  // Topic sentiment = sentiment of the clause the topic appears in, so one item
+  // can be bullish on some topics and bearish on others. A mention with no
+  // directional language scores 0 instead of defaulting to +1.
+  function voteFor(phrases){
+    let matched = false, best = null;
+    for(const c of clauses){
+      if(phrases.some(ph => _engPhraseRegex(ph, "", true).test(c.text))){
+        matched = true;
+        if(c.sent !== 0 && (best === null || Math.abs(c.sent) > Math.abs(best))) best = c.sent;
+      }
+    }
+    if(!matched && phrases.some(ph => _engPhraseRegex(ph, "", true).test(rawText))) matched = true;
+    if(!matched) return null;
+    return best !== null ? best : itemSentiment;
+  }
   function detect(map, container){
     for(const [k,phrases] of Object.entries(map)){
-      if(phrases.some(ph=>text.includes(ph.toLowerCase()))){
-        container[k] = (container[k]||0) + (sentiment!==0?sentiment:1);
-      }
+      const v = voteFor(phrases);
+      if(v !== null) container[k] = (container[k]||0) + v;
     }
   }
   detect(ENG_CLASS_KEYWORDS, sig.classes);
   detect(ENG_REGION_KEYWORDS, sig.regions);
   for(const [k,phrases] of Object.entries(ENG_THEME_KEYWORDS)){
-    if(phrases.some(ph=>text.includes(ph.toLowerCase()))) sig.themes[k] = (sig.themes[k]||0)+1;
+    if(phrases.some(ph=>_engPhraseRegex(ph, "", true).test(rawText))) sig.themes[k] = (sig.themes[k]||0)+1;
   }
   // Ticker mention extract
   const matches = rawText.match(/\b[A-Z]{2,5}\b/g) || [];
@@ -8775,7 +8835,15 @@ function engAggregateSignals(){
     });
   });
   // Convert Sets → arrays + counts
-  function norm(c){ Object.values(c).forEach(o => { o.providers = Array.from(o.providers); o.providerCount = o.providers.length; }); }
+  function norm(c){ Object.values(c).forEach(o => {
+    o.providers = Array.from(o.providers);
+    o.providerCount = o.providers.length;
+    o.providersFor = Array.from(o.providersFor || []);
+    o.providersAgainst = Array.from(o.providersAgainst || []);
+    o.forCount = o.providersFor.length;
+    o.againstCount = o.providersAgainst.length;
+    o.agreeCount = o.votes > 0 ? o.forCount : (o.votes < 0 ? o.againstCount : 0);
+  }); }
   norm(agg.classes); norm(agg.regions); norm(agg.themes);
   Object.values(agg.tickers).forEach(o => { o.providers = Array.from(o.providers); o.providerCount = o.providers.length; });
   return agg;
@@ -9193,8 +9261,13 @@ function importAdminProposal(){
     if(!raw) return;
     const data = JSON.parse(raw);
     if(!data || !Array.isArray(data.positions)) return;
-    // Reuse the existing apply path by stashing into lastAIGenResult
-    window.lastAIGenResult = {
+    // Reuse the existing apply path by stashing into lastAIGenResult.
+    // NOTE: assign the LEXICAL binding (top-level `let lastAIGenResult`), not
+    // `window.lastAIGenResult` — a script-scope `let` shadows the same-named
+    // window property, so writing to window left the reader in
+    // applyAIRecommendationToProposal() seeing null and the import silently
+    // did nothing.
+    lastAIGenResult = {
       summary: data.title || "AI Portfolio from admin console",
       positions: data.positions.map(p => ({
         ticker: p.ticker || p.tkr,

@@ -1108,7 +1108,7 @@ function toggleQuestionnairePreview(){
 // ═══════════════════════════════════════════════════════════
 // VERSION + UTILS
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260731-2140";
+const APP_VERSION = "20260801-0951";
 const $ = (id) => document.getElementById(id);
 const $$ = (sel, ctx) => Array.from((ctx||document).querySelectorAll(sel));
 
@@ -2223,8 +2223,14 @@ const CLASS_DEFAULTS = {
   crypto:       {mu:25.0, sigma:65.0, holdings:1,    aum:10,  beta:1.80, r1y:80.0, r3y:25.0, r5y:30.0, r10y:0.0}
 };
 
-// Explicit performance overrides for flagship funds (~2024 actuals, rounded)
+// Explicit performance overrides for flagship funds.
 // Format: {mu,sigma,holdings,aum(B USD),beta,r1y,r3y,r5y,r10y,maxDD,sharpe(optional)}
+// A trailing-return field of 0 is a SENTINEL meaning "the fund is younger than
+// this window"; enrichment converts it to null so it is never displayed or fed
+// to the model as a real 0.0% return. Figures are a point-in-time snapshot —
+// surface FUND_DATA_AS_OF wherever they are shown rather than implying they are
+// live market data.
+const FUND_DATA_AS_OF = "2024-12-31";
 const FUND_OVERRIDES = {
   // ─── US Large Cap Core ───
   VOO:{mu:10.5,sigma:15.0,holdings:503,aum:1100,beta:1.00,r1y:24.2,r3y:9.8,r5y:14.8,r10y:12.5,maxDD:-23.9},
@@ -2363,8 +2369,18 @@ function _fundHash(tkr){
     f.te = ov.te ?? (f.vehicle === "mutual_fund"
       ? +(1.5 + (h % 25) / 10).toFixed(2)
       : +(0.05 + (h % 25) / 100).toFixed(2));
-    // Inception year — flagships before 2010, others 2010-2022
-    f.inception = ov.inception ?? (FUND_OVERRIDES[f.tkr] ? 2005 : 2010 + (h % 13));
+    // Trailing returns: FUND_OVERRIDES uses 0.0 as a "fund is younger than this
+    // period" sentinel. Left as 0.0 it renders as a real 0.0% annualized return
+    // (e.g. a 2024-launched fund showing "10y: 0.0%") and drags portfolio
+    // aggregates toward zero. Normalize the sentinel to null = no track record.
+    ["r1y","r3y","r5y","r10y"].forEach(k => {
+      if(ov[k] === 0) f[k] = null;
+    });
+    // Inception year — only when actually curated. It used to be fabricated
+    // (every override fund got 2005, everything else 2010+hash), which stated a
+    // false launch year for funds that launched in 2024 and fed an "inception
+    // ≥ 5 years ago" quality screen with invented data.
+    f.inception = ov.inception ?? null;
     // Income type — derive from yield
     f.income = f.yld >= 4 ? "high" : (f.yld >= 2 ? "moderate" : "low");
   });
@@ -2463,12 +2479,21 @@ function getProviderCfg(id){ const all=getResearchCfg(); return all[id]||{enable
 function setProviderCfg(id,patch){ const all=getResearchCfg(); all[id]={...getProviderCfg(id),...patch}; setResearchCfg(all); }
 
 // Curated institutional research catalogue — 12-15 items per provider reflecting
-// each firm's actual public houseview themes for 2024-2025. These populate
+// each firm's public houseview themes. These populate
 // automatically when live RSS isn't available and give the AI agent rich
 // institutional context to cite when constructing portfolios.
+//
+// VINTAGE: this is a STATIC baseline, not live research. Every item is stamped
+// with CURATED_RESEARCH_AS_OF and labelled as a curated baseline so nothing
+// downstream (agent prompts, position rationales, the research library UI) can
+// present it as current-dated publications. Keep entries evergreen — structural
+// views, regimes and ranges — rather than dated point targets or single-year
+// calls, which expire silently and then get cited to advisors as live views.
+// When refreshing this catalogue, bump CURATED_RESEARCH_AS_OF.
+const CURATED_RESEARCH_AS_OF = "2026-07-31";
 const CURATED_RESEARCH = {
   bofa_ml:[
-    {t:"Equities: Overweight quality large caps; mid-single-digit S&P returns through 2025", s:"BofA Global Research multi-asset team maintains overweight equity stance with bias toward quality factor (high ROE, low leverage, stable margins)."},
+    {t:"Equities: Overweight quality large caps; mid-single-digit index returns expected", s:"BofA Global Research multi-asset team maintains overweight equity stance with bias toward quality factor (high ROE, low leverage, stable margins)."},
     {t:"Bonds: Add duration in IG credit as Fed cuts begin; favor 5-7yr Treasuries", s:"Lock in real yields above historical averages before terminal rate compression."},
     {t:"Themes: AI infrastructure, US re-industrialization, defense spending", s:"Three secular themes BofA highlights as multi-year capex tailwinds."},
     {t:"Sector calls: Overweight Technology, Financials, Industrials; Underweight Real Estate, Utilities", s:""},
@@ -2476,9 +2501,9 @@ const CURATED_RESEARCH = {
     {t:"Asia ex-Japan: Tactical underweight, structural overweight India", s:"BofA EM strategist sees Indian structural growth thesis intact through 2030."},
     {t:"Private markets: 15-25% allocation for $5M+ portfolios", s:"Private credit yielding 10%+ with seniority and shorter duration than HY."},
     {t:"Munis: AAA 10yr offers 6.2% tax-equivalent for top federal bracket", s:""},
-    {t:"Gold: Constructive — $2,700 12mo target", s:"Central bank buying + de-dollarization + real rate normalization."},
+    {t:"Gold: Constructive — maintain strategic allocation", s:"Central bank buying, reserve diversification and the real-rate regime remain structural supports."},
     {t:"Oil: Range-bound $70-90 — overweight integrated majors over E&Ps", s:"BofA energy team prefers cash-generative supermajors (XOM, CVX, SHEL) over capex-heavy producers."},
-    {t:"Risks: Election volatility, sticky services inflation, geopolitical premium", s:""},
+    {t:"Risks: Policy uncertainty, sticky services inflation, geopolitical premium", s:""},
     {t:"Crypto: 1-3% bitcoin allocation appropriate for diversification", s:"BofA Digital Assets group views BTC as portfolio diversifier with low correlation to equities."},
     {t:"Currency: USD overvalued long-term — diversify with EUR/JPY exposure", s:""}
   ],
@@ -2502,7 +2527,7 @@ const CURATED_RESEARCH = {
     {t:"Cross-asset: Add convertible bonds for asymmetric equity exposure", s:"5-7% allocation in convertibles captures upside with bond floor."},
     {t:"Currencies: USD overvalued vs JPY medium-term, but yield differential keeps it bid", s:""},
     {t:"Themes: Generative AI productivity, GLP-1 medical revolution, Western capex cycle", s:""},
-    {t:"Mike Wilson: S&P 500 6,500 by mid-2025 — bullish revision", s:"Chief US Equity Strategist."},
+    {t:"US equity strategy: constructive on large-cap quality — earnings breadth and margin resilience drive the index view", s:"Chief US Equity Strategist weekly note."},
     {t:"Thoughts on the Market podcast: Recent topics — AI capex, election risk, China stimulus", s:"Daily 5-minute audio from senior MS strategists."},
     {t:"Energy transition: Long copper, uranium; short coal", s:"Copper deficit structural through 2030."},
     {t:"Munis: Best risk-adjusted income in 5+ years", s:""},
@@ -2530,9 +2555,9 @@ const CURATED_RESEARCH = {
   gs:[
     {t:"GSAM SAA: Lift bonds to 35% from 25% as real yields normalize", s:"Strategic Asset Allocation update."},
     {t:"Equities: Magnificent 7 valuations stretched but earnings still compounding", s:"GS top stock picks within Mag 7 — keep MSFT, AMZN, NVDA; trim AAPL, TSLA."},
-    {t:"Commodities: Structural copper deficit; gold $2,700 12-month target", s:""},
+    {t:"Commodities: structural copper deficit through the decade; gold supported by central-bank demand", s:""},
     {t:"Themes: Energy transition capex, AI silicon supply chain, defense", s:""},
-    {t:"David Kostin: S&P 500 6,300 by YE 2025 — top-down strategist call", s:""},
+    {t:"US Portfolio Strategy: index returns driven by EPS growth; valuations broadly full — favor quality and earnings visibility", s:""},
     {t:"GS Briefings podcast: Recent — Fed pivot, EM debt, AI margins", s:""},
     {t:"Sector calls: Overweight Tech (AI infra), Industrials (re-shoring), Healthcare; UW Energy, Utilities", s:""},
     {t:"Real Estate: Public REITs trading 15-25% below replacement cost", s:""},
@@ -2643,7 +2668,7 @@ const CURATED_RESEARCH = {
     {t:"EM: Overweight India, neutral LatAm, underweight China", s:""},
     {t:"Credit: Investment grade preferred; HY spreads tight historically", s:""},
     {t:"Alternatives: 10-15% allocation for accredited investors — focus on lower-corr strategies", s:""},
-    {t:"Energy: OXY, FANG, PXD — capital-disciplined E&Ps with shareholder returns", s:""},
+    {t:"Energy: OXY, FANG, EOG — capital-disciplined E&Ps with shareholder returns", s:""},
     {t:"Defense: LMT, RTX, NOC — multi-year capex cycle", s:""}
   ],
   sa:[
@@ -2720,7 +2745,7 @@ const COMMON_THEMES = [
   "Aggressive growth: 85% equity / 5% bond / 10% alts",
   // Equity
   "US equities: Overweight quality factor, large-cap growth bias",
-  "S&P 500 fair value 5,800 — defensive bias near record highs",
+  "US equities near record highs — favor quality factor and equal-weight diversification over index concentration",
   "International developed markets: Tactical overweight Japan",
   "Emerging markets: Selective — overweight India, underweight China",
   "Small-cap value: Trading near multi-year discount to large-cap growth",
@@ -2745,7 +2770,7 @@ const COMMON_THEMES = [
   "Private equity secondaries: 15-20% discount to NAV",
   "Real estate: REITs trading at 15-25% below replacement cost",
   "Infrastructure: 5-7% real returns, inflation hedge",
-  "Gold: 5% strategic allocation, target $2,700/oz",
+  "Gold: 5% strategic allocation — central-bank buying and reserve diversification support the regime",
   "Commodities: 3-5% portfolio inflation hedge",
   "Hedge funds: Multi-strat 6-8% net of fees, low correlation",
   "Trend-following CTAs: Tail-risk hedge for portfolio",
@@ -2768,7 +2793,7 @@ const COMMON_THEMES = [
   "Defense spending: Multi-year capex cycle (LMT, RTX, NOC)",
   "US re-shoring: Industrial reshoring beneficiaries",
   // Risks
-  "Election volatility: Hedge with VIX calls or low-vol tilt",
+  "Event-driven volatility: hedge with VIX calls or a low-vol tilt",
   "Geopolitical fragmentation: Diversify currency exposure",
   "Sticky services inflation: Maintain TIPS allocation",
   "China property contagion: Limit direct China exposure",
@@ -2828,28 +2853,32 @@ function expandResearchForProvider(providerId){
     const j = Math.floor(pseudoRandom() * (i + 1));
     [themes[i], themes[j]] = [themes[j], themes[i]];
   }
-  const today = new Date();
-  return themes.slice(0, 50).map((theme, idx) => {
-    // Spread dates across last 90 days
-    const daysAgo = Math.floor(pseudoRandom() * 90);
-    const d = new Date(today - daysAgo * 86400000);
+  return themes.slice(0, 50).map(theme => {
     return {
       title: theme,
-      date: d.toISOString().slice(0,10),
-      summary: `${firmShort} positioning — institutional research view current as of ${d.toLocaleDateString()}.`
+      // Static catalogue vintage — these are generic house-view themes, not
+      // dated publications. They used to be stamped with random dates inside
+      // the last 90 days and described as "current as of {today}", which
+      // manufactured recency the data does not have.
+      date: CURATED_RESEARCH_AS_OF,
+      curated: true,
+      summary: `${firmShort} positioning — curated baseline theme as of ${CURATED_RESEARCH_AS_OF}; configure live RSS for current views.`
     };
   });
 }
 
 function curatedItems(id){
   const baseItems = CURATED_RESEARCH[id] || [{t:"No curated research available", s:""}];
-  const today = new Date();
-  const base = baseItems.map((item, idx) => {
-    const d = new Date(today - idx * 86400000);
+  const base = baseItems.map(item => {
     return {
       title: typeof item === "string" ? item : item.t,
-      date: d.toISOString().slice(0,10),
-      summary: typeof item === "string" ? "Institutional view — configure live RSS for real-time updates." : (item.s || "Curated institutional positioning.")
+      // Honest vintage. These items previously received a synthetic date within
+      // the last few days, which made a static catalogue look like live research
+      // and put fabricated recency into advisor-facing citations.
+      date: CURATED_RESEARCH_AS_OF,
+      curated: true,
+      summary: (typeof item === "string" ? "Institutional view." : (item.s || "Curated institutional positioning."))
+        + ` [curated baseline as of ${CURATED_RESEARCH_AS_OF} — configure live RSS for current views]`
     };
   });
   // Append ~50 expanded items based on common themes
@@ -3181,11 +3210,17 @@ async function runAgent(){
 
   // Filter universe to funds the client can actually buy (country/domicile)
   const eligibleUniverse = FUND_UNIVERSE.filter(f => isFundEligibleForCountry(f, brief.country));
+  // Trailing returns are null for funds younger than the window — render "n/a"
+  // so the model is not told a 2024-launched fund returned 0.0% over 10 years.
+  const _uPct = v => (v == null ? "n/a" : v.toFixed(1) + "%");
   const universe = eligibleUniverse.map(f =>
-    `${f.tkr.padEnd(7)} | ${f.cls.padEnd(13)} | ${f.vehicle.padEnd(12)} | ER ${f.er.toFixed(2)}% Yld ${f.yld.toFixed(1)}% | μ${f.mu.toFixed(1)}% σ${f.sigma.toFixed(1)}% Sharpe ${f.sharpe.toFixed(2)} β${f.beta.toFixed(2)} maxDD ${f.maxDD.toFixed(0)}% | 1y ${f.r1y.toFixed(1)}% 3y ${f.r3y.toFixed(1)}% 5y ${f.r5y.toFixed(1)}% 10y ${f.r10y.toFixed(1)}% | holdings ${f.holdings} AUM $${f.aum}B inc ${f.inception} TE ${f.te}% | ${f.dom||"US"}${f.ucits?'/UCITS':''}${f.esg?'/ESG':''} | ${f.sponsor} | ${f.name}`
+    `${f.tkr.padEnd(7)} | ${f.cls.padEnd(13)} | ${f.vehicle.padEnd(12)} | ER ${f.er.toFixed(2)}% Yld ${f.yld.toFixed(1)}% | μ${f.mu.toFixed(1)}% σ${f.sigma.toFixed(1)}% Sharpe ${f.sharpe.toFixed(2)} β${f.beta.toFixed(2)} maxDD ${f.maxDD.toFixed(0)}% | 1y ${_uPct(f.r1y)} 3y ${_uPct(f.r3y)} 5y ${_uPct(f.r5y)} 10y ${_uPct(f.r10y)} | holdings ${f.holdings} AUM $${f.aum}B inc ${f.inception ?? "n/a"} TE ${f.te}% | ${f.dom||"US"}${f.ucits?'/UCITS':''}${f.esg?'/ESG':''} | ${f.sponsor} | ${f.name}`
   ).join("\n");
 
-  const prompt = `You are a sophisticated portfolio construction AI working at a major wealth management firm. Synthesize research from 16 institutional sources to build evidence-backed portfolios.
+  const prompt = `You are a sophisticated portfolio construction AI working at a major wealth management firm. Synthesize research from ${checked.length} institutional sources to build evidence-backed portfolios.
+
+# DATA VINTAGE
+Fund metrics (trailing returns, AUM, Sharpe, maxDD) are as of ${FUND_DATA_AS_OF}. "n/a" means the fund has no track record for that period. Do not describe these figures as current-day values, and do not infer a launch date when inception reads "n/a".
 
 # CLIENT BRIEF
 - Risk: ${brief.risk}, Horizon: ${brief.horizon}, Country: ${brief.country}, Currency: ${brief.currency}
@@ -3225,7 +3260,7 @@ ${universe}
 }
 
 Selection criteria (use ALL the metrics provided above):
-1. **Quality screen**: prefer funds with Sharpe > 0.4, AUM > $1B, inception ≥ 5 years ago, low tracking error for index trackers (<0.3%)
+1. **Quality screen**: prefer funds with Sharpe > 0.4, AUM > $1B, an established track record (a 5y/10y figure is present rather than "n/a"), low tracking error for index trackers (<0.3%)
 2. **Cost discipline**: prefer ETFs with ER < 0.20% over higher-ER mutual funds unless active mgmt is clearly worth it (e.g., DODGX, PIMIX, PRWCX have proven alpha)
 3. **Diversification**: ensure broad-holdings funds (1000+ positions) for core exposure; thematic concentrated funds (50-200 holdings) only for satellite allocations
 4. **Risk/return fit**: match each fund's μ/σ profile to the client's risk tolerance — aggressive clients can absorb σ > 18%, conservative clients capped at σ ≤ 10% per position
@@ -3254,12 +3289,16 @@ Constraints:
     const text = j.content?.[0]?.text || "";
     const m = text.match(/\{[\s\S]*\}/);
     if(!m) throw new Error("No JSON in response");
-    const rec = JSON.parse(m[0]);
+    const rec = validateAgentRec(JSON.parse(m[0]), eligibleUniverse, brief);
     lastAgentRec = rec;
     renderAgentResult(rec);
     $("agExportBtn").disabled = false;
-    $("agStatus").textContent = "✓ Portfolio constructed";
-    addLog("ok","Agent built portfolio: "+(rec.positions?.length||0)+" positions");
+    $("agStatus").textContent = rec.validation.warnings.length
+      ? "✓ Portfolio constructed — "+rec.validation.warnings.length+" auto-correction(s)"
+      : "✓ Portfolio constructed";
+    addLog(rec.validation.warnings.length ? "warn" : "ok",
+      "Agent built portfolio: "+(rec.positions?.length||0)+" positions"
+      + (rec.validation.warnings.length ? " · "+rec.validation.warnings.join(" · ") : ""));
   } catch(e){
     $("agResult").innerHTML = `<div class="code" style="background:#7f1d1d">Error: ${escapeHtml(e.message)}</div>
       <div style="font-size:12px;color:var(--ink3);margin-top:14px;line-height:1.6">
@@ -3273,8 +3312,99 @@ Constraints:
   }
 }
 
+// ── LLM output validation ──────────────────────────────────────────────────
+// The model's JSON used to be trusted verbatim: a hallucinated ticker, a string
+// weight, weights not summing to 100, or a position above the client's stated
+// cap would flow straight into an exported proposal. Everything is coerced and
+// checked against the SAME eligible universe the prompt was given; whatever is
+// corrected is surfaced to the operator rather than silently applied.
+function validateAgentRec(rec, eligibleUniverse, brief){
+  const warnings = [];
+  const eligible = new Map((eligibleUniverse||[]).map(f => [String(f.tkr).toUpperCase(), f]));
+  const maxPos = Number(brief && brief.maxPosition) > 0 ? Number(brief.maxPosition) : 100;
+  if(!rec || typeof rec !== "object") throw new Error("Response was not a JSON object");
+  let positions = Array.isArray(rec.positions) ? rec.positions : [];
+  if(positions.length === 0) throw new Error("Response contained no positions");
+
+  // 1. Drop fabricated tickers (not in the eligible, domicile-filtered universe)
+  const kept = [];
+  positions.forEach(p => {
+    const tkr = String(p && (p.ticker || p.tkr) || "").toUpperCase().trim();
+    const w = Number(p && p.weight);
+    if(!tkr || !eligible.has(tkr)){ warnings.push(`dropped ${tkr||"(blank ticker)"} — not in eligible universe`); return; }
+    if(!isFinite(w) || w <= 0){ warnings.push(`dropped ${tkr} — invalid weight`); return; }
+    kept.push({...p, ticker: tkr, weight: w});
+  });
+  if(kept.length === 0) throw new Error("No valid positions remained after validation (all tickers were outside the eligible universe)");
+
+  // 2. Merge duplicate tickers
+  const byTkr = new Map();
+  kept.forEach(p => {
+    if(byTkr.has(p.ticker)){ byTkr.get(p.ticker).weight += p.weight; warnings.push(`merged duplicate ${p.ticker}`); }
+    else byTkr.set(p.ticker, p);
+  });
+  positions = Array.from(byTkr.values());
+
+  // 3. Normalize to 100, then cap single positions — the weight removed from an
+  //    over-cap position is redistributed across the positions that still have
+  //    headroom (which can push one of them over, hence the loop). Capping and
+  //    renormalizing independently does NOT work: scaling back up to 100 after a
+  //    cap simply re-inflates the position that was just capped.
+  const renorm = () => {
+    const tot = positions.reduce((s,p)=>s+p.weight,0);
+    if(tot > 0 && Math.abs(tot-100) > 1e-9) positions.forEach(p => p.weight = p.weight/tot*100);
+  };
+  renorm();
+  if(maxPos < 100){
+    const capped = new Set();
+    if(positions.length * maxPos < 100 - 1e-9){
+      warnings.push(`cap ${maxPos}% cannot be met with ${positions.length} positions — left uncapped`);
+    } else {
+      for(let pass=0; pass<20; pass++){
+        const over = positions.filter(p => p.weight > maxPos + 1e-9);
+        if(!over.length) break;
+        let freed = 0;
+        over.forEach(p => {
+          freed += p.weight - maxPos;
+          p.weight = maxPos;
+          if(!capped.has(p.ticker)){ capped.add(p.ticker); warnings.push(`capped ${p.ticker} at ${maxPos}%`); }
+        });
+        const rest = positions.filter(p => p.weight < maxPos - 1e-9);
+        const room = rest.reduce((s,p)=>s+(maxPos-p.weight),0);
+        if(room <= 1e-9) break;
+        rest.forEach(p => { p.weight += freed * ((maxPos - p.weight) / room); });
+      }
+    }
+  } else {
+    renorm();
+  }
+  positions.forEach(p => p.weight = Math.round(p.weight*100)/100);
+  // Absorb rounding drift into the largest position so the total reads 100.00
+  const drift = 100 - positions.reduce((s,p)=>s+p.weight,0);
+  if(Math.abs(drift) >= 0.01){
+    const big = positions.reduce((a,b)=>a.weight>=b.weight?a:b);
+    big.weight = Math.round((big.weight+drift)*100)/100;
+  }
+
+  // 4. Coerce the numeric summary fields the UI renders
+  const num = (v, d) => (isFinite(Number(v)) ? Number(v) : d);
+  rec.expectedReturn = num(rec.expectedReturn, 0.07);
+  rec.expectedVolatility = num(rec.expectedVolatility, 0.12);
+  if(rec.allocationByClass && typeof rec.allocationByClass === "object"){
+    Object.keys(rec.allocationByClass).forEach(k => rec.allocationByClass[k] = num(rec.allocationByClass[k], 0));
+  }
+  rec.positions = positions;
+  rec.validation = {warnings, eligibleCount: eligible.size, positionCount: positions.length};
+  return rec;
+}
+
 function renderAgentResult(rec){
   let h = '';
+  if(rec.validation && rec.validation.warnings.length){
+    h += `<div class="ablock" style="border-left:4px solid var(--amber)"><h3 style="color:var(--amber)">⚠ Auto-corrections applied to the model output</h3>
+      <ul style="margin:6px 0 0 18px;line-height:1.7;font-size:12.5px">${rec.validation.warnings.map(w=>`<li>${escapeHtml(w)}</li>`).join("")}</ul>
+      <div style="font-size:11px;color:var(--ink3);margin-top:8px">Weights were renormalized to 100% and constrained to the client's eligible universe and position cap before export.</div></div>`;
+  }
   h += `<div class="ablock"><h3>🎯 Executive Summary</h3><div style="line-height:1.7">${escapeHtml(rec.summary||"")}</div></div>`;
   h += `<div class="kpi-grid">
     <div class="kpi tone-green"><div class="kpi-l">Expected Return</div><div class="kpi-v">${((rec.expectedReturn||0)*100).toFixed(2)}%</div></div>
@@ -4748,7 +4878,10 @@ const POS_WORDS = {
   "best ideas":2, "top pick":3, "recommend":2, "accumulate":2, "add":1
 };
 const NEG_WORDS = {
-  "underweight":3, "underweigh":3, "short":2, "bearish":3, "avoid":2, "cautious":2, "underperform":2,
+  // "short" alone was removed: in institutional research "short duration",
+  // "short-term" and "shortfall" vastly outnumber actual short recommendations,
+  // so it scored bearish on neutral/bullish fixed-income copy.
+  "underweight":3, "underweigh":3, "short position":2, "net short":3, "bearish":3, "avoid":2, "cautious":2, "underperform":2,
   "sell":2, "expensive":1, "stretched":2, "headwind":2, "downside":2, "negative":1,
   "high conviction underweight":4, "tactical underweight":3, "structural underweight":3,
   "underperforming":2, "reduce":1, "trim":1, "exit":2
@@ -4810,16 +4943,74 @@ function extractTickerMentions(text){
   return matches.filter(t => known.has(t));
 }
 
+// ── Matching primitives ───────────────────────────────────────────────────
+// Naive substring matching produced systematic false signals, so all lexicon
+// matching now goes through these helpers:
+//  • word boundaries — "overweight" no longer also fires the truncated
+//    "overweigh" entry (which double-counted every single sentiment word), and
+//    "add"/"long"/"buy"/"prefer" no longer fire inside "additional"/"longevity"/
+//    "buyback"/"preferred".
+//  • longest-phrase-wins — "tactical overweight" scores 3, not 3+3(+3).
+//  • acronyms are case-SENSITIVE — the "AI" keyword used to match the letters
+//    inside "sustainable", "maintain", "against", "remains" and "supply chain",
+//    voting Technology/AI on unrelated research.
+function _engEsc(s){ return String(s).replace(/[.*+?^${}()|[\]\\]/g, "\\$&"); }
+// A phrase is treated as an acronym when it is short and mostly capitals (AI,
+// EM, US, ML, HY, IG, REIT, CTA, BDC, S&P, NVDA…).
+function _engIsAcronym(ph){ return /^[A-Z][A-Z0-9&.\-]{0,5}$/.test(String(ph).trim()); }
+// allowTail=true is used for TOPIC keywords so noun stems still match their
+// inflections (bond→bonds, equit→equities, tech→technology). Sentiment words
+// use allowTail=false so "add" cannot match "additional" or "long" match
+// "longevity". Acronyms only ever admit a plural "s" — "AI" must not match
+// "AIG", and case-sensitivity keeps it off "sustainable"/"maintain"/"chain".
+function _engPhraseRegex(ph, flags, allowTail){
+  const p = String(ph).trim();
+  const lead = /^\w/.test(p) ? "\\b" : "";
+  const tail = !/\w$/.test(p) ? ""                    // ends in punctuation (U.S., S&P.)
+    : _engIsAcronym(p) ? "(?:s)?\\b"
+    : allowTail ? "\\w*"
+    : "\\b";
+  return new RegExp(lead + _engEsc(p) + tail, (_engIsAcronym(p) ? "" : "i") + (flags || ""));
+}
+// Sentiment for one span of text: every lexicon phrase is matched with word
+// boundaries, longest first, and a shorter phrase overlapping an already-matched
+// span is skipped so nothing is counted twice.
+function _engScoreSentiment(span){
+  const entries = [];
+  for(const [w, wt] of Object.entries(POS_WORDS)) entries.push({w, wt, sign: 1});
+  for(const [w, wt] of Object.entries(NEG_WORDS)) entries.push({w, wt, sign: -1});
+  entries.sort((a, b) => b.w.length - a.w.length);
+  const taken = [];
+  let score = 0;
+  for(const e of entries){
+    const re = _engPhraseRegex(e.w, "g");
+    let m, hit = false;
+    while((m = re.exec(span)) !== null){
+      const s = m.index, t = s + m[0].length;
+      if(taken.some(r => s < r[1] && t > r[0])) continue; // inside a longer phrase
+      taken.push([s, t]);
+      hit = true;
+    }
+    if(hit) score += e.sign * e.wt; // presence-weighted, matching the original calibration
+  }
+  return score;
+}
+// Split an item into clauses so a single item can express opposite views, e.g.
+// "Overweight Technology, Financials; Underweight Real Estate, Utilities" —
+// which previously netted to sentiment 0 and then defaulted every one of those
+// five sectors to +1, recording the underweights as bullish.
+function _engClauses(text){
+  return String(text)
+    .split(/[;.]|\s+(?:but|while|whereas|although|though|versus|vs\.?)\s+/i)
+    .map(s => s.trim())
+    .filter(Boolean);
+}
+
 // Given an item title+summary, extract signal(s) for each lexicon
 function extractItemSignals(item, providerName){
-  const text = ((item.title||"") + " " + (item.summary||"")).toLowerCase();
   const rawText = (item.title||"") + " " + (item.summary||"");
-
-  // Detect sentiment direction
-  let posWeight = 0, negWeight = 0;
-  for(const [w, wt] of Object.entries(POS_WORDS)){ if(text.includes(w.toLowerCase())) posWeight += wt; }
-  for(const [w, wt] of Object.entries(NEG_WORDS)){ if(text.includes(w.toLowerCase())) negWeight += wt; }
-  const sentiment = posWeight - negWeight;
+  const itemSentiment = _engScoreSentiment(rawText);
+  const clauses = _engClauses(rawText).map(c => ({text: c, sent: _engScoreSentiment(c)}));
 
   // Classify by topic
   const signals = {
@@ -4828,17 +5019,30 @@ function extractItemSignals(item, providerName){
     regions: {},   // {japan: +3, china: -2, ...}
     themes: {},    // {ai: 1, decarbonization: 1, ...}
     tickers: extractTickerMentions(rawText),
-    sentiment: sentiment,
+    sentiment: itemSentiment,
     providerName: providerName,
     item: item
   };
 
+  // Sentiment for a topic = sentiment of the clause it is mentioned in (falls
+  // back to the item as a whole). A mention with no directional language scores
+  // 0 — a neutral mention is no longer silently promoted to a bullish vote.
+  function voteFor(phrases){
+    let matched = false, best = null;
+    for(const c of clauses){
+      if(phrases.some(ph => _engPhraseRegex(ph, "", true).test(c.text))){
+        matched = true;
+        if(c.sent !== 0 && (best === null || Math.abs(c.sent) > Math.abs(best))) best = c.sent;
+      }
+    }
+    if(!matched && phrases.some(ph => _engPhraseRegex(ph, "", true).test(rawText))) matched = true;
+    if(!matched) return null;
+    return best !== null ? best : itemSentiment;
+  }
   function detect(map, container){
     for(const [key, phrases] of Object.entries(map)){
-      const matched = phrases.some(ph => text.includes(ph.toLowerCase()));
-      if(matched){
-        container[key] = (container[key] || 0) + (sentiment !== 0 ? sentiment : 1);
-      }
+      const v = voteFor(phrases);
+      if(v !== null) container[key] = (container[key] || 0) + v;
     }
   }
   detect(CLASS_KEYWORDS, signals.classes);
@@ -4846,8 +5050,7 @@ function extractItemSignals(item, providerName){
   detect(REGION_KEYWORDS, signals.regions);
   // Themes — count mentions even without explicit sentiment
   for(const [key, phrases] of Object.entries(THEME_KEYWORDS)){
-    const matched = phrases.some(ph => text.includes(ph.toLowerCase()));
-    if(matched) signals.themes[key] = (signals.themes[key] || 0) + 1;
+    if(phrases.some(ph => _engPhraseRegex(ph, "", true).test(rawText))) signals.themes[key] = (signals.themes[key] || 0) + 1;
   }
   return signals;
 }
@@ -4868,10 +5071,16 @@ function aggregateAllSignals(selectedProviderIds){
     providerCount: 0
   };
 
+  // providers      = every provider that MENTIONED this topic (any direction)
+  // providersFor / providersAgainst = direction-consistent counts, so a
+  // rationale can say "N providers overweight X" without counting the ones that
+  // were neutral on it or actively underweight it.
   function bump(container, key, vote, providerName, item){
-    if(!container[key]) container[key] = {votes:0, providers:new Set(), items:[]};
+    if(!container[key]) container[key] = {votes:0, providers:new Set(), providersFor:new Set(), providersAgainst:new Set(), items:[]};
     container[key].votes += vote;
     container[key].providers.add(providerName);
+    if(vote > 0) container[key].providersFor.add(providerName);
+    else if(vote < 0) container[key].providersAgainst.add(providerName);
     if(container[key].items.length < 8) container[key].items.push({title: item.title.slice(0,120), provider: providerName});
   }
 
@@ -4901,6 +5110,12 @@ function aggregateAllSignals(selectedProviderIds){
     Object.values(container).forEach(c => {
       c.providers = Array.from(c.providers);
       c.providerCount = c.providers.length;
+      c.providersFor = Array.from(c.providersFor || []);
+      c.providersAgainst = Array.from(c.providersAgainst || []);
+      c.forCount = c.providersFor.length;
+      c.againstCount = c.providersAgainst.length;
+      // Providers that back the net direction — the honest number to cite.
+      c.agreeCount = c.votes > 0 ? c.forCount : (c.votes < 0 ? c.againstCount : 0);
     });
   }
   normalize(aggregate.classes);
@@ -5062,15 +5277,23 @@ function buildPortfolioFromEngine(brief, signals){
       const clsData = signals.classes[cls];
       if(clsData){
         const v = clsData.votes > 0 ? "overweight" : (clsData.votes < 0 ? "underweight" : "neutral on");
-        rationaleParts.push(`${clsData.providerCount}/16 providers ${v} ${prettyClass(cls)} (${clsData.votes > 0 ? '+' : ''}${clsData.votes} net votes)`);
+        // Cite the providers that back the NET direction (agreeCount), not every
+        // provider that merely mentioned the class, and use the number of sources
+        // actually analyzed as the denominator instead of a hard-coded 16.
+        const denom = signals.providerCount || clsData.providerCount;
+        rationaleParts.push(clsData.votes === 0
+          ? `${clsData.providerCount}/${denom} providers mention ${prettyClass(cls)} with no net direction (0 net votes)`
+          : `${clsData.agreeCount}/${denom} providers ${v} ${prettyClass(cls)} (${clsData.votes > 0 ? '+' : ''}${clsData.votes} net votes, ${clsData.providerCount} mentioning)`);
       }
       // Specific ticker mentions
       if(signals.tickers[fund.tkr]){
         const tData = signals.tickers[fund.tkr];
         rationaleParts.push(`${fund.tkr} explicitly mentioned by ${tData.providers.slice(0,3).join(", ")}${tData.providers.length>3?" + "+(tData.providers.length-3)+" more":""}`);
       }
-      // Quantitative metrics
-      rationaleParts.push(`Sharpe ${fund.sharpe.toFixed(2)} · 5y ${fund.r5y.toFixed(1)}% · 10y ${fund.r10y.toFixed(1)}%`);
+      // Quantitative metrics ("n/a" where the fund has no track record for the
+      // period — these fields are null, not 0, for funds younger than the window)
+      const _pc = v => (v == null ? "n/a" : v.toFixed(1) + "%");
+      rationaleParts.push(`Sharpe ${fund.sharpe.toFixed(2)} · 5y ${_pc(fund.r5y)} · 10y ${_pc(fund.r10y)}`);
       rationaleParts.push(`ER ${fund.er.toFixed(2)}% · σ ${fund.sigma.toFixed(1)}% · maxDD ${fund.maxDD.toFixed(0)}%`);
       rationaleParts.push(`AUM $${fund.aum}B · ${fund.holdings.toLocaleString()} holdings`);
       // ESG / tax / liquidity matches
@@ -5154,7 +5377,7 @@ function buildPortfolioFromEngine(brief, signals){
   // Risks — derive from signals (underweight votes = warning sign)
   const risks = [];
   const negClasses = Object.entries(signals.classes).filter(([,d]) => d.votes < -5).slice(0,3);
-  negClasses.forEach(([cls, d]) => risks.push(`${prettyClass(cls)} under pressure — ${d.providerCount}/16 providers underweight`));
+  negClasses.forEach(([cls, d]) => risks.push(`${prettyClass(cls)} under pressure — ${d.agreeCount}/${signals.providerCount || d.providerCount} providers underweight`));
   const negRegions = Object.entries(signals.regions).filter(([,d]) => d.votes < -5).slice(0,2);
   negRegions.forEach(([r, d]) => risks.push(`${prettyRegion(r)} regional risk flagged by ${d.providerCount} providers`));
   if(brief.maxPosition < 20) risks.push("Position size constraint may limit conviction expression");
@@ -5297,7 +5520,7 @@ function renderEngineResult(r){
     <div class="kpi"><div class="kpi-l">1-Year Return</div><div class="kpi-v" style="color:${(pm.r1y||0)>=0?'var(--green)':'var(--red)'}">${(pm.r1y||0).toFixed(1)}%</div></div>
     <div class="kpi"><div class="kpi-l">3-Year Annualized</div><div class="kpi-v" style="color:${(pm.r3y||0)>=0?'var(--green)':'var(--red)'}">${(pm.r3y||0).toFixed(1)}%</div></div>
     <div class="kpi"><div class="kpi-l">5-Year Annualized</div><div class="kpi-v" style="color:${(pm.r5y||0)>=0?'var(--green)':'var(--red)'}">${(pm.r5y||0).toFixed(1)}%</div></div>
-    <div class="kpi"><div class="kpi-l">10-Year Annualized</div><div class="kpi-v" style="color:${(pm.r10y||0)>=0?'var(--green)':'var(--red)'}">${(pm.r10y||0).toFixed(1)}%</div></div>
+    <div class="kpi"><div class="kpi-l">10-Year Annualized</div><div class="kpi-v" style="color:${(pm.r10y||0)>=0?'var(--green)':'var(--red)'}">${pm.r10y==null?'n/a':pm.r10y.toFixed(1)+'%'}</div></div>
     <div class="kpi"><div class="kpi-l">Blended ER</div><div class="kpi-v">${(pm.blendedER||0).toFixed(2)}%</div></div>
     <div class="kpi"><div class="kpi-l">Blended Yield</div><div class="kpi-v">${(pm.blendedYield||0).toFixed(2)}%</div></div>
   </div>`;
@@ -5312,7 +5535,7 @@ function renderEngineResult(r){
   </div>`;
 
   // SIGNAL EXTRACTION HEATMAP
-  h += `<div class="ablock"><h3 style="color:var(--green)">📊 Asset Class Consensus (Net Votes Across 16 Providers)</h3>`;
+  h += `<div class="ablock"><h3 style="color:var(--green)">📊 Asset Class Consensus (Net Votes Across ${r.signals.providerCount} Providers)</h3>`;
   const sortedClasses = Object.entries(r.signals.classes).sort((a,b) => b[1].votes - a[1].votes);
   sortedClasses.forEach(([cls, d]) => {
     const vote = d.votes;
@@ -5323,7 +5546,7 @@ function renderEngineResult(r){
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:3px">
         <strong style="width:130px;font-size:13px">${prettyClass(cls)}</strong>
         <span style="font-size:11px;font-weight:700;color:${color};width:90px">${direction} ${vote>0?'+':''}${vote}</span>
-        <span style="font-size:11px;color:var(--ink3)">${d.providerCount} of 16 providers</span>
+        <span style="font-size:11px;color:var(--ink3)" title="${d.forCount} overweight · ${d.againstCount} underweight · ${d.providerCount} mentioning">${d.agreeCount} of ${r.signals.providerCount} providers agree</span>
       </div>
       <div style="height:8px;background:rgba(0,0,0,.05);border-radius:4px;position:relative;margin-left:130px">
         <div style="position:absolute;${vote>=0?'left:50%':'right:50%'};width:${width/2}%;height:100%;background:${color};border-radius:4px;${vote>=0?'':'transform:scaleX(-1);transform-origin:right'}"></div>
@@ -5339,9 +5562,9 @@ function renderEngineResult(r){
   sortedThemes.forEach(([t, d]) => {
     h += `<div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--line)">
       <span style="width:200px;font-size:13px;font-weight:600">${prettyTheme(t)}</span>
-      <span style="font-size:11px;color:var(--ink3);width:130px">${d.providerCount}/16 providers cite</span>
+      <span style="font-size:11px;color:var(--ink3);width:130px">${d.providerCount}/${r.signals.providerCount} providers cite</span>
       <div style="flex:1;height:8px;background:rgba(0,0,0,.05);border-radius:4px;overflow:hidden">
-        <div style="width:${d.providerCount/16*100}%;height:100%;background:var(--purple)"></div>
+        <div style="width:${Math.min(100, d.providerCount/Math.max(1,r.signals.providerCount)*100)}%;height:100%;background:var(--purple)"></div>
       </div>
       <span style="font-size:11px;color:var(--ink2);width:50px;text-align:right;font-weight:700">${d.votes} votes</span>
     </div>`;
@@ -5378,8 +5601,8 @@ function renderEngineResult(r){
         <div><div style="color:var(--ink3);font-size:9px;text-transform:uppercase;letter-spacing:.05em">σ</div><strong>${(m.sigma||0).toFixed(1)}%</strong></div>
         <div><div style="color:var(--ink3);font-size:9px;text-transform:uppercase;letter-spacing:.05em">β</div><strong>${(m.beta||0).toFixed(2)}</strong></div>
         <div><div style="color:var(--ink3);font-size:9px;text-transform:uppercase;letter-spacing:.05em">Max DD</div><strong style="color:var(--red)">${(m.maxDD||0).toFixed(0)}%</strong></div>
-        <div><div style="color:var(--ink3);font-size:9px;text-transform:uppercase;letter-spacing:.05em">5y</div><strong style="color:${(m.r5y||0)>=0?'var(--green)':'var(--red)'}">${(m.r5y||0).toFixed(1)}%</strong></div>
-        <div><div style="color:var(--ink3);font-size:9px;text-transform:uppercase;letter-spacing:.05em">10y</div><strong style="color:${(m.r10y||0)>=0?'var(--green)':'var(--red)'}">${(m.r10y||0).toFixed(1)}%</strong></div>
+        <div><div style="color:var(--ink3);font-size:9px;text-transform:uppercase;letter-spacing:.05em">5y</div><strong style="color:${m.r5y==null?'var(--ink3)':(m.r5y>=0?'var(--green)':'var(--red)')}">${m.r5y==null?'n/a':m.r5y.toFixed(1)+'%'}</strong></div>
+        <div><div style="color:var(--ink3);font-size:9px;text-transform:uppercase;letter-spacing:.05em">10y</div><strong style="color:${m.r10y==null?'var(--ink3)':(m.r10y>=0?'var(--green)':'var(--red)')}">${m.r10y==null?'n/a':m.r10y.toFixed(1)+'%'}</strong></div>
         <div><div style="color:var(--ink3);font-size:9px;text-transform:uppercase;letter-spacing:.05em">Holdings</div><strong>${(m.holdings||0).toLocaleString()}</strong></div>
         <div><div style="color:var(--ink3);font-size:9px;text-transform:uppercase;letter-spacing:.05em">AUM</div><strong>$${m.aum||0}B</strong></div>
         <div><div style="color:var(--ink3);font-size:9px;text-transform:uppercase;letter-spacing:.05em">Inception</div><strong>${m.inception||'—'}</strong></div>
