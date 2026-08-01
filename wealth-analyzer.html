@@ -536,10 +536,12 @@ input[type=date]{color-scheme:light}
   background:rgba(124,58,237,.08) !important;
   box-shadow:0 4px 18px rgba(124,58,237,.15);
 }
+.ai-pos-why{max-height:0;overflow:hidden;transition:max-height .35s ease,margin-top .25s ease,padding .25s ease}
 .ai-pos-card:hover .ai-pos-why,
 .ai-pos-card:focus-within .ai-pos-why {
   max-height:1200px;
 }
+@media (prefers-reduced-motion:reduce){.ai-pos-why{transition:none}}
 .pf-mc{padding:10px 14px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--rs);transition:transform .15s,box-shadow .15s,border-color .15s}
 .pf-mc:hover{transform:translateY(-2px);box-shadow:0 6px 18px rgba(0,87,184,.10);border-color:rgba(0,87,184,.28);background:var(--bg2)}
 @media (prefers-reduced-motion:reduce){.pf-mc{transition:none}.pf-mc:hover{transform:none}}
@@ -3366,6 +3368,7 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
           <option value="alternative">Alternatives (other)</option>
         </select>
       </div>
+      <div class="fld"><label>ISIN <span style="color:var(--text3);font-weight:400">(for order routing)</span></label><input id="prIsin" placeholder="e.g. IE00B4L5Y983" maxlength="12" style="text-transform:uppercase"></div>
       <div class="fld"><label>Weight %</label><input type="number" id="prAlloc" placeholder="0" min="0" max="100" step="0.1"></div>
       <div class="fld"><label>10yr Exp Return %</label><input type="number" id="prExp" placeholder="0" step="0.1"></div>
       <div class="fld"><label>Expense Ratio %</label><input type="number" id="prErIn" placeholder="0" min="0" max="10" step="0.01"></div>
@@ -3403,6 +3406,84 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
     <div id="prPerf" style="display:none"></div>
   </div>
 </div>
+
+<!-- ═══ SEND TO PM SYSTEM — order routing + BUY ═══ -->
+<div class="panel">
+  <div class="ptitle">Send to Portfolio Management System<span class="ptitle-line"></span></div>
+
+  <div style="font-size:12px;color:var(--text2);line-height:1.6;margin-bottom:14px">
+    Turns the positions above into a <strong>BUY order ticket</strong> and posts it to your PM/OMS,
+    where the orders sit as pending instructions for someone with trading authority to execute.
+    <strong style="color:var(--text)">Nothing is executed from this screen.</strong>
+    You will see every line and the cash total before anything is sent.
+  </div>
+
+  <!-- BUY -->
+  <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;padding:14px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--rs)">
+    <button class="btn-secondary" onclick="ordReviewProposal()"
+            style="background:var(--green);color:#fff;border:none;font-weight:700;font-size:14px;padding:12px 28px">
+      BUY — review order ticket
+    </button>
+    <div style="flex:1;min-width:200px">
+      <div id="ordRouteSummary" style="font-size:11.5px;color:var(--text2)"></div>
+      <div id="ordStatus" style="font-size:11.5px;margin-top:4px;min-height:14px"></div>
+    </div>
+  </div>
+
+  <!-- Routing configuration -->
+  <div class="sdiv">
+    <div class="slbl section-dropdown" onclick="toggleDropdown('ordCfgBody')">Order Routing <span class="dropdown-hint">click to expand</span></div>
+    <div class="dropdown-body" id="ordCfgBody">
+      <div style="font-size:11.5px;color:var(--text3);margin-bottom:10px">
+        Where order tickets are sent. The credential is stored in this browser only and is sent
+        solely to the endpoint you configure here.
+      </div>
+      <div class="pr-add">
+        <div class="fld"><label>PM system name</label><input id="ordName" placeholder="e.g. Avaloq"></div>
+        <div class="fld" style="flex:2;min-width:240px"><label>Order endpoint URL</label><input id="ordUrl" placeholder="https://pm.example.com/api/orders"></div>
+        <div class="fld"><label>Payload format</label>
+          <select id="ordFormat">
+            <option value="wa">wa.order/v1 (native)</option>
+            <option value="avaloq">Avaloq order entry</option>
+            <option value="generic">Generic REST JSON</option>
+          </select>
+        </div>
+        <div class="fld"><label>Custody account / portfolio ID</label><input id="ordAccount" placeholder="e.g. CH-8842-01"></div>
+        <div class="fld"><label>Custodian</label><input id="ordCustodian" placeholder="optional"></div>
+        <div class="fld"><label>Order currency</label><input id="ordCcy" placeholder="CHF" maxlength="3" style="text-transform:uppercase"></div>
+        <div class="fld"><label>Auth</label>
+          <select id="ordAuth" onchange="ordToggleAuth()">
+            <option value="none">None</option>
+            <option value="bearer">Bearer token</option>
+            <option value="apikey">API key header</option>
+            <option value="basic">Basic (user:password)</option>
+          </select>
+        </div>
+        <div class="fld" id="ordHeaderRow" style="display:none"><label>Header name</label><input id="ordHeader" placeholder="X-API-Key"></div>
+        <div class="fld" id="ordSecretRow" style="display:none"><label>Credential</label><input id="ordSecret" type="password" placeholder="token / key"></div>
+        <button class="btn-secondary" onclick="ordSaveRouteFromForm()">Save routing</button>
+      </div>
+      <div style="font-size:11px;color:var(--text3);margin-top:10px;line-height:1.6">
+        <strong>Production note.</strong> A browser-held credential and a direct cross-origin POST
+        suit an internal PM system on your own network. For a bank-hosted OMS, route through the
+        server-side relay instead — it keeps the credential off the browser and out of reach of
+        anyone with access to this machine.
+      </div>
+    </div>
+  </div>
+
+  <!-- Audit -->
+  <div class="sdiv">
+    <div class="slbl section-dropdown" onclick="toggleDropdown('ordLogBody')">Sent order tickets <span class="dropdown-hint">click to expand</span></div>
+    <div class="dropdown-body" id="ordLogBody">
+      <div id="ordLog"><div class="pf-empty">No orders sent yet.</div></div>
+      <div style="font-size:11px;color:var(--text3);margin-top:8px">Last 50 attempts, stored in this browser. The PM system remains the system of record.</div>
+    </div>
+  </div>
+</div>
+
+<div id="ordModalBg" class="da-modal-bg" style="display:none" onclick="ordCloseReview()"></div>
+<div id="ordModal" class="da-modal" style="display:none"></div>
 
 </div>
 
@@ -3491,7 +3572,7 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
   <button onclick="runSimpleAIBuilder()" style="background:linear-gradient(135deg,#7c3aed,#0057b8);color:#fff;border:none;padding:18px 48px;border-radius:50px;font-size:17px;font-weight:800;cursor:pointer;font-family:var(--fb);letter-spacing:.01em;box-shadow:0 10px 28px rgba(124,58,237,.35);transition:transform .15s,box-shadow .15s" onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 14px 36px rgba(124,58,237,.45)'" onmouseout="this.style.transform='translateY(0)';this.style.boxShadow='0 10px 28px rgba(124,58,237,.35)'">
     🤖&nbsp; Build my portfolio now
   </button>
-  <div style="font-size:12px;color:var(--text3);margin-top:14px;line-height:1.6">Takes about <strong style="color:var(--text2)">15 seconds</strong> · No credit card · No registration · Your data stays on your device</div>
+  <div style="font-size:12px;color:var(--text3);margin-top:14px;line-height:1.6">Takes about <strong style="color:var(--text2)">15 seconds</strong></div>
   <div id="aiSimpleStatus" style="font-size:13px;color:var(--text2);margin-top:14px;font-weight:600"></div>
 </div>
 
@@ -3943,7 +4024,7 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
 // ═══════════════════════════════════════════════════════════
 // VERSION — updated by build-standalone.pl on each build
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260801-2147";
+const APP_VERSION = "20260801-2151";
 
 // ═══════════════════════════════════════════════════════════
 // DATA
@@ -6906,7 +6987,7 @@ function showTab(name,el){
     renderInvestments();renderPortfolioMetrics();drawPortfolioPie();
     try { applyMdKeysState(); renderMdKeysGrid(); } catch(_){}
   }
-  if(name==="proposal"){renderProposals();renderProposalMetrics();renderProposalBars();drawProposalPie();syncProposalClient();}
+  if(name==="proposal"){renderProposals();renderProposalMetrics();renderProposalBars();drawProposalPie();syncProposalClient();ordFillRouteForm();ordRenderRouteSummary();ordRenderLog();}
   if(name==="simulation"){
     buildSimInputsSummary();
     // Refresh the proposal-source banner so it shows the right state
@@ -9019,7 +9100,7 @@ function openHoldingsUpload(){ openDataAgent(); }   // back-compat alias
 // review every row before it fills the app. Replaces the old holdings-only,
 // text-only importer (and fixes its us_equity/region + decimal-er/yld bugs).
 // ═══════════════════════════════════════════════════════════════════════════
-const AI_MODEL = "claude-opus-4-7";   // vision + PDF capable; the model the app already calls
+const AI_MODEL = "claude-opus-4-8";   // vision + PDF capable, current model (was claude-opus-4-7, now deprecated). Change here to switch models everywhere.
 let _daExtraction = null;             // last normalized extraction (for the review modal)
 
 function _daEsc(s){ return String(s==null?"":s).replace(/[&<>"']/g,c=>({ "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;" }[c])); }
@@ -9809,9 +9890,21 @@ function siDetectFormat(name,text){
 }
 
 // ── Locale-aware number parse → falls back to _daNum for K/M/B ────────
+// Strings that look like a DATE must never become money. Stripping separators
+// turned a "Value Date" cell of 2026-08-31 into 20,260,831 — and since every
+// European bank statement carries a date column right beside the amount, a
+// column-matching miss produced a 20-million-franc position that looked
+// plausible enough to apply.
+const SI_DATE_LIKE=[
+  /^\d{4}-\d{1,2}-\d{1,2}(?:[T ]\d.*)?$/,   // 2026-08-31, 2026-08-31T00:00:00Z
+  /^\d{1,2}[./-]\d{1,2}[./-]\d{2,4}$/,      // 31.08.2026, 31/08/26, 8-31-2026
+  /^\d{4}\/\d{1,2}\/\d{1,2}$/,              // 2026/08/31
+  /^\d{1,2}[.-][A-Za-z]{3}[.-]\d{2,4}$/     // 31-Aug-2026
+];
 function siNum(str,decimalMark){
   if(str==null) return null;
   let s=String(str).trim(); if(!s) return null;
+  for(let i=0;i<SI_DATE_LIKE.length;i++){ if(SI_DATE_LIKE[i].test(s)) return null; }
   if(/[kmb]\s*$/i.test(s) && /^[\s$€£¥]*[\d.,]+\s*[kmb]\s*$/i.test(s)){ const d=_daNum(str); if(d!=null) return d; }
   let neg=false;
   if(/^\(.*\)$/.test(s)){ neg=true; s=s.slice(1,-1); }
@@ -10282,15 +10375,25 @@ function fdFromCamt(text,srcLabel){
     for(let i=0;i<all.length;i++){ if(all[i].localName===name) res.push(all[i]); }
     return res;
   };
+  // DIRECT child only. `tag()` walks the whole subtree, so tag(bal,"Amt")
+  // happily returned the <Amt> nested inside a <CdtLine> — the account's
+  // overdraft LIMIT — whenever the bank listed the credit line before the
+  // balance. A CHF 12,500 current account then imported as CHF 500,000.
+  const kid=(el,name)=>{
+    if(!el||!el.children) return null;
+    for(let i=0;i<el.children.length;i++){ if(el.children[i].localName===name) return el.children[i]; }
+    return null;
+  };
   const stmts=tags(doc,"Stmt").concat(tags(doc,"Rpt")).concat(tags(doc,"Ntfctn"));
   stmts.forEach((st,si)=>{
     const acctEl=tag(st,"Acct");
     const iban=acctEl?(tag(acctEl,"IBAN")||tag(acctEl,"Othr")):null;
     const ibanTxt=iban?(iban.localName==="IBAN"?iban.textContent:(tag(iban,"Id")?tag(iban,"Id").textContent:"")):"";
-    const nmEl=acctEl?tag(acctEl,"Nm"):null;
-    const ccyEl=acctEl?tag(acctEl,"Ccy"):null;
-    const ownerEl=acctEl?tag(acctEl,"Ownr"):null;
-    const ownerNm=ownerEl?tag(ownerEl,"Nm"):null;
+    // Direct children: <Acct> also contains <Ownr><Nm>, so a subtree lookup
+    // for "Nm" returns the account HOLDER whenever the account itself is
+    // unnamed — the very fallback this is trying to avoid.
+    const nmEl=kid(acctEl,"Nm");
+    const ccyEl=kid(acctEl,"Ccy");
     // Pick the closing booked balance
     let amount=null, ccy=ccyEl?ccyEl.textContent.trim():"", used="";
     const prefer=["CLBD","CLAV","PRCD","ITBD"];
@@ -10299,20 +10402,30 @@ function fdFromCamt(text,srcLabel){
       for(const b of bals){
         const cd=tag(b,"Cd");
         if(cd && cd.textContent.trim().toUpperCase()===code){
-          const amtEl=tag(b,"Amt");
+          const amtEl=kid(b,"Amt");
           if(!amtEl) continue;
           let v=siNum(amtEl.textContent,"period");
           if(v==null) continue;
-          const ind=tag(b,"CdtDbtInd");
+          // CdtDbtInd carries the sign; the amount itself is a magnitude. Some
+          // banks send it already signed, and negating that flipped an
+          // overdraft back into a positive asset.
+          const ind=kid(b,"CdtDbtInd");
+          v=Math.abs(v);
           if(ind && /DBIT/i.test(ind.textContent)) v=-v;
-          if(!ccy) ccy=(amtEl.getAttribute("Ccy")||"").trim();
+          // The balance's own Ccy is authoritative — a multi-currency account
+          // declares a base currency that the individual balance may not use.
+          ccy=(amtEl.getAttribute("Ccy")||"").trim()||ccy;
           amount=v; used=code; break;
         }
       }
       if(amount!=null) break;
     }
     if(amount==null) return;
-    const label=(nmEl&&nmEl.textContent.trim())||(ownerNm&&ownerNm.textContent.trim())||(ibanTxt?("Account "+ibanTxt.slice(-6)):("Account "+(si+1)));
+    // The ACCOUNT's own name, never the account HOLDER's. Falling back to the
+    // owner gave every statement in a multi-account file the same label
+    // ("Hans Müller"), so a current account, a savings account and a pension
+    // all arrived indistinguishable and collapsed onto one another on review.
+    const label=(nmEl&&nmEl.textContent.trim())||(ibanTxt?("Account "+ibanTxt.slice(-6)):("Account "+(si+1)));
     const srcTxt="ISO 20022 camt · "+(srcLabel||"statement")+" · "+used+(ibanTxt?(" · "+ibanTxt):"");
     if(amount<0){
       out.liabilities.push({_ok:0.85,_src:srcTxt,type:"other",label:label+" (overdrawn)",balance:Math.abs(amount),ratePct:null,years:null});
@@ -10472,6 +10585,492 @@ function fdShowSpec(){
     </div>
   </div>`;
   show("fdSpecModal",true);
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+//  ORDER ROUTING — send Investment Proposal positions to a PM system
+//
+//  The proposal is a RECOMMENDATION. This turns it into an order ticket and
+//  hands it to the portfolio-management system, where a licensed human
+//  reviews and executes it. Nothing here executes a trade: `intent` is
+//  always "stage", and every screen says so.
+//
+//  Design rules, all of which exist because this moves client money:
+//   • Refuse rather than guess. A line the PM system cannot identify (no
+//     ISIN and no ticker) blocks the whole send — a half-sent ticket is
+//     worse than one that never left.
+//   • One idempotency key per ticket, generated ONCE when the ticket is
+//     built and reused across retries, so a double-click or a retry after a
+//     timeout cannot double-buy.
+//   • Nothing is sent without an explicit confirm on a screen that shows
+//     every line and the cash total.
+//   • Every attempt is written to a local audit log with the response.
+// ═══════════════════════════════════════════════════════════════════════
+const WA_ORDER_SCHEMA="wa.order/v1";
+/**
+ * Money for an ORDER screen: exact, and in the ORDER currency.
+ *
+ * The general-purpose formatter abbreviates ("$2.35M") and uses the app
+ * display currency. Both are wrong on a confirmation an advisor is about to
+ * act on: the abbreviation hides whether 2.35M is 2,350,000 or 2,354,999, and
+ * a CHF ticket rendered with a "$" invites confirming the wrong currency.
+ * Order screens always get full precision and the ISO code of the money
+ * actually being moved.
+ */
+function ordMoney(n,ccy){
+  if(n==null||isNaN(n)) return "—";
+  const code=String(ccy||"").toUpperCase();
+  let body;
+  try{ body=Number(n).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}); }
+  catch(_){ body=Number(n).toFixed(2); }
+  return (code?code+" ":"")+body;
+}
+
+
+function ordLoadRoute(){
+  try{ const o=JSON.parse(localStorage.getItem("wa_order_route")||"null"); return (o&&typeof o==="object")?o:null; }catch(_){ return null; }
+}
+function ordSaveRoute(r){
+  try{ localStorage.setItem("wa_order_route",JSON.stringify(r)); }catch(e){ ordStatus("✗ Could not save routing: "+e.message,"var(--red)"); }
+}
+function ordLoadLog(){
+  try{ const a=JSON.parse(localStorage.getItem("wa_order_log")||"[]"); return Array.isArray(a)?a:[]; }catch(_){ return []; }
+}
+function ordAppendLog(entry){
+  try{
+    const log=ordLoadLog(); log.unshift(entry);
+    localStorage.setItem("wa_order_log",JSON.stringify(log.slice(0,50)));
+  }catch(_){ /* audit is best-effort; never block a send on it */ }
+}
+function ordStatus(msg,color){
+  const s=$("ordStatus"); if(s){ s.textContent=msg||""; s.style.color=color||"var(--text3)"; }
+}
+
+/** A ticket id doubles as the idempotency key the PM system dedupes on. */
+function ordNewTicketId(){
+  return "wo_"+Date.now().toString(36)+"_"+Math.random().toString(36).slice(2,8);
+}
+
+/**
+ * Build a wa.order/v1 ticket from the current proposal.
+ * Pure apart from reading the form — returns the ticket, never sends.
+ */
+function ordBuildTicket(ticketId){
+  const route=ordLoadRoute()||{};
+  const target=num("prAmount",0);
+  const ccy=(route.ccy||CURRENT_CCY||"USD").toUpperCase();
+  const lines=proposals.map(function(p,i){
+    const weight=Number(p.alloc)||0;
+    // Round to the minor unit so the PM system is never handed 1/3 of a cent.
+    const amount=Math.round(target*(weight/100)*100)/100;
+    return {
+      lineId:"ln"+(i+1),
+      side:"BUY",
+      instrument:{
+        isin:String(p.isin||"").trim().toUpperCase(),
+        ticker:String(p.tkr||"").trim().toUpperCase(),
+        name:p.name||"",
+        vehicle:p.vehicle||"",
+        cls:p.cls||""
+      },
+      weightPct:weight,
+      amount:amount,
+      currency:ccy,
+      orderType:"market",
+      note:String(p.note||"").slice(0,300)
+    };
+  });
+  return {
+    schema:WA_ORDER_SCHEMA,
+    ticketId:ticketId||ordNewTicketId(),
+    createdAt:new Date().toISOString(),
+    // Never "execute". The PM system is where a human pulls the trigger.
+    intent:"stage",
+    account:{ id:String(route.account||"").trim(), custodian:String(route.custodian||"").trim(), currency:ccy },
+    client:{ name:val("prClient").trim(), advisor:val("prAdvisor").trim() },
+    source:{ system:"Wealth Analyzer", version:(typeof APP_VERSION!=="undefined"?APP_VERSION:""), objective:val("prObjective") },
+    totals:{ amount:lines.reduce(function(s,l){return s+l.amount;},0), currency:ccy, positions:lines.length },
+    lines:lines
+  };
+}
+
+/**
+ * Pre-flight. `errors` block the send outright; `warnings` are shown on the
+ * confirm screen but let the advisor proceed.
+ *
+ * The split matters: an unidentifiable instrument or a missing account is a
+ * ticket the PM system will reject or, worse, misbook. A 99.4% allocation is
+ * just residual cash, which is a decision, not a defect.
+ */
+function ordValidate(ticket){
+  const errors=[], warnings=[];
+  const route=ordLoadRoute()||{};
+
+  if(!route.url) errors.push("No PM endpoint configured — set one in Order Routing below.");
+  if(!ticket.lines.length) errors.push("The proposal has no positions.");
+  if(!(ticket.totals.amount>0)) errors.push("Set a target amount in Proposal Setup — without it every order line is zero.");
+  if(!ticket.account.id) errors.push("No custody account. Orders must book to an account; enter one in Order Routing.");
+
+  const unidentified=ticket.lines.filter(function(l){ return !l.instrument.isin && !l.instrument.ticker; });
+  if(unidentified.length){
+    errors.push(unidentified.length+" position(s) have neither an ISIN nor a ticker, so the PM system cannot identify them: "
+      +unidentified.map(function(l){ return l.instrument.name||l.lineId; }).join(", "));
+  }
+  const zero=ticket.lines.filter(function(l){ return !(l.amount>0); });
+  if(zero.length) errors.push(zero.length+" position(s) compute to a zero amount — check their weights.");
+
+  const alloc=ticket.lines.reduce(function(s,l){ return s+l.weightPct; },0);
+  if(alloc>100.5) errors.push("Allocation totals "+alloc.toFixed(1)+"% — over 100% would invest more than the target amount.");
+  else if(alloc<99.5) warnings.push("Allocation totals "+alloc.toFixed(1)+"%, so "+ordMoney(num("prAmount",0)*(100-alloc)/100,ticket.totals.currency)+" stays in cash.");
+
+  // ISIN is what a European custodian actually books on; a US ticker often
+  // will not resolve there. Worth saying, not worth blocking.
+  const noIsin=ticket.lines.filter(function(l){ return !l.instrument.isin; });
+  if(noIsin.length) warnings.push(noIsin.length+" position(s) carry no ISIN. Ticker-only lines may not resolve at a European custodian — add ISINs if your PM system requires them.");
+
+  const residual=num("prAmount",0)-ticket.totals.amount;
+  if(Math.abs(residual)>=0.01 && alloc>=99.5) warnings.push("Rounding leaves "+ordMoney(residual,ticket.totals.currency)+" unallocated.");
+
+  return {errors:errors,warnings:warnings};
+}
+
+// ── Wire adapters ────────────────────────────────────────────────────
+// Same shape as the feed adapters, pointed the other way: one pure function
+// per PM dialect, so adding a custodian never touches the UI.
+//
+// NOTE FOR INTEGRATORS: `avaloq` below is a TEMPLATE following Avaloq's
+// documented order-entry shape. Field names differ per installation (Avaloq
+// is configured heavily per bank). Confirm against your own instance's API
+// contract before going live, and adjust only here — nothing upstream of
+// this function knows the wire format.
+function ordToWire(ticket,format){
+  if(format==="avaloq"){
+    return {
+      orders: ticket.lines.map(function(l){
+        return {
+          externalReference: ticket.ticketId+"."+l.lineId,   // idempotency, per line
+          portfolioId: ticket.account.id,
+          instrument: l.instrument.isin ? {isin:l.instrument.isin} : {symbol:l.instrument.ticker},
+          transactionType: l.side,
+          orderType: "MARKET",
+          amount: {value:l.amount, currency:l.currency},
+          status: "PENDING_APPROVAL",     // staged, NOT executed
+          remark: String(l.note||"").slice(0,120)
+        };
+      }),
+      clientReference: ticket.ticketId,
+      preparedBy: ticket.client.advisor||"",
+      preparedFor: ticket.client.name||""
+    };
+  }
+  if(format==="generic"){
+    return {
+      reference: ticket.ticketId,
+      account: ticket.account.id,
+      currency: ticket.totals.currency,
+      execute: false,                    // explicit: stage only
+      orders: ticket.lines.map(function(l){
+        return {
+          reference: ticket.ticketId+"."+l.lineId,
+          side: l.side, isin: l.instrument.isin||null, symbol: l.instrument.ticker||null,
+          name: l.instrument.name, amount: l.amount, currency: l.currency, type: l.orderType
+        };
+      })
+    };
+  }
+  return ticket;                          // native wa.order/v1
+}
+
+/** Normalize whatever the PM system answered into something displayable. */
+function ordReadResponse(body,httpStatus){
+  const out={ok:httpStatus>=200&&httpStatus<300,ref:"",accepted:null,rejected:[],raw:""};
+  if(typeof body==="string"){ out.raw=body.slice(0,400); return out; }
+  if(!body||typeof body!=="object"){ return out; }
+  out.ref=body.orderId||body.reference||body.clientReference||body.id||body.ticketId||"";
+  const arr=Array.isArray(body.orders)?body.orders:Array.isArray(body.results)?body.results:null;
+  if(arr){
+    const bad=function(o){ return o.status&&/reject|error|fail/i.test(String(o.status)); };
+    out.accepted=arr.filter(function(o){ return !bad(o); }).length;
+    out.rejected=arr.filter(bad).map(function(o){
+      return (o.externalReference||o.reference||o.isin||"line")+": "+(o.message||o.error||o.status);
+    });
+  }
+  try{ out.raw=JSON.stringify(body).slice(0,400); }catch(_){ }
+  return out;
+}
+
+
+// ── The BUY flow: build → validate → REVIEW → confirm → send ─────────
+let _ordPending=null;    // the ticket shown in the review modal
+// Set when a send did not positively succeed, so "Retry" rebuilds the ticket
+// with the SAME reference. Cleared on success and whenever the proposal is
+// edited — a changed proposal is a different order and must get a new id.
+let _ordRetryId=null;
+
+/** Entry point for the BUY button. Never sends; only opens the review. */
+function ordReviewProposal(){
+  const ticket=ordBuildTicket(_ordRetryId||null);
+  const route=ordLoadRoute()||{};
+  const v=ordValidate(ticket);
+  // Freeze the routing config with the ticket. Re-reading it at send time
+  // meant an advisor could review one destination and send to another.
+  _ordPending={ticket:ticket,route:route,errors:v.errors,warnings:v.warnings,sending:false,sent:false,result:null};
+  ordRenderReview();
+  show("ordModalBg",true); show("ordModal",true);
+}
+function ordCloseReview(){
+  // Refuse to vanish mid-flight: a modal that closes during an in-flight POST
+  // leaves the advisor unsure whether the order went.
+  if(_ordPending&&_ordPending.sending) return;
+  _ordPending=null; show("ordModalBg",false); show("ordModal",false);
+}
+
+function ordRenderReview(){
+  const m=$("ordModal"); if(!m||!_ordPending) return;
+  const ticket=_ordPending.ticket, errors=_ordPending.errors, warnings=_ordPending.warnings;
+  const route=ordLoadRoute()||{};
+  const blocked=errors.length>0;
+
+  let h='<div class="da-modal-h"><span class="ptitle" style="margin:0">Review order ticket</span>'
+       +'<button class="btn-x" onclick="ordCloseReview()">&#10005;</button></div>';
+  h+='<div style="flex:1;overflow:auto;padding:16px 18px">';
+
+  // Say plainly what this does, before anything else on the screen.
+  h+='<div style="padding:10px 14px;border-radius:var(--rs);background:rgba(0,87,184,.08);border:1px solid rgba(0,87,184,.25);font-size:12px;color:var(--text2);margin-bottom:14px">'
+    +'<strong style="color:var(--text)">These orders are staged, not executed.</strong> They are sent to '
+    +_daEsc(route.name||"the configured PM system")+' as pending instructions. Execution happens there, by someone with the authority to place them.</div>';
+
+  if(blocked){
+    h+='<div style="padding:10px 14px;border-radius:var(--rs);background:rgba(220,38,38,.08);border:1px solid rgba(220,38,38,.3);margin-bottom:14px">'
+      +'<div style="font-size:12px;font-weight:700;color:var(--red);margin-bottom:6px">Cannot send &mdash; fix these first</div>'
+      +'<ul style="margin:0 0 0 18px;font-size:12px;color:var(--text2);line-height:1.7">'
+      +errors.map(function(e){return '<li>'+_daEsc(e)+'</li>';}).join('')+'</ul></div>';
+  }
+  if(warnings.length){
+    h+='<div style="padding:10px 14px;border-radius:var(--rs);background:rgba(217,119,6,.08);border:1px solid rgba(217,119,6,.3);margin-bottom:14px">'
+      +'<div style="font-size:12px;font-weight:700;color:#b45309;margin-bottom:6px">Check before sending</div>'
+      +'<ul style="margin:0 0 0 18px;font-size:12px;color:var(--text2);line-height:1.7">'
+      +warnings.map(function(w){return '<li>'+_daEsc(w)+'</li>';}).join('')+'</ul></div>';
+  }
+
+  h+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:14px">'
+    +ordCard("Account",_daEsc(ticket.account.id||"&mdash;"))
+    +ordCard("Positions",String(ticket.totals.positions))
+    +ordCard("Total",ordMoney(ticket.totals.amount,ticket.totals.currency))
+    +ordCard("Currency",_daEsc(ticket.totals.currency))
+    +'</div>';
+
+  h+='<table style="width:100%;border-collapse:collapse;font-size:12px">'
+    +'<thead><tr style="text-align:left;color:var(--text3);font-size:10px;text-transform:uppercase;letter-spacing:.07em">'
+    +'<th style="padding:6px 4px">Side</th><th style="padding:6px 4px">Instrument</th>'
+    +'<th style="padding:6px 4px">ISIN</th><th style="padding:6px 4px">Ticker</th>'
+    +'<th style="padding:6px 4px;text-align:right">Weight</th><th style="padding:6px 4px;text-align:right">Amount</th>'
+    +'</tr></thead><tbody>';
+  ticket.lines.forEach(function(l){
+    const noId=!l.instrument.isin&&!l.instrument.ticker;
+    h+='<tr style="border-top:1px solid var(--border)'+(noId?';background:rgba(220,38,38,.06)':'')+'">'
+      +'<td style="padding:7px 4px"><span style="font-weight:700;color:var(--green)">BUY</span></td>'
+      +'<td style="padding:7px 4px">'+_daEsc(l.instrument.name||"&mdash;")+'</td>'
+      +'<td style="padding:7px 4px;font-family:var(--fm,monospace)">'+(l.instrument.isin?_daEsc(l.instrument.isin):'<span style="color:var(--text3)">&mdash;</span>')+'</td>'
+      +'<td style="padding:7px 4px;font-family:var(--fm,monospace)">'+(l.instrument.ticker?_daEsc(l.instrument.ticker):'<span style="color:var(--text3)">&mdash;</span>')+'</td>'
+      +'<td style="padding:7px 4px;text-align:right">'+fmtPct(l.weightPct)+'</td>'
+      +'<td style="padding:7px 4px;text-align:right;font-weight:600">'+ordMoney(l.amount,l.currency)+'</td></tr>';
+  });
+  h+='</tbody><tfoot><tr style="border-top:2px solid var(--border);font-weight:700">'
+    +'<td colspan="5" style="padding:8px 4px;text-align:right">Total</td>'
+    +'<td style="padding:8px 4px;text-align:right">'+ordMoney(ticket.totals.amount,ticket.totals.currency)+'</td></tr></tfoot></table>';
+
+  h+='<div style="font-size:11px;color:var(--text3);margin-top:12px">Ticket <code>'+_daEsc(ticket.ticketId)+'</code> &mdash; '
+    +'sent as the idempotency key. If this send fails, use <strong>Retry this ticket</strong> — it reuses this same reference, so the PM system can recognise the retry. Pressing BUY again instead starts a NEW order with a new reference.</div>';
+
+  if(_ordPending.sent&&_ordPending.result){
+    const r=_ordPending.result;
+    const good=r.ok&&!(r.rejected||[]).length;
+    h+='<div style="margin-top:14px;padding:10px 14px;border-radius:var(--rs);background:'
+      +(good?'rgba(5,150,105,.08)':'rgba(220,38,38,.08)')+';border:1px solid '
+      +(good?'rgba(5,150,105,.3)':'rgba(220,38,38,.3)')+'">'
+      +'<div style="font-size:12px;font-weight:700;color:'+(good?'var(--green)':'var(--red)')+'">'
+      +(good?'Staged in the PM system':'The PM system reported a problem')+'</div>'
+      +'<div style="font-size:12px;color:var(--text2);margin-top:4px">'
+      +(r.ref?('Reference: <code>'+_daEsc(r.ref)+'</code><br>'):'')
+      +(r.accepted!=null?(r.accepted+' line(s) accepted.<br>'):'')
+      +((r.rejected||[]).length?('Rejected: '+_daEsc(r.rejected.join(" · "))+'<br>'):'')
+      +'</div></div>';
+  }
+  h+='</div>';
+
+  h+='<div class="da-modal-tools" style="justify-content:flex-end;border-top:1px solid var(--border);border-bottom:none">';
+  if(_ordPending.sent){
+    var r0=_ordPending.result||{};
+    var good0=r0.ok&&!(r0.rejected||[]).length;
+    if(!good0){
+      h+='<button class="btn-secondary" onclick="ordRetrySame()" title="Re-sends the SAME ticket reference">Retry this ticket</button>';
+    }
+    h+='<button class="btn-secondary" onclick="ordCloseReview()">Close</button>';
+  }else{
+    h+='<button class="btn-secondary" onclick="ordCloseReview()">Cancel</button>'
+      +'<button id="ordSendBtn" class="btn-secondary" onclick="ordSend()"'
+      +(blocked?' disabled style="opacity:.45;cursor:not-allowed"':' style="background:var(--green);color:#fff;border:none;font-weight:700"')
+      +'>'+(blocked?'Cannot send':'Confirm &mdash; send '+ticket.totals.positions+' order'+(ticket.totals.positions===1?'':'s'))+'</button>';
+  }
+  h+='</div>';
+  m.innerHTML=h;
+}
+/**
+ * Re-send the ticket that just failed, REUSING its reference.
+ *
+ * This is what makes the idempotency promise on the review screen true. A
+ * fresh BUY mints a new reference, which is correct — that is a new order.
+ * A retry must not, or the relay and the PM system have nothing to dedupe on
+ * and an ambiguous timeout becomes a double-buy.
+ */
+function ordRetrySame(){
+  if(!_ordPending||_ordPending.sending) return;
+  _ordPending.sent=false; _ordPending.result=null;
+  ordRenderReview();
+  ordSend();
+}
+function ordCard(lbl,v){
+  return '<div style="padding:8px 12px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--rs)">'
+    +'<div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.07em">'+lbl+'</div>'
+    +'<div style="font-size:15px;font-weight:600;color:var(--text);margin-top:2px">'+v+'</div></div>';
+}
+
+/** Only reachable from the confirm button in the review modal. */
+async function ordSend(){
+  if(!_ordPending||_ordPending.sending||_ordPending.sent) return;
+  if(_ordPending.errors.length) return;              // belt and braces
+  const route=_ordPending.route||{};
+  const ticket=_ordPending.ticket;
+
+  _ordPending.sending=true;
+  const btn=$("ordSendBtn");
+  if(btn){ btn.disabled=true; btn.textContent="Sending…"; btn.style.opacity=".6"; }
+
+  const headers={"Content-Type":"application/json","Accept":"application/json",
+                 // Both spellings are in the wild; harmless to send both.
+                 "Idempotency-Key":ticket.ticketId,"X-Idempotency-Key":ticket.ticketId};
+  if(route.auth==="bearer"&&route.secret) headers["Authorization"]="Bearer "+route.secret;
+  else if(route.auth==="apikey"&&route.secret) headers[route.header||"X-API-Key"]=route.secret;
+  else if(route.auth==="basic"&&route.secret){
+    try{ headers["Authorization"]="Basic "+btoa(unescape(encodeURIComponent(route.secret))); }
+    catch(_){ headers["Authorization"]="Basic "+btoa(route.secret); }
+  }
+
+  let httpStatus=0, parsed=null, errMsg="";
+  try{
+    // redirect:"manual" — a 3xx must NOT be followed. 307/308 would replay the
+    // whole order body to whatever Location names, and while fetch strips
+    // Authorization cross-origin it does NOT strip a custom X-API-Key header,
+    // which is one of the auth modes offered here. 301/302/303 would rewrite
+    // POST to GET and deliver an empty request that reads as success.
+    const ctl=new AbortController();
+    const to=setTimeout(function(){ ctl.abort(); },20000);
+    let res;
+    try{
+      res=await fetch(route.url,{method:"POST",headers:headers,redirect:"manual",signal:ctl.signal,
+        body:JSON.stringify(ordToWire(ticket,route.format||"wa"))});
+    } finally { clearTimeout(to); }
+    if(res.type==="opaqueredirect"||(res.status>=300&&res.status<400)){
+      throw new Error("the endpoint redirected — point the connection at the final URL");
+    }
+    httpStatus=res.status;
+    const txt=await res.text();
+    try{ parsed=JSON.parse(txt); }catch(_){ parsed=txt; }
+  }catch(e){
+    errMsg=e.message||"network error";
+  }
+
+  // A network error is genuinely ambiguous — the PM system may have received
+  // and staged the ticket before the connection dropped. Say that, rather
+  // than implying nothing happened.
+  const result=errMsg
+    ? {ok:false,ref:"",accepted:null,rejected:["Could not reach the PM system: "+errMsg
+        +". If this was a timeout the ticket may already be staged — check there before re-sending. "
+        +"Use “Retry this ticket” rather than BUY: it reuses this reference, so a PM system that honours it will not stage the order twice."],raw:""}
+    : ordReadResponse(parsed,httpStatus);
+
+  _ordPending.sending=false; _ordPending.sent=true; _ordPending.result=result;
+
+  ordAppendLog({
+    at:new Date().toISOString(), ticketId:ticket.ticketId, endpoint:route.url,
+    format:route.format||"wa", account:ticket.account.id,
+    positions:ticket.totals.positions, amount:ticket.totals.amount, currency:ticket.totals.currency,
+    httpStatus:httpStatus, ok:!!(result.ok&&!(result.rejected||[]).length),
+    ref:result.ref, note:(result.rejected||[]).join(" · ").slice(0,300)
+  });
+
+  ordRenderReview();
+  ordRenderLog();
+  const good=result.ok&&!(result.rejected||[]).length;
+  // Remember the reference only while the outcome is not a clean success, so
+  // the next BUY on an unresolved ticket can reuse it rather than mint a new one.
+  _ordRetryId=good?null:ticket.ticketId;
+  ordStatus(good?("✓ Ticket "+ticket.ticketId+" staged — "+ticket.totals.positions+" order(s) sent to "+(route.name||"PM system"))
+                :("✗ Send reported a problem — see the review screen and the log below."),
+            good?"var(--green)":"var(--red)");
+}
+
+// ── Routing config + audit log UI ────────────────────────────────────
+function ordSaveRouteFromForm(){
+  const r={
+    name:val("ordName").trim(), url:val("ordUrl").trim(),
+    format:val("ordFormat"), auth:val("ordAuth"),
+    header:val("ordHeader").trim()||"X-API-Key",
+    secret:val("ordSecret"), account:val("ordAccount").trim(),
+    custodian:val("ordCustodian").trim(), ccy:val("ordCcy").trim().toUpperCase()
+  };
+  if(!r.url){ ordStatus("✗ Enter the PM system's order endpoint URL.","var(--red)"); return; }
+  if(!/^https?:\/\//i.test(r.url)){ ordStatus("✗ The endpoint must be an http(s) URL.","var(--red)"); return; }
+  if(!r.account){ ordStatus("✗ Enter the custody account the orders should book to.","var(--red)"); return; }
+  if(r.auth!=="none"&&!r.secret){ ordStatus("✗ "+r.auth+" authentication needs a credential.","var(--red)"); return; }
+  ordSaveRoute(r);
+  ordStatus("✓ Order routing saved.","var(--green)");
+  ordRenderRouteSummary();
+}
+function ordRenderRouteSummary(){
+  const el=$("ordRouteSummary"); if(!el) return;
+  const r=ordLoadRoute();
+  if(!r||!r.url){ el.innerHTML='<span style="color:var(--text3)">No PM endpoint configured yet — the BUY button will explain what is missing.</span>'; return; }
+  el.innerHTML='<strong style="color:var(--text)">'+_daEsc(r.name||"PM system")+'</strong> · '
+    +_daEsc(r.format||"wa")+' · account <code>'+_daEsc(r.account||"—")+'</code> · '
+    +_daEsc(r.ccy||CURRENT_CCY)+' · '+(r.secret?"credential stored":"no credential");
+}
+function ordFillRouteForm(){
+  const r=ordLoadRoute(); if(!r) return;
+  const set=function(id,v){ const el=$(id); if(el) el.value=v||""; };
+  set("ordName",r.name); set("ordUrl",r.url); set("ordAccount",r.account);
+  set("ordCustodian",r.custodian); set("ordCcy",r.ccy); set("ordHeader",r.header); set("ordSecret",r.secret);
+  const f=$("ordFormat"); if(f&&r.format) f.value=r.format;
+  const a=$("ordAuth"); if(a&&r.auth) a.value=r.auth;
+  ordToggleAuth();
+}
+function ordToggleAuth(){
+  const a=val("ordAuth");
+  show("ordSecretRow",a!=="none");
+  show("ordHeaderRow",a==="apikey");
+}
+function ordRenderLog(){
+  const el=$("ordLog"); if(!el) return;
+  const log=ordLoadLog();
+  if(!log.length){ el.innerHTML='<div class="pf-empty">No orders sent yet.</div>'; return; }
+  let h='<table style="width:100%;border-collapse:collapse;font-size:11.5px">'
+    +'<thead><tr style="text-align:left;color:var(--text3);font-size:10px;text-transform:uppercase;letter-spacing:.07em">'
+    +'<th style="padding:5px 4px">When</th><th style="padding:5px 4px">Ticket</th><th style="padding:5px 4px">Account</th>'
+    +'<th style="padding:5px 4px;text-align:right">Lines</th><th style="padding:5px 4px;text-align:right">Amount</th>'
+    +'<th style="padding:5px 4px">Result</th></tr></thead><tbody>';
+  log.forEach(function(e){
+    h+='<tr style="border-top:1px solid var(--border)">'
+      +'<td style="padding:6px 4px;color:var(--text3)">'+_daEsc(String(e.at||"").replace("T"," ").slice(0,16))+'</td>'
+      +'<td style="padding:6px 4px;font-family:var(--fm,monospace)">'+_daEsc(e.ticketId||"")+'</td>'
+      +'<td style="padding:6px 4px">'+_daEsc(e.account||"—")+'</td>'
+      +'<td style="padding:6px 4px;text-align:right">'+(e.positions||0)+'</td>'
+      +'<td style="padding:6px 4px;text-align:right">'+ordMoney(e.amount||0,e.currency)+'</td>'
+      +'<td style="padding:6px 4px;color:'+(e.ok?'var(--green)':'var(--red)')+'">'
+      +(e.ok?'staged':'failed')+(e.httpStatus?(' ('+e.httpStatus+')'):'')
+      +(e.ref?(' · '+_daEsc(e.ref)):'')+'</td></tr>';
+  });
+  el.innerHTML=h+'</tbody></table>';
 }
 
 // ── Stage-1 column-mapping modal ─────────────────────────────────────
@@ -11838,6 +12437,7 @@ async function runAIPortfolioGenerator(){
   const status = $("aiGenStatus");
   const resultPanel = $("aiGenResult");
   const aiKey = (function(){try{return localStorage.getItem("wa_ai_key")||"";}catch(e){return "";}})();
+  try{ window._lastAIGenError = null; }catch(_){}   // reset so a stale error can't linger on the next run
 
   // ─── 1. Gather client data from the main app's current state ───
   const inc1 = num("inc1", 0) + num("inc1b", 0);
@@ -11980,7 +12580,7 @@ Constraints:
         "anthropic-dangerous-direct-browser-access": "true"
       },
       body: JSON.stringify({
-        model: "claude-opus-4-7",
+        model: AI_MODEL,
         max_tokens: 4000,
         messages: [{role: "user", content: prompt}]
       })
@@ -12023,7 +12623,8 @@ Constraints:
     renderAIGenResult(rec, {risk, horizon, country, netWorth, grossIncome, surplus, researchProviderCount});
     status.innerHTML = '✓ <strong style="color:#1b6841">Portfolio recommendation ready</strong> — review below, then click <strong>↓ Apply to Proposal Below</strong>';
   } catch(e){
-    $("aiGenResultBody").innerHTML = '<div style="padding:14px;background:rgba(227,24,55,.05);border-left:3px solid var(--red);border-radius:6px"><strong style="color:var(--red)">Error:</strong> ' + e.message + '<div style="font-size:12px;color:var(--text3);margin-top:10px;line-height:1.6"><strong>Common issues:</strong><br>• AI key missing — set one in admin → API Keys tab<br>• Network/CORS error — check connection<br>• Rate-limited — wait 60s and retry</div></div>';
+    try{ window._lastAIGenError = e.message; }catch(_){}   // expose the real reason to the simple builder UI
+    $("aiGenResultBody").innerHTML = '<div style="padding:14px;background:rgba(227,24,55,.05);border-left:3px solid var(--red);border-radius:6px"><strong style="color:var(--red)">Error:</strong> ' + escapeForHTML(e.message) + '<div style="font-size:12px;color:var(--text3);margin-top:10px;line-height:1.6"><strong>Common issues:</strong><br>• AI key missing or invalid — set/replace it in admin → API Keys tab<br>• Model unavailable — a 404 / not_found means the model id needs updating<br>• Network/CORS error — check connection<br>• Rate-limited — wait 60s and retry</div></div>';
     status.textContent = "✗ Generation failed";
   }
 }
@@ -12078,7 +12679,7 @@ async function runSimpleAIBuilder(){
     // Trigger the full (async) pipeline
     Promise.resolve()
       .then(() => runAIPortfolioGenerator())
-      .then(() => { if(!ok){ status.innerHTML = '<span style="color:var(--red)">✗ Generation failed — check the AI key in admin → API Keys.</span>'; } finish(); })
+      .then(() => { if(!ok){ var _em = window._lastAIGenError ? escapeForHTML(String(window._lastAIGenError).slice(0,240)) : 'Generation failed — check the AI key in admin → API Keys.'; status.innerHTML = '<span style="color:var(--red)">✗ ' + _em + '</span>'; } finish(); })
       .catch(e => { status.innerHTML = '<span style="color:var(--red)">✗ ' + e.message + '</span>'; finish(); });
     // Safety net: never hang longer than 30s
     setTimeout(() => { if(!ok) status.innerHTML = '<span style="color:var(--red)">✗ Timed out — please retry.</span>'; finish(); }, 30000);
@@ -12206,7 +12807,7 @@ function renderSimpleAIResult(rec, simpleBrief){
       h += '<span style="font-size:10.5px;color:var(--text3);font-style:italic">↓ hover for details</span>';
       h += '</div>';
       // Expanded rationale — hidden by default, revealed on hover/focus
-      h += '<div class="ai-pos-why" style="overflow:hidden;max-height:0;transition:max-height .35s ease,margin-top .25s ease,padding .25s ease">';
+      h += '<div class="ai-pos-why">';
       h += '<div style="margin-top:12px;padding-top:12px;border-top:1px dashed rgba(124,58,237,.3)">';
       // Section 1 — plain language summary
       h += '<div style="font-size:12.5px;color:var(--text);line-height:1.65;margin-bottom:12px">';
@@ -13544,10 +14145,10 @@ function addProposal(){
   const exp=parseFloat(val("prExp")), er=parseFloat(val("prErIn")), yld=parseFloat(val("prYldIn"));
   const note=val("prNote").trim();
   if(!name||isNaN(alloc)||alloc<=0){alert("Enter name and allocation %"); return;}
-  proposals.push({id:"pr"+(++propSeq),name,tkr,vehicle,cls,alloc,
+  proposals.push({id:"pr"+(++propSeq),name,tkr,isin:val("prIsin").trim().toUpperCase(),vehicle,cls,alloc,
     exp:isNaN(exp)?null:exp,er:isNaN(er)?null:er,yld:isNaN(yld)?null:yld,note,
     metrics:(_lastFundPerf&&_lastFundPerf.tkr&&tkr&&_lastFundPerf.tkr===tkr.toUpperCase())?_lastFundPerf.metrics:null});
-  ["prName","prTkr","prAlloc","prExp","prErIn","prYldIn","prNote"].forEach(id=>$(id).value="");
+  ["prName","prTkr","prIsin","prAlloc","prExp","prErIn","prYldIn","prNote"].forEach(id=>$(id).value="");
   setT("prTkrHint","");
   try{ renderFundPerf('pr',null); }catch(_){}  _lastFundPerf=null;   // clear fetched-performance panel after add
   renderProposals(); renderProposalMetrics(); renderProposalBars(); drawProposalPie();

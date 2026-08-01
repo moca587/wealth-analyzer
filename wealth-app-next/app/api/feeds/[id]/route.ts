@@ -24,6 +24,7 @@ import { encryptSecret, decryptSecret, encryptionAvailable, FeedCryptoError } fr
 import { safeFetch, FeedFetchError } from "@/lib/feeds/ssrf";
 import { adaptFeed, FeedFormatError } from "@/lib/feeds/adapters";
 import { countRecords, type FeedFormat } from "@/lib/feeds/model";
+import { redact, HTTP_FOR } from "@/lib/feeds/redact";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";   // a relay run must never be cached
@@ -31,6 +32,27 @@ export const dynamic = "force-dynamic";   // a relay run must never be cached
 const SAFE_COLUMNS = "id, name, url, kind, format, auth, header, default_country, secret_ciphertext, last_run_at, last_status, created_at";
 
 interface Ctx { params: Promise<{ id: string }> }
+
+/**
+ * Per-user throttle on relay runs.
+ *
+ * The relay makes OUR server fetch a URL the user chose, so an authenticated
+ * account is otherwise a free, attributable request amplifier. This is
+ * per-instance memory: it bounds a single runaway client (a stuck retry loop,
+ * a script) but is not a distributed limiter — a real deployment should also
+ * rate-limit at the edge.
+ */
+const RUNS = new Map<string, number[]>();
+const RUN_WINDOW_MS = 60_000;
+const RUN_LIMIT = 30;
+function throttled(userId: string): boolean {
+  const now = Date.now();
+  const hits = (RUNS.get(userId) ?? []).filter((t) => now - t < RUN_WINDOW_MS);
+  hits.push(now);
+  RUNS.set(userId, hits);
+  if (RUNS.size > 5000) for (const [k, v] of RUNS) if (!v.some((t) => now - t < RUN_WINDOW_MS)) RUNS.delete(k);
+  return hits.length > RUN_LIMIT;
+}
 
 /** Auth + ownership in one step; returns the row or an error response. */
 async function loadOwned(id: string) {
@@ -56,32 +78,52 @@ export async function GET(_request: Request, ctx: Ctx) {
   const { id } = await ctx.params;
   const owned = await loadOwned(id);
   if ("error" in owned) return owned.error;
-  const { supabase, row } = owned;
+  const { supabase, user, row } = owned;
+
+  if (throttled(user.id)) {
+    return NextResponse.json(
+      { error: `Too many feed runs — the relay allows ${RUN_LIMIT} per minute.`, code: "rate_limited" },
+      { status: 429, headers: { "Retry-After": "60" } },
+    );
+  }
 
   // Build upstream auth from the decrypted credential.
   const headers: Record<string, string> = {
     Accept: "application/json, application/xml, text/csv, text/plain, */*",
     "User-Agent": "WealthAnalyzer-FeedRelay/1.0",
   };
+  let secret = "";
   try {
-    const secret = row.secret_ciphertext ? decryptSecret(row.secret_ciphertext) : "";
-    if (row.auth === "bearer" && secret) headers.Authorization = `Bearer ${secret}`;
-    else if (row.auth === "apikey" && secret) headers[row.header || "X-API-Key"] = secret;
-    else if (row.auth === "basic" && secret) headers.Authorization = `Basic ${Buffer.from(secret).toString("base64")}`;
+    secret = row.secret_ciphertext ? decryptSecret(row.secret_ciphertext) : "";
   } catch (e) {
     const msg = e instanceof FeedCryptoError ? e.message : "could not read the stored credential";
     await recordRun(supabase, id, `error: ${msg}`);
     return NextResponse.json({ error: msg }, { status: 500 });
   }
 
+  // A connection configured for auth but holding no credential must NOT fetch
+  // anonymously. It used to: the header was simply omitted, the custodian
+  // answered with its HTML login page, and the adapter tried to normalize that
+  // into the client's plan. Fail loudly instead.
+  if (row.auth && row.auth !== "none" && !secret) {
+    const msg = `This connection is set to ${row.auth} authentication but has no stored credential.`;
+    await recordRun(supabase, id, `error: ${msg}`);
+    return NextResponse.json({ error: msg, code: "no_credential" }, { status: 400 });
+  }
+  if (row.auth === "bearer" && secret) headers.Authorization = `Bearer ${secret}`;
+  else if (row.auth === "apikey" && secret) headers[row.header || "X-API-Key"] = secret;
+  // RFC 7617: the user-pass token is UTF-8 before base64, so a credential with
+  // an umlaut or accent encodes correctly rather than being mangled.
+  else if (row.auth === "basic" && secret) headers.Authorization = `Basic ${Buffer.from(secret, "utf8").toString("base64")}`;
+
   let fetched;
   try {
     fetched = await safeFetch(row.url, headers);
   } catch (e) {
     const err = e instanceof FeedFetchError ? e : null;
-    const msg = err ? err.message : e instanceof Error ? e.message : "upstream request failed";
-    // A blocked URL is the caller's mistake (400); anything else is upstream (502).
-    const status = err?.code === "blocked" ? 400 : 502;
+    const raw = err ? err.message : e instanceof Error ? e.message : "upstream request failed";
+    const msg = redact(raw, secret);
+    const status = HTTP_FOR[err?.code ?? "network"] ?? 502;
     await recordRun(supabase, id, `error: ${msg}`);
     return NextResponse.json({ error: msg, code: err?.code ?? "network" }, { status });
   }
@@ -95,7 +137,10 @@ export async function GET(_request: Request, ctx: Ctx) {
     envelope = adapted.envelope;
     format = adapted.format;
   } catch (e) {
-    const msg = e instanceof FeedFormatError ? e.message : e instanceof Error ? e.message : "could not normalize the payload";
+    const raw = e instanceof FeedFormatError ? e.message : e instanceof Error ? e.message : "could not normalize the payload";
+    // The adapter quotes payload fragments; an authenticated payload can carry
+    // the credential back, so scrub before this is stored or shown.
+    const msg = redact(raw, secret);
     await recordRun(supabase, id, `error: ${msg}`);
     return NextResponse.json({ error: msg, code: "format" }, { status: 422 });
   }
@@ -133,7 +178,7 @@ export async function PATCH(request: Request, ctx: Ctx) {
   const { id } = await ctx.params;
   const owned = await loadOwned(id);
   if ("error" in owned) return owned.error;
-  const { supabase } = owned;
+  const { supabase, row } = owned;
 
   let body: unknown;
   try { body = await request.json(); }
@@ -144,6 +189,26 @@ export async function PATCH(request: Request, ctx: Ctx) {
     return NextResponse.json({ error: "Invalid connection", fieldErrors: fieldErrors(parsed.error) }, { status: 400 });
   }
   const c = parsed.data;
+
+  // POST refuses a connection that declares auth but carries no credential.
+  // PATCH validates only the fields present, so the invariant was reachable in
+  // two steps: switch auth to `bearer` without sending a secret, or clear the
+  // secret while auth stays `bearer`. Check the state the row will END UP in.
+  const nextAuth = c.auth ?? row.auth ?? "none";
+  const nextHasSecret = c.secret !== undefined ? c.secret !== "" : !!row.secret_ciphertext;
+  if (nextAuth !== "none" && !nextHasSecret) {
+    return NextResponse.json({
+      error: `A connection using ${nextAuth} authentication needs a credential. ` +
+             `Provide one, or set authentication to "none".`,
+      fieldErrors: { secret: ["Required for this authentication type"] },
+    }, { status: 400 });
+  }
+  if (nextAuth === "basic" && c.secret && !c.secret.includes(":")) {
+    return NextResponse.json({
+      error: "Basic authentication expects the credential as user:password.",
+      fieldErrors: { secret: ["Expected user:password"] },
+    }, { status: 400 });
+  }
 
   const patch: Record<string, unknown> = {};
   if (c.name !== undefined) patch.name = c.name;

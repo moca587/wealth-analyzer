@@ -63,12 +63,17 @@ describe("feed credential encryption", () => {
     expect(() => encryptSecret("token")).toThrow(FeedCryptoError);
   });
 
-  it("accepts hex keys and derives from a passphrase", () => {
-    process.env.FEEDS_ENCRYPTION_KEY = "a".repeat(64);           // hex
+  it("accepts hex key material, and rejects a passphrase", () => {
+    process.env.FEEDS_ENCRYPTION_KEY = "a".repeat(64);           // 64 hex = 32 bytes
     expect(decryptSecret(encryptSecret("x"))).toBe("x");
-    process.env.FEEDS_ENCRYPTION_KEY = "a short passphrase";     // hashed to 32 bytes
-    expect(encryptionAvailable()).toBe(true);
-    expect(decryptSecret(encryptSecret("y"))).toBe("y");
+
+    // A passphrase used to be hashed to 32 bytes, which made the module's
+    // fail-closed promise unreachable — any string produced a working key, so
+    // a deployment could sit on `changeme` and a stolen dump could be
+    // brute-forced offline. See hardening.test.ts for the full case.
+    process.env.FEEDS_ENCRYPTION_KEY = "a short passphrase";
+    expect(encryptionAvailable()).toBe(false);
+    expect(() => encryptSecret("y")).toThrow(FeedCryptoError);
   });
 
   it("treats an empty secret as 'no secret'", () => {

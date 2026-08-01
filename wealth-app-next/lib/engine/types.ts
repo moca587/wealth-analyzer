@@ -72,6 +72,13 @@ export interface Asset {
   country?: CountryCode;
   cls?: AssetClass;
   note?: string;
+  /**
+   * Stable origin key when this record came from a data feed, e.g.
+   * "acct:CH93…" or "hold:CHSPI". Lets a later sync find the same record even
+   * if its label changed, and keeps a security position from ever matching a
+   * bank account. Absent on hand-entered records.
+   */
+  feedRef?: string;
 }
 
 export interface Loan {
@@ -81,6 +88,8 @@ export interface Loan {
   bal: number;        // current balance
   rate: number;       // annual % (e.g. 6.5 means 6.5%)
   yrs: number;        // remaining years
+  /** See Asset.feedRef. */
+  feedRef?: string;
 }
 
 export interface Goal {

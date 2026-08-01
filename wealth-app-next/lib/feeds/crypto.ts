@@ -15,7 +15,7 @@
 // to store secrets rather than silently persisting them in the clear.
 // ─────────────────────────────────────────────────────────────────
 
-import { createCipheriv, createDecipheriv, randomBytes, createHash } from "node:crypto";
+import { createCipheriv, createDecipheriv, randomBytes } from "node:crypto";
 
 const VERSION = "v1";
 const IV_BYTES = 12;   // 96-bit nonce, the GCM standard
@@ -32,15 +32,29 @@ function key(): Buffer {
       "Generate one with: openssl rand -base64 32"
     );
   }
-  // Accept base64 or hex; anything else is hashed to 32 bytes so a
-  // passphrase still yields a valid key rather than a runtime crash.
-  let buf: Buffer;
-  if (/^[A-Fa-f0-9]{64}$/.test(raw)) buf = Buffer.from(raw, "hex");
-  else {
-    const b64 = Buffer.from(raw, "base64");
-    buf = b64.length === 32 ? b64 : createHash("sha256").update(raw).digest();
+  // Only real key material is accepted: 64 hex chars, or base64 that decodes
+  // to exactly 32 bytes.
+  //
+  // This deliberately REJECTS a passphrase. Hashing one to 32 bytes (the
+  // earlier behaviour) meant "fail closed" was never reachable — every string
+  // on earth, including `changeme`, produced a usable key. An attacker holding
+  // a database dump could then brute-force the phrase offline and decrypt every
+  // custodian credential, which is precisely the threat this file exists to
+  // stop. A loud 503 at startup is the cheaper failure.
+  let buf: Buffer | null = null;
+  if (/^[A-Fa-f0-9]{64}$/.test(raw)) {
+    buf = Buffer.from(raw, "hex");
+  } else if (/^[A-Za-z0-9+/_-]{43}={0,1}$/.test(raw)) {
+    const b64 = Buffer.from(raw.replace(/-/g, "+").replace(/_/g, "/"), "base64");
+    if (b64.length === 32) buf = b64;
   }
-  if (buf.length !== 32) throw new FeedCryptoError("FEEDS_ENCRYPTION_KEY must resolve to 32 bytes");
+  if (!buf || buf.length !== 32) {
+    throw new FeedCryptoError(
+      "FEEDS_ENCRYPTION_KEY must be 32 bytes of random key material — 64 hex characters, " +
+      "or 43 base64 characters. A passphrase is not accepted. " +
+      "Generate one with: openssl rand -base64 32"
+    );
+  }
   return buf;
 }
 

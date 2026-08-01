@@ -126,7 +126,12 @@ describe("fromCamt (ISO 20022)", () => {
     const env = fromCamt(CAMT, "camt test");
     expect(env.liabilities).toHaveLength(1);
     expect(env.liabilities[0].balance).toBe(8200);
-    expect(env.liabilities[0].label).toMatch(/overdrawn/);
+    // The label stays the plain account name and identity is carried in
+    // accountRef. Decorating it ("… (overdrawn)") meant that when the account
+    // later returned to credit, the asset could never match the liability and
+    // a repaid debt stayed on the plan forever.
+    expect(env.liabilities[0].label).toBe("Kontokorrent");
+    expect(env.liabilities[0].accountRef).toBe("CH5604835012345678009");
   });
 
   it("falls back through CLAV when CLBD is absent", () => {

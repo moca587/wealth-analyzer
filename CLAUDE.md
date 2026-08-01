@@ -264,7 +264,11 @@ connection at `/api/feeds/<id>` and that panel works unchanged.
   in the server env only) so a leaked DB dump doesn't expose custodian
   tokens. Fails CLOSED: no key → refuses to store a secret (503) rather than
   persisting plaintext. Secrets are never returned by any route (`toPublic()`
-  maps ciphertext → `hasSecret: boolean`).
+  maps ciphertext → `hasSecret: boolean`). **Only real key material is
+  accepted** — 64 hex chars or 43-char base64. A passphrase is REJECTED; the
+  old sha256 fallback made fail-closed unreachable (every string, `changeme`
+  included, produced a working key, so a stolen dump was brute-forcible
+  offline). Generate with `openssl rand -base64 32`.
 - Adapters (`adapters.ts`, pure/testable): native `wa.feed/v1`, generic CRM
   contact JSON (Salesforce `__c` suffixes, HubSpot `properties` bags, OData
   envelopes, bare arrays), ISO 20022 **camt.052/053/054** (closing booked
@@ -273,10 +277,20 @@ connection at `/api/feeds/<id>` and that panel works unchanged.
   found). `xml.ts` is a hand-rolled parser that **skips DOCTYPE/ENTITY
   entirely**, making XXE and billion-laughs impossible by construction —
   don't swap it for a full DOM parser without re-checking that.
-- 57 tests under `lib/feeds/__tests__/` cover the SSRF ranges (incl. IPv4-mapped
+- Tests under `lib/feeds/__tests__/` cover the SSRF ranges (incl. IPv4-mapped
   IPv6, NAT64/6to4 wrappers, decimal/octal IP encodings), a `safeFetch` test
   that starts a REAL loopback server and asserts it is never hit, XXE
   immunity, crypto tamper-detection, connection validation, and adapter mapping.
+  Two of these files carry most of the weight:
+  - **`hardening.test.ts`** — one regression per confirmed defect from the
+    2026-07-31 adversarial pass (see "Feed hardening" below). Read a failure
+    here as a real client-money bug returning, not a brittle assertion.
+  - **`wire-to-engine.test.ts`** — the only test that crosses every seam:
+    raw camt XML + CRLF Swiss-apostrophe CSV + CRM JSON → `detectFormat` →
+    `adaptFeed` → `diffPlan` → `applyChanges` → `parsePlan` → `runMonteCarlo`.
+    Layers passing in isolation proved nothing about the joins between them
+    (a schema-legal plan the engine NaNs, an envelope the merge drops). Also
+    asserts a re-sync of the same three payloads is a byte-level no-op.
 - **UI:** `/app/feeds` (`components/feeds/feeds-manager.tsx`) — list, add, edit,
   delete, and "Test fetch" which runs the relay and previews the normalized
   records without writing anything. The secret input is cleared after save and
@@ -305,6 +319,141 @@ connection at `/api/feeds/<id>` and that panel works unchanged.
 - **UI flow:** Test fetch → preview → "Review & apply to plan…" → per-record
   checkboxes grouped by section with before → after values → Apply → one-click
   Undo (re-PUTs the pre-apply snapshot).
+
+### Order routing — `/api/orders` (send a proposal to a PM/OMS)
+The outbound mirror of the feed relay. An advisor approves an Investment
+Proposal, presses **BUY**, and the positions go to a portfolio/order
+management system as a **`wa.order/v1`** ticket. `lib/orders/` +
+`app/api/orders/` + `components/orders/orders-manager.tsx` (`/app/orders`,
+`/preview/orders`), migration `003_orders.sql`.
+
+**Nothing here executes a trade.** `intent` is pinned to `"stage"` by Zod
+(`z.literal`), and every dialect carries it to the wire: Avaloq
+`PENDING_APPROVAL`, generic `execute:false`. A wire format that cannot say
+"do not execute yet" must not be added.
+
+Read these before changing anything on this path — each exists because an
+adversarial pass found the opposite behaviour:
+- **Positive acknowledgement only.** A 2xx is NOT success. `readPlacementResponse`
+  reports `staged` only for a 2xx **with** a JSON content-type **and** a
+  reference or a non-zero accepted count. Anything else is **`unknown`** — a
+  third state, not a failure. This is the exact mirror of the inbound
+  login-page defect, and worse: inbound produced a wrong number a human still
+  reviewed, whereas a false green "staged" stops anyone looking again.
+  `ok === (state === "staged")` is invariant.
+- **`unknown` is load-bearing.** A timeout or dropped socket may have staged
+  the ticket. Recording it as `failed` reads as "nothing happened" and invites
+  a resend — that is how one model portfolio becomes two.
+- **Idempotency lives in Postgres**, not in a forwarded header the OMS may
+  ignore. The row is INSERTed (unique on `user_id, ticket_id`) *before* the
+  upstream call. Same key + same `fingerprint` → return the prior result, do
+  not re-POST. Same key + **different** fingerprint → 409, because silently
+  returning the first result would discard a corrected order.
+- **The custody account comes from the CONNECTION, never the payload.** A
+  ticket naming a different account is refused, not rebooked.
+- **`checkTicket` is a COHERENCE check, not an authorization one.** It
+  re-derives the total from the lines, so a client whose arithmetic disagrees
+  with itself is refused — but the server has no proposal of record, so any
+  self-consistent set of amounts would pass. `max_ticket_amount` (NOT NULL,
+  default 100k) is therefore the only bound on ticket size, and it lives where
+  a browser cannot raise it. Also checks ISIN check digits, currency vs the
+  account, and blocks the WHOLE ticket if any line lacks an ISIN and a ticker.
+- **`safePost` does NOT follow redirects** — a 3xx is an error. `safeFetch`
+  re-validates each hop, which is right for reading a statement and wrong
+  here: 307/308 would replay the order body to whatever `Location` names, and
+  301/302/303 rewrite POST→GET and deliver an empty request that reads as
+  success. Do not "improve" this into hop re-validation.
+- **`ORDERS_HOST_ALLOWLIST` is required in production** (`lib/orders/allowlist.ts`).
+  ssrf.ts accepts a residual DNS-rebinding window on GET-specific grounds
+  ("limited to READING responses from hosts already reachable"); on a POST a
+  bypass writes an attacker-influenced body to an internal endpoint, and
+  writing is not recoverable.
+- **Client identity is opt-in** (`send_client_identity`, default false). The
+  OMS needs account + instrument + amount, not who the client is; a mistyped
+  URL should leak what was bought, never whose.
+- **The audit row is immutable.** RLS allows UPDATE only while
+  `status='sending'`, and a trigger rejects any change to the instruction or
+  reopening of a terminal row. No DELETE policy at all.
+- `last_status` (rendered in the connections list) carries a code and counts
+  only — never upstream body text, which routinely echoes the account, the
+  client name, and sometimes the credential.
+
+**Legacy side** (`wealth-analyzer.html`, Investment Proposal tab): the same
+ticket shape, built by `ordBuildTicket`, reviewed line-by-line before any
+send. Three defects found and fixed there in the same pass:
+- The idempotency promise on the review screen was **false**. `ordBuildTicket()`
+  was called with no argument, so every BUY minted a fresh reference and a
+  post-failure retry was a new order to the OMS. There is now a **Retry this
+  ticket** button that reuses the reference, `_ordRetryId` keeps it until a
+  clean success, and the wording says what the code actually does.
+- The route was re-read from localStorage at send time while validation was
+  snapshotted at review time — a second tab could change endpoint, credential
+  and account between review and send. The route is now frozen on `_ordPending`.
+- The browser `fetch` used the default `redirect:"follow"` and had no timeout.
+  Now `redirect:"manual"` (fetch strips `Authorization` cross-origin but NOT a
+  custom `X-API-Key`, which is one of the offered auth modes) plus a 20s abort.
+
+**Known limitations, deliberately not built** (they need custodian position
+data and a product decision, and half-building them would be worse):
+BUY only — no SELL, no delta/rebalance mode, so re-sending a target allocation
+against an already-funded account doubles the position; no pre-trade cash or
+buying-power check; no account↔client binding beyond the connection's single
+account; no FX — a ticket is refused if its currency differs from the
+account's, never converted.
+
+### Feed hardening (2026-07-31) — read before touching the feed path
+An adversarial pass over the whole feed stack. Every item below is a defect
+that was REPRODUCED, then fixed and pinned in `hardening.test.ts`. The theme:
+for a feed the dangerous failure is not a crash but a plausible **wrong
+number** landing silently in a client's plan, so the fixes bias toward
+refusing/flagging over guessing.
+
+- **A date must never become money.** Stripping separators turned a
+  `2026-08-31` Value Date cell into 20,260,831 — and every European statement
+  puts a date column beside the amount, so one column-match miss produced a
+  20-million-franc position. Guarded in BOTH products (`parseFeedNumber` and
+  legacy `siNum`). Same pass: sign is read before stripping (`CHF -240'000`,
+  trailing minus, DR/CR, parens), scientific notation and percentages parse,
+  and a repeated separator must group in threes (`1.2.3.4` is not 1234).
+- **camt fixes, in both products.** `<CdtLine><Amt>` (the overdraft LIMIT) was
+  read as the balance — a CHF 12,500 account imported as CHF 500,000; balance
+  lookups are now DIRECT-CHILD only (`kids`/`kid` in `xml.ts`, `kid()` in the
+  legacy adapter). Accounts were labelled with the account HOLDER's name, so
+  every statement in a multi-account file collapsed onto one row. An
+  already-negative amount carrying `DBIT` was double-negated back into a
+  positive asset — magnitude first, then `CdtDbtInd`. Balance `Ccy` beats
+  account `Ccy`. **If you touch either camt adapter, re-run the browser check:
+  the legacy one is only covered by tests via the standalone.**
+- **Kind-scoped matching.** A cash line named "Pensionskasse UBS" could
+  overwrite a CHF 480,000 pension with CHF 5,000. A holding may no longer
+  match an account-like record at all (`ACCOUNT_LIKE`/`LOCKED` in apply.ts).
+- **`resolve()` distinguishes three outcomes** — matched / genuinely new /
+  *duplicate of a row already claimed in this payload*. Folding the third into
+  "new" made a duplicated row create a fresh plan record on every subsequent
+  sync, so the plan grew a phantom account per refresh and never converged.
+- **Income no longer falls back to client 1.** When the CRM introduces the
+  spouse in the same payload, client 2 has no income to match; the fallback
+  made both salaries resolve to client 1's single record and the second
+  overwrote the first — CHF 435,000 of household income arrived as CHF 285,000.
+- **`risky` vs `warning` are different things.** `risky` (unticked by default
+  in the review UI) means "applying this writes a WRONG number": foreign
+  currency with no conversion, an account total that duplicates the positions
+  in the same feed (net worth 2x), a retirement age the feed never sent.
+  Correct-but-incomplete rows — a mortgage balance with no rate — get a
+  `warning` and stay SELECTED, because omitting an CHF 840,000 debt overstates
+  net worth by more than any rate assumption distorts it. Don't collapse these
+  two back together.
+- **Relay egress is scrubbed** (`lib/feeds/redact.ts`): credentials, query
+  strings (custodians put keys there), and resolved IPs (a blocked host was
+  otherwise an internal-network oracle) never reach `last_status` or the
+  browser. Upstream failures map to distinct statuses instead of a blanket 502.
+- **PATCH enforces the auth/secret invariant POST already had.** It was
+  reachable in two steps (switch to `bearer` without a secret, or clear the
+  secret while auth stays `bearer`), after which the relay fetched anonymously
+  and normalized the custodian's HTML login page into the plan. GET refuses
+  that state outright. Also: per-user run throttle, UTF-8 basic auth (RFC 7617).
+- **SSRF:** `::/96` and `::ffff:0:` closed, trailing-dot hosts normalized,
+  credentials no longer replayed across a cross-origin redirect.
 
 ### Review-driven hardening (Petros's "Top 5 plans", all complete + merged)
 1. **Build/test/dep baseline** — clean `npm ci`; `/login` `useSearchParams` moved
