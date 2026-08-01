@@ -431,7 +431,7 @@ Down payment | 2028 | 150000</textarea>
             <li><strong>Sector detection:</strong> 11 sectors with specific ticker tags (Tech: NVDA/MSFT/QQQ/XLK; Healthcare: LLY/NOVO/XLV; Financials: JPM/XLF; Energy: XOM/CVX/XLE; etc.).</li>
             <li><strong>Region detection:</strong> 7 regions (US, Europe, Japan, China, India, EM, Developed Intl).</li>
             <li><strong>Theme detection:</strong> 11 themes (AI, decarbonization, GLP-1, defense, reshoring, cybersecurity, demographics, water, crypto, dividend growth, quality factor).</li>
-            <li><strong>Ticker extraction:</strong> regex against 38-fund universe + 30 common stocks. Each mention recorded with the provider name for conviction scoring.</li>
+            <li><strong>Ticker extraction:</strong> regex against the full fund universe (<span class="js-fund-count">792</span> funds) + 30 common stocks. Each mention recorded with the provider name for conviction scoring.</li>
           </ul>
         </div>
       </div>
@@ -1141,7 +1141,7 @@ function toggleQuestionnairePreview(){
 // ═══════════════════════════════════════════════════════════
 // VERSION + UTILS
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260801-1627";
+const APP_VERSION = "20260801-2057";
 const $ = (id) => document.getElementById(id);
 const $$ = (sel, ctx) => Array.from((ctx||document).querySelectorAll(sel));
 
@@ -3638,6 +3638,9 @@ setInterval(updateAutoRefreshIndicator, 1000);
 // copy in the UI can never drift from RESEARCH_PROVIDERS when a source is added.
 function syncProviderCounts(){
   document.querySelectorAll(".js-prov-count").forEach(el => { el.textContent = RESEARCH_PROVIDERS.length; });
+  // Same treatment for the fund-universe size — the docs claimed "38-fund
+  // universe" long after it grew to 792.
+  document.querySelectorAll(".js-fund-count").forEach(el => { el.textContent = FUND_UNIVERSE.length; });
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -5899,6 +5902,29 @@ function buildPortfolioFromEngine(brief, signals){
   const baseline = RISK_TO_ALLOCATION[brief.risk] || RISK_TO_ALLOCATION.moderate;
   // 2. Tilt based on research signals
   const allocation = tiltAllocation(baseline, signals);
+  // 2b. Pre-flight: which sleeves can this client actually be sold?
+  // Non-US (UCITS) jurisdictions have NO eligible cash or alternative funds, so
+  // those sleeves used to be skipped silently and their weight swept up by the
+  // final renormalization — which pushed a very-conservative Swiss client's 11%
+  // cash into equities and bonds and told nobody. Unfillable weight is now moved
+  // deliberately and reported.
+  const unfillable = [];
+  for(const [cls, weight] of Object.entries(allocation)){
+    if(weight < 2) continue;
+    const probe = pickFundsForClass(cls, weight, brief, signals, {sponsors: new Set()});
+    if(!probe || probe.length === 0){ unfillable.push({cls, weight: +weight.toFixed(1)}); allocation[cls] = 0; }
+  }
+  if(unfillable.length){
+    unfillable.forEach(({cls, weight}) => {
+      // Cash is the sleeve whose absence changes the risk profile most, so it
+      // goes to fixed income rather than being spread across risk assets.
+      if(cls === "cash" && allocation.fixed_income > 0){ allocation.fixed_income += weight; return; }
+      const rest = Object.entries(allocation).filter(([k, v]) => v > 0 && k !== cls);
+      const tot = rest.reduce((s, [, v]) => s + v, 0);
+      if(tot > 0) rest.forEach(([k, v]) => { allocation[k] += weight * v / tot; });
+    });
+  }
+
   // 3. For each asset class with weight > 2%, pick funds
   const used = {sponsors: new Set()};
   const positions = [];
@@ -5994,6 +6020,17 @@ function buildPortfolioFromEngine(brief, signals){
       positions.forEach(p => { p.weight = +(p.weight * 100 / totalW).toFixed(1); });
     }
   }
+  // Rounding each weight to 1dp independently still leaves a residual (portfolios
+  // were coming out at 100.2% / 99.9%), so absorb it into the largest position
+  // that has cap headroom — a client-facing proposal has to add up.
+  if(positions.length){
+    const drift = +(100 - positions.reduce((s,p) => s + p.weight, 0)).toFixed(1);
+    if(Math.abs(drift) >= 0.1){
+      const room = positions.filter(p => maxPos <= 0 || p.weight + drift <= maxPos + 0.001);
+      const target = (room.length ? room : positions).reduce((a,b) => a.weight >= b.weight ? a : b);
+      target.weight = +(target.weight + drift).toFixed(1);
+    }
+  }
 
   // Portfolio aggregates from real fund metrics (weighted by position size)
   const fundLookup = ticker => FUND_UNIVERSE.find(x => x.tkr === ticker);
@@ -6034,6 +6071,10 @@ function buildPortfolioFromEngine(brief, signals){
   const negRegions = Object.entries(signals.regions).filter(([,d]) => d.votes < -5).slice(0,2);
   negRegions.forEach(([r, d]) => risks.push(`${prettyRegion(r)} regional risk flagged by ${d.providerCount} providers`));
   if(brief.maxPosition < 20) risks.push("Position size constraint may limit conviction expression");
+  // Sleeves the client's jurisdiction cannot be sold — disclosed, not hidden
+  unfillable.forEach(({cls, weight}) => risks.push(
+    `${prettyClass(cls)} sleeve (${weight}% target) has no ${brief.country || "US"}-eligible fund in the universe — reallocated to ${cls === "cash" ? "fixed income" : "the remaining sleeves"}`
+  ));
 
   // Top themes (for the summary)
   const topThemes = Object.entries(signals.themes).sort((a,b) => b[1].votes - a[1].votes).slice(0, 5).map(([t,d]) => prettyTheme(t) + " ("+d.providerCount+" providers)");
@@ -6057,6 +6098,7 @@ function buildPortfolioFromEngine(brief, signals){
     topThemes,
     domicilePolicy,
     universeFiltered: {total: totalUniverse, eligible: eligibleUniverse},
+    unfillableSleeves: unfillable,
     portfolioMetrics: {
       beta: +expectedBeta.toFixed(2),
       sharpe: +portfolioSharpe.toFixed(2),
@@ -6070,7 +6112,7 @@ function buildPortfolioFromEngine(brief, signals){
       totalHoldings,
       totalAUM: +totalAUM.toFixed(1)
     },
-    summary: buildSummaryNarrative(brief, allocation, signals)
+    summary: buildSummaryNarrative(brief, allocation, signals, eligibleUniverse)
   };
 }
 
@@ -6079,12 +6121,12 @@ function prettySector(s){ return s.replace(/_/g," ").replace(/\b\w/g, l => l.toU
 function prettyRegion(r){ return ({us:"US",europe:"Europe",japan:"Japan",china:"China",india:"India",emerging:"Emerging Markets",developed_intl:"Developed Intl"})[r] || r; }
 function prettyTheme(t){ return ({ai:"Artificial Intelligence",decarbonization:"Decarbonization",healthcare_innovation:"Healthcare Innovation",defense:"Defense",reshoring:"US Reshoring",cybersecurity:"Cybersecurity",demographics:"Demographics",water_infrastructure:"Water/Infrastructure",cryptocurrency:"Cryptocurrency",dividend_growth:"Dividend Growth",quality_factor:"Quality Factor"})[t] || t; }
 
-function buildSummaryNarrative(brief, allocation, signals){
+function buildSummaryNarrative(brief, allocation, signals, eligibleCount){
   const topClass = Object.entries(allocation).sort((a,b) => b[1] - a[1])[0];
   const topTheme = Object.entries(signals.themes).sort((a,b) => b[1].votes - a[1].votes)[0];
   const providerCount = signals.providerCount;
   const totalItems = signals.totalItems;
-  return `Based on ${totalItems} research items across ${providerCount} institutional sources, the engine recommends a ${brief.risk.replace(/_/g," ")} portfolio with ${topClass[1].toFixed(0)}% in ${prettyClass(topClass[0])}. ${topTheme ? "Dominant theme: " + prettyTheme(topTheme[0]) + " cited by " + topTheme[1].providerCount + " providers." : ""} All positions chosen from a 38-fund curated universe matching your ${brief.esg} ESG preference, ${brief.taxSensitivity} tax sensitivity, and ${brief.liquidity} liquidity needs.`;
+  return `Based on ${totalItems} research items across ${providerCount} institutional sources, the engine recommends a ${brief.risk.replace(/_/g," ")} portfolio with ${topClass[1].toFixed(0)}% in ${prettyClass(topClass[0])}. ${topTheme ? "Dominant theme: " + prettyTheme(topTheme[0]) + " cited by " + topTheme[1].providerCount + " providers." : ""} All positions chosen from the ${FUND_UNIVERSE.length}-fund universe (${eligibleCount || FUND_UNIVERSE.filter(f => isFundEligibleForCountry(f, brief.country)).length} eligible for ${brief.country||"US"}) matching your ${brief.esg} ESG preference, ${brief.taxSensitivity} tax sensitivity, and ${brief.liquidity} liquidity needs.`;
 }
 
 // ── ENGINE BUTTON HANDLER ─────────────────────────────────────
@@ -6317,7 +6359,7 @@ function renderEngineResult(r){
       <li><strong>Signal extraction:</strong> Scanned ${r.signals.totalItems} research items via keyword lexicons across asset classes, sectors, regions, themes, and ticker mentions. Each item parsed for sentiment direction (overweight/underweight phrases).</li>
       <li><strong>Aggregation:</strong> Net votes computed per signal — provider count and total votes tracked. Tickers explicitly mentioned by multiple providers get conviction bonus.</li>
       <li><strong>Allocation:</strong> Started with your ${prettyRisk(r.signals.providerCount ? '' : '')}<strong>${$("agRisk").value.replace(/_/g," ")}</strong> baseline (${Object.entries(RISK_TO_ALLOCATION[$("agRisk").value]||{}).map(([k,v]) => `${k}:${v}%`).slice(0,4).join(", ")}). Tilted ±8% based on net research votes.</li>
-      <li><strong>Fund selection:</strong> For each class with weight ≥2%, picked from 38-fund universe. Scoring: lowest expense ratio + ticker conviction bonus − sponsor concentration penalty. Filtered for ESG-strict, ETF-preference (high tax sensitivity), liquidity needs.</li>
+      <li><strong>Fund selection:</strong> For each class with weight ≥2%, every eligible fund in the <span class="js-fund-count">792</span>-fund universe is scored and ranked; the top 1–3 are taken. Scoring: lowest expense ratio + ticker conviction bonus − sponsor concentration penalty. Filtered for ESG-strict, ETF-preference (high tax sensitivity), liquidity needs.</li>
       <li><strong>Rationale:</strong> Each position's "Why selected" cites the specific consensus vote count + matched research items. Fully deterministic — same inputs always produce same output.</li>
     </ol>
   </div>`;

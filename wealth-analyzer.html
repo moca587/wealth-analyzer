@@ -3943,7 +3943,7 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
 // ═══════════════════════════════════════════════════════════
 // VERSION — updated by build-standalone.pl on each build
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260801-1627";
+const APP_VERSION = "20260801-2057";
 
 // ═══════════════════════════════════════════════════════════
 // DATA
@@ -12822,6 +12822,28 @@ function runDeterministicEngine(brief){
   }
   const used = {sponsors: new Set()};
   const positions = [];
+  // Pre-flight: which sleeves can this client actually be sold? Non-US (UCITS)
+  // jurisdictions have NO eligible cash or alternative funds, so those sleeves
+  // were skipped silently and their weight swept up by the final
+  // renormalization — pushing a very-conservative Swiss client's ~9% cash into
+  // equities and bonds with no disclosure. Move it deliberately and report it.
+  const unfillableSleeves = [];
+  Object.entries(alloc).forEach(([cls, weight]) => {
+    if(weight < 2) return;
+    if(eligibleUniverse.filter(f => f.cls === cls).length === 0){
+      unfillableSleeves.push({cls, weight: +weight.toFixed(1)});
+      alloc[cls] = 0;
+    }
+  });
+  unfillableSleeves.forEach(({cls, weight}) => {
+    // Cash is the sleeve whose absence changes the risk profile most, so it
+    // goes to fixed income rather than being spread across risk assets.
+    if(cls === "cash" && alloc.fixed_income > 0){ alloc.fixed_income += weight; return; }
+    const rest = Object.entries(alloc).filter(([k, v]) => v > 0 && k !== cls);
+    const tot = rest.reduce((s, [, v]) => s + v, 0);
+    if(tot > 0) rest.forEach(([k, v]) => { alloc[k] += weight * v / tot; });
+  });
+
   Object.entries(alloc).forEach(([cls, weight]) => {
     if(weight < 2) return;
     let candidates = eligibleUniverse.filter(f => f.cls === cls);
@@ -12981,6 +13003,10 @@ function runDeterministicEngine(brief){
   if(domicilePolicy.type === "UCITS"){
     risks.push(`Universe restricted to ${eligibleUniverse.length} UCITS-passportable funds (of ${totalUniverse}) — required for ${brief.country} resident under PRIIPs`);
   }
+  // Sleeves this jurisdiction cannot be sold — disclosed, never silently dropped
+  unfillableSleeves.forEach(({cls, weight}) => risks.push(
+    `${ENG_PRETTY_CLASS[cls] || cls} sleeve (${weight}% target) has no ${brief.country || "US"}-eligible fund — reallocated to ${cls === "cash" ? "fixed income" : "the remaining sleeves"}`
+  ));
 
   // ── Step 6: top themes for narrative ──
   const topThemes = Object.entries(signals.themes).sort((a,b) => b[1].votes - a[1].votes).slice(0,3);
