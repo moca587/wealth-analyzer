@@ -9000,7 +9000,7 @@ function openHoldingsUpload(){ openDataAgent(); }   // back-compat alias
 // review every row before it fills the app. Replaces the old holdings-only,
 // text-only importer (and fixes its us_equity/region + decimal-er/yld bugs).
 // ═══════════════════════════════════════════════════════════════════════════
-const AI_MODEL = "claude-opus-4-7";   // vision + PDF capable; the model the app already calls
+const AI_MODEL = "claude-opus-4-8";   // vision + PDF capable, current model (was claude-opus-4-7, now deprecated). Change here to switch models everywhere.
 let _daExtraction = null;             // last normalized extraction (for the review modal)
 
 function _daEsc(s){ return String(s==null?"":s).replace(/[&<>"']/g,c=>({ "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;" }[c])); }
@@ -11801,6 +11801,7 @@ async function runAIPortfolioGenerator(){
   const status = $("aiGenStatus");
   const resultPanel = $("aiGenResult");
   const aiKey = (function(){try{return localStorage.getItem("wa_ai_key")||"";}catch(e){return "";}})();
+  try{ window._lastAIGenError = null; }catch(_){}   // reset so a stale error can't linger on the next run
 
   // ─── 1. Gather client data from the main app's current state ───
   const inc1 = num("inc1", 0) + num("inc1b", 0);
@@ -11939,7 +11940,7 @@ Constraints:
         "anthropic-dangerous-direct-browser-access": "true"
       },
       body: JSON.stringify({
-        model: "claude-opus-4-7",
+        model: AI_MODEL,
         max_tokens: 4000,
         messages: [{role: "user", content: prompt}]
       })
@@ -11982,7 +11983,8 @@ Constraints:
     renderAIGenResult(rec, {risk, horizon, country, netWorth, grossIncome, surplus, researchProviderCount});
     status.innerHTML = '✓ <strong style="color:#1b6841">Portfolio recommendation ready</strong> — review below, then click <strong>↓ Apply to Proposal Below</strong>';
   } catch(e){
-    $("aiGenResultBody").innerHTML = '<div style="padding:14px;background:rgba(227,24,55,.05);border-left:3px solid var(--red);border-radius:6px"><strong style="color:var(--red)">Error:</strong> ' + e.message + '<div style="font-size:12px;color:var(--text3);margin-top:10px;line-height:1.6"><strong>Common issues:</strong><br>• AI key missing — set one in admin → API Keys tab<br>• Network/CORS error — check connection<br>• Rate-limited — wait 60s and retry</div></div>';
+    try{ window._lastAIGenError = e.message; }catch(_){}   // expose the real reason to the simple builder UI
+    $("aiGenResultBody").innerHTML = '<div style="padding:14px;background:rgba(227,24,55,.05);border-left:3px solid var(--red);border-radius:6px"><strong style="color:var(--red)">Error:</strong> ' + escapeForHTML(e.message) + '<div style="font-size:12px;color:var(--text3);margin-top:10px;line-height:1.6"><strong>Common issues:</strong><br>• AI key missing or invalid — set/replace it in admin → API Keys tab<br>• Model unavailable — a 404 / not_found means the model id needs updating<br>• Network/CORS error — check connection<br>• Rate-limited — wait 60s and retry</div></div>';
     status.textContent = "✗ Generation failed";
   }
 }
@@ -12037,7 +12039,7 @@ async function runSimpleAIBuilder(){
     // Trigger the full (async) pipeline
     Promise.resolve()
       .then(() => runAIPortfolioGenerator())
-      .then(() => { if(!ok){ status.innerHTML = '<span style="color:var(--red)">✗ Generation failed — check the AI key in admin → API Keys.</span>'; } finish(); })
+      .then(() => { if(!ok){ var _em = window._lastAIGenError ? escapeForHTML(String(window._lastAIGenError).slice(0,240)) : 'Generation failed — check the AI key in admin → API Keys.'; status.innerHTML = '<span style="color:var(--red)">✗ ' + _em + '</span>'; } finish(); })
       .catch(e => { status.innerHTML = '<span style="color:var(--red)">✗ ' + e.message + '</span>'; finish(); });
     // Safety net: never hang longer than 30s
     setTimeout(() => { if(!ok) status.innerHTML = '<span style="color:var(--red)">✗ Timed out — please retry.</span>'; finish(); }, 30000);
