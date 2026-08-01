@@ -536,10 +536,12 @@ input[type=date]{color-scheme:light}
   background:rgba(124,58,237,.08) !important;
   box-shadow:0 4px 18px rgba(124,58,237,.15);
 }
+.ai-pos-why{max-height:0;overflow:hidden;transition:max-height .35s ease,margin-top .25s ease,padding .25s ease}
 .ai-pos-card:hover .ai-pos-why,
 .ai-pos-card:focus-within .ai-pos-why {
   max-height:1200px;
 }
+@media (prefers-reduced-motion:reduce){.ai-pos-why{transition:none}}
 .pf-mc{padding:10px 14px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--rs);transition:transform .15s,box-shadow .15s,border-color .15s}
 .pf-mc:hover{transform:translateY(-2px);box-shadow:0 6px 18px rgba(0,87,184,.10);border-color:rgba(0,87,184,.28);background:var(--bg2)}
 @media (prefers-reduced-motion:reduce){.pf-mc{transition:none}.pf-mc:hover{transform:none}}
@@ -12126,7 +12128,7 @@ function renderSimpleAIResult(rec, simpleBrief){
       h += '<span style="font-size:10.5px;color:var(--text3);font-style:italic">↓ hover for details</span>';
       h += '</div>';
       // Expanded rationale — hidden by default, revealed on hover/focus
-      h += '<div class="ai-pos-why" style="overflow:hidden;max-height:0;transition:max-height .35s ease,margin-top .25s ease,padding .25s ease">';
+      h += '<div class="ai-pos-why">';
       h += '<div style="margin-top:12px;padding-top:12px;border-top:1px dashed rgba(124,58,237,.3)">';
       // Section 1 — plain language summary
       h += '<div style="font-size:12.5px;color:var(--text);line-height:1.65;margin-bottom:12px">';
