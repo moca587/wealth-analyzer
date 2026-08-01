@@ -3300,7 +3300,7 @@ input[type=date]{color-scheme:light}
 // ═══════════════════════════════════════════════════════════
 // VERSION — updated by build-standalone.pl on each build
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260801-2223";
+const APP_VERSION = "20260801-2234";
 
 // ═══════════════════════════════════════════════════════════
 // DATA
@@ -8609,21 +8609,41 @@ const AI_FUND_UNIVERSE = [
   // macro, event driven, multi-strategy, long/short, insurance-linked) so the
   // sleeve is fillable across risk profiles rather than by one lucky match.
   {tkr:"IPRV",name:"iShares Listed Private Equity UCITS ETF",cls:"alternative",vehicle:"etf",er:0.75,yld:2.5,sponsor:"BlackRock",dom:"IE",ucits:true,ccy:"USD"},
-  {tkr:"DWSCK",name:"DWS Concept Kaldemorgen LC EUR (absolute return multi-asset)",cls:"alternative",vehicle:"mutual_fund",er:1.55,yld:1.5,sponsor:"DWS",dom:"LU",ucits:true,ccy:"EUR"},
-  {tkr:"JPGMO",name:"JPMorgan Investment Funds Global Macro Opportunities A EUR",cls:"alternative",vehicle:"mutual_fund",er:1.70,yld:0.0,sponsor:"JPMorgan",dom:"LU",ucits:true,ccy:"EUR"},
-  {tkr:"MANTGR",name:"Man AHL TargetRisk D USD (systematic multi-asset)",cls:"alternative",vehicle:"mutual_fund",er:0.90,yld:0.0,sponsor:"Man Group",dom:"IE",ucits:true,ccy:"USD"},
-  {tkr:"MANTRD",name:"Man AHL Trend Alternative DNY USD (managed futures)",cls:"alternative",vehicle:"mutual_fund",er:1.30,yld:0.0,sponsor:"Man Group",dom:"IE",ucits:true,ccy:"USD"},
-  {tkr:"PICTAT",name:"Pictet TR Atlas I EUR (equity market neutral)",cls:"alternative",vehicle:"mutual_fund",er:1.60,yld:0.0,sponsor:"Pictet",dom:"LU",ucits:true,ccy:"EUR"},
-  {tkr:"PICTDA",name:"Pictet TR Diversified Alpha I EUR (multi-strategy)",cls:"alternative",vehicle:"mutual_fund",er:1.55,yld:0.0,sponsor:"Pictet",dom:"LU",ucits:true,ccy:"EUR"},
-  {tkr:"SGAIBT",name:"Schroder GAIA BlueTrend C USD (managed futures)",cls:"alternative",vehicle:"mutual_fund",er:1.75,yld:0.0,sponsor:"Schroders",dom:"LU",ucits:true,ccy:"USD"},
-  {tkr:"SGAICB",name:"Schroder GAIA Cat Bond C USD (insurance-linked securities)",cls:"alternative",vehicle:"mutual_fund",er:1.45,yld:0.0,sponsor:"Schroders",dom:"LU",ucits:true,ccy:"USD"},
-  {tkr:"GAMSCB",name:"GAM Star Cat Bond Institutional USD (insurance-linked securities)",cls:"alternative",vehicle:"mutual_fund",er:1.15,yld:0.0,sponsor:"GAM",dom:"IE",ucits:true,ccy:"USD"},
-  {tkr:"NORA10",name:"Nordea 1 Alpha 10 MA Fund BI EUR (multi-asset absolute return)",cls:"alternative",vehicle:"mutual_fund",er:1.05,yld:0.0,sponsor:"Nordea",dom:"LU",ucits:true,ccy:"EUR"},
-  {tkr:"BSFGED",name:"BlackRock Strategic Funds Global Event Driven A2 USD",cls:"alternative",vehicle:"mutual_fund",er:1.60,yld:0.0,sponsor:"BlackRock",dom:"LU",ucits:true,ccy:"USD"},
-  {tkr:"LUMMWT",name:"Lumyna MW TOPS UCITS A USD (Marshall Wace long/short equity)",cls:"alternative",vehicle:"mutual_fund",er:1.75,yld:0.0,sponsor:"Lumyna",dom:"IE",ucits:true,ccy:"USD"},
-  {tkr:"JUPGAR",name:"Jupiter Merian Global Equity Absolute Return I USD",cls:"alternative",vehicle:"mutual_fund",er:0.90,yld:0.0,sponsor:"Jupiter",dom:"IE",ucits:true,ccy:"USD"},
-  {tkr:"ELEVAR",name:"Eleva Absolute Return Europe I EUR (long/short equity)",cls:"alternative",vehicle:"mutual_fund",er:1.50,yld:0.0,sponsor:"Eleva",dom:"LU",ucits:true,ccy:"EUR"},
-  {tkr:"BNYGRR",name:"BNY Mellon Global Real Return EUR (absolute return multi-asset)",cls:"alternative",vehicle:"mutual_fund",er:1.10,yld:1.5,sponsor:"BNY Mellon",dom:"IE",ucits:true,ccy:"EUR"},
+  {tkr:"DWSCK",name:"DWS Concept Kaldemorgen LC EUR (absolute return multi-asset)",cls:"alternative",vehicle:"mutual_fund",er:1.55,yld:1.5,sponsor:"DWS",dom:"LU",ucits:true,ccy:"EUR",family:"dws-kaldemorgen"},
+  {tkr:"JPGMO",name:"JPMorgan Investment Funds Global Macro Opportunities A EUR",cls:"alternative",vehicle:"mutual_fund",er:1.70,yld:0.0,sponsor:"JPMorgan",dom:"LU",ucits:true,ccy:"EUR",family:"jpm-global-macro"},
+  {tkr:"MANTGR",name:"Man AHL TargetRisk D USD (systematic multi-asset)",cls:"alternative",vehicle:"mutual_fund",er:0.90,yld:0.0,sponsor:"Man Group",dom:"IE",ucits:true,ccy:"USD",family:"man-ahl-targetrisk"},
+  {tkr:"MANTRD",name:"Man AHL Trend Alternative DNY USD (managed futures)",cls:"alternative",vehicle:"mutual_fund",er:1.30,yld:0.0,sponsor:"Man Group",dom:"IE",ucits:true,ccy:"USD",family:"man-ahl-trend"},
+  {tkr:"PICTAT",name:"Pictet TR Atlas I EUR (equity market neutral)",cls:"alternative",vehicle:"mutual_fund",er:1.60,yld:0.0,sponsor:"Pictet",dom:"LU",ucits:true,ccy:"EUR",family:"pictet-tr-atlas"},
+  {tkr:"PICTDA",name:"Pictet TR Diversified Alpha I EUR (multi-strategy)",cls:"alternative",vehicle:"mutual_fund",er:1.55,yld:0.0,sponsor:"Pictet",dom:"LU",ucits:true,ccy:"EUR",family:"pictet-tr-divalpha"},
+  {tkr:"SGAIBT",name:"Schroder GAIA BlueTrend C USD (managed futures)",cls:"alternative",vehicle:"mutual_fund",er:1.75,yld:0.0,sponsor:"Schroders",dom:"LU",ucits:true,ccy:"USD",family:"gaia-bluetrend"},
+  {tkr:"SGAICB",name:"Schroder GAIA Cat Bond C USD (insurance-linked securities)",cls:"alternative",vehicle:"mutual_fund",er:1.45,yld:0.0,sponsor:"Schroders",dom:"LU",ucits:true,ccy:"USD",family:"gaia-cat-bond"},
+  {tkr:"GAMSCB",name:"GAM Star Cat Bond Institutional USD (insurance-linked securities)",cls:"alternative",vehicle:"mutual_fund",er:1.15,yld:0.0,sponsor:"GAM",dom:"IE",ucits:true,ccy:"USD",family:"gam-star-cat-bond"},
+  {tkr:"NORA10",name:"Nordea 1 Alpha 10 MA Fund BI EUR (multi-asset absolute return)",cls:"alternative",vehicle:"mutual_fund",er:1.05,yld:0.0,sponsor:"Nordea",dom:"LU",ucits:true,ccy:"EUR",family:"nordea-alpha-10"},
+  {tkr:"BSFGED",name:"BlackRock Strategic Funds Global Event Driven A2 USD",cls:"alternative",vehicle:"mutual_fund",er:1.60,yld:0.0,sponsor:"BlackRock",dom:"LU",ucits:true,ccy:"USD",family:"bsf-event-driven"},
+  {tkr:"LUMMWT",name:"Lumyna MW TOPS UCITS A USD (Marshall Wace long/short equity)",cls:"alternative",vehicle:"mutual_fund",er:1.75,yld:0.0,sponsor:"Lumyna",dom:"IE",ucits:true,ccy:"USD",family:"lumyna-mw-tops"},
+  {tkr:"JUPGAR",name:"Jupiter Merian Global Equity Absolute Return I USD",cls:"alternative",vehicle:"mutual_fund",er:0.90,yld:0.0,sponsor:"Jupiter",dom:"IE",ucits:true,ccy:"USD",family:"jupiter-gear"},
+  {tkr:"ELEVAR",name:"Eleva Absolute Return Europe I EUR (long/short equity)",cls:"alternative",vehicle:"mutual_fund",er:1.50,yld:0.0,sponsor:"Eleva",dom:"LU",ucits:true,ccy:"EUR",family:"eleva-are"},
+  {tkr:"BNYGRR",name:"BNY Mellon Global Real Return EUR (absolute return multi-asset)",cls:"alternative",vehicle:"mutual_fund",er:1.10,yld:1.5,sponsor:"BNY Mellon",dom:"IE",ucits:true,ccy:"EUR",family:"bny-global-real-return"},
+  // --- CHF-hedged share classes of the UCITS alternatives above. Same fund,
+  //     same portfolio; mu is reduced by the cost of hedging into CHF (the rate
+  //     differential), so Sharpe against the CHF risk-free matches the base class.
+  //     `family` pairs them so a portfolio can never hold both. ---
+  {tkr:"DWSCKC",name:"DWS Concept Kaldemorgen LCH CHF (hedged)",cls:"alternative",vehicle:"mutual_fund",er:1.55,yld:0.0,sponsor:"DWS",dom:"LU",ucits:true,ccy:"CHF",family:"dws-kaldemorgen"},
+  {tkr:"JPGMOC",name:"JPMorgan Investment Funds Global Macro Opportunities A CHF (hedged)",cls:"alternative",vehicle:"mutual_fund",er:1.70,yld:0.0,sponsor:"JPMorgan",dom:"LU",ucits:true,ccy:"CHF",family:"jpm-global-macro"},
+  {tkr:"MANTGRC",name:"Man AHL TargetRisk D CHF Hedged",cls:"alternative",vehicle:"mutual_fund",er:0.90,yld:0.0,sponsor:"Man Group",dom:"IE",ucits:true,ccy:"CHF",family:"man-ahl-targetrisk"},
+  {tkr:"MANTRDC",name:"Man AHL Trend Alternative DNY CHF Hedged",cls:"alternative",vehicle:"mutual_fund",er:1.30,yld:0.0,sponsor:"Man Group",dom:"IE",ucits:true,ccy:"CHF",family:"man-ahl-trend"},
+  {tkr:"PICTATC",name:"Pictet TR Atlas I CHF (hedged)",cls:"alternative",vehicle:"mutual_fund",er:1.60,yld:0.0,sponsor:"Pictet",dom:"LU",ucits:true,ccy:"CHF",family:"pictet-tr-atlas"},
+  {tkr:"PICTDAC",name:"Pictet TR Diversified Alpha I CHF (hedged)",cls:"alternative",vehicle:"mutual_fund",er:1.55,yld:0.0,sponsor:"Pictet",dom:"LU",ucits:true,ccy:"CHF",family:"pictet-tr-divalpha"},
+  {tkr:"SGAIBTC",name:"Schroder GAIA BlueTrend C CHF Hedged",cls:"alternative",vehicle:"mutual_fund",er:1.75,yld:0.0,sponsor:"Schroders",dom:"LU",ucits:true,ccy:"CHF",family:"gaia-bluetrend"},
+  {tkr:"SGAICBC",name:"Schroder GAIA Cat Bond C CHF Hedged",cls:"alternative",vehicle:"mutual_fund",er:1.45,yld:0.0,sponsor:"Schroders",dom:"LU",ucits:true,ccy:"CHF",family:"gaia-cat-bond"},
+  {tkr:"GAMSCBC",name:"GAM Star Cat Bond Institutional CHF Hedged",cls:"alternative",vehicle:"mutual_fund",er:1.15,yld:0.0,sponsor:"GAM",dom:"IE",ucits:true,ccy:"CHF",family:"gam-star-cat-bond"},
+  {tkr:"NORA10C",name:"Nordea 1 Alpha 10 MA Fund BI CHF (hedged)",cls:"alternative",vehicle:"mutual_fund",er:1.05,yld:0.0,sponsor:"Nordea",dom:"LU",ucits:true,ccy:"CHF",family:"nordea-alpha-10"},
+  {tkr:"BSFGEDC",name:"BlackRock Strategic Funds Global Event Driven A2 CHF Hedged",cls:"alternative",vehicle:"mutual_fund",er:1.60,yld:0.0,sponsor:"BlackRock",dom:"LU",ucits:true,ccy:"CHF",family:"bsf-event-driven"},
+  {tkr:"LUMMWTC",name:"Lumyna MW TOPS UCITS A CHF Hedged",cls:"alternative",vehicle:"mutual_fund",er:1.75,yld:0.0,sponsor:"Lumyna",dom:"IE",ucits:true,ccy:"CHF",family:"lumyna-mw-tops"},
+  {tkr:"JUPGARC",name:"Jupiter Merian Global Equity Absolute Return I CHF (hedged)",cls:"alternative",vehicle:"mutual_fund",er:0.90,yld:0.0,sponsor:"Jupiter",dom:"IE",ucits:true,ccy:"CHF",family:"jupiter-gear"},
+  {tkr:"ELEVARC",name:"Eleva Absolute Return Europe I CHF (hedged)",cls:"alternative",vehicle:"mutual_fund",er:1.50,yld:0.0,sponsor:"Eleva",dom:"LU",ucits:true,ccy:"CHF",family:"eleva-are"},
+  {tkr:"BNYGRRC",name:"BNY Mellon Global Real Return CHF Hedged",cls:"alternative",vehicle:"mutual_fund",er:1.10,yld:0.0,sponsor:"BNY Mellon",dom:"IE",ucits:true,ccy:"CHF",family:"bny-global-real-return"},
+
 
 ];
 
@@ -8948,6 +8968,23 @@ const FUND_OVERRIDES = {
   JUPGAR:{mu:4.8,sigma:6.0,holdings:300,aum:0.6,beta:0.05,maxDD:-12.0,inception:2009},
   ELEVAR:{mu:5.5,sigma:6.5,holdings:120,aum:2.0,beta:0.20,maxDD:-11.0,inception:2018},
   BNYGRR:{mu:5.0,sigma:6.0,holdings:300,aum:3.5,beta:0.30,maxDD:-12.0,inception:2010},
+  // --- CHF-hedged classes: derived from the base override, mu net of hedge carry ---
+  DWSCKC:{mu:3,sigma:8,holdings:250,aum:9,beta:0.35,maxDD:-14,inception:2011},
+  JPGMOC:{mu:2.5,sigma:7.5,holdings:300,aum:2.5,beta:0.2,maxDD:-12,inception:2013},
+  MANTGRC:{mu:1.5,sigma:9,holdings:60,aum:2,beta:0.35,maxDD:-15,inception:2014},
+  MANTRDC:{mu:2,sigma:12,holdings:80,aum:1.5,beta:0.05,maxDD:-18,inception:2015},
+  PICTATC:{mu:2.5,sigma:5.5,holdings:200,aum:3,beta:0.1,maxDD:-9,inception:2014},
+  PICTDAC:{mu:2.3,sigma:4.5,holdings:400,aum:1.5,beta:0.15,maxDD:-8,inception:2018},
+  SGAIBTC:{mu:2,sigma:13,holdings:150,aum:0.9,beta:0.05,maxDD:-20,inception:2012},
+  SGAICBC:{mu:3,sigma:5,holdings:120,aum:1.3,beta:0.05,maxDD:-16,inception:2013},
+  GAMSCBC:{mu:2.8,sigma:4.5,holdings:100,aum:2.5,beta:0.05,maxDD:-14,inception:2017},
+  NORA10C:{mu:2.7,sigma:5,holdings:500,aum:1.2,beta:0.2,maxDD:-9,inception:2017},
+  BSFGEDC:{mu:1.5,sigma:6.5,holdings:180,aum:1.8,beta:0.25,maxDD:-11,inception:2015},
+  LUMMWTC:{mu:2.5,sigma:8,holdings:400,aum:3,beta:0.25,maxDD:-12,inception:2013},
+  JUPGARC:{mu:0.8,sigma:6,holdings:300,aum:0.6,beta:0.05,maxDD:-12,inception:2009},
+  ELEVARC:{mu:3,sigma:6.5,holdings:120,aum:2,beta:0.2,maxDD:-11,inception:2018},
+  BNYGRRC:{mu:2.5,sigma:6,holdings:300,aum:3.5,beta:0.3,maxDD:-12,inception:2010},
+
 
 };
 
@@ -8959,8 +8996,19 @@ function _fundHash(tkr){
 }
 
 // Enrich every fund in-place with full metric set
+// Risk-free rate by currency, anchored to the same 2024-12-31 as FUND_DATA_AS_OF.
+// Sharpe has to be measured against the risk-free of the fund's OWN currency: a
+// CHF-hedged share class earns the (negative) CHF-vs-USD rate differential, so
+// against a flat USD 4.5% yardstick every hedged class looks like a bad fund
+// rather than the same fund in a different currency. Covered interest parity
+// means the base and hedged classes of one strategy then score the SAME Sharpe,
+// which is the correct answer and is asserted by a check in the release script.
+const RISK_FREE_BY_CCY = {
+  USD:4.5, EUR:3.0, CHF:0.5, GBP:4.75, JPY:0.25, SGD:3.0,
+  HKD:4.5, AUD:4.35, CAD:3.25, SEK:2.5, NOK:4.5, DKK:2.6
+};
+
 (function enrichAllFunds(){
-  const rf = 4.5; // risk-free rate, %
   AI_FUND_UNIVERSE.forEach(f => {
     const d = CLASS_DEFAULTS[f.cls] || CLASS_DEFAULTS.equity;
     const ov = FUND_OVERRIDES[f.tkr] || {};
@@ -8982,6 +9030,7 @@ function _fundHash(tkr){
     f.r5y      = ov.r5y      ?? +(d.r5y  + j[2]*4).toFixed(2);
     f.r10y     = ov.r10y     ?? +(d.r10y + j[3]*3).toFixed(2);
     f.maxDD    = ov.maxDD    ?? -(+(f.sigma * 2.0 * (1 + Math.abs(j[4])*0.5)).toFixed(1));
+    const rf   = RISK_FREE_BY_CCY[(f.ccy || "USD").toUpperCase()] ?? RISK_FREE_BY_CCY.USD;
     f.sharpe   = ov.sharpe   ?? +((f.mu - rf) / Math.max(0.5, f.sigma)).toFixed(2);
     // Tracking error: active mutual funds 1.5-4%, ETFs <0.3%
     f.te = ov.te ?? (f.vehicle === "mutual_fund"
@@ -10084,6 +10133,19 @@ function runDeterministicEngine(brief){
         if(_has === _want) score += 3;
         else if(CCY_BLOC[_want] && CCY_BLOC[_want] === CCY_BLOC[_has]) score += 1;
         else score -= 2;
+      } else if(f.ccy){
+        // ── Currency tie-break on every OTHER sleeve ──────────────────────
+        // Only reaches funds that actually declare a currency, and is a BONUS
+        // with no matching penalty, so it can never push a worse strategy
+        // ahead of a better one. Narrower job than the cash rule: a CHF-hedged
+        // share class and its base are the same portfolio and now score the
+        // same Sharpe by construction, so something has to break the tie in
+        // favour of the client's own currency — otherwise a Swiss client gets
+        // the unhedged line and wears the FX risk the hedge exists to remove.
+        const _want = clientCurrency(brief).toUpperCase();
+        const _has = f.ccy.toUpperCase();
+        if(_has === _want) score += 0.5;
+        else if(CCY_BLOC[_want] && CCY_BLOC[_want] === CCY_BLOC[_has]) score += 0.15;
       }
       if(used.sponsors.has(f.sponsor)) score -= 0.3;
       // Risk-profile fit
@@ -10094,7 +10156,21 @@ function runDeterministicEngine(brief){
     });
     candidates.sort((a,b) => b._score - a._score);
     const n = weight >= 25 ? 3 : (weight >= 12 ? 2 : 1);
-    const picks = candidates.slice(0, n);
+    // Never take two share classes of the same fund. A CHF-hedged line and its
+    // base score almost identically — hedging preserves excess return, so their
+    // Sharpe matches by construction — which makes them the likeliest pair to be
+    // picked together. Holding both would show one position as two and read as
+    // diversification that is not there.
+    const picks = [];
+    const famSeen = new Set();
+    for(const cand of candidates){
+      if(picks.length >= n) break;
+      if(cand.family){
+        if(famSeen.has(cand.family)) continue;
+        famSeen.add(cand.family);
+      }
+      picks.push(cand);
+    }
     const each = weight / n;
     picks.forEach(f => {
       // Build rich rationale citing research
