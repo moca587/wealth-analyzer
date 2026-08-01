@@ -601,6 +601,7 @@ Citations:<br>
       <span id="refreshStatus" style="font-size:11px;color:var(--ink3);align-self:center"></span>
       <span id="autoRefreshCountdown2" style="margin-left:auto;font-size:11px;color:var(--green);font-weight:600;font-family:var(--fm);background:rgba(0,135,90,.08);padding:5px 12px;border-radius:50px"></span>
     </div>
+    <div id="monthlyIssueBanner"></div>
     <div class="rp" id="rpList"></div>
   </div>
   <div class="panel">
@@ -1108,7 +1109,7 @@ function toggleQuestionnairePreview(){
 // ═══════════════════════════════════════════════════════════
 // VERSION + UTILS
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260801-1520";
+const APP_VERSION = "20260801-1541";
 const $ = (id) => document.getElementById(id);
 const $$ = (sel, ctx) => Array.from((ctx||document).querySelectorAll(sel));
 
@@ -1277,8 +1278,13 @@ const RESEARCH_PROVIDERS = [
   // and the Research Investment Committee's monthly cross-asset report (RIC).
   // Neither publishes a public RSS feed, so the news-query fallback used by the
   // other subscription-only houses applies; `homepage` links the real source.
-  {id:"ml_viewpoint", name:"Merrill CIO Viewpoint",        type:"CIO House View",  color:"#012169", letter:"V", homepage:"https://www.ml.com/registration/cio-monthly-viewpoint.html", feed:googleNewsQuery("Merrill Chief Investment Office Viewpoint"), feed2:googleNewsQuery("Merrill CIO asset allocation"), feed3:googleNewsQuery("Merrill Lynch Chief Investment Office outlook")},
-  {id:"bofa_ric",     name:"BofA RIC Report",              type:"Global Research", color:"#e31837", letter:"R", homepage:"https://business.bofa.com/en-us/content/global-research-about.html", feed:googleNewsQuery("BofA RIC Report Research Investment Committee"), feed2:googleNewsQuery("BofA Global Research investment themes"), feed3:googleNewsQuery("BofA Research Investment Committee allocation")},
+  // `cadence:"monthly"` + `issueDay` drive the issue tracker in the Research
+  // Library: the card shows whether THIS month's issue has been ingested and
+  // flags it as due/overdue, so a monthly publication cannot sit silently stale
+  // behind a news feed that keeps refreshing.
+  {id:"ml_viewpoint", name:"Merrill CIO Viewpoint",        type:"CIO House View",  color:"#012169", letter:"V", cadence:"monthly", issueDay:5,  homepage:"https://www.ml.com/registration/cio-monthly-viewpoint.html", feed:googleNewsQuery("Merrill Chief Investment Office Viewpoint"), feed2:googleNewsQuery("Merrill CIO asset allocation"), feed3:googleNewsQuery("Merrill Lynch Chief Investment Office outlook")},
+  {id:"bofa_ric",     name:"BofA RIC Report",              type:"Global Research", color:"#e31837", letter:"R", cadence:"monthly", issueDay:10, homepage:"https://business.bofa.com/en-us/content/global-research-about.html", feed:googleNewsQuery("BofA RIC Report Research Investment Committee"), feed2:googleNewsQuery("BofA Global Research investment themes"), feed3:googleNewsQuery("BofA Research Investment Committee allocation")},
+  {id:"bofa_us1",     name:"BofA US 1 List",               type:"Equity Ideas",    color:"#7d1128", letter:"1", cadence:"monthly", issueDay:1,  homepage:"https://business.bofa.com/en-us/content/global-research-about.html", feed:googleNewsQuery("BofA US 1 List added removed"), feed2:googleNewsQuery("BofA Securities US 1 List stocks"), feed3:googleNewsQuery("Bank of America US1 List top picks")},
   {id:"jpm",       name:"J.P. Morgan Asset Management",    type:"Wirehouse",       color:"#7b1f2a", letter:"J", feed:"https://am.jpmorgan.com/us/en/asset-management/adv/insights/market-insights/feed/", feed2:googleNewsQuery("JPMorgan Asset Management"), feed3:googleNewsQuery("JPMorgan strategist outlook")},
   {id:"ms",        name:"Morgan Stanley Wealth",           type:"Wirehouse",       color:"#0066b3", letter:"M", feed:"https://www.morganstanley.com/ideas/feed/rss", feed2:"https://feeds.megaphone.fm/morganstanleythoughts", feed3:googleNewsQuery("Morgan Stanley GIC")},
   {id:"citi",      name:"Citi Private Bank",               type:"Private Bank",    color:"#0563bf", letter:"C", feed:googleNewsQuery("Citi Private Bank"), feed2:googleNewsQuery("Citigroup wealth outlook"), feed3:googleNewsQuery("Citi Global Wealth")},
@@ -2555,6 +2561,24 @@ const CURATED_RESEARCH = {
     {t:"Small caps: valuation dispersion versus large caps creates selective opportunity", s:""},
     {t:"Real assets and infrastructure as an inflation-aware diversifier", s:""}
   ],
+  // ── BofA US 1 List ───────────────────────────────────────────────────────
+  // BofA's highest-conviction Buy-rated US ideas (15 minimum, typically 20-30
+  // names). Deliberately describes the LIST'S METHODOLOGY, not its current
+  // constituents: membership turns over monthly, so hard-coding names here
+  // would recreate exactly the stale-citation problem this catalogue was
+  // cleaned up to avoid. Live constituent changes arrive through the feeds.
+  bofa_us1:[
+    {t:"US 1 List: BofA's highest-conviction ideas drawn from the Buy-rated US coverage universe", s:"Selected by BofA Global Research fundamental equity analysts and managed with a long-term performance objective."},
+    {t:"List construction: no fewer than 15 names, typically 20-30", s:"Deliberately concentrated relative to a diversified benchmark."},
+    {t:"Additions and deletions are the actionable signal — membership turns over as conviction changes", s:"A name entering or leaving the list is the event worth reading, not the static roster."},
+    {t:"Eligibility: US-listed equities including ADRs under BofA Global Research fundamental coverage", s:""},
+    {t:"A Buy rating is a prerequisite — the list is a high-conviction subset of the Buy-rated universe", s:""},
+    {t:"Sector representation reflects bottom-up analyst conviction, not a target sector weight", s:"Concentration by sector can drift well away from the index."},
+    {t:"Single-stock ideas carry idiosyncratic risk that index exposure does not", s:"Suitability and position sizing matter more than for diversified vehicles."},
+    {t:"For fund-based portfolios, treat list membership as a sector and theme signal rather than a direct holding", s:"A high-conviction stock list is not a substitute for a diversified allocation."},
+    {t:"Concentration discipline: size high-conviction single names against the whole balance sheet", s:""},
+    {t:"Long-term orientation: the list is managed for multi-year performance rather than tactical trading", s:""}
+  ],
   jpm:[
     {t:"Guide to the Markets: 60/40 portfolio 6-8% expected return next decade", s:"JPM AM long-term capital market assumptions show normalized returns after 2022 bond reset."},
     {t:"EM equities: Tactical underweight, structural overweight India", s:"Indian equities 4Y CAGR projected 11-13% USD-terms, highest among major EMs."},
@@ -3579,8 +3603,82 @@ function syncProviderCounts(){
   document.querySelectorAll(".js-prov-count").forEach(el => { el.textContent = RESEARCH_PROVIDERS.length; });
 }
 
+// ═══════════════════════════════════════════════════════════
+// MONTHLY ISSUE TRACKING
+// ═══════════════════════════════════════════════════════════
+// Viewpoint, the RIC Report and the US 1 List are MONTHLY publications, but the
+// news-query feeds behind them refresh continuously — so "Last refreshed: 2
+// minutes ago" was hiding the fact that the current month's actual issue had
+// never been ingested. These helpers track ingestion per calendar month and let
+// the card say so plainly.
+function currentIssueYM(d){
+  const n = d || new Date();
+  return n.getFullYear() + "-" + String(n.getMonth() + 1).padStart(2, "0");
+}
+// Returns null for non-monthly sources; otherwise the state of THIS month's issue.
+function monthlyIssueStatus(p, cfg, now){
+  if(!p || p.cadence !== "monthly") return null;
+  const d = now || new Date();
+  const ym = currentIssueYM(d);
+  const ingested = (cfg && cfg.lastIssueYM) || null;
+  if(ingested === ym) return {state:"current", label:ym + " issue ingested", ym};
+  const due = p.issueDay || 5;
+  if(d.getDate() < due){
+    return {state:"pending", label:"next issue ~" + due + " " + d.toLocaleString(undefined,{month:"short"}), ym};
+  }
+  const late = d.getDate() - due;
+  return {
+    state: late > 14 ? "overdue" : "due",
+    label: (late > 14 ? "OVERDUE — " : "") + ym + " issue not ingested" + (ingested ? " (last: " + ingested + ")" : ""),
+    ym
+  };
+}
+// Operator marks the issue ingested once its content is actually in the library.
+// Deliberately explicit: a feed refresh pulls NEWS ABOUT the report, not the
+// report, so refreshing must never silently claim the issue was ingested.
+function markIssue(el){ markIssueIngested(el.dataset.prov); }
+function markIssueIngested(pid){
+  const ym = currentIssueYM();
+  setProviderCfg(pid, {lastIssueYM: ym});
+  const p = RESEARCH_PROVIDERS.find(x => x.id === pid);
+  addLog("ok", `Marked ${p ? p.name : pid} ${ym} issue as ingested`);
+  toast(`${ym} issue marked ingested`, "ok");
+  renderResearch();
+}
+// Every monthly publication that still needs this month's issue.
+function monthlyIssuesOutstanding(){
+  const cfg = getResearchCfg();
+  return RESEARCH_PROVIDERS
+    .filter(p => p.cadence === "monthly")
+    .map(p => ({p, st: monthlyIssueStatus(p, cfg[p.id] || {})}))
+    .filter(x => x.st && (x.st.state === "due" || x.st.state === "overdue"));
+}
+
+function renderMonthlyIssueBanner(){
+  const host = $("monthlyIssueBanner");
+  if(!host) return;
+  const outstanding = monthlyIssuesOutstanding();
+  if(outstanding.length === 0){
+    const monthly = RESEARCH_PROVIDERS.filter(p => p.cadence === "monthly").length;
+    host.innerHTML = monthly
+      ? `<div style="margin:0 0 12px;padding:10px 14px;background:rgba(0,135,90,.07);border:1px solid rgba(0,135,90,.25);border-radius:8px;font-size:12px;color:var(--green);font-weight:600">✓ All ${monthly} monthly publications are current for ${currentIssueYM()}.</div>`
+      : "";
+    return;
+  }
+  const rows = outstanding.map(({p, st}) =>
+    `<li style="margin-bottom:3px"><strong>${escapeHtml(p.name)}</strong> — ${escapeHtml(st.label)}${p.homepage ? ` · <a href="${p.homepage}" target="_blank" rel="noopener noreferrer">open publication ↗</a>` : ""}</li>`
+  ).join("");
+  const anyOverdue = outstanding.some(o => o.st.state === "overdue");
+  host.innerHTML = `<div style="margin:0 0 12px;padding:11px 14px;background:${anyOverdue?'rgba(227,24,55,.06)':'rgba(245,158,11,.08)'};border:1px solid ${anyOverdue?'rgba(227,24,55,.3)':'rgba(245,158,11,.35)'};border-radius:8px;font-size:12px;line-height:1.65">
+    <div style="font-weight:700;color:${anyOverdue?'var(--red)':'var(--amber)'};margin-bottom:5px">${anyOverdue?'⚠':'●'} ${outstanding.length} monthly issue${outstanding.length>1?'s':''} outstanding for ${currentIssueYM()}</div>
+    <ul style="margin:0 0 0 18px;padding:0;color:var(--ink2)">${rows}</ul>
+    <div style="font-size:11px;color:var(--ink3);margin-top:7px">The news feeds behind these sources refresh continuously, but the monthly issue itself has to be ingested — use “Mark ingested” on the card once it is in the library.</div>
+  </div>`;
+}
+
 function renderResearch(){
   syncProviderCounts();
+  renderMonthlyIssueBanner();
   const list = $("rpList");
   if(!list) return;
   list.innerHTML = RESEARCH_PROVIDERS.map(p => {
@@ -3588,19 +3686,23 @@ function renderResearch(){
     const cnt = (cfg.items||[]).length;
     const en = cfg.enabled !== false;
     const lr = cfg.lastRefresh ? new Date(cfg.lastRefresh).toLocaleString() : "Never";
+    const iss = monthlyIssueStatus(p, cfg);
+    const issColor = iss ? ({current:"var(--green)", pending:"var(--ink3)", due:"var(--amber)", overdue:"var(--red)"})[iss.state] : "";
     return `<div class="rp-card${en?'':' disabled'}">
       <div class="rp-head">
         <div class="rp-icon" style="background:${p.color}">${p.letter}</div>
         <div style="flex:1;min-width:0">
           <div class="rp-name">${p.name}</div>
-          <div class="rp-meta">${p.type} · ${cnt} items</div>
+          <div class="rp-meta">${p.type} · ${cnt} items${p.cadence === "monthly" ? " · monthly" : ""}</div>
         </div>
         <label style="cursor:pointer"><input type="checkbox" ${en?'checked':''} data-action="toggleProvider" data-prov="${p.id}"></label>
       </div>
       <div style="font-size:11px;color:var(--ink3)">Last: ${lr}</div>
+      ${iss ? `<div style="font-size:11px;font-weight:600;color:${issColor};margin-top:3px">${iss.state==="current"?"✓":"●"} ${escapeHtml(iss.label)}</div>` : ""}
       <div class="rp-actions">
         <button class="rp-mini" data-action="refreshOne" data-prov="${p.id}">↻ Refresh</button>
         ${p.homepage ? `<a class="rp-mini" href="${p.homepage}" target="_blank" rel="noopener noreferrer" style="text-decoration:none;display:inline-block">↗ Publication</a>` : ""}
+        ${iss && iss.state !== "current" ? `<button class="rp-mini" data-action="markIssue" data-prov="${p.id}">✓ Mark ${iss.ym} ingested</button>` : ""}
       </div>
     </div>`;
   }).join("");
@@ -6511,6 +6613,9 @@ window.refreshAll = refreshAll;
 window.enableAll = enableAll;
 window.disableAll = disableAll;
 window.refreshOne = refreshOne;
+window.markIssue = markIssue;
+window.markIssueIngested = markIssueIngested;
+window.monthlyIssuesOutstanding = monthlyIssuesOutstanding;
 window.toggleProvider = toggleProvider;
 window.runTb = runTb;
 window.runTbStress = runTbStress;
