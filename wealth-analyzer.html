@@ -10781,12 +10781,19 @@ function ordReadResponse(body,httpStatus){
 
 // ── The BUY flow: build → validate → REVIEW → confirm → send ─────────
 let _ordPending=null;    // the ticket shown in the review modal
+// Set when a send did not positively succeed, so "Retry" rebuilds the ticket
+// with the SAME reference. Cleared on success and whenever the proposal is
+// edited — a changed proposal is a different order and must get a new id.
+let _ordRetryId=null;
 
 /** Entry point for the BUY button. Never sends; only opens the review. */
 function ordReviewProposal(){
-  const ticket=ordBuildTicket();
+  const ticket=ordBuildTicket(_ordRetryId||null);
+  const route=ordLoadRoute()||{};
   const v=ordValidate(ticket);
-  _ordPending={ticket:ticket,errors:v.errors,warnings:v.warnings,sending:false,sent:false,result:null};
+  // Freeze the routing config with the ticket. Re-reading it at send time
+  // meant an advisor could review one destination and send to another.
+  _ordPending={ticket:ticket,route:route,errors:v.errors,warnings:v.warnings,sending:false,sent:false,result:null};
   ordRenderReview();
   show("ordModalBg",true); show("ordModal",true);
 }
@@ -10853,7 +10860,7 @@ function ordRenderReview(){
     +'<td style="padding:8px 4px;text-align:right">'+ordMoney(ticket.totals.amount,ticket.totals.currency)+'</td></tr></tfoot></table>';
 
   h+='<div style="font-size:11px;color:var(--text3);margin-top:12px">Ticket <code>'+_daEsc(ticket.ticketId)+'</code> &mdash; '
-    +'sent as the idempotency key, so re-sending after a timeout cannot double-buy.</div>';
+    +'sent as the idempotency key. If this send fails, use <strong>Retry this ticket</strong> — it reuses this same reference, so the PM system can recognise the retry. Pressing BUY again instead starts a NEW order with a new reference.</div>';
 
   if(_ordPending.sent&&_ordPending.result){
     const r=_ordPending.result;
@@ -10873,6 +10880,11 @@ function ordRenderReview(){
 
   h+='<div class="da-modal-tools" style="justify-content:flex-end;border-top:1px solid var(--border);border-bottom:none">';
   if(_ordPending.sent){
+    var r0=_ordPending.result||{};
+    var good0=r0.ok&&!(r0.rejected||[]).length;
+    if(!good0){
+      h+='<button class="btn-secondary" onclick="ordRetrySame()" title="Re-sends the SAME ticket reference">Retry this ticket</button>';
+    }
     h+='<button class="btn-secondary" onclick="ordCloseReview()">Close</button>';
   }else{
     h+='<button class="btn-secondary" onclick="ordCloseReview()">Cancel</button>'
@@ -10882,6 +10894,20 @@ function ordRenderReview(){
   }
   h+='</div>';
   m.innerHTML=h;
+}
+/**
+ * Re-send the ticket that just failed, REUSING its reference.
+ *
+ * This is what makes the idempotency promise on the review screen true. A
+ * fresh BUY mints a new reference, which is correct — that is a new order.
+ * A retry must not, or the relay and the PM system have nothing to dedupe on
+ * and an ambiguous timeout becomes a double-buy.
+ */
+function ordRetrySame(){
+  if(!_ordPending||_ordPending.sending) return;
+  _ordPending.sent=false; _ordPending.result=null;
+  ordRenderReview();
+  ordSend();
 }
 function ordCard(lbl,v){
   return '<div style="padding:8px 12px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--rs)">'
@@ -10893,7 +10919,7 @@ function ordCard(lbl,v){
 async function ordSend(){
   if(!_ordPending||_ordPending.sending||_ordPending.sent) return;
   if(_ordPending.errors.length) return;              // belt and braces
-  const route=ordLoadRoute()||{};
+  const route=_ordPending.route||{};
   const ticket=_ordPending.ticket;
 
   _ordPending.sending=true;
@@ -10912,8 +10938,21 @@ async function ordSend(){
 
   let httpStatus=0, parsed=null, errMsg="";
   try{
-    const res=await fetch(route.url,{method:"POST",headers:headers,
-      body:JSON.stringify(ordToWire(ticket,route.format||"wa"))});
+    // redirect:"manual" — a 3xx must NOT be followed. 307/308 would replay the
+    // whole order body to whatever Location names, and while fetch strips
+    // Authorization cross-origin it does NOT strip a custom X-API-Key header,
+    // which is one of the auth modes offered here. 301/302/303 would rewrite
+    // POST to GET and deliver an empty request that reads as success.
+    const ctl=new AbortController();
+    const to=setTimeout(function(){ ctl.abort(); },20000);
+    let res;
+    try{
+      res=await fetch(route.url,{method:"POST",headers:headers,redirect:"manual",signal:ctl.signal,
+        body:JSON.stringify(ordToWire(ticket,route.format||"wa"))});
+    } finally { clearTimeout(to); }
+    if(res.type==="opaqueredirect"||(res.status>=300&&res.status<400)){
+      throw new Error("the endpoint redirected — point the connection at the final URL");
+    }
     httpStatus=res.status;
     const txt=await res.text();
     try{ parsed=JSON.parse(txt); }catch(_){ parsed=txt; }
@@ -10927,7 +10966,7 @@ async function ordSend(){
   const result=errMsg
     ? {ok:false,ref:"",accepted:null,rejected:["Could not reach the PM system: "+errMsg
         +". If this was a timeout the ticket may already be staged — check there before re-sending. "
-        +"Re-sending is safe: the same ticket reference is reused."],raw:""}
+        +"Use “Retry this ticket” rather than BUY: it reuses this reference, so a PM system that honours it will not stage the order twice."],raw:""}
     : ordReadResponse(parsed,httpStatus);
 
   _ordPending.sending=false; _ordPending.sent=true; _ordPending.result=result;
@@ -10943,6 +10982,9 @@ async function ordSend(){
   ordRenderReview();
   ordRenderLog();
   const good=result.ok&&!(result.rejected||[]).length;
+  // Remember the reference only while the outcome is not a clean success, so
+  // the next BUY on an unresolved ticket can reuse it rather than mint a new one.
+  _ordRetryId=good?null:ticket.ticketId;
   ordStatus(good?("✓ Ticket "+ticket.ticketId+" staged — "+ticket.totals.positions+" order(s) sent to "+(route.name||"PM system"))
                 :("✗ Send reported a problem — see the review screen and the log below."),
             good?"var(--green)":"var(--red)");

@@ -320,6 +320,87 @@ connection at `/api/feeds/<id>` and that panel works unchanged.
   checkboxes grouped by section with before → after values → Apply → one-click
   Undo (re-PUTs the pre-apply snapshot).
 
+### Order routing — `/api/orders` (send a proposal to a PM/OMS)
+The outbound mirror of the feed relay. An advisor approves an Investment
+Proposal, presses **BUY**, and the positions go to a portfolio/order
+management system as a **`wa.order/v1`** ticket. `lib/orders/` +
+`app/api/orders/` + `components/orders/orders-manager.tsx` (`/app/orders`,
+`/preview/orders`), migration `003_orders.sql`.
+
+**Nothing here executes a trade.** `intent` is pinned to `"stage"` by Zod
+(`z.literal`), and every dialect carries it to the wire: Avaloq
+`PENDING_APPROVAL`, generic `execute:false`. A wire format that cannot say
+"do not execute yet" must not be added.
+
+Read these before changing anything on this path — each exists because an
+adversarial pass found the opposite behaviour:
+- **Positive acknowledgement only.** A 2xx is NOT success. `readPlacementResponse`
+  reports `staged` only for a 2xx **with** a JSON content-type **and** a
+  reference or a non-zero accepted count. Anything else is **`unknown`** — a
+  third state, not a failure. This is the exact mirror of the inbound
+  login-page defect, and worse: inbound produced a wrong number a human still
+  reviewed, whereas a false green "staged" stops anyone looking again.
+  `ok === (state === "staged")` is invariant.
+- **`unknown` is load-bearing.** A timeout or dropped socket may have staged
+  the ticket. Recording it as `failed` reads as "nothing happened" and invites
+  a resend — that is how one model portfolio becomes two.
+- **Idempotency lives in Postgres**, not in a forwarded header the OMS may
+  ignore. The row is INSERTed (unique on `user_id, ticket_id`) *before* the
+  upstream call. Same key + same `fingerprint` → return the prior result, do
+  not re-POST. Same key + **different** fingerprint → 409, because silently
+  returning the first result would discard a corrected order.
+- **The custody account comes from the CONNECTION, never the payload.** A
+  ticket naming a different account is refused, not rebooked.
+- **`checkTicket` is a COHERENCE check, not an authorization one.** It
+  re-derives the total from the lines, so a client whose arithmetic disagrees
+  with itself is refused — but the server has no proposal of record, so any
+  self-consistent set of amounts would pass. `max_ticket_amount` (NOT NULL,
+  default 100k) is therefore the only bound on ticket size, and it lives where
+  a browser cannot raise it. Also checks ISIN check digits, currency vs the
+  account, and blocks the WHOLE ticket if any line lacks an ISIN and a ticker.
+- **`safePost` does NOT follow redirects** — a 3xx is an error. `safeFetch`
+  re-validates each hop, which is right for reading a statement and wrong
+  here: 307/308 would replay the order body to whatever `Location` names, and
+  301/302/303 rewrite POST→GET and deliver an empty request that reads as
+  success. Do not "improve" this into hop re-validation.
+- **`ORDERS_HOST_ALLOWLIST` is required in production** (`lib/orders/allowlist.ts`).
+  ssrf.ts accepts a residual DNS-rebinding window on GET-specific grounds
+  ("limited to READING responses from hosts already reachable"); on a POST a
+  bypass writes an attacker-influenced body to an internal endpoint, and
+  writing is not recoverable.
+- **Client identity is opt-in** (`send_client_identity`, default false). The
+  OMS needs account + instrument + amount, not who the client is; a mistyped
+  URL should leak what was bought, never whose.
+- **The audit row is immutable.** RLS allows UPDATE only while
+  `status='sending'`, and a trigger rejects any change to the instruction or
+  reopening of a terminal row. No DELETE policy at all.
+- `last_status` (rendered in the connections list) carries a code and counts
+  only — never upstream body text, which routinely echoes the account, the
+  client name, and sometimes the credential.
+
+**Legacy side** (`wealth-analyzer.html`, Investment Proposal tab): the same
+ticket shape, built by `ordBuildTicket`, reviewed line-by-line before any
+send. Three defects found and fixed there in the same pass:
+- The idempotency promise on the review screen was **false**. `ordBuildTicket()`
+  was called with no argument, so every BUY minted a fresh reference and a
+  post-failure retry was a new order to the OMS. There is now a **Retry this
+  ticket** button that reuses the reference, `_ordRetryId` keeps it until a
+  clean success, and the wording says what the code actually does.
+- The route was re-read from localStorage at send time while validation was
+  snapshotted at review time — a second tab could change endpoint, credential
+  and account between review and send. The route is now frozen on `_ordPending`.
+- The browser `fetch` used the default `redirect:"follow"` and had no timeout.
+  Now `redirect:"manual"` (fetch strips `Authorization` cross-origin but NOT a
+  custom `X-API-Key`, which is one of the offered auth modes) plus a 20s abort.
+
+**Known limitations, deliberately not built** (they need custodian position
+data and a product decision, and half-building them would be worse):
+BUY only — no SELL, no delta/rebalance mode, so re-sending a target allocation
+against an already-funded account doubles the position; no pre-trade cash or
+buying-power check; no account↔client binding beyond the connection's single
+account; no FX — a ticket is refused if its currency differs from the
+account's, never converted.
+
 ### Feed hardening (2026-07-31) — read before touching the feed path
 An adversarial pass over the whole feed stack. Every item below is a defect
 that was REPRODUCED, then fixed and pinned in `hardening.test.ts`. The theme:

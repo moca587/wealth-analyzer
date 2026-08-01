@@ -252,6 +252,112 @@ export async function assertHostAllowed(hostname: string): Promise<void> {
 // ─── Guarded fetch ────────────────────────────────────────────────
 export interface SafeFetchResult { body: string; contentType: string; finalUrl: string; }
 
+/** Same guard chain as safeFetch, but the caller inspects the status itself. */
+export interface SafePostResult extends SafeFetchResult { status: number; }
+
+/**
+ * Guarded POST, for sending an order ticket to a PM/OMS.
+ *
+ * Shares safeFetch's URL validation, DNS vetting, timeout and size cap, but
+ * differs in two ways that both exist because the body is an instruction to
+ * buy securities:
+ *
+ *  1. REDIRECTS ARE NOT FOLLOWED — a 3xx is an error.
+ *     safeFetch re-validates each hop and continues, which is right for
+ *     reading a statement. It is wrong here. Replaying an order body to
+ *     whatever a Location header names would send a client's buy
+ *     instructions, and the bearer credential's blast radius, to a host the
+ *     advisor never configured. (Even benignly, 301/302 rewrite POST to GET
+ *     per RFC 9110, so "following" would silently deliver an empty request
+ *     and report success.) An order endpoint that redirects is a
+ *     misconfiguration the advisor must fix in the URL.
+ *
+ *  2. A NON-2xx STILL RETURNS ITS BODY instead of throwing.
+ *     The PM system's 4xx body is where per-line rejection detail lives
+ *     ("ISIN not tradable"), and discarding it would leave the advisor with
+ *     "HTTP 422" and nothing to act on.
+ */
+export async function safePost(
+  rawUrl: string,
+  headers: Record<string, string>,
+  body: string,
+): Promise<SafePostResult> {
+  const v = validateFeedUrl(rawUrl);
+  if (!v.ok) throw new FeedFetchError(v.reason, "blocked");
+  await assertHostAllowed(v.url.hostname);
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), FEED_FETCH_TIMEOUT_MS);
+  let res: Response;
+  try {
+    res = await fetch(v.url, {
+      method: "POST",
+      headers,
+      body,
+      redirect: "manual",     // never auto-follow; see above
+      signal: controller.signal,
+      cache: "no-store",
+    });
+  } catch (e) {
+    clearTimeout(timer);
+    const msg = e instanceof Error ? e.message : String(e);
+    throw new FeedFetchError(
+      controller.signal.aborted ? `request timed out after ${FEED_FETCH_TIMEOUT_MS / 1000}s` : msg,
+      controller.signal.aborted ? "timeout" : "network"
+    );
+  }
+
+  try {
+    if (res.status >= 300 && res.status < 400) {
+      throw new FeedFetchError(
+        `order endpoint redirected (HTTP ${res.status}). The relay does not follow redirects when ` +
+        `placing orders — point the connection at the final URL.`,
+        "blocked"
+      );
+    }
+    const declared = Number(res.headers.get("content-length") || 0);
+    if (declared && declared > FEED_MAX_BYTES) {
+      throw new FeedFetchError(`response is ${(declared / 1048576).toFixed(1)} MB — the relay caps responses at 5 MB`, "too_large");
+    }
+    const reader = res.body?.getReader();
+    if (!reader) {
+      return { body: "", contentType: res.headers.get("content-type") || "", finalUrl: v.url.toString(), status: res.status };
+    }
+    const chunks: Uint8Array[] = [];
+    let total = 0;
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      if (value) {
+        total += value.byteLength;
+        if (total > FEED_MAX_BYTES) {
+          try { await reader.cancel(); } catch { /* already closed */ }
+          throw new FeedFetchError("response exceeded the relay's 5 MB cap", "too_large");
+        }
+        chunks.push(value);
+      }
+    }
+    const buf = new Uint8Array(total);
+    let off = 0;
+    for (const c of chunks) { buf.set(c, off); off += c.byteLength; }
+    return {
+      body: new TextDecoder("utf-8", { fatal: false }).decode(buf),
+      contentType: res.headers.get("content-type") || "",
+      finalUrl: v.url.toString(),
+      status: res.status,
+    };
+  } catch (e) {
+    if (e instanceof FeedFetchError) throw e;
+    const msg = e instanceof Error ? e.message : String(e);
+    throw new FeedFetchError(
+      controller.signal.aborted ? `request timed out after ${FEED_FETCH_TIMEOUT_MS / 1000}s while reading the response` : msg,
+      controller.signal.aborted ? "timeout" : "network"
+    );
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 /**
  * Fetch with the full guard chain: validated URL, vetted DNS, manual
  * redirects (each re-validated), timeout, and a streaming size cap.
