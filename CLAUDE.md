@@ -398,6 +398,19 @@ network, verifiable against published check digits:
   the generic dialect sends all three. `ticketFingerprint` APPENDS the CUSIP
   only when present, so tickets without one keep their pre-existing hash and a
   stored fingerprint still matches on retry.
+- **No manual CUSIP field, by product decision.** CUSIP is US/Canada-only and
+  the launch market is Swiss EAMs, whose UCITS instruments have no CUSIP at
+  all (the Keller sample's seven positions: zero). A third identifier box on
+  the proposal row earned its keep for nobody, and it widened the blast radius
+  of the reset bug above. The ARITHMETIC stays, because CUSIPs do reach the
+  app — via the statement importer, whose column map already includes
+  `cusip` — and turning one into a bookable ISIN offline is real value in the
+  direction they actually arrive. A position's `cusip` is now DERIVED from a
+  US/CA ISIN (`isinToCusip`), so a US line still carries it to the PM system
+  with nothing typed. Pasting a CUSIP into the universal ticker box still
+  resolves it: `detectInputType` recognises one by its check digit.
+  **The genuinely missing identifier for this market is Valor** — zero support
+  today, and what an Avaloq-based EAM sees on every statement.
 - **Market data**: OpenFIGI (already used for ISIN) is generalized to
   `openFigiMap(idType, idValue, hintCc)`; `ID_CUSIP` resolves directly to a
   ticker, which then feeds the existing Yahoo quote/performance path. Verified

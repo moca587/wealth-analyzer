@@ -3354,7 +3354,6 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
         </select>
       </div>
       <div class="fld"><label>ISIN <span style="color:var(--text3);font-weight:400">(for order routing)</span></label><input id="prIsin" placeholder="e.g. IE00B4L5Y983" maxlength="12" style="text-transform:uppercase"></div>
-      <div class="fld"><label>CUSIP <span style="color:var(--text3);font-weight:400">(US/CA)</span></label><input id="prCusip" placeholder="e.g. 037833100" maxlength="12" style="text-transform:uppercase" oninput="onCusipInput('pr')" onblur="onCusipBlur('pr')"></div>
       <div class="fld"><label>Weight %</label><input type="number" id="prAlloc" placeholder="0" min="0" max="100" step="0.1"></div>
       <div class="fld"><label>10yr Exp Return %</label><input type="number" id="prExp" placeholder="0" step="0.1"></div>
       <div class="fld"><label>Expense Ratio %</label><input type="number" id="prErIn" placeholder="0" min="0" max="10" step="0.01"></div>
@@ -13720,10 +13719,10 @@ function addProposal(){
   const exp=parseFloat(val("prExp")), er=parseFloat(val("prErIn")), yld=parseFloat(val("prYldIn"));
   const note=val("prNote").trim();
   if(!name||isNaN(alloc)||alloc<=0){alert("Enter name and allocation %"); return;}
-  proposals.push({id:"pr"+(++propSeq),name,tkr,isin:val("prIsin").trim().toUpperCase(),cusip:normalizeCusip(val("prCusip")),vehicle,cls,alloc,
+  proposals.push({id:"pr"+(++propSeq),name,tkr,isin:val("prIsin").trim().toUpperCase(),cusip:(isinToCusip(val("prIsin").trim().toUpperCase())||""),vehicle,cls,alloc,
     exp:isNaN(exp)?null:exp,er:isNaN(er)?null:er,yld:isNaN(yld)?null:yld,note,
     metrics:(_lastFundPerf&&_lastFundPerf.tkr&&tkr&&_lastFundPerf.tkr===tkr.toUpperCase())?_lastFundPerf.metrics:null});
-  ["prName","prTkr","prIsin","prCusip","prAlloc","prExp","prErIn","prYldIn","prNote"].forEach(id=>$(id).value="");
+  ["prName","prTkr","prIsin","prAlloc","prExp","prErIn","prYldIn","prNote"].forEach(id=>$(id).value="");
   setT("prTkrHint","");
   try{ renderFundPerf('pr',null); }catch(_){}  _lastFundPerf=null;   // clear fetched-performance panel after add
   renderProposals(); renderProposalMetrics(); renderProposalBars(); drawProposalPie();
@@ -13931,10 +13930,10 @@ function applyTickerPrefill(){
 // Clear the Investment Proposal add form (fields, dropdowns, fetched performance)
 // so a freshly-entered ticker pulls correct data. Fired when Name or Ticker is emptied.
 function resetProposalForm(){
-  // prIsin/prCusip MUST be in this list. They are what a custodian books on,
+  // prIsin MUST be in this list. It is what a custodian books on,
   // so an identifier surviving a form reset attaches the previous security to
   // the next position the advisor enters.
-  ["prName","prTkr","prIsin","prCusip","prAlloc","prExp","prErIn","prYldIn","prNote"].forEach(id=>{const el=$(id); if(el) el.value="";});
+  ["prName","prTkr","prIsin","prAlloc","prExp","prErIn","prYldIn","prNote"].forEach(id=>{const el=$(id); if(el) el.value="";});
   ["prVehicle","prClass"].forEach(id=>{const el=$(id); if(el) el.selectedIndex=0;});
   setT("prTkrHint","");
   const st=$("prAvStatus"); if(st) st.textContent="";
@@ -14319,45 +14318,6 @@ function _applyResolvedIds(prefix,cusip,isin){
   const cEl=$(prefix+'Cusip'), iEl=$(prefix+'Isin');
   if(cEl&&cusip&&!cEl.value.trim()) cEl.value=cusip;
   if(iEl&&isin&&!iEl.value.trim()) iEl.value=isin;
-}
-
-/**
- * Live feedback while a CUSIP is typed. Deliberately quiet until all 9
- * characters are present — flagging a half-typed identifier as invalid is
- * noise, and noise is what gets real warnings ignored.
- */
-function onCusipInput(prefix){
-  const el=$(prefix+'Cusip'); if(!el) return;
-  const hint=$(prefix+'TkrHint');
-  const v=normalizeCusip(el.value);
-  if(!hint) return;
-  if(v.length<9){ if(v.length===0) hint.textContent=''; return; }
-  if(!isValidCusip(v)){
-    hint.textContent='✗ '+v+' is not a valid CUSIP — the check digit does not match (likely a typo or transposition).';
-    hint.style.color='#a83232'; return;
-  }
-  const derived=cusipToIsin(v,'US');
-  const typedIsin=(val(prefix+'Isin')||'').trim().toUpperCase();
-  const agree=checkIdentifierAgreement(v,typedIsin);
-  if(!agree.ok){ hint.textContent='✗ '+agree.conflict; hint.style.color='#a83232'; return; }
-  hint.textContent='✓ Valid CUSIP · ISIN '+derived+' (US issuer assumed) — leave the field to look up pricing.';
-  hint.style.color='#1b6841';
-}
-/** Resolve on blur, reusing the unified lookup so pricing arrives too. */
-async function onCusipBlur(prefix){
-  const el=$(prefix+'Cusip'); if(!el) return;
-  const v=normalizeCusip(el.value);
-  if(v.length!==9||!isValidCusip(v)) return;
-  const iEl=$(prefix+'Isin');
-  if(iEl&&!iEl.value.trim()){ const d=cusipToIsin(v,'US'); if(d) iEl.value=d; }
-  // Drive the unified resolver from the CUSIP when the ticker box is empty,
-  // so entering only a CUSIP still pulls a quote and fund metadata.
-  const tEl=$(prefix+'Tkr');
-  if(tEl&&!tEl.value.trim()){
-    tEl.value=v;
-    try{ await fetchInstrumentLive(prefix); }catch(_){ }
-    if(tEl.value.trim().toUpperCase()===v) tEl.value='';   // don't leave a CUSIP sitting in the ticker box
-  }
 }
 
 // Main unified instrument lookup
