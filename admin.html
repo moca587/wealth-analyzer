@@ -582,6 +582,7 @@ Citations:<br>
 
   <div class="panel">
     <div class="ptitle">Curated Fund Universe</div>
+    <div id="fundAsOf" style="font-size:11px;color:var(--ink3);margin:-4px 0 8px"></div>
     <div id="fundTable"></div>
   </div>
 </div>
@@ -594,6 +595,7 @@ Citations:<br>
   </div>
   <div class="panel">
     <div class="ptitle">Sources <span style="color:var(--green);font-weight:600">— auto-refresh every 5 minutes</span></div>
+    <div id="researchCorpusSummary" style="font-size:11.5px;margin:-2px 0 12px;line-height:1.5"></div>
     <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;align-items:center">
       <button class="btn" data-action="refreshAll">↻ Refresh ALL</button>
       <button class="btn-ghost" data-action="enableAll">✓ Enable all</button>
@@ -866,7 +868,7 @@ Citations:<br>
 <div class="tab" id="tab-market">
   <div class="hero">
     <h1>📈 Market Data Console</h1>
-    <p>Test live quote retrieval from 18 providers. Free providers work directly; enterprise (Bloomberg, FactSet, Refinitiv, etc.) require user-deployed proxy.</p>
+    <p>Test live quote retrieval. Verified keyless on 2026-08-02: <strong>Yahoo Finance</strong> (equities/ETFs), <strong>CoinGecko</strong> and <strong>Coinbase</strong> (crypto), <strong>Frankfurter/ECB</strong> and <strong>Open ER API</strong> (FX), <strong>Treasury.gov</strong> (yield curve) and <strong>SEC EDGAR</strong> (filings). Everything else needs a key in the API Keys tab; enterprise feeds (Bloomberg, FactSet, Refinitiv) need a user-deployed proxy.</p>
   </div>
   <div class="panel">
     <div class="row">
@@ -899,7 +901,7 @@ Citations:<br>
         </optgroup>
         <optgroup label="── Equities — No key ──">
           <option value="yahoo">Yahoo Finance (direct)</option>
-          <option value="stooq">Stooq (global CSV)</option>
+          <option value="stooq">Stooq — retired upstream</option>
         </optgroup>
         <optgroup label="── News ──">
           <option value="newsapi">NewsAPI.org</option>
@@ -908,14 +910,14 @@ Citations:<br>
         </optgroup>
         <optgroup label="── Crypto ──">
           <option value="coingecko">CoinGecko (no key)</option>
-          <option value="cryptocompare">CryptoCompare (no key)</option>
+          <option value="cryptocompare">CryptoCompare (key required)</option>
           <option value="coinbase">Coinbase Spot (no key)</option>
           <option value="coinmarketcap">CoinMarketCap (key)</option>
           <option value="messari">Messari (key)</option>
         </optgroup>
         <optgroup label="── FX — No key ──">
           <option value="frankfurter">Frankfurter / ECB</option>
-          <option value="exchangerate_host">ExchangeRate.host</option>
+          <option value="exchangerate_host">ExchangeRate.host (key required)</option>
           <option value="open_er_api">Open ER API</option>
         </optgroup>
         <optgroup label="── FX — Keyed ──">
@@ -929,7 +931,7 @@ Citations:<br>
         </optgroup>
         <optgroup label="── Reference Data (no key) ──">
           <option value="openfigi">OpenFIGI (ISIN/CUSIP/FIGI)</option>
-          <option value="secedgar">SEC EDGAR (filings)</option>
+          <option value="secedgar">SEC EDGAR (filings — needs server relay)</option>
         </optgroup>
       </select>
       <button class="btn" data-action="testQuote">▶ Fetch Quote</button>
@@ -1141,7 +1143,7 @@ function toggleQuestionnairePreview(){
 // ═══════════════════════════════════════════════════════════
 // VERSION + UTILS
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260802-1625";
+const APP_VERSION = "20260802-1741";
 const $ = (id) => document.getElementById(id);
 const $$ = (sel, ctx) => Array.from((ctx||document).querySelectorAll(sel));
 
@@ -2836,6 +2838,36 @@ const FUND_OVERRIDES = {
 
 };
 
+// ── Data-freshness helpers ───────────────────────────────────────────────
+// Fund metrics are a point-in-time snapshot, not live market data. These let
+// the UI say so in the same breath as the numbers instead of leaving the
+// operator to assume they are current.
+function fundDataAgeMonths(){
+  const d = new Date(FUND_DATA_AS_OF);
+  if(isNaN(d)) return 0;
+  return Math.max(0, (Date.now() - d.getTime()) / 86400000 / 30.44);
+}
+function fundDataAgeLabel(){
+  const m = Math.round(fundDataAgeMonths());
+  if(m < 1) return "current";
+  if(m < 24) return m + " month" + (m === 1 ? "" : "s") + " old";
+  return (m / 12).toFixed(1) + " years old";
+}
+// How many providers actually returned live feed items on their last refresh.
+// liveCount is undefined for a provider not refreshed since it was introduced,
+// so "measured" reports whether we know at all rather than guessing zero.
+function researchLiveSummary(){
+  const cfg = getResearchCfg();
+  let measured = 0, liveProviders = 0, liveItems = 0;
+  RESEARCH_PROVIDERS.forEach(p => {
+    const c = cfg[p.id] || {};
+    if(c.liveCount === undefined) return;
+    measured++;
+    if(c.liveCount > 0){ liveProviders++; liveItems += c.liveCount; }
+  });
+  return {measured: measured === RESEARCH_PROVIDERS.length, partial: measured, liveProviders, liveItems};
+}
+
 // Deterministic per-ticker hash for stable jitter
 function _fundHash(tkr){
   let h = 0;
@@ -3545,8 +3577,16 @@ function renderDashboard(){
   h += kpiCard("Admin Version",APP_VERSION,"v"+v+" main");
   h += kpiCard("localStorage",lsKeys.length+" keys",fmtBytes(lsSize)+" used");
   h += kpiCard("AI Assistant",aiKey?"Connected":"Not set",aiKey?"":"Set in API Keys tab","tone-"+(aiKey?"green":"red"));
-  h += kpiCard("Research Sources",RESEARCH_PROVIDERS.length+" available","Refresh in Research tab");
-  h += kpiCard("Fund Universe",FUND_UNIVERSE.length+" vehicles","Curated institutional-quality");
+  const _live = researchLiveSummary();
+  h += kpiCard("Research Sources",
+    _live.measured ? _live.liveProviders+" / "+RESEARCH_PROVIDERS.length+" live" : RESEARCH_PROVIDERS.length+" configured",
+    _live.measured
+      ? (_live.liveProviders === RESEARCH_PROVIDERS.length ? "all feeds reachable"
+         : (RESEARCH_PROVIDERS.length - _live.liveProviders)+" on curated fallback")
+      : "refresh in Research tab to measure",
+    _live.measured && _live.liveProviders < RESEARCH_PROVIDERS.length ? "tone-amber" : "");
+  h += kpiCard("Fund Universe",FUND_UNIVERSE.length+" vehicles","Metrics as of "+FUND_DATA_AS_OF+" ("+fundDataAgeLabel()+")",
+    fundDataAgeMonths() >= 12 ? "tone-amber" : "");
   const _taxReg=(function(){try{return JSON.parse(localStorage.getItem("wa_tax_registry")||"null");}catch(_){return null;}})();
   h += kpiCard("Tax Countries",(_taxReg&&_taxReg.countries)?_taxReg.countries.length:Object.keys(LOCAL_TAX).length,"national + sub-national");
   $("dashKpis").innerHTML = h;
@@ -3742,6 +3782,8 @@ function renderAgent(){
   // 2. Trigger background auto-refresh (non-blocking)
   setTimeout(() => autoRefreshAllResearch(false), 100);
   // 3. Populate fund universe table
+  const fao = $("fundAsOf");
+  if(fao) fao.textContent = FUND_UNIVERSE.length + " vehicles · expense ratios and yields as of " + FUND_DATA_AS_OF + " (" + fundDataAgeLabel() + ") — a point-in-time snapshot, not live market data";
   const ft = $("fundTable");
   if(ft){
     ft.innerHTML = '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Ticker</th><th>Name</th><th>Sponsor</th><th>Class</th><th>Vehicle</th><th class="num">ER%</th><th class="num">Yld%</th></tr></thead><tbody>' +
@@ -4414,9 +4456,41 @@ function renderMonthlyIssueBanner(){
   </div>`;
 }
 
+// States how much of the corpus is live feed versus the curated catalogue that
+// ships inside the app. Both are legitimate inputs, but they are not the same
+// thing and the agent's output reads very differently depending on the mix.
+function renderResearchCorpusSummary(){
+  const el = $("researchCorpusSummary");
+  if(!el) return;
+  const cfg = getResearchCfg();
+  let live = 0, total = 0, measured = 0, stale = 0;
+  const cutoff = Date.now() - 365 * 86400000;
+  RESEARCH_PROVIDERS.forEach(p => {
+    const c = cfg[p.id] || {};
+    const items = c.items || [];
+    total += items.length;
+    if(c.liveCount !== undefined) measured++;
+    items.forEach(i => { const d = new Date(i.date); if(!isNaN(d) && d.getTime() < cutoff) stale++; });
+  });
+  const s = researchLiveSummary();
+  live = s.liveItems;
+  if(!measured){ el.innerHTML = '<span style="color:var(--ink3)">Refresh to measure feed health.</span>'; return; }
+  const pct = total ? Math.round(live / total * 100) : 0;
+  const dark = RESEARCH_PROVIDERS.length - s.liveProviders;
+  el.innerHTML =
+    '<span style="color:' + (dark ? 'var(--amber)' : 'var(--green)') + ';font-weight:600">' +
+      s.liveProviders + ' of ' + RESEARCH_PROVIDERS.length + ' sources returning live items</span>' +
+    '<span style="color:var(--ink3)"> · ' + live + ' of ' + total + ' items (' + pct + '%) came off the wire; ' +
+      'the rest is the curated library bundled with the app' +
+      (stale ? ' · ' + stale + ' item' + (stale === 1 ? '' : 's') + ' older than a year' : '') +
+    '</span>' +
+    (dark ? '<div style="color:var(--ink3);margin-top:3px">Sources on curated fallback still contribute to the tally — the agent is reading fewer independent live views than the source count suggests.</div>' : '');
+}
+
 function renderResearch(){
   syncProviderCounts();
   renderMonthlyIssueBanner();
+  renderResearchCorpusSummary();
   const list = $("rpList");
   if(!list) return;
   list.innerHTML = RESEARCH_PROVIDERS.map(p => {
@@ -4911,6 +4985,13 @@ async function fetchQuote(ticker, provider){
         return {price:m.regularMarketPrice,change:m.regularMarketPrice-m.previousClose,changePct:(m.regularMarketPrice/m.previousClose-1)*100,high:m.regularMarketDayHigh,low:m.regularMarketDayLow,currency:m.currency,exchange:m.exchangeName,source:"yahoo"};
       }
       case "stooq": {
+        // RETIRED 2026-08-02. stooq.com's CSV quote endpoint returns 404 with an
+        // HTML error page for every documented URL shape (?e=csv with and
+        // without the field list, and the .pl mirror). Kept as an explicit
+        // refusal rather than deleted, so a saved config pointing here fails
+        // loudly instead of silently returning nothing.
+        throw new Error("Stooq CSV endpoint was retired upstream — use Yahoo Finance (direct) for equities");
+        /* eslint-disable no-unreachable */
         const sym = ticker.includes(".") ? ticker.toLowerCase() : ticker.toLowerCase() + ".us";
         const url = `https://stooq.com/q/l/?s=${sym}&f=sd2t2ohlcv&h&e=csv`;
         let r;
@@ -4936,15 +5017,24 @@ async function fetchQuote(ticker, provider){
         // First resolve ticker → CIK via /files/company_tickers.json (heavy, ~5MB so cache)
         if(!window._secTickersCache){
           try {
-            const cr = await fetch("https://www.sec.gov/files/company_tickers.json");
+            // Direct fetch is CORS-blocked by the browser; sec.gov sends no
+            // Access-Control-Allow-Origin. Through the proxy this returns 200
+            // and ~800 KB of valid JSON, which is why this branch never worked.
+            const cr = await corsFetch("https://www.sec.gov/files/company_tickers.json");
+            if(!cr.ok) throw new Error("HTTP "+cr.status);
             window._secTickersCache = await cr.json();
-          } catch(_){ throw new Error("SEC EDGAR ticker map unavailable"); }
+          } catch(e){ throw new Error("SEC EDGAR ticker map unavailable ("+(e.message||"fetch failed")+")"); }
         }
         const map = window._secTickersCache || {};
         const match = Object.values(map).find(x => x.ticker === ticker.toUpperCase());
         if(!match) throw new Error("Ticker not in SEC EDGAR (US-listed only)");
         const cik = String(match.cik_str).padStart(10, "0");
         const r = await corsFetch(`https://data.sec.gov/api/xbrl/companyfacts/CIK${cik}.json`);
+        // data.sec.gov refuses the shared proxy IP (403) whatever we send. SEC
+        // asks for a declaring User-Agent, which is a forbidden header in the
+        // browser fetch spec — so this endpoint is only reachable from a
+        // server-side relay, never from this page.
+        if(r.status === 403) throw new Error("data.sec.gov blocks browser/proxy requests (403) — SEC requires a declaring User-Agent, which only a server-side relay can send. Ticker→CIK lookup works; filings data does not.");
         if(!r.ok) throw new Error("HTTP "+r.status);
         const j = await r.json();
         return {price:0,name:j.entityName,cik:cik,source:"secedgar",isReferenceOnly:true,filingsCount:Object.keys(j.facts?.["us-gaap"]||{}).length};
@@ -4970,6 +5060,10 @@ async function fetchQuote(ticker, provider){
         const r = await corsFetch(`https://min-api.cryptocompare.com/data/pricemultifull?fsyms=${ticker.toUpperCase()}&tsyms=USD`);
         const j = await r.json();
         const d = j.RAW?.[ticker.toUpperCase()]?.USD;
+        // Moved behind an API key in 2024 — the endpoint answers 401 with an
+        // empty Data object, which read as "No data" and looked like a bad
+        // symbol. CoinGecko and Coinbase both cover crypto with no key.
+        if(!d && (j.Err || j.Response === "Error")) throw new Error("CryptoCompare now requires an API key ("+((j.Err&&j.Err.message)||"401").slice(0,60)+") — use CoinGecko or Coinbase for keyless crypto");
         if(!d) throw new Error("No data");
         return {price:d.PRICE,change:d.CHANGE24HOUR,changePct:d.CHANGEPCT24HOUR,volume:d.VOLUME24HOURTO,marketCap:d.MKTCAP,source:"cryptocompare"};
       }
@@ -5016,15 +5110,30 @@ async function fetchQuote(ticker, provider){
         const tenorMap = {DGS1MO:"1mo",DGS3MO:"3mo",DGS6MO:"6mo",DGS1:"1yr",DGS2:"2yr",DGS5:"5yr",DGS10:"10yr",DGS30:"30yr"};
         const t = tenorMap[ticker.toUpperCase()];
         if(!t) throw new Error("Treasury ticker must be DGS1MO/3MO/6MO/1/2/5/10/30");
-        const r = await corsFetch("https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/2025/all?type=daily_treasury_yield_curve&field_tdr_date_value=2025&page&_format=csv");
-        if(!r.ok) throw new Error("HTTP "+r.status);
-        const txt = await r.text();
+        // The file is published per calendar year. It was pinned to 2025, so from
+        // 1 Jan 2026 it silently served the PREVIOUS year's curve — a stale rate
+        // that still looks like a quote. Ask for the current year and fall back
+        // one year in case the new file is not up yet (early January).
+        const yr = new Date().getFullYear();
+        const tsyUrl = y => "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/"
+          + y + "/all?type=daily_treasury_yield_curve&field_tdr_date_value=" + y + "&page&_format=csv";
+        let r = await corsFetch(tsyUrl(yr));
+        let txt = r.ok ? await r.text() : "";
+        if(!txt.trim() || txt.trim().split("\n").length < 2){
+          r = await corsFetch(tsyUrl(yr - 1));
+          if(!r.ok) throw new Error("HTTP "+r.status);
+          txt = await r.text();
+        }
         const lines = txt.trim().split("\n");
-        const header = lines[0].split(",");
+        // Header cells are QUOTED in the published CSV (Date,"1 Mo","10 Yr",…).
+        // Matching on the raw cell never hit, so every lookup reported
+        // "Column not found" even though the data was right there.
+        const clean = c => c.trim().replace(/^"|"$/g, "").replace(/\s+/g, " ");
+        const header = lines[0].split(",").map(clean);
         const colMap = {"1mo":"1 Mo","3mo":"3 Mo","6mo":"6 Mo","1yr":"1 Yr","2yr":"2 Yr","5yr":"5 Yr","10yr":"10 Yr","30yr":"30 Yr"};
         const colName = colMap[t];
-        const colIdx = header.findIndex(h => h.trim() === colName);
-        if(colIdx < 0) throw new Error("Column not found");
+        const colIdx = header.findIndex(h => h.toLowerCase() === colName.toLowerCase());
+        if(colIdx < 0) throw new Error("Column '"+colName+"' not in Treasury CSV (header: "+header.slice(1,6).join(", ")+"…)");
         const last = lines[1].split(",");
         const cur = +last[colIdx];
         if(isNaN(cur)) throw new Error("No data for "+t);
