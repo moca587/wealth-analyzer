@@ -1141,7 +1141,7 @@ function toggleQuestionnairePreview(){
 // ═══════════════════════════════════════════════════════════
 // VERSION + UTILS
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260801-2234";
+const APP_VERSION = "20260802-1625";
 const $ = (id) => document.getElementById(id);
 const $$ = (sel, ctx) => Array.from((ctx||document).querySelectorAll(sel));
 
@@ -3465,29 +3465,38 @@ function curatedItems(id){
   return [...base, ...expanded];
 }
 
-async function fetchFeedItems(url){
-  if(!url) return [];
+// `report` is an optional out-param: the return value stays a plain array so
+// every existing caller is unaffected, but a caller that cares can find out
+// WHY it got nothing back. Without this a dead feed and an empty feed are the
+// same value, which is how 15 providers went dark without anyone noticing.
+async function fetchFeedItems(url, report){
+  const note = (state, detail) => { if(report){ report.state = state; report.detail = detail || ""; } };
+  if(!url){ note("absent"); return []; }
   try {
     const r = await fetch("https://corsproxy.io/?"+encodeURIComponent(url));
-    if(!r.ok) return [];
+    if(!r.ok){ note("http", "HTTP "+r.status); return []; }
     const text = await r.text();
     const doc = new DOMParser().parseFromString(text, "application/xml");
+    if(doc.querySelector("parsererror")){ note("notxml", "response was not XML"); return []; }
+    const found = $$("item, entry", doc).length;
+    note(found ? "ok" : "empty", found ? found+" items" : "feed parsed but carried no items");
     return $$("item, entry", doc).slice(0,25).map(e => ({
       title: (e.querySelector("title")?.textContent||"").trim().slice(0,180) || "(untitled)",
       date:  (e.querySelector("pubDate, published, updated")?.textContent||"").slice(0,16),
       summary: (e.querySelector("description, summary, content")?.textContent||"").replace(/<[^>]+>/g,"").trim().slice(0,300)
     }));
-  } catch(_){ return []; }
+  } catch(e){ note("network", (e && e.name === "AbortError") ? "timed out" : "network error"); return []; }
 }
 
 async function refreshProvider(id){
   const p = RESEARCH_PROVIDERS.find(x => x.id===id);
   if(!p) return;
   // Try all 3 feeds in parallel (primary firm RSS + secondary + Google News query)
+  const reports = [{}, {}, {}];
   const [primaryItems, secondaryItems, tertiaryItems] = await Promise.all([
-    fetchFeedItems(p.feed),
-    fetchFeedItems(p.feed2),
-    fetchFeedItems(p.feed3)
+    fetchFeedItems(p.feed,  reports[0]),
+    fetchFeedItems(p.feed2, reports[1]),
+    fetchFeedItems(p.feed3, reports[2])
   ]);
   // Combine + dedupe by title (case-insensitive, first 80 chars)
   const seen = new Set();
@@ -3497,6 +3506,9 @@ async function refreshProvider(id){
     seen.add(key);
     return true;
   });
+  // Everything up to here came off the wire; everything after is the curated
+  // catalogue shipped inside the app. Snapshot the boundary before it blurs.
+  const liveCount = combined.length;
   // ALWAYS append curated catalogue (12-15 firm-specific + 50 common themes)
   const curated = curatedItems(id);
   curated.forEach(c => {
@@ -3505,7 +3517,18 @@ async function refreshProvider(id){
   });
   // Cap at 150 items per provider (was 40)
   const final = combined.slice(0, 150);
-  setProviderCfg(id, {items: final, lastRefresh: Date.now()});
+  // Record what actually came off the wire. liveCount is counted BEFORE the
+  // curated catalogue is appended, so "63 items" can no longer stand in for
+  // "63 items of live research" when every feed returned nothing.
+  const configured = reports.filter(r => r.state && r.state !== "absent");
+  setProviderCfg(id, {
+    items: final,
+    lastRefresh: Date.now(),
+    liveCount: liveCount,
+    feedsConfigured: configured.length,
+    feedsOk: configured.filter(r => r.state === "ok").length,
+    feedErrors: configured.filter(r => r.state !== "ok").map(r => r.detail || r.state).slice(0, 3)
+  });
   return final.length;
 }
 
@@ -4401,6 +4424,15 @@ function renderResearch(){
     const cnt = (cfg.items||[]).length;
     const en = cfg.enabled !== false;
     const lr = cfg.lastRefresh ? new Date(cfg.lastRefresh).toLocaleString() : "Never";
+    // Live-vs-curated split. Undefined means this provider has not been
+    // refreshed since the counter was added — say nothing rather than claim
+    // "curated only", which would be its own false statement.
+    const live = cfg.liveCount;
+    const feedNote = live === undefined ? ""
+      : (live > 0 ? ` · ${live} live` : " · curated only");
+    const feedWarn = live === 0
+      ? `<div style="font-size:11px;font-weight:600;color:var(--red);margin-top:3px" title="${escapeHtml((cfg.feedErrors||[]).join(" · "))}">⚠ ${cfg.feedsConfigured || 0} feed${(cfg.feedsConfigured||0) === 1 ? "" : "s"} unreachable — showing curated library only</div>`
+      : "";
     const iss = monthlyIssueStatus(p, cfg);
     const issColor = iss ? ({current:"var(--green)", pending:"var(--ink3)", due:"var(--amber)", overdue:"var(--red)"})[iss.state] : "";
     return `<div class="rp-card${en?'':' disabled'}">
@@ -4408,11 +4440,12 @@ function renderResearch(){
         <div class="rp-icon" style="background:${p.color}">${p.letter}</div>
         <div style="flex:1;min-width:0">
           <div class="rp-name">${p.name}</div>
-          <div class="rp-meta">${p.type} · ${cnt} items${p.cadence === "monthly" ? " · monthly" : ""}</div>
+          <div class="rp-meta">${p.type} · ${cnt} items${feedNote}${p.cadence === "monthly" ? " · monthly" : ""}</div>
         </div>
         <label style="cursor:pointer"><input type="checkbox" ${en?'checked':''} data-action="toggleProvider" data-prov="${p.id}"></label>
       </div>
       <div style="font-size:11px;color:var(--ink3)">Last: ${lr}</div>
+      ${feedWarn}
       ${iss ? `<div style="font-size:11px;font-weight:600;color:${issColor};margin-top:3px">${iss.state==="current"?"✓":"●"} ${escapeHtml(iss.label)}</div>` : ""}
       <div class="rp-actions">
         <button class="rp-mini" data-action="refreshOne" data-prov="${p.id}">↻ Refresh</button>
