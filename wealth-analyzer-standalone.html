@@ -4471,7 +4471,7 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
 // ═══════════════════════════════════════════════════════════
 // VERSION — updated by build-standalone.pl on each build
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260802-1759";
+const APP_VERSION = "20260802-2357";
 
 // ═══════════════════════════════════════════════════════════
 // DATA
@@ -11165,6 +11165,17 @@ function ordValidate(ticket){
     errors.push(unidentified.length+" position(s) have no ISIN, CUSIP, Valor or ticker, so the PM system cannot identify them: "
       +unidentified.map(function(l){ return l.instrument.name||l.lineId; }).join(", "));
   }
+  // An ISIN carries a check digit too, and on this path it is the identifier
+  // that actually books: a mistyped or transposed one names a real-but-wrong
+  // security at the custodian. isValidIsinStrict has always been in this file;
+  // it just was never applied to the ISIN the user typed. Note the agreement
+  // check below cannot stand in for this — it returns {ok:true} whenever either
+  // side is invalid, which is exactly this case.
+  const badIsin=ticket.lines.filter(function(l){ return l.instrument.isin && !isValidIsinStrict(l.instrument.isin); });
+  if(badIsin.length){
+    errors.push(badIsin.length+" position(s) carry an ISIN that fails its check digit: "
+      +badIsin.map(function(l){ return l.instrument.isin+" ("+(l.instrument.name||l.lineId)+")"; }).join(", "));
+  }
   // A CUSIP carries its own check digit, so a transposition is caught here
   // rather than by a custodian booking a different security.
   const badCusip=ticket.lines.filter(function(l){ return l.instrument.cusip && !isValidCusip(l.instrument.cusip); });
@@ -12969,21 +12980,21 @@ const AI_FUND_UNIVERSE = [
   //     same portfolio; mu is reduced by the cost of hedging into CHF (the rate
   //     differential), so Sharpe against the CHF risk-free matches the base class.
   //     `family` pairs them so a portfolio can never hold both. ---
-  {tkr:"DWSCKC",name:"DWS Concept Kaldemorgen LCH CHF (hedged)",cls:"alternative",vehicle:"mutual_fund",er:1.55,yld:0.0,sponsor:"DWS",dom:"LU",ucits:true,ccy:"CHF",family:"dws-kaldemorgen"},
-  {tkr:"JPGMOC",name:"JPMorgan Investment Funds Global Macro Opportunities A CHF (hedged)",cls:"alternative",vehicle:"mutual_fund",er:1.70,yld:0.0,sponsor:"JPMorgan",dom:"LU",ucits:true,ccy:"CHF",family:"jpm-global-macro"},
-  {tkr:"MANTGRC",name:"Man AHL TargetRisk D CHF Hedged",cls:"alternative",vehicle:"mutual_fund",er:0.90,yld:0.0,sponsor:"Man Group",dom:"IE",ucits:true,ccy:"CHF",family:"man-ahl-targetrisk"},
-  {tkr:"MANTRDC",name:"Man AHL Trend Alternative DNY CHF Hedged",cls:"alternative",vehicle:"mutual_fund",er:1.30,yld:0.0,sponsor:"Man Group",dom:"IE",ucits:true,ccy:"CHF",family:"man-ahl-trend"},
-  {tkr:"PICTATC",name:"Pictet TR Atlas I CHF (hedged)",cls:"alternative",vehicle:"mutual_fund",er:1.60,yld:0.0,sponsor:"Pictet",dom:"LU",ucits:true,ccy:"CHF",family:"pictet-tr-atlas"},
-  {tkr:"PICTDAC",name:"Pictet TR Diversified Alpha I CHF (hedged)",cls:"alternative",vehicle:"mutual_fund",er:1.55,yld:0.0,sponsor:"Pictet",dom:"LU",ucits:true,ccy:"CHF",family:"pictet-tr-divalpha"},
-  {tkr:"SGAIBTC",name:"Schroder GAIA BlueTrend C CHF Hedged",cls:"alternative",vehicle:"mutual_fund",er:1.75,yld:0.0,sponsor:"Schroders",dom:"LU",ucits:true,ccy:"CHF",family:"gaia-bluetrend"},
-  {tkr:"SGAICBC",name:"Schroder GAIA Cat Bond C CHF Hedged",cls:"alternative",vehicle:"mutual_fund",er:1.45,yld:0.0,sponsor:"Schroders",dom:"LU",ucits:true,ccy:"CHF",family:"gaia-cat-bond"},
-  {tkr:"GAMSCBC",name:"GAM Star Cat Bond Institutional CHF Hedged",cls:"alternative",vehicle:"mutual_fund",er:1.15,yld:0.0,sponsor:"GAM",dom:"IE",ucits:true,ccy:"CHF",family:"gam-star-cat-bond"},
-  {tkr:"NORA10C",name:"Nordea 1 Alpha 10 MA Fund BI CHF (hedged)",cls:"alternative",vehicle:"mutual_fund",er:1.05,yld:0.0,sponsor:"Nordea",dom:"LU",ucits:true,ccy:"CHF",family:"nordea-alpha-10"},
-  {tkr:"BSFGEDC",name:"BlackRock Strategic Funds Global Event Driven A2 CHF Hedged",cls:"alternative",vehicle:"mutual_fund",er:1.60,yld:0.0,sponsor:"BlackRock",dom:"LU",ucits:true,ccy:"CHF",family:"bsf-event-driven"},
-  {tkr:"LUMMWTC",name:"Lumyna MW TOPS UCITS A CHF Hedged",cls:"alternative",vehicle:"mutual_fund",er:1.75,yld:0.0,sponsor:"Lumyna",dom:"IE",ucits:true,ccy:"CHF",family:"lumyna-mw-tops"},
-  {tkr:"JUPGARC",name:"Jupiter Merian Global Equity Absolute Return I CHF (hedged)",cls:"alternative",vehicle:"mutual_fund",er:0.90,yld:0.0,sponsor:"Jupiter",dom:"IE",ucits:true,ccy:"CHF",family:"jupiter-gear"},
-  {tkr:"ELEVARC",name:"Eleva Absolute Return Europe I CHF (hedged)",cls:"alternative",vehicle:"mutual_fund",er:1.50,yld:0.0,sponsor:"Eleva",dom:"LU",ucits:true,ccy:"CHF",family:"eleva-are"},
-  {tkr:"BNYGRRC",name:"BNY Mellon Global Real Return CHF Hedged",cls:"alternative",vehicle:"mutual_fund",er:1.10,yld:0.0,sponsor:"BNY Mellon",dom:"IE",ucits:true,ccy:"CHF",family:"bny-global-real-return"},
+  {tkr:"DWSCKC",name:"DWS Concept Kaldemorgen LCH CHF (hedged)",cls:"alternative",vehicle:"mutual_fund",er:1.55,yld:0.0,sponsor:"DWS",dom:"LU",ucits:true,ccy:"CHF",family:"dws-kaldemorgen",hedged:true},
+  {tkr:"JPGMOC",name:"JPMorgan Investment Funds Global Macro Opportunities A CHF (hedged)",cls:"alternative",vehicle:"mutual_fund",er:1.70,yld:0.0,sponsor:"JPMorgan",dom:"LU",ucits:true,ccy:"CHF",family:"jpm-global-macro",hedged:true},
+  {tkr:"MANTGRC",name:"Man AHL TargetRisk D CHF Hedged",cls:"alternative",vehicle:"mutual_fund",er:0.90,yld:0.0,sponsor:"Man Group",dom:"IE",ucits:true,ccy:"CHF",family:"man-ahl-targetrisk",hedged:true},
+  {tkr:"MANTRDC",name:"Man AHL Trend Alternative DNY CHF Hedged",cls:"alternative",vehicle:"mutual_fund",er:1.30,yld:0.0,sponsor:"Man Group",dom:"IE",ucits:true,ccy:"CHF",family:"man-ahl-trend",hedged:true},
+  {tkr:"PICTATC",name:"Pictet TR Atlas I CHF (hedged)",cls:"alternative",vehicle:"mutual_fund",er:1.60,yld:0.0,sponsor:"Pictet",dom:"LU",ucits:true,ccy:"CHF",family:"pictet-tr-atlas",hedged:true},
+  {tkr:"PICTDAC",name:"Pictet TR Diversified Alpha I CHF (hedged)",cls:"alternative",vehicle:"mutual_fund",er:1.55,yld:0.0,sponsor:"Pictet",dom:"LU",ucits:true,ccy:"CHF",family:"pictet-tr-divalpha",hedged:true},
+  {tkr:"SGAIBTC",name:"Schroder GAIA BlueTrend C CHF Hedged",cls:"alternative",vehicle:"mutual_fund",er:1.75,yld:0.0,sponsor:"Schroders",dom:"LU",ucits:true,ccy:"CHF",family:"gaia-bluetrend",hedged:true},
+  {tkr:"SGAICBC",name:"Schroder GAIA Cat Bond C CHF Hedged",cls:"alternative",vehicle:"mutual_fund",er:1.45,yld:0.0,sponsor:"Schroders",dom:"LU",ucits:true,ccy:"CHF",family:"gaia-cat-bond",hedged:true},
+  {tkr:"GAMSCBC",name:"GAM Star Cat Bond Institutional CHF Hedged",cls:"alternative",vehicle:"mutual_fund",er:1.15,yld:0.0,sponsor:"GAM",dom:"IE",ucits:true,ccy:"CHF",family:"gam-star-cat-bond",hedged:true},
+  {tkr:"NORA10C",name:"Nordea 1 Alpha 10 MA Fund BI CHF (hedged)",cls:"alternative",vehicle:"mutual_fund",er:1.05,yld:0.0,sponsor:"Nordea",dom:"LU",ucits:true,ccy:"CHF",family:"nordea-alpha-10",hedged:true},
+  {tkr:"BSFGEDC",name:"BlackRock Strategic Funds Global Event Driven A2 CHF Hedged",cls:"alternative",vehicle:"mutual_fund",er:1.60,yld:0.0,sponsor:"BlackRock",dom:"LU",ucits:true,ccy:"CHF",family:"bsf-event-driven",hedged:true},
+  {tkr:"LUMMWTC",name:"Lumyna MW TOPS UCITS A CHF Hedged",cls:"alternative",vehicle:"mutual_fund",er:1.75,yld:0.0,sponsor:"Lumyna",dom:"IE",ucits:true,ccy:"CHF",family:"lumyna-mw-tops",hedged:true},
+  {tkr:"JUPGARC",name:"Jupiter Merian Global Equity Absolute Return I CHF (hedged)",cls:"alternative",vehicle:"mutual_fund",er:0.90,yld:0.0,sponsor:"Jupiter",dom:"IE",ucits:true,ccy:"CHF",family:"jupiter-gear",hedged:true},
+  {tkr:"ELEVARC",name:"Eleva Absolute Return Europe I CHF (hedged)",cls:"alternative",vehicle:"mutual_fund",er:1.50,yld:0.0,sponsor:"Eleva",dom:"LU",ucits:true,ccy:"CHF",family:"eleva-are",hedged:true},
+  {tkr:"BNYGRRC",name:"BNY Mellon Global Real Return CHF Hedged",cls:"alternative",vehicle:"mutual_fund",er:1.10,yld:0.0,sponsor:"BNY Mellon",dom:"IE",ucits:true,ccy:"CHF",family:"bny-global-real-return",hedged:true},
 
 
 ];
@@ -13393,6 +13404,7 @@ const RISK_FREE_BY_CCY = {
     f.income = f.yld >= 4 ? "high" : (f.yld >= 2 ? "moderate" : "low");
   });
 })();
+
 
 
 
@@ -14521,6 +14533,13 @@ function runDeterministicEngine(brief){
         const _want = clientCurrency(brief).toUpperCase();
         const _has = f.ccy.toUpperCase();
         if(_has === _want) score += 0.5;
+        // A hedged share class serves ONE currency; for any other client it pays
+        // the hedge cost and delivers the wrong exposure, so it is strictly worse
+        // than the same fund's base class. Penalised rather than un-bonused,
+        // because the two carry the same Sharpe by construction and the tie was
+        // otherwise settled by r5y jitter. Before the bloc bonus, so a CHF hedge
+        // is not rewarded to a EUR client for sharing a bloc.
+        else if(f.hedged) score -= 3;
         else if(CCY_BLOC[_want] && CCY_BLOC[_want] === CCY_BLOC[_has]) score += 0.15;
       }
       if(used.sponsors.has(f.sponsor)) score -= 0.3;
@@ -15512,7 +15531,22 @@ function checkIdentifierAgreement(cusip,isin){
 //     the derived CH ISIN is a CANDIDATE to be confirmed by resolution, never
 //     something to store unchecked.
 function normalizeValor(v){
-  const s=String(v==null?'':v).trim().replace(/[\s.'-]/g,'');
+  // A Valor is an integer. Apostrophes are always grouping (1'222'171), but a
+  // '.' is ambiguous: de-CH/de-DE group with it ("3.886.335" = 3886335), while
+  // "12032.04" is a decimal. Stripping '.' unconditionally turned that second
+  // form into 1203204 — Roche GS's real Valor — i.e. a silent swap to a
+  // different tradeable security, with no check digit anywhere downstream to
+  // catch it. So a '.' only counts as grouping when it actually groups in
+  // threes, the same rule parseFeedNumber applies to statement amounts.
+  let s=String(v==null?'':v).trim().replace(/[\s'-]/g,'');
+  if(s.indexOf('.')>=0){
+    const parts=s.split('.');
+    const grouped = parts.length>1
+      && /^[0-9]{1,3}$/.test(parts[0])
+      && parts.slice(1).every(p => /^[0-9]{3}$/.test(p));
+    if(!grouped) return '';          // a decimal point, not a separator
+    s=parts.join('');
+  }
   if(!/^[0-9]+$/.test(s)) return '';
   return s.replace(/^0+/,'');
 }

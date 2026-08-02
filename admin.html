@@ -350,7 +350,7 @@ textarea{font-family:var(--fm);font-size:12px;width:100%;min-height:70px;resize:
         <div class="row"><label class="lbl">Liquidity needs</label>
           <select id="agLiq" class="fw"><option value="low">Low</option><option value="medium" selected>Medium</option><option value="high">High</option></select>
         </div>
-        <div class="row"><label class="lbl">Max single position</label><input type="number" id="agMaxPos" value="20" class="fw" step="5"></div>
+        <div class="row"><label class="lbl">Max single position</label><input type="number" id="agMaxPos" value="20" class="fw" step="5" min="1" max="100"></div>
       </div>
     </div>
     <div style="margin-top:14px">
@@ -1143,7 +1143,7 @@ function toggleQuestionnairePreview(){
 // ═══════════════════════════════════════════════════════════
 // VERSION + UTILS
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260802-1759";
+const APP_VERSION = "20260802-2357";
 const $ = (id) => document.getElementById(id);
 const $$ = (sel, ctx) => Array.from((ctx||document).querySelectorAll(sel));
 
@@ -2478,21 +2478,21 @@ const FUND_UNIVERSE = [
   //     same portfolio; mu is reduced by the cost of hedging into CHF (the rate
   //     differential), so Sharpe against the CHF risk-free matches the base class.
   //     `family` pairs them so a portfolio can never hold both. ---
-  {tkr:"DWSCKC",name:"DWS Concept Kaldemorgen LCH CHF (hedged)",cls:"alternative",vehicle:"mutual_fund",er:1.55,yld:0.0,sponsor:"DWS",dom:"LU",ucits:true,ccy:"CHF",family:"dws-kaldemorgen"},
-  {tkr:"JPGMOC",name:"JPMorgan Investment Funds Global Macro Opportunities A CHF (hedged)",cls:"alternative",vehicle:"mutual_fund",er:1.70,yld:0.0,sponsor:"JPMorgan",dom:"LU",ucits:true,ccy:"CHF",family:"jpm-global-macro"},
-  {tkr:"MANTGRC",name:"Man AHL TargetRisk D CHF Hedged",cls:"alternative",vehicle:"mutual_fund",er:0.90,yld:0.0,sponsor:"Man Group",dom:"IE",ucits:true,ccy:"CHF",family:"man-ahl-targetrisk"},
-  {tkr:"MANTRDC",name:"Man AHL Trend Alternative DNY CHF Hedged",cls:"alternative",vehicle:"mutual_fund",er:1.30,yld:0.0,sponsor:"Man Group",dom:"IE",ucits:true,ccy:"CHF",family:"man-ahl-trend"},
-  {tkr:"PICTATC",name:"Pictet TR Atlas I CHF (hedged)",cls:"alternative",vehicle:"mutual_fund",er:1.60,yld:0.0,sponsor:"Pictet",dom:"LU",ucits:true,ccy:"CHF",family:"pictet-tr-atlas"},
-  {tkr:"PICTDAC",name:"Pictet TR Diversified Alpha I CHF (hedged)",cls:"alternative",vehicle:"mutual_fund",er:1.55,yld:0.0,sponsor:"Pictet",dom:"LU",ucits:true,ccy:"CHF",family:"pictet-tr-divalpha"},
-  {tkr:"SGAIBTC",name:"Schroder GAIA BlueTrend C CHF Hedged",cls:"alternative",vehicle:"mutual_fund",er:1.75,yld:0.0,sponsor:"Schroders",dom:"LU",ucits:true,ccy:"CHF",family:"gaia-bluetrend"},
-  {tkr:"SGAICBC",name:"Schroder GAIA Cat Bond C CHF Hedged",cls:"alternative",vehicle:"mutual_fund",er:1.45,yld:0.0,sponsor:"Schroders",dom:"LU",ucits:true,ccy:"CHF",family:"gaia-cat-bond"},
-  {tkr:"GAMSCBC",name:"GAM Star Cat Bond Institutional CHF Hedged",cls:"alternative",vehicle:"mutual_fund",er:1.15,yld:0.0,sponsor:"GAM",dom:"IE",ucits:true,ccy:"CHF",family:"gam-star-cat-bond"},
-  {tkr:"NORA10C",name:"Nordea 1 Alpha 10 MA Fund BI CHF (hedged)",cls:"alternative",vehicle:"mutual_fund",er:1.05,yld:0.0,sponsor:"Nordea",dom:"LU",ucits:true,ccy:"CHF",family:"nordea-alpha-10"},
-  {tkr:"BSFGEDC",name:"BlackRock Strategic Funds Global Event Driven A2 CHF Hedged",cls:"alternative",vehicle:"mutual_fund",er:1.60,yld:0.0,sponsor:"BlackRock",dom:"LU",ucits:true,ccy:"CHF",family:"bsf-event-driven"},
-  {tkr:"LUMMWTC",name:"Lumyna MW TOPS UCITS A CHF Hedged",cls:"alternative",vehicle:"mutual_fund",er:1.75,yld:0.0,sponsor:"Lumyna",dom:"IE",ucits:true,ccy:"CHF",family:"lumyna-mw-tops"},
-  {tkr:"JUPGARC",name:"Jupiter Merian Global Equity Absolute Return I CHF (hedged)",cls:"alternative",vehicle:"mutual_fund",er:0.90,yld:0.0,sponsor:"Jupiter",dom:"IE",ucits:true,ccy:"CHF",family:"jupiter-gear"},
-  {tkr:"ELEVARC",name:"Eleva Absolute Return Europe I CHF (hedged)",cls:"alternative",vehicle:"mutual_fund",er:1.50,yld:0.0,sponsor:"Eleva",dom:"LU",ucits:true,ccy:"CHF",family:"eleva-are"},
-  {tkr:"BNYGRRC",name:"BNY Mellon Global Real Return CHF Hedged",cls:"alternative",vehicle:"mutual_fund",er:1.10,yld:0.0,sponsor:"BNY Mellon",dom:"IE",ucits:true,ccy:"CHF",family:"bny-global-real-return"},
+  {tkr:"DWSCKC",name:"DWS Concept Kaldemorgen LCH CHF (hedged)",cls:"alternative",vehicle:"mutual_fund",er:1.55,yld:0.0,sponsor:"DWS",dom:"LU",ucits:true,ccy:"CHF",family:"dws-kaldemorgen",hedged:true},
+  {tkr:"JPGMOC",name:"JPMorgan Investment Funds Global Macro Opportunities A CHF (hedged)",cls:"alternative",vehicle:"mutual_fund",er:1.70,yld:0.0,sponsor:"JPMorgan",dom:"LU",ucits:true,ccy:"CHF",family:"jpm-global-macro",hedged:true},
+  {tkr:"MANTGRC",name:"Man AHL TargetRisk D CHF Hedged",cls:"alternative",vehicle:"mutual_fund",er:0.90,yld:0.0,sponsor:"Man Group",dom:"IE",ucits:true,ccy:"CHF",family:"man-ahl-targetrisk",hedged:true},
+  {tkr:"MANTRDC",name:"Man AHL Trend Alternative DNY CHF Hedged",cls:"alternative",vehicle:"mutual_fund",er:1.30,yld:0.0,sponsor:"Man Group",dom:"IE",ucits:true,ccy:"CHF",family:"man-ahl-trend",hedged:true},
+  {tkr:"PICTATC",name:"Pictet TR Atlas I CHF (hedged)",cls:"alternative",vehicle:"mutual_fund",er:1.60,yld:0.0,sponsor:"Pictet",dom:"LU",ucits:true,ccy:"CHF",family:"pictet-tr-atlas",hedged:true},
+  {tkr:"PICTDAC",name:"Pictet TR Diversified Alpha I CHF (hedged)",cls:"alternative",vehicle:"mutual_fund",er:1.55,yld:0.0,sponsor:"Pictet",dom:"LU",ucits:true,ccy:"CHF",family:"pictet-tr-divalpha",hedged:true},
+  {tkr:"SGAIBTC",name:"Schroder GAIA BlueTrend C CHF Hedged",cls:"alternative",vehicle:"mutual_fund",er:1.75,yld:0.0,sponsor:"Schroders",dom:"LU",ucits:true,ccy:"CHF",family:"gaia-bluetrend",hedged:true},
+  {tkr:"SGAICBC",name:"Schroder GAIA Cat Bond C CHF Hedged",cls:"alternative",vehicle:"mutual_fund",er:1.45,yld:0.0,sponsor:"Schroders",dom:"LU",ucits:true,ccy:"CHF",family:"gaia-cat-bond",hedged:true},
+  {tkr:"GAMSCBC",name:"GAM Star Cat Bond Institutional CHF Hedged",cls:"alternative",vehicle:"mutual_fund",er:1.15,yld:0.0,sponsor:"GAM",dom:"IE",ucits:true,ccy:"CHF",family:"gam-star-cat-bond",hedged:true},
+  {tkr:"NORA10C",name:"Nordea 1 Alpha 10 MA Fund BI CHF (hedged)",cls:"alternative",vehicle:"mutual_fund",er:1.05,yld:0.0,sponsor:"Nordea",dom:"LU",ucits:true,ccy:"CHF",family:"nordea-alpha-10",hedged:true},
+  {tkr:"BSFGEDC",name:"BlackRock Strategic Funds Global Event Driven A2 CHF Hedged",cls:"alternative",vehicle:"mutual_fund",er:1.60,yld:0.0,sponsor:"BlackRock",dom:"LU",ucits:true,ccy:"CHF",family:"bsf-event-driven",hedged:true},
+  {tkr:"LUMMWTC",name:"Lumyna MW TOPS UCITS A CHF Hedged",cls:"alternative",vehicle:"mutual_fund",er:1.75,yld:0.0,sponsor:"Lumyna",dom:"IE",ucits:true,ccy:"CHF",family:"lumyna-mw-tops",hedged:true},
+  {tkr:"JUPGARC",name:"Jupiter Merian Global Equity Absolute Return I CHF (hedged)",cls:"alternative",vehicle:"mutual_fund",er:0.90,yld:0.0,sponsor:"Jupiter",dom:"IE",ucits:true,ccy:"CHF",family:"jupiter-gear",hedged:true},
+  {tkr:"ELEVARC",name:"Eleva Absolute Return Europe I CHF (hedged)",cls:"alternative",vehicle:"mutual_fund",er:1.50,yld:0.0,sponsor:"Eleva",dom:"LU",ucits:true,ccy:"CHF",family:"eleva-are",hedged:true},
+  {tkr:"BNYGRRC",name:"BNY Mellon Global Real Return CHF Hedged",cls:"alternative",vehicle:"mutual_fund",er:1.10,yld:0.0,sponsor:"BNY Mellon",dom:"IE",ucits:true,ccy:"CHF",family:"bny-global-real-return",hedged:true},
 
 
 ];
@@ -2838,36 +2838,6 @@ const FUND_OVERRIDES = {
 
 };
 
-// ── Data-freshness helpers ───────────────────────────────────────────────
-// Fund metrics are a point-in-time snapshot, not live market data. These let
-// the UI say so in the same breath as the numbers instead of leaving the
-// operator to assume they are current.
-function fundDataAgeMonths(){
-  const d = new Date(FUND_DATA_AS_OF);
-  if(isNaN(d)) return 0;
-  return Math.max(0, (Date.now() - d.getTime()) / 86400000 / 30.44);
-}
-function fundDataAgeLabel(){
-  const m = Math.round(fundDataAgeMonths());
-  if(m < 1) return "current";
-  if(m < 24) return m + " month" + (m === 1 ? "" : "s") + " old";
-  return (m / 12).toFixed(1) + " years old";
-}
-// How many providers actually returned live feed items on their last refresh.
-// liveCount is undefined for a provider not refreshed since it was introduced,
-// so "measured" reports whether we know at all rather than guessing zero.
-function researchLiveSummary(){
-  const cfg = getResearchCfg();
-  let measured = 0, liveProviders = 0, liveItems = 0;
-  RESEARCH_PROVIDERS.forEach(p => {
-    const c = cfg[p.id] || {};
-    if(c.liveCount === undefined) return;
-    measured++;
-    if(c.liveCount > 0){ liveProviders++; liveItems += c.liveCount; }
-  });
-  return {measured: measured === RESEARCH_PROVIDERS.length, partial: measured, liveProviders, liveItems};
-}
-
 // Deterministic per-ticker hash for stable jitter
 function _fundHash(tkr){
   let h = 0;
@@ -2934,6 +2904,45 @@ const RISK_FREE_BY_CCY = {
 })();
 
 
+
+
+// ═══════════════════════════════════════════════════════════
+// DATA-FRESHNESS HELPERS
+// ═══════════════════════════════════════════════════════════
+// NOTE: these MUST live outside the FUND METRICS ENRICHMENT block above.
+// They were originally placed just before _fundHash, which sits inside the
+// region inject-universe.pl regenerates from fund-universe.js — so the next
+// injection silently deleted all three declarations and left five call sites
+// throwing ReferenceError on dashboard render. Anything hand-written near the
+// injected universe block is temporary by definition; keep it down here.
+
+// Fund metrics are a point-in-time snapshot, not live market data. These let
+// the UI say so in the same breath as the numbers.
+function fundDataAgeMonths(){
+  const d = new Date(FUND_DATA_AS_OF);
+  if(isNaN(d)) return 0;
+  return Math.max(0, (Date.now() - d.getTime()) / 86400000 / 30.44);
+}
+function fundDataAgeLabel(){
+  const m = Math.round(fundDataAgeMonths());
+  if(m < 1) return "current";
+  if(m < 24) return m + " month" + (m === 1 ? "" : "s") + " old";
+  return (m / 12).toFixed(1) + " years old";
+}
+// How many providers actually returned live feed items on their last refresh.
+// liveCount is undefined for a provider not refreshed since it was introduced,
+// so "measured" reports whether we know at all rather than guessing zero.
+function researchLiveSummary(){
+  const cfg = getResearchCfg();
+  let measured = 0, liveProviders = 0, liveItems = 0;
+  RESEARCH_PROVIDERS.forEach(p => {
+    const c = cfg[p.id] || {};
+    if(c.liveCount === undefined) return;
+    measured++;
+    if(c.liveCount > 0){ liveProviders++; liveItems += c.liveCount; }
+  });
+  return {measured: measured === RESEARCH_PROVIDERS.length, partial: measured, liveProviders, liveItems};
+}
 
 // ═══════════════════════════════════════════════════════════
 // FINANCIAL MATH
@@ -6295,6 +6304,18 @@ function aggregateAllSignals(selectedProviderIds){
 // Currency blocs — a CHF or DKK client is far better served by a EUR
 // money-market line than a USD one when no fund exists in their own currency,
 // because the FX exposure is a fraction of the size.
+// A brief that names a country but no currency is not a USD client. The client
+// app has always derived this; admin defaulted to USD, which silently evaluated
+// every non-US client as a dollar investor on any path that omits currency.
+const COUNTRY_CCY = {US:"USD", CA:"CAD", GB:"GBP", AU:"AUD", CH:"CHF", JP:"JPY",
+                     SG:"SGD", HK:"HKD", DE:"EUR", FR:"EUR", IT:"EUR", ES:"EUR",
+                     NL:"EUR", BE:"EUR", AT:"EUR", IE:"EUR", PT:"EUR", FI:"EUR",
+                     LU:"EUR", GR:"EUR", SE:"SEK", NO:"NOK", DK:"DKK", PL:"PLN"};
+function briefCurrency(brief){
+  const c = brief && brief.currency;
+  if(c) return String(c).toUpperCase();
+  return (COUNTRY_CCY[String((brief && brief.country) || "US").toUpperCase()] || "USD");
+}
 const CCY_BLOC = {EUR:"EUR", CHF:"EUR", DKK:"EUR", SEK:"EUR", NOK:"EUR", PLN:"EUR",
                   USD:"USD", CAD:"USD", HKD:"USD", SGD:"USD",
                   GBP:"GBP", JPY:"JPY", AUD:"AUD"};
@@ -6511,7 +6532,7 @@ function pickFundsForClass(targetClass, targetWeight, brief, signals, used){
     // unhedged USD. Comparing nominal yields across currencies is meaningless;
     // cash is the one sleeve where the client's own currency is the whole point.
     if(targetClass === "cash"){
-      const want = (brief.currency || "USD").toUpperCase();
+      const want = briefCurrency(brief);
       const has = (f.ccy || "USD").toUpperCase();
       if(has === want) score += 3;
       else if(CCY_BLOC[want] && CCY_BLOC[want] === CCY_BLOC[has]) score += 1; // same bloc (e.g. CHF↔EUR)
@@ -6525,9 +6546,17 @@ function pickFundsForClass(targetClass, targetWeight, brief, signals, used){
       // Sharpe by construction, so something has to break the tie in favour of
       // the client's own currency — otherwise a Swiss client gets the unhedged
       // line and wears the FX risk the hedged class exists to remove.
-      const want = (brief.currency || "USD").toUpperCase();
+      const want = briefCurrency(brief);
       const has = f.ccy.toUpperCase();
       if(has === want) score += 0.5;
+      // A currency-HEDGED share class is built for one currency. Held by anyone
+      // else it pays the hedge cost and delivers the wrong exposure, so it is
+      // strictly worse than the same fund's base class. Penalised, not merely
+      // un-bonused: the two share the same Sharpe by construction, so without a
+      // penalty the choice fell to r5y jitter and the hedge won ~half the time.
+      // Checked BEFORE the bloc bonus so a CHF hedge is not rewarded to a EUR
+      // client for sitting in the same bloc.
+      else if(f.hedged) score -= 3;
       else if(CCY_BLOC[want] && CCY_BLOC[want] === CCY_BLOC[has]) score += 0.15;
     }
     // Diversity penalty
@@ -6574,7 +6603,12 @@ function buildPortfolioFromEngine(brief, signals){
   // 3. For each asset class with weight > 2%, pick funds
   const used = {sponsors: new Set()};
   const positions = [];
-  const maxPos = brief.maxPosition || 20;
+  // Sanitize the mandate before it drives sizing. A negative value flowed
+  // straight into Math.min(maxPos, weight/n) below, producing short positions
+  // and a 125% holding — reachable from the UI, since the number input had no
+  // min and five clicks of the native down-arrow reach -5.
+  const _mp = Number(brief.maxPosition);
+  const maxPos = Number.isFinite(_mp) && _mp > 0 ? Math.min(100, _mp) : 20;
 
   for(const [cls, weight] of Object.entries(allocation)){
     if(weight < 2) continue;
@@ -6657,38 +6691,73 @@ function buildPortfolioFromEngine(brief, signals){
   }
 
   // Renormalize weights to sum to 100, then enforce maxPosition cap and redistribute overflow
+  let capNotice = "";
+  let capEnforced = false;
   let totalW = positions.reduce((s,p) => s + p.weight, 0);
   if(totalW > 0){
     positions.forEach(p => { p.weight = +(p.weight * 100 / totalW).toFixed(1); });
   }
-  // Cap any position above maxPos, redistribute the excess proportionally to uncapped positions
-  if(positions.length > 1 && maxPos > 0){
-    for(let pass = 0; pass < 5; pass++){
-      const over = positions.filter(p => p.weight > maxPos);
-      if(over.length === 0) break;
-      let excess = 0;
-      over.forEach(p => { excess += (p.weight - maxPos); p.weight = maxPos; p._capped = true; });
-      const uncapped = positions.filter(p => !p._capped && p.weight < maxPos);
-      const denom = uncapped.reduce((s,p)=>s+p.weight, 0);
-      if(denom <= 0 || excess <= 0) break;
-      uncapped.forEach(p => { p.weight = +(p.weight + excess * (p.weight/denom)).toFixed(1); });
-    }
-    positions.forEach(p => { delete p._capped; });
-    // Final normalization to fix any rounding drift
-    totalW = positions.reduce((s,p) => s + p.weight, 0);
-    if(totalW > 0 && Math.abs(totalW - 100) > 0.1){
-      positions.forEach(p => { p.weight = +(p.weight * 100 / totalW).toFixed(1); });
+  // Cap any position above maxPos, redistributing the excess into the other
+  // positions' HEADROOM. Two things here are load-bearing; see validateAgentRec
+  // (~line 4004) which solves the same problem for the LLM path.
+  //
+  // 1. N positions can only sum to 100 with every weight <= maxPos when
+  //    N*maxPos >= 100. Below that the cap is arithmetically unsatisfiable, so
+  //    it is DISCLOSED rather than half-applied — silently shipping a breach of
+  //    the client's own mandate is the worse failure.
+  // 2. The excess is shared out in proportion to each receiver's REMAINING
+  //    ROOM, not to its current weight. Weight-proportional redistribution
+  //    pushes the receivers back over the cap, which is what made the old loop
+  //    stall with every position capped and the total at 80.
+  //
+  // There is deliberately NO blanket renormalize-to-100 after this. The old one
+  // ("final normalization to fix any rounding drift") could not tell a 0.1
+  // rounding residue from a 20-point cap deficit, and rescaling by 100/80
+  // restored exactly the weights the cap had just removed.
+  if(positions.length > 1 && maxPos > 0 && maxPos < 100){
+    if(positions.length * maxPos < 100 - 1e-9){
+      capNotice = `Max position ${maxPos}% cannot be satisfied by ${positions.length} position${positions.length === 1 ? "" : "s"} ` +
+                  `(at least ${Math.ceil(100 / maxPos)} are needed to reach 100%) — the cap was NOT applied to this portfolio`;
+    } else {
+      for(let pass = 0; pass < 20; pass++){
+        const over = positions.filter(p => p.weight > maxPos + 1e-9);
+        if(!over.length) break;
+        let freed = 0;
+        over.forEach(p => { freed += p.weight - maxPos; p.weight = maxPos; });
+        const rest = positions.filter(p => p.weight < maxPos - 1e-9);
+        const room = rest.reduce((s,p) => s + (maxPos - p.weight), 0);
+        if(room <= 1e-9 || freed <= 1e-9) break;
+        rest.forEach(p => { p.weight += freed * ((maxPos - p.weight) / room); });
+      }
+      positions.forEach(p => { p.weight = +p.weight.toFixed(1); });
+      capEnforced = true;
     }
   }
   // Rounding each weight to 1dp independently still leaves a residual (portfolios
   // were coming out at 100.2% / 99.9%), so absorb it into the largest position
   // that has cap headroom — a client-facing proposal has to add up.
   if(positions.length){
-    const drift = +(100 - positions.reduce((s,p) => s + p.weight, 0)).toFixed(1);
+    let drift = +(100 - positions.reduce((s,p) => s + p.weight, 0)).toFixed(1);
     if(Math.abs(drift) >= 0.1){
-      const room = positions.filter(p => maxPos <= 0 || p.weight + drift <= maxPos + 0.001);
-      const target = (room.length ? room : positions).reduce((a,b) => a.weight >= b.weight ? a : b);
-      target.weight = +(target.weight + drift).toFixed(1);
+      // Prefer a position that can absorb the whole residue without breaching
+      // the cap. If none can, spread it 0.1 at a time across whatever headroom
+      // exists rather than dumping it on the largest holding — and if there is
+      // genuinely no headroom left, stop at 99.9% instead of breaching. A
+      // tenth of a percent of cash is not worth violating the mandate.
+      const capBinds = capEnforced && maxPos > 0;
+      const fits = positions.filter(p => !capBinds || p.weight + drift <= maxPos + 1e-9);
+      if(fits.length){
+        const target = fits.reduce((a,b) => a.weight >= b.weight ? a : b);
+        target.weight = +(target.weight + drift).toFixed(1);
+      } else if(capBinds){
+        const step = drift > 0 ? 0.1 : -0.1;
+        for(let guard = 0; Math.abs(drift) >= 0.1 && guard < 400; guard++){
+          const p = positions.find(x => step > 0 ? x.weight + step <= maxPos + 1e-9 : x.weight + step >= 0);
+          if(!p) break;
+          p.weight = +(p.weight + step).toFixed(1);
+          drift = +(drift - step).toFixed(1);
+        }
+      }
     }
   }
 
@@ -6731,6 +6800,29 @@ function buildPortfolioFromEngine(brief, signals){
   const negRegions = Object.entries(signals.regions).filter(([,d]) => d.votes < -5).slice(0,2);
   negRegions.forEach(([r, d]) => risks.push(`${prettyRegion(r)} regional risk flagged by ${d.providerCount} providers`));
   if(brief.maxPosition < 20) risks.push("Position size constraint may limit conviction expression");
+  // Any holding denominated outside the client's own currency is an FX exposure.
+  // The cash sleeve disclosed this; nothing else did, so a Swiss-franc-hedged
+  // fund could reach a sterling client with no mention of it anywhere.
+  (function(){
+    const want = briefCurrency(brief);
+    const off = positions.map(p => {
+      const f = FUND_UNIVERSE.find(x => x.tkr === p.ticker);
+      if(!f || !f.ccy || f.cls === "cash") return null;
+      const has = f.ccy.toUpperCase();
+      return has === want ? null : {tkr: p.ticker, ccy: has, hedged: !!f.hedged, w: p.weight};
+    }).filter(Boolean);
+    if(!off.length) return;
+    const pct = off.reduce((a,b) => a + b.w, 0).toFixed(1);
+    risks.push(`${pct}% of the portfolio is denominated outside ${want} (` +
+      off.map(o => `${o.tkr} ${o.ccy}${o.hedged ? " hedged" : ""}`).join(", ") +
+      `) — unhedged currency movement affects these holdings in ${want} terms`);
+    off.filter(o => o.hedged).forEach(o => risks.push(
+      `${o.tkr} is a ${o.ccy}-HEDGED share class held by a ${want} client — the hedge ` +
+      `removes ${o.ccy} risk, not ${want} risk, and its cost is borne for no benefit here`));
+  })();
+  // An unsatisfiable position cap has to reach the advisor: the portfolio below
+  // does NOT respect the mandate they typed in.
+  if(capNotice) risks.push(capNotice);
   // Sleeves the client's jurisdiction cannot be sold — disclosed, not hidden
   unfillable.forEach(({cls, weight}) => risks.push(
     `${prettyClass(cls)} sleeve (${weight}% target) has no ${brief.country || "US"}-eligible fund in the universe — reallocated to ${cls === "cash" ? "fixed income" : "the remaining sleeves"}`
