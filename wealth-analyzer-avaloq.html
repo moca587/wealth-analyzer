@@ -1914,7 +1914,7 @@ input[type=date]{color-scheme:light}
   </div>
 </div>
 
-<!-- Goal Funding Status (PV-based, Merrill-style) -->
+<!-- Goal Funding Status (PV-based, priority-weighted) -->
 <div class="panel" id="simFundingPanel">
   <div class="ptitle">Goal Funding Status <span style="font-size:11px;font-weight:500;color:var(--text3);margin-left:8px">— present-value, priority-weighted</span></div>
   <div style="font-size:12px;color:var(--text3);margin-bottom:14px;line-height:1.6">
@@ -2516,12 +2516,12 @@ input[type=date]{color-scheme:light}
 
 </div>
 
-<!-- ═══ GOALS-BASED ANALYSIS (Merrill-style) ═══ -->
+<!-- ═══ GOALS-BASED ANALYSIS (priority-weighted) ═══ -->
 <div class="tab" id="tab-goalsbased">
   <div class="panel" style="background:linear-gradient(135deg,#fff,#f3f0ff);border-left:4px solid #7c3aed">
     <div class="ptitle" style="border:none">🎯 Goals-Based Wealth Analysis</div>
     <div style="font-size:12.5px;color:var(--text2);line-height:1.6">
-      Institutional goals-based framework modeled on the Merrill Lynch Wealth Management Analysis. Each goal is priced in present-value terms, discounted at a risk-adjusted rate matched to its priority, and compared to your funding sources to produce a <strong>Funding Ratio</strong>. Uses per-asset-class capital market assumptions with a full correlation matrix for accurate portfolio risk.
+      Institutional goals-based framework using present-value funding-ratio analysis. Each goal is priced in present-value terms, discounted at a risk-adjusted rate matched to its priority, and compared to your funding sources to produce a <strong>Funding Ratio</strong>. Uses per-asset-class capital market assumptions with a full correlation matrix for accurate portfolio risk.
     </div>
     <div style="margin-top:12px;display:flex;gap:10px;flex-wrap:wrap;align-items:center">
       <button class="btn-primary" onclick="runGoalsBased()" style="font-size:14px;padding:10px 24px">▶ Run Goals-Based Analysis</button>
@@ -2551,7 +2551,7 @@ input[type=date]{color-scheme:light}
   <!-- Wealth Allocation Framework -->
   <div class="panel" id="gbWealthPanel" style="display:none">
     <div class="ptitle">Wealth Allocation Framework</div>
-    <div style="font-size:12px;color:var(--text3);margin-bottom:14px;line-height:1.6">Merrill's three-bucket framework organizes assets by risk-return role: <strong style="color:var(--green)">Personal</strong> (preserve lifestyle — residence, cash), <strong style="color:var(--accent)">Market</strong> (balance risk & return — diversified equities/bonds), and <strong style="color:#7c3aed">Aspirational</strong> (idiosyncratic upside — concentrated stock, business, crypto, investment property).</div>
+    <div style="font-size:12px;color:var(--text3);margin-bottom:14px;line-height:1.6">A three-bucket framework organizes assets by risk-return role: <strong style="color:var(--green)">Personal</strong> (preserve lifestyle — residence, cash), <strong style="color:var(--accent)">Market</strong> (balance risk & return — diversified equities/bonds), and <strong style="color:#7c3aed">Aspirational</strong> (idiosyncratic upside — concentrated stock, business, crypto, investment property).</div>
     <div id="gbWealth"></div>
   </div>
 
@@ -2851,7 +2851,7 @@ input[type=date]{color-scheme:light}
 // ═══════════════════════════════════════════════════════════
 // VERSION — updated by build-standalone.pl on each build
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260802-1244";
+const APP_VERSION = "20260802-1759";
 
 // ═══════════════════════════════════════════════════════════
 // DATA
@@ -7350,12 +7350,12 @@ const AI_FUND_UNIVERSE = [
   {tkr:"BIBL",name:"Inspire 100 ETF",cls:"equity",vehicle:"etf",er:0.35,yld:1.0,sponsor:"Inspire",esg:true},
 
   // ─── US TREASURIES — Short ───
-  {tkr:"BIL",name:"SPDR Bloomberg 1-3 Month T-Bill",cls:"cash",vehicle:"etf",er:0.14,yld:5.2,sponsor:"State Street"},
-  {tkr:"SGOV",name:"iShares 0-3 Month Treasury",cls:"cash",vehicle:"etf",er:0.07,yld:5.2,sponsor:"BlackRock"},
-  {tkr:"SHV",name:"iShares Short Treasury Bond",cls:"cash",vehicle:"etf",er:0.15,yld:5.2,sponsor:"BlackRock"},
-  {tkr:"USFR",name:"WisdomTree Floating Rate Treasury",cls:"cash",vehicle:"etf",er:0.15,yld:5.3,sponsor:"WisdomTree"},
-  {tkr:"TFLO",name:"iShares Treasury Floating Rate",cls:"cash",vehicle:"etf",er:0.15,yld:5.3,sponsor:"BlackRock"},
-  {tkr:"CLTL",name:"Invesco Treasury Collateral",cls:"cash",vehicle:"etf",er:0.08,yld:5.2,sponsor:"Invesco"},
+  {tkr:"BIL",name:"SPDR Bloomberg 1-3 Month T-Bill",cls:"cash",vehicle:"etf",er:0.14,yld:5.2,sponsor:"State Street",ccy:"USD",act40:true},
+  {tkr:"SGOV",name:"iShares 0-3 Month Treasury",cls:"cash",vehicle:"etf",er:0.07,yld:5.2,sponsor:"BlackRock",ccy:"USD",act40:true},
+  {tkr:"SHV",name:"iShares Short Treasury Bond",cls:"cash",vehicle:"etf",er:0.15,yld:5.2,sponsor:"BlackRock",ccy:"USD",act40:true},
+  {tkr:"USFR",name:"WisdomTree Floating Rate Treasury",cls:"cash",vehicle:"etf",er:0.15,yld:5.3,sponsor:"WisdomTree",ccy:"USD",act40:true},
+  {tkr:"TFLO",name:"iShares Treasury Floating Rate",cls:"cash",vehicle:"etf",er:0.15,yld:5.3,sponsor:"BlackRock",ccy:"USD",act40:true},
+  {tkr:"CLTL",name:"Invesco Treasury Collateral",cls:"cash",vehicle:"etf",er:0.08,yld:5.2,sponsor:"Invesco",ccy:"USD",act40:true},
   {tkr:"SHY",name:"iShares 1-3 Year Treasury",cls:"fixed_income",vehicle:"etf",er:0.15,yld:4.7,sponsor:"BlackRock"},
   {tkr:"SCHO",name:"Schwab Short-Term US Treasury",cls:"fixed_income",vehicle:"etf",er:0.03,yld:4.7,sponsor:"Schwab"},
   {tkr:"VGSH",name:"Vanguard Short-Term Treasury",cls:"fixed_income",vehicle:"etf",er:0.04,yld:4.6,sponsor:"Vanguard"},
@@ -7618,18 +7618,38 @@ const AI_FUND_UNIVERSE = [
   {tkr:"PSEP",name:"Innovator S&P 500 Power Buffer September",cls:"alternative",vehicle:"etf",er:0.79,yld:0.0,sponsor:"Innovator"},
 
   // ─── CASH / MONEY MARKET ───
-  {tkr:"VMFXX",name:"Vanguard Federal Money Market",cls:"cash",vehicle:"money_market",er:0.11,yld:5.3,sponsor:"Vanguard"},
-  {tkr:"VMSXX",name:"Vanguard Tax-Exempt Money Market",cls:"cash",vehicle:"money_market",er:0.15,yld:3.4,sponsor:"Vanguard"},
-  {tkr:"VUSXX",name:"Vanguard Treasury Money Market",cls:"cash",vehicle:"money_market",er:0.09,yld:5.2,sponsor:"Vanguard"},
-  {tkr:"SPAXX",name:"Fidelity Government Money Market",cls:"cash",vehicle:"money_market",er:0.42,yld:5.0,sponsor:"Fidelity"},
-  {tkr:"FZDXX",name:"Fidelity Money Market Premium",cls:"cash",vehicle:"money_market",er:0.40,yld:5.1,sponsor:"Fidelity"},
-  {tkr:"FDLXX",name:"Fidelity Treasury Only Money Market",cls:"cash",vehicle:"money_market",er:0.42,yld:5.0,sponsor:"Fidelity"},
-  {tkr:"SWVXX",name:"Schwab Value Advantage Money",cls:"cash",vehicle:"money_market",er:0.34,yld:5.1,sponsor:"Schwab"},
-  {tkr:"SNOXX",name:"Schwab Treasury Money Fund",cls:"cash",vehicle:"money_market",er:0.34,yld:5.0,sponsor:"Schwab"},
-  {tkr:"SUTXX",name:"Schwab US Treasury Money Fund",cls:"cash",vehicle:"money_market",er:0.34,yld:5.0,sponsor:"Schwab"},
-  {tkr:"UTIXX",name:"American Century US Government Money",cls:"cash",vehicle:"money_market",er:0.40,yld:4.9,sponsor:"American Century"},
-  {tkr:"FLOT",name:"iShares Floating Rate Bond",cls:"cash",vehicle:"etf",er:0.15,yld:5.4,sponsor:"BlackRock"},
-  {tkr:"FLRN",name:"SPDR Bloomberg Investment Grade Floating Rate",cls:"cash",vehicle:"etf",er:0.15,yld:5.4,sponsor:"State Street"},
+  {tkr:"VMFXX",name:"Vanguard Federal Money Market",cls:"cash",vehicle:"money_market",er:0.11,yld:5.3,sponsor:"Vanguard",ccy:"USD",act40:true},
+  {tkr:"VMSXX",name:"Vanguard Tax-Exempt Money Market",cls:"cash",vehicle:"money_market",er:0.15,yld:3.4,sponsor:"Vanguard",ccy:"USD",act40:true},
+  {tkr:"VUSXX",name:"Vanguard Treasury Money Market",cls:"cash",vehicle:"money_market",er:0.09,yld:5.2,sponsor:"Vanguard",ccy:"USD",act40:true},
+  {tkr:"SPAXX",name:"Fidelity Government Money Market",cls:"cash",vehicle:"money_market",er:0.42,yld:5.0,sponsor:"Fidelity",ccy:"USD",act40:true},
+  {tkr:"FZDXX",name:"Fidelity Money Market Premium",cls:"cash",vehicle:"money_market",er:0.40,yld:5.1,sponsor:"Fidelity",ccy:"USD",act40:true},
+  {tkr:"FDLXX",name:"Fidelity Treasury Only Money Market",cls:"cash",vehicle:"money_market",er:0.42,yld:5.0,sponsor:"Fidelity",ccy:"USD",act40:true},
+  {tkr:"SWVXX",name:"Schwab Value Advantage Money",cls:"cash",vehicle:"money_market",er:0.34,yld:5.1,sponsor:"Schwab",ccy:"USD",act40:true},
+  {tkr:"SNOXX",name:"Schwab Treasury Money Fund",cls:"cash",vehicle:"money_market",er:0.34,yld:5.0,sponsor:"Schwab",ccy:"USD",act40:true},
+  {tkr:"SUTXX",name:"Schwab US Treasury Money Fund",cls:"cash",vehicle:"money_market",er:0.34,yld:5.0,sponsor:"Schwab",ccy:"USD",act40:true},
+  {tkr:"UTIXX",name:"American Century US Government Money",cls:"cash",vehicle:"money_market",er:0.40,yld:4.9,sponsor:"American Century",ccy:"USD",act40:true},
+  {tkr:"FLOT",name:"iShares Floating Rate Bond",cls:"cash",vehicle:"etf",er:0.15,yld:5.4,sponsor:"BlackRock",ccy:"USD",act40:true},
+  {tkr:"FLRN",name:"SPDR Bloomberg Investment Grade Floating Rate",cls:"cash",vehicle:"etf",er:0.15,yld:5.4,sponsor:"State Street",ccy:"USD",act40:true},
+
+  // ─── 1940 ACT ULTRA-SHORT ETFs (US-registered) ───
+  // The largest ultra-short 40-Act ETFs, absent until now: JPST alone holds
+  // more assets than the rest of the ETF cash sleeve combined.
+  {tkr:"JPST",name:"JPMorgan Ultra-Short Income ETF",cls:"cash",vehicle:"etf",er:0.18,yld:5.3,sponsor:"J.P. Morgan",ccy:"USD",act40:true},
+  {tkr:"ICSH",name:"iShares Ultra Short Duration Bond Active ETF",cls:"cash",vehicle:"etf",er:0.08,yld:5.3,sponsor:"BlackRock",ccy:"USD",act40:true},
+  {tkr:"GBIL",name:"Goldman Sachs Access Treasury 0-1 Year ETF",cls:"cash",vehicle:"etf",er:0.12,yld:5.0,sponsor:"Goldman Sachs",ccy:"USD",act40:true},
+
+  // ─── UCITS MONEY MARKET / ULTRA-SHORT (non-US eligible) ───
+  // Every fund above is US-listed, so a UCITS-only client (CH/DE/SG/BR and the
+  // rest of the PRIIPs world) previously had ZERO eligible cash funds — the
+  // sleeve could not be filled and its weight had to be reallocated. These are
+  // the liquid European money-market and ultra-short lines that fill it.
+  // Yields are stated on the FUND_DATA_AS_OF (2024-12-31) basis like the rest of
+  // the dataset — EUR at the then-prevailing ESTR/ECB level, GBP and USD higher.
+  {tkr:"XEON",name:"Xtrackers II EUR Overnight Rate Swap UCITS ETF 1C",cls:"cash",vehicle:"etf",er:0.10,yld:3.0,sponsor:"DWS/Xtrackers",dom:"LU",ucits:true,ccy:"EUR"},
+  {tkr:"ERNE",name:"iShares € Ultrashort Bond UCITS ETF",cls:"cash",vehicle:"etf",er:0.09,yld:3.4,sponsor:"BlackRock",dom:"IE",ucits:true,ccy:"EUR"},
+  {tkr:"ERNA",name:"iShares $ Ultrashort Bond UCITS ETF USD (Acc)",cls:"cash",vehicle:"etf",er:0.09,yld:5.0,sponsor:"BlackRock",dom:"IE",ucits:true,ccy:"USD"},
+  {tkr:"ERNS",name:"iShares £ Ultrashort Bond UCITS ETF",cls:"cash",vehicle:"etf",er:0.09,yld:4.8,sponsor:"BlackRock",dom:"IE",ucits:true,ccy:"GBP"},
+  {tkr:"IB01",name:"iShares $ Treasury Bond 0-1yr UCITS ETF USD (Acc)",cls:"cash",vehicle:"etf",er:0.07,yld:4.6,sponsor:"BlackRock",dom:"IE",ucits:true,ccy:"USD"},
 
   // ─── CRYPTO / SPOT BITCOIN/ETHER ───
   {tkr:"IBIT",name:"iShares Bitcoin Trust",cls:"crypto",vehicle:"alternative",er:0.25,yld:0.0,sponsor:"BlackRock"},
@@ -7953,7 +7973,229 @@ const AI_FUND_UNIVERSE = [
   {tkr:"3140",name:"Mirae Asset HS TECH ETF",cls:"equity",vehicle:"etf",er:0.45,yld:0.0,sponsor:"Mirae Asset",dom:"HK",ucits:false},
   {tkr:"G3B",name:"SPDR Straits Times Index ETF",cls:"equity",vehicle:"etf",er:0.30,yld:4.0,sponsor:"State Street",dom:"SG",ucits:false},
   {tkr:"ES3",name:"Nikko AM Singapore STI ETF",cls:"equity",vehicle:"etf",er:0.30,yld:4.0,sponsor:"Nikko AM",dom:"SG",ucits:false},
-  {tkr:"O87",name:"Phillip SGX APAC Dividend ETF",cls:"equity",vehicle:"etf",er:0.35,yld:5.0,sponsor:"Phillip",dom:"SG",ucits:false}
+  {tkr:"O87",name:"Phillip SGX APAC Dividend ETF",cls:"equity",vehicle:"etf",er:0.35,yld:5.0,sponsor:"Phillip",dom:"SG",ucits:false},
+  // ═══ SPONSOR DEPTH — Vanguard / Fidelity / BlackRock expansion ═══
+
+  // ─── Vanguard — US style & size ETFs ───
+  {tkr:"VXF",name:"Vanguard Extended Market ETF",cls:"equity",vehicle:"etf",er:0.06,yld:1.2,sponsor:"Vanguard"},
+  {tkr:"VONG",name:"Vanguard Russell 1000 Growth ETF",cls:"equity",vehicle:"etf",er:0.08,yld:0.5,sponsor:"Vanguard"},
+  {tkr:"VONV",name:"Vanguard Russell 1000 Value ETF",cls:"equity",vehicle:"etf",er:0.08,yld:1.9,sponsor:"Vanguard"},
+  {tkr:"VTHR",name:"Vanguard Russell 3000 ETF",cls:"equity",vehicle:"etf",er:0.10,yld:1.2,sponsor:"Vanguard"},
+  {tkr:"VTWG",name:"Vanguard Russell 2000 Growth ETF",cls:"equity",vehicle:"etf",er:0.15,yld:0.5,sponsor:"Vanguard"},
+  {tkr:"VTWV",name:"Vanguard Russell 2000 Value ETF",cls:"equity",vehicle:"etf",er:0.15,yld:1.8,sponsor:"Vanguard"},
+  {tkr:"VOOG",name:"Vanguard S&P 500 Growth ETF",cls:"equity",vehicle:"etf",er:0.07,yld:0.6,sponsor:"Vanguard"},
+  {tkr:"VOOV",name:"Vanguard S&P 500 Value ETF",cls:"equity",vehicle:"etf",er:0.07,yld:1.9,sponsor:"Vanguard"},
+  {tkr:"VIOO",name:"Vanguard S&P Small-Cap 600 ETF",cls:"equity",vehicle:"etf",er:0.07,yld:1.6,sponsor:"Vanguard"},
+  {tkr:"VIOG",name:"Vanguard S&P Small-Cap 600 Growth ETF",cls:"equity",vehicle:"etf",er:0.10,yld:1.0,sponsor:"Vanguard"},
+  {tkr:"VIOV",name:"Vanguard S&P Small-Cap 600 Value ETF",cls:"equity",vehicle:"etf",er:0.10,yld:2.0,sponsor:"Vanguard"},
+  {tkr:"IVOO",name:"Vanguard S&P Mid-Cap 400 ETF",cls:"equity",vehicle:"etf",er:0.07,yld:1.4,sponsor:"Vanguard"},
+  {tkr:"IVOG",name:"Vanguard S&P Mid-Cap 400 Growth ETF",cls:"equity",vehicle:"etf",er:0.10,yld:0.9,sponsor:"Vanguard"},
+  {tkr:"IVOV",name:"Vanguard S&P Mid-Cap 400 Value ETF",cls:"equity",vehicle:"etf",er:0.10,yld:1.9,sponsor:"Vanguard"},
+  {tkr:"VIGI",name:"Vanguard International Dividend Appreciation ETF",cls:"equity",vehicle:"etf",er:0.15,yld:2.0,sponsor:"Vanguard"},
+  {tkr:"VFMF",name:"Vanguard U.S. Multifactor ETF",cls:"equity",vehicle:"etf",er:0.18,yld:1.6,sponsor:"Vanguard"},
+  {tkr:"VFMO",name:"Vanguard U.S. Momentum Factor ETF",cls:"equity",vehicle:"etf",er:0.13,yld:0.8,sponsor:"Vanguard"},
+  {tkr:"VFVA",name:"Vanguard U.S. Value Factor ETF",cls:"equity",vehicle:"etf",er:0.13,yld:2.2,sponsor:"Vanguard"},
+  {tkr:"VFQY",name:"Vanguard U.S. Quality Factor ETF",cls:"equity",vehicle:"etf",er:0.13,yld:1.3,sponsor:"Vanguard"},
+
+  // ─── Vanguard — fixed income ETFs ───
+  {tkr:"BSV",name:"Vanguard Short-Term Bond ETF",cls:"fixed_income",vehicle:"etf",er:0.03,yld:4.3,sponsor:"Vanguard"},
+  {tkr:"BIV",name:"Vanguard Intermediate-Term Bond ETF",cls:"fixed_income",vehicle:"etf",er:0.03,yld:4.3,sponsor:"Vanguard"},
+  {tkr:"BLV",name:"Vanguard Long-Term Bond ETF",cls:"fixed_income",vehicle:"etf",er:0.04,yld:5.0,sponsor:"Vanguard"},
+  {tkr:"VCRB",name:"Vanguard Core Bond ETF",cls:"fixed_income",vehicle:"etf",er:0.10,yld:4.4,sponsor:"Vanguard"},
+  {tkr:"VPLS",name:"Vanguard Core-Plus Bond ETF",cls:"fixed_income",vehicle:"etf",er:0.20,yld:4.9,sponsor:"Vanguard"},
+  {tkr:"VTES",name:"Vanguard Short-Term Tax-Exempt Bond ETF",cls:"fixed_income",vehicle:"etf",er:0.07,yld:3.0,sponsor:"Vanguard"},
+  {tkr:"VCEB",name:"Vanguard ESG U.S. Corporate Bond ETF",cls:"fixed_income",vehicle:"etf",er:0.12,yld:4.5,sponsor:"Vanguard",esg:true},
+
+  // ─── Vanguard — cash ───
+  {tkr:"VUSB",name:"Vanguard Ultra-Short Bond ETF",cls:"cash",vehicle:"etf",er:0.10,yld:5.1,sponsor:"Vanguard",ccy:"USD",act40:true},
+  {tkr:"VMRXX",name:"Vanguard Cash Reserves Federal Money Market",cls:"cash",vehicle:"money_market",er:0.10,yld:5.2,sponsor:"Vanguard",ccy:"USD",act40:true},
+
+  // ─── Vanguard — active & balanced mutual funds ───
+  {tkr:"VDIGX",name:"Vanguard Dividend Growth Fund",cls:"equity",vehicle:"mutual_fund",er:0.29,yld:1.7,sponsor:"Vanguard"},
+  {tkr:"VEIPX",name:"Vanguard Equity Income Fund",cls:"equity",vehicle:"mutual_fund",er:0.28,yld:2.7,sponsor:"Vanguard"},
+  {tkr:"VWNDX",name:"Vanguard Windsor Fund",cls:"equity",vehicle:"mutual_fund",er:0.33,yld:1.6,sponsor:"Vanguard"},
+  {tkr:"VWNFX",name:"Vanguard Windsor II Fund",cls:"equity",vehicle:"mutual_fund",er:0.34,yld:1.6,sponsor:"Vanguard"},
+  {tkr:"VGHCX",name:"Vanguard Health Care Fund",cls:"equity",vehicle:"mutual_fund",er:0.35,yld:1.3,sponsor:"Vanguard"},
+  {tkr:"VASGX",name:"Vanguard LifeStrategy Growth Fund",cls:"mixed",vehicle:"mutual_fund",er:0.14,yld:2.2,sponsor:"Vanguard"},
+  {tkr:"VSMGX",name:"Vanguard LifeStrategy Moderate Growth Fund",cls:"mixed",vehicle:"mutual_fund",er:0.13,yld:2.4,sponsor:"Vanguard"},
+  {tkr:"VSCGX",name:"Vanguard LifeStrategy Conservative Growth Fund",cls:"mixed",vehicle:"mutual_fund",er:0.12,yld:2.7,sponsor:"Vanguard"},
+  {tkr:"VASIX",name:"Vanguard LifeStrategy Income Fund",cls:"mixed",vehicle:"mutual_fund",er:0.11,yld:3.0,sponsor:"Vanguard"},
+  {tkr:"VTMFX",name:"Vanguard Tax-Managed Balanced Fund",cls:"mixed",vehicle:"mutual_fund",er:0.09,yld:1.8,sponsor:"Vanguard"},
+
+  // ─── Vanguard — UCITS (Ireland) ───
+  {tkr:"VWRP",name:"Vanguard FTSE All-World UCITS ETF (Acc)",cls:"equity",vehicle:"etf",er:0.22,yld:0.0,sponsor:"Vanguard",dom:"IE",ucits:true,ccy:"GBP"},
+  {tkr:"VNRT",name:"Vanguard FTSE North America UCITS ETF (Dist)",cls:"equity",vehicle:"etf",er:0.10,yld:1.2,sponsor:"Vanguard",dom:"IE",ucits:true,ccy:"USD"},
+  {tkr:"VNRA",name:"Vanguard FTSE North America UCITS ETF (Acc)",cls:"equity",vehicle:"etf",er:0.10,yld:0.0,sponsor:"Vanguard",dom:"IE",ucits:true,ccy:"USD"},
+
+  // ─── Fidelity — MSCI sector index ETFs ───
+  {tkr:"FTEC",name:"Fidelity MSCI Information Technology Index ETF",cls:"equity",vehicle:"etf",er:0.08,yld:0.6,sponsor:"Fidelity"},
+  {tkr:"FHLC",name:"Fidelity MSCI Health Care Index ETF",cls:"equity",vehicle:"etf",er:0.08,yld:1.4,sponsor:"Fidelity"},
+  {tkr:"FNCL",name:"Fidelity MSCI Financials Index ETF",cls:"equity",vehicle:"etf",er:0.08,yld:1.7,sponsor:"Fidelity"},
+  {tkr:"FENY",name:"Fidelity MSCI Energy Index ETF",cls:"equity",vehicle:"etf",er:0.08,yld:3.2,sponsor:"Fidelity"},
+  {tkr:"FDIS",name:"Fidelity MSCI Consumer Discretionary Index ETF",cls:"equity",vehicle:"etf",er:0.08,yld:0.8,sponsor:"Fidelity"},
+  {tkr:"FSTA",name:"Fidelity MSCI Consumer Staples Index ETF",cls:"equity",vehicle:"etf",er:0.08,yld:2.4,sponsor:"Fidelity"},
+  {tkr:"FIDU",name:"Fidelity MSCI Industrials Index ETF",cls:"equity",vehicle:"etf",er:0.08,yld:1.3,sponsor:"Fidelity"},
+  {tkr:"FUTY",name:"Fidelity MSCI Utilities Index ETF",cls:"equity",vehicle:"etf",er:0.08,yld:2.8,sponsor:"Fidelity"},
+  {tkr:"FMAT",name:"Fidelity MSCI Materials Index ETF",cls:"equity",vehicle:"etf",er:0.08,yld:1.7,sponsor:"Fidelity"},
+  {tkr:"FCOM",name:"Fidelity MSCI Communication Services Index ETF",cls:"equity",vehicle:"etf",er:0.08,yld:0.9,sponsor:"Fidelity"},
+
+  // ─── Fidelity — factor ETFs ───
+  {tkr:"FDVV",name:"Fidelity High Dividend ETF",cls:"equity",vehicle:"etf",er:0.16,yld:3.0,sponsor:"Fidelity"},
+  {tkr:"FQAL",name:"Fidelity Quality Factor ETF",cls:"equity",vehicle:"etf",er:0.15,yld:1.2,sponsor:"Fidelity"},
+  {tkr:"FVAL",name:"Fidelity Value Factor ETF",cls:"equity",vehicle:"etf",er:0.15,yld:1.6,sponsor:"Fidelity"},
+  {tkr:"FDLO",name:"Fidelity Low Volatility Factor ETF",cls:"equity",vehicle:"etf",er:0.15,yld:1.5,sponsor:"Fidelity"},
+  {tkr:"FDMO",name:"Fidelity Momentum Factor ETF",cls:"equity",vehicle:"etf",er:0.15,yld:0.8,sponsor:"Fidelity"},
+  {tkr:"FSMD",name:"Fidelity Small-Mid Cap Multifactor ETF",cls:"equity",vehicle:"etf",er:0.15,yld:1.4,sponsor:"Fidelity"},
+  {tkr:"FDRR",name:"Fidelity Dividend ETF for Rising Rates",cls:"equity",vehicle:"etf",er:0.15,yld:2.2,sponsor:"Fidelity"},
+  {tkr:"FELG",name:"Fidelity Enhanced Large Cap Core ETF",cls:"equity",vehicle:"etf",er:0.18,yld:1.0,sponsor:"Fidelity"},
+  {tkr:"FDIG",name:"Fidelity Crypto Industry and Digital Payments ETF",cls:"equity",vehicle:"etf",er:0.39,yld:0.5,sponsor:"Fidelity"},
+
+  // ─── Fidelity — index mutual funds ───
+  {tkr:"FNILX",name:"Fidelity ZERO Large Cap Index Fund",cls:"equity",vehicle:"mutual_fund",er:0.00,yld:1.2,sponsor:"Fidelity"},
+  {tkr:"FZIPX",name:"Fidelity ZERO Extended Market Index Fund",cls:"equity",vehicle:"mutual_fund",er:0.00,yld:1.1,sponsor:"Fidelity"},
+  {tkr:"FSPGX",name:"Fidelity Large Cap Growth Index Fund",cls:"equity",vehicle:"mutual_fund",er:0.04,yld:0.5,sponsor:"Fidelity"},
+  {tkr:"FLCOX",name:"Fidelity Large Cap Value Index Fund",cls:"equity",vehicle:"mutual_fund",er:0.04,yld:2.0,sponsor:"Fidelity"},
+  {tkr:"FSSNX",name:"Fidelity Small Cap Index Fund",cls:"equity",vehicle:"mutual_fund",er:0.03,yld:1.3,sponsor:"Fidelity"},
+  {tkr:"FSMDX",name:"Fidelity Mid Cap Index Fund",cls:"equity",vehicle:"mutual_fund",er:0.03,yld:1.3,sponsor:"Fidelity"},
+  {tkr:"FTIHX",name:"Fidelity Total International Index Fund",cls:"equity",vehicle:"mutual_fund",er:0.06,yld:3.0,sponsor:"Fidelity"},
+  {tkr:"FSGGX",name:"Fidelity Global ex US Index Fund",cls:"equity",vehicle:"mutual_fund",er:0.06,yld:3.0,sponsor:"Fidelity"},
+  {tkr:"FIPDX",name:"Fidelity Inflation-Protected Bond Index Fund",cls:"fixed_income",vehicle:"mutual_fund",er:0.05,yld:3.6,sponsor:"Fidelity"},
+  {tkr:"FUAMX",name:"Fidelity Intermediate Treasury Bond Index Fund",cls:"fixed_income",vehicle:"mutual_fund",er:0.03,yld:4.0,sponsor:"Fidelity"},
+  {tkr:"FUMBX",name:"Fidelity Short-Term Treasury Bond Index Fund",cls:"fixed_income",vehicle:"mutual_fund",er:0.03,yld:4.2,sponsor:"Fidelity"},
+  {tkr:"FNBGX",name:"Fidelity Long-Term Treasury Bond Index Fund",cls:"fixed_income",vehicle:"mutual_fund",er:0.03,yld:4.5,sponsor:"Fidelity"},
+
+  // ─── Fidelity — active mutual funds ───
+  {tkr:"FBALX",name:"Fidelity Balanced Fund",cls:"mixed",vehicle:"mutual_fund",er:0.47,yld:1.6,sponsor:"Fidelity"},
+  {tkr:"FPURX",name:"Fidelity Puritan Fund",cls:"mixed",vehicle:"mutual_fund",er:0.51,yld:1.7,sponsor:"Fidelity"},
+  {tkr:"FLPSX",name:"Fidelity Low-Priced Stock Fund",cls:"equity",vehicle:"mutual_fund",er:0.83,yld:1.8,sponsor:"Fidelity"},
+  {tkr:"FMAGX",name:"Fidelity Magellan Fund",cls:"equity",vehicle:"mutual_fund",er:0.50,yld:0.5,sponsor:"Fidelity"},
+  {tkr:"FSELX",name:"Fidelity Select Semiconductors Portfolio",cls:"equity",vehicle:"mutual_fund",er:0.63,yld:0.1,sponsor:"Fidelity"},
+  {tkr:"FSPTX",name:"Fidelity Select Technology Portfolio",cls:"equity",vehicle:"mutual_fund",er:0.63,yld:0.0,sponsor:"Fidelity"},
+  {tkr:"FSPHX",name:"Fidelity Select Health Care Portfolio",cls:"equity",vehicle:"mutual_fund",er:0.63,yld:0.3,sponsor:"Fidelity"},
+  {tkr:"FAGIX",name:"Fidelity Capital & Income Fund",cls:"fixed_income",vehicle:"mutual_fund",er:0.66,yld:5.5,sponsor:"Fidelity"},
+  {tkr:"FSICX",name:"Fidelity Strategic Income Fund",cls:"fixed_income",vehicle:"mutual_fund",er:0.67,yld:5.0,sponsor:"Fidelity"},
+
+  // ─── Fidelity — cash ───
+  {tkr:"FDRXX",name:"Fidelity Government Cash Reserves",cls:"cash",vehicle:"money_market",er:0.34,yld:5.0,sponsor:"Fidelity",ccy:"USD",act40:true},
+  {tkr:"FTEXX",name:"Fidelity Municipal Money Market Fund",cls:"cash",vehicle:"money_market",er:0.42,yld:3.3,sponsor:"Fidelity",ccy:"USD",act40:true},
+
+  // ─── Fidelity — UCITS (Ireland) ───
+  {tkr:"FUSD",name:"Fidelity US Quality Income UCITS ETF",cls:"equity",vehicle:"etf",er:0.25,yld:1.9,sponsor:"Fidelity",dom:"IE",ucits:true,ccy:"USD"},
+  {tkr:"FEME",name:"Fidelity Emerging Markets Quality Income UCITS ETF",cls:"equity",vehicle:"etf",er:0.50,yld:3.0,sponsor:"Fidelity",dom:"IE",ucits:true,ccy:"USD"},
+
+  // ─── iShares — global sector ETFs ───
+  {tkr:"IXN",name:"iShares Global Tech ETF",cls:"equity",vehicle:"etf",er:0.41,yld:0.6,sponsor:"BlackRock"},
+  {tkr:"IXJ",name:"iShares Global Healthcare ETF",cls:"equity",vehicle:"etf",er:0.41,yld:1.4,sponsor:"BlackRock"},
+  {tkr:"IXG",name:"iShares Global Financials ETF",cls:"equity",vehicle:"etf",er:0.41,yld:2.4,sponsor:"BlackRock"},
+  {tkr:"IXC",name:"iShares Global Energy ETF",cls:"equity",vehicle:"etf",er:0.41,yld:3.6,sponsor:"BlackRock"},
+  {tkr:"IXP",name:"iShares Global Comm Services ETF",cls:"equity",vehicle:"etf",er:0.41,yld:1.2,sponsor:"BlackRock"},
+  {tkr:"MXI",name:"iShares Global Materials ETF",cls:"equity",vehicle:"etf",er:0.41,yld:2.4,sponsor:"BlackRock"},
+  {tkr:"EXI",name:"iShares Global Industrials ETF",cls:"equity",vehicle:"etf",er:0.41,yld:1.4,sponsor:"BlackRock"},
+  {tkr:"KXI",name:"iShares Global Consumer Staples ETF",cls:"equity",vehicle:"etf",er:0.41,yld:2.4,sponsor:"BlackRock"},
+  {tkr:"RXI",name:"iShares Global Consumer Discretionary ETF",cls:"equity",vehicle:"etf",er:0.41,yld:1.1,sponsor:"BlackRock"},
+  {tkr:"JXI",name:"iShares Global Utilities ETF",cls:"equity",vehicle:"etf",er:0.41,yld:3.0,sponsor:"BlackRock"},
+  {tkr:"IGF",name:"iShares Global Infrastructure ETF",cls:"equity",vehicle:"etf",er:0.42,yld:2.7,sponsor:"BlackRock"},
+
+  // ─── iShares — US sector ETFs ───
+  {tkr:"IYY",name:"iShares Dow Jones U.S. ETF",cls:"equity",vehicle:"etf",er:0.20,yld:1.2,sponsor:"BlackRock"},
+  {tkr:"IYC",name:"iShares U.S. Consumer Discretionary ETF",cls:"equity",vehicle:"etf",er:0.39,yld:0.8,sponsor:"BlackRock"},
+  {tkr:"IYK",name:"iShares U.S. Consumer Staples ETF",cls:"equity",vehicle:"etf",er:0.39,yld:2.3,sponsor:"BlackRock"},
+  {tkr:"IYJ",name:"iShares U.S. Industrials ETF",cls:"equity",vehicle:"etf",er:0.39,yld:1.0,sponsor:"BlackRock"},
+  {tkr:"IYM",name:"iShares U.S. Basic Materials ETF",cls:"equity",vehicle:"etf",er:0.39,yld:1.6,sponsor:"BlackRock"},
+  {tkr:"IYZ",name:"iShares U.S. Telecommunications ETF",cls:"equity",vehicle:"etf",er:0.39,yld:1.3,sponsor:"BlackRock"},
+  {tkr:"IDU",name:"iShares U.S. Utilities ETF",cls:"equity",vehicle:"etf",er:0.39,yld:2.5,sponsor:"BlackRock"},
+  {tkr:"IYT",name:"iShares U.S. Transportation ETF",cls:"equity",vehicle:"etf",er:0.39,yld:1.1,sponsor:"BlackRock"},
+  {tkr:"IYG",name:"iShares U.S. Financial Services ETF",cls:"equity",vehicle:"etf",er:0.39,yld:1.5,sponsor:"BlackRock"},
+  {tkr:"IHF",name:"iShares U.S. Healthcare Providers ETF",cls:"equity",vehicle:"etf",er:0.39,yld:0.5,sponsor:"BlackRock"},
+  {tkr:"IHE",name:"iShares U.S. Pharmaceuticals ETF",cls:"equity",vehicle:"etf",er:0.39,yld:2.0,sponsor:"BlackRock"},
+  {tkr:"IEZ",name:"iShares U.S. Oil Equipment & Services ETF",cls:"equity",vehicle:"etf",er:0.39,yld:2.0,sponsor:"BlackRock"},
+  {tkr:"IGE",name:"iShares North American Natural Resources ETF",cls:"equity",vehicle:"etf",er:0.41,yld:2.4,sponsor:"BlackRock"},
+  {tkr:"PICK",name:"iShares MSCI Global Metals & Mining Producers ETF",cls:"equity",vehicle:"etf",er:0.39,yld:3.5,sponsor:"BlackRock"},
+  {tkr:"SLVP",name:"iShares MSCI Global Silver and Metals Miners ETF",cls:"equity",vehicle:"etf",er:0.39,yld:1.0,sponsor:"BlackRock"},
+
+  // ─── iShares — technology & thematic ───
+  {tkr:"IGV",name:"iShares Expanded Tech-Software Sector ETF",cls:"equity",vehicle:"etf",er:0.41,yld:0.0,sponsor:"BlackRock"},
+  {tkr:"IGM",name:"iShares Expanded Tech Sector ETF",cls:"equity",vehicle:"etf",er:0.41,yld:0.1,sponsor:"BlackRock"},
+  {tkr:"IHAK",name:"iShares Cybersecurity and Tech ETF",cls:"equity",vehicle:"etf",er:0.47,yld:0.3,sponsor:"BlackRock"},
+  {tkr:"IDRV",name:"iShares Self-Driving EV and Tech ETF",cls:"equity",vehicle:"etf",er:0.47,yld:1.2,sponsor:"BlackRock"},
+
+  // ─── iShares — US style & size ───
+  {tkr:"IUSG",name:"iShares Core S&P U.S. Growth ETF",cls:"equity",vehicle:"etf",er:0.04,yld:0.6,sponsor:"BlackRock"},
+  {tkr:"IUSV",name:"iShares Core S&P U.S. Value ETF",cls:"equity",vehicle:"etf",er:0.04,yld:2.0,sponsor:"BlackRock"},
+  {tkr:"IWY",name:"iShares Russell Top 200 Growth ETF",cls:"equity",vehicle:"etf",er:0.20,yld:0.4,sponsor:"BlackRock"},
+  {tkr:"IWX",name:"iShares Russell Top 200 Value ETF",cls:"equity",vehicle:"etf",er:0.20,yld:2.0,sponsor:"BlackRock"},
+  {tkr:"IWL",name:"iShares Russell Top 200 ETF",cls:"equity",vehicle:"etf",er:0.15,yld:1.1,sponsor:"BlackRock"},
+  {tkr:"IWP",name:"iShares Russell Mid-Cap Growth ETF",cls:"equity",vehicle:"etf",er:0.23,yld:0.4,sponsor:"BlackRock"},
+  {tkr:"IWS",name:"iShares Russell Mid-Cap Value ETF",cls:"equity",vehicle:"etf",er:0.23,yld:1.8,sponsor:"BlackRock"},
+  {tkr:"IWV",name:"iShares Russell 3000 ETF",cls:"equity",vehicle:"etf",er:0.20,yld:1.2,sponsor:"BlackRock"},
+  {tkr:"IWC",name:"iShares Micro-Cap ETF",cls:"equity",vehicle:"etf",er:0.60,yld:1.1,sponsor:"BlackRock"},
+
+  // ─── iShares — fixed income ───
+  {tkr:"ISTB",name:"iShares Core 1-5 Year USD Bond ETF",cls:"fixed_income",vehicle:"etf",er:0.06,yld:4.4,sponsor:"BlackRock"},
+  {tkr:"BINC",name:"BlackRock Flexible Income ETF",cls:"fixed_income",vehicle:"etf",er:0.40,yld:5.9,sponsor:"BlackRock"},
+  {tkr:"IGOV",name:"iShares International Treasury Bond ETF",cls:"fixed_income",vehicle:"etf",er:0.35,yld:2.3,sponsor:"BlackRock"},
+  {tkr:"BGRN",name:"iShares USD Green Bond ETF",cls:"fixed_income",vehicle:"etf",er:0.20,yld:4.0,sponsor:"BlackRock",esg:true},
+  {tkr:"HYDB",name:"iShares High Yield Systematic Bond ETF",cls:"fixed_income",vehicle:"etf",er:0.35,yld:6.5,sponsor:"BlackRock"},
+
+  // ─── iShares iBonds — defined-maturity Treasury ladder (goal-year matching) ───
+  {tkr:"IBTF",name:"iShares iBonds Dec 2025 Term Treasury ETF",cls:"fixed_income",vehicle:"etf",er:0.07,yld:4.5,sponsor:"BlackRock"},
+  {tkr:"IBTG",name:"iShares iBonds Dec 2026 Term Treasury ETF",cls:"fixed_income",vehicle:"etf",er:0.07,yld:4.3,sponsor:"BlackRock"},
+  {tkr:"IBTH",name:"iShares iBonds Dec 2027 Term Treasury ETF",cls:"fixed_income",vehicle:"etf",er:0.07,yld:4.3,sponsor:"BlackRock"},
+  {tkr:"IBTI",name:"iShares iBonds Dec 2028 Term Treasury ETF",cls:"fixed_income",vehicle:"etf",er:0.07,yld:4.3,sponsor:"BlackRock"},
+  {tkr:"IBTJ",name:"iShares iBonds Dec 2029 Term Treasury ETF",cls:"fixed_income",vehicle:"etf",er:0.07,yld:4.3,sponsor:"BlackRock"},
+  {tkr:"IBTK",name:"iShares iBonds Dec 2030 Term Treasury ETF",cls:"fixed_income",vehicle:"etf",er:0.07,yld:4.3,sponsor:"BlackRock"},
+  {tkr:"IBTL",name:"iShares iBonds Dec 2031 Term Treasury ETF",cls:"fixed_income",vehicle:"etf",er:0.07,yld:4.3,sponsor:"BlackRock"},
+
+  // ─── iShares — option-overlay income (alternative sleeve) ───
+  {tkr:"TLTW",name:"iShares 20+ Year Treasury Bond BuyWrite Strategy ETF",cls:"alternative",vehicle:"etf",er:0.35,yld:14.0,sponsor:"BlackRock"},
+  {tkr:"HYGW",name:"iShares High Yield Corporate Bond BuyWrite Strategy ETF",cls:"alternative",vehicle:"etf",er:0.35,yld:12.0,sponsor:"BlackRock"},
+  {tkr:"LQDW",name:"iShares Investment Grade Corporate Bond BuyWrite Strategy ETF",cls:"alternative",vehicle:"etf",er:0.35,yld:8.5,sponsor:"BlackRock"},
+
+  // ─── iShares — UCITS (Ireland) ───
+  {tkr:"WSML",name:"iShares MSCI World Small Cap UCITS ETF (Acc)",cls:"equity",vehicle:"etf",er:0.35,yld:0.0,sponsor:"BlackRock",dom:"IE",ucits:true,ccy:"USD"},
+  {tkr:"AGGU",name:"iShares Core Global Aggregate Bond UCITS ETF USD Hedged (Acc)",cls:"fixed_income",vehicle:"etf",er:0.10,yld:0.0,sponsor:"BlackRock",dom:"IE",ucits:true,ccy:"USD"},
+  {tkr:"IEGA",name:"iShares Core Euro Government Bond UCITS ETF",cls:"fixed_income",vehicle:"etf",er:0.09,yld:2.8,sponsor:"BlackRock",dom:"IE",ucits:true,ccy:"EUR"},
+  // --- UCITS alternatives: fills a sleeve that had no eligible fund at all ---
+  // Strategy-diverse on purpose (listed PE, managed futures, market neutral,
+  // macro, event driven, multi-strategy, long/short, insurance-linked) so the
+  // sleeve is fillable across risk profiles rather than by one lucky match.
+  {tkr:"IPRV",name:"iShares Listed Private Equity UCITS ETF",cls:"alternative",vehicle:"etf",er:0.75,yld:2.5,sponsor:"BlackRock",dom:"IE",ucits:true,ccy:"USD"},
+  {tkr:"DWSCK",name:"DWS Concept Kaldemorgen LC EUR (absolute return multi-asset)",cls:"alternative",vehicle:"mutual_fund",er:1.55,yld:1.5,sponsor:"DWS",dom:"LU",ucits:true,ccy:"EUR",family:"dws-kaldemorgen"},
+  {tkr:"JPGMO",name:"JPMorgan Investment Funds Global Macro Opportunities A EUR",cls:"alternative",vehicle:"mutual_fund",er:1.70,yld:0.0,sponsor:"JPMorgan",dom:"LU",ucits:true,ccy:"EUR",family:"jpm-global-macro"},
+  {tkr:"MANTGR",name:"Man AHL TargetRisk D USD (systematic multi-asset)",cls:"alternative",vehicle:"mutual_fund",er:0.90,yld:0.0,sponsor:"Man Group",dom:"IE",ucits:true,ccy:"USD",family:"man-ahl-targetrisk"},
+  {tkr:"MANTRD",name:"Man AHL Trend Alternative DNY USD (managed futures)",cls:"alternative",vehicle:"mutual_fund",er:1.30,yld:0.0,sponsor:"Man Group",dom:"IE",ucits:true,ccy:"USD",family:"man-ahl-trend"},
+  {tkr:"PICTAT",name:"Pictet TR Atlas I EUR (equity market neutral)",cls:"alternative",vehicle:"mutual_fund",er:1.60,yld:0.0,sponsor:"Pictet",dom:"LU",ucits:true,ccy:"EUR",family:"pictet-tr-atlas"},
+  {tkr:"PICTDA",name:"Pictet TR Diversified Alpha I EUR (multi-strategy)",cls:"alternative",vehicle:"mutual_fund",er:1.55,yld:0.0,sponsor:"Pictet",dom:"LU",ucits:true,ccy:"EUR",family:"pictet-tr-divalpha"},
+  {tkr:"SGAIBT",name:"Schroder GAIA BlueTrend C USD (managed futures)",cls:"alternative",vehicle:"mutual_fund",er:1.75,yld:0.0,sponsor:"Schroders",dom:"LU",ucits:true,ccy:"USD",family:"gaia-bluetrend"},
+  {tkr:"SGAICB",name:"Schroder GAIA Cat Bond C USD (insurance-linked securities)",cls:"alternative",vehicle:"mutual_fund",er:1.45,yld:0.0,sponsor:"Schroders",dom:"LU",ucits:true,ccy:"USD",family:"gaia-cat-bond"},
+  {tkr:"GAMSCB",name:"GAM Star Cat Bond Institutional USD (insurance-linked securities)",cls:"alternative",vehicle:"mutual_fund",er:1.15,yld:0.0,sponsor:"GAM",dom:"IE",ucits:true,ccy:"USD",family:"gam-star-cat-bond"},
+  {tkr:"NORA10",name:"Nordea 1 Alpha 10 MA Fund BI EUR (multi-asset absolute return)",cls:"alternative",vehicle:"mutual_fund",er:1.05,yld:0.0,sponsor:"Nordea",dom:"LU",ucits:true,ccy:"EUR",family:"nordea-alpha-10"},
+  {tkr:"BSFGED",name:"BlackRock Strategic Funds Global Event Driven A2 USD",cls:"alternative",vehicle:"mutual_fund",er:1.60,yld:0.0,sponsor:"BlackRock",dom:"LU",ucits:true,ccy:"USD",family:"bsf-event-driven"},
+  {tkr:"LUMMWT",name:"Lumyna MW TOPS UCITS A USD (Marshall Wace long/short equity)",cls:"alternative",vehicle:"mutual_fund",er:1.75,yld:0.0,sponsor:"Lumyna",dom:"IE",ucits:true,ccy:"USD",family:"lumyna-mw-tops"},
+  {tkr:"JUPGAR",name:"Jupiter Merian Global Equity Absolute Return I USD",cls:"alternative",vehicle:"mutual_fund",er:0.90,yld:0.0,sponsor:"Jupiter",dom:"IE",ucits:true,ccy:"USD",family:"jupiter-gear"},
+  {tkr:"ELEVAR",name:"Eleva Absolute Return Europe I EUR (long/short equity)",cls:"alternative",vehicle:"mutual_fund",er:1.50,yld:0.0,sponsor:"Eleva",dom:"LU",ucits:true,ccy:"EUR",family:"eleva-are"},
+  {tkr:"BNYGRR",name:"BNY Mellon Global Real Return EUR (absolute return multi-asset)",cls:"alternative",vehicle:"mutual_fund",er:1.10,yld:1.5,sponsor:"BNY Mellon",dom:"IE",ucits:true,ccy:"EUR",family:"bny-global-real-return"},
+  // --- CHF-hedged share classes of the UCITS alternatives above. Same fund,
+  //     same portfolio; mu is reduced by the cost of hedging into CHF (the rate
+  //     differential), so Sharpe against the CHF risk-free matches the base class.
+  //     `family` pairs them so a portfolio can never hold both. ---
+  {tkr:"DWSCKC",name:"DWS Concept Kaldemorgen LCH CHF (hedged)",cls:"alternative",vehicle:"mutual_fund",er:1.55,yld:0.0,sponsor:"DWS",dom:"LU",ucits:true,ccy:"CHF",family:"dws-kaldemorgen"},
+  {tkr:"JPGMOC",name:"JPMorgan Investment Funds Global Macro Opportunities A CHF (hedged)",cls:"alternative",vehicle:"mutual_fund",er:1.70,yld:0.0,sponsor:"JPMorgan",dom:"LU",ucits:true,ccy:"CHF",family:"jpm-global-macro"},
+  {tkr:"MANTGRC",name:"Man AHL TargetRisk D CHF Hedged",cls:"alternative",vehicle:"mutual_fund",er:0.90,yld:0.0,sponsor:"Man Group",dom:"IE",ucits:true,ccy:"CHF",family:"man-ahl-targetrisk"},
+  {tkr:"MANTRDC",name:"Man AHL Trend Alternative DNY CHF Hedged",cls:"alternative",vehicle:"mutual_fund",er:1.30,yld:0.0,sponsor:"Man Group",dom:"IE",ucits:true,ccy:"CHF",family:"man-ahl-trend"},
+  {tkr:"PICTATC",name:"Pictet TR Atlas I CHF (hedged)",cls:"alternative",vehicle:"mutual_fund",er:1.60,yld:0.0,sponsor:"Pictet",dom:"LU",ucits:true,ccy:"CHF",family:"pictet-tr-atlas"},
+  {tkr:"PICTDAC",name:"Pictet TR Diversified Alpha I CHF (hedged)",cls:"alternative",vehicle:"mutual_fund",er:1.55,yld:0.0,sponsor:"Pictet",dom:"LU",ucits:true,ccy:"CHF",family:"pictet-tr-divalpha"},
+  {tkr:"SGAIBTC",name:"Schroder GAIA BlueTrend C CHF Hedged",cls:"alternative",vehicle:"mutual_fund",er:1.75,yld:0.0,sponsor:"Schroders",dom:"LU",ucits:true,ccy:"CHF",family:"gaia-bluetrend"},
+  {tkr:"SGAICBC",name:"Schroder GAIA Cat Bond C CHF Hedged",cls:"alternative",vehicle:"mutual_fund",er:1.45,yld:0.0,sponsor:"Schroders",dom:"LU",ucits:true,ccy:"CHF",family:"gaia-cat-bond"},
+  {tkr:"GAMSCBC",name:"GAM Star Cat Bond Institutional CHF Hedged",cls:"alternative",vehicle:"mutual_fund",er:1.15,yld:0.0,sponsor:"GAM",dom:"IE",ucits:true,ccy:"CHF",family:"gam-star-cat-bond"},
+  {tkr:"NORA10C",name:"Nordea 1 Alpha 10 MA Fund BI CHF (hedged)",cls:"alternative",vehicle:"mutual_fund",er:1.05,yld:0.0,sponsor:"Nordea",dom:"LU",ucits:true,ccy:"CHF",family:"nordea-alpha-10"},
+  {tkr:"BSFGEDC",name:"BlackRock Strategic Funds Global Event Driven A2 CHF Hedged",cls:"alternative",vehicle:"mutual_fund",er:1.60,yld:0.0,sponsor:"BlackRock",dom:"LU",ucits:true,ccy:"CHF",family:"bsf-event-driven"},
+  {tkr:"LUMMWTC",name:"Lumyna MW TOPS UCITS A CHF Hedged",cls:"alternative",vehicle:"mutual_fund",er:1.75,yld:0.0,sponsor:"Lumyna",dom:"IE",ucits:true,ccy:"CHF",family:"lumyna-mw-tops"},
+  {tkr:"JUPGARC",name:"Jupiter Merian Global Equity Absolute Return I CHF (hedged)",cls:"alternative",vehicle:"mutual_fund",er:0.90,yld:0.0,sponsor:"Jupiter",dom:"IE",ucits:true,ccy:"CHF",family:"jupiter-gear"},
+  {tkr:"ELEVARC",name:"Eleva Absolute Return Europe I CHF (hedged)",cls:"alternative",vehicle:"mutual_fund",er:1.50,yld:0.0,sponsor:"Eleva",dom:"LU",ucits:true,ccy:"CHF",family:"eleva-are"},
+  {tkr:"BNYGRRC",name:"BNY Mellon Global Real Return CHF Hedged",cls:"alternative",vehicle:"mutual_fund",er:1.10,yld:0.0,sponsor:"BNY Mellon",dom:"IE",ucits:true,ccy:"CHF",family:"bny-global-real-return"},
+
+
 ];
 
 // FUND METRICS ENRICHMENT — populate performance & risk stats on every
@@ -7972,8 +8214,14 @@ const CLASS_DEFAULTS = {
   crypto:       {mu:25.0, sigma:65.0, holdings:1,    aum:10,  beta:1.80, r1y:80.0, r3y:25.0, r5y:30.0, r10y:0.0}
 };
 
-// Explicit performance overrides for flagship funds (~2024 actuals, rounded)
+// Explicit performance overrides for flagship funds.
 // Format: {mu,sigma,holdings,aum(B USD),beta,r1y,r3y,r5y,r10y,maxDD,sharpe(optional)}
+// A trailing-return field of 0 is a SENTINEL meaning "the fund is younger than
+// this window"; enrichment converts it to null so it is never displayed or fed
+// to the model as a real 0.0% return. Figures are a point-in-time snapshot —
+// surface FUND_DATA_AS_OF wherever they are shown rather than implying they are
+// live market data.
+const FUND_DATA_AS_OF = "2024-12-31";
 const FUND_OVERRIDES = {
   // ─── US Large Cap Core ───
   VOO:{mu:10.5,sigma:15.0,holdings:503,aum:1100,beta:1.00,r1y:24.2,r3y:9.8,r5y:14.8,r10y:12.5,maxDD:-23.9},
@@ -8049,6 +8297,20 @@ const FUND_OVERRIDES = {
   HYG:{mu:7.0,sigma:9.0,holdings:1230,aum:14,beta:0.55,r1y:9.0,r3y:1.5,r5y:3.5,r10y:4.0,maxDD:-23.5},
   MUB:{mu:3.5,sigma:5.0,holdings:5550,aum:38,beta:0.05,r1y:3.0,r3y:-0.5,r5y:1.0,r10y:2.5,maxDD:-11.0},
   BIL:{mu:5.2,sigma:0.4,holdings:18,aum:38,beta:0.00,r1y:5.3,r3y:3.2,r5y:1.9,r10y:1.2,maxDD:-0.2},
+  // ─── 1940 Act ultra-short ETFs ───
+  JPST:{mu:5.3,sigma:0.5,holdings:700,aum:39,beta:0.02,r1y:5.5,r3y:3.6,r5y:2.6,r10y:0,maxDD:-1.0},
+  ICSH:{mu:5.3,sigma:0.5,holdings:400,aum:7.8,beta:0.02,r1y:5.5,r3y:3.6,r5y:2.5,r10y:1.8,maxDD:-1.0},
+  GBIL:{mu:5.0,sigma:0.3,holdings:40,aum:7.5,beta:0.00,r1y:5.2,r3y:3.3,r5y:2.2,r10y:0,maxDD:-0.3},
+  // ─── UCITS money market / ultra-short ───
+  // TER and fund size are the published figures; the return series uses the 0
+  // sentinel for windows a line has not run (converted to null = "n/a", never
+  // shown as a real 0.0% return). μ reflects the currency's short rate at the
+  // FUND_DATA_AS_OF basis, not a forecast.
+  XEON:{mu:3.0,sigma:0.3,holdings:1,aum:22.4,beta:0.00,r1y:3.8,r3y:2.4,r5y:1.3,r10y:0.4,maxDD:-0.1},
+  ERNE:{mu:3.4,sigma:0.6,holdings:280,aum:3.4,beta:0.02,r1y:4.1,r3y:2.3,r5y:1.4,r10y:0,maxDD:-1.2},
+  ERNA:{mu:5.0,sigma:0.6,holdings:340,aum:2.6,beta:0.02,r1y:5.4,r3y:3.4,r5y:2.4,r10y:0,maxDD:-1.4},
+  ERNS:{mu:4.8,sigma:0.6,holdings:200,aum:0.9,beta:0.02,r1y:5.1,r3y:3.2,r5y:2.0,r10y:0,maxDD:-1.3},
+  IB01:{mu:4.6,sigma:0.4,holdings:20,aum:8.5,beta:0.00,r1y:5.0,r3y:3.1,r5y:0,r10y:0,maxDD:-0.3},
   // ─── Real Estate ───
   VNQ:{mu:7.0,sigma:18.0,holdings:160,aum:35,beta:0.85,r1y:9.0,r3y:-1.5,r5y:4.0,r10y:6.5,maxDD:-35.0},
   // ─── Commodities ───
@@ -8073,7 +8335,208 @@ const FUND_OVERRIDES = {
   // ─── Crypto ───
   IBIT:{mu:35.0,sigma:62.0,holdings:1,aum:55,beta:1.85,r1y:120.0,r3y:0.0,r5y:0.0,r10y:0.0,maxDD:-22.0},
   FBTC:{mu:35.0,sigma:62.0,holdings:1,aum:20,beta:1.85,r1y:120.0,r3y:0.0,r5y:0.0,r10y:0.0,maxDD:-22.0},
-  ETHA:{mu:30.0,sigma:75.0,holdings:1,aum:5,beta:2.10,r1y:45.0,r3y:0.0,r5y:0.0,r10y:0.0,maxDD:-30.0}
+  ETHA:{mu:30.0,sigma:75.0,holdings:1,aum:5,beta:2.10,r1y:45.0,r3y:0.0,r5y:0.0,r10y:0.0,maxDD:-30.0},
+
+  // ─── Sponsor-depth additions: structural profile only (no curated trailing
+  //     returns — those fall back to class defaults like the rest of the tail) ───
+  // Vanguard style/size
+  VXF:{mu:9.5,sigma:20.0,holdings:3600,aum:20,beta:1.12,inception:2001},
+  VONG:{mu:12.5,sigma:19.0,holdings:390,aum:14,beta:1.11,inception:2010},
+  VONV:{mu:9.5,sigma:14.5,holdings:850,aum:10,beta:0.92,inception:2010},
+  VTHR:{mu:10.4,sigma:15.5,holdings:2800,aum:3.5,beta:1.02,inception:2010},
+  VTWG:{mu:9.0,sigma:22.5,holdings:1080,aum:1.0,beta:1.20,inception:2010},
+  VTWV:{mu:9.0,sigma:21.5,holdings:1420,aum:1.0,beta:1.16,inception:2010},
+  VOOG:{mu:12.0,sigma:18.0,holdings:230,aum:13,beta:1.09,inception:2010},
+  VOOV:{mu:9.5,sigma:14.5,holdings:400,aum:5.5,beta:0.92,inception:2010},
+  VIOO:{mu:9.5,sigma:21.0,holdings:600,aum:2.8,beta:1.15,inception:2010},
+  VIOG:{mu:9.5,sigma:22.0,holdings:340,aum:1.2,beta:1.17,inception:2010},
+  VIOV:{mu:9.5,sigma:21.5,holdings:460,aum:2.0,beta:1.14,inception:2010},
+  IVOO:{mu:10.0,sigma:18.5,holdings:400,aum:2.7,beta:1.08,inception:2010},
+  IVOG:{mu:10.0,sigma:19.5,holdings:230,aum:1.1,beta:1.10,inception:2010},
+  IVOV:{mu:10.0,sigma:18.5,holdings:290,aum:1.1,beta:1.06,inception:2010},
+  VIGI:{mu:8.5,sigma:15.0,holdings:350,aum:6.5,beta:0.80,inception:2016},
+  VFMF:{mu:10.0,sigma:17.0,holdings:600,aum:0.4,beta:1.00,inception:2018},
+  VFMO:{mu:11.0,sigma:19.0,holdings:600,aum:0.7,beta:1.05,inception:2018},
+  VFVA:{mu:10.0,sigma:19.5,holdings:750,aum:1.0,beta:1.08,inception:2018},
+  VFQY:{mu:10.5,sigma:16.5,holdings:450,aum:0.4,beta:0.98,inception:2018},
+  // Vanguard fixed income
+  BSV:{mu:4.3,sigma:2.5,holdings:2800,aum:33,beta:0.03,inception:2007},
+  BIV:{mu:4.8,sigma:6.0,holdings:2100,aum:22,beta:0.12,inception:2007},
+  BLV:{mu:5.2,sigma:12.0,holdings:3000,aum:6.0,beta:0.28,inception:2007},
+  VCRB:{mu:4.8,sigma:5.5,holdings:1600,aum:2.5,beta:0.10,inception:2023,r3y:0,r5y:0,r10y:0},
+  VPLS:{mu:5.3,sigma:6.0,holdings:1400,aum:1.0,beta:0.15,inception:2023,r3y:0,r5y:0,r10y:0},
+  VTES:{mu:3.2,sigma:1.5,holdings:1000,aum:1.5,beta:0.02,inception:2023,r3y:0,r5y:0,r10y:0},
+  VCEB:{mu:5.0,sigma:6.5,holdings:800,aum:0.6,beta:0.13,inception:2020,r5y:0,r10y:0},
+  // Vanguard cash
+  VUSB:{mu:4.9,sigma:0.8,holdings:700,aum:5.0,beta:0.01,inception:2021,r5y:0,r10y:0},
+  VMRXX:{mu:5.0,sigma:0.25,holdings:200,aum:200,beta:0.00},
+  // Vanguard active / balanced
+  VDIGX:{mu:9.5,sigma:13.0,holdings:45,aum:52,beta:0.83},
+  VEIPX:{mu:9.0,sigma:13.0,holdings:190,aum:55,beta:0.80},
+  VWNDX:{mu:9.5,sigma:17.0,holdings:130,aum:22,beta:1.02},
+  VWNFX:{mu:9.5,sigma:16.0,holdings:150,aum:50,beta:0.98},
+  VGHCX:{mu:8.5,sigma:14.5,holdings:100,aum:45,beta:0.70},
+  VASGX:{mu:8.5,sigma:14.0,holdings:4,aum:29,beta:0.80},
+  VSMGX:{mu:7.0,sigma:10.5,holdings:4,aum:33,beta:0.60},
+  VSCGX:{mu:5.8,sigma:7.5,holdings:4,aum:18,beta:0.40},
+  VASIX:{mu:4.8,sigma:5.0,holdings:4,aum:6.5,beta:0.20},
+  VTMFX:{mu:7.5,sigma:9.5,holdings:2,aum:9.0,beta:0.58},
+  // Vanguard UCITS
+  VWRP:{mu:9.0,sigma:15.0,holdings:3700,aum:14,beta:1.00},
+  VNRT:{mu:10.3,sigma:15.5,holdings:700,aum:4.0,beta:1.01},
+  VNRA:{mu:10.3,sigma:15.5,holdings:700,aum:2.0,beta:1.01},
+  // Fidelity sectors
+  FTEC:{mu:11.5,sigma:22.0,holdings:300,aum:13,beta:1.25,inception:2013},
+  FHLC:{mu:8.5,sigma:15.0,holdings:380,aum:2.6,beta:0.72,inception:2013},
+  FNCL:{mu:9.5,sigma:20.0,holdings:390,aum:2.0,beta:1.08,inception:2013},
+  FENY:{mu:8.0,sigma:26.0,holdings:110,aum:1.6,beta:1.02,inception:2013},
+  FDIS:{mu:10.0,sigma:20.0,holdings:290,aum:1.6,beta:1.20,inception:2013},
+  FSTA:{mu:7.5,sigma:13.0,holdings:100,aum:1.2,beta:0.58,inception:2013},
+  FIDU:{mu:9.5,sigma:18.0,holdings:350,aum:1.1,beta:1.05,inception:2013},
+  FUTY:{mu:7.5,sigma:15.0,holdings:70,aum:1.4,beta:0.55,inception:2013},
+  FMAT:{mu:8.0,sigma:19.5,holdings:120,aum:0.6,beta:1.05,inception:2013},
+  FCOM:{mu:9.0,sigma:19.0,holdings:120,aum:1.2,beta:1.05,inception:2013},
+  // Fidelity factors
+  FDVV:{mu:9.5,sigma:14.5,holdings:110,aum:4.5,beta:0.88,inception:2016},
+  FQAL:{mu:10.5,sigma:15.5,holdings:250,aum:1.2,beta:0.97,inception:2016},
+  FVAL:{mu:9.5,sigma:15.5,holdings:130,aum:1.5,beta:0.95,inception:2016},
+  FDLO:{mu:9.0,sigma:12.5,holdings:130,aum:1.0,beta:0.78,inception:2016},
+  FDMO:{mu:10.5,sigma:17.5,holdings:120,aum:0.4,beta:1.05,inception:2016},
+  FSMD:{mu:9.5,sigma:18.5,holdings:400,aum:1.5,beta:1.05,inception:2019},
+  FDRR:{mu:9.5,sigma:14.5,holdings:110,aum:0.5,beta:0.90,inception:2016},
+  FELG:{mu:10.8,sigma:15.5,holdings:200,aum:2.5,beta:1.02},
+  FDIG:{mu:14.0,sigma:45.0,holdings:40,aum:0.2,beta:1.70,inception:2022,r5y:0,r10y:0},
+  // Fidelity index mutual funds
+  FNILX:{mu:10.5,sigma:15.0,holdings:500,aum:10,beta:1.00,inception:2018},
+  FZIPX:{mu:9.5,sigma:20.0,holdings:2500,aum:2.0,beta:1.12,inception:2018},
+  FSPGX:{mu:12.5,sigma:19.0,holdings:390,aum:9.0,beta:1.11},
+  FLCOX:{mu:9.5,sigma:14.5,holdings:850,aum:8.0,beta:0.92},
+  FSSNX:{mu:9.0,sigma:21.0,holdings:1980,aum:9.0,beta:1.18},
+  FSMDX:{mu:10.0,sigma:18.5,holdings:820,aum:14,beta:1.08},
+  FTIHX:{mu:8.0,sigma:16.0,holdings:5200,aum:20,beta:0.85},
+  FSGGX:{mu:8.0,sigma:16.0,holdings:2300,aum:5.0,beta:0.85},
+  FIPDX:{mu:4.2,sigma:6.0,holdings:50,aum:6.5,beta:0.10},
+  FUAMX:{mu:4.3,sigma:6.5,holdings:30,aum:3.0,beta:0.08},
+  FUMBX:{mu:4.2,sigma:1.8,holdings:80,aum:2.5,beta:0.02},
+  FNBGX:{mu:4.6,sigma:14.0,holdings:35,aum:1.5,beta:0.25},
+  // Fidelity active
+  FBALX:{mu:8.0,sigma:11.0,holdings:1200,aum:39,beta:0.65},
+  FPURX:{mu:7.8,sigma:10.5,holdings:900,aum:29,beta:0.62},
+  FLPSX:{mu:9.0,sigma:15.5,holdings:800,aum:26,beta:0.85},
+  FMAGX:{mu:10.5,sigma:17.5,holdings:150,aum:29,beta:1.05},
+  FSELX:{mu:14.0,sigma:31.0,holdings:50,aum:22,beta:1.45},
+  FSPTX:{mu:12.5,sigma:24.0,holdings:130,aum:15,beta:1.28},
+  FSPHX:{mu:9.0,sigma:17.0,holdings:130,aum:9.0,beta:0.78},
+  FAGIX:{mu:7.0,sigma:9.5,holdings:500,aum:12,beta:0.55},
+  FSICX:{mu:5.8,sigma:7.0,holdings:1400,aum:7.0,beta:0.35},
+  // Fidelity cash
+  FDRXX:{mu:4.9,sigma:0.25,holdings:200,aum:250,beta:0.00},
+  FTEXX:{mu:3.2,sigma:0.30,holdings:400,aum:15,beta:0.00},
+  // Fidelity UCITS
+  FUSD:{mu:9.8,sigma:14.5,holdings:130,aum:1.2,beta:0.92,inception:2017},
+  FEME:{mu:8.5,sigma:17.0,holdings:180,aum:0.5,beta:0.90,inception:2017},
+  // iShares global sectors
+  IXN:{mu:11.5,sigma:21.0,holdings:130,aum:5.5,beta:1.22},
+  IXJ:{mu:8.5,sigma:14.0,holdings:120,aum:4.0,beta:0.68},
+  IXG:{mu:9.0,sigma:18.5,holdings:220,aum:0.5,beta:1.05},
+  IXC:{mu:8.0,sigma:23.0,holdings:60,aum:2.0,beta:0.95},
+  IXP:{mu:9.0,sigma:18.0,holdings:70,aum:0.4,beta:1.00},
+  MXI:{mu:8.0,sigma:19.0,holdings:110,aum:0.3,beta:1.00},
+  EXI:{mu:9.0,sigma:16.5,holdings:230,aum:0.6,beta:0.98},
+  KXI:{mu:7.0,sigma:12.5,holdings:100,aum:0.7,beta:0.55},
+  RXI:{mu:9.5,sigma:18.5,holdings:200,aum:0.4,beta:1.12},
+  JXI:{mu:7.0,sigma:14.0,holdings:70,aum:0.2,beta:0.55},
+  IGF:{mu:7.5,sigma:14.0,holdings:75,aum:3.5,beta:0.65},
+  // iShares US sectors
+  IYY:{mu:10.4,sigma:15.5,holdings:1100,aum:2.3,beta:1.02},
+  IYC:{mu:10.0,sigma:20.0,holdings:170,aum:1.6,beta:1.20},
+  IYK:{mu:7.5,sigma:13.0,holdings:55,aum:1.5,beta:0.58},
+  IYJ:{mu:9.5,sigma:18.0,holdings:180,aum:1.5,beta:1.05},
+  IYM:{mu:8.0,sigma:19.5,holdings:120,aum:0.6,beta:1.05},
+  IYZ:{mu:6.5,sigma:20.0,holdings:25,aum:0.4,beta:0.95},
+  IDU:{mu:7.5,sigma:15.0,holdings:45,aum:1.7,beta:0.55},
+  IYT:{mu:9.5,sigma:21.0,holdings:50,aum:0.7,beta:1.10},
+  IYG:{mu:9.5,sigma:20.0,holdings:100,aum:1.5,beta:1.10},
+  IHF:{mu:9.5,sigma:18.0,holdings:70,aum:0.6,beta:0.80},
+  IHE:{mu:8.0,sigma:15.0,holdings:40,aum:0.6,beta:0.68},
+  IEZ:{mu:7.0,sigma:32.0,holdings:35,aum:0.2,beta:1.30},
+  IGE:{mu:8.0,sigma:21.0,holdings:120,aum:0.6,beta:1.02},
+  PICK:{mu:7.5,sigma:27.0,holdings:230,aum:0.9,beta:1.18},
+  SLVP:{mu:7.0,sigma:38.0,holdings:35,aum:0.3,beta:1.05},
+  // iShares tech / thematic
+  IGV:{mu:12.0,sigma:24.0,holdings:120,aum:9.0,beta:1.20},
+  IGM:{mu:12.0,sigma:22.0,holdings:280,aum:5.5,beta:1.22},
+  IHAK:{mu:10.5,sigma:22.0,holdings:35,aum:0.9,beta:1.05,inception:2019},
+  IDRV:{mu:8.0,sigma:26.0,holdings:50,aum:0.3,beta:1.20,inception:2021,r5y:0,r10y:0},
+  // iShares style / size
+  IUSG:{mu:12.0,sigma:18.0,holdings:490,aum:20,beta:1.09},
+  IUSV:{mu:9.5,sigma:14.5,holdings:680,aum:19,beta:0.92},
+  IWY:{mu:13.0,sigma:19.5,holdings:110,aum:9.0,beta:1.12},
+  IWX:{mu:9.5,sigma:14.0,holdings:150,aum:1.5,beta:0.88},
+  IWL:{mu:10.8,sigma:15.5,holdings:200,aum:1.0,beta:1.00},
+  IWP:{mu:10.5,sigma:20.0,holdings:290,aum:15,beta:1.12},
+  IWS:{mu:9.5,sigma:17.5,holdings:700,aum:13,beta:1.00},
+  IWV:{mu:10.4,sigma:15.5,holdings:2500,aum:14,beta:1.02},
+  IWC:{mu:8.5,sigma:24.0,holdings:1400,aum:0.8,beta:1.22},
+  // iShares fixed income
+  ISTB:{mu:4.4,sigma:2.8,holdings:3000,aum:4.5,beta:0.04},
+  BINC:{mu:6.0,sigma:5.0,holdings:2000,aum:8.0,beta:0.30,inception:2023,r3y:0,r5y:0,r10y:0},
+  IGOV:{mu:3.0,sigma:8.0,holdings:750,aum:1.0,beta:0.15},
+  BGRN:{mu:4.6,sigma:6.0,holdings:400,aum:0.4,beta:0.12,inception:2018,r10y:0},
+  HYDB:{mu:6.5,sigma:8.0,holdings:900,aum:3.0,beta:0.45,inception:2017,r10y:0},
+  // iBonds Treasury ladder — vol scales with remaining term, then rolls to par
+  IBTF:{mu:4.5,sigma:0.8,holdings:20,aum:2.0,beta:0.01,inception:2023,r3y:0,r5y:0,r10y:0},
+  IBTG:{mu:4.3,sigma:1.6,holdings:20,aum:1.5,beta:0.02,inception:2023,r3y:0,r5y:0,r10y:0},
+  IBTH:{mu:4.3,sigma:2.4,holdings:20,aum:1.2,beta:0.03,inception:2023,r3y:0,r5y:0,r10y:0},
+  IBTI:{mu:4.3,sigma:3.2,holdings:20,aum:0.9,beta:0.04,inception:2023,r3y:0,r5y:0,r10y:0},
+  IBTJ:{mu:4.3,sigma:4.0,holdings:20,aum:0.7,beta:0.05,inception:2023,r3y:0,r5y:0,r10y:0},
+  IBTK:{mu:4.3,sigma:4.8,holdings:20,aum:0.5,beta:0.06,inception:2023,r3y:0,r5y:0,r10y:0},
+  IBTL:{mu:4.3,sigma:5.6,holdings:20,aum:0.4,beta:0.07,inception:2023,r3y:0,r5y:0,r10y:0},
+  // iShares buywrite overlays
+  TLTW:{mu:7.0,sigma:12.0,holdings:2,aum:1.0,beta:0.15,inception:2022,r5y:0,r10y:0},
+  HYGW:{mu:7.5,sigma:7.0,holdings:2,aum:0.3,beta:0.35,inception:2022,r5y:0,r10y:0},
+  LQDW:{mu:6.0,sigma:6.0,holdings:2,aum:0.3,beta:0.20,inception:2022,r5y:0,r10y:0},
+  // iShares UCITS
+  WSML:{mu:9.0,sigma:18.0,holdings:3300,aum:4.5,beta:1.05,inception:2018},
+  AGGU:{mu:4.6,sigma:5.0,holdings:9000,aum:3.0,beta:0.08,inception:2019},
+  IEGA:{mu:3.2,sigma:5.5,holdings:400,aum:4.0,beta:0.10},
+  // --- UCITS alternatives. maxDD is set explicitly where the sigma-derived
+  //     default would understate a real historical drawdown (listed PE in the
+  //     GFC, cat bonds in the 2017 hurricane season, CTAs in a trend reversal).
+  IPRV:{mu:9.0,sigma:25.0,holdings:80,aum:0.9,beta:1.20,maxDD:-60.0,inception:2007},
+  DWSCK:{mu:5.5,sigma:8.0,holdings:250,aum:9.0,beta:0.35,maxDD:-14.0,inception:2011},
+  JPGMO:{mu:5.0,sigma:7.5,holdings:300,aum:2.5,beta:0.20,maxDD:-12.0,inception:2013},
+  MANTGR:{mu:5.5,sigma:9.0,holdings:60,aum:2.0,beta:0.35,maxDD:-15.0,inception:2014},
+  MANTRD:{mu:6.0,sigma:12.0,holdings:80,aum:1.5,beta:0.05,maxDD:-18.0,inception:2015},
+  PICTAT:{mu:5.0,sigma:5.5,holdings:200,aum:3.0,beta:0.10,maxDD:-9.0,inception:2014},
+  PICTDA:{mu:4.8,sigma:4.5,holdings:400,aum:1.5,beta:0.15,maxDD:-8.0,inception:2018},
+  SGAIBT:{mu:6.0,sigma:13.0,holdings:150,aum:0.9,beta:0.05,maxDD:-20.0,inception:2012},
+  SGAICB:{mu:7.0,sigma:5.0,holdings:120,aum:1.3,beta:0.05,maxDD:-16.0,inception:2013},
+  GAMSCB:{mu:6.8,sigma:4.5,holdings:100,aum:2.5,beta:0.05,maxDD:-14.0,inception:2017},
+  NORA10:{mu:5.2,sigma:5.0,holdings:500,aum:1.2,beta:0.20,maxDD:-9.0,inception:2017},
+  BSFGED:{mu:5.5,sigma:6.5,holdings:180,aum:1.8,beta:0.25,maxDD:-11.0,inception:2015},
+  LUMMWT:{mu:6.5,sigma:8.0,holdings:400,aum:3.0,beta:0.25,maxDD:-12.0,inception:2013},
+  JUPGAR:{mu:4.8,sigma:6.0,holdings:300,aum:0.6,beta:0.05,maxDD:-12.0,inception:2009},
+  ELEVAR:{mu:5.5,sigma:6.5,holdings:120,aum:2.0,beta:0.20,maxDD:-11.0,inception:2018},
+  BNYGRR:{mu:5.0,sigma:6.0,holdings:300,aum:3.5,beta:0.30,maxDD:-12.0,inception:2010},
+  // --- CHF-hedged classes: derived from the base override, mu net of hedge carry ---
+  DWSCKC:{mu:3,sigma:8,holdings:250,aum:9,beta:0.35,maxDD:-14,inception:2011},
+  JPGMOC:{mu:2.5,sigma:7.5,holdings:300,aum:2.5,beta:0.2,maxDD:-12,inception:2013},
+  MANTGRC:{mu:1.5,sigma:9,holdings:60,aum:2,beta:0.35,maxDD:-15,inception:2014},
+  MANTRDC:{mu:2,sigma:12,holdings:80,aum:1.5,beta:0.05,maxDD:-18,inception:2015},
+  PICTATC:{mu:2.5,sigma:5.5,holdings:200,aum:3,beta:0.1,maxDD:-9,inception:2014},
+  PICTDAC:{mu:2.3,sigma:4.5,holdings:400,aum:1.5,beta:0.15,maxDD:-8,inception:2018},
+  SGAIBTC:{mu:2,sigma:13,holdings:150,aum:0.9,beta:0.05,maxDD:-20,inception:2012},
+  SGAICBC:{mu:3,sigma:5,holdings:120,aum:1.3,beta:0.05,maxDD:-16,inception:2013},
+  GAMSCBC:{mu:2.8,sigma:4.5,holdings:100,aum:2.5,beta:0.05,maxDD:-14,inception:2017},
+  NORA10C:{mu:2.7,sigma:5,holdings:500,aum:1.2,beta:0.2,maxDD:-9,inception:2017},
+  BSFGEDC:{mu:1.5,sigma:6.5,holdings:180,aum:1.8,beta:0.25,maxDD:-11,inception:2015},
+  LUMMWTC:{mu:2.5,sigma:8,holdings:400,aum:3,beta:0.25,maxDD:-12,inception:2013},
+  JUPGARC:{mu:0.8,sigma:6,holdings:300,aum:0.6,beta:0.05,maxDD:-12,inception:2009},
+  ELEVARC:{mu:3,sigma:6.5,holdings:120,aum:2,beta:0.2,maxDD:-11,inception:2018},
+  BNYGRRC:{mu:2.5,sigma:6,holdings:300,aum:3.5,beta:0.3,maxDD:-12,inception:2010},
+
+
 };
 
 // Deterministic per-ticker hash for stable jitter
@@ -8084,8 +8547,19 @@ function _fundHash(tkr){
 }
 
 // Enrich every fund in-place with full metric set
+// Risk-free rate by currency, anchored to the same 2024-12-31 as FUND_DATA_AS_OF.
+// Sharpe has to be measured against the risk-free of the fund's OWN currency: a
+// CHF-hedged share class earns the (negative) CHF-vs-USD rate differential, so
+// against a flat USD 4.5% yardstick every hedged class looks like a bad fund
+// rather than the same fund in a different currency. Covered interest parity
+// means the base and hedged classes of one strategy then score the SAME Sharpe,
+// which is the correct answer and is asserted by a check in the release script.
+const RISK_FREE_BY_CCY = {
+  USD:4.5, EUR:3.0, CHF:0.5, GBP:4.75, JPY:0.25, SGD:3.0,
+  HKD:4.5, AUD:4.35, CAD:3.25, SEK:2.5, NOK:4.5, DKK:2.6
+};
+
 (function enrichAllFunds(){
-  const rf = 4.5; // risk-free rate, %
   AI_FUND_UNIVERSE.forEach(f => {
     const d = CLASS_DEFAULTS[f.cls] || CLASS_DEFAULTS.equity;
     const ov = FUND_OVERRIDES[f.tkr] || {};
@@ -8107,13 +8581,24 @@ function _fundHash(tkr){
     f.r5y      = ov.r5y      ?? +(d.r5y  + j[2]*4).toFixed(2);
     f.r10y     = ov.r10y     ?? +(d.r10y + j[3]*3).toFixed(2);
     f.maxDD    = ov.maxDD    ?? -(+(f.sigma * 2.0 * (1 + Math.abs(j[4])*0.5)).toFixed(1));
+    const rf   = RISK_FREE_BY_CCY[(f.ccy || "USD").toUpperCase()] ?? RISK_FREE_BY_CCY.USD;
     f.sharpe   = ov.sharpe   ?? +((f.mu - rf) / Math.max(0.5, f.sigma)).toFixed(2);
     // Tracking error: active mutual funds 1.5-4%, ETFs <0.3%
     f.te = ov.te ?? (f.vehicle === "mutual_fund"
       ? +(1.5 + (h % 25) / 10).toFixed(2)
       : +(0.05 + (h % 25) / 100).toFixed(2));
-    // Inception year — flagships before 2010, others 2010-2022
-    f.inception = ov.inception ?? (FUND_OVERRIDES[f.tkr] ? 2005 : 2010 + (h % 13));
+    // Trailing returns: FUND_OVERRIDES uses 0.0 as a "fund is younger than this
+    // period" sentinel. Left as 0.0 it renders as a real 0.0% annualized return
+    // (e.g. a 2024-launched fund showing "10y: 0.0%") and drags portfolio
+    // aggregates toward zero. Normalize the sentinel to null = no track record.
+    ["r1y","r3y","r5y","r10y"].forEach(k => {
+      if(ov[k] === 0) f[k] = null;
+    });
+    // Inception year — only when actually curated. It used to be fabricated
+    // (every override fund got 2005, everything else 2010+hash), which stated a
+    // false launch year for funds that launched in 2024 and fed an "inception
+    // >= 5 years ago" quality screen with invented data.
+    f.inception = ov.inception ?? null;
     // Income type — derive from yield
     f.income = f.yld >= 4 ? "high" : (f.yld >= 2 ? "moderate" : "low");
   });
@@ -8683,8 +9168,8 @@ function buildExpandedRationale(p, fund, simpleBrief, rec){
 // ═══════════════════════════════════════════════════════════
 
 // Sentiment lexicons (same as admin)
-const ENG_POS_WORDS = {"overweight":3,"overweigh":3,"long":2,"bullish":3,"favor":2,"prefer":2,"outperform":2,"buy":2,"attractive":2,"compelling":2,"upside":2,"tailwind":2,"constructive":2,"high conviction":3,"structural growth":3,"tactical overweight":3,"strategic overweight":3,"best ideas":2,"top pick":3,"recommend":2,"accumulate":2,"add":1};
-const ENG_NEG_WORDS = {"underweight":3,"underweigh":3,"short":2,"bearish":3,"avoid":2,"cautious":2,"underperform":2,"sell":2,"expensive":1,"stretched":2,"headwind":2,"downside":2,"negative":1,"high conviction underweight":4,"tactical underweight":3,"structural underweight":3,"underperforming":2,"reduce":1,"trim":1,"exit":2};
+const ENG_POS_WORDS = {"overweight":3,"overweigh":3,"long position":2,"net long":3,"bullish":3,"favor":2,"prefer":2,"outperform":2,"buy":2,"attractive":2,"compelling":2,"upside":2,"tailwind":2,"constructive":2,"high conviction":3,"structural growth":3,"tactical overweight":3,"strategic overweight":3,"best ideas":2,"top pick":3,"recommend":2,"accumulate":2,"add":1,"supportive":2,"accommodative":2,"dovish":2,"de-escalation":2,"soft landing":2,"resilient":2,"recovery":2,"disinflation":2};
+const ENG_NEG_WORDS = {"underweight":3,"underweigh":3,"short position":2,"net short":3,"bearish":3,"avoid":2,"cautious":2,"underperform":2,"sell":2,"expensive":1,"stretched":2,"headwind":2,"downside":2,"negative":1,"high conviction underweight":4,"tactical underweight":3,"structural underweight":3,"underperforming":2,"reduce":1,"trim":1,"exit":2,"restrictive":2,"hawkish":2,"escalation":2,"recession":3,"stagflation":3,"hard landing":3,"deterioration":2,"fragile":2,"elevated risk":2,"widening":1};
 
 const ENG_CLASS_KEYWORDS = {
   equity: ["equit","stocks","stock market","S&P","S&P 500","SPY","russell","Magnificent 7","large-cap","small-cap","mid-cap","value stocks","growth stocks","dividend grow","dividend payer"],
@@ -8710,6 +9195,112 @@ const ENG_THEME_KEYWORDS = {
   cybersecurity:["cybersecurity","cyber","CRWD","PANW","ZS"]
 };
 
+// ── 5-bucket points system (ported from the admin engine — keep in sync) ──
+
+const ENG_DRIVER_KEYWORDS = {
+  cycle:        ["business cycle","late cycle","late-cycle","early cycle","early-cycle","mid-cycle","cycle turn","expansion phase","recovery","slowdown","soft landing","hard landing","recession","downturn"],
+  rates:        ["rates","interest rate","policy rate","fed funds","rate environment","rate path","yield curve","rate cut","rate hike","duration","terminal rate","FOMC","ECB","real yield","tightening","easing","hawkish","dovish","restrictive","accommodative"],
+  inflation:    ["inflation","CPI","PCE","disinflation","deflation","price pressure","wage growth","stagflation"],
+  growth:       ["GDP","economic growth","labor market","payroll","PMI","consumer spending","capex cycle"],
+  geopolitics:  ["geopolit","war","conflict","sanction","tariff","trade tension","trade war","political risk","escalation","de-escalation","supply disruption"],
+  fx:           ["dollar","USD","currency","exchange rate","euro","yen","FX","dedollariz","currency hedg"],
+  credit:       ["credit spread","default rate","credit cycle","leverage","refinanc","credit condition","spreads remain tight","spread widening"],
+  valuation:    ["valuation","multiple","P/E","price-to-earnings","expensive","cheap","rich valuation","discount to NAV"],
+  earnings:     ["earnings","EPS","profit margin","revenue growth","guidance","earnings breadth","margin resilience"],
+  liquidity:    ["liquidity","fund flows","positioning","risk appetite","volatility regime"],
+  policy:       ["fiscal","deficit","government spending","tax policy","stimulus","regulation","monetary policy","central bank"]
+};
+
+const ENG_SECTOR_KEYWORDS = {
+  technology: ["technology","tech","software","semiconductor","AI","artificial intelligence","NVDA","MSFT","GOOGL","META","TSM","cybersecurity","XLK","QQQ"],
+  healthcare: ["health","pharma","biotech","medical device","GLP-1","longevity","gene therapy","LLY","NOVO","XLV"],
+  financials: ["financial","bank","insurance","fintech","JPM","BAC","XLF"],
+  energy: ["energy","oil","gas","E&P","XOM","CVX","XLE"],
+  industrials: ["industrial","aerospace","defense","LMT","RTX","BA","NOC","reshoring"],
+  consumer_discretionary: ["consumer discretionary","retail","auto","AMZN","TSLA"],
+  consumer_staples: ["consumer staples","staples","KO","PG","XLP"],
+  utilities: ["utilities","power","grid","XLU"],
+  real_estate_sector: ["REIT","real estate","SPG"],
+  comm_services: ["communications","comm services","telco","XLC"],
+  materials: ["materials","metals","mining","XLB"]
+};
+
+const DRIVER_PHRASING = {
+  cycle:       {ow:"cycle supportive",        uw:"late-cycle / slowdown risk",  n:"cycle mixed"},
+  rates:       {ow:"rates a tailwind",        uw:"rates a headwind",            n:"rates balanced"},
+  geopolitics: {ow:"geopolitical risk easing",uw:"geopolitical risk elevated",  n:"geopolitical risk contained"},
+  fx:          {ow:"FX supportive",           uw:"FX a headwind",               n:"FX neutral"},
+  inflation:   {ow:"disinflation supportive", uw:"inflation pressure",          n:"inflation stable"},
+  credit:      {ow:"credit conditions easy",  uw:"credit conditions tightening",n:"credit conditions stable"},
+  valuation:   {ow:"valuations supportive",   uw:"valuations stretched",        n:"valuations fair"},
+  growth:      {ow:"growth resilient",        uw:"growth deteriorating",        n:"growth steady"}
+};
+
+function driverPhrase(signals, key){
+  const e = bucketPoints(signals, "drivers", key);
+  const map = DRIVER_PHRASING[key];
+  if(!map) return null;
+  if(!e || e.total === 0) return null;   // never assert a backdrop with no evidence
+  const word = e.stance === "overweight" ? map.ow : (e.stance === "underweight" ? map.uw : map.n);
+  return `${word} (${e.ow}/${e.neutral}/${e.uw} OW·N·UW across ${e.providerCount} source${e.providerCount>1?"s":""})`;
+}
+
+function marketContextLine(signals){
+  const parts = ["cycle","rates","geopolitics","fx"].map(k => driverPhrase(signals, k)).filter(Boolean);
+  return parts.length ? "Backdrop: " + parts.join("; ") : "";
+}
+
+function bucketPoints(signals, bucket, key){
+  return (signals.points && signals.points[bucket] && signals.points[bucket][key]) || null;
+}
+
+function bucketStance(signals, bucket, key){
+  const e = bucketPoints(signals, bucket, key);
+  return e ? e.stance : "neutral";
+}
+
+function stanceScore(signals, bucket, key){
+  const e = bucketPoints(signals, bucket, key);
+  if(!e) return 0;
+  // Scaled by conviction so a 5-1 split counts for more than a 3-2 split.
+  return e.stance === "overweight" ? e.conviction : (e.stance === "underweight" ? e.conviction : 0);
+}
+
+function fundBucketKeys(f){
+  const hay = ((f.name||"") + " " + (f.tkr||"")).toLowerCase();
+  const regions = [];
+  const r = (f.region||"").toLowerCase();
+  if(/\bus\b|\bu\.s\.?|\busa\b|domestic|total market|total stock market|s&p|\b500\b|\brussell\b|dow jones|nasdaq/.test(r + " " + hay)) regions.push("us");
+  if(/europe|eafe|developed international|ex-us/.test(r + " " + hay)) regions.push("europe","developed_intl");
+  if(/emerging|\bem\b/.test(r + " " + hay)) regions.push("emerging");
+  if(/japan/.test(hay)) regions.push("japan");
+  if(/china/.test(hay)) regions.push("china");
+  if(/india/.test(hay)) regions.push("india");
+  const sectors = [];
+  if(/tech|semiconductor|software|\bxlk\b|qqq|nasdaq.?100|\bsoxx\b|\bsmh\b/.test(hay)) sectors.push("technology");
+  if(/health|biotech|pharma|\bxlv\b/.test(hay)) sectors.push("healthcare");
+  if(/financ|bank|\bxlf\b/.test(hay)) sectors.push("financials");
+  if(/energy|\boil\b|\bxle\b/.test(hay)) sectors.push("energy");
+  if(/industrial|aerospace|defen|\bxli\b/.test(hay)) sectors.push("industrials");
+  if(/utilit|\bxlu\b/.test(hay)) sectors.push("utilities");
+  if(/real estate|reit|\bxlre\b|\bschh\b/.test(hay)) sectors.push("real_estate_sector");
+  if(/material|mining|\bxlb\b/.test(hay)) sectors.push("materials");
+  if(/staple|\bxlp\b/.test(hay)) sectors.push("consumer_staples");
+  if(/discretionary|\bxly\b/.test(hay)) sectors.push("consumer_discretionary");
+  const themes = [];
+  if(/\bai\b|artificial intelligence|semiconductor|robot|data cent|\bsoxx\b|\bsmh\b|\bbotz\b|\baiq\b/.test(hay)) themes.push("ai");
+  if(/clean|solar|renewab|\besg\b|sustainab|\bicln\b|\btan\b/.test(hay)) themes.push("decarbonization");
+  if(/cyber|\bcrwd\b|\bpanw\b|hack|\bbug\b/.test(hay)) themes.push("cybersecurity");
+  if(/defen|aerospace|\bita\b|\bppa\b/.test(hay)) themes.push("defense");
+  if(/dividend|\bvig\b|\bschd\b|\bvym\b/.test(hay)) themes.push("dividend_growth");
+  if(/quality|qual/.test(hay)) themes.push("quality_factor");
+  if(/bitcoin|crypto|\bibit\b|\bfbtc\b|\beth\b|ethereum/.test(hay)) themes.push("cryptocurrency");
+  if(/water|infrastructure|\bpho\b|\bigf\b/.test(hay)) themes.push("water_infrastructure");
+  return {regions, sectors, themes};
+}
+
+function engPrettyDriver(k){ return String(k).replace(/_/g," ").replace(/\b\w/g, c => c.toUpperCase()); }
+
 // Pretty labels
 const ENG_PRETTY_CLASS = {equity:"Equity",fixed_income:"Fixed Income",real_estate:"Real Estate",commodity:"Commodity",cash:"Cash",mixed:"Mixed",alternative:"Alternative"};
 const ENG_PRETTY_THEME = {ai:"Artificial Intelligence",decarbonization:"Decarbonization",healthcare_innovation:"Healthcare Innovation",defense:"Defense",cybersecurity:"Cybersecurity"};
@@ -8718,26 +9309,136 @@ const ENG_PRETTY_REGION = {us:"US",europe:"Europe",japan:"Japan",china:"China",i
 // Universe ticker set for mention detection
 const ENG_KNOWN_TICKERS = new Set([...AI_FUND_UNIVERSE.map(f=>f.tkr),"NVDA","MSFT","GOOGL","GOOG","META","AAPL","TSLA","AMZN","JPM","BAC","XOM","CVX","LLY","NOVO","LMT","RTX","CRWD","PANW","ZS","UNH","JNJ","TSM","ASML"]);
 
+
+// ── Matching primitives (see admin.html for the full rationale) ────────────
+// Word boundaries stop "overweight" from also firing the truncated "overweigh"
+// entry; longest-phrase-wins stops "tactical overweight" scoring 3+3(+3);
+// acronyms match case-sensitively so the "AI" keyword no longer fires on the
+// letters inside "sustainable", "maintain", "against", "remains", "supply chain".
+function _engEsc(s){ return String(s).replace(/[.*+?^${}()|[\]\\]/g, "\\$&"); }
+// A phrase is treated as an acronym when it is short and mostly capitals (AI,
+// EM, US, ML, HY, IG, REIT, CTA, BDC, S&P, NVDA…).
+function _engIsAcronym(ph){ return /^[A-Z][A-Z0-9&.\-]{0,5}$/.test(String(ph).trim()); }
+// allowTail=true is used for TOPIC keywords so noun stems still match their
+// inflections (bond→bonds, equit→equities, tech→technology). Sentiment words
+// use allowTail=false so "add" cannot match "additional" or "long" match
+// "longevity". Acronyms only ever admit a plural "s" — "AI" must not match
+// "AIG", and case-sensitivity keeps it off "sustainable"/"maintain"/"chain".
+// Compiled patterns are memoized: a full aggregation runs every lexicon phrase
+// against every item (~480 items x ~200 phrases), so recompiling each time was
+// the dominant cost.
+const _engRxCache = new Map();
+function _engPhraseRegex(ph, flags, allowTail){
+  const p = String(ph).trim();
+  const key = p + "\u0000" + (flags || "") + "\u0000" + (allowTail ? 1 : 0);
+  let re = _engRxCache.get(key);
+  if(!re){
+    const lead = /^\w/.test(p) ? "\\b" : "";
+    const tail = !/\w$/.test(p) ? ""                    // ends in punctuation (U.S., S&P.)
+      : _engIsAcronym(p) ? "(?:s)?\\b"
+      : allowTail ? "\\w*"
+      : "\\b";
+    re = new RegExp(lead + _engEsc(p) + tail, (_engIsAcronym(p) ? "" : "i") + (flags || ""));
+    _engRxCache.set(key, re);
+  }
+  // A cached /g/ regex carries lastIndex between calls — reset or exec() would
+  // resume mid-string and silently skip matches.
+  re.lastIndex = 0;
+  return re;
+}
+// Sentiment for one span of text: every lexicon phrase is matched with word
+// boundaries, longest first, and a shorter phrase overlapping an already-matched
+// span is skipped so nothing is counted twice.
+function _engScoreSentiment(span){
+  const entries = [];
+  for(const [w, wt] of Object.entries(ENG_POS_WORDS)) entries.push({w, wt, sign: 1});
+  for(const [w, wt] of Object.entries(ENG_NEG_WORDS)) entries.push({w, wt, sign: -1});
+  entries.sort((a, b) => b.w.length - a.w.length);
+  const taken = [];
+  let score = 0;
+  for(const e of entries){
+    const re = _engPhraseRegex(e.w, "g");
+    let m, hit = false;
+    while((m = re.exec(span)) !== null){
+      const s = m.index, t = s + m[0].length;
+      if(taken.some(r => s < r[1] && t > r[0])) continue; // inside a longer phrase
+      taken.push([s, t]);
+      hit = true;
+    }
+    if(hit) score += e.sign * e.wt; // presence-weighted, matching the original calibration
+  }
+  return score;
+}
+// Split an item into clauses so a single item can express opposite views, e.g.
+// "Overweight Technology, Financials; Underweight Real Estate, Utilities" —
+// which previously netted to sentiment 0 and then defaulted every one of those
+// five sectors to +1, recording the underweights as bullish.
+function _engClauses(text){
+  // Decimal points and dotted abbreviations must not create clause boundaries.
+  // Splitting naively on "." shattered "ER 0.03%" into "ER 0" / "03%" and
+  // "U.S. equities" into "U" / "S" / "equities", which separated a topic from
+  // the sentiment word describing it — in a mixed item that misattributed the
+  // direction (e.g. "Equities returned 8.5% and remain attractive; real estate
+  // underweight" scored equities NEGATIVE). Protect them, split, then restore.
+  const PH = String.fromCharCode(1); // sentinel that cannot occur in research text
+  const guarded = String(text)
+    .replace(/(\d)\.(\d)/g, "$1" + PH + "$2")                  // 0.03, 4.5, 8.5
+    .replace(/\b([A-Za-z])\.(?=[A-Za-z]\.)/g, "$1" + PH)       // U.S. / e.g. (first dot)
+    .replace(/\b([A-Za-z])\.(?=\s|$)/g, "$1" + PH);            // trailing single-letter abbrev
+  return guarded
+    .split(/[;.]|\s+(?:but|while|whereas|although|though|versus|vs\.?)\s+/i)
+    .map(s => s.split(PH).join(".").trim())
+    .filter(Boolean);
+}
+
+// Phrases that must NOT count as a mention of a topic. These are terms that
+// contain a topic keyword but mean something else entirely — "free cash flow"
+// is a fundamentals metric, not the cash asset class; "dividend yield" is an
+// equity metric, not fixed income. Without these the engine voted the wrong
+// asset class on very common research prose.
+const ENG_TOPIC_EXCLUSIONS = {
+  cash:         /\bcash[-\s]?flows?\b/gi,
+  fixed_income: /\bdividend[-\s]yields?\b|\bearnings\syield\b|\bfree\scash\sflow\syield\b/gi
+};
+function _engScrub(text, key){
+  const ex = ENG_TOPIC_EXCLUSIONS[key];
+  return ex ? String(text).replace(ex, " ") : text;
+}
 function engExtractItemSignals(item, providerName){
-  const text = ((item.title||"")+" "+(item.summary||"")).toLowerCase();
   const rawText = (item.title||"")+" "+(item.summary||"");
-  let pos=0, neg=0;
-  for(const [w,wt] of Object.entries(ENG_POS_WORDS)) if(text.includes(w)) pos+=wt;
-  for(const [w,wt] of Object.entries(ENG_NEG_WORDS)) if(text.includes(w)) neg+=wt;
-  const sentiment = pos - neg;
-  const sig = {classes:{},regions:{},themes:{},tickers:[],sentiment,providerName,item};
-  function detect(map, container){
-    for(const [k,phrases] of Object.entries(map)){
-      if(phrases.some(ph=>text.includes(ph.toLowerCase()))){
-        container[k] = (container[k]||0) + (sentiment!==0?sentiment:1);
+  const itemSentiment = _engScoreSentiment(rawText);
+  const clauses = _engClauses(rawText).map(c => ({text:c, sent:_engScoreSentiment(c)}));
+  // Magnitude is kept for the allocation tilt it calibrates; the 3-point stance
+  // (+1 overweight / 0 neutral / -1 underweight) is what the points system
+  // aggregates, because it is comparable across sources and buckets.
+  const sig = {classes:{},sectors:{},regions:{},themes:{},drivers:{},
+               stances:{classes:{},sectors:{},regions:{},themes:{},drivers:{}},
+               tickers:[],sentiment:itemSentiment,providerName,item};
+  const toStance = v => (v > 0 ? 1 : (v < 0 ? -1 : 0));
+  function voteFor(phrases, key){
+    let matched = false, best = null;
+    for(const c of clauses){
+      const t = _engScrub(c.text, key);
+      if(phrases.some(ph => _engPhraseRegex(ph, "", true).test(t))){
+        matched = true;
+        if(c.sent !== 0 && (best === null || Math.abs(c.sent) > Math.abs(best))) best = c.sent;
       }
     }
+    if(!matched && phrases.some(ph => _engPhraseRegex(ph, "", true).test(_engScrub(rawText, key)))) matched = true;
+    if(!matched) return null;
+    return best !== null ? best : itemSentiment;
   }
-  detect(ENG_CLASS_KEYWORDS, sig.classes);
-  detect(ENG_REGION_KEYWORDS, sig.regions);
-  for(const [k,phrases] of Object.entries(ENG_THEME_KEYWORDS)){
-    if(phrases.some(ph=>text.includes(ph.toLowerCase()))) sig.themes[k] = (sig.themes[k]||0)+1;
+  function detect(map, container, bucket){
+    for(const [k,phrases] of Object.entries(map)){
+      const v = voteFor(phrases, k);
+      if(v !== null){ container[k] = (container[k]||0) + v; sig.stances[bucket][k] = toStance(v); }
+    }
   }
+  detect(ENG_CLASS_KEYWORDS,  sig.classes, "classes");
+  detect(ENG_SECTOR_KEYWORDS, sig.sectors, "sectors");
+  detect(ENG_REGION_KEYWORDS, sig.regions, "regions");
+  detect(ENG_DRIVER_KEYWORDS, sig.drivers, "drivers");
+  detect(ENG_THEME_KEYWORDS,  sig.themes,  "themes");
   // Ticker mention extract
   const matches = rawText.match(/\b[A-Z]{2,5}\b/g) || [];
   sig.tickers = matches.filter(t => ENG_KNOWN_TICKERS.has(t));
@@ -8748,25 +9449,56 @@ function engAggregateSignals(){
   // Read research from admin's shared cache
   let cfg = {};
   try { cfg = JSON.parse(localStorage.getItem("wa_research_config")||"{}"); } catch(_){}
-  const agg = {classes:{},regions:{},themes:{},tickers:{},totalItems:0,providerCount:0,providers:[]};
+  const agg = {classes:{},sectors:{},regions:{},themes:{},drivers:{},tickers:{},
+               // 3-point tally per bucket key — the layer the decision reads
+               points:{classes:{},sectors:{},regions:{},themes:{},drivers:{}},
+               totalItems:0, scoredItems:0, sharedDuplicatesSkipped:0,
+               providerCount:0, providers:[]};
   function bump(container, key, vote, providerName, item){
     if(!container[key]) container[key] = {votes:0, providers:new Set(), items:[]};
     container[key].votes += vote;
     container[key].providers.add(providerName);
     if(container[key].items.length < 5) container[key].items.push({title:(item.title||"").slice(0,120), provider:providerName});
   }
+  // One research view = one point, in exactly one of three columns.
+  function tally(bucket, key, stance, providerName){
+    const b = agg.points[bucket];
+    if(!b[key]) b[key] = {ow:0, neutral:0, uw:0, providers:new Set(), owProviders:new Set(), uwProviders:new Set()};
+    const e = b[key];
+    if(stance > 0){ e.ow++; e.owProviders.add(providerName); }
+    else if(stance < 0){ e.uw++; e.uwProviders.add(providerName); }
+    else e.neutral++;
+    e.providers.add(providerName);
+  }
+  const _sharedSeen = new Set();
   Object.entries(cfg).forEach(([pid, c]) => {
     if(c.enabled === false) return;
-    const items = (c.items || []).slice(0,30);
+    // Read EVERY cached item — this used to stop at the first 30 per provider,
+    // silently discarding most of the library.
+    const items = (c.items || []);
     if(items.length === 0) return;
     agg.providerCount++;
     agg.providers.push(pid);
     agg.totalItems += items.length;
     items.forEach(item => {
+      // Shared baseline themes come from one pool every provider draws on, so
+      // the same text recurs across sources. Counting it once per provider
+      // would manufacture consensus out of duplication.
+      if(item.shared){
+        const key = String(item.title || "").trim().toLowerCase();
+        if(_sharedSeen.has(key)){ agg.sharedDuplicatesSkipped++; return; }
+        _sharedSeen.add(key);
+      }
+      agg.scoredItems++;
       const sig = engExtractItemSignals(item, pid);
       Object.entries(sig.classes).forEach(([k,v]) => bump(agg.classes,k,v,pid,item));
+      Object.entries(sig.sectors).forEach(([k,v]) => bump(agg.sectors,k,v,pid,item));
       Object.entries(sig.regions).forEach(([k,v]) => bump(agg.regions,k,v,pid,item));
       Object.entries(sig.themes).forEach(([k,v]) => bump(agg.themes,k,v,pid,item));
+      Object.entries(sig.drivers).forEach(([k,v]) => bump(agg.drivers,k,v,pid,item));
+      Object.entries(sig.stances).forEach(([bucket, keys]) => {
+        Object.entries(keys).forEach(([k, st]) => tally(bucket, k, st, pid));
+      });
       sig.tickers.forEach(t => {
         if(!agg.tickers[t]) agg.tickers[t] = {count:0, providers:new Set()};
         agg.tickers[t].count++;
@@ -8774,9 +9506,35 @@ function engAggregateSignals(){
       });
     });
   });
+  // Resolve each bucket entry into a stance. Requires enough views in that
+  // direction (>=3), a clear net margin, and a lopsided split — so a couple of
+  // stray mentions cannot move a bucket.
+  Object.keys(agg.points).forEach(bucket => {
+    Object.entries(agg.points[bucket]).forEach(([key, e]) => {
+      e.providers = Array.from(e.providers);
+      e.owProviders = Array.from(e.owProviders);
+      e.uwProviders = Array.from(e.uwProviders);
+      e.providerCount = e.providers.length;
+      e.total = e.ow + e.neutral + e.uw;
+      e.net = e.ow - e.uw;
+      const directional = e.ow + e.uw;
+      e.conviction = directional ? +(e.net / directional).toFixed(2) : 0;
+      e.stance = (e.ow >= 3 && e.net >= 3 && e.conviction >= 0.5) ? "overweight"
+               : (e.uw >= 3 && e.net <= -3 && e.conviction <= -0.5) ? "underweight"
+               : "neutral";
+    });
+  });
   // Convert Sets → arrays + counts
-  function norm(c){ Object.values(c).forEach(o => { o.providers = Array.from(o.providers); o.providerCount = o.providers.length; }); }
-  norm(agg.classes); norm(agg.regions); norm(agg.themes);
+  function norm(c){ Object.values(c).forEach(o => {
+    o.providers = Array.from(o.providers);
+    o.providerCount = o.providers.length;
+    o.providersFor = Array.from(o.providersFor || []);
+    o.providersAgainst = Array.from(o.providersAgainst || []);
+    o.forCount = o.providersFor.length;
+    o.againstCount = o.providersAgainst.length;
+    o.agreeCount = o.votes > 0 ? o.forCount : (o.votes < 0 ? o.againstCount : 0);
+  }); }
+  norm(agg.classes); norm(agg.sectors); norm(agg.regions); norm(agg.themes); norm(agg.drivers);
   Object.values(agg.tickers).forEach(o => { o.providers = Array.from(o.providers); o.providerCount = o.providers.length; });
   return agg;
 }
@@ -8810,6 +9568,21 @@ function isFundEligibleForCountry(fund, country){
     return !fund.ucits && (!fund.dom || fund.dom === "US");
   }
   return fund.ucits === true || (fund.dom && fund.dom !== "US");
+}
+
+// Currency blocs — a CHF or DKK client is far better served by a EUR
+// money-market line than a USD one when no fund exists in their own currency,
+// because the FX exposure is a fraction of the size.
+const CCY_BLOC = {EUR:"EUR", CHF:"EUR", DKK:"EUR", SEK:"EUR", NOK:"EUR", PLN:"EUR",
+                  USD:"USD", CAD:"USD", HKD:"USD", SGD:"USD",
+                  GBP:"GBP", JPY:"JPY", AUD:"AUD"};
+const COUNTRY_CCY = {US:"USD", CA:"CAD", GB:"GBP", AU:"AUD", CH:"CHF", JP:"JPY",
+                     SG:"SGD", HK:"HKD", CN:"CNY", IN:"INR", BR:"BRL", MX:"MXN",
+                     ZA:"ZAR", SA:"SAR", KR:"KRW", TW:"TWD", ID:"IDR",
+                     DE:"EUR", FR:"EUR", IT:"EUR", ES:"EUR", NL:"EUR", BE:"EUR",
+                     AT:"EUR", IE:"EUR", PT:"EUR", FI:"EUR", GR:"EUR", LU:"EUR", EU:"EUR"};
+function clientCurrency(brief){
+  return (brief && (brief.currency || COUNTRY_CCY[(brief.country||"US").toUpperCase()])) || "USD";
 }
 
 function runDeterministicEngine(brief){
@@ -8851,6 +9624,28 @@ function runDeterministicEngine(brief){
   const eligibleUniverse = AI_FUND_UNIVERSE.filter(f => isFundEligibleForCountry(f, brief.country));
   const used = {sponsors: new Set()};
   const positions = [];
+  // Pre-flight: which sleeves can this client actually be sold? Non-US (UCITS)
+  // jurisdictions have NO eligible cash or alternative funds, so those sleeves
+  // were skipped silently and their weight swept up by the final
+  // renormalization — pushing a very-conservative Swiss client's ~9% cash into
+  // equities and bonds with no disclosure. Move it deliberately and report it.
+  const unfillableSleeves = [];
+  Object.entries(alloc).forEach(([cls, weight]) => {
+    if(weight < 2) return;
+    if(eligibleUniverse.filter(f => f.cls === cls).length === 0){
+      unfillableSleeves.push({cls, weight: +weight.toFixed(1)});
+      alloc[cls] = 0;
+    }
+  });
+  unfillableSleeves.forEach(({cls, weight}) => {
+    // Cash is the sleeve whose absence changes the risk profile most, so it
+    // goes to fixed income rather than being spread across risk assets.
+    if(cls === "cash" && alloc.fixed_income > 0){ alloc.fixed_income += weight; return; }
+    const rest = Object.entries(alloc).filter(([k, v]) => v > 0 && k !== cls);
+    const tot = rest.reduce((s, [, v]) => s + v, 0);
+    if(tot > 0) rest.forEach(([k, v]) => { alloc[k] += weight * v / tot; });
+  });
+
   Object.entries(alloc).forEach(([cls, weight]) => {
     if(weight < 2) return;
     let candidates = eligibleUniverse.filter(f => f.cls === cls);
@@ -8865,6 +9660,44 @@ function runDeterministicEngine(brief){
       const drawdownPen   = Math.max(0, (Math.abs(f.maxDD || 0) - 25) / 50);
       let score = erScore * 1.0 + sharpeScore * 1.8 + longReturn * 1.0 + aumScore * 0.6 + divScore * 0.4 - drawdownPen * 0.8;
       if(signals.tickers[f.tkr]){ score += 2 + (signals.tickers[f.tkr].count * 0.3); }
+      // ── Points-system alignment ────────────────────────────────────────
+      // Region, sector and theme points were computed and then discarded: only
+      // asset class and explicit ticker mentions moved selection. A fund now
+      // earns (or loses) score for sitting in a bucket the research is
+      // overweight (or underweight) on — conviction-scaled, capped at ±2 so a
+      // research-named fund still leads.
+      const _bk = fundBucketKeys(f);
+      let _align = 0;
+      _bk.regions.forEach(k => { _align += stanceScore(signals, "regions", k) * 0.8; });
+      _bk.sectors.forEach(k => { _align += stanceScore(signals, "sectors", k) * 0.6; });
+      _bk.themes.forEach(k  => { _align += stanceScore(signals, "themes",  k) * 0.5; });
+      score += Math.max(-2, Math.min(2, _align));
+      // ── Currency match on the CASH sleeve ────────────────────────────
+      // Sharpe uses a single USD risk-free, so a EUR money-market fund yielding
+      // 3% scores a NEGATIVE Sharpe against a USD fund yielding 5% and loses —
+      // which put a Swiss client's cash in unhedged USD. Nominal yields are not
+      // comparable across currencies, and cash is the one sleeve where the
+      // client's own currency is the entire point.
+      if(cls === "cash"){
+        const _want = clientCurrency(brief).toUpperCase();
+        const _has = (f.ccy || "USD").toUpperCase();
+        if(_has === _want) score += 3;
+        else if(CCY_BLOC[_want] && CCY_BLOC[_want] === CCY_BLOC[_has]) score += 1;
+        else score -= 2;
+      } else if(f.ccy){
+        // ── Currency tie-break on every OTHER sleeve ──────────────────────
+        // Only reaches funds that actually declare a currency, and is a BONUS
+        // with no matching penalty, so it can never push a worse strategy
+        // ahead of a better one. Narrower job than the cash rule: a CHF-hedged
+        // share class and its base are the same portfolio and now score the
+        // same Sharpe by construction, so something has to break the tie in
+        // favour of the client's own currency — otherwise a Swiss client gets
+        // the unhedged line and wears the FX risk the hedge exists to remove.
+        const _want = clientCurrency(brief).toUpperCase();
+        const _has = f.ccy.toUpperCase();
+        if(_has === _want) score += 0.5;
+        else if(CCY_BLOC[_want] && CCY_BLOC[_want] === CCY_BLOC[_has]) score += 0.15;
+      }
       if(used.sponsors.has(f.sponsor)) score -= 0.3;
       // Risk-profile fit
       if(brief.risk === "very_conservative" && f.sigma > 10) score -= 0.5;
@@ -8874,7 +9707,21 @@ function runDeterministicEngine(brief){
     });
     candidates.sort((a,b) => b._score - a._score);
     const n = weight >= 25 ? 3 : (weight >= 12 ? 2 : 1);
-    const picks = candidates.slice(0, n);
+    // Never take two share classes of the same fund. A CHF-hedged line and its
+    // base score almost identically — hedging preserves excess return, so their
+    // Sharpe matches by construction — which makes them the likeliest pair to be
+    // picked together. Holding both would show one position as two and read as
+    // diversification that is not there.
+    const picks = [];
+    const famSeen = new Set();
+    for(const cand of candidates){
+      if(picks.length >= n) break;
+      if(cand.family){
+        if(famSeen.has(cand.family)) continue;
+        famSeen.add(cand.family);
+      }
+      picks.push(cand);
+    }
     const each = weight / n;
     picks.forEach(f => {
       // Build rich rationale citing research
@@ -8900,6 +9747,17 @@ function runDeterministicEngine(brief){
       // Domicile / regulatory rationale
       if(f.ucits) rationaleParts.push(`UCITS-passportable (${f.dom}-domiciled) — eligible for ${brief.country||"non-US"} resident under PRIIPs`);
       else if(f.dom && f.dom !== "US") rationaleParts.push(`${f.dom}-listed — locally accessible for ${brief.country} resident`);
+      // Which overweighted buckets this fund sits in — why this one and not
+      // another in the same sleeve
+      const _abk = fundBucketKeys(f);
+      const _aligned = []
+        .concat(_abk.regions.filter(k => bucketStance(signals,"regions",k) === "overweight").map(k => (ENG_PRETTY_REGION[k]||k) + " (region OW)"))
+        .concat(_abk.sectors.filter(k => bucketStance(signals,"sectors",k) === "overweight").map(k => (ENG_PRETTY_CLASS[k]||k.replace(/_/g," ")) + " (sector OW)"))
+        .concat(_abk.themes .filter(k => bucketStance(signals,"themes", k) === "overweight").map(k => (ENG_PRETTY_THEME[k]||k.replace(/_/g," ")) + " (theme OW)"));
+      if(_aligned.length) rationaleParts.push("Aligned with " + _aligned.slice(0,3).join(", "));
+      // Market backdrop — investment cycle, rates, geopolitical risk, FX
+      const _ctx = marketContextLine(signals);
+      if(_ctx) rationaleParts.push(_ctx);
 
       positions.push({
         ticker: f.tkr,
@@ -8923,9 +9781,19 @@ function runDeterministicEngine(brief){
     });
   });
 
-  // Renormalize weights to sum to exactly 100
+  // Renormalize weights to sum to exactly 100. Rounding each weight to 1dp
+  // independently lets the total drift (8 positions could land on 100.1%), so
+  // the residual is absorbed into the largest position — a client-facing
+  // proposal has to add up.
   const totalW = positions.reduce((s,p) => s + p.weight, 0);
-  if(totalW > 0) positions.forEach(p => { p.weight = +(p.weight * 100 / totalW).toFixed(1); });
+  if(totalW > 0){
+    positions.forEach(p => { p.weight = +(p.weight * 100 / totalW).toFixed(1); });
+    const _drift = +(100 - positions.reduce((s,p) => s + p.weight, 0)).toFixed(1);
+    if(Math.abs(_drift) >= 0.1 && positions.length){
+      const _big = positions.reduce((a,b) => a.weight >= b.weight ? a : b);
+      _big.weight = +(_big.weight + _drift).toFixed(1);
+    }
+  }
 
   // ── Step 4: portfolio aggregates from real fund metrics ──
   const fundLookup = ticker => AI_FUND_UNIVERSE.find(x => x.tkr === ticker);
@@ -8972,6 +9840,21 @@ function runDeterministicEngine(brief){
   if(domicilePolicy.type === "UCITS"){
     risks.push(`Universe restricted to ${eligibleUniverse.length} UCITS-passportable funds (of ${totalUniverse}) — required for ${brief.country} resident under PRIIPs`);
   }
+  // Cash held in a currency other than the client's is an FX exposure in the one
+  // sleeve that is supposed to carry none — say so rather than leaving it implied.
+  (function(){
+    const _want = clientCurrency(brief).toUpperCase();
+    positions.forEach(p => {
+      const f = AI_FUND_UNIVERSE.find(x => x.tkr === p.ticker);
+      if(f && f.cls === "cash" && (f.ccy || "USD").toUpperCase() !== _want){
+        risks.push(`Cash sleeve held in ${(f.ccy||"USD").toUpperCase()} (${p.ticker}) against a ${_want} client — no ${_want} money-market line is available in the eligible universe, so this carries FX risk`);
+      }
+    });
+  })();
+  // Sleeves this jurisdiction cannot be sold — disclosed, never silently dropped
+  unfillableSleeves.forEach(({cls, weight}) => risks.push(
+    `${ENG_PRETTY_CLASS[cls] || cls} sleeve (${weight}% target) has no ${brief.country || "US"}-eligible fund — reallocated to ${cls === "cash" ? "fixed income" : "the remaining sleeves"}`
+  ));
 
   // ── Step 6: top themes for narrative ──
   const topThemes = Object.entries(signals.themes).sort((a,b) => b[1].votes - a[1].votes).slice(0,3);
@@ -9193,8 +10076,13 @@ function importAdminProposal(){
     if(!raw) return;
     const data = JSON.parse(raw);
     if(!data || !Array.isArray(data.positions)) return;
-    // Reuse the existing apply path by stashing into lastAIGenResult
-    window.lastAIGenResult = {
+    // Reuse the existing apply path by stashing into lastAIGenResult.
+    // NOTE: assign the LEXICAL binding (top-level `let lastAIGenResult`), not
+    // `window.lastAIGenResult` — a script-scope `let` shadows the same-named
+    // window property, so writing to window left the reader in
+    // applyAIRecommendationToProposal() seeing null and the import silently
+    // did nothing.
+    lastAIGenResult = {
       summary: data.title || "AI Portfolio from admin console",
       positions: data.positions.map(p => ({
         ticker: p.ticker || p.tkr,
@@ -10659,7 +11547,7 @@ function getEffectiveReturnParams(){
 const RET_POOL_MU = 0.035; // 3.5% nominal — both accumulation and retirement
 
 // ═══════════════════════════════════════════════════════════════════
-// CAPITAL MARKET ASSUMPTIONS (Merrill-style) — canonical for the WHOLE app.
+// CAPITAL MARKET ASSUMPTIONS (institutional-style) — canonical for the WHOLE app.
 // Per-asset-class arithmetic μ, σ, geometric μ, income yield (annual %).
 // These now drive the core simulation engine, portfolio metrics,
 // comparison, and the Goals-Based Analysis tab — one source of truth.
@@ -11180,7 +12068,7 @@ function runSim(){
   renderRetirementNumber();
   renderTaxEfficiency();
   renderEfficientFrontier();
-  // Merrill-style PV funding ratios + achievable lifestyle (reuse GB engine)
+  // Priority-weighted PV funding ratios + achievable lifestyle (reuse GB engine)
   try { renderSimFundingStatus(); } catch(e){ console.warn("renderSimFundingStatus:", e); }
   try { renderSimLifestyle(); } catch(e){ console.warn("renderSimLifestyle:", e); }
   try { renderClaimAge(); } catch(e){ console.warn("renderClaimAge:", e); }
@@ -12684,7 +13572,7 @@ function buildReportHtml(){
     }
   }
 
-  // --- Goal Funding Status (PV) section [Merrill methodology] ---
+  // --- Goal Funding Status (PV) section [priority-weighted methodology] ---
   let goalFundSection="";
   if((val("rptIncGoalFunding")||"yes")!=="no" && goals.length>0){
     try{
@@ -12697,7 +13585,7 @@ function buildReportHtml(){
     }catch(e){ goalFundSection=""; }
   }
 
-  // --- Potentially Achievable Lifestyle section [Merrill] ---
+  // --- Potentially Achievable Lifestyle section ---
   let lifestyleSection="";
   if((val("rptIncLifestyle")||"yes")!=="no"){
     try{
@@ -12717,7 +13605,7 @@ function buildReportHtml(){
     }catch(e){ lifestyleSection=""; }
   }
 
-  // --- Wealth Allocation Framework section [Merrill] ---
+  // --- Wealth Allocation Framework section ---
   let wealthFwSection="";
   if((val("rptIncWealthFw")||"yes")!=="no"){
     try{
@@ -12737,7 +13625,7 @@ function buildReportHtml(){
     }catch(e){ wealthFwSection=""; }
   }
 
-  // --- Annual Potential Wealth section [Merrill] ---
+  // --- Annual Potential Wealth section ---
   let potWealthSection="";
   if((val("rptIncPotWealth")||"yes")!=="no" && lastSimPaths){
     try{
@@ -12777,7 +13665,7 @@ function buildReportHtml(){
     }catch(e){ glossarySection=""; }
   }
 
-  // --- Capital Market Assumptions section [Merrill] ---
+  // --- Capital Market Assumptions section ---
   let cmaSection="";
   if((val("rptIncCMA")||"yes")!=="no"){
     try{
@@ -12913,7 +13801,7 @@ async function fetchMorningstarFactSheet(ticker){
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// GOALS-BASED ANALYSIS ENGINE (Merrill-style)
+// GOALS-BASED ANALYSIS ENGINE (priority-weighted)
 // The capital market assumptions (CMA), correlation matrix (CMA_CORR),
 // cmaCorr(), normInv(), gbPortfolioRisk() and gbReturnAtConfidence()
 // are now defined canonically near the core portfolio metrics so the
@@ -12952,7 +13840,7 @@ function gbAssetClassWeights(){
   return ALLOC[risk] || ALLOC.moderate;
 }
 
-// Priority → probability-of-success confidence level (Merrill convention)
+// Priority → probability-of-success confidence level (industry convention)
 const GB_PRIORITY_CONF = { essential:95, important:75, aspirational:55 };
 
 // Main goals-based analysis
@@ -13188,7 +14076,7 @@ function gbRenderWealth(){
     h += '</div>';
   });
   h += '</div>';
-  h += '<div style="font-size:11px;color:var(--text3);margin-top:12px">Total categorized: <strong>'+fmtMoney(total)+'</strong>. Concentrated/idiosyncratic positions (business, concentrated stock, investment property, crypto) carry higher risk — Merrill recommends limiting Aspirational exposure relative to your essential-goal funding needs.</div>';
+  h += '<div style="font-size:11px;color:var(--text3);margin-top:12px">Total categorized: <strong>'+fmtMoney(total)+'</strong>. Concentrated/idiosyncratic positions (business, concentrated stock, investment property, crypto) carry higher risk — industry guidance recommends limiting Aspirational exposure relative to your essential-goal funding needs.</div>';
   setH("gbWealth", h);
 }
 
@@ -14224,7 +15112,7 @@ async function generatePDFReport(){
           para("Run the simulation to populate funding status.");
         }
       },
-      // ─── GOAL FUNDING STATUS (PV funding ratios — Merrill methodology) ──
+      // ─── GOAL FUNDING STATUS (PV funding ratios — priority-weighted methodology) ──
       goalfunding: () => {
         if(val("rptIncGoalFunding") === "no" || goals.length === 0) return;
         newPage();
@@ -14293,7 +15181,7 @@ async function generatePDFReport(){
         if(val("rptIncWealthFw") === "no") return;
         checkY(40);
         sectionH2("Wealth Allocation Framework");
-        para("Your assets are classified into three risk buckets following the Merrill framework: Personal (preserve lifestyle and safety), Market (balance risk and return) and Aspirational (idiosyncratic upside such as concentrated stock, a business, investment property or crypto).");
+        para("Your assets are classified into three risk buckets: Personal (preserve lifestyle and safety), Market (balance risk and return) and Aspirational (idiosyncratic upside such as concentrated stock, a business, investment property or crypto).");
         const buckets = {personal:0, market:0, aspirational:0};
         (assets||[]).forEach(a=>{ buckets[gbWealthBucket(a)] += (+a.value||0); });
         buckets.personal     += num("aProp",0) + insuranceCashValue();

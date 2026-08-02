@@ -279,7 +279,7 @@ textarea{font-family:var(--fm);font-size:12px;width:100%;min-height:70px;resize:
 <div class="tab" id="tab-agent">
   <div class="hero purple">
     <h1>🤖 AI Portfolio Construction Agent</h1>
-    <p>Synthesizes research from 16 institutional sources, the client's financial plan, and a curated fund universe to produce a complete portfolio recommendation. Powered by AI.</p>
+    <p>Synthesizes research from <span class="js-prov-count">16</span> institutional sources, the client's financial plan, and a curated fund universe to produce a complete portfolio recommendation. Powered by AI.</p>
   </div>
 
   <!-- Master switch: show / hide the AI Portfolio Builder in the client-facing app -->
@@ -368,7 +368,7 @@ Down payment | 2028 | 150000</textarea>
   </div>
 
   <div class="panel">
-    <div class="ptitle">② Research Sources <span style="color:var(--green);font-weight:600">— all 16 enabled by default</span></div>
+    <div class="ptitle">② Research Sources <span style="color:var(--green);font-weight:600">— all <span class="js-prov-count">16</span> enabled by default</span></div>
     <div class="pdesc">All institutional sources are automatically pulled when you open this tab. <strong style="color:var(--green)">Auto-refresh runs every 5 minutes</strong>. Uncheck any you want to exclude from the agent's reasoning.</div>
     <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center">
       <button class="btn-ghost" data-action="manualResearchRefresh">↻ Pull latest now</button>
@@ -382,7 +382,7 @@ Down payment | 2028 | 150000</textarea>
   <div class="panel" style="background:linear-gradient(135deg,#fff,#f0fdf4);border-color:rgba(0,135,90,.25)">
     <div class="ptitle" style="color:var(--green)">③ Build Portfolio — Deterministic Research Engine</div>
     <div class="pdesc">
-      The <strong>Research Engine</strong> scans every cached research item across all 16 institutions, extracts <strong>asset-class signals</strong>, <strong>theme votes</strong>, <strong>sector calls</strong>, and <strong>regional positioning</strong> via keyword matching. It then picks funds from the universe based on consensus strength and your constraints. <strong>Every decision is explained with full citations to the underlying research.</strong> No LLM call required — runs instantly and is fully deterministic + auditable.
+      The <strong>Research Engine</strong> scans every cached research item across all <span class="js-prov-count">16</span> institutions, extracts <strong>asset-class signals</strong>, <strong>theme votes</strong>, <strong>sector calls</strong>, and <strong>regional positioning</strong> via keyword matching. It then picks funds from the universe based on consensus strength and your constraints. <strong>Every decision is explained with full citations to the underlying research.</strong> No LLM call required — runs instantly and is fully deterministic + auditable.
     </div>
     <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
       <button class="btn" data-action="runResearchEngine" style="background:var(--green);font-size:14px;padding:11px 24px">🔬 Build with Research Engine</button>
@@ -433,7 +433,7 @@ Down payment | 2028 | 150000</textarea>
             <li><strong>Sector detection:</strong> 11 sectors with specific ticker tags (Tech: NVDA/MSFT/QQQ/XLK; Healthcare: LLY/NOVO/XLV; Financials: JPM/XLF; Energy: XOM/CVX/XLE; etc.).</li>
             <li><strong>Region detection:</strong> 7 regions (US, Europe, Japan, China, India, EM, Developed Intl).</li>
             <li><strong>Theme detection:</strong> 11 themes (AI, decarbonization, GLP-1, defense, reshoring, cybersecurity, demographics, water, crypto, dividend growth, quality factor).</li>
-            <li><strong>Ticker extraction:</strong> regex against 38-fund universe + 30 common stocks. Each mention recorded with the provider name for conviction scoring.</li>
+            <li><strong>Ticker extraction:</strong> regex against the full fund universe (<span class="js-fund-count">942</span> funds) + 30 common stocks. Each mention recorded with the provider name for conviction scoring.</li>
           </ul>
         </div>
       </div>
@@ -442,7 +442,7 @@ Down payment | 2028 | 150000</textarea>
       <div style="background:#fff;border:1px solid var(--line);border-left:4px solid #00875a;border-radius:8px;padding:16px 20px;margin-bottom:12px">
         <div style="font-weight:700;font-size:14px;color:#00875a;margin-bottom:8px">STAGE 2 — Cross-Provider Consensus Aggregation</div>
         <div style="font-size:12.5px;line-height:1.7;color:var(--ink2)">
-          Net votes summed across all 16 providers. For each signal (e.g. "overweight Equity"), the engine tracks:
+          Net votes summed across all <span class="js-prov-count">16</span> providers. For each signal (e.g. "overweight Equity"), the engine tracks:
           <ul style="margin:8px 0 0 20px">
             <li><strong>Total net votes</strong>: sum of all signed sentiments across all items mentioning this signal</li>
             <li><strong>Provider count</strong>: number of unique institutions endorsing the position</li>
@@ -523,7 +523,7 @@ Down payment | 2028 | 150000</textarea>
         <div style="font-size:12.5px;line-height:1.7;color:var(--ink2)">
           Every fund pick gets a multi-part rationale:
           <ul style="margin:8px 0 0 20px">
-            <li><strong>Consensus citation:</strong> "<em>N/16 providers overweight [class] (+X net votes)</em>"</li>
+            <li><strong>Consensus citation:</strong> "<em>N/<span class="js-prov-count">16</span> providers overweight [class] (+X net votes)</em>"</li>
             <li><strong>Specific ticker mentions:</strong> if applicable, "<em>VTI explicitly mentioned by BlackRock, Vanguard + 2 more</em>"</li>
             <li><strong>Cost rationale:</strong> "<em>Low expense ratio (0.03%)</em>"</li>
             <li><strong>Constraint match:</strong> "<em>ETF wrapper preferred for high tax sensitivity</em>" or "<em>ESG-flagged matches preference</em>"</li>
@@ -584,6 +584,7 @@ Citations:<br>
 
   <div class="panel">
     <div class="ptitle">Curated Fund Universe</div>
+    <div id="fundAsOf" style="font-size:11px;color:var(--ink3);margin:-4px 0 8px"></div>
     <div id="fundTable"></div>
   </div>
 </div>
@@ -592,10 +593,11 @@ Citations:<br>
 <div class="tab" id="tab-research">
   <div class="hero">
     <h1>📚 Research Library</h1>
-    <p>16 institutional sources from the world's largest wealth managers, investment banks, private banks, and analyst platforms. Refresh feeds and the AI Agent uses them when building portfolios.</p>
+    <p><span class="js-prov-count">16</span> institutional sources from the world's largest wealth managers, investment banks, private banks, and analyst platforms. Refresh feeds and the AI Agent uses them when building portfolios.</p>
   </div>
   <div class="panel">
     <div class="ptitle">Sources <span style="color:var(--green);font-weight:600">— auto-refresh every 5 minutes</span></div>
+    <div id="researchCorpusSummary" style="font-size:11.5px;margin:-2px 0 12px;line-height:1.5"></div>
     <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;align-items:center">
       <button class="btn" data-action="refreshAll">↻ Refresh ALL</button>
       <button class="btn-ghost" data-action="enableAll">✓ Enable all</button>
@@ -603,8 +605,41 @@ Citations:<br>
       <span id="refreshStatus" style="font-size:11px;color:var(--ink3);align-self:center"></span>
       <span id="autoRefreshCountdown2" style="margin-left:auto;font-size:11px;color:var(--green);font-weight:600;font-family:var(--fm);background:rgba(0,135,90,.08);padding:5px 12px;border-radius:50px"></span>
     </div>
+    <div id="monthlyIssueBanner"></div>
     <div class="rp" id="rpList"></div>
   </div>
+
+  <!-- ─── Ingest a monthly issue you are entitled to ─── -->
+  <div class="panel">
+    <div class="ptitle section-dropdown" data-action="toggleIngest" style="margin:0;cursor:pointer">
+      📥 Ingest a monthly issue <span style="font-weight:400;color:var(--ink3);font-size:12px">— paste or upload an issue you have access to · click to expand</span>
+    </div>
+    <div id="ingestBody" style="display:none;padding-top:14px">
+      <div class="pdesc" style="margin-bottom:12px">
+        For subscription publications (CIO Viewpoint, RIC Report, US 1 List) the console cannot fetch the issue itself — the feeds behind them only carry
+        <em>news about</em> the report. Paste the text of an issue <strong>you are entitled to</strong>, or upload it as .txt / .md / .pdf, and it will be
+        parsed into research items, tagged with the issue month, and fed to the engine like any other source. Nothing is uploaded anywhere; parsing happens in this browser.
+      </div>
+      <div style="display:grid;grid-template-columns:minmax(200px,1fr) 150px;gap:10px;margin-bottom:10px">
+        <label style="font-size:12px;font-weight:600;color:var(--ink2)">Publication
+          <select id="ingestProvider" style="width:100%;margin-top:4px"></select>
+        </label>
+        <label style="font-size:12px;font-weight:600;color:var(--ink2)">Issue month
+          <input type="month" id="ingestMonth" style="width:100%;margin-top:4px">
+        </label>
+      </div>
+      <textarea id="ingestText" rows="8" placeholder="Paste the issue text here — headings, bullets and paragraphs are all handled." style="width:100%;font-family:var(--fm);font-size:12px;padding:10px;margin-bottom:10px"></textarea>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px">
+        <input type="file" id="ingestFile" accept=".txt,.md,.text,.pdf" style="font-size:12px">
+        <button class="btn-ghost" data-action="previewIngest">🔍 Parse &amp; preview</button>
+        <button class="btn" data-action="commitIngest" id="ingestCommitBtn" disabled>📥 Ingest</button>
+        <button class="btn-ghost" data-action="clearIngest">✕ Clear</button>
+        <span id="ingestStatus" style="font-size:11.5px;color:var(--ink3)"></span>
+      </div>
+      <div id="ingestPreview"></div>
+    </div>
+  </div>
+
   <div class="panel">
     <div class="ptitle">Latest Items</div>
     <div id="rpFeed" style="max-height:600px;overflow-y:auto"></div>
@@ -835,7 +870,7 @@ Citations:<br>
 <div class="tab" id="tab-market">
   <div class="hero">
     <h1>📈 Market Data Console</h1>
-    <p>Test live quote retrieval from 18 providers. Free providers work directly; enterprise (Bloomberg, FactSet, Refinitiv, etc.) require user-deployed proxy.</p>
+    <p>Test live quote retrieval. Verified keyless on 2026-08-02: <strong>Yahoo Finance</strong> (equities/ETFs), <strong>CoinGecko</strong> and <strong>Coinbase</strong> (crypto), <strong>Frankfurter/ECB</strong> and <strong>Open ER API</strong> (FX), <strong>Treasury.gov</strong> (yield curve) and <strong>SEC EDGAR</strong> (filings). Everything else needs a key in the API Keys tab; enterprise feeds (Bloomberg, FactSet, Refinitiv) need a user-deployed proxy.</p>
   </div>
   <div class="panel">
     <div class="row">
@@ -868,7 +903,7 @@ Citations:<br>
         </optgroup>
         <optgroup label="── Equities — No key ──">
           <option value="yahoo">Yahoo Finance (direct)</option>
-          <option value="stooq">Stooq (global CSV)</option>
+          <option value="stooq">Stooq — retired upstream</option>
         </optgroup>
         <optgroup label="── News ──">
           <option value="newsapi">NewsAPI.org</option>
@@ -877,14 +912,14 @@ Citations:<br>
         </optgroup>
         <optgroup label="── Crypto ──">
           <option value="coingecko">CoinGecko (no key)</option>
-          <option value="cryptocompare">CryptoCompare (no key)</option>
+          <option value="cryptocompare">CryptoCompare (key required)</option>
           <option value="coinbase">Coinbase Spot (no key)</option>
           <option value="coinmarketcap">CoinMarketCap (key)</option>
           <option value="messari">Messari (key)</option>
         </optgroup>
         <optgroup label="── FX — No key ──">
           <option value="frankfurter">Frankfurter / ECB</option>
-          <option value="exchangerate_host">ExchangeRate.host</option>
+          <option value="exchangerate_host">ExchangeRate.host (key required)</option>
           <option value="open_er_api">Open ER API</option>
         </optgroup>
         <optgroup label="── FX — Keyed ──">
@@ -898,7 +933,7 @@ Citations:<br>
         </optgroup>
         <optgroup label="── Reference Data (no key) ──">
           <option value="openfigi">OpenFIGI (ISIN/CUSIP/FIGI)</option>
-          <option value="secedgar">SEC EDGAR (filings)</option>
+          <option value="secedgar">SEC EDGAR (filings — needs server relay)</option>
         </optgroup>
       </select>
       <button class="btn" data-action="testQuote">▶ Fetch Quote</button>
@@ -1110,7 +1145,7 @@ function toggleQuestionnairePreview(){
 // ═══════════════════════════════════════════════════════════
 // VERSION + UTILS
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260802-1244";
+const APP_VERSION = "20260802-1759";
 const $ = (id) => document.getElementById(id);
 const $$ = (sel, ctx) => Array.from((ctx||document).querySelectorAll(sel));
 
@@ -1273,6 +1308,19 @@ function googleNewsQuery(firmName){
 
 const RESEARCH_PROVIDERS = [
   {id:"bofa_ml",   name:"Bank of America / Merrill Lynch", type:"Wirehouse",       color:"#dc1e2d", letter:"M", feed:"https://newsroom.bankofamerica.com/feed/", feed2:googleNewsQuery("Bank of America research"), feed3:googleNewsQuery("Merrill Lynch wealth")},
+  // The two flagship BofA/Merrill house publications, tracked separately from
+  // the general newsroom feed above because they carry the actual investment
+  // views an advisor cites: the CIO's monthly portfolio positioning (Viewpoint)
+  // and the Research Investment Committee's monthly cross-asset report (RIC).
+  // Neither publishes a public RSS feed, so the news-query fallback used by the
+  // other subscription-only houses applies; `homepage` links the real source.
+  // `cadence:"monthly"` + `issueDay` drive the issue tracker in the Research
+  // Library: the card shows whether THIS month's issue has been ingested and
+  // flags it as due/overdue, so a monthly publication cannot sit silently stale
+  // behind a news feed that keeps refreshing.
+  {id:"ml_viewpoint", name:"Merrill CIO Viewpoint",        type:"CIO House View",  color:"#012169", letter:"V", cadence:"monthly", issueDay:5,  homepage:"https://www.ml.com/registration/cio-monthly-viewpoint.html", feed:googleNewsQuery("Merrill Chief Investment Office Viewpoint"), feed2:googleNewsQuery("Merrill CIO asset allocation"), feed3:googleNewsQuery("Merrill Lynch Chief Investment Office outlook")},
+  {id:"bofa_ric",     name:"BofA RIC Report",              type:"Global Research", color:"#e31837", letter:"R", cadence:"monthly", issueDay:10, homepage:"https://business.bofa.com/en-us/content/global-research-about.html", feed:googleNewsQuery("BofA RIC Report Research Investment Committee"), feed2:googleNewsQuery("BofA Global Research investment themes"), feed3:googleNewsQuery("BofA Research Investment Committee allocation")},
+  {id:"bofa_us1",     name:"BofA US 1 List",               type:"Equity Ideas",    color:"#7d1128", letter:"1", cadence:"monthly", issueDay:1,  homepage:"https://business.bofa.com/en-us/content/global-research-about.html", feed:googleNewsQuery("BofA US 1 List added removed"), feed2:googleNewsQuery("BofA Securities US 1 List stocks"), feed3:googleNewsQuery("Bank of America US1 List top picks")},
   {id:"jpm",       name:"J.P. Morgan Asset Management",    type:"Wirehouse",       color:"#7b1f2a", letter:"J", feed:"https://am.jpmorgan.com/us/en/asset-management/adv/insights/market-insights/feed/", feed2:googleNewsQuery("JPMorgan Asset Management"), feed3:googleNewsQuery("JPMorgan strategist outlook")},
   {id:"ms",        name:"Morgan Stanley Wealth",           type:"Wirehouse",       color:"#0066b3", letter:"M", feed:"https://www.morganstanley.com/ideas/feed/rss", feed2:"https://feeds.megaphone.fm/morganstanleythoughts", feed3:googleNewsQuery("Morgan Stanley GIC")},
   {id:"citi",      name:"Citi Private Bank",               type:"Private Bank",    color:"#0563bf", letter:"C", feed:googleNewsQuery("Citi Private Bank"), feed2:googleNewsQuery("Citigroup wealth outlook"), feed3:googleNewsQuery("Citi Global Wealth")},
@@ -1603,12 +1651,12 @@ const FUND_UNIVERSE = [
   {tkr:"BIBL",name:"Inspire 100 ETF",cls:"equity",vehicle:"etf",er:0.35,yld:1.0,sponsor:"Inspire",esg:true},
 
   // ─── US TREASURIES — Short ───
-  {tkr:"BIL",name:"SPDR Bloomberg 1-3 Month T-Bill",cls:"cash",vehicle:"etf",er:0.14,yld:5.2,sponsor:"State Street"},
-  {tkr:"SGOV",name:"iShares 0-3 Month Treasury",cls:"cash",vehicle:"etf",er:0.07,yld:5.2,sponsor:"BlackRock"},
-  {tkr:"SHV",name:"iShares Short Treasury Bond",cls:"cash",vehicle:"etf",er:0.15,yld:5.2,sponsor:"BlackRock"},
-  {tkr:"USFR",name:"WisdomTree Floating Rate Treasury",cls:"cash",vehicle:"etf",er:0.15,yld:5.3,sponsor:"WisdomTree"},
-  {tkr:"TFLO",name:"iShares Treasury Floating Rate",cls:"cash",vehicle:"etf",er:0.15,yld:5.3,sponsor:"BlackRock"},
-  {tkr:"CLTL",name:"Invesco Treasury Collateral",cls:"cash",vehicle:"etf",er:0.08,yld:5.2,sponsor:"Invesco"},
+  {tkr:"BIL",name:"SPDR Bloomberg 1-3 Month T-Bill",cls:"cash",vehicle:"etf",er:0.14,yld:5.2,sponsor:"State Street",ccy:"USD",act40:true},
+  {tkr:"SGOV",name:"iShares 0-3 Month Treasury",cls:"cash",vehicle:"etf",er:0.07,yld:5.2,sponsor:"BlackRock",ccy:"USD",act40:true},
+  {tkr:"SHV",name:"iShares Short Treasury Bond",cls:"cash",vehicle:"etf",er:0.15,yld:5.2,sponsor:"BlackRock",ccy:"USD",act40:true},
+  {tkr:"USFR",name:"WisdomTree Floating Rate Treasury",cls:"cash",vehicle:"etf",er:0.15,yld:5.3,sponsor:"WisdomTree",ccy:"USD",act40:true},
+  {tkr:"TFLO",name:"iShares Treasury Floating Rate",cls:"cash",vehicle:"etf",er:0.15,yld:5.3,sponsor:"BlackRock",ccy:"USD",act40:true},
+  {tkr:"CLTL",name:"Invesco Treasury Collateral",cls:"cash",vehicle:"etf",er:0.08,yld:5.2,sponsor:"Invesco",ccy:"USD",act40:true},
   {tkr:"SHY",name:"iShares 1-3 Year Treasury",cls:"fixed_income",vehicle:"etf",er:0.15,yld:4.7,sponsor:"BlackRock"},
   {tkr:"SCHO",name:"Schwab Short-Term US Treasury",cls:"fixed_income",vehicle:"etf",er:0.03,yld:4.7,sponsor:"Schwab"},
   {tkr:"VGSH",name:"Vanguard Short-Term Treasury",cls:"fixed_income",vehicle:"etf",er:0.04,yld:4.6,sponsor:"Vanguard"},
@@ -1871,18 +1919,38 @@ const FUND_UNIVERSE = [
   {tkr:"PSEP",name:"Innovator S&P 500 Power Buffer September",cls:"alternative",vehicle:"etf",er:0.79,yld:0.0,sponsor:"Innovator"},
 
   // ─── CASH / MONEY MARKET ───
-  {tkr:"VMFXX",name:"Vanguard Federal Money Market",cls:"cash",vehicle:"money_market",er:0.11,yld:5.3,sponsor:"Vanguard"},
-  {tkr:"VMSXX",name:"Vanguard Tax-Exempt Money Market",cls:"cash",vehicle:"money_market",er:0.15,yld:3.4,sponsor:"Vanguard"},
-  {tkr:"VUSXX",name:"Vanguard Treasury Money Market",cls:"cash",vehicle:"money_market",er:0.09,yld:5.2,sponsor:"Vanguard"},
-  {tkr:"SPAXX",name:"Fidelity Government Money Market",cls:"cash",vehicle:"money_market",er:0.42,yld:5.0,sponsor:"Fidelity"},
-  {tkr:"FZDXX",name:"Fidelity Money Market Premium",cls:"cash",vehicle:"money_market",er:0.40,yld:5.1,sponsor:"Fidelity"},
-  {tkr:"FDLXX",name:"Fidelity Treasury Only Money Market",cls:"cash",vehicle:"money_market",er:0.42,yld:5.0,sponsor:"Fidelity"},
-  {tkr:"SWVXX",name:"Schwab Value Advantage Money",cls:"cash",vehicle:"money_market",er:0.34,yld:5.1,sponsor:"Schwab"},
-  {tkr:"SNOXX",name:"Schwab Treasury Money Fund",cls:"cash",vehicle:"money_market",er:0.34,yld:5.0,sponsor:"Schwab"},
-  {tkr:"SUTXX",name:"Schwab US Treasury Money Fund",cls:"cash",vehicle:"money_market",er:0.34,yld:5.0,sponsor:"Schwab"},
-  {tkr:"UTIXX",name:"American Century US Government Money",cls:"cash",vehicle:"money_market",er:0.40,yld:4.9,sponsor:"American Century"},
-  {tkr:"FLOT",name:"iShares Floating Rate Bond",cls:"cash",vehicle:"etf",er:0.15,yld:5.4,sponsor:"BlackRock"},
-  {tkr:"FLRN",name:"SPDR Bloomberg Investment Grade Floating Rate",cls:"cash",vehicle:"etf",er:0.15,yld:5.4,sponsor:"State Street"},
+  {tkr:"VMFXX",name:"Vanguard Federal Money Market",cls:"cash",vehicle:"money_market",er:0.11,yld:5.3,sponsor:"Vanguard",ccy:"USD",act40:true},
+  {tkr:"VMSXX",name:"Vanguard Tax-Exempt Money Market",cls:"cash",vehicle:"money_market",er:0.15,yld:3.4,sponsor:"Vanguard",ccy:"USD",act40:true},
+  {tkr:"VUSXX",name:"Vanguard Treasury Money Market",cls:"cash",vehicle:"money_market",er:0.09,yld:5.2,sponsor:"Vanguard",ccy:"USD",act40:true},
+  {tkr:"SPAXX",name:"Fidelity Government Money Market",cls:"cash",vehicle:"money_market",er:0.42,yld:5.0,sponsor:"Fidelity",ccy:"USD",act40:true},
+  {tkr:"FZDXX",name:"Fidelity Money Market Premium",cls:"cash",vehicle:"money_market",er:0.40,yld:5.1,sponsor:"Fidelity",ccy:"USD",act40:true},
+  {tkr:"FDLXX",name:"Fidelity Treasury Only Money Market",cls:"cash",vehicle:"money_market",er:0.42,yld:5.0,sponsor:"Fidelity",ccy:"USD",act40:true},
+  {tkr:"SWVXX",name:"Schwab Value Advantage Money",cls:"cash",vehicle:"money_market",er:0.34,yld:5.1,sponsor:"Schwab",ccy:"USD",act40:true},
+  {tkr:"SNOXX",name:"Schwab Treasury Money Fund",cls:"cash",vehicle:"money_market",er:0.34,yld:5.0,sponsor:"Schwab",ccy:"USD",act40:true},
+  {tkr:"SUTXX",name:"Schwab US Treasury Money Fund",cls:"cash",vehicle:"money_market",er:0.34,yld:5.0,sponsor:"Schwab",ccy:"USD",act40:true},
+  {tkr:"UTIXX",name:"American Century US Government Money",cls:"cash",vehicle:"money_market",er:0.40,yld:4.9,sponsor:"American Century",ccy:"USD",act40:true},
+  {tkr:"FLOT",name:"iShares Floating Rate Bond",cls:"cash",vehicle:"etf",er:0.15,yld:5.4,sponsor:"BlackRock",ccy:"USD",act40:true},
+  {tkr:"FLRN",name:"SPDR Bloomberg Investment Grade Floating Rate",cls:"cash",vehicle:"etf",er:0.15,yld:5.4,sponsor:"State Street",ccy:"USD",act40:true},
+
+  // ─── 1940 ACT ULTRA-SHORT ETFs (US-registered) ───
+  // The largest ultra-short 40-Act ETFs, absent until now: JPST alone holds
+  // more assets than the rest of the ETF cash sleeve combined.
+  {tkr:"JPST",name:"JPMorgan Ultra-Short Income ETF",cls:"cash",vehicle:"etf",er:0.18,yld:5.3,sponsor:"J.P. Morgan",ccy:"USD",act40:true},
+  {tkr:"ICSH",name:"iShares Ultra Short Duration Bond Active ETF",cls:"cash",vehicle:"etf",er:0.08,yld:5.3,sponsor:"BlackRock",ccy:"USD",act40:true},
+  {tkr:"GBIL",name:"Goldman Sachs Access Treasury 0-1 Year ETF",cls:"cash",vehicle:"etf",er:0.12,yld:5.0,sponsor:"Goldman Sachs",ccy:"USD",act40:true},
+
+  // ─── UCITS MONEY MARKET / ULTRA-SHORT (non-US eligible) ───
+  // Every fund above is US-listed, so a UCITS-only client (CH/DE/SG/BR and the
+  // rest of the PRIIPs world) previously had ZERO eligible cash funds — the
+  // sleeve could not be filled and its weight had to be reallocated. These are
+  // the liquid European money-market and ultra-short lines that fill it.
+  // Yields are stated on the FUND_DATA_AS_OF (2024-12-31) basis like the rest of
+  // the dataset — EUR at the then-prevailing ESTR/ECB level, GBP and USD higher.
+  {tkr:"XEON",name:"Xtrackers II EUR Overnight Rate Swap UCITS ETF 1C",cls:"cash",vehicle:"etf",er:0.10,yld:3.0,sponsor:"DWS/Xtrackers",dom:"LU",ucits:true,ccy:"EUR"},
+  {tkr:"ERNE",name:"iShares € Ultrashort Bond UCITS ETF",cls:"cash",vehicle:"etf",er:0.09,yld:3.4,sponsor:"BlackRock",dom:"IE",ucits:true,ccy:"EUR"},
+  {tkr:"ERNA",name:"iShares $ Ultrashort Bond UCITS ETF USD (Acc)",cls:"cash",vehicle:"etf",er:0.09,yld:5.0,sponsor:"BlackRock",dom:"IE",ucits:true,ccy:"USD"},
+  {tkr:"ERNS",name:"iShares £ Ultrashort Bond UCITS ETF",cls:"cash",vehicle:"etf",er:0.09,yld:4.8,sponsor:"BlackRock",dom:"IE",ucits:true,ccy:"GBP"},
+  {tkr:"IB01",name:"iShares $ Treasury Bond 0-1yr UCITS ETF USD (Acc)",cls:"cash",vehicle:"etf",er:0.07,yld:4.6,sponsor:"BlackRock",dom:"IE",ucits:true,ccy:"USD"},
 
   // ─── CRYPTO / SPOT BITCOIN/ETHER ───
   {tkr:"IBIT",name:"iShares Bitcoin Trust",cls:"crypto",vehicle:"alternative",er:0.25,yld:0.0,sponsor:"BlackRock"},
@@ -2206,7 +2274,229 @@ const FUND_UNIVERSE = [
   {tkr:"3140",name:"Mirae Asset HS TECH ETF",cls:"equity",vehicle:"etf",er:0.45,yld:0.0,sponsor:"Mirae Asset",dom:"HK",ucits:false},
   {tkr:"G3B",name:"SPDR Straits Times Index ETF",cls:"equity",vehicle:"etf",er:0.30,yld:4.0,sponsor:"State Street",dom:"SG",ucits:false},
   {tkr:"ES3",name:"Nikko AM Singapore STI ETF",cls:"equity",vehicle:"etf",er:0.30,yld:4.0,sponsor:"Nikko AM",dom:"SG",ucits:false},
-  {tkr:"O87",name:"Phillip SGX APAC Dividend ETF",cls:"equity",vehicle:"etf",er:0.35,yld:5.0,sponsor:"Phillip",dom:"SG",ucits:false}
+  {tkr:"O87",name:"Phillip SGX APAC Dividend ETF",cls:"equity",vehicle:"etf",er:0.35,yld:5.0,sponsor:"Phillip",dom:"SG",ucits:false},
+  // ═══ SPONSOR DEPTH — Vanguard / Fidelity / BlackRock expansion ═══
+
+  // ─── Vanguard — US style & size ETFs ───
+  {tkr:"VXF",name:"Vanguard Extended Market ETF",cls:"equity",vehicle:"etf",er:0.06,yld:1.2,sponsor:"Vanguard"},
+  {tkr:"VONG",name:"Vanguard Russell 1000 Growth ETF",cls:"equity",vehicle:"etf",er:0.08,yld:0.5,sponsor:"Vanguard"},
+  {tkr:"VONV",name:"Vanguard Russell 1000 Value ETF",cls:"equity",vehicle:"etf",er:0.08,yld:1.9,sponsor:"Vanguard"},
+  {tkr:"VTHR",name:"Vanguard Russell 3000 ETF",cls:"equity",vehicle:"etf",er:0.10,yld:1.2,sponsor:"Vanguard"},
+  {tkr:"VTWG",name:"Vanguard Russell 2000 Growth ETF",cls:"equity",vehicle:"etf",er:0.15,yld:0.5,sponsor:"Vanguard"},
+  {tkr:"VTWV",name:"Vanguard Russell 2000 Value ETF",cls:"equity",vehicle:"etf",er:0.15,yld:1.8,sponsor:"Vanguard"},
+  {tkr:"VOOG",name:"Vanguard S&P 500 Growth ETF",cls:"equity",vehicle:"etf",er:0.07,yld:0.6,sponsor:"Vanguard"},
+  {tkr:"VOOV",name:"Vanguard S&P 500 Value ETF",cls:"equity",vehicle:"etf",er:0.07,yld:1.9,sponsor:"Vanguard"},
+  {tkr:"VIOO",name:"Vanguard S&P Small-Cap 600 ETF",cls:"equity",vehicle:"etf",er:0.07,yld:1.6,sponsor:"Vanguard"},
+  {tkr:"VIOG",name:"Vanguard S&P Small-Cap 600 Growth ETF",cls:"equity",vehicle:"etf",er:0.10,yld:1.0,sponsor:"Vanguard"},
+  {tkr:"VIOV",name:"Vanguard S&P Small-Cap 600 Value ETF",cls:"equity",vehicle:"etf",er:0.10,yld:2.0,sponsor:"Vanguard"},
+  {tkr:"IVOO",name:"Vanguard S&P Mid-Cap 400 ETF",cls:"equity",vehicle:"etf",er:0.07,yld:1.4,sponsor:"Vanguard"},
+  {tkr:"IVOG",name:"Vanguard S&P Mid-Cap 400 Growth ETF",cls:"equity",vehicle:"etf",er:0.10,yld:0.9,sponsor:"Vanguard"},
+  {tkr:"IVOV",name:"Vanguard S&P Mid-Cap 400 Value ETF",cls:"equity",vehicle:"etf",er:0.10,yld:1.9,sponsor:"Vanguard"},
+  {tkr:"VIGI",name:"Vanguard International Dividend Appreciation ETF",cls:"equity",vehicle:"etf",er:0.15,yld:2.0,sponsor:"Vanguard"},
+  {tkr:"VFMF",name:"Vanguard U.S. Multifactor ETF",cls:"equity",vehicle:"etf",er:0.18,yld:1.6,sponsor:"Vanguard"},
+  {tkr:"VFMO",name:"Vanguard U.S. Momentum Factor ETF",cls:"equity",vehicle:"etf",er:0.13,yld:0.8,sponsor:"Vanguard"},
+  {tkr:"VFVA",name:"Vanguard U.S. Value Factor ETF",cls:"equity",vehicle:"etf",er:0.13,yld:2.2,sponsor:"Vanguard"},
+  {tkr:"VFQY",name:"Vanguard U.S. Quality Factor ETF",cls:"equity",vehicle:"etf",er:0.13,yld:1.3,sponsor:"Vanguard"},
+
+  // ─── Vanguard — fixed income ETFs ───
+  {tkr:"BSV",name:"Vanguard Short-Term Bond ETF",cls:"fixed_income",vehicle:"etf",er:0.03,yld:4.3,sponsor:"Vanguard"},
+  {tkr:"BIV",name:"Vanguard Intermediate-Term Bond ETF",cls:"fixed_income",vehicle:"etf",er:0.03,yld:4.3,sponsor:"Vanguard"},
+  {tkr:"BLV",name:"Vanguard Long-Term Bond ETF",cls:"fixed_income",vehicle:"etf",er:0.04,yld:5.0,sponsor:"Vanguard"},
+  {tkr:"VCRB",name:"Vanguard Core Bond ETF",cls:"fixed_income",vehicle:"etf",er:0.10,yld:4.4,sponsor:"Vanguard"},
+  {tkr:"VPLS",name:"Vanguard Core-Plus Bond ETF",cls:"fixed_income",vehicle:"etf",er:0.20,yld:4.9,sponsor:"Vanguard"},
+  {tkr:"VTES",name:"Vanguard Short-Term Tax-Exempt Bond ETF",cls:"fixed_income",vehicle:"etf",er:0.07,yld:3.0,sponsor:"Vanguard"},
+  {tkr:"VCEB",name:"Vanguard ESG U.S. Corporate Bond ETF",cls:"fixed_income",vehicle:"etf",er:0.12,yld:4.5,sponsor:"Vanguard",esg:true},
+
+  // ─── Vanguard — cash ───
+  {tkr:"VUSB",name:"Vanguard Ultra-Short Bond ETF",cls:"cash",vehicle:"etf",er:0.10,yld:5.1,sponsor:"Vanguard",ccy:"USD",act40:true},
+  {tkr:"VMRXX",name:"Vanguard Cash Reserves Federal Money Market",cls:"cash",vehicle:"money_market",er:0.10,yld:5.2,sponsor:"Vanguard",ccy:"USD",act40:true},
+
+  // ─── Vanguard — active & balanced mutual funds ───
+  {tkr:"VDIGX",name:"Vanguard Dividend Growth Fund",cls:"equity",vehicle:"mutual_fund",er:0.29,yld:1.7,sponsor:"Vanguard"},
+  {tkr:"VEIPX",name:"Vanguard Equity Income Fund",cls:"equity",vehicle:"mutual_fund",er:0.28,yld:2.7,sponsor:"Vanguard"},
+  {tkr:"VWNDX",name:"Vanguard Windsor Fund",cls:"equity",vehicle:"mutual_fund",er:0.33,yld:1.6,sponsor:"Vanguard"},
+  {tkr:"VWNFX",name:"Vanguard Windsor II Fund",cls:"equity",vehicle:"mutual_fund",er:0.34,yld:1.6,sponsor:"Vanguard"},
+  {tkr:"VGHCX",name:"Vanguard Health Care Fund",cls:"equity",vehicle:"mutual_fund",er:0.35,yld:1.3,sponsor:"Vanguard"},
+  {tkr:"VASGX",name:"Vanguard LifeStrategy Growth Fund",cls:"mixed",vehicle:"mutual_fund",er:0.14,yld:2.2,sponsor:"Vanguard"},
+  {tkr:"VSMGX",name:"Vanguard LifeStrategy Moderate Growth Fund",cls:"mixed",vehicle:"mutual_fund",er:0.13,yld:2.4,sponsor:"Vanguard"},
+  {tkr:"VSCGX",name:"Vanguard LifeStrategy Conservative Growth Fund",cls:"mixed",vehicle:"mutual_fund",er:0.12,yld:2.7,sponsor:"Vanguard"},
+  {tkr:"VASIX",name:"Vanguard LifeStrategy Income Fund",cls:"mixed",vehicle:"mutual_fund",er:0.11,yld:3.0,sponsor:"Vanguard"},
+  {tkr:"VTMFX",name:"Vanguard Tax-Managed Balanced Fund",cls:"mixed",vehicle:"mutual_fund",er:0.09,yld:1.8,sponsor:"Vanguard"},
+
+  // ─── Vanguard — UCITS (Ireland) ───
+  {tkr:"VWRP",name:"Vanguard FTSE All-World UCITS ETF (Acc)",cls:"equity",vehicle:"etf",er:0.22,yld:0.0,sponsor:"Vanguard",dom:"IE",ucits:true,ccy:"GBP"},
+  {tkr:"VNRT",name:"Vanguard FTSE North America UCITS ETF (Dist)",cls:"equity",vehicle:"etf",er:0.10,yld:1.2,sponsor:"Vanguard",dom:"IE",ucits:true,ccy:"USD"},
+  {tkr:"VNRA",name:"Vanguard FTSE North America UCITS ETF (Acc)",cls:"equity",vehicle:"etf",er:0.10,yld:0.0,sponsor:"Vanguard",dom:"IE",ucits:true,ccy:"USD"},
+
+  // ─── Fidelity — MSCI sector index ETFs ───
+  {tkr:"FTEC",name:"Fidelity MSCI Information Technology Index ETF",cls:"equity",vehicle:"etf",er:0.08,yld:0.6,sponsor:"Fidelity"},
+  {tkr:"FHLC",name:"Fidelity MSCI Health Care Index ETF",cls:"equity",vehicle:"etf",er:0.08,yld:1.4,sponsor:"Fidelity"},
+  {tkr:"FNCL",name:"Fidelity MSCI Financials Index ETF",cls:"equity",vehicle:"etf",er:0.08,yld:1.7,sponsor:"Fidelity"},
+  {tkr:"FENY",name:"Fidelity MSCI Energy Index ETF",cls:"equity",vehicle:"etf",er:0.08,yld:3.2,sponsor:"Fidelity"},
+  {tkr:"FDIS",name:"Fidelity MSCI Consumer Discretionary Index ETF",cls:"equity",vehicle:"etf",er:0.08,yld:0.8,sponsor:"Fidelity"},
+  {tkr:"FSTA",name:"Fidelity MSCI Consumer Staples Index ETF",cls:"equity",vehicle:"etf",er:0.08,yld:2.4,sponsor:"Fidelity"},
+  {tkr:"FIDU",name:"Fidelity MSCI Industrials Index ETF",cls:"equity",vehicle:"etf",er:0.08,yld:1.3,sponsor:"Fidelity"},
+  {tkr:"FUTY",name:"Fidelity MSCI Utilities Index ETF",cls:"equity",vehicle:"etf",er:0.08,yld:2.8,sponsor:"Fidelity"},
+  {tkr:"FMAT",name:"Fidelity MSCI Materials Index ETF",cls:"equity",vehicle:"etf",er:0.08,yld:1.7,sponsor:"Fidelity"},
+  {tkr:"FCOM",name:"Fidelity MSCI Communication Services Index ETF",cls:"equity",vehicle:"etf",er:0.08,yld:0.9,sponsor:"Fidelity"},
+
+  // ─── Fidelity — factor ETFs ───
+  {tkr:"FDVV",name:"Fidelity High Dividend ETF",cls:"equity",vehicle:"etf",er:0.16,yld:3.0,sponsor:"Fidelity"},
+  {tkr:"FQAL",name:"Fidelity Quality Factor ETF",cls:"equity",vehicle:"etf",er:0.15,yld:1.2,sponsor:"Fidelity"},
+  {tkr:"FVAL",name:"Fidelity Value Factor ETF",cls:"equity",vehicle:"etf",er:0.15,yld:1.6,sponsor:"Fidelity"},
+  {tkr:"FDLO",name:"Fidelity Low Volatility Factor ETF",cls:"equity",vehicle:"etf",er:0.15,yld:1.5,sponsor:"Fidelity"},
+  {tkr:"FDMO",name:"Fidelity Momentum Factor ETF",cls:"equity",vehicle:"etf",er:0.15,yld:0.8,sponsor:"Fidelity"},
+  {tkr:"FSMD",name:"Fidelity Small-Mid Cap Multifactor ETF",cls:"equity",vehicle:"etf",er:0.15,yld:1.4,sponsor:"Fidelity"},
+  {tkr:"FDRR",name:"Fidelity Dividend ETF for Rising Rates",cls:"equity",vehicle:"etf",er:0.15,yld:2.2,sponsor:"Fidelity"},
+  {tkr:"FELG",name:"Fidelity Enhanced Large Cap Core ETF",cls:"equity",vehicle:"etf",er:0.18,yld:1.0,sponsor:"Fidelity"},
+  {tkr:"FDIG",name:"Fidelity Crypto Industry and Digital Payments ETF",cls:"equity",vehicle:"etf",er:0.39,yld:0.5,sponsor:"Fidelity"},
+
+  // ─── Fidelity — index mutual funds ───
+  {tkr:"FNILX",name:"Fidelity ZERO Large Cap Index Fund",cls:"equity",vehicle:"mutual_fund",er:0.00,yld:1.2,sponsor:"Fidelity"},
+  {tkr:"FZIPX",name:"Fidelity ZERO Extended Market Index Fund",cls:"equity",vehicle:"mutual_fund",er:0.00,yld:1.1,sponsor:"Fidelity"},
+  {tkr:"FSPGX",name:"Fidelity Large Cap Growth Index Fund",cls:"equity",vehicle:"mutual_fund",er:0.04,yld:0.5,sponsor:"Fidelity"},
+  {tkr:"FLCOX",name:"Fidelity Large Cap Value Index Fund",cls:"equity",vehicle:"mutual_fund",er:0.04,yld:2.0,sponsor:"Fidelity"},
+  {tkr:"FSSNX",name:"Fidelity Small Cap Index Fund",cls:"equity",vehicle:"mutual_fund",er:0.03,yld:1.3,sponsor:"Fidelity"},
+  {tkr:"FSMDX",name:"Fidelity Mid Cap Index Fund",cls:"equity",vehicle:"mutual_fund",er:0.03,yld:1.3,sponsor:"Fidelity"},
+  {tkr:"FTIHX",name:"Fidelity Total International Index Fund",cls:"equity",vehicle:"mutual_fund",er:0.06,yld:3.0,sponsor:"Fidelity"},
+  {tkr:"FSGGX",name:"Fidelity Global ex US Index Fund",cls:"equity",vehicle:"mutual_fund",er:0.06,yld:3.0,sponsor:"Fidelity"},
+  {tkr:"FIPDX",name:"Fidelity Inflation-Protected Bond Index Fund",cls:"fixed_income",vehicle:"mutual_fund",er:0.05,yld:3.6,sponsor:"Fidelity"},
+  {tkr:"FUAMX",name:"Fidelity Intermediate Treasury Bond Index Fund",cls:"fixed_income",vehicle:"mutual_fund",er:0.03,yld:4.0,sponsor:"Fidelity"},
+  {tkr:"FUMBX",name:"Fidelity Short-Term Treasury Bond Index Fund",cls:"fixed_income",vehicle:"mutual_fund",er:0.03,yld:4.2,sponsor:"Fidelity"},
+  {tkr:"FNBGX",name:"Fidelity Long-Term Treasury Bond Index Fund",cls:"fixed_income",vehicle:"mutual_fund",er:0.03,yld:4.5,sponsor:"Fidelity"},
+
+  // ─── Fidelity — active mutual funds ───
+  {tkr:"FBALX",name:"Fidelity Balanced Fund",cls:"mixed",vehicle:"mutual_fund",er:0.47,yld:1.6,sponsor:"Fidelity"},
+  {tkr:"FPURX",name:"Fidelity Puritan Fund",cls:"mixed",vehicle:"mutual_fund",er:0.51,yld:1.7,sponsor:"Fidelity"},
+  {tkr:"FLPSX",name:"Fidelity Low-Priced Stock Fund",cls:"equity",vehicle:"mutual_fund",er:0.83,yld:1.8,sponsor:"Fidelity"},
+  {tkr:"FMAGX",name:"Fidelity Magellan Fund",cls:"equity",vehicle:"mutual_fund",er:0.50,yld:0.5,sponsor:"Fidelity"},
+  {tkr:"FSELX",name:"Fidelity Select Semiconductors Portfolio",cls:"equity",vehicle:"mutual_fund",er:0.63,yld:0.1,sponsor:"Fidelity"},
+  {tkr:"FSPTX",name:"Fidelity Select Technology Portfolio",cls:"equity",vehicle:"mutual_fund",er:0.63,yld:0.0,sponsor:"Fidelity"},
+  {tkr:"FSPHX",name:"Fidelity Select Health Care Portfolio",cls:"equity",vehicle:"mutual_fund",er:0.63,yld:0.3,sponsor:"Fidelity"},
+  {tkr:"FAGIX",name:"Fidelity Capital & Income Fund",cls:"fixed_income",vehicle:"mutual_fund",er:0.66,yld:5.5,sponsor:"Fidelity"},
+  {tkr:"FSICX",name:"Fidelity Strategic Income Fund",cls:"fixed_income",vehicle:"mutual_fund",er:0.67,yld:5.0,sponsor:"Fidelity"},
+
+  // ─── Fidelity — cash ───
+  {tkr:"FDRXX",name:"Fidelity Government Cash Reserves",cls:"cash",vehicle:"money_market",er:0.34,yld:5.0,sponsor:"Fidelity",ccy:"USD",act40:true},
+  {tkr:"FTEXX",name:"Fidelity Municipal Money Market Fund",cls:"cash",vehicle:"money_market",er:0.42,yld:3.3,sponsor:"Fidelity",ccy:"USD",act40:true},
+
+  // ─── Fidelity — UCITS (Ireland) ───
+  {tkr:"FUSD",name:"Fidelity US Quality Income UCITS ETF",cls:"equity",vehicle:"etf",er:0.25,yld:1.9,sponsor:"Fidelity",dom:"IE",ucits:true,ccy:"USD"},
+  {tkr:"FEME",name:"Fidelity Emerging Markets Quality Income UCITS ETF",cls:"equity",vehicle:"etf",er:0.50,yld:3.0,sponsor:"Fidelity",dom:"IE",ucits:true,ccy:"USD"},
+
+  // ─── iShares — global sector ETFs ───
+  {tkr:"IXN",name:"iShares Global Tech ETF",cls:"equity",vehicle:"etf",er:0.41,yld:0.6,sponsor:"BlackRock"},
+  {tkr:"IXJ",name:"iShares Global Healthcare ETF",cls:"equity",vehicle:"etf",er:0.41,yld:1.4,sponsor:"BlackRock"},
+  {tkr:"IXG",name:"iShares Global Financials ETF",cls:"equity",vehicle:"etf",er:0.41,yld:2.4,sponsor:"BlackRock"},
+  {tkr:"IXC",name:"iShares Global Energy ETF",cls:"equity",vehicle:"etf",er:0.41,yld:3.6,sponsor:"BlackRock"},
+  {tkr:"IXP",name:"iShares Global Comm Services ETF",cls:"equity",vehicle:"etf",er:0.41,yld:1.2,sponsor:"BlackRock"},
+  {tkr:"MXI",name:"iShares Global Materials ETF",cls:"equity",vehicle:"etf",er:0.41,yld:2.4,sponsor:"BlackRock"},
+  {tkr:"EXI",name:"iShares Global Industrials ETF",cls:"equity",vehicle:"etf",er:0.41,yld:1.4,sponsor:"BlackRock"},
+  {tkr:"KXI",name:"iShares Global Consumer Staples ETF",cls:"equity",vehicle:"etf",er:0.41,yld:2.4,sponsor:"BlackRock"},
+  {tkr:"RXI",name:"iShares Global Consumer Discretionary ETF",cls:"equity",vehicle:"etf",er:0.41,yld:1.1,sponsor:"BlackRock"},
+  {tkr:"JXI",name:"iShares Global Utilities ETF",cls:"equity",vehicle:"etf",er:0.41,yld:3.0,sponsor:"BlackRock"},
+  {tkr:"IGF",name:"iShares Global Infrastructure ETF",cls:"equity",vehicle:"etf",er:0.42,yld:2.7,sponsor:"BlackRock"},
+
+  // ─── iShares — US sector ETFs ───
+  {tkr:"IYY",name:"iShares Dow Jones U.S. ETF",cls:"equity",vehicle:"etf",er:0.20,yld:1.2,sponsor:"BlackRock"},
+  {tkr:"IYC",name:"iShares U.S. Consumer Discretionary ETF",cls:"equity",vehicle:"etf",er:0.39,yld:0.8,sponsor:"BlackRock"},
+  {tkr:"IYK",name:"iShares U.S. Consumer Staples ETF",cls:"equity",vehicle:"etf",er:0.39,yld:2.3,sponsor:"BlackRock"},
+  {tkr:"IYJ",name:"iShares U.S. Industrials ETF",cls:"equity",vehicle:"etf",er:0.39,yld:1.0,sponsor:"BlackRock"},
+  {tkr:"IYM",name:"iShares U.S. Basic Materials ETF",cls:"equity",vehicle:"etf",er:0.39,yld:1.6,sponsor:"BlackRock"},
+  {tkr:"IYZ",name:"iShares U.S. Telecommunications ETF",cls:"equity",vehicle:"etf",er:0.39,yld:1.3,sponsor:"BlackRock"},
+  {tkr:"IDU",name:"iShares U.S. Utilities ETF",cls:"equity",vehicle:"etf",er:0.39,yld:2.5,sponsor:"BlackRock"},
+  {tkr:"IYT",name:"iShares U.S. Transportation ETF",cls:"equity",vehicle:"etf",er:0.39,yld:1.1,sponsor:"BlackRock"},
+  {tkr:"IYG",name:"iShares U.S. Financial Services ETF",cls:"equity",vehicle:"etf",er:0.39,yld:1.5,sponsor:"BlackRock"},
+  {tkr:"IHF",name:"iShares U.S. Healthcare Providers ETF",cls:"equity",vehicle:"etf",er:0.39,yld:0.5,sponsor:"BlackRock"},
+  {tkr:"IHE",name:"iShares U.S. Pharmaceuticals ETF",cls:"equity",vehicle:"etf",er:0.39,yld:2.0,sponsor:"BlackRock"},
+  {tkr:"IEZ",name:"iShares U.S. Oil Equipment & Services ETF",cls:"equity",vehicle:"etf",er:0.39,yld:2.0,sponsor:"BlackRock"},
+  {tkr:"IGE",name:"iShares North American Natural Resources ETF",cls:"equity",vehicle:"etf",er:0.41,yld:2.4,sponsor:"BlackRock"},
+  {tkr:"PICK",name:"iShares MSCI Global Metals & Mining Producers ETF",cls:"equity",vehicle:"etf",er:0.39,yld:3.5,sponsor:"BlackRock"},
+  {tkr:"SLVP",name:"iShares MSCI Global Silver and Metals Miners ETF",cls:"equity",vehicle:"etf",er:0.39,yld:1.0,sponsor:"BlackRock"},
+
+  // ─── iShares — technology & thematic ───
+  {tkr:"IGV",name:"iShares Expanded Tech-Software Sector ETF",cls:"equity",vehicle:"etf",er:0.41,yld:0.0,sponsor:"BlackRock"},
+  {tkr:"IGM",name:"iShares Expanded Tech Sector ETF",cls:"equity",vehicle:"etf",er:0.41,yld:0.1,sponsor:"BlackRock"},
+  {tkr:"IHAK",name:"iShares Cybersecurity and Tech ETF",cls:"equity",vehicle:"etf",er:0.47,yld:0.3,sponsor:"BlackRock"},
+  {tkr:"IDRV",name:"iShares Self-Driving EV and Tech ETF",cls:"equity",vehicle:"etf",er:0.47,yld:1.2,sponsor:"BlackRock"},
+
+  // ─── iShares — US style & size ───
+  {tkr:"IUSG",name:"iShares Core S&P U.S. Growth ETF",cls:"equity",vehicle:"etf",er:0.04,yld:0.6,sponsor:"BlackRock"},
+  {tkr:"IUSV",name:"iShares Core S&P U.S. Value ETF",cls:"equity",vehicle:"etf",er:0.04,yld:2.0,sponsor:"BlackRock"},
+  {tkr:"IWY",name:"iShares Russell Top 200 Growth ETF",cls:"equity",vehicle:"etf",er:0.20,yld:0.4,sponsor:"BlackRock"},
+  {tkr:"IWX",name:"iShares Russell Top 200 Value ETF",cls:"equity",vehicle:"etf",er:0.20,yld:2.0,sponsor:"BlackRock"},
+  {tkr:"IWL",name:"iShares Russell Top 200 ETF",cls:"equity",vehicle:"etf",er:0.15,yld:1.1,sponsor:"BlackRock"},
+  {tkr:"IWP",name:"iShares Russell Mid-Cap Growth ETF",cls:"equity",vehicle:"etf",er:0.23,yld:0.4,sponsor:"BlackRock"},
+  {tkr:"IWS",name:"iShares Russell Mid-Cap Value ETF",cls:"equity",vehicle:"etf",er:0.23,yld:1.8,sponsor:"BlackRock"},
+  {tkr:"IWV",name:"iShares Russell 3000 ETF",cls:"equity",vehicle:"etf",er:0.20,yld:1.2,sponsor:"BlackRock"},
+  {tkr:"IWC",name:"iShares Micro-Cap ETF",cls:"equity",vehicle:"etf",er:0.60,yld:1.1,sponsor:"BlackRock"},
+
+  // ─── iShares — fixed income ───
+  {tkr:"ISTB",name:"iShares Core 1-5 Year USD Bond ETF",cls:"fixed_income",vehicle:"etf",er:0.06,yld:4.4,sponsor:"BlackRock"},
+  {tkr:"BINC",name:"BlackRock Flexible Income ETF",cls:"fixed_income",vehicle:"etf",er:0.40,yld:5.9,sponsor:"BlackRock"},
+  {tkr:"IGOV",name:"iShares International Treasury Bond ETF",cls:"fixed_income",vehicle:"etf",er:0.35,yld:2.3,sponsor:"BlackRock"},
+  {tkr:"BGRN",name:"iShares USD Green Bond ETF",cls:"fixed_income",vehicle:"etf",er:0.20,yld:4.0,sponsor:"BlackRock",esg:true},
+  {tkr:"HYDB",name:"iShares High Yield Systematic Bond ETF",cls:"fixed_income",vehicle:"etf",er:0.35,yld:6.5,sponsor:"BlackRock"},
+
+  // ─── iShares iBonds — defined-maturity Treasury ladder (goal-year matching) ───
+  {tkr:"IBTF",name:"iShares iBonds Dec 2025 Term Treasury ETF",cls:"fixed_income",vehicle:"etf",er:0.07,yld:4.5,sponsor:"BlackRock"},
+  {tkr:"IBTG",name:"iShares iBonds Dec 2026 Term Treasury ETF",cls:"fixed_income",vehicle:"etf",er:0.07,yld:4.3,sponsor:"BlackRock"},
+  {tkr:"IBTH",name:"iShares iBonds Dec 2027 Term Treasury ETF",cls:"fixed_income",vehicle:"etf",er:0.07,yld:4.3,sponsor:"BlackRock"},
+  {tkr:"IBTI",name:"iShares iBonds Dec 2028 Term Treasury ETF",cls:"fixed_income",vehicle:"etf",er:0.07,yld:4.3,sponsor:"BlackRock"},
+  {tkr:"IBTJ",name:"iShares iBonds Dec 2029 Term Treasury ETF",cls:"fixed_income",vehicle:"etf",er:0.07,yld:4.3,sponsor:"BlackRock"},
+  {tkr:"IBTK",name:"iShares iBonds Dec 2030 Term Treasury ETF",cls:"fixed_income",vehicle:"etf",er:0.07,yld:4.3,sponsor:"BlackRock"},
+  {tkr:"IBTL",name:"iShares iBonds Dec 2031 Term Treasury ETF",cls:"fixed_income",vehicle:"etf",er:0.07,yld:4.3,sponsor:"BlackRock"},
+
+  // ─── iShares — option-overlay income (alternative sleeve) ───
+  {tkr:"TLTW",name:"iShares 20+ Year Treasury Bond BuyWrite Strategy ETF",cls:"alternative",vehicle:"etf",er:0.35,yld:14.0,sponsor:"BlackRock"},
+  {tkr:"HYGW",name:"iShares High Yield Corporate Bond BuyWrite Strategy ETF",cls:"alternative",vehicle:"etf",er:0.35,yld:12.0,sponsor:"BlackRock"},
+  {tkr:"LQDW",name:"iShares Investment Grade Corporate Bond BuyWrite Strategy ETF",cls:"alternative",vehicle:"etf",er:0.35,yld:8.5,sponsor:"BlackRock"},
+
+  // ─── iShares — UCITS (Ireland) ───
+  {tkr:"WSML",name:"iShares MSCI World Small Cap UCITS ETF (Acc)",cls:"equity",vehicle:"etf",er:0.35,yld:0.0,sponsor:"BlackRock",dom:"IE",ucits:true,ccy:"USD"},
+  {tkr:"AGGU",name:"iShares Core Global Aggregate Bond UCITS ETF USD Hedged (Acc)",cls:"fixed_income",vehicle:"etf",er:0.10,yld:0.0,sponsor:"BlackRock",dom:"IE",ucits:true,ccy:"USD"},
+  {tkr:"IEGA",name:"iShares Core Euro Government Bond UCITS ETF",cls:"fixed_income",vehicle:"etf",er:0.09,yld:2.8,sponsor:"BlackRock",dom:"IE",ucits:true,ccy:"EUR"},
+  // --- UCITS alternatives: fills a sleeve that had no eligible fund at all ---
+  // Strategy-diverse on purpose (listed PE, managed futures, market neutral,
+  // macro, event driven, multi-strategy, long/short, insurance-linked) so the
+  // sleeve is fillable across risk profiles rather than by one lucky match.
+  {tkr:"IPRV",name:"iShares Listed Private Equity UCITS ETF",cls:"alternative",vehicle:"etf",er:0.75,yld:2.5,sponsor:"BlackRock",dom:"IE",ucits:true,ccy:"USD"},
+  {tkr:"DWSCK",name:"DWS Concept Kaldemorgen LC EUR (absolute return multi-asset)",cls:"alternative",vehicle:"mutual_fund",er:1.55,yld:1.5,sponsor:"DWS",dom:"LU",ucits:true,ccy:"EUR",family:"dws-kaldemorgen"},
+  {tkr:"JPGMO",name:"JPMorgan Investment Funds Global Macro Opportunities A EUR",cls:"alternative",vehicle:"mutual_fund",er:1.70,yld:0.0,sponsor:"JPMorgan",dom:"LU",ucits:true,ccy:"EUR",family:"jpm-global-macro"},
+  {tkr:"MANTGR",name:"Man AHL TargetRisk D USD (systematic multi-asset)",cls:"alternative",vehicle:"mutual_fund",er:0.90,yld:0.0,sponsor:"Man Group",dom:"IE",ucits:true,ccy:"USD",family:"man-ahl-targetrisk"},
+  {tkr:"MANTRD",name:"Man AHL Trend Alternative DNY USD (managed futures)",cls:"alternative",vehicle:"mutual_fund",er:1.30,yld:0.0,sponsor:"Man Group",dom:"IE",ucits:true,ccy:"USD",family:"man-ahl-trend"},
+  {tkr:"PICTAT",name:"Pictet TR Atlas I EUR (equity market neutral)",cls:"alternative",vehicle:"mutual_fund",er:1.60,yld:0.0,sponsor:"Pictet",dom:"LU",ucits:true,ccy:"EUR",family:"pictet-tr-atlas"},
+  {tkr:"PICTDA",name:"Pictet TR Diversified Alpha I EUR (multi-strategy)",cls:"alternative",vehicle:"mutual_fund",er:1.55,yld:0.0,sponsor:"Pictet",dom:"LU",ucits:true,ccy:"EUR",family:"pictet-tr-divalpha"},
+  {tkr:"SGAIBT",name:"Schroder GAIA BlueTrend C USD (managed futures)",cls:"alternative",vehicle:"mutual_fund",er:1.75,yld:0.0,sponsor:"Schroders",dom:"LU",ucits:true,ccy:"USD",family:"gaia-bluetrend"},
+  {tkr:"SGAICB",name:"Schroder GAIA Cat Bond C USD (insurance-linked securities)",cls:"alternative",vehicle:"mutual_fund",er:1.45,yld:0.0,sponsor:"Schroders",dom:"LU",ucits:true,ccy:"USD",family:"gaia-cat-bond"},
+  {tkr:"GAMSCB",name:"GAM Star Cat Bond Institutional USD (insurance-linked securities)",cls:"alternative",vehicle:"mutual_fund",er:1.15,yld:0.0,sponsor:"GAM",dom:"IE",ucits:true,ccy:"USD",family:"gam-star-cat-bond"},
+  {tkr:"NORA10",name:"Nordea 1 Alpha 10 MA Fund BI EUR (multi-asset absolute return)",cls:"alternative",vehicle:"mutual_fund",er:1.05,yld:0.0,sponsor:"Nordea",dom:"LU",ucits:true,ccy:"EUR",family:"nordea-alpha-10"},
+  {tkr:"BSFGED",name:"BlackRock Strategic Funds Global Event Driven A2 USD",cls:"alternative",vehicle:"mutual_fund",er:1.60,yld:0.0,sponsor:"BlackRock",dom:"LU",ucits:true,ccy:"USD",family:"bsf-event-driven"},
+  {tkr:"LUMMWT",name:"Lumyna MW TOPS UCITS A USD (Marshall Wace long/short equity)",cls:"alternative",vehicle:"mutual_fund",er:1.75,yld:0.0,sponsor:"Lumyna",dom:"IE",ucits:true,ccy:"USD",family:"lumyna-mw-tops"},
+  {tkr:"JUPGAR",name:"Jupiter Merian Global Equity Absolute Return I USD",cls:"alternative",vehicle:"mutual_fund",er:0.90,yld:0.0,sponsor:"Jupiter",dom:"IE",ucits:true,ccy:"USD",family:"jupiter-gear"},
+  {tkr:"ELEVAR",name:"Eleva Absolute Return Europe I EUR (long/short equity)",cls:"alternative",vehicle:"mutual_fund",er:1.50,yld:0.0,sponsor:"Eleva",dom:"LU",ucits:true,ccy:"EUR",family:"eleva-are"},
+  {tkr:"BNYGRR",name:"BNY Mellon Global Real Return EUR (absolute return multi-asset)",cls:"alternative",vehicle:"mutual_fund",er:1.10,yld:1.5,sponsor:"BNY Mellon",dom:"IE",ucits:true,ccy:"EUR",family:"bny-global-real-return"},
+  // --- CHF-hedged share classes of the UCITS alternatives above. Same fund,
+  //     same portfolio; mu is reduced by the cost of hedging into CHF (the rate
+  //     differential), so Sharpe against the CHF risk-free matches the base class.
+  //     `family` pairs them so a portfolio can never hold both. ---
+  {tkr:"DWSCKC",name:"DWS Concept Kaldemorgen LCH CHF (hedged)",cls:"alternative",vehicle:"mutual_fund",er:1.55,yld:0.0,sponsor:"DWS",dom:"LU",ucits:true,ccy:"CHF",family:"dws-kaldemorgen"},
+  {tkr:"JPGMOC",name:"JPMorgan Investment Funds Global Macro Opportunities A CHF (hedged)",cls:"alternative",vehicle:"mutual_fund",er:1.70,yld:0.0,sponsor:"JPMorgan",dom:"LU",ucits:true,ccy:"CHF",family:"jpm-global-macro"},
+  {tkr:"MANTGRC",name:"Man AHL TargetRisk D CHF Hedged",cls:"alternative",vehicle:"mutual_fund",er:0.90,yld:0.0,sponsor:"Man Group",dom:"IE",ucits:true,ccy:"CHF",family:"man-ahl-targetrisk"},
+  {tkr:"MANTRDC",name:"Man AHL Trend Alternative DNY CHF Hedged",cls:"alternative",vehicle:"mutual_fund",er:1.30,yld:0.0,sponsor:"Man Group",dom:"IE",ucits:true,ccy:"CHF",family:"man-ahl-trend"},
+  {tkr:"PICTATC",name:"Pictet TR Atlas I CHF (hedged)",cls:"alternative",vehicle:"mutual_fund",er:1.60,yld:0.0,sponsor:"Pictet",dom:"LU",ucits:true,ccy:"CHF",family:"pictet-tr-atlas"},
+  {tkr:"PICTDAC",name:"Pictet TR Diversified Alpha I CHF (hedged)",cls:"alternative",vehicle:"mutual_fund",er:1.55,yld:0.0,sponsor:"Pictet",dom:"LU",ucits:true,ccy:"CHF",family:"pictet-tr-divalpha"},
+  {tkr:"SGAIBTC",name:"Schroder GAIA BlueTrend C CHF Hedged",cls:"alternative",vehicle:"mutual_fund",er:1.75,yld:0.0,sponsor:"Schroders",dom:"LU",ucits:true,ccy:"CHF",family:"gaia-bluetrend"},
+  {tkr:"SGAICBC",name:"Schroder GAIA Cat Bond C CHF Hedged",cls:"alternative",vehicle:"mutual_fund",er:1.45,yld:0.0,sponsor:"Schroders",dom:"LU",ucits:true,ccy:"CHF",family:"gaia-cat-bond"},
+  {tkr:"GAMSCBC",name:"GAM Star Cat Bond Institutional CHF Hedged",cls:"alternative",vehicle:"mutual_fund",er:1.15,yld:0.0,sponsor:"GAM",dom:"IE",ucits:true,ccy:"CHF",family:"gam-star-cat-bond"},
+  {tkr:"NORA10C",name:"Nordea 1 Alpha 10 MA Fund BI CHF (hedged)",cls:"alternative",vehicle:"mutual_fund",er:1.05,yld:0.0,sponsor:"Nordea",dom:"LU",ucits:true,ccy:"CHF",family:"nordea-alpha-10"},
+  {tkr:"BSFGEDC",name:"BlackRock Strategic Funds Global Event Driven A2 CHF Hedged",cls:"alternative",vehicle:"mutual_fund",er:1.60,yld:0.0,sponsor:"BlackRock",dom:"LU",ucits:true,ccy:"CHF",family:"bsf-event-driven"},
+  {tkr:"LUMMWTC",name:"Lumyna MW TOPS UCITS A CHF Hedged",cls:"alternative",vehicle:"mutual_fund",er:1.75,yld:0.0,sponsor:"Lumyna",dom:"IE",ucits:true,ccy:"CHF",family:"lumyna-mw-tops"},
+  {tkr:"JUPGARC",name:"Jupiter Merian Global Equity Absolute Return I CHF (hedged)",cls:"alternative",vehicle:"mutual_fund",er:0.90,yld:0.0,sponsor:"Jupiter",dom:"IE",ucits:true,ccy:"CHF",family:"jupiter-gear"},
+  {tkr:"ELEVARC",name:"Eleva Absolute Return Europe I CHF (hedged)",cls:"alternative",vehicle:"mutual_fund",er:1.50,yld:0.0,sponsor:"Eleva",dom:"LU",ucits:true,ccy:"CHF",family:"eleva-are"},
+  {tkr:"BNYGRRC",name:"BNY Mellon Global Real Return CHF Hedged",cls:"alternative",vehicle:"mutual_fund",er:1.10,yld:0.0,sponsor:"BNY Mellon",dom:"IE",ucits:true,ccy:"CHF",family:"bny-global-real-return"},
+
+
 ];
 
 // FUND METRICS ENRICHMENT — populate performance & risk stats on every
@@ -2225,8 +2515,14 @@ const CLASS_DEFAULTS = {
   crypto:       {mu:25.0, sigma:65.0, holdings:1,    aum:10,  beta:1.80, r1y:80.0, r3y:25.0, r5y:30.0, r10y:0.0}
 };
 
-// Explicit performance overrides for flagship funds (~2024 actuals, rounded)
+// Explicit performance overrides for flagship funds.
 // Format: {mu,sigma,holdings,aum(B USD),beta,r1y,r3y,r5y,r10y,maxDD,sharpe(optional)}
+// A trailing-return field of 0 is a SENTINEL meaning "the fund is younger than
+// this window"; enrichment converts it to null so it is never displayed or fed
+// to the model as a real 0.0% return. Figures are a point-in-time snapshot —
+// surface FUND_DATA_AS_OF wherever they are shown rather than implying they are
+// live market data.
+const FUND_DATA_AS_OF = "2024-12-31";
 const FUND_OVERRIDES = {
   // ─── US Large Cap Core ───
   VOO:{mu:10.5,sigma:15.0,holdings:503,aum:1100,beta:1.00,r1y:24.2,r3y:9.8,r5y:14.8,r10y:12.5,maxDD:-23.9},
@@ -2302,6 +2598,20 @@ const FUND_OVERRIDES = {
   HYG:{mu:7.0,sigma:9.0,holdings:1230,aum:14,beta:0.55,r1y:9.0,r3y:1.5,r5y:3.5,r10y:4.0,maxDD:-23.5},
   MUB:{mu:3.5,sigma:5.0,holdings:5550,aum:38,beta:0.05,r1y:3.0,r3y:-0.5,r5y:1.0,r10y:2.5,maxDD:-11.0},
   BIL:{mu:5.2,sigma:0.4,holdings:18,aum:38,beta:0.00,r1y:5.3,r3y:3.2,r5y:1.9,r10y:1.2,maxDD:-0.2},
+  // ─── 1940 Act ultra-short ETFs ───
+  JPST:{mu:5.3,sigma:0.5,holdings:700,aum:39,beta:0.02,r1y:5.5,r3y:3.6,r5y:2.6,r10y:0,maxDD:-1.0},
+  ICSH:{mu:5.3,sigma:0.5,holdings:400,aum:7.8,beta:0.02,r1y:5.5,r3y:3.6,r5y:2.5,r10y:1.8,maxDD:-1.0},
+  GBIL:{mu:5.0,sigma:0.3,holdings:40,aum:7.5,beta:0.00,r1y:5.2,r3y:3.3,r5y:2.2,r10y:0,maxDD:-0.3},
+  // ─── UCITS money market / ultra-short ───
+  // TER and fund size are the published figures; the return series uses the 0
+  // sentinel for windows a line has not run (converted to null = "n/a", never
+  // shown as a real 0.0% return). μ reflects the currency's short rate at the
+  // FUND_DATA_AS_OF basis, not a forecast.
+  XEON:{mu:3.0,sigma:0.3,holdings:1,aum:22.4,beta:0.00,r1y:3.8,r3y:2.4,r5y:1.3,r10y:0.4,maxDD:-0.1},
+  ERNE:{mu:3.4,sigma:0.6,holdings:280,aum:3.4,beta:0.02,r1y:4.1,r3y:2.3,r5y:1.4,r10y:0,maxDD:-1.2},
+  ERNA:{mu:5.0,sigma:0.6,holdings:340,aum:2.6,beta:0.02,r1y:5.4,r3y:3.4,r5y:2.4,r10y:0,maxDD:-1.4},
+  ERNS:{mu:4.8,sigma:0.6,holdings:200,aum:0.9,beta:0.02,r1y:5.1,r3y:3.2,r5y:2.0,r10y:0,maxDD:-1.3},
+  IB01:{mu:4.6,sigma:0.4,holdings:20,aum:8.5,beta:0.00,r1y:5.0,r3y:3.1,r5y:0,r10y:0,maxDD:-0.3},
   // ─── Real Estate ───
   VNQ:{mu:7.0,sigma:18.0,holdings:160,aum:35,beta:0.85,r1y:9.0,r3y:-1.5,r5y:4.0,r10y:6.5,maxDD:-35.0},
   // ─── Commodities ───
@@ -2326,8 +2636,239 @@ const FUND_OVERRIDES = {
   // ─── Crypto ───
   IBIT:{mu:35.0,sigma:62.0,holdings:1,aum:55,beta:1.85,r1y:120.0,r3y:0.0,r5y:0.0,r10y:0.0,maxDD:-22.0},
   FBTC:{mu:35.0,sigma:62.0,holdings:1,aum:20,beta:1.85,r1y:120.0,r3y:0.0,r5y:0.0,r10y:0.0,maxDD:-22.0},
-  ETHA:{mu:30.0,sigma:75.0,holdings:1,aum:5,beta:2.10,r1y:45.0,r3y:0.0,r5y:0.0,r10y:0.0,maxDD:-30.0}
+  ETHA:{mu:30.0,sigma:75.0,holdings:1,aum:5,beta:2.10,r1y:45.0,r3y:0.0,r5y:0.0,r10y:0.0,maxDD:-30.0},
+
+  // ─── Sponsor-depth additions: structural profile only (no curated trailing
+  //     returns — those fall back to class defaults like the rest of the tail) ───
+  // Vanguard style/size
+  VXF:{mu:9.5,sigma:20.0,holdings:3600,aum:20,beta:1.12,inception:2001},
+  VONG:{mu:12.5,sigma:19.0,holdings:390,aum:14,beta:1.11,inception:2010},
+  VONV:{mu:9.5,sigma:14.5,holdings:850,aum:10,beta:0.92,inception:2010},
+  VTHR:{mu:10.4,sigma:15.5,holdings:2800,aum:3.5,beta:1.02,inception:2010},
+  VTWG:{mu:9.0,sigma:22.5,holdings:1080,aum:1.0,beta:1.20,inception:2010},
+  VTWV:{mu:9.0,sigma:21.5,holdings:1420,aum:1.0,beta:1.16,inception:2010},
+  VOOG:{mu:12.0,sigma:18.0,holdings:230,aum:13,beta:1.09,inception:2010},
+  VOOV:{mu:9.5,sigma:14.5,holdings:400,aum:5.5,beta:0.92,inception:2010},
+  VIOO:{mu:9.5,sigma:21.0,holdings:600,aum:2.8,beta:1.15,inception:2010},
+  VIOG:{mu:9.5,sigma:22.0,holdings:340,aum:1.2,beta:1.17,inception:2010},
+  VIOV:{mu:9.5,sigma:21.5,holdings:460,aum:2.0,beta:1.14,inception:2010},
+  IVOO:{mu:10.0,sigma:18.5,holdings:400,aum:2.7,beta:1.08,inception:2010},
+  IVOG:{mu:10.0,sigma:19.5,holdings:230,aum:1.1,beta:1.10,inception:2010},
+  IVOV:{mu:10.0,sigma:18.5,holdings:290,aum:1.1,beta:1.06,inception:2010},
+  VIGI:{mu:8.5,sigma:15.0,holdings:350,aum:6.5,beta:0.80,inception:2016},
+  VFMF:{mu:10.0,sigma:17.0,holdings:600,aum:0.4,beta:1.00,inception:2018},
+  VFMO:{mu:11.0,sigma:19.0,holdings:600,aum:0.7,beta:1.05,inception:2018},
+  VFVA:{mu:10.0,sigma:19.5,holdings:750,aum:1.0,beta:1.08,inception:2018},
+  VFQY:{mu:10.5,sigma:16.5,holdings:450,aum:0.4,beta:0.98,inception:2018},
+  // Vanguard fixed income
+  BSV:{mu:4.3,sigma:2.5,holdings:2800,aum:33,beta:0.03,inception:2007},
+  BIV:{mu:4.8,sigma:6.0,holdings:2100,aum:22,beta:0.12,inception:2007},
+  BLV:{mu:5.2,sigma:12.0,holdings:3000,aum:6.0,beta:0.28,inception:2007},
+  VCRB:{mu:4.8,sigma:5.5,holdings:1600,aum:2.5,beta:0.10,inception:2023,r3y:0,r5y:0,r10y:0},
+  VPLS:{mu:5.3,sigma:6.0,holdings:1400,aum:1.0,beta:0.15,inception:2023,r3y:0,r5y:0,r10y:0},
+  VTES:{mu:3.2,sigma:1.5,holdings:1000,aum:1.5,beta:0.02,inception:2023,r3y:0,r5y:0,r10y:0},
+  VCEB:{mu:5.0,sigma:6.5,holdings:800,aum:0.6,beta:0.13,inception:2020,r5y:0,r10y:0},
+  // Vanguard cash
+  VUSB:{mu:4.9,sigma:0.8,holdings:700,aum:5.0,beta:0.01,inception:2021,r5y:0,r10y:0},
+  VMRXX:{mu:5.0,sigma:0.25,holdings:200,aum:200,beta:0.00},
+  // Vanguard active / balanced
+  VDIGX:{mu:9.5,sigma:13.0,holdings:45,aum:52,beta:0.83},
+  VEIPX:{mu:9.0,sigma:13.0,holdings:190,aum:55,beta:0.80},
+  VWNDX:{mu:9.5,sigma:17.0,holdings:130,aum:22,beta:1.02},
+  VWNFX:{mu:9.5,sigma:16.0,holdings:150,aum:50,beta:0.98},
+  VGHCX:{mu:8.5,sigma:14.5,holdings:100,aum:45,beta:0.70},
+  VASGX:{mu:8.5,sigma:14.0,holdings:4,aum:29,beta:0.80},
+  VSMGX:{mu:7.0,sigma:10.5,holdings:4,aum:33,beta:0.60},
+  VSCGX:{mu:5.8,sigma:7.5,holdings:4,aum:18,beta:0.40},
+  VASIX:{mu:4.8,sigma:5.0,holdings:4,aum:6.5,beta:0.20},
+  VTMFX:{mu:7.5,sigma:9.5,holdings:2,aum:9.0,beta:0.58},
+  // Vanguard UCITS
+  VWRP:{mu:9.0,sigma:15.0,holdings:3700,aum:14,beta:1.00},
+  VNRT:{mu:10.3,sigma:15.5,holdings:700,aum:4.0,beta:1.01},
+  VNRA:{mu:10.3,sigma:15.5,holdings:700,aum:2.0,beta:1.01},
+  // Fidelity sectors
+  FTEC:{mu:11.5,sigma:22.0,holdings:300,aum:13,beta:1.25,inception:2013},
+  FHLC:{mu:8.5,sigma:15.0,holdings:380,aum:2.6,beta:0.72,inception:2013},
+  FNCL:{mu:9.5,sigma:20.0,holdings:390,aum:2.0,beta:1.08,inception:2013},
+  FENY:{mu:8.0,sigma:26.0,holdings:110,aum:1.6,beta:1.02,inception:2013},
+  FDIS:{mu:10.0,sigma:20.0,holdings:290,aum:1.6,beta:1.20,inception:2013},
+  FSTA:{mu:7.5,sigma:13.0,holdings:100,aum:1.2,beta:0.58,inception:2013},
+  FIDU:{mu:9.5,sigma:18.0,holdings:350,aum:1.1,beta:1.05,inception:2013},
+  FUTY:{mu:7.5,sigma:15.0,holdings:70,aum:1.4,beta:0.55,inception:2013},
+  FMAT:{mu:8.0,sigma:19.5,holdings:120,aum:0.6,beta:1.05,inception:2013},
+  FCOM:{mu:9.0,sigma:19.0,holdings:120,aum:1.2,beta:1.05,inception:2013},
+  // Fidelity factors
+  FDVV:{mu:9.5,sigma:14.5,holdings:110,aum:4.5,beta:0.88,inception:2016},
+  FQAL:{mu:10.5,sigma:15.5,holdings:250,aum:1.2,beta:0.97,inception:2016},
+  FVAL:{mu:9.5,sigma:15.5,holdings:130,aum:1.5,beta:0.95,inception:2016},
+  FDLO:{mu:9.0,sigma:12.5,holdings:130,aum:1.0,beta:0.78,inception:2016},
+  FDMO:{mu:10.5,sigma:17.5,holdings:120,aum:0.4,beta:1.05,inception:2016},
+  FSMD:{mu:9.5,sigma:18.5,holdings:400,aum:1.5,beta:1.05,inception:2019},
+  FDRR:{mu:9.5,sigma:14.5,holdings:110,aum:0.5,beta:0.90,inception:2016},
+  FELG:{mu:10.8,sigma:15.5,holdings:200,aum:2.5,beta:1.02},
+  FDIG:{mu:14.0,sigma:45.0,holdings:40,aum:0.2,beta:1.70,inception:2022,r5y:0,r10y:0},
+  // Fidelity index mutual funds
+  FNILX:{mu:10.5,sigma:15.0,holdings:500,aum:10,beta:1.00,inception:2018},
+  FZIPX:{mu:9.5,sigma:20.0,holdings:2500,aum:2.0,beta:1.12,inception:2018},
+  FSPGX:{mu:12.5,sigma:19.0,holdings:390,aum:9.0,beta:1.11},
+  FLCOX:{mu:9.5,sigma:14.5,holdings:850,aum:8.0,beta:0.92},
+  FSSNX:{mu:9.0,sigma:21.0,holdings:1980,aum:9.0,beta:1.18},
+  FSMDX:{mu:10.0,sigma:18.5,holdings:820,aum:14,beta:1.08},
+  FTIHX:{mu:8.0,sigma:16.0,holdings:5200,aum:20,beta:0.85},
+  FSGGX:{mu:8.0,sigma:16.0,holdings:2300,aum:5.0,beta:0.85},
+  FIPDX:{mu:4.2,sigma:6.0,holdings:50,aum:6.5,beta:0.10},
+  FUAMX:{mu:4.3,sigma:6.5,holdings:30,aum:3.0,beta:0.08},
+  FUMBX:{mu:4.2,sigma:1.8,holdings:80,aum:2.5,beta:0.02},
+  FNBGX:{mu:4.6,sigma:14.0,holdings:35,aum:1.5,beta:0.25},
+  // Fidelity active
+  FBALX:{mu:8.0,sigma:11.0,holdings:1200,aum:39,beta:0.65},
+  FPURX:{mu:7.8,sigma:10.5,holdings:900,aum:29,beta:0.62},
+  FLPSX:{mu:9.0,sigma:15.5,holdings:800,aum:26,beta:0.85},
+  FMAGX:{mu:10.5,sigma:17.5,holdings:150,aum:29,beta:1.05},
+  FSELX:{mu:14.0,sigma:31.0,holdings:50,aum:22,beta:1.45},
+  FSPTX:{mu:12.5,sigma:24.0,holdings:130,aum:15,beta:1.28},
+  FSPHX:{mu:9.0,sigma:17.0,holdings:130,aum:9.0,beta:0.78},
+  FAGIX:{mu:7.0,sigma:9.5,holdings:500,aum:12,beta:0.55},
+  FSICX:{mu:5.8,sigma:7.0,holdings:1400,aum:7.0,beta:0.35},
+  // Fidelity cash
+  FDRXX:{mu:4.9,sigma:0.25,holdings:200,aum:250,beta:0.00},
+  FTEXX:{mu:3.2,sigma:0.30,holdings:400,aum:15,beta:0.00},
+  // Fidelity UCITS
+  FUSD:{mu:9.8,sigma:14.5,holdings:130,aum:1.2,beta:0.92,inception:2017},
+  FEME:{mu:8.5,sigma:17.0,holdings:180,aum:0.5,beta:0.90,inception:2017},
+  // iShares global sectors
+  IXN:{mu:11.5,sigma:21.0,holdings:130,aum:5.5,beta:1.22},
+  IXJ:{mu:8.5,sigma:14.0,holdings:120,aum:4.0,beta:0.68},
+  IXG:{mu:9.0,sigma:18.5,holdings:220,aum:0.5,beta:1.05},
+  IXC:{mu:8.0,sigma:23.0,holdings:60,aum:2.0,beta:0.95},
+  IXP:{mu:9.0,sigma:18.0,holdings:70,aum:0.4,beta:1.00},
+  MXI:{mu:8.0,sigma:19.0,holdings:110,aum:0.3,beta:1.00},
+  EXI:{mu:9.0,sigma:16.5,holdings:230,aum:0.6,beta:0.98},
+  KXI:{mu:7.0,sigma:12.5,holdings:100,aum:0.7,beta:0.55},
+  RXI:{mu:9.5,sigma:18.5,holdings:200,aum:0.4,beta:1.12},
+  JXI:{mu:7.0,sigma:14.0,holdings:70,aum:0.2,beta:0.55},
+  IGF:{mu:7.5,sigma:14.0,holdings:75,aum:3.5,beta:0.65},
+  // iShares US sectors
+  IYY:{mu:10.4,sigma:15.5,holdings:1100,aum:2.3,beta:1.02},
+  IYC:{mu:10.0,sigma:20.0,holdings:170,aum:1.6,beta:1.20},
+  IYK:{mu:7.5,sigma:13.0,holdings:55,aum:1.5,beta:0.58},
+  IYJ:{mu:9.5,sigma:18.0,holdings:180,aum:1.5,beta:1.05},
+  IYM:{mu:8.0,sigma:19.5,holdings:120,aum:0.6,beta:1.05},
+  IYZ:{mu:6.5,sigma:20.0,holdings:25,aum:0.4,beta:0.95},
+  IDU:{mu:7.5,sigma:15.0,holdings:45,aum:1.7,beta:0.55},
+  IYT:{mu:9.5,sigma:21.0,holdings:50,aum:0.7,beta:1.10},
+  IYG:{mu:9.5,sigma:20.0,holdings:100,aum:1.5,beta:1.10},
+  IHF:{mu:9.5,sigma:18.0,holdings:70,aum:0.6,beta:0.80},
+  IHE:{mu:8.0,sigma:15.0,holdings:40,aum:0.6,beta:0.68},
+  IEZ:{mu:7.0,sigma:32.0,holdings:35,aum:0.2,beta:1.30},
+  IGE:{mu:8.0,sigma:21.0,holdings:120,aum:0.6,beta:1.02},
+  PICK:{mu:7.5,sigma:27.0,holdings:230,aum:0.9,beta:1.18},
+  SLVP:{mu:7.0,sigma:38.0,holdings:35,aum:0.3,beta:1.05},
+  // iShares tech / thematic
+  IGV:{mu:12.0,sigma:24.0,holdings:120,aum:9.0,beta:1.20},
+  IGM:{mu:12.0,sigma:22.0,holdings:280,aum:5.5,beta:1.22},
+  IHAK:{mu:10.5,sigma:22.0,holdings:35,aum:0.9,beta:1.05,inception:2019},
+  IDRV:{mu:8.0,sigma:26.0,holdings:50,aum:0.3,beta:1.20,inception:2021,r5y:0,r10y:0},
+  // iShares style / size
+  IUSG:{mu:12.0,sigma:18.0,holdings:490,aum:20,beta:1.09},
+  IUSV:{mu:9.5,sigma:14.5,holdings:680,aum:19,beta:0.92},
+  IWY:{mu:13.0,sigma:19.5,holdings:110,aum:9.0,beta:1.12},
+  IWX:{mu:9.5,sigma:14.0,holdings:150,aum:1.5,beta:0.88},
+  IWL:{mu:10.8,sigma:15.5,holdings:200,aum:1.0,beta:1.00},
+  IWP:{mu:10.5,sigma:20.0,holdings:290,aum:15,beta:1.12},
+  IWS:{mu:9.5,sigma:17.5,holdings:700,aum:13,beta:1.00},
+  IWV:{mu:10.4,sigma:15.5,holdings:2500,aum:14,beta:1.02},
+  IWC:{mu:8.5,sigma:24.0,holdings:1400,aum:0.8,beta:1.22},
+  // iShares fixed income
+  ISTB:{mu:4.4,sigma:2.8,holdings:3000,aum:4.5,beta:0.04},
+  BINC:{mu:6.0,sigma:5.0,holdings:2000,aum:8.0,beta:0.30,inception:2023,r3y:0,r5y:0,r10y:0},
+  IGOV:{mu:3.0,sigma:8.0,holdings:750,aum:1.0,beta:0.15},
+  BGRN:{mu:4.6,sigma:6.0,holdings:400,aum:0.4,beta:0.12,inception:2018,r10y:0},
+  HYDB:{mu:6.5,sigma:8.0,holdings:900,aum:3.0,beta:0.45,inception:2017,r10y:0},
+  // iBonds Treasury ladder — vol scales with remaining term, then rolls to par
+  IBTF:{mu:4.5,sigma:0.8,holdings:20,aum:2.0,beta:0.01,inception:2023,r3y:0,r5y:0,r10y:0},
+  IBTG:{mu:4.3,sigma:1.6,holdings:20,aum:1.5,beta:0.02,inception:2023,r3y:0,r5y:0,r10y:0},
+  IBTH:{mu:4.3,sigma:2.4,holdings:20,aum:1.2,beta:0.03,inception:2023,r3y:0,r5y:0,r10y:0},
+  IBTI:{mu:4.3,sigma:3.2,holdings:20,aum:0.9,beta:0.04,inception:2023,r3y:0,r5y:0,r10y:0},
+  IBTJ:{mu:4.3,sigma:4.0,holdings:20,aum:0.7,beta:0.05,inception:2023,r3y:0,r5y:0,r10y:0},
+  IBTK:{mu:4.3,sigma:4.8,holdings:20,aum:0.5,beta:0.06,inception:2023,r3y:0,r5y:0,r10y:0},
+  IBTL:{mu:4.3,sigma:5.6,holdings:20,aum:0.4,beta:0.07,inception:2023,r3y:0,r5y:0,r10y:0},
+  // iShares buywrite overlays
+  TLTW:{mu:7.0,sigma:12.0,holdings:2,aum:1.0,beta:0.15,inception:2022,r5y:0,r10y:0},
+  HYGW:{mu:7.5,sigma:7.0,holdings:2,aum:0.3,beta:0.35,inception:2022,r5y:0,r10y:0},
+  LQDW:{mu:6.0,sigma:6.0,holdings:2,aum:0.3,beta:0.20,inception:2022,r5y:0,r10y:0},
+  // iShares UCITS
+  WSML:{mu:9.0,sigma:18.0,holdings:3300,aum:4.5,beta:1.05,inception:2018},
+  AGGU:{mu:4.6,sigma:5.0,holdings:9000,aum:3.0,beta:0.08,inception:2019},
+  IEGA:{mu:3.2,sigma:5.5,holdings:400,aum:4.0,beta:0.10},
+  // --- UCITS alternatives. maxDD is set explicitly where the sigma-derived
+  //     default would understate a real historical drawdown (listed PE in the
+  //     GFC, cat bonds in the 2017 hurricane season, CTAs in a trend reversal).
+  IPRV:{mu:9.0,sigma:25.0,holdings:80,aum:0.9,beta:1.20,maxDD:-60.0,inception:2007},
+  DWSCK:{mu:5.5,sigma:8.0,holdings:250,aum:9.0,beta:0.35,maxDD:-14.0,inception:2011},
+  JPGMO:{mu:5.0,sigma:7.5,holdings:300,aum:2.5,beta:0.20,maxDD:-12.0,inception:2013},
+  MANTGR:{mu:5.5,sigma:9.0,holdings:60,aum:2.0,beta:0.35,maxDD:-15.0,inception:2014},
+  MANTRD:{mu:6.0,sigma:12.0,holdings:80,aum:1.5,beta:0.05,maxDD:-18.0,inception:2015},
+  PICTAT:{mu:5.0,sigma:5.5,holdings:200,aum:3.0,beta:0.10,maxDD:-9.0,inception:2014},
+  PICTDA:{mu:4.8,sigma:4.5,holdings:400,aum:1.5,beta:0.15,maxDD:-8.0,inception:2018},
+  SGAIBT:{mu:6.0,sigma:13.0,holdings:150,aum:0.9,beta:0.05,maxDD:-20.0,inception:2012},
+  SGAICB:{mu:7.0,sigma:5.0,holdings:120,aum:1.3,beta:0.05,maxDD:-16.0,inception:2013},
+  GAMSCB:{mu:6.8,sigma:4.5,holdings:100,aum:2.5,beta:0.05,maxDD:-14.0,inception:2017},
+  NORA10:{mu:5.2,sigma:5.0,holdings:500,aum:1.2,beta:0.20,maxDD:-9.0,inception:2017},
+  BSFGED:{mu:5.5,sigma:6.5,holdings:180,aum:1.8,beta:0.25,maxDD:-11.0,inception:2015},
+  LUMMWT:{mu:6.5,sigma:8.0,holdings:400,aum:3.0,beta:0.25,maxDD:-12.0,inception:2013},
+  JUPGAR:{mu:4.8,sigma:6.0,holdings:300,aum:0.6,beta:0.05,maxDD:-12.0,inception:2009},
+  ELEVAR:{mu:5.5,sigma:6.5,holdings:120,aum:2.0,beta:0.20,maxDD:-11.0,inception:2018},
+  BNYGRR:{mu:5.0,sigma:6.0,holdings:300,aum:3.5,beta:0.30,maxDD:-12.0,inception:2010},
+  // --- CHF-hedged classes: derived from the base override, mu net of hedge carry ---
+  DWSCKC:{mu:3,sigma:8,holdings:250,aum:9,beta:0.35,maxDD:-14,inception:2011},
+  JPGMOC:{mu:2.5,sigma:7.5,holdings:300,aum:2.5,beta:0.2,maxDD:-12,inception:2013},
+  MANTGRC:{mu:1.5,sigma:9,holdings:60,aum:2,beta:0.35,maxDD:-15,inception:2014},
+  MANTRDC:{mu:2,sigma:12,holdings:80,aum:1.5,beta:0.05,maxDD:-18,inception:2015},
+  PICTATC:{mu:2.5,sigma:5.5,holdings:200,aum:3,beta:0.1,maxDD:-9,inception:2014},
+  PICTDAC:{mu:2.3,sigma:4.5,holdings:400,aum:1.5,beta:0.15,maxDD:-8,inception:2018},
+  SGAIBTC:{mu:2,sigma:13,holdings:150,aum:0.9,beta:0.05,maxDD:-20,inception:2012},
+  SGAICBC:{mu:3,sigma:5,holdings:120,aum:1.3,beta:0.05,maxDD:-16,inception:2013},
+  GAMSCBC:{mu:2.8,sigma:4.5,holdings:100,aum:2.5,beta:0.05,maxDD:-14,inception:2017},
+  NORA10C:{mu:2.7,sigma:5,holdings:500,aum:1.2,beta:0.2,maxDD:-9,inception:2017},
+  BSFGEDC:{mu:1.5,sigma:6.5,holdings:180,aum:1.8,beta:0.25,maxDD:-11,inception:2015},
+  LUMMWTC:{mu:2.5,sigma:8,holdings:400,aum:3,beta:0.25,maxDD:-12,inception:2013},
+  JUPGARC:{mu:0.8,sigma:6,holdings:300,aum:0.6,beta:0.05,maxDD:-12,inception:2009},
+  ELEVARC:{mu:3,sigma:6.5,holdings:120,aum:2,beta:0.2,maxDD:-11,inception:2018},
+  BNYGRRC:{mu:2.5,sigma:6,holdings:300,aum:3.5,beta:0.3,maxDD:-12,inception:2010},
+
+
 };
+
+// ── Data-freshness helpers ───────────────────────────────────────────────
+// Fund metrics are a point-in-time snapshot, not live market data. These let
+// the UI say so in the same breath as the numbers instead of leaving the
+// operator to assume they are current.
+function fundDataAgeMonths(){
+  const d = new Date(FUND_DATA_AS_OF);
+  if(isNaN(d)) return 0;
+  return Math.max(0, (Date.now() - d.getTime()) / 86400000 / 30.44);
+}
+function fundDataAgeLabel(){
+  const m = Math.round(fundDataAgeMonths());
+  if(m < 1) return "current";
+  if(m < 24) return m + " month" + (m === 1 ? "" : "s") + " old";
+  return (m / 12).toFixed(1) + " years old";
+}
+// How many providers actually returned live feed items on their last refresh.
+// liveCount is undefined for a provider not refreshed since it was introduced,
+// so "measured" reports whether we know at all rather than guessing zero.
+function researchLiveSummary(){
+  const cfg = getResearchCfg();
+  let measured = 0, liveProviders = 0, liveItems = 0;
+  RESEARCH_PROVIDERS.forEach(p => {
+    const c = cfg[p.id] || {};
+    if(c.liveCount === undefined) return;
+    measured++;
+    if(c.liveCount > 0){ liveProviders++; liveItems += c.liveCount; }
+  });
+  return {measured: measured === RESEARCH_PROVIDERS.length, partial: measured, liveProviders, liveItems};
+}
 
 // Deterministic per-ticker hash for stable jitter
 function _fundHash(tkr){
@@ -2337,8 +2878,19 @@ function _fundHash(tkr){
 }
 
 // Enrich every fund in-place with full metric set
+// Risk-free rate by currency, anchored to the same 2024-12-31 as FUND_DATA_AS_OF.
+// Sharpe has to be measured against the risk-free of the fund's OWN currency: a
+// CHF-hedged share class earns the (negative) CHF-vs-USD rate differential, so
+// against a flat USD 4.5% yardstick every hedged class looks like a bad fund
+// rather than the same fund in a different currency. Covered interest parity
+// means the base and hedged classes of one strategy then score the SAME Sharpe,
+// which is the correct answer and is asserted by a check in the release script.
+const RISK_FREE_BY_CCY = {
+  USD:4.5, EUR:3.0, CHF:0.5, GBP:4.75, JPY:0.25, SGD:3.0,
+  HKD:4.5, AUD:4.35, CAD:3.25, SEK:2.5, NOK:4.5, DKK:2.6
+};
+
 (function enrichAllFunds(){
-  const rf = 4.5; // risk-free rate, %
   FUND_UNIVERSE.forEach(f => {
     const d = CLASS_DEFAULTS[f.cls] || CLASS_DEFAULTS.equity;
     const ov = FUND_OVERRIDES[f.tkr] || {};
@@ -2360,17 +2912,30 @@ function _fundHash(tkr){
     f.r5y      = ov.r5y      ?? +(d.r5y  + j[2]*4).toFixed(2);
     f.r10y     = ov.r10y     ?? +(d.r10y + j[3]*3).toFixed(2);
     f.maxDD    = ov.maxDD    ?? -(+(f.sigma * 2.0 * (1 + Math.abs(j[4])*0.5)).toFixed(1));
+    const rf   = RISK_FREE_BY_CCY[(f.ccy || "USD").toUpperCase()] ?? RISK_FREE_BY_CCY.USD;
     f.sharpe   = ov.sharpe   ?? +((f.mu - rf) / Math.max(0.5, f.sigma)).toFixed(2);
     // Tracking error: active mutual funds 1.5-4%, ETFs <0.3%
     f.te = ov.te ?? (f.vehicle === "mutual_fund"
       ? +(1.5 + (h % 25) / 10).toFixed(2)
       : +(0.05 + (h % 25) / 100).toFixed(2));
-    // Inception year — flagships before 2010, others 2010-2022
-    f.inception = ov.inception ?? (FUND_OVERRIDES[f.tkr] ? 2005 : 2010 + (h % 13));
+    // Trailing returns: FUND_OVERRIDES uses 0.0 as a "fund is younger than this
+    // period" sentinel. Left as 0.0 it renders as a real 0.0% annualized return
+    // (e.g. a 2024-launched fund showing "10y: 0.0%") and drags portfolio
+    // aggregates toward zero. Normalize the sentinel to null = no track record.
+    ["r1y","r3y","r5y","r10y"].forEach(k => {
+      if(ov[k] === 0) f[k] = null;
+    });
+    // Inception year — only when actually curated. It used to be fabricated
+    // (every override fund got 2005, everything else 2010+hash), which stated a
+    // false launch year for funds that launched in 2024 and fed an "inception
+    // >= 5 years ago" quality screen with invented data.
+    f.inception = ov.inception ?? null;
     // Income type — derive from yield
     f.income = f.yld >= 4 ? "high" : (f.yld >= 2 ? "moderate" : "low");
   });
 })();
+
+
 
 // ═══════════════════════════════════════════════════════════
 // FINANCIAL MATH
@@ -2465,12 +3030,21 @@ function getProviderCfg(id){ const all=getResearchCfg(); return all[id]||{enable
 function setProviderCfg(id,patch){ const all=getResearchCfg(); all[id]={...getProviderCfg(id),...patch}; setResearchCfg(all); }
 
 // Curated institutional research catalogue — 12-15 items per provider reflecting
-// each firm's actual public houseview themes for 2024-2025. These populate
+// each firm's public houseview themes. These populate
 // automatically when live RSS isn't available and give the AI agent rich
 // institutional context to cite when constructing portfolios.
+//
+// VINTAGE: this is a STATIC baseline, not live research. Every item is stamped
+// with CURATED_RESEARCH_AS_OF and labelled as a curated baseline so nothing
+// downstream (agent prompts, position rationales, the research library UI) can
+// present it as current-dated publications. Keep entries evergreen — structural
+// views, regimes and ranges — rather than dated point targets or single-year
+// calls, which expire silently and then get cited to advisors as live views.
+// When refreshing this catalogue, bump CURATED_RESEARCH_AS_OF.
+const CURATED_RESEARCH_AS_OF = "2026-07-31";
 const CURATED_RESEARCH = {
   bofa_ml:[
-    {t:"Equities: Overweight quality large caps; mid-single-digit S&P returns through 2025", s:"BofA Global Research multi-asset team maintains overweight equity stance with bias toward quality factor (high ROE, low leverage, stable margins)."},
+    {t:"Equities: Overweight quality large caps; mid-single-digit index returns expected", s:"BofA Global Research multi-asset team maintains overweight equity stance with bias toward quality factor (high ROE, low leverage, stable margins)."},
     {t:"Bonds: Add duration in IG credit as Fed cuts begin; favor 5-7yr Treasuries", s:"Lock in real yields above historical averages before terminal rate compression."},
     {t:"Themes: AI infrastructure, US re-industrialization, defense spending", s:"Three secular themes BofA highlights as multi-year capex tailwinds."},
     {t:"Sector calls: Overweight Technology, Financials, Industrials; Underweight Real Estate, Utilities", s:""},
@@ -2478,11 +3052,69 @@ const CURATED_RESEARCH = {
     {t:"Asia ex-Japan: Tactical underweight, structural overweight India", s:"BofA EM strategist sees Indian structural growth thesis intact through 2030."},
     {t:"Private markets: 15-25% allocation for $5M+ portfolios", s:"Private credit yielding 10%+ with seniority and shorter duration than HY."},
     {t:"Munis: AAA 10yr offers 6.2% tax-equivalent for top federal bracket", s:""},
-    {t:"Gold: Constructive — $2,700 12mo target", s:"Central bank buying + de-dollarization + real rate normalization."},
+    {t:"Gold: Constructive — maintain strategic allocation", s:"Central bank buying, reserve diversification and the real-rate regime remain structural supports."},
     {t:"Oil: Range-bound $70-90 — overweight integrated majors over E&Ps", s:"BofA energy team prefers cash-generative supermajors (XOM, CVX, SHEL) over capex-heavy producers."},
-    {t:"Risks: Election volatility, sticky services inflation, geopolitical premium", s:""},
+    {t:"Risks: Policy uncertainty, sticky services inflation, geopolitical premium", s:""},
     {t:"Crypto: 1-3% bitcoin allocation appropriate for diversification", s:"BofA Digital Assets group views BTC as portfolio diversifier with low correlation to equities."},
     {t:"Currency: USD overvalued long-term — diversify with EUR/JPY exposure", s:""}
+  ],
+  // ── Merrill CIO Viewpoint ────────────────────────────────────────────────
+  // Monthly CIO e-report: market view plus asset allocation and portfolio
+  // positioning guidance. Tactical weightings are 12-18 month tilts expressed
+  // RELATIVE to the CIO Strategic Asset Allocation, and the asset allocation
+  // tables are published per liquidity tier — so the entries here are framed as
+  // positioning guidance rather than standalone market calls.
+  ml_viewpoint:[
+    {t:"Tactical tilts are 12-18 month deviations from the Strategic Asset Allocation, not standalone bets", s:"CIO asset class views are expressed relative to the SAA of a multi-asset portfolio; the strategic allocation remains the anchor."},
+    {t:"Equities: favor quality — profitable, cash-generative companies over lower-quality cyclicals", s:"A durable CIO preference expressed within the strategic equity weight rather than as a market-timing call."},
+    {t:"Fixed income: prefer high-quality core bonds as the portfolio's primary diversifier", s:"Investment-grade duration is the standing diversifier against an equity drawdown."},
+    {t:"Diversification across and within asset classes remains the primary risk control", s:"CIO emphasizes breadth over concentration when index leadership narrows."},
+    {t:"Rebalancing discipline: return to target weights after large market moves", s:"Systematic rebalancing enforces sell-high/buy-low and keeps portfolio risk aligned to the SAA."},
+    {t:"Portfolio tiering: match each liquidity tier to the time horizon of the need it funds", s:"Viewpoint asset allocation tables are published per tier so near-term needs are not exposed to long-horizon risk."},
+    {t:"International developed equities: the valuation gap versus US large caps favors maintaining strategic exposure", s:""},
+    {t:"Alternatives for qualified investors: diversification beyond traditional market beta", s:"Considered where liquidity, lockups and suitability permit."},
+    {t:"Cash: hold planned operating liquidity — avoid over-allocating cash against long-horizon goals", s:"Cash reduces near-term volatility but carries reinvestment and purchasing-power risk over full cycles."},
+    {t:"Staying invested through volatility beats attempting to time entries and exits", s:"CIO repeatedly notes that missing a small number of best days materially lowers long-run outcomes."},
+    {t:"Municipal bonds for taxable accounts in higher brackets", s:"After-tax yield comparison drives the allocation decision, not headline yield."},
+    {t:"Gold and real assets as portfolio diversifiers rather than return engines", s:""},
+    {t:"Risk management: size single-stock and concentrated positions against the whole balance sheet", s:""}
+  ],
+  // ── BofA RIC Report ──────────────────────────────────────────────────────
+  // Monthly Research Investment Committee publication: analysts share
+  // investment themes and actionable ideas, including cross-asset allocation
+  // recommendations. Entries reflect the RIC's thematic, multi-year framing.
+  bofa_ric:[
+    {t:"Cross-asset allocation: the committee's recommended stance across equities, credit and commodities", s:"RIC synthesizes BofA Global Research sector and strategy teams into one asset allocation view."},
+    {t:"Thematic investing: secular themes prioritized over cyclical trades", s:"RIC favors multi-year structural shifts that survive a full business cycle."},
+    {t:"AI infrastructure and data-center capex as a multi-year investment theme", s:"Power, cooling, networking and semiconductor supply chains as the picks-and-shovels expression."},
+    {t:"Reshoring and supply chain reconfiguration drive sustained industrial capex", s:""},
+    {t:"Demographics and healthcare innovation: aging populations reshape long-run demand", s:""},
+    {t:"Energy transition raises commodity intensity — favor upstream and grid infrastructure", s:"Electrification is metals-intensive; grid capex is a long-cycle constraint."},
+    {t:"Index concentration risk: diversify away from cap-weighted mega-cap exposure", s:"RIC flags equal-weight and broader-breadth expressions when index leadership narrows."},
+    {t:"Credit: maintain a quality bias — prefer investment grade over high yield when spreads are tight", s:""},
+    {t:"Emerging markets: selectivity by country fundamentals rather than broad EM beta", s:""},
+    {t:"Defense and security spending as a structural, policy-supported theme", s:""},
+    {t:"Value versus growth leadership tends to follow the rate and inflation regime", s:""},
+    {t:"Small caps: valuation dispersion versus large caps creates selective opportunity", s:""},
+    {t:"Real assets and infrastructure as an inflation-aware diversifier", s:""}
+  ],
+  // ── BofA US 1 List ───────────────────────────────────────────────────────
+  // BofA's highest-conviction Buy-rated US ideas (15 minimum, typically 20-30
+  // names). Deliberately describes the LIST'S METHODOLOGY, not its current
+  // constituents: membership turns over monthly, so hard-coding names here
+  // would recreate exactly the stale-citation problem this catalogue was
+  // cleaned up to avoid. Live constituent changes arrive through the feeds.
+  bofa_us1:[
+    {t:"US 1 List: BofA's highest-conviction ideas drawn from the Buy-rated US coverage universe", s:"Selected by BofA Global Research fundamental equity analysts and managed with a long-term performance objective."},
+    {t:"List construction: no fewer than 15 names, typically 20-30", s:"Deliberately concentrated relative to a diversified benchmark."},
+    {t:"Additions and deletions are the actionable signal — membership turns over as conviction changes", s:"A name entering or leaving the list is the event worth reading, not the static roster."},
+    {t:"Eligibility: US-listed equities including ADRs under BofA Global Research fundamental coverage", s:""},
+    {t:"A Buy rating is a prerequisite — the list is a high-conviction subset of the Buy-rated universe", s:""},
+    {t:"Sector representation reflects bottom-up analyst conviction, not a target sector weight", s:"Concentration by sector can drift well away from the index."},
+    {t:"Single-stock ideas carry idiosyncratic risk that index exposure does not", s:"Suitability and position sizing matter more than for diversified vehicles."},
+    {t:"For fund-based portfolios, treat list membership as a sector and theme signal rather than a direct holding", s:"A high-conviction stock list is not a substitute for a diversified allocation."},
+    {t:"Concentration discipline: size high-conviction single names against the whole balance sheet", s:""},
+    {t:"Long-term orientation: the list is managed for multi-year performance rather than tactical trading", s:""}
   ],
   jpm:[
     {t:"Guide to the Markets: 60/40 portfolio 6-8% expected return next decade", s:"JPM AM long-term capital market assumptions show normalized returns after 2022 bond reset."},
@@ -2504,7 +3136,7 @@ const CURATED_RESEARCH = {
     {t:"Cross-asset: Add convertible bonds for asymmetric equity exposure", s:"5-7% allocation in convertibles captures upside with bond floor."},
     {t:"Currencies: USD overvalued vs JPY medium-term, but yield differential keeps it bid", s:""},
     {t:"Themes: Generative AI productivity, GLP-1 medical revolution, Western capex cycle", s:""},
-    {t:"Mike Wilson: S&P 500 6,500 by mid-2025 — bullish revision", s:"Chief US Equity Strategist."},
+    {t:"US equity strategy: constructive on large-cap quality — earnings breadth and margin resilience drive the index view", s:"Chief US Equity Strategist weekly note."},
     {t:"Thoughts on the Market podcast: Recent topics — AI capex, election risk, China stimulus", s:"Daily 5-minute audio from senior MS strategists."},
     {t:"Energy transition: Long copper, uranium; short coal", s:"Copper deficit structural through 2030."},
     {t:"Munis: Best risk-adjusted income in 5+ years", s:""},
@@ -2532,9 +3164,9 @@ const CURATED_RESEARCH = {
   gs:[
     {t:"GSAM SAA: Lift bonds to 35% from 25% as real yields normalize", s:"Strategic Asset Allocation update."},
     {t:"Equities: Magnificent 7 valuations stretched but earnings still compounding", s:"GS top stock picks within Mag 7 — keep MSFT, AMZN, NVDA; trim AAPL, TSLA."},
-    {t:"Commodities: Structural copper deficit; gold $2,700 12-month target", s:""},
+    {t:"Commodities: structural copper deficit through the decade; gold supported by central-bank demand", s:""},
     {t:"Themes: Energy transition capex, AI silicon supply chain, defense", s:""},
-    {t:"David Kostin: S&P 500 6,300 by YE 2025 — top-down strategist call", s:""},
+    {t:"US Portfolio Strategy: index returns driven by EPS growth; valuations broadly full — favor quality and earnings visibility", s:""},
     {t:"GS Briefings podcast: Recent — Fed pivot, EM debt, AI margins", s:""},
     {t:"Sector calls: Overweight Tech (AI infra), Industrials (re-shoring), Healthcare; UW Energy, Utilities", s:""},
     {t:"Real Estate: Public REITs trading 15-25% below replacement cost", s:""},
@@ -2645,7 +3277,7 @@ const CURATED_RESEARCH = {
     {t:"EM: Overweight India, neutral LatAm, underweight China", s:""},
     {t:"Credit: Investment grade preferred; HY spreads tight historically", s:""},
     {t:"Alternatives: 10-15% allocation for accredited investors — focus on lower-corr strategies", s:""},
-    {t:"Energy: OXY, FANG, PXD — capital-disciplined E&Ps with shareholder returns", s:""},
+    {t:"Energy: OXY, FANG, EOG — capital-disciplined E&Ps with shareholder returns", s:""},
     {t:"Defense: LMT, RTX, NOC — multi-year capex cycle", s:""}
   ],
   sa:[
@@ -2722,7 +3354,7 @@ const COMMON_THEMES = [
   "Aggressive growth: 85% equity / 5% bond / 10% alts",
   // Equity
   "US equities: Overweight quality factor, large-cap growth bias",
-  "S&P 500 fair value 5,800 — defensive bias near record highs",
+  "US equities near record highs — favor quality factor and equal-weight diversification over index concentration",
   "International developed markets: Tactical overweight Japan",
   "Emerging markets: Selective — overweight India, underweight China",
   "Small-cap value: Trading near multi-year discount to large-cap growth",
@@ -2747,7 +3379,7 @@ const COMMON_THEMES = [
   "Private equity secondaries: 15-20% discount to NAV",
   "Real estate: REITs trading at 15-25% below replacement cost",
   "Infrastructure: 5-7% real returns, inflation hedge",
-  "Gold: 5% strategic allocation, target $2,700/oz",
+  "Gold: 5% strategic allocation — central-bank buying and reserve diversification support the regime",
   "Commodities: 3-5% portfolio inflation hedge",
   "Hedge funds: Multi-strat 6-8% net of fees, low correlation",
   "Trend-following CTAs: Tail-risk hedge for portfolio",
@@ -2770,7 +3402,7 @@ const COMMON_THEMES = [
   "Defense spending: Multi-year capex cycle (LMT, RTX, NOC)",
   "US re-shoring: Industrial reshoring beneficiaries",
   // Risks
-  "Election volatility: Hedge with VIX calls or low-vol tilt",
+  "Event-driven volatility: hedge with VIX calls or a low-vol tilt",
   "Geopolitical fragmentation: Diversify currency exposure",
   "Sticky services inflation: Maintain TIPS allocation",
   "China property contagion: Limit direct China exposure",
@@ -2830,28 +3462,37 @@ function expandResearchForProvider(providerId){
     const j = Math.floor(pseudoRandom() * (i + 1));
     [themes[i], themes[j]] = [themes[j], themes[i]];
   }
-  const today = new Date();
-  return themes.slice(0, 50).map((theme, idx) => {
-    // Spread dates across last 90 days
-    const daysAgo = Math.floor(pseudoRandom() * 90);
-    const d = new Date(today - daysAgo * 86400000);
+  return themes.slice(0, 50).map(theme => {
     return {
       title: theme,
-      date: d.toISOString().slice(0,10),
-      summary: `${firmShort} positioning — institutional research view current as of ${d.toLocaleDateString()}.`
+      // Static catalogue vintage — these are generic house-view themes, not
+      // dated publications. They used to be stamped with random dates inside
+      // the last 90 days and described as "current as of {today}", which
+      // manufactured recency the data does not have.
+      date: CURATED_RESEARCH_AS_OF,
+      curated: true,
+      // These come from ONE shared COMMON_THEMES pool that every provider draws
+      // from, so the same text appears under many providers. Flagged so the
+      // points tally can count each distinct theme once instead of mistaking
+      // replication for cross-provider consensus.
+      shared: true,
+      summary: `${firmShort} positioning — curated baseline theme as of ${CURATED_RESEARCH_AS_OF}; configure live RSS for current views.`
     };
   });
 }
 
 function curatedItems(id){
   const baseItems = CURATED_RESEARCH[id] || [{t:"No curated research available", s:""}];
-  const today = new Date();
-  const base = baseItems.map((item, idx) => {
-    const d = new Date(today - idx * 86400000);
+  const base = baseItems.map(item => {
     return {
       title: typeof item === "string" ? item : item.t,
-      date: d.toISOString().slice(0,10),
-      summary: typeof item === "string" ? "Institutional view — configure live RSS for real-time updates." : (item.s || "Curated institutional positioning.")
+      // Honest vintage. These items previously received a synthetic date within
+      // the last few days, which made a static catalogue look like live research
+      // and put fabricated recency into advisor-facing citations.
+      date: CURATED_RESEARCH_AS_OF,
+      curated: true,
+      summary: (typeof item === "string" ? "Institutional view." : (item.s || "Curated institutional positioning."))
+        + ` [curated baseline as of ${CURATED_RESEARCH_AS_OF} — configure live RSS for current views]`
     };
   });
   // Append ~50 expanded items based on common themes
@@ -2859,29 +3500,38 @@ function curatedItems(id){
   return [...base, ...expanded];
 }
 
-async function fetchFeedItems(url){
-  if(!url) return [];
+// `report` is an optional out-param: the return value stays a plain array so
+// every existing caller is unaffected, but a caller that cares can find out
+// WHY it got nothing back. Without this a dead feed and an empty feed are the
+// same value, which is how 15 providers went dark without anyone noticing.
+async function fetchFeedItems(url, report){
+  const note = (state, detail) => { if(report){ report.state = state; report.detail = detail || ""; } };
+  if(!url){ note("absent"); return []; }
   try {
     const r = await fetch("https://corsproxy.io/?"+encodeURIComponent(url));
-    if(!r.ok) return [];
+    if(!r.ok){ note("http", "HTTP "+r.status); return []; }
     const text = await r.text();
     const doc = new DOMParser().parseFromString(text, "application/xml");
+    if(doc.querySelector("parsererror")){ note("notxml", "response was not XML"); return []; }
+    const found = $$("item, entry", doc).length;
+    note(found ? "ok" : "empty", found ? found+" items" : "feed parsed but carried no items");
     return $$("item, entry", doc).slice(0,25).map(e => ({
       title: (e.querySelector("title")?.textContent||"").trim().slice(0,180) || "(untitled)",
       date:  (e.querySelector("pubDate, published, updated")?.textContent||"").slice(0,16),
       summary: (e.querySelector("description, summary, content")?.textContent||"").replace(/<[^>]+>/g,"").trim().slice(0,300)
     }));
-  } catch(_){ return []; }
+  } catch(e){ note("network", (e && e.name === "AbortError") ? "timed out" : "network error"); return []; }
 }
 
 async function refreshProvider(id){
   const p = RESEARCH_PROVIDERS.find(x => x.id===id);
   if(!p) return;
   // Try all 3 feeds in parallel (primary firm RSS + secondary + Google News query)
+  const reports = [{}, {}, {}];
   const [primaryItems, secondaryItems, tertiaryItems] = await Promise.all([
-    fetchFeedItems(p.feed),
-    fetchFeedItems(p.feed2),
-    fetchFeedItems(p.feed3)
+    fetchFeedItems(p.feed,  reports[0]),
+    fetchFeedItems(p.feed2, reports[1]),
+    fetchFeedItems(p.feed3, reports[2])
   ]);
   // Combine + dedupe by title (case-insensitive, first 80 chars)
   const seen = new Set();
@@ -2891,6 +3541,9 @@ async function refreshProvider(id){
     seen.add(key);
     return true;
   });
+  // Everything up to here came off the wire; everything after is the curated
+  // catalogue shipped inside the app. Snapshot the boundary before it blurs.
+  const liveCount = combined.length;
   // ALWAYS append curated catalogue (12-15 firm-specific + 50 common themes)
   const curated = curatedItems(id);
   curated.forEach(c => {
@@ -2899,7 +3552,18 @@ async function refreshProvider(id){
   });
   // Cap at 150 items per provider (was 40)
   const final = combined.slice(0, 150);
-  setProviderCfg(id, {items: final, lastRefresh: Date.now()});
+  // Record what actually came off the wire. liveCount is counted BEFORE the
+  // curated catalogue is appended, so "63 items" can no longer stand in for
+  // "63 items of live research" when every feed returned nothing.
+  const configured = reports.filter(r => r.state && r.state !== "absent");
+  setProviderCfg(id, {
+    items: final,
+    lastRefresh: Date.now(),
+    liveCount: liveCount,
+    feedsConfigured: configured.length,
+    feedsOk: configured.filter(r => r.state === "ok").length,
+    feedErrors: configured.filter(r => r.state !== "ok").map(r => r.detail || r.state).slice(0, 3)
+  });
   return final.length;
 }
 
@@ -2916,8 +3580,16 @@ function renderDashboard(){
   h += kpiCard("Admin Version",APP_VERSION,"v"+v+" main");
   h += kpiCard("localStorage",lsKeys.length+" keys",fmtBytes(lsSize)+" used");
   h += kpiCard("AI Assistant",aiKey?"Connected":"Not set",aiKey?"":"Set in API Keys tab","tone-"+(aiKey?"green":"red"));
-  h += kpiCard("Research Sources",RESEARCH_PROVIDERS.length+" available","Refresh in Research tab");
-  h += kpiCard("Fund Universe",FUND_UNIVERSE.length+" vehicles","Curated institutional-quality");
+  const _live = researchLiveSummary();
+  h += kpiCard("Research Sources",
+    _live.measured ? _live.liveProviders+" / "+RESEARCH_PROVIDERS.length+" live" : RESEARCH_PROVIDERS.length+" configured",
+    _live.measured
+      ? (_live.liveProviders === RESEARCH_PROVIDERS.length ? "all feeds reachable"
+         : (RESEARCH_PROVIDERS.length - _live.liveProviders)+" on curated fallback")
+      : "refresh in Research tab to measure",
+    _live.measured && _live.liveProviders < RESEARCH_PROVIDERS.length ? "tone-amber" : "");
+  h += kpiCard("Fund Universe",FUND_UNIVERSE.length+" vehicles","Metrics as of "+FUND_DATA_AS_OF+" ("+fundDataAgeLabel()+")",
+    fundDataAgeMonths() >= 12 ? "tone-amber" : "");
   const _taxReg=(function(){try{return JSON.parse(localStorage.getItem("wa_tax_registry")||"null");}catch(_){return null;}})();
   h += kpiCard("Tax Countries",(_taxReg&&_taxReg.countries)?_taxReg.countries.length:Object.keys(LOCAL_TAX).length,"national + sub-national");
   $("dashKpis").innerHTML = h;
@@ -3026,6 +3698,7 @@ function kpiCard(label, value, sub, tone){
 // any without cached items show a loading spinner that resolves as the
 // background refresh completes.
 function renderAgentPicker(){
+  syncProviderCounts();
   const picker = $("agResearch");
   if(!picker) return;
   picker.innerHTML = RESEARCH_PROVIDERS.map(p => {
@@ -3047,9 +3720,9 @@ let _agentRefreshInProgress = false;
 async function autoRefreshAllResearch(silent){
   if(_agentRefreshInProgress) return;
   _agentRefreshInProgress = true;
-  if(!silent) toast("Pulling research from 16 sources…","ok");
+  if(!silent) toast(`Pulling research from ${RESEARCH_PROVIDERS.length} sources…`,"ok");
   const status = $("agStatus");
-  if(status && !silent) status.textContent = "📡 Refreshing 16 institutional sources…";
+  if(status && !silent) status.textContent = `📡 Refreshing ${RESEARCH_PROVIDERS.length} institutional sources…`;
   let done = 0, ok = 0;
   // Parallel refresh with cap of 4 concurrent (be polite to corsproxy)
   const queue = RESEARCH_PROVIDERS.slice();
@@ -3064,13 +3737,13 @@ async function autoRefreshAllResearch(silent){
         if(el){ el.textContent = cnt + ' items'; el.style.color = cnt > 0 ? 'var(--green)' : 'var(--amber)'; }
       } catch(_){}
       done++;
-      if(status && !silent) status.textContent = `📡 Refreshed ${done}/16 sources (${ok} with data)…`;
+      if(status && !silent) status.textContent = `📡 Refreshed ${done}/${RESEARCH_PROVIDERS.length} sources (${ok} with data)…`;
     }
   });
   await Promise.all(workers);
   _agentRefreshInProgress = false;
-  if(status && !silent) status.textContent = `✓ ${ok}/16 sources ready — click 🤖 Build Portfolio Now`;
-  addLog("ok", `Auto-refreshed research: ${ok}/16 sources have items`);
+  if(status && !silent) status.textContent = `✓ ${ok}/${RESEARCH_PROVIDERS.length} sources ready — click 🤖 Build Portfolio Now`;
+  addLog("ok", `Auto-refreshed research: ${ok}/${RESEARCH_PROVIDERS.length} sources have items`);
   // If the Research Library tab is currently active, re-render it live
   if(document.getElementById("tab-research")?.classList.contains("active")){
     try { renderResearch(); } catch(_){}
@@ -3107,11 +3780,13 @@ window.toggleAIBuilderFeature = toggleAIBuilderFeature;
 function renderAgent(){
   // 0. Reflect the AI Builder feature-flag state on the master switch
   renderAIBuilderSwitch();
-  // 1. Render the picker with all 16 sources TICKED
+  // 1. Render the picker with every source TICKED
   renderAgentPicker();
   // 2. Trigger background auto-refresh (non-blocking)
   setTimeout(() => autoRefreshAllResearch(false), 100);
   // 3. Populate fund universe table
+  const fao = $("fundAsOf");
+  if(fao) fao.textContent = FUND_UNIVERSE.length + " vehicles · expense ratios and yields as of " + FUND_DATA_AS_OF + " (" + fundDataAgeLabel() + ") — a point-in-time snapshot, not live market data";
   const ft = $("fundTable");
   if(ft){
     ft.innerHTML = '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Ticker</th><th>Name</th><th>Sponsor</th><th>Class</th><th>Vehicle</th><th class="num">ER%</th><th class="num">Yld%</th></tr></thead><tbody>' +
@@ -3173,7 +3848,7 @@ async function runAgent(){
   const research = checked.map(id => {
     const p = RESEARCH_PROVIDERS.find(x => x.id===id);
     const cfg = getProviderCfg(id);
-    // Send top 20 items per source (was 8) — gives agent ~320 data points across 16 sources
+    // Send top 20 items per source (was 8) — ~20 data points per enabled source
     const items = (cfg.items||[]).slice(0,20).map(it => {
       const s = it.summary && it.summary.length > 30 && !it.summary.startsWith("Institutional view") && !it.summary.startsWith(p.name.split(" ")[0]) ? " — " + it.summary.slice(0,120) : "";
       return "  • " + it.title + s;
@@ -3183,11 +3858,17 @@ async function runAgent(){
 
   // Filter universe to funds the client can actually buy (country/domicile)
   const eligibleUniverse = FUND_UNIVERSE.filter(f => isFundEligibleForCountry(f, brief.country));
+  // Trailing returns are null for funds younger than the window — render "n/a"
+  // so the model is not told a 2024-launched fund returned 0.0% over 10 years.
+  const _uPct = v => (v == null ? "n/a" : v.toFixed(1) + "%");
   const universe = eligibleUniverse.map(f =>
-    `${f.tkr.padEnd(7)} | ${f.cls.padEnd(13)} | ${f.vehicle.padEnd(12)} | ER ${f.er.toFixed(2)}% Yld ${f.yld.toFixed(1)}% | μ${f.mu.toFixed(1)}% σ${f.sigma.toFixed(1)}% Sharpe ${f.sharpe.toFixed(2)} β${f.beta.toFixed(2)} maxDD ${f.maxDD.toFixed(0)}% | 1y ${f.r1y.toFixed(1)}% 3y ${f.r3y.toFixed(1)}% 5y ${f.r5y.toFixed(1)}% 10y ${f.r10y.toFixed(1)}% | holdings ${f.holdings} AUM $${f.aum}B inc ${f.inception} TE ${f.te}% | ${f.dom||"US"}${f.ucits?'/UCITS':''}${f.esg?'/ESG':''} | ${f.sponsor} | ${f.name}`
+    `${f.tkr.padEnd(7)} | ${f.cls.padEnd(13)} | ${f.vehicle.padEnd(12)} | ER ${f.er.toFixed(2)}% Yld ${f.yld.toFixed(1)}% | μ${f.mu.toFixed(1)}% σ${f.sigma.toFixed(1)}% Sharpe ${f.sharpe.toFixed(2)} β${f.beta.toFixed(2)} maxDD ${f.maxDD.toFixed(0)}% | 1y ${_uPct(f.r1y)} 3y ${_uPct(f.r3y)} 5y ${_uPct(f.r5y)} 10y ${_uPct(f.r10y)} | holdings ${f.holdings} AUM $${f.aum}B inc ${f.inception ?? "n/a"} TE ${f.te}% | ${f.dom||"US"}${f.ucits?'/UCITS':''}${f.esg?'/ESG':''} | ${f.sponsor} | ${f.name}`
   ).join("\n");
 
-  const prompt = `You are a sophisticated portfolio construction AI working at a major wealth management firm. Synthesize research from 16 institutional sources to build evidence-backed portfolios.
+  const prompt = `You are a sophisticated portfolio construction AI working at a major wealth management firm. Synthesize research from ${checked.length} institutional sources to build evidence-backed portfolios.
+
+# DATA VINTAGE
+Fund metrics (trailing returns, AUM, Sharpe, maxDD) are as of ${FUND_DATA_AS_OF}. "n/a" means the fund has no track record for that period. Do not describe these figures as current-day values, and do not infer a launch date when inception reads "n/a".
 
 # CLIENT BRIEF
 - Risk: ${brief.risk}, Horizon: ${brief.horizon}, Country: ${brief.country}, Currency: ${brief.currency}
@@ -3227,7 +3908,7 @@ ${universe}
 }
 
 Selection criteria (use ALL the metrics provided above):
-1. **Quality screen**: prefer funds with Sharpe > 0.4, AUM > $1B, inception ≥ 5 years ago, low tracking error for index trackers (<0.3%)
+1. **Quality screen**: prefer funds with Sharpe > 0.4, AUM > $1B, an established track record (a 5y/10y figure is present rather than "n/a"), low tracking error for index trackers (<0.3%)
 2. **Cost discipline**: prefer ETFs with ER < 0.20% over higher-ER mutual funds unless active mgmt is clearly worth it (e.g., DODGX, PIMIX, PRWCX have proven alpha)
 3. **Diversification**: ensure broad-holdings funds (1000+ positions) for core exposure; thematic concentrated funds (50-200 holdings) only for satellite allocations
 4. **Risk/return fit**: match each fund's μ/σ profile to the client's risk tolerance — aggressive clients can absorb σ > 18%, conservative clients capped at σ ≤ 10% per position
@@ -3256,12 +3937,16 @@ Constraints:
     const text = j.content?.[0]?.text || "";
     const m = text.match(/\{[\s\S]*\}/);
     if(!m) throw new Error("No JSON in response");
-    const rec = JSON.parse(m[0]);
+    const rec = validateAgentRec(JSON.parse(m[0]), eligibleUniverse, brief);
     lastAgentRec = rec;
     renderAgentResult(rec);
     $("agExportBtn").disabled = false;
-    $("agStatus").textContent = "✓ Portfolio constructed";
-    addLog("ok","Agent built portfolio: "+(rec.positions?.length||0)+" positions");
+    $("agStatus").textContent = rec.validation.warnings.length
+      ? "✓ Portfolio constructed — "+rec.validation.warnings.length+" auto-correction(s)"
+      : "✓ Portfolio constructed";
+    addLog(rec.validation.warnings.length ? "warn" : "ok",
+      "Agent built portfolio: "+(rec.positions?.length||0)+" positions"
+      + (rec.validation.warnings.length ? " · "+rec.validation.warnings.join(" · ") : ""));
   } catch(e){
     $("agResult").innerHTML = `<div class="code" style="background:#7f1d1d">Error: ${escapeHtml(e.message)}</div>
       <div style="font-size:12px;color:var(--ink3);margin-top:14px;line-height:1.6">
@@ -3275,8 +3960,99 @@ Constraints:
   }
 }
 
+// ── LLM output validation ──────────────────────────────────────────────────
+// The model's JSON used to be trusted verbatim: a hallucinated ticker, a string
+// weight, weights not summing to 100, or a position above the client's stated
+// cap would flow straight into an exported proposal. Everything is coerced and
+// checked against the SAME eligible universe the prompt was given; whatever is
+// corrected is surfaced to the operator rather than silently applied.
+function validateAgentRec(rec, eligibleUniverse, brief){
+  const warnings = [];
+  const eligible = new Map((eligibleUniverse||[]).map(f => [String(f.tkr).toUpperCase(), f]));
+  const maxPos = Number(brief && brief.maxPosition) > 0 ? Number(brief.maxPosition) : 100;
+  if(!rec || typeof rec !== "object") throw new Error("Response was not a JSON object");
+  let positions = Array.isArray(rec.positions) ? rec.positions : [];
+  if(positions.length === 0) throw new Error("Response contained no positions");
+
+  // 1. Drop fabricated tickers (not in the eligible, domicile-filtered universe)
+  const kept = [];
+  positions.forEach(p => {
+    const tkr = String(p && (p.ticker || p.tkr) || "").toUpperCase().trim();
+    const w = Number(p && p.weight);
+    if(!tkr || !eligible.has(tkr)){ warnings.push(`dropped ${tkr||"(blank ticker)"} — not in eligible universe`); return; }
+    if(!isFinite(w) || w <= 0){ warnings.push(`dropped ${tkr} — invalid weight`); return; }
+    kept.push({...p, ticker: tkr, weight: w});
+  });
+  if(kept.length === 0) throw new Error("No valid positions remained after validation (all tickers were outside the eligible universe)");
+
+  // 2. Merge duplicate tickers
+  const byTkr = new Map();
+  kept.forEach(p => {
+    if(byTkr.has(p.ticker)){ byTkr.get(p.ticker).weight += p.weight; warnings.push(`merged duplicate ${p.ticker}`); }
+    else byTkr.set(p.ticker, p);
+  });
+  positions = Array.from(byTkr.values());
+
+  // 3. Normalize to 100, then cap single positions — the weight removed from an
+  //    over-cap position is redistributed across the positions that still have
+  //    headroom (which can push one of them over, hence the loop). Capping and
+  //    renormalizing independently does NOT work: scaling back up to 100 after a
+  //    cap simply re-inflates the position that was just capped.
+  const renorm = () => {
+    const tot = positions.reduce((s,p)=>s+p.weight,0);
+    if(tot > 0 && Math.abs(tot-100) > 1e-9) positions.forEach(p => p.weight = p.weight/tot*100);
+  };
+  renorm();
+  if(maxPos < 100){
+    const capped = new Set();
+    if(positions.length * maxPos < 100 - 1e-9){
+      warnings.push(`cap ${maxPos}% cannot be met with ${positions.length} positions — left uncapped`);
+    } else {
+      for(let pass=0; pass<20; pass++){
+        const over = positions.filter(p => p.weight > maxPos + 1e-9);
+        if(!over.length) break;
+        let freed = 0;
+        over.forEach(p => {
+          freed += p.weight - maxPos;
+          p.weight = maxPos;
+          if(!capped.has(p.ticker)){ capped.add(p.ticker); warnings.push(`capped ${p.ticker} at ${maxPos}%`); }
+        });
+        const rest = positions.filter(p => p.weight < maxPos - 1e-9);
+        const room = rest.reduce((s,p)=>s+(maxPos-p.weight),0);
+        if(room <= 1e-9) break;
+        rest.forEach(p => { p.weight += freed * ((maxPos - p.weight) / room); });
+      }
+    }
+  } else {
+    renorm();
+  }
+  positions.forEach(p => p.weight = Math.round(p.weight*100)/100);
+  // Absorb rounding drift into the largest position so the total reads 100.00
+  const drift = 100 - positions.reduce((s,p)=>s+p.weight,0);
+  if(Math.abs(drift) >= 0.01){
+    const big = positions.reduce((a,b)=>a.weight>=b.weight?a:b);
+    big.weight = Math.round((big.weight+drift)*100)/100;
+  }
+
+  // 4. Coerce the numeric summary fields the UI renders
+  const num = (v, d) => (isFinite(Number(v)) ? Number(v) : d);
+  rec.expectedReturn = num(rec.expectedReturn, 0.07);
+  rec.expectedVolatility = num(rec.expectedVolatility, 0.12);
+  if(rec.allocationByClass && typeof rec.allocationByClass === "object"){
+    Object.keys(rec.allocationByClass).forEach(k => rec.allocationByClass[k] = num(rec.allocationByClass[k], 0));
+  }
+  rec.positions = positions;
+  rec.validation = {warnings, eligibleCount: eligible.size, positionCount: positions.length};
+  return rec;
+}
+
 function renderAgentResult(rec){
   let h = '';
+  if(rec.validation && rec.validation.warnings.length){
+    h += `<div class="ablock" style="border-left:4px solid var(--amber)"><h3 style="color:var(--amber)">⚠ Auto-corrections applied to the model output</h3>
+      <ul style="margin:6px 0 0 18px;line-height:1.7;font-size:12.5px">${rec.validation.warnings.map(w=>`<li>${escapeHtml(w)}</li>`).join("")}</ul>
+      <div style="font-size:11px;color:var(--ink3);margin-top:8px">Weights were renormalized to 100% and constrained to the client's eligible universe and position cap before export.</div></div>`;
+  }
   h += `<div class="ablock"><h3>🎯 Executive Summary</h3><div style="line-height:1.7">${escapeHtml(rec.summary||"")}</div></div>`;
   h += `<div class="kpi-grid">
     <div class="kpi tone-green"><div class="kpi-l">Expected Return</div><div class="kpi-v">${((rec.expectedReturn||0)*100).toFixed(2)}%</div></div>
@@ -3343,7 +4119,7 @@ function manualResearchRefresh(){
 }
 function tickAllResearch(){
   $$("#agResearch input[type=checkbox]").forEach(cb => cb.checked = true);
-  toast("All 16 sources ticked","ok");
+  toast(`All ${RESEARCH_PROVIDERS.length} sources ticked`,"ok");
 }
 function untickAllResearch(){
   $$("#agResearch input[type=checkbox]").forEach(cb => cb.checked = false);
@@ -3396,7 +4172,328 @@ setInterval(updateAutoRefreshIndicator, 1000);
 // ═══════════════════════════════════════════════════════════
 // RENDER: RESEARCH
 // ═══════════════════════════════════════════════════════════
+// Fills every <span class="js-prov-count"> with the live provider count, so the
+// copy in the UI can never drift from RESEARCH_PROVIDERS when a source is added.
+function syncProviderCounts(){
+  document.querySelectorAll(".js-prov-count").forEach(el => { el.textContent = RESEARCH_PROVIDERS.length; });
+  // Same treatment for the fund-universe size — the docs claimed "38-fund
+  // universe" long after it grew to 792.
+  document.querySelectorAll(".js-fund-count").forEach(el => { el.textContent = FUND_UNIVERSE.length; });
+}
+
+// ═══════════════════════════════════════════════════════════
+// MONTHLY ISSUE TRACKING
+// ═══════════════════════════════════════════════════════════
+// Viewpoint, the RIC Report and the US 1 List are MONTHLY publications, but the
+// news-query feeds behind them refresh continuously — so "Last refreshed: 2
+// minutes ago" was hiding the fact that the current month's actual issue had
+// never been ingested. These helpers track ingestion per calendar month and let
+// the card say so plainly.
+function currentIssueYM(d){
+  const n = d || new Date();
+  return n.getFullYear() + "-" + String(n.getMonth() + 1).padStart(2, "0");
+}
+// Returns null for non-monthly sources; otherwise the state of THIS month's issue.
+function monthlyIssueStatus(p, cfg, now){
+  if(!p || p.cadence !== "monthly") return null;
+  const d = now || new Date();
+  const ym = currentIssueYM(d);
+  const ingested = (cfg && cfg.lastIssueYM) || null;
+  if(ingested === ym) return {state:"current", label:ym + " issue ingested", ym};
+  const due = p.issueDay || 5;
+  if(d.getDate() < due){
+    return {state:"pending", label:"next issue ~" + due + " " + d.toLocaleString(undefined,{month:"short"}), ym};
+  }
+  const late = d.getDate() - due;
+  return {
+    state: late > 14 ? "overdue" : "due",
+    label: (late > 14 ? "OVERDUE — " : "") + ym + " issue not ingested" + (ingested ? " (last: " + ingested + ")" : ""),
+    ym
+  };
+}
+// Operator marks the issue ingested once its content is actually in the library.
+// Deliberately explicit: a feed refresh pulls NEWS ABOUT the report, not the
+// report, so refreshing must never silently claim the issue was ingested.
+// ═══════════════════════════════════════════════════════════
+// ISSUE INGESTION — paste/upload an issue the operator is entitled to
+// ═══════════════════════════════════════════════════════════
+// The subscription publications cannot be fetched by the console: their feeds
+// carry news ABOUT the report, never the report. This path lets an entitled
+// operator bring the issue in by hand. Everything runs in this browser — no
+// upload, no third-party call — and items are stamped with the issue month so
+// they can never masquerade as live-dated research.
+
+// Lines that are page furniture rather than research content.
+const _INGEST_NOISE = [
+  /^\s*page\s+\d+/i, /^\s*\d+\s*$/, /^\s*\d+\s+of\s+\d+\s*$/i,
+  /past performance/i, /is not (a guarantee|indicative)/i,
+  /^\s*source[s]?\s*:/i, /^\s*exhibit\s+\d+/i, /^\s*chart\s+\d+/i,
+  /all rights reserved/i, /^\s*©/, /\bmember sipc\b/i, /\bfdic\b/i,
+  /not bank guaranteed/i, /may lose value/i, /^\s*disclosur/i,
+  /important disclosures/i, /^\s*https?:\/\//i, /^\s*www\./i,
+  /this material (was|is) prepared/i, /investment products/i,
+  /^\s*[-–—_=*]{3,}\s*$/,
+  // All-caps mastheads and section rules ("CHIEF INVESTMENT OFFICE",
+  // "IMPORTANT INFORMATION"). Research prose always carries lower case, so a
+  // short line without any is furniture rather than content.
+  /^[^a-z]{4,40}$/
+];
+function _ingestIsNoise(line){
+  const t = line.trim();
+  if(t.length < 4) return true;
+  return _INGEST_NOISE.some(rx => rx.test(t));
+}
+// Turn raw issue text into {title, summary} research items. Deliberately
+// conservative: it would rather drop an ambiguous fragment than manufacture a
+// research item out of a page header.
+function parseIssueText(raw, limit){
+  const max = limit || 60;
+  const text = String(raw || "")
+    .replace(/\r\n?/g, "\n")
+    .replace(/­/g, "")          // soft hyphens from PDF extraction
+    .replace(/-\n(?=[a-z])/g, "")    // de-hyphenate words split across lines
+    .replace(/[ \t]+/g, " ");
+  const items = [];
+  const seen = new Set();
+  // A research item needs some substance: at least 4 words, or a colon (which
+  // is how positioning lines read — "Cash: hold planned liquidity only").
+  // Without this, mastheads and section headers ("Viewpoint", "Asset Class
+  // Views", "Portfolio construction") become research items.
+  const hasSubstance = t => /:/.test(t) || t.split(/\s+/).filter(Boolean).length >= 4;
+  const push = (title, summary) => {
+    let t = String(title || "").trim().replace(/^[•▪◦·\-–—*]\s*/, "").replace(/\s+/g, " ");
+    if(t.length < 12 || items.length >= max || !hasSubstance(t)) return;
+    if(t.length > 180) t = t.slice(0, 177).replace(/\s+\S*$/, "") + "…";
+    const key = t.toLowerCase().slice(0, 80);
+    if(seen.has(key)) return;
+    seen.add(key);
+    let s = String(summary || "").trim().replace(/\s+/g, " ");
+    if(s.length > 320) s = s.slice(0, 317).replace(/\s+\S*$/, "") + "…";
+    items.push({title: t, summary: s});
+  };
+
+  text.split(/\n\s*\n/).forEach(block => {
+    const lines = block.split("\n").map(l => l.trim()).filter(l => l && !_ingestIsNoise(l));
+    if(lines.length === 0) return;
+    // Bullet list → one item per bullet
+    const bullets = lines.filter(l => /^[•▪◦·\-–—*]\s+/.test(l) || /^\d+[.)]\s+/.test(l));
+    if(bullets.length >= 2){
+      bullets.forEach(b => push(b.replace(/^\d+[.)]\s*/, ""), ""));
+      return;
+    }
+    // A short opening line is only a section heading if it carries no sentence
+    // punctuation at all — otherwise a wrapped paragraph whose first line
+    // happens to be short gets mistaken for one, truncating the title
+    // mid-sentence ("...favoring quality equities. Balance"). If the candidate
+    // heading has no substance on its own the block falls through to reflow so
+    // the body underneath is never dropped.
+    const head = lines[0];
+    const looksHeading = lines.length > 1 && head.length < 80
+      && !/[.!?;,:]$/.test(head) && !/[.!?]\s/.test(head)
+      && head.split(/\s+/).length <= 8;
+    if(looksHeading && hasSubstance(head)){
+      push(head, lines.slice(1).join(" "));
+      return;
+    }
+    // Otherwise the block is a wrapped paragraph. Reflow it before splitting —
+    // treating each wrapped line as a unit truncated titles mid-sentence
+    // ("...favoring quality equities. Balance").
+    const para = lines.join(" ").replace(/\s+/g, " ").trim();
+    if(para.length <= 180){ push(para, ""); return; }
+    const m = para.match(/^(.{40,180}?[.!?])\s+(.*)$/);
+    if(m) push(m[1], m[2]);
+    else push(para, "");
+  });
+  return items;
+}
+
+let _ingestParsed = null;
+function toggleIngest(){
+  const b = $("ingestBody"); if(!b) return;
+  b.style.display = b.style.display === "none" ? "block" : "none";
+  if(b.style.display === "block") renderIngestProviders();
+}
+function renderIngestProviders(){
+  const sel = $("ingestProvider"); if(!sel || sel.options.length) return;
+  const monthly = RESEARCH_PROVIDERS.filter(p => p.cadence === "monthly");
+  const others  = RESEARCH_PROVIDERS.filter(p => p.cadence !== "monthly");
+  sel.innerHTML =
+    `<optgroup label="Monthly publications">${monthly.map(p => `<option value="${p.id}">${escapeHtml(p.name)}</option>`).join("")}</optgroup>` +
+    `<optgroup label="Other sources">${others.map(p => `<option value="${p.id}">${escapeHtml(p.name)}</option>`).join("")}</optgroup>`;
+  const m = $("ingestMonth");
+  if(m && !m.value) m.value = currentIssueYM();
+}
+// PDF support uses the vendored pdf.js, loaded only when a PDF is actually
+// chosen so the console stays light and still works without it.
+function _loadPdfJs(){
+  if(window.pdfjsLib) return Promise.resolve(window.pdfjsLib);
+  return new Promise((resolve, reject) => {
+    const s = document.createElement("script");
+    s.src = "vendor/pdf.min.js";
+    s.onload = () => {
+      try { if(window.pdfjsLib) window.pdfjsLib.GlobalWorkerOptions.workerSrc = "vendor/pdf.worker.min.js"; } catch(_){}
+      window.pdfjsLib ? resolve(window.pdfjsLib) : reject(new Error("pdf.js did not initialise"));
+    };
+    s.onerror = () => reject(new Error("vendor/pdf.min.js not reachable"));
+    document.head.appendChild(s);
+  });
+}
+async function _readIngestFile(file){
+  if(/\.pdf$/i.test(file.name)){
+    const pdfjs = await _loadPdfJs();
+    const buf = await file.arrayBuffer();
+    const doc = await pdfjs.getDocument({data: buf}).promise;
+    const pages = [];
+    for(let i = 1; i <= doc.numPages; i++){
+      const page = await doc.getPage(i);
+      const tc = await page.getTextContent();
+      pages.push(tc.items.map(t => t.str).join(" "));
+    }
+    return pages.join("\n\n");
+  }
+  return await file.text();
+}
+async function previewIngest(){
+  const status = $("ingestStatus"), host = $("ingestPreview");
+  const commit = $("ingestCommitBtn");
+  _ingestParsed = null; if(commit) commit.disabled = true;
+  let raw = ($("ingestText") && $("ingestText").value) || "";
+  const f = $("ingestFile") && $("ingestFile").files && $("ingestFile").files[0];
+  if(f){
+    status.textContent = "Reading " + f.name + "…";
+    try { raw = await _readIngestFile(f); }
+    catch(e){
+      status.textContent = "";
+      host.innerHTML = `<div class="code" style="background:#7f1d1d">Could not read ${escapeHtml(f.name)}: ${escapeHtml(e.message)}<br>Paste the text instead.</div>`;
+      return;
+    }
+  }
+  if(!raw.trim()){ status.textContent = "Nothing to parse — paste text or choose a file."; host.innerHTML = ""; return; }
+  const items = parseIssueText(raw);
+  if(items.length === 0){
+    status.textContent = "";
+    host.innerHTML = `<div class="code" style="background:#7f1d1d">No research items could be extracted — the text may be mostly page furniture or images.</div>`;
+    return;
+  }
+  _ingestParsed = items;
+  if(commit){ commit.disabled = false; commit.textContent = `📥 Ingest ${items.length} item${items.length>1?'s':''}`; }
+  status.textContent = `${items.length} item${items.length>1?'s':''} parsed from ${(raw.length/1024).toFixed(1)} KB`;
+  host.innerHTML = `<div style="max-height:320px;overflow-y:auto;border:1px solid var(--line);border-radius:8px">${
+    items.map((it,i) => `<div style="padding:8px 12px;border-bottom:1px solid var(--line);font-size:12px">
+      <div style="font-weight:600;color:var(--ink)">${i+1}. ${escapeHtml(it.title)}</div>
+      ${it.summary ? `<div style="color:var(--ink3);margin-top:2px">${escapeHtml(it.summary)}</div>` : ""}
+    </div>`).join("")}</div>
+    <div style="font-size:11px;color:var(--ink3);margin-top:6px">Review before ingesting — anything that looks like a page header or disclaimer can be removed by editing the pasted text and re-parsing.</div>`;
+}
+function commitIngest(){
+  if(!_ingestParsed || !_ingestParsed.length) return;
+  const pid = $("ingestProvider") && $("ingestProvider").value;
+  const ym  = ($("ingestMonth") && $("ingestMonth").value) || currentIssueYM();
+  const p = RESEARCH_PROVIDERS.find(x => x.id === pid);
+  if(!p){ toast("Pick a publication first","err"); return; }
+  const cfg = getProviderCfg(pid);
+  const existing = cfg.items || [];
+  // Ingested issue items are stamped with the ISSUE month, flagged as an issue,
+  // and put ahead of the news items so the engine reads the report first.
+  const stamped = _ingestParsed.map(it => ({
+    title: it.title,
+    summary: it.summary || `${p.name} — ${ym} issue.`,
+    date: ym + "-01",
+    issueYM: ym,
+    source: "issue"
+  }));
+  // Replace any previously ingested items for the same issue month
+  const kept = existing.filter(it => !(it.source === "issue" && it.issueYM === ym));
+  setProviderCfg(pid, {items: stamped.concat(kept), lastIssueYM: ym, lastRefresh: Date.now()});
+  addLog("ok", `Ingested ${stamped.length} items into ${p.name} (${ym} issue)`);
+  toast(`✓ ${stamped.length} items ingested — ${p.name} ${ym}`, "ok");
+  clearIngest();
+  renderResearch();
+}
+function clearIngest(){
+  _ingestParsed = null;
+  if($("ingestText")) $("ingestText").value = "";
+  if($("ingestFile")) $("ingestFile").value = "";
+  if($("ingestPreview")) $("ingestPreview").innerHTML = "";
+  if($("ingestStatus")) $("ingestStatus").textContent = "";
+  const c = $("ingestCommitBtn"); if(c){ c.disabled = true; c.textContent = "📥 Ingest"; }
+}
+
+function markIssue(el){ markIssueIngested(el.dataset.prov); }
+function markIssueIngested(pid){
+  const ym = currentIssueYM();
+  setProviderCfg(pid, {lastIssueYM: ym});
+  const p = RESEARCH_PROVIDERS.find(x => x.id === pid);
+  addLog("ok", `Marked ${p ? p.name : pid} ${ym} issue as ingested`);
+  toast(`${ym} issue marked ingested`, "ok");
+  renderResearch();
+}
+// Every monthly publication that still needs this month's issue.
+function monthlyIssuesOutstanding(){
+  const cfg = getResearchCfg();
+  return RESEARCH_PROVIDERS
+    .filter(p => p.cadence === "monthly")
+    .map(p => ({p, st: monthlyIssueStatus(p, cfg[p.id] || {})}))
+    .filter(x => x.st && (x.st.state === "due" || x.st.state === "overdue"));
+}
+
+function renderMonthlyIssueBanner(){
+  const host = $("monthlyIssueBanner");
+  if(!host) return;
+  const outstanding = monthlyIssuesOutstanding();
+  if(outstanding.length === 0){
+    const monthly = RESEARCH_PROVIDERS.filter(p => p.cadence === "monthly").length;
+    host.innerHTML = monthly
+      ? `<div style="margin:0 0 12px;padding:10px 14px;background:rgba(0,135,90,.07);border:1px solid rgba(0,135,90,.25);border-radius:8px;font-size:12px;color:var(--green);font-weight:600">✓ All ${monthly} monthly publications are current for ${currentIssueYM()}.</div>`
+      : "";
+    return;
+  }
+  const rows = outstanding.map(({p, st}) =>
+    `<li style="margin-bottom:3px"><strong>${escapeHtml(p.name)}</strong> — ${escapeHtml(st.label)}${p.homepage ? ` · <a href="${p.homepage}" target="_blank" rel="noopener noreferrer">open publication ↗</a>` : ""}</li>`
+  ).join("");
+  const anyOverdue = outstanding.some(o => o.st.state === "overdue");
+  host.innerHTML = `<div style="margin:0 0 12px;padding:11px 14px;background:${anyOverdue?'rgba(227,24,55,.06)':'rgba(245,158,11,.08)'};border:1px solid ${anyOverdue?'rgba(227,24,55,.3)':'rgba(245,158,11,.35)'};border-radius:8px;font-size:12px;line-height:1.65">
+    <div style="font-weight:700;color:${anyOverdue?'var(--red)':'var(--amber)'};margin-bottom:5px">${anyOverdue?'⚠':'●'} ${outstanding.length} monthly issue${outstanding.length>1?'s':''} outstanding for ${currentIssueYM()}</div>
+    <ul style="margin:0 0 0 18px;padding:0;color:var(--ink2)">${rows}</ul>
+    <div style="font-size:11px;color:var(--ink3);margin-top:7px">The news feeds behind these sources refresh continuously, but the monthly issue itself has to be ingested — use “Mark ingested” on the card once it is in the library.</div>
+  </div>`;
+}
+
+// States how much of the corpus is live feed versus the curated catalogue that
+// ships inside the app. Both are legitimate inputs, but they are not the same
+// thing and the agent's output reads very differently depending on the mix.
+function renderResearchCorpusSummary(){
+  const el = $("researchCorpusSummary");
+  if(!el) return;
+  const cfg = getResearchCfg();
+  let live = 0, total = 0, measured = 0, stale = 0;
+  const cutoff = Date.now() - 365 * 86400000;
+  RESEARCH_PROVIDERS.forEach(p => {
+    const c = cfg[p.id] || {};
+    const items = c.items || [];
+    total += items.length;
+    if(c.liveCount !== undefined) measured++;
+    items.forEach(i => { const d = new Date(i.date); if(!isNaN(d) && d.getTime() < cutoff) stale++; });
+  });
+  const s = researchLiveSummary();
+  live = s.liveItems;
+  if(!measured){ el.innerHTML = '<span style="color:var(--ink3)">Refresh to measure feed health.</span>'; return; }
+  const pct = total ? Math.round(live / total * 100) : 0;
+  const dark = RESEARCH_PROVIDERS.length - s.liveProviders;
+  el.innerHTML =
+    '<span style="color:' + (dark ? 'var(--amber)' : 'var(--green)') + ';font-weight:600">' +
+      s.liveProviders + ' of ' + RESEARCH_PROVIDERS.length + ' sources returning live items</span>' +
+    '<span style="color:var(--ink3)"> · ' + live + ' of ' + total + ' items (' + pct + '%) came off the wire; ' +
+      'the rest is the curated library bundled with the app' +
+      (stale ? ' · ' + stale + ' item' + (stale === 1 ? '' : 's') + ' older than a year' : '') +
+    '</span>' +
+    (dark ? '<div style="color:var(--ink3);margin-top:3px">Sources on curated fallback still contribute to the tally — the agent is reading fewer independent live views than the source count suggests.</div>' : '');
+}
+
 function renderResearch(){
+  syncProviderCounts();
+  renderMonthlyIssueBanner();
+  renderResearchCorpusSummary();
   const list = $("rpList");
   if(!list) return;
   list.innerHTML = RESEARCH_PROVIDERS.map(p => {
@@ -3404,18 +4501,33 @@ function renderResearch(){
     const cnt = (cfg.items||[]).length;
     const en = cfg.enabled !== false;
     const lr = cfg.lastRefresh ? new Date(cfg.lastRefresh).toLocaleString() : "Never";
+    // Live-vs-curated split. Undefined means this provider has not been
+    // refreshed since the counter was added — say nothing rather than claim
+    // "curated only", which would be its own false statement.
+    const live = cfg.liveCount;
+    const feedNote = live === undefined ? ""
+      : (live > 0 ? ` · ${live} live` : " · curated only");
+    const feedWarn = live === 0
+      ? `<div style="font-size:11px;font-weight:600;color:var(--red);margin-top:3px" title="${escapeHtml((cfg.feedErrors||[]).join(" · "))}">⚠ ${cfg.feedsConfigured || 0} feed${(cfg.feedsConfigured||0) === 1 ? "" : "s"} unreachable — showing curated library only</div>`
+      : "";
+    const iss = monthlyIssueStatus(p, cfg);
+    const issColor = iss ? ({current:"var(--green)", pending:"var(--ink3)", due:"var(--amber)", overdue:"var(--red)"})[iss.state] : "";
     return `<div class="rp-card${en?'':' disabled'}">
       <div class="rp-head">
         <div class="rp-icon" style="background:${p.color}">${p.letter}</div>
         <div style="flex:1;min-width:0">
           <div class="rp-name">${p.name}</div>
-          <div class="rp-meta">${p.type} · ${cnt} items</div>
+          <div class="rp-meta">${p.type} · ${cnt} items${feedNote}${p.cadence === "monthly" ? " · monthly" : ""}</div>
         </div>
         <label style="cursor:pointer"><input type="checkbox" ${en?'checked':''} data-action="toggleProvider" data-prov="${p.id}"></label>
       </div>
       <div style="font-size:11px;color:var(--ink3)">Last: ${lr}</div>
+      ${feedWarn}
+      ${iss ? `<div style="font-size:11px;font-weight:600;color:${issColor};margin-top:3px">${iss.state==="current"?"✓":"●"} ${escapeHtml(iss.label)}</div>` : ""}
       <div class="rp-actions">
         <button class="rp-mini" data-action="refreshOne" data-prov="${p.id}">↻ Refresh</button>
+        ${p.homepage ? `<a class="rp-mini" href="${p.homepage}" target="_blank" rel="noopener noreferrer" style="text-decoration:none;display:inline-block">↗ Publication</a>` : ""}
+        ${iss && iss.state !== "current" ? `<button class="rp-mini" data-action="markIssue" data-prov="${p.id}">✓ Mark ${iss.ym} ingested</button>` : ""}
       </div>
     </div>`;
   }).join("");
@@ -3451,7 +4563,7 @@ async function refreshOne(el){
   renderResearch();
 }
 async function refreshAll(){
-  $("refreshStatus").textContent = "Refreshing all 16…";
+  $("refreshStatus").textContent = `Refreshing all ${RESEARCH_PROVIDERS.length}…`;
   for(const p of RESEARCH_PROVIDERS){ try { await refreshProvider(p.id); } catch(_){}; }
   $("refreshStatus").textContent = "✓ Done";
   renderResearch();
@@ -3876,6 +4988,13 @@ async function fetchQuote(ticker, provider){
         return {price:m.regularMarketPrice,change:m.regularMarketPrice-m.previousClose,changePct:(m.regularMarketPrice/m.previousClose-1)*100,high:m.regularMarketDayHigh,low:m.regularMarketDayLow,currency:m.currency,exchange:m.exchangeName,source:"yahoo"};
       }
       case "stooq": {
+        // RETIRED 2026-08-02. stooq.com's CSV quote endpoint returns 404 with an
+        // HTML error page for every documented URL shape (?e=csv with and
+        // without the field list, and the .pl mirror). Kept as an explicit
+        // refusal rather than deleted, so a saved config pointing here fails
+        // loudly instead of silently returning nothing.
+        throw new Error("Stooq CSV endpoint was retired upstream — use Yahoo Finance (direct) for equities");
+        /* eslint-disable no-unreachable */
         const sym = ticker.includes(".") ? ticker.toLowerCase() : ticker.toLowerCase() + ".us";
         const url = `https://stooq.com/q/l/?s=${sym}&f=sd2t2ohlcv&h&e=csv`;
         let r;
@@ -3901,15 +5020,24 @@ async function fetchQuote(ticker, provider){
         // First resolve ticker → CIK via /files/company_tickers.json (heavy, ~5MB so cache)
         if(!window._secTickersCache){
           try {
-            const cr = await fetch("https://www.sec.gov/files/company_tickers.json");
+            // Direct fetch is CORS-blocked by the browser; sec.gov sends no
+            // Access-Control-Allow-Origin. Through the proxy this returns 200
+            // and ~800 KB of valid JSON, which is why this branch never worked.
+            const cr = await corsFetch("https://www.sec.gov/files/company_tickers.json");
+            if(!cr.ok) throw new Error("HTTP "+cr.status);
             window._secTickersCache = await cr.json();
-          } catch(_){ throw new Error("SEC EDGAR ticker map unavailable"); }
+          } catch(e){ throw new Error("SEC EDGAR ticker map unavailable ("+(e.message||"fetch failed")+")"); }
         }
         const map = window._secTickersCache || {};
         const match = Object.values(map).find(x => x.ticker === ticker.toUpperCase());
         if(!match) throw new Error("Ticker not in SEC EDGAR (US-listed only)");
         const cik = String(match.cik_str).padStart(10, "0");
         const r = await corsFetch(`https://data.sec.gov/api/xbrl/companyfacts/CIK${cik}.json`);
+        // data.sec.gov refuses the shared proxy IP (403) whatever we send. SEC
+        // asks for a declaring User-Agent, which is a forbidden header in the
+        // browser fetch spec — so this endpoint is only reachable from a
+        // server-side relay, never from this page.
+        if(r.status === 403) throw new Error("data.sec.gov blocks browser/proxy requests (403) — SEC requires a declaring User-Agent, which only a server-side relay can send. Ticker→CIK lookup works; filings data does not.");
         if(!r.ok) throw new Error("HTTP "+r.status);
         const j = await r.json();
         return {price:0,name:j.entityName,cik:cik,source:"secedgar",isReferenceOnly:true,filingsCount:Object.keys(j.facts?.["us-gaap"]||{}).length};
@@ -3935,6 +5063,10 @@ async function fetchQuote(ticker, provider){
         const r = await corsFetch(`https://min-api.cryptocompare.com/data/pricemultifull?fsyms=${ticker.toUpperCase()}&tsyms=USD`);
         const j = await r.json();
         const d = j.RAW?.[ticker.toUpperCase()]?.USD;
+        // Moved behind an API key in 2024 — the endpoint answers 401 with an
+        // empty Data object, which read as "No data" and looked like a bad
+        // symbol. CoinGecko and Coinbase both cover crypto with no key.
+        if(!d && (j.Err || j.Response === "Error")) throw new Error("CryptoCompare now requires an API key ("+((j.Err&&j.Err.message)||"401").slice(0,60)+") — use CoinGecko or Coinbase for keyless crypto");
         if(!d) throw new Error("No data");
         return {price:d.PRICE,change:d.CHANGE24HOUR,changePct:d.CHANGEPCT24HOUR,volume:d.VOLUME24HOURTO,marketCap:d.MKTCAP,source:"cryptocompare"};
       }
@@ -3981,15 +5113,30 @@ async function fetchQuote(ticker, provider){
         const tenorMap = {DGS1MO:"1mo",DGS3MO:"3mo",DGS6MO:"6mo",DGS1:"1yr",DGS2:"2yr",DGS5:"5yr",DGS10:"10yr",DGS30:"30yr"};
         const t = tenorMap[ticker.toUpperCase()];
         if(!t) throw new Error("Treasury ticker must be DGS1MO/3MO/6MO/1/2/5/10/30");
-        const r = await corsFetch("https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/2025/all?type=daily_treasury_yield_curve&field_tdr_date_value=2025&page&_format=csv");
-        if(!r.ok) throw new Error("HTTP "+r.status);
-        const txt = await r.text();
+        // The file is published per calendar year. It was pinned to 2025, so from
+        // 1 Jan 2026 it silently served the PREVIOUS year's curve — a stale rate
+        // that still looks like a quote. Ask for the current year and fall back
+        // one year in case the new file is not up yet (early January).
+        const yr = new Date().getFullYear();
+        const tsyUrl = y => "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/"
+          + y + "/all?type=daily_treasury_yield_curve&field_tdr_date_value=" + y + "&page&_format=csv";
+        let r = await corsFetch(tsyUrl(yr));
+        let txt = r.ok ? await r.text() : "";
+        if(!txt.trim() || txt.trim().split("\n").length < 2){
+          r = await corsFetch(tsyUrl(yr - 1));
+          if(!r.ok) throw new Error("HTTP "+r.status);
+          txt = await r.text();
+        }
         const lines = txt.trim().split("\n");
-        const header = lines[0].split(",");
+        // Header cells are QUOTED in the published CSV (Date,"1 Mo","10 Yr",…).
+        // Matching on the raw cell never hit, so every lookup reported
+        // "Column not found" even though the data was right there.
+        const clean = c => c.trim().replace(/^"|"$/g, "").replace(/\s+/g, " ");
+        const header = lines[0].split(",").map(clean);
         const colMap = {"1mo":"1 Mo","3mo":"3 Mo","6mo":"6 Mo","1yr":"1 Yr","2yr":"2 Yr","5yr":"5 Yr","10yr":"10 Yr","30yr":"30 Yr"};
         const colName = colMap[t];
-        const colIdx = header.findIndex(h => h.trim() === colName);
-        if(colIdx < 0) throw new Error("Column not found");
+        const colIdx = header.findIndex(h => h.toLowerCase() === colName.toLowerCase());
+        if(colIdx < 0) throw new Error("Column '"+colName+"' not in Treasury CSV (header: "+header.slice(1,6).join(", ")+"…)");
         const last = lines[1].split(",");
         const cur = +last[colIdx];
         if(isNaN(cur)) throw new Error("No data for "+t);
@@ -4744,16 +5891,31 @@ function clearLogs(){
 // ── Keyword lexicons ─────────────────────────────────────────
 // Each lexicon: {sentiment_word: weight, ...}
 const POS_WORDS = {
-  "overweight":3, "overweigh":3, "long":2, "bullish":3, "favor":2, "prefer":2, "outperform":2,
+  // "long" alone was removed for the same reason as bare "short": in research
+  // prose "long-term", "long duration" and "longer-dated" vastly outnumber an
+  // actual long recommendation, so it scored bullish on neutral technical copy.
+  "overweight":3, "overweigh":3, "long position":2, "net long":3, "bullish":3, "favor":2, "prefer":2, "outperform":2,
   "buy":2, "attractive":2, "compelling":2, "upside":2, "tailwind":2, "constructive":2,
   "high conviction":3, "structural growth":3, "tactical overweight":3, "strategic overweight":3,
-  "best ideas":2, "top pick":3, "recommend":2, "accumulate":2, "add":1
+  "best ideas":2, "top pick":3, "recommend":2, "accumulate":2, "add":1,
+  // Macro-directional vocabulary — needed so the market-driver bucket can take
+  // a direction. Without these a driver mention scores 0 and every backdrop
+  // reads "neutral".
+  "supportive":2, "accommodative":2, "dovish":2, "de-escalation":2,
+  "soft landing":2, "resilient":2, "recovery":2, "disinflation":2
 };
 const NEG_WORDS = {
-  "underweight":3, "underweigh":3, "short":2, "bearish":3, "avoid":2, "cautious":2, "underperform":2,
+  // "short" alone was removed: in institutional research "short duration",
+  // "short-term" and "shortfall" vastly outnumber actual short recommendations,
+  // so it scored bearish on neutral/bullish fixed-income copy.
+  "underweight":3, "underweigh":3, "short position":2, "net short":3, "bearish":3, "avoid":2, "cautious":2, "underperform":2,
   "sell":2, "expensive":1, "stretched":2, "headwind":2, "downside":2, "negative":1,
   "high conviction underweight":4, "tactical underweight":3, "structural underweight":3,
-  "underperforming":2, "reduce":1, "trim":1, "exit":2
+  "underperforming":2, "reduce":1, "trim":1, "exit":2,
+  // Macro-directional vocabulary (see POS_WORDS) — a driver mentioned as a
+  // headwind must register as one.
+  "restrictive":2, "hawkish":2, "escalation":2, "recession":3, "stagflation":3,
+  "hard landing":3, "deterioration":2, "fragile":2, "elevated risk":2, "widening":1
 };
 
 // Asset class keywords — each item maps phrases to a class
@@ -4800,8 +5962,29 @@ const THEME_KEYWORDS = {
   demographics: ["aging","demographics","retirement","longevity"],
   water_infrastructure: ["water","infrastructure","grid"],
   cryptocurrency: ["bitcoin","BTC","crypto","cryptocurrency","ETH","ethereum","digital asset"],
-  dividend_growth: ["dividend grow","dividend payer","VIG","yield+","income"],
+  // bare "income" removed — it matched "fixed income", voting a dividend-growth
+  // equity theme on every bond item.
+  dividend_growth: ["dividend grow","dividend payer","VIG","yield+","income equity","equity income"],
   quality_factor: ["quality factor","quality bias","quality growth","high ROE","margin stability"]
+};
+
+// ── MARKET DRIVERS ────────────────────────────────────────────────────────
+// The fifth scoring bucket. Regions/classes/sectors/themes describe WHAT to
+// hold; drivers describe the macro backdrop that justifies it — and they are
+// what an advisor is actually asked about in a review. `cycle`, `rates`,
+// `geopolitics` and `fx` are surfaced in every position rationale.
+const DRIVER_KEYWORDS = {
+  cycle:        ["business cycle","late cycle","late-cycle","early cycle","early-cycle","mid-cycle","cycle turn","expansion phase","recovery","slowdown","soft landing","hard landing","recession","downturn"],
+  rates:        ["rates","interest rate","policy rate","fed funds","rate environment","rate path","yield curve","rate cut","rate hike","duration","terminal rate","FOMC","ECB","real yield","tightening","easing","hawkish","dovish","restrictive","accommodative"],
+  inflation:    ["inflation","CPI","PCE","disinflation","deflation","price pressure","wage growth","stagflation"],
+  growth:       ["GDP","economic growth","labor market","payroll","PMI","consumer spending","capex cycle"],
+  geopolitics:  ["geopolit","war","conflict","sanction","tariff","trade tension","trade war","political risk","escalation","de-escalation","supply disruption"],
+  fx:           ["dollar","USD","currency","exchange rate","euro","yen","FX","dedollariz","currency hedg"],
+  credit:       ["credit spread","default rate","credit cycle","leverage","refinanc","credit condition","spreads remain tight","spread widening"],
+  valuation:    ["valuation","multiple","P/E","price-to-earnings","expensive","cheap","rich valuation","discount to NAV"],
+  earnings:     ["earnings","EPS","profit margin","revenue growth","guidance","earnings breadth","margin resilience"],
+  liquidity:    ["liquidity","fund flows","positioning","risk appetite","volatility regime"],
+  policy:       ["fiscal","deficit","government spending","tax policy","stimulus","regulation","monetary policy","central bank"]
 };
 
 // Ticker mention extractor — looks for explicit $TICK or TICK in caps
@@ -4812,45 +5995,167 @@ function extractTickerMentions(text){
   return matches.filter(t => known.has(t));
 }
 
+// ── Matching primitives ───────────────────────────────────────────────────
+// Naive substring matching produced systematic false signals, so all lexicon
+// matching now goes through these helpers:
+//  • word boundaries — "overweight" no longer also fires the truncated
+//    "overweigh" entry (which double-counted every single sentiment word), and
+//    "add"/"long"/"buy"/"prefer" no longer fire inside "additional"/"longevity"/
+//    "buyback"/"preferred".
+//  • longest-phrase-wins — "tactical overweight" scores 3, not 3+3(+3).
+//  • acronyms are case-SENSITIVE — the "AI" keyword used to match the letters
+//    inside "sustainable", "maintain", "against", "remains" and "supply chain",
+//    voting Technology/AI on unrelated research.
+function _engEsc(s){ return String(s).replace(/[.*+?^${}()|[\]\\]/g, "\\$&"); }
+// A phrase is treated as an acronym when it is short and mostly capitals (AI,
+// EM, US, ML, HY, IG, REIT, CTA, BDC, S&P, NVDA…).
+function _engIsAcronym(ph){ return /^[A-Z][A-Z0-9&.\-]{0,5}$/.test(String(ph).trim()); }
+// allowTail=true is used for TOPIC keywords so noun stems still match their
+// inflections (bond→bonds, equit→equities, tech→technology). Sentiment words
+// use allowTail=false so "add" cannot match "additional" or "long" match
+// "longevity". Acronyms only ever admit a plural "s" — "AI" must not match
+// "AIG", and case-sensitivity keeps it off "sustainable"/"maintain"/"chain".
+// Compiled patterns are memoized: a full aggregation runs every lexicon phrase
+// against every item (~480 items x ~200 phrases), so recompiling each time was
+// the dominant cost.
+const _engRxCache = new Map();
+function _engPhraseRegex(ph, flags, allowTail){
+  const p = String(ph).trim();
+  const key = p + "\u0000" + (flags || "") + "\u0000" + (allowTail ? 1 : 0);
+  let re = _engRxCache.get(key);
+  if(!re){
+    const lead = /^\w/.test(p) ? "\\b" : "";
+    const tail = !/\w$/.test(p) ? ""                    // ends in punctuation (U.S., S&P.)
+      : _engIsAcronym(p) ? "(?:s)?\\b"
+      : allowTail ? "\\w*"
+      : "\\b";
+    re = new RegExp(lead + _engEsc(p) + tail, (_engIsAcronym(p) ? "" : "i") + (flags || ""));
+    _engRxCache.set(key, re);
+  }
+  // A cached /g/ regex carries lastIndex between calls — reset or exec() would
+  // resume mid-string and silently skip matches.
+  re.lastIndex = 0;
+  return re;
+}
+// Sentiment for one span of text: every lexicon phrase is matched with word
+// boundaries, longest first, and a shorter phrase overlapping an already-matched
+// span is skipped so nothing is counted twice.
+function _engScoreSentiment(span){
+  const entries = [];
+  for(const [w, wt] of Object.entries(POS_WORDS)) entries.push({w, wt, sign: 1});
+  for(const [w, wt] of Object.entries(NEG_WORDS)) entries.push({w, wt, sign: -1});
+  entries.sort((a, b) => b.w.length - a.w.length);
+  const taken = [];
+  let score = 0;
+  for(const e of entries){
+    const re = _engPhraseRegex(e.w, "g");
+    let m, hit = false;
+    while((m = re.exec(span)) !== null){
+      const s = m.index, t = s + m[0].length;
+      if(taken.some(r => s < r[1] && t > r[0])) continue; // inside a longer phrase
+      taken.push([s, t]);
+      hit = true;
+    }
+    if(hit) score += e.sign * e.wt; // presence-weighted, matching the original calibration
+  }
+  return score;
+}
+// Split an item into clauses so a single item can express opposite views, e.g.
+// "Overweight Technology, Financials; Underweight Real Estate, Utilities" —
+// which previously netted to sentiment 0 and then defaulted every one of those
+// five sectors to +1, recording the underweights as bullish.
+function _engClauses(text){
+  // Decimal points and dotted abbreviations must not create clause boundaries.
+  // Splitting naively on "." shattered "ER 0.03%" into "ER 0" / "03%" and
+  // "U.S. equities" into "U" / "S" / "equities", which separated a topic from
+  // the sentiment word describing it — in a mixed item that misattributed the
+  // direction (e.g. "Equities returned 8.5% and remain attractive; real estate
+  // underweight" scored equities NEGATIVE). Protect them, split, then restore.
+  const PH = String.fromCharCode(1); // sentinel that cannot occur in research text
+  const guarded = String(text)
+    .replace(/(\d)\.(\d)/g, "$1" + PH + "$2")                  // 0.03, 4.5, 8.5
+    .replace(/\b([A-Za-z])\.(?=[A-Za-z]\.)/g, "$1" + PH)       // U.S. / e.g. (first dot)
+    .replace(/\b([A-Za-z])\.(?=\s|$)/g, "$1" + PH);            // trailing single-letter abbrev
+  return guarded
+    .split(/[;.]|\s+(?:but|while|whereas|although|though|versus|vs\.?)\s+/i)
+    .map(s => s.split(PH).join(".").trim())
+    .filter(Boolean);
+}
+
+// Phrases that must NOT count as a mention of a topic. These are terms that
+// contain a topic keyword but mean something else entirely — "free cash flow"
+// is a fundamentals metric, not the cash asset class; "dividend yield" is an
+// equity metric, not fixed income. Without these the engine voted the wrong
+// asset class on very common research prose.
+const TOPIC_EXCLUSIONS = {
+  cash:         /\bcash[-\s]?flows?\b/gi,
+  fixed_income: /\bdividend[-\s]yields?\b|\bearnings\syield\b|\bfree\scash\sflow\syield\b/gi
+};
+function _engScrub(text, key){
+  const ex = TOPIC_EXCLUSIONS[key];
+  return ex ? String(text).replace(ex, " ") : text;
+}
+
 // Given an item title+summary, extract signal(s) for each lexicon
 function extractItemSignals(item, providerName){
-  const text = ((item.title||"") + " " + (item.summary||"")).toLowerCase();
   const rawText = (item.title||"") + " " + (item.summary||"");
+  const itemSentiment = _engScoreSentiment(rawText);
+  const clauses = _engClauses(rawText).map(c => ({text: c, sent: _engScoreSentiment(c)}));
 
-  // Detect sentiment direction
-  let posWeight = 0, negWeight = 0;
-  for(const [w, wt] of Object.entries(POS_WORDS)){ if(text.includes(w.toLowerCase())) posWeight += wt; }
-  for(const [w, wt] of Object.entries(NEG_WORDS)){ if(text.includes(w.toLowerCase())) negWeight += wt; }
-  const sentiment = posWeight - negWeight;
-
-  // Classify by topic
+  // Classify by topic.
+  // Two parallel readings of the same match:
+  //   • the raw magnitude (kept for the allocation tilt, which is calibrated on it)
+  //   • a 3-POINT STANCE — +1 overweight / 0 neutral / -1 underweight — which is
+  //     what the points system aggregates. Magnitude answers "how strongly is
+  //     this stated", stance answers "which way does this provider lean", and
+  //     only the second is comparable across sources and buckets.
   const signals = {
     classes: {},   // {equity: +3, fixed_income: -1, ...}
     sectors: {},   // {technology: +2, ...}
     regions: {},   // {japan: +3, china: -2, ...}
-    themes: {},    // {ai: 1, decarbonization: 1, ...}
+    themes: {},    // {ai: +1, decarbonization: 0, ...}
+    drivers: {},   // {rates: -1, geopolitics: -1, fx: 0, cycle: +1, ...}
+    stances: {classes:{}, sectors:{}, regions:{}, themes:{}, drivers:{}},
     tickers: extractTickerMentions(rawText),
-    sentiment: sentiment,
+    sentiment: itemSentiment,
     providerName: providerName,
     item: item
   };
+  const toStance = v => (v > 0 ? 1 : (v < 0 ? -1 : 0));
 
-  function detect(map, container){
+  // Sentiment for a topic = sentiment of the clause it is mentioned in (falls
+  // back to the item as a whole). A mention with no directional language scores
+  // 0 — a neutral mention is no longer silently promoted to a bullish vote.
+  function voteFor(phrases, key){
+    let matched = false, best = null;
+    for(const c of clauses){
+      const t = _engScrub(c.text, key);
+      if(phrases.some(ph => _engPhraseRegex(ph, "", true).test(t))){
+        matched = true;
+        if(c.sent !== 0 && (best === null || Math.abs(c.sent) > Math.abs(best))) best = c.sent;
+      }
+    }
+    if(!matched && phrases.some(ph => _engPhraseRegex(ph, "", true).test(_engScrub(rawText, key)))) matched = true;
+    if(!matched) return null;
+    return best !== null ? best : itemSentiment;
+  }
+  function detect(map, container, bucket){
     for(const [key, phrases] of Object.entries(map)){
-      const matched = phrases.some(ph => text.includes(ph.toLowerCase()));
-      if(matched){
-        container[key] = (container[key] || 0) + (sentiment !== 0 ? sentiment : 1);
+      const v = voteFor(phrases, key);
+      if(v !== null){
+        container[key] = (container[key] || 0) + v;
+        signals.stances[bucket][key] = toStance(v);
       }
     }
   }
-  detect(CLASS_KEYWORDS, signals.classes);
-  detect(SECTOR_KEYWORDS, signals.sectors);
-  detect(REGION_KEYWORDS, signals.regions);
-  // Themes — count mentions even without explicit sentiment
-  for(const [key, phrases] of Object.entries(THEME_KEYWORDS)){
-    const matched = phrases.some(ph => text.includes(ph.toLowerCase()));
-    if(matched) signals.themes[key] = (signals.themes[key] || 0) + 1;
-  }
+  detect(CLASS_KEYWORDS,  signals.classes, "classes");
+  detect(SECTOR_KEYWORDS, signals.sectors, "sectors");
+  detect(REGION_KEYWORDS, signals.regions, "regions");
+  detect(DRIVER_KEYWORDS, signals.drivers, "drivers");
+  // Themes are directional too now — a theme mentioned as a headwind should not
+  // read the same as one mentioned as a tailwind, which a pure mention count
+  // could not express.
+  detect(THEME_KEYWORDS,  signals.themes,  "themes");
   return signals;
 }
 
@@ -4861,20 +6166,43 @@ function aggregateAllSignals(selectedProviderIds){
     sectors: {},
     regions: {},
     themes: {},
+    drivers: {},
+    // The 3-point tally, one entry per bucket key: how many research views were
+    // overweight / neutral / underweight. This is the layer the decision reads.
+    points: {classes:{}, sectors:{}, regions:{}, themes:{}, drivers:{}},
     tickers: {},
     citationsByClass: {},
     citationsBySector: {},
     citationsByTheme: {},
     citationsByRegion: {},
     totalItems: 0,
+    scoredItems: 0,              // items that actually contributed points
+    sharedDuplicatesSkipped: 0,  // shared baseline themes already counted
     providerCount: 0
   };
+  const _sharedSeen = new Set();
 
+  // providers      = every provider that MENTIONED this topic (any direction)
+  // providersFor / providersAgainst = direction-consistent counts, so a
+  // rationale can say "N providers overweight X" without counting the ones that
+  // were neutral on it or actively underweight it.
   function bump(container, key, vote, providerName, item){
-    if(!container[key]) container[key] = {votes:0, providers:new Set(), items:[]};
+    if(!container[key]) container[key] = {votes:0, providers:new Set(), providersFor:new Set(), providersAgainst:new Set(), items:[]};
     container[key].votes += vote;
     container[key].providers.add(providerName);
+    if(vote > 0) container[key].providersFor.add(providerName);
+    else if(vote < 0) container[key].providersAgainst.add(providerName);
     if(container[key].items.length < 8) container[key].items.push({title: item.title.slice(0,120), provider: providerName});
+  }
+  // One research view = one point, in exactly one of three columns.
+  function tally(bucket, key, stance, providerName){
+    const b = aggregate.points[bucket];
+    if(!b[key]) b[key] = {ow:0, neutral:0, uw:0, providers:new Set(), owProviders:new Set(), uwProviders:new Set()};
+    const e = b[key];
+    if(stance > 0){ e.ow++; e.owProviders.add(providerName); }
+    else if(stance < 0){ e.uw++; e.uwProviders.add(providerName); }
+    else e.neutral++;
+    e.providers.add(providerName);
   }
 
   selectedProviderIds.forEach(pid => {
@@ -4882,14 +6210,32 @@ function aggregateAllSignals(selectedProviderIds){
     if(!p) return;
     aggregate.providerCount++;
     const cfg = getProviderCfg(pid);
-    const items = (cfg.items || []).slice(0, 30); // Scan top 30 per provider
+    // Read EVERY cached item. This used to stop at the first 30 per provider,
+    // which silently discarded most of the library once the curated catalogues
+    // and ingested issues were in place.
+    const items = (cfg.items || []);
     aggregate.totalItems += items.length;
     items.forEach(item => {
+      // Shared baseline themes are drawn from one pool by every provider, so
+      // the identical text recurs across sources. Counting it once per provider
+      // would manufacture consensus out of duplication — score each distinct
+      // shared item only the first time it is seen.
+      if(item.shared){
+        const key = String(item.title || "").trim().toLowerCase();
+        if(_sharedSeen.has(key)){ aggregate.sharedDuplicatesSkipped++; return; }
+        _sharedSeen.add(key);
+      }
+      aggregate.scoredItems++;
       const sig = extractItemSignals(item, p.name);
       Object.entries(sig.classes).forEach(([k,v]) => bump(aggregate.classes, k, v, p.name, item));
       Object.entries(sig.sectors).forEach(([k,v]) => bump(aggregate.sectors, k, v, p.name, item));
       Object.entries(sig.regions).forEach(([k,v]) => bump(aggregate.regions, k, v, p.name, item));
       Object.entries(sig.themes).forEach(([k,v]) => bump(aggregate.themes, k, v, p.name, item));
+      Object.entries(sig.drivers).forEach(([k,v]) => bump(aggregate.drivers, k, v, p.name, item));
+      // 3-point tally across all five buckets
+      Object.entries(sig.stances).forEach(([bucket, keys]) => {
+        Object.entries(keys).forEach(([k, st]) => tally(bucket, k, st, p.name));
+      });
       sig.tickers.forEach(t => {
         if(!aggregate.tickers[t]) aggregate.tickers[t] = {count:0, providers:new Set()};
         aggregate.tickers[t].count++;
@@ -4898,17 +6244,48 @@ function aggregateAllSignals(selectedProviderIds){
     });
   });
 
+  // Resolve each bucket entry into a stance from its three point columns.
+  // Requires BOTH a net margin and a majority lean, so one stray view cannot
+  // flip a bucket that is otherwise balanced.
+  Object.keys(aggregate.points).forEach(bucket => {
+    Object.entries(aggregate.points[bucket]).forEach(([key, e]) => {
+      e.providers = Array.from(e.providers);
+      e.owProviders = Array.from(e.owProviders);
+      e.uwProviders = Array.from(e.uwProviders);
+      e.providerCount = e.providers.length;
+      e.total = e.ow + e.neutral + e.uw;
+      e.net = e.ow - e.uw;
+      const directional = e.ow + e.uw;
+      e.conviction = directional ? +(e.net / directional).toFixed(2) : 0;
+      // A call needs three things: enough views in that direction (>=3, so a
+      // couple of stray mentions cannot move a bucket), a clear net margin, and
+      // a lopsided split. Without the absolute floor, "2 overweight / 43 neutral
+      // / 0 underweight" scored conviction 1.0 and read OVERWEIGHT off two
+      // sentences.
+      e.stance = (e.ow >= 3 && e.net >= 3 && e.conviction >= 0.5) ? "overweight"
+               : (e.uw >= 3 && e.net <= -3 && e.conviction <= -0.5) ? "underweight"
+               : "neutral";
+    });
+  });
+
   // Convert provider Sets to arrays for serialization
   function normalize(container){
     Object.values(container).forEach(c => {
       c.providers = Array.from(c.providers);
       c.providerCount = c.providers.length;
+      c.providersFor = Array.from(c.providersFor || []);
+      c.providersAgainst = Array.from(c.providersAgainst || []);
+      c.forCount = c.providersFor.length;
+      c.againstCount = c.providersAgainst.length;
+      // Providers that back the net direction — the honest number to cite.
+      c.agreeCount = c.votes > 0 ? c.forCount : (c.votes < 0 ? c.againstCount : 0);
     });
   }
   normalize(aggregate.classes);
   normalize(aggregate.sectors);
   normalize(aggregate.regions);
   normalize(aggregate.themes);
+  normalize(aggregate.drivers);
   Object.values(aggregate.tickers).forEach(c => {
     c.providers = Array.from(c.providers);
     c.providerCount = c.providers.length;
@@ -4916,6 +6293,13 @@ function aggregateAllSignals(selectedProviderIds){
 
   return aggregate;
 }
+
+// Currency blocs — a CHF or DKK client is far better served by a EUR
+// money-market line than a USD one when no fund exists in their own currency,
+// because the FX exposure is a fraction of the size.
+const CCY_BLOC = {EUR:"EUR", CHF:"EUR", DKK:"EUR", SEK:"EUR", NOK:"EUR", PLN:"EUR",
+                  USD:"USD", CAD:"USD", HKD:"USD", SGD:"USD",
+                  GBP:"GBP", JPY:"JPY", AUD:"AUD"};
 
 // Risk profile → strategic asset allocation baseline (in %)
 const RISK_TO_ALLOCATION = {
@@ -4983,6 +6367,90 @@ function isFundEligibleForCountry(fund, country){
 }
 
 // Pick specific funds for each asset class given the universe + signals + constraints
+// ═══════════════════════════════════════════════════════════
+// POINTS → DECISION
+// ═══════════════════════════════════════════════════════════
+// Look up a bucket entry's resolved stance. Everything downstream reads the
+// points tally through these, so the decision rule lives in one place.
+// The four drivers an advisor is always asked to explain, phrased in the terms
+// each one is actually discussed in — a negative stance on rates is a headwind,
+// a negative stance on geopolitics is elevated risk, and so on. Reads the same
+// points tally as everything else, so the narrative cannot drift from the data.
+const DRIVER_PHRASING = {
+  cycle:       {ow:"cycle supportive",        uw:"late-cycle / slowdown risk",  n:"cycle mixed"},
+  rates:       {ow:"rates a tailwind",        uw:"rates a headwind",            n:"rates balanced"},
+  geopolitics: {ow:"geopolitical risk easing",uw:"geopolitical risk elevated",  n:"geopolitical risk contained"},
+  fx:          {ow:"FX supportive",           uw:"FX a headwind",               n:"FX neutral"},
+  inflation:   {ow:"disinflation supportive", uw:"inflation pressure",          n:"inflation stable"},
+  credit:      {ow:"credit conditions easy",  uw:"credit conditions tightening",n:"credit conditions stable"},
+  valuation:   {ow:"valuations supportive",   uw:"valuations stretched",        n:"valuations fair"},
+  growth:      {ow:"growth resilient",        uw:"growth deteriorating",        n:"growth steady"}
+};
+function driverPhrase(signals, key){
+  const e = bucketPoints(signals, "drivers", key);
+  const map = DRIVER_PHRASING[key];
+  if(!map) return null;
+  if(!e || e.total === 0) return null;   // never assert a backdrop with no evidence
+  const word = e.stance === "overweight" ? map.ow : (e.stance === "underweight" ? map.uw : map.n);
+  return `${word} (${e.ow}/${e.neutral}/${e.uw} OW·N·UW across ${e.providerCount} source${e.providerCount>1?"s":""})`;
+}
+// Cycle, rates, geopolitical risk and FX — always in this order, and silently
+// skipped when the research carries no view rather than inventing one.
+function marketContextLine(signals){
+  const parts = ["cycle","rates","geopolitics","fx"].map(k => driverPhrase(signals, k)).filter(Boolean);
+  return parts.length ? "Backdrop: " + parts.join("; ") : "";
+}
+
+function bucketPoints(signals, bucket, key){
+  return (signals.points && signals.points[bucket] && signals.points[bucket][key]) || null;
+}
+function bucketStance(signals, bucket, key){
+  const e = bucketPoints(signals, bucket, key);
+  return e ? e.stance : "neutral";
+}
+function stanceScore(signals, bucket, key){
+  const e = bucketPoints(signals, bucket, key);
+  if(!e) return 0;
+  // Scaled by conviction so a 5-1 split counts for more than a 3-2 split.
+  return e.stance === "overweight" ? e.conviction : (e.stance === "underweight" ? e.conviction : 0);
+}
+// Map a fund onto the region / sector / theme keys the points system uses, so a
+// fund can be credited for sitting in an overweighted bucket. Region comes off
+// the fund record; sector and theme are inferred from its name and ticker,
+// which is all the universe carries.
+function fundBucketKeys(f){
+  const hay = ((f.name||"") + " " + (f.tkr||"")).toLowerCase();
+  const regions = [];
+  const r = (f.region||"").toLowerCase();
+  if(/\bus\b|\bu\.s\.?|\busa\b|domestic|total market|total stock market|s&p|\b500\b|\brussell\b|dow jones|nasdaq/.test(r + " " + hay)) regions.push("us");
+  if(/europe|eafe|developed international|ex-us/.test(r + " " + hay)) regions.push("europe","developed_intl");
+  if(/emerging|\bem\b/.test(r + " " + hay)) regions.push("emerging");
+  if(/japan/.test(hay)) regions.push("japan");
+  if(/china/.test(hay)) regions.push("china");
+  if(/india/.test(hay)) regions.push("india");
+  const sectors = [];
+  if(/tech|semiconductor|software|\bxlk\b|qqq|nasdaq.?100|\bsoxx\b|\bsmh\b/.test(hay)) sectors.push("technology");
+  if(/health|biotech|pharma|\bxlv\b/.test(hay)) sectors.push("healthcare");
+  if(/financ|bank|\bxlf\b/.test(hay)) sectors.push("financials");
+  if(/energy|\boil\b|\bxle\b/.test(hay)) sectors.push("energy");
+  if(/industrial|aerospace|defen|\bxli\b/.test(hay)) sectors.push("industrials");
+  if(/utilit|\bxlu\b/.test(hay)) sectors.push("utilities");
+  if(/real estate|reit|\bxlre\b|\bschh\b/.test(hay)) sectors.push("real_estate_sector");
+  if(/material|mining|\bxlb\b/.test(hay)) sectors.push("materials");
+  if(/staple|\bxlp\b/.test(hay)) sectors.push("consumer_staples");
+  if(/discretionary|\bxly\b/.test(hay)) sectors.push("consumer_discretionary");
+  const themes = [];
+  if(/\bai\b|artificial intelligence|semiconductor|robot|data cent|\bsoxx\b|\bsmh\b|\bbotz\b|\baiq\b/.test(hay)) themes.push("ai");
+  if(/clean|solar|renewab|\besg\b|sustainab|\bicln\b|\btan\b/.test(hay)) themes.push("decarbonization");
+  if(/cyber|\bcrwd\b|\bpanw\b|hack|\bbug\b/.test(hay)) themes.push("cybersecurity");
+  if(/defen|aerospace|\bita\b|\bppa\b/.test(hay)) themes.push("defense");
+  if(/dividend|\bvig\b|\bschd\b|\bvym\b/.test(hay)) themes.push("dividend_growth");
+  if(/quality|qual/.test(hay)) themes.push("quality_factor");
+  if(/bitcoin|crypto|\bibit\b|\bfbtc\b|\beth\b|ethereum/.test(hay)) themes.push("cryptocurrency");
+  if(/water|infrastructure|\bpho\b|\bigf\b/.test(hay)) themes.push("water_infrastructure");
+  return {regions, sectors, themes};
+}
+
 function pickFundsForClass(targetClass, targetWeight, brief, signals, used){
   // Candidate funds in this class
   let candidates = FUND_UNIVERSE.filter(f => f.cls === targetClass);
@@ -5025,6 +6493,45 @@ function pickFundsForClass(targetClass, targetWeight, brief, signals, used){
               - drawdownPenalty * 0.8;
     // Research conviction boost
     if(signals.tickers[f.tkr]) score += 2 + (signals.tickers[f.tkr].count * 0.3);
+    // ── Points-system alignment ──────────────────────────────────────────
+    // Region, sector and theme points used to be computed and then thrown away:
+    // only asset class and explicit ticker mentions influenced selection. A fund
+    // now earns (or loses) score for sitting in a bucket the research is
+    // overweight (or underweight) on. Weighted below ticker conviction so a
+    // named fund still leads, and conviction-scaled so a narrow split moves less.
+    const bk = fundBucketKeys(f);
+    let align = 0;
+    bk.regions.forEach(k => { align += stanceScore(signals, "regions", k) * 0.8; });
+    bk.sectors.forEach(k => { align += stanceScore(signals, "sectors", k) * 0.6; });
+    bk.themes.forEach(k  => { align += stanceScore(signals, "themes",  k) * 0.5; });
+    score += Math.max(-2, Math.min(2, align));
+    f._align = +align.toFixed(2);
+    // ── Currency match on the CASH sleeve ────────────────────────────────
+    // Sharpe is computed against a single USD risk-free, so a EUR money-market
+    // fund yielding 3% scores a NEGATIVE Sharpe against a USD fund yielding 5%
+    // and loses — which had the engine putting a Swiss client's cash in
+    // unhedged USD. Comparing nominal yields across currencies is meaningless;
+    // cash is the one sleeve where the client's own currency is the whole point.
+    if(targetClass === "cash"){
+      const want = (brief.currency || "USD").toUpperCase();
+      const has = (f.ccy || "USD").toUpperCase();
+      if(has === want) score += 3;
+      else if(CCY_BLOC[want] && CCY_BLOC[want] === CCY_BLOC[has]) score += 1; // same bloc (e.g. CHF↔EUR)
+      else score -= 2;
+    } else if(f.ccy){
+      // ── Currency tie-break on every OTHER sleeve ────────────────────────
+      // Only reaches funds that actually declare a currency, and is a BONUS
+      // with no matching penalty, so it can never push a worse strategy ahead
+      // of a better one. Its job is narrower than the cash rule: a CHF-hedged
+      // share class and its base are the same portfolio and now score the same
+      // Sharpe by construction, so something has to break the tie in favour of
+      // the client's own currency — otherwise a Swiss client gets the unhedged
+      // line and wears the FX risk the hedged class exists to remove.
+      const want = (brief.currency || "USD").toUpperCase();
+      const has = f.ccy.toUpperCase();
+      if(has === want) score += 0.5;
+      else if(CCY_BLOC[want] && CCY_BLOC[want] === CCY_BLOC[has]) score += 0.15;
+    }
     // Diversity penalty
     if(used.sponsors.has(f.sponsor)) score -= 0.3;
     // Risk-profile fit: penalize if fund vol incompatible
@@ -5043,6 +6550,29 @@ function buildPortfolioFromEngine(brief, signals){
   const baseline = RISK_TO_ALLOCATION[brief.risk] || RISK_TO_ALLOCATION.moderate;
   // 2. Tilt based on research signals
   const allocation = tiltAllocation(baseline, signals);
+  // 2b. Pre-flight: which sleeves can this client actually be sold?
+  // Non-US (UCITS) jurisdictions have NO eligible cash or alternative funds, so
+  // those sleeves used to be skipped silently and their weight swept up by the
+  // final renormalization — which pushed a very-conservative Swiss client's 11%
+  // cash into equities and bonds and told nobody. Unfillable weight is now moved
+  // deliberately and reported.
+  const unfillable = [];
+  for(const [cls, weight] of Object.entries(allocation)){
+    if(weight < 2) continue;
+    const probe = pickFundsForClass(cls, weight, brief, signals, {sponsors: new Set()});
+    if(!probe || probe.length === 0){ unfillable.push({cls, weight: +weight.toFixed(1)}); allocation[cls] = 0; }
+  }
+  if(unfillable.length){
+    unfillable.forEach(({cls, weight}) => {
+      // Cash is the sleeve whose absence changes the risk profile most, so it
+      // goes to fixed income rather than being spread across risk assets.
+      if(cls === "cash" && allocation.fixed_income > 0){ allocation.fixed_income += weight; return; }
+      const rest = Object.entries(allocation).filter(([k, v]) => v > 0 && k !== cls);
+      const tot = rest.reduce((s, [, v]) => s + v, 0);
+      if(tot > 0) rest.forEach(([k, v]) => { allocation[k] += weight * v / tot; });
+    });
+  }
+
   // 3. For each asset class with weight > 2%, pick funds
   const used = {sponsors: new Set()};
   const positions = [];
@@ -5055,7 +6585,21 @@ function buildPortfolioFromEngine(brief, signals){
     // How many funds in this class?
     let n = 1;
     if(weight >= 25) n = 3; else if(weight >= 12) n = 2;
-    const picks = candidates.slice(0, n);
+    // Never take two share classes of the same fund. A CHF-hedged line and its
+    // base score almost identically — hedging preserves excess return, so their
+    // Sharpe matches by construction — which makes them the likeliest pair to be
+    // picked together. Holding both would show one position as two and read as
+    // diversification that is not there.
+    const picks = [];
+    const famSeen = new Set();
+    for(const cand of candidates){
+      if(picks.length >= n) break;
+      if(cand.family){
+        if(famSeen.has(cand.family)) continue;
+        famSeen.add(cand.family);
+      }
+      picks.push(cand);
+    }
     const eachWeight = Math.min(maxPos, weight / n);
     picks.forEach(fund => {
       // Generate rationale citing research
@@ -5064,15 +6608,23 @@ function buildPortfolioFromEngine(brief, signals){
       const clsData = signals.classes[cls];
       if(clsData){
         const v = clsData.votes > 0 ? "overweight" : (clsData.votes < 0 ? "underweight" : "neutral on");
-        rationaleParts.push(`${clsData.providerCount}/16 providers ${v} ${prettyClass(cls)} (${clsData.votes > 0 ? '+' : ''}${clsData.votes} net votes)`);
+        // Cite the providers that back the NET direction (agreeCount), not every
+        // provider that merely mentioned the class, and use the number of sources
+        // actually analyzed as the denominator instead of a hard-coded 16.
+        const denom = signals.providerCount || clsData.providerCount;
+        rationaleParts.push(clsData.votes === 0
+          ? `${clsData.providerCount}/${denom} providers mention ${prettyClass(cls)} with no net direction (0 net votes)`
+          : `${clsData.agreeCount}/${denom} providers ${v} ${prettyClass(cls)} (${clsData.votes > 0 ? '+' : ''}${clsData.votes} net votes, ${clsData.providerCount} mentioning)`);
       }
       // Specific ticker mentions
       if(signals.tickers[fund.tkr]){
         const tData = signals.tickers[fund.tkr];
         rationaleParts.push(`${fund.tkr} explicitly mentioned by ${tData.providers.slice(0,3).join(", ")}${tData.providers.length>3?" + "+(tData.providers.length-3)+" more":""}`);
       }
-      // Quantitative metrics
-      rationaleParts.push(`Sharpe ${fund.sharpe.toFixed(2)} · 5y ${fund.r5y.toFixed(1)}% · 10y ${fund.r10y.toFixed(1)}%`);
+      // Quantitative metrics ("n/a" where the fund has no track record for the
+      // period — these fields are null, not 0, for funds younger than the window)
+      const _pc = v => (v == null ? "n/a" : v.toFixed(1) + "%");
+      rationaleParts.push(`Sharpe ${fund.sharpe.toFixed(2)} · 5y ${_pc(fund.r5y)} · 10y ${_pc(fund.r10y)}`);
       rationaleParts.push(`ER ${fund.er.toFixed(2)}% · σ ${fund.sigma.toFixed(1)}% · maxDD ${fund.maxDD.toFixed(0)}%`);
       rationaleParts.push(`AUM $${fund.aum}B · ${fund.holdings.toLocaleString()} holdings`);
       // ESG / tax / liquidity matches
@@ -5081,6 +6633,16 @@ function buildPortfolioFromEngine(brief, signals){
       // Domicile-based regulatory rationale
       if(fund.ucits) rationaleParts.push(`UCITS-passportable (${fund.dom}-domiciled) — eligible for ${brief.country || "non-US"} resident under PRIIPs`);
       else if(fund.dom && fund.dom !== "US") rationaleParts.push(`${fund.dom}-listed — locally accessible for ${brief.country} resident`);
+      // Bucket alignment — why this fund rather than another in the same sleeve
+      const _bk = fundBucketKeys(fund);
+      const aligned = []
+        .concat(_bk.regions.filter(k => bucketStance(signals,"regions",k) === "overweight").map(k => prettyRegion(k) + " (region OW)"))
+        .concat(_bk.sectors.filter(k => bucketStance(signals,"sectors",k) === "overweight").map(k => prettyClass(k) + " (sector OW)"))
+        .concat(_bk.themes .filter(k => bucketStance(signals,"themes", k) === "overweight").map(k => prettyTheme(k) + " (theme OW)"));
+      if(aligned.length) rationaleParts.push("Aligned with " + aligned.slice(0,3).join(", "));
+      // Market backdrop — the four drivers an advisor is always asked about
+      const ctx = marketContextLine(signals);
+      if(ctx) rationaleParts.push(ctx);
 
       positions.push({
         ticker: fund.tkr,
@@ -5120,6 +6682,17 @@ function buildPortfolioFromEngine(brief, signals){
       positions.forEach(p => { p.weight = +(p.weight * 100 / totalW).toFixed(1); });
     }
   }
+  // Rounding each weight to 1dp independently still leaves a residual (portfolios
+  // were coming out at 100.2% / 99.9%), so absorb it into the largest position
+  // that has cap headroom — a client-facing proposal has to add up.
+  if(positions.length){
+    const drift = +(100 - positions.reduce((s,p) => s + p.weight, 0)).toFixed(1);
+    if(Math.abs(drift) >= 0.1){
+      const room = positions.filter(p => maxPos <= 0 || p.weight + drift <= maxPos + 0.001);
+      const target = (room.length ? room : positions).reduce((a,b) => a.weight >= b.weight ? a : b);
+      target.weight = +(target.weight + drift).toFixed(1);
+    }
+  }
 
   // Portfolio aggregates from real fund metrics (weighted by position size)
   const fundLookup = ticker => FUND_UNIVERSE.find(x => x.tkr === ticker);
@@ -5156,10 +6729,27 @@ function buildPortfolioFromEngine(brief, signals){
   // Risks — derive from signals (underweight votes = warning sign)
   const risks = [];
   const negClasses = Object.entries(signals.classes).filter(([,d]) => d.votes < -5).slice(0,3);
-  negClasses.forEach(([cls, d]) => risks.push(`${prettyClass(cls)} under pressure — ${d.providerCount}/16 providers underweight`));
+  negClasses.forEach(([cls, d]) => risks.push(`${prettyClass(cls)} under pressure — ${d.agreeCount}/${signals.providerCount || d.providerCount} providers underweight`));
   const negRegions = Object.entries(signals.regions).filter(([,d]) => d.votes < -5).slice(0,2);
   negRegions.forEach(([r, d]) => risks.push(`${prettyRegion(r)} regional risk flagged by ${d.providerCount} providers`));
   if(brief.maxPosition < 20) risks.push("Position size constraint may limit conviction expression");
+  // Sleeves the client's jurisdiction cannot be sold — disclosed, not hidden
+  unfillable.forEach(({cls, weight}) => risks.push(
+    `${prettyClass(cls)} sleeve (${weight}% target) has no ${brief.country || "US"}-eligible fund in the universe — reallocated to ${cls === "cash" ? "fixed income" : "the remaining sleeves"}`
+  ));
+  // Cash held in a currency other than the client's is an FX exposure in the one
+  // sleeve that is supposed to carry none — say so rather than leaving it implied.
+  (function(){
+    const want = (brief.currency || "USD").toUpperCase();
+    const offCcy = positions.filter(p => {
+      const f = FUND_UNIVERSE.find(x => x.tkr === p.ticker);
+      return f && f.cls === "cash" && (f.ccy || "USD").toUpperCase() !== want;
+    });
+    offCcy.forEach(p => {
+      const f = FUND_UNIVERSE.find(x => x.tkr === p.ticker);
+      risks.push(`Cash sleeve held in ${(f.ccy||"USD").toUpperCase()} (${p.ticker}) against a ${want} client — no ${want} money-market line is available in the eligible universe, so this carries FX risk`);
+    });
+  })();
 
   // Top themes (for the summary)
   const topThemes = Object.entries(signals.themes).sort((a,b) => b[1].votes - a[1].votes).slice(0, 5).map(([t,d]) => prettyTheme(t) + " ("+d.providerCount+" providers)");
@@ -5183,6 +6773,7 @@ function buildPortfolioFromEngine(brief, signals){
     topThemes,
     domicilePolicy,
     universeFiltered: {total: totalUniverse, eligible: eligibleUniverse},
+    unfillableSleeves: unfillable,
     portfolioMetrics: {
       beta: +expectedBeta.toFixed(2),
       sharpe: +portfolioSharpe.toFixed(2),
@@ -5196,7 +6787,7 @@ function buildPortfolioFromEngine(brief, signals){
       totalHoldings,
       totalAUM: +totalAUM.toFixed(1)
     },
-    summary: buildSummaryNarrative(brief, allocation, signals)
+    summary: buildSummaryNarrative(brief, allocation, signals, eligibleUniverse)
   };
 }
 
@@ -5205,12 +6796,12 @@ function prettySector(s){ return s.replace(/_/g," ").replace(/\b\w/g, l => l.toU
 function prettyRegion(r){ return ({us:"US",europe:"Europe",japan:"Japan",china:"China",india:"India",emerging:"Emerging Markets",developed_intl:"Developed Intl"})[r] || r; }
 function prettyTheme(t){ return ({ai:"Artificial Intelligence",decarbonization:"Decarbonization",healthcare_innovation:"Healthcare Innovation",defense:"Defense",reshoring:"US Reshoring",cybersecurity:"Cybersecurity",demographics:"Demographics",water_infrastructure:"Water/Infrastructure",cryptocurrency:"Cryptocurrency",dividend_growth:"Dividend Growth",quality_factor:"Quality Factor"})[t] || t; }
 
-function buildSummaryNarrative(brief, allocation, signals){
+function buildSummaryNarrative(brief, allocation, signals, eligibleCount){
   const topClass = Object.entries(allocation).sort((a,b) => b[1] - a[1])[0];
   const topTheme = Object.entries(signals.themes).sort((a,b) => b[1].votes - a[1].votes)[0];
   const providerCount = signals.providerCount;
   const totalItems = signals.totalItems;
-  return `Based on ${totalItems} research items across ${providerCount} institutional sources, the engine recommends a ${brief.risk.replace(/_/g," ")} portfolio with ${topClass[1].toFixed(0)}% in ${prettyClass(topClass[0])}. ${topTheme ? "Dominant theme: " + prettyTheme(topTheme[0]) + " cited by " + topTheme[1].providerCount + " providers." : ""} All positions chosen from a 38-fund curated universe matching your ${brief.esg} ESG preference, ${brief.taxSensitivity} tax sensitivity, and ${brief.liquidity} liquidity needs.`;
+  return `Based on ${totalItems} research items across ${providerCount} institutional sources, the engine recommends a ${brief.risk.replace(/_/g," ")} portfolio with ${topClass[1].toFixed(0)}% in ${prettyClass(topClass[0])}. ${topTheme ? "Dominant theme: " + prettyTheme(topTheme[0]) + " cited by " + topTheme[1].providerCount + " providers." : ""} All positions chosen from the ${FUND_UNIVERSE.length}-fund universe (${eligibleCount || FUND_UNIVERSE.filter(f => isFundEligibleForCountry(f, brief.country)).length} eligible for ${brief.country||"US"}) matching your ${brief.esg} ESG preference, ${brief.taxSensitivity} tax sensitivity, and ${brief.liquidity} liquidity needs.`;
 }
 
 // ── ENGINE BUTTON HANDLER ─────────────────────────────────────
@@ -5299,7 +6890,7 @@ function renderEngineResult(r){
     <div class="kpi"><div class="kpi-l">1-Year Return</div><div class="kpi-v" style="color:${(pm.r1y||0)>=0?'var(--green)':'var(--red)'}">${(pm.r1y||0).toFixed(1)}%</div></div>
     <div class="kpi"><div class="kpi-l">3-Year Annualized</div><div class="kpi-v" style="color:${(pm.r3y||0)>=0?'var(--green)':'var(--red)'}">${(pm.r3y||0).toFixed(1)}%</div></div>
     <div class="kpi"><div class="kpi-l">5-Year Annualized</div><div class="kpi-v" style="color:${(pm.r5y||0)>=0?'var(--green)':'var(--red)'}">${(pm.r5y||0).toFixed(1)}%</div></div>
-    <div class="kpi"><div class="kpi-l">10-Year Annualized</div><div class="kpi-v" style="color:${(pm.r10y||0)>=0?'var(--green)':'var(--red)'}">${(pm.r10y||0).toFixed(1)}%</div></div>
+    <div class="kpi"><div class="kpi-l">10-Year Annualized</div><div class="kpi-v" style="color:${(pm.r10y||0)>=0?'var(--green)':'var(--red)'}">${pm.r10y==null?'n/a':pm.r10y.toFixed(1)+'%'}</div></div>
     <div class="kpi"><div class="kpi-l">Blended ER</div><div class="kpi-v">${(pm.blendedER||0).toFixed(2)}%</div></div>
     <div class="kpi"><div class="kpi-l">Blended Yield</div><div class="kpi-v">${(pm.blendedYield||0).toFixed(2)}%</div></div>
   </div>`;
@@ -5314,7 +6905,44 @@ function renderEngineResult(r){
   </div>`;
 
   // SIGNAL EXTRACTION HEATMAP
-  h += `<div class="ablock"><h3 style="color:var(--green)">📊 Asset Class Consensus (Net Votes Across 16 Providers)</h3>`;
+  // ── Points system: the OW / neutral / UW tally behind every decision ──
+  if(r.signals.points){
+    const S = r.signals;
+    const pretty = {classes:["Asset class", prettyClass], regions:["Geographic region", prettyRegion],
+                    sectors:["Market sector", prettyClass], themes:["Themes", prettyTheme],
+                    drivers:["Market drivers", k=>k.replace(/_/g," ").replace(/\b\w/g,c=>c.toUpperCase())]};
+    h += `<div class="ablock"><h3 style="color:var(--blue)">🧮 Points system — ${S.scoredItems} distinct research views scored`
+       + (S.sharedDuplicatesSkipped ? ` <span style="font-weight:400;font-size:12px;color:var(--ink3)">(${S.sharedDuplicatesSkipped} shared baseline duplicates counted once)</span>` : "")
+       + `</h3>`;
+    h += `<div style="font-size:11.5px;color:var(--ink3);margin-bottom:10px">Every view lands in exactly one column — overweight, neutral or underweight. A bucket is only called when at least 3 views point the same way, the net margin is 3+, and the split is at least 2:1.</div>`;
+    Object.entries(pretty).forEach(([bucket, [label, fmtKey]]) => {
+      const rows = Object.entries(S.points[bucket] || {})
+        .filter(([,e]) => e.total > 0)
+        .sort((a,b) => b[1].net - a[1].net)
+        .slice(0, 8);
+      if(!rows.length) return;
+      h += `<div style="margin-bottom:12px"><div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--ink3);margin-bottom:5px">${label}</div>`;
+      h += `<div style="display:grid;grid-template-columns:1.4fr 46px 46px 46px 62px 96px;gap:0;border:1px solid var(--line);border-radius:6px;overflow:hidden;font-size:11.5px">`;
+      h += ["", "OW", "N", "UW", "Net", "Call"].map((c,i) =>
+        `<div style="padding:4px 8px;background:var(--ink);color:#fff;font-weight:600;${i>0?'text-align:center':''}">${c}</div>`).join("");
+      rows.forEach(([k, e]) => {
+        const col = e.stance === "overweight" ? "var(--green)" : (e.stance === "underweight" ? "var(--red)" : "var(--ink3)");
+        const tag = e.stance === "overweight" ? "OVERWEIGHT" : (e.stance === "underweight" ? "UNDERWEIGHT" : "neutral");
+        h += `<div style="padding:4px 8px;border-top:1px solid var(--line)">${escapeHtml(fmtKey(k))}</div>`
+           + `<div style="padding:4px 8px;border-top:1px solid var(--line);text-align:center;color:var(--green)">${e.ow}</div>`
+           + `<div style="padding:4px 8px;border-top:1px solid var(--line);text-align:center;color:var(--ink3)">${e.neutral}</div>`
+           + `<div style="padding:4px 8px;border-top:1px solid var(--line);text-align:center;color:var(--red)">${e.uw}</div>`
+           + `<div style="padding:4px 8px;border-top:1px solid var(--line);text-align:center;font-weight:600">${e.net>0?'+':''}${e.net}</div>`
+           + `<div style="padding:4px 8px;border-top:1px solid var(--line);text-align:center;font-weight:700;color:${col}">${tag}</div>`;
+      });
+      h += `</div></div>`;
+    });
+    const ctx = marketContextLine(S);
+    if(ctx) h += `<div style="font-size:12px;color:var(--ink2);padding:8px 12px;background:rgba(0,87,184,.05);border-radius:6px"><strong>${escapeHtml(ctx)}</strong></div>`;
+    h += `</div>`;
+  }
+
+  h += `<div class="ablock"><h3 style="color:var(--green)">📊 Asset Class Consensus (Net Votes Across ${r.signals.providerCount} Providers)</h3>`;
   const sortedClasses = Object.entries(r.signals.classes).sort((a,b) => b[1].votes - a[1].votes);
   sortedClasses.forEach(([cls, d]) => {
     const vote = d.votes;
@@ -5325,7 +6953,7 @@ function renderEngineResult(r){
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:3px">
         <strong style="width:130px;font-size:13px">${prettyClass(cls)}</strong>
         <span style="font-size:11px;font-weight:700;color:${color};width:90px">${direction} ${vote>0?'+':''}${vote}</span>
-        <span style="font-size:11px;color:var(--ink3)">${d.providerCount} of 16 providers</span>
+        <span style="font-size:11px;color:var(--ink3)" title="${d.forCount} overweight · ${d.againstCount} underweight · ${d.providerCount} mentioning">${d.agreeCount} of ${r.signals.providerCount} providers agree</span>
       </div>
       <div style="height:8px;background:rgba(0,0,0,.05);border-radius:4px;position:relative;margin-left:130px">
         <div style="position:absolute;${vote>=0?'left:50%':'right:50%'};width:${width/2}%;height:100%;background:${color};border-radius:4px;${vote>=0?'':'transform:scaleX(-1);transform-origin:right'}"></div>
@@ -5341,9 +6969,9 @@ function renderEngineResult(r){
   sortedThemes.forEach(([t, d]) => {
     h += `<div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--line)">
       <span style="width:200px;font-size:13px;font-weight:600">${prettyTheme(t)}</span>
-      <span style="font-size:11px;color:var(--ink3);width:130px">${d.providerCount}/16 providers cite</span>
+      <span style="font-size:11px;color:var(--ink3);width:130px">${d.providerCount}/${r.signals.providerCount} providers cite</span>
       <div style="flex:1;height:8px;background:rgba(0,0,0,.05);border-radius:4px;overflow:hidden">
-        <div style="width:${d.providerCount/16*100}%;height:100%;background:var(--purple)"></div>
+        <div style="width:${Math.min(100, d.providerCount/Math.max(1,r.signals.providerCount)*100)}%;height:100%;background:var(--purple)"></div>
       </div>
       <span style="font-size:11px;color:var(--ink2);width:50px;text-align:right;font-weight:700">${d.votes} votes</span>
     </div>`;
@@ -5380,8 +7008,8 @@ function renderEngineResult(r){
         <div><div style="color:var(--ink3);font-size:9px;text-transform:uppercase;letter-spacing:.05em">σ</div><strong>${(m.sigma||0).toFixed(1)}%</strong></div>
         <div><div style="color:var(--ink3);font-size:9px;text-transform:uppercase;letter-spacing:.05em">β</div><strong>${(m.beta||0).toFixed(2)}</strong></div>
         <div><div style="color:var(--ink3);font-size:9px;text-transform:uppercase;letter-spacing:.05em">Max DD</div><strong style="color:var(--red)">${(m.maxDD||0).toFixed(0)}%</strong></div>
-        <div><div style="color:var(--ink3);font-size:9px;text-transform:uppercase;letter-spacing:.05em">5y</div><strong style="color:${(m.r5y||0)>=0?'var(--green)':'var(--red)'}">${(m.r5y||0).toFixed(1)}%</strong></div>
-        <div><div style="color:var(--ink3);font-size:9px;text-transform:uppercase;letter-spacing:.05em">10y</div><strong style="color:${(m.r10y||0)>=0?'var(--green)':'var(--red)'}">${(m.r10y||0).toFixed(1)}%</strong></div>
+        <div><div style="color:var(--ink3);font-size:9px;text-transform:uppercase;letter-spacing:.05em">5y</div><strong style="color:${m.r5y==null?'var(--ink3)':(m.r5y>=0?'var(--green)':'var(--red)')}">${m.r5y==null?'n/a':m.r5y.toFixed(1)+'%'}</strong></div>
+        <div><div style="color:var(--ink3);font-size:9px;text-transform:uppercase;letter-spacing:.05em">10y</div><strong style="color:${m.r10y==null?'var(--ink3)':(m.r10y>=0?'var(--green)':'var(--red)')}">${m.r10y==null?'n/a':m.r10y.toFixed(1)+'%'}</strong></div>
         <div><div style="color:var(--ink3);font-size:9px;text-transform:uppercase;letter-spacing:.05em">Holdings</div><strong>${(m.holdings||0).toLocaleString()}</strong></div>
         <div><div style="color:var(--ink3);font-size:9px;text-transform:uppercase;letter-spacing:.05em">AUM</div><strong>$${m.aum||0}B</strong></div>
         <div><div style="color:var(--ink3);font-size:9px;text-transform:uppercase;letter-spacing:.05em">Inception</div><strong>${m.inception||'—'}</strong></div>
@@ -5406,7 +7034,7 @@ function renderEngineResult(r){
       <li><strong>Signal extraction:</strong> Scanned ${r.signals.totalItems} research items via keyword lexicons across asset classes, sectors, regions, themes, and ticker mentions. Each item parsed for sentiment direction (overweight/underweight phrases).</li>
       <li><strong>Aggregation:</strong> Net votes computed per signal — provider count and total votes tracked. Tickers explicitly mentioned by multiple providers get conviction bonus.</li>
       <li><strong>Allocation:</strong> Started with your ${prettyRisk(r.signals.providerCount ? '' : '')}<strong>${$("agRisk").value.replace(/_/g," ")}</strong> baseline (${Object.entries(RISK_TO_ALLOCATION[$("agRisk").value]||{}).map(([k,v]) => `${k}:${v}%`).slice(0,4).join(", ")}). Tilted ±8% based on net research votes.</li>
-      <li><strong>Fund selection:</strong> For each class with weight ≥2%, picked from 38-fund universe. Scoring: lowest expense ratio + ticker conviction bonus − sponsor concentration penalty. Filtered for ESG-strict, ETF-preference (high tax sensitivity), liquidity needs.</li>
+      <li><strong>Fund selection:</strong> For each class with weight ≥2%, every eligible fund in the <span class="js-fund-count">942</span>-fund universe is scored and ranked; the top 1–3 are taken. Scoring: lowest expense ratio + ticker conviction bonus − sponsor concentration penalty. Filtered for ESG-strict, ETF-preference (high tax sensitivity), liquidity needs.</li>
       <li><strong>Rationale:</strong> Each position's "Why selected" cites the specific consensus vote count + matched research items. Fully deterministic — same inputs always produce same output.</li>
     </ol>
   </div>`;
@@ -6114,6 +7742,7 @@ function startLivePoll(){
 function init(){
   $("ver").textContent = "v"+APP_VERSION;
   function safe(name, fn){ try { fn(); } catch(e){ console.error("["+name+"]",e); addLog("err",name+": "+e.message); } }
+  safe("providerCounts", syncProviderCounts);
   safe("dashboard", renderDashboard);
   safe("aiBuilderSwitch", renderAIBuilderSwitch);
   safe("startLivePoll", startLivePoll);
@@ -6188,6 +7817,14 @@ window.refreshAll = refreshAll;
 window.enableAll = enableAll;
 window.disableAll = disableAll;
 window.refreshOne = refreshOne;
+window.markIssue = markIssue;
+window.markIssueIngested = markIssueIngested;
+window.monthlyIssuesOutstanding = monthlyIssuesOutstanding;
+window.toggleIngest = toggleIngest;
+window.previewIngest = previewIngest;
+window.commitIngest = commitIngest;
+window.clearIngest = clearIngest;
+window.parseIssueText = parseIssueText;
 window.toggleProvider = toggleProvider;
 window.runTb = runTb;
 window.runTbStress = runTbStress;

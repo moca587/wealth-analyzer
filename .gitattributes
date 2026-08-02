@@ -1,3 +1,16 @@
+# The single-file apps briefly contained control bytes (a regex-cache key and a
+# clause-splitter sentinel), which made git classify them as BINARY. While that
+# flag was set, core.autocrlf stopped normalizing them, so CRLF endings were
+# committed verbatim into files the rest of the repo stores as LF. Every line
+# then read as changed: a one-line edit produced a 25,000-line diff and merging
+# main became one whole-file conflict. Declaring them text pins the repo copy to
+# LF regardless of what the heuristic decides, so this cannot recur.
+*.html text
+*.js   text
+*.mjs  text
+*.json text
+*.md   text
+
 *.pdf binary
 *.zip binary
 *.docx binary

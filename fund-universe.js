@@ -1,5 +1,5 @@
 // ════════════════════════════════════════════════════════════════════
-// FUND UNIVERSE — 420+ institutional-quality vehicles
+// FUND UNIVERSE — 940+ institutional-quality vehicles
 // Classes: equity, fixed_income, real_estate, commodity, cash, mixed,
 //          alternative, crypto
 // Vehicles: etf, mutual_fund, alternative, money_market
@@ -317,12 +317,12 @@ const FUND_UNIVERSE = [
   {tkr:"BIBL",name:"Inspire 100 ETF",cls:"equity",vehicle:"etf",er:0.35,yld:1.0,sponsor:"Inspire",esg:true},
 
   // ─── US TREASURIES — Short ───
-  {tkr:"BIL",name:"SPDR Bloomberg 1-3 Month T-Bill",cls:"cash",vehicle:"etf",er:0.14,yld:5.2,sponsor:"State Street"},
-  {tkr:"SGOV",name:"iShares 0-3 Month Treasury",cls:"cash",vehicle:"etf",er:0.07,yld:5.2,sponsor:"BlackRock"},
-  {tkr:"SHV",name:"iShares Short Treasury Bond",cls:"cash",vehicle:"etf",er:0.15,yld:5.2,sponsor:"BlackRock"},
-  {tkr:"USFR",name:"WisdomTree Floating Rate Treasury",cls:"cash",vehicle:"etf",er:0.15,yld:5.3,sponsor:"WisdomTree"},
-  {tkr:"TFLO",name:"iShares Treasury Floating Rate",cls:"cash",vehicle:"etf",er:0.15,yld:5.3,sponsor:"BlackRock"},
-  {tkr:"CLTL",name:"Invesco Treasury Collateral",cls:"cash",vehicle:"etf",er:0.08,yld:5.2,sponsor:"Invesco"},
+  {tkr:"BIL",name:"SPDR Bloomberg 1-3 Month T-Bill",cls:"cash",vehicle:"etf",er:0.14,yld:5.2,sponsor:"State Street",ccy:"USD",act40:true},
+  {tkr:"SGOV",name:"iShares 0-3 Month Treasury",cls:"cash",vehicle:"etf",er:0.07,yld:5.2,sponsor:"BlackRock",ccy:"USD",act40:true},
+  {tkr:"SHV",name:"iShares Short Treasury Bond",cls:"cash",vehicle:"etf",er:0.15,yld:5.2,sponsor:"BlackRock",ccy:"USD",act40:true},
+  {tkr:"USFR",name:"WisdomTree Floating Rate Treasury",cls:"cash",vehicle:"etf",er:0.15,yld:5.3,sponsor:"WisdomTree",ccy:"USD",act40:true},
+  {tkr:"TFLO",name:"iShares Treasury Floating Rate",cls:"cash",vehicle:"etf",er:0.15,yld:5.3,sponsor:"BlackRock",ccy:"USD",act40:true},
+  {tkr:"CLTL",name:"Invesco Treasury Collateral",cls:"cash",vehicle:"etf",er:0.08,yld:5.2,sponsor:"Invesco",ccy:"USD",act40:true},
   {tkr:"SHY",name:"iShares 1-3 Year Treasury",cls:"fixed_income",vehicle:"etf",er:0.15,yld:4.7,sponsor:"BlackRock"},
   {tkr:"SCHO",name:"Schwab Short-Term US Treasury",cls:"fixed_income",vehicle:"etf",er:0.03,yld:4.7,sponsor:"Schwab"},
   {tkr:"VGSH",name:"Vanguard Short-Term Treasury",cls:"fixed_income",vehicle:"etf",er:0.04,yld:4.6,sponsor:"Vanguard"},
@@ -585,18 +585,38 @@ const FUND_UNIVERSE = [
   {tkr:"PSEP",name:"Innovator S&P 500 Power Buffer September",cls:"alternative",vehicle:"etf",er:0.79,yld:0.0,sponsor:"Innovator"},
 
   // ─── CASH / MONEY MARKET ───
-  {tkr:"VMFXX",name:"Vanguard Federal Money Market",cls:"cash",vehicle:"money_market",er:0.11,yld:5.3,sponsor:"Vanguard"},
-  {tkr:"VMSXX",name:"Vanguard Tax-Exempt Money Market",cls:"cash",vehicle:"money_market",er:0.15,yld:3.4,sponsor:"Vanguard"},
-  {tkr:"VUSXX",name:"Vanguard Treasury Money Market",cls:"cash",vehicle:"money_market",er:0.09,yld:5.2,sponsor:"Vanguard"},
-  {tkr:"SPAXX",name:"Fidelity Government Money Market",cls:"cash",vehicle:"money_market",er:0.42,yld:5.0,sponsor:"Fidelity"},
-  {tkr:"FZDXX",name:"Fidelity Money Market Premium",cls:"cash",vehicle:"money_market",er:0.40,yld:5.1,sponsor:"Fidelity"},
-  {tkr:"FDLXX",name:"Fidelity Treasury Only Money Market",cls:"cash",vehicle:"money_market",er:0.42,yld:5.0,sponsor:"Fidelity"},
-  {tkr:"SWVXX",name:"Schwab Value Advantage Money",cls:"cash",vehicle:"money_market",er:0.34,yld:5.1,sponsor:"Schwab"},
-  {tkr:"SNOXX",name:"Schwab Treasury Money Fund",cls:"cash",vehicle:"money_market",er:0.34,yld:5.0,sponsor:"Schwab"},
-  {tkr:"SUTXX",name:"Schwab US Treasury Money Fund",cls:"cash",vehicle:"money_market",er:0.34,yld:5.0,sponsor:"Schwab"},
-  {tkr:"UTIXX",name:"American Century US Government Money",cls:"cash",vehicle:"money_market",er:0.40,yld:4.9,sponsor:"American Century"},
-  {tkr:"FLOT",name:"iShares Floating Rate Bond",cls:"cash",vehicle:"etf",er:0.15,yld:5.4,sponsor:"BlackRock"},
-  {tkr:"FLRN",name:"SPDR Bloomberg Investment Grade Floating Rate",cls:"cash",vehicle:"etf",er:0.15,yld:5.4,sponsor:"State Street"},
+  {tkr:"VMFXX",name:"Vanguard Federal Money Market",cls:"cash",vehicle:"money_market",er:0.11,yld:5.3,sponsor:"Vanguard",ccy:"USD",act40:true},
+  {tkr:"VMSXX",name:"Vanguard Tax-Exempt Money Market",cls:"cash",vehicle:"money_market",er:0.15,yld:3.4,sponsor:"Vanguard",ccy:"USD",act40:true},
+  {tkr:"VUSXX",name:"Vanguard Treasury Money Market",cls:"cash",vehicle:"money_market",er:0.09,yld:5.2,sponsor:"Vanguard",ccy:"USD",act40:true},
+  {tkr:"SPAXX",name:"Fidelity Government Money Market",cls:"cash",vehicle:"money_market",er:0.42,yld:5.0,sponsor:"Fidelity",ccy:"USD",act40:true},
+  {tkr:"FZDXX",name:"Fidelity Money Market Premium",cls:"cash",vehicle:"money_market",er:0.40,yld:5.1,sponsor:"Fidelity",ccy:"USD",act40:true},
+  {tkr:"FDLXX",name:"Fidelity Treasury Only Money Market",cls:"cash",vehicle:"money_market",er:0.42,yld:5.0,sponsor:"Fidelity",ccy:"USD",act40:true},
+  {tkr:"SWVXX",name:"Schwab Value Advantage Money",cls:"cash",vehicle:"money_market",er:0.34,yld:5.1,sponsor:"Schwab",ccy:"USD",act40:true},
+  {tkr:"SNOXX",name:"Schwab Treasury Money Fund",cls:"cash",vehicle:"money_market",er:0.34,yld:5.0,sponsor:"Schwab",ccy:"USD",act40:true},
+  {tkr:"SUTXX",name:"Schwab US Treasury Money Fund",cls:"cash",vehicle:"money_market",er:0.34,yld:5.0,sponsor:"Schwab",ccy:"USD",act40:true},
+  {tkr:"UTIXX",name:"American Century US Government Money",cls:"cash",vehicle:"money_market",er:0.40,yld:4.9,sponsor:"American Century",ccy:"USD",act40:true},
+  {tkr:"FLOT",name:"iShares Floating Rate Bond",cls:"cash",vehicle:"etf",er:0.15,yld:5.4,sponsor:"BlackRock",ccy:"USD",act40:true},
+  {tkr:"FLRN",name:"SPDR Bloomberg Investment Grade Floating Rate",cls:"cash",vehicle:"etf",er:0.15,yld:5.4,sponsor:"State Street",ccy:"USD",act40:true},
+
+  // ─── 1940 ACT ULTRA-SHORT ETFs (US-registered) ───
+  // The largest ultra-short 40-Act ETFs, absent until now: JPST alone holds
+  // more assets than the rest of the ETF cash sleeve combined.
+  {tkr:"JPST",name:"JPMorgan Ultra-Short Income ETF",cls:"cash",vehicle:"etf",er:0.18,yld:5.3,sponsor:"J.P. Morgan",ccy:"USD",act40:true},
+  {tkr:"ICSH",name:"iShares Ultra Short Duration Bond Active ETF",cls:"cash",vehicle:"etf",er:0.08,yld:5.3,sponsor:"BlackRock",ccy:"USD",act40:true},
+  {tkr:"GBIL",name:"Goldman Sachs Access Treasury 0-1 Year ETF",cls:"cash",vehicle:"etf",er:0.12,yld:5.0,sponsor:"Goldman Sachs",ccy:"USD",act40:true},
+
+  // ─── UCITS MONEY MARKET / ULTRA-SHORT (non-US eligible) ───
+  // Every fund above is US-listed, so a UCITS-only client (CH/DE/SG/BR and the
+  // rest of the PRIIPs world) previously had ZERO eligible cash funds — the
+  // sleeve could not be filled and its weight had to be reallocated. These are
+  // the liquid European money-market and ultra-short lines that fill it.
+  // Yields are stated on the FUND_DATA_AS_OF (2024-12-31) basis like the rest of
+  // the dataset — EUR at the then-prevailing ESTR/ECB level, GBP and USD higher.
+  {tkr:"XEON",name:"Xtrackers II EUR Overnight Rate Swap UCITS ETF 1C",cls:"cash",vehicle:"etf",er:0.10,yld:3.0,sponsor:"DWS/Xtrackers",dom:"LU",ucits:true,ccy:"EUR"},
+  {tkr:"ERNE",name:"iShares € Ultrashort Bond UCITS ETF",cls:"cash",vehicle:"etf",er:0.09,yld:3.4,sponsor:"BlackRock",dom:"IE",ucits:true,ccy:"EUR"},
+  {tkr:"ERNA",name:"iShares $ Ultrashort Bond UCITS ETF USD (Acc)",cls:"cash",vehicle:"etf",er:0.09,yld:5.0,sponsor:"BlackRock",dom:"IE",ucits:true,ccy:"USD"},
+  {tkr:"ERNS",name:"iShares £ Ultrashort Bond UCITS ETF",cls:"cash",vehicle:"etf",er:0.09,yld:4.8,sponsor:"BlackRock",dom:"IE",ucits:true,ccy:"GBP"},
+  {tkr:"IB01",name:"iShares $ Treasury Bond 0-1yr UCITS ETF USD (Acc)",cls:"cash",vehicle:"etf",er:0.07,yld:4.6,sponsor:"BlackRock",dom:"IE",ucits:true,ccy:"USD"},
 
   // ─── CRYPTO / SPOT BITCOIN/ETHER ───
   {tkr:"IBIT",name:"iShares Bitcoin Trust",cls:"crypto",vehicle:"alternative",er:0.25,yld:0.0,sponsor:"BlackRock"},
@@ -920,7 +940,229 @@ const FUND_UNIVERSE = [
   {tkr:"3140",name:"Mirae Asset HS TECH ETF",cls:"equity",vehicle:"etf",er:0.45,yld:0.0,sponsor:"Mirae Asset",dom:"HK",ucits:false},
   {tkr:"G3B",name:"SPDR Straits Times Index ETF",cls:"equity",vehicle:"etf",er:0.30,yld:4.0,sponsor:"State Street",dom:"SG",ucits:false},
   {tkr:"ES3",name:"Nikko AM Singapore STI ETF",cls:"equity",vehicle:"etf",er:0.30,yld:4.0,sponsor:"Nikko AM",dom:"SG",ucits:false},
-  {tkr:"O87",name:"Phillip SGX APAC Dividend ETF",cls:"equity",vehicle:"etf",er:0.35,yld:5.0,sponsor:"Phillip",dom:"SG",ucits:false}
+  {tkr:"O87",name:"Phillip SGX APAC Dividend ETF",cls:"equity",vehicle:"etf",er:0.35,yld:5.0,sponsor:"Phillip",dom:"SG",ucits:false},
+  // ═══ SPONSOR DEPTH — Vanguard / Fidelity / BlackRock expansion ═══
+
+  // ─── Vanguard — US style & size ETFs ───
+  {tkr:"VXF",name:"Vanguard Extended Market ETF",cls:"equity",vehicle:"etf",er:0.06,yld:1.2,sponsor:"Vanguard"},
+  {tkr:"VONG",name:"Vanguard Russell 1000 Growth ETF",cls:"equity",vehicle:"etf",er:0.08,yld:0.5,sponsor:"Vanguard"},
+  {tkr:"VONV",name:"Vanguard Russell 1000 Value ETF",cls:"equity",vehicle:"etf",er:0.08,yld:1.9,sponsor:"Vanguard"},
+  {tkr:"VTHR",name:"Vanguard Russell 3000 ETF",cls:"equity",vehicle:"etf",er:0.10,yld:1.2,sponsor:"Vanguard"},
+  {tkr:"VTWG",name:"Vanguard Russell 2000 Growth ETF",cls:"equity",vehicle:"etf",er:0.15,yld:0.5,sponsor:"Vanguard"},
+  {tkr:"VTWV",name:"Vanguard Russell 2000 Value ETF",cls:"equity",vehicle:"etf",er:0.15,yld:1.8,sponsor:"Vanguard"},
+  {tkr:"VOOG",name:"Vanguard S&P 500 Growth ETF",cls:"equity",vehicle:"etf",er:0.07,yld:0.6,sponsor:"Vanguard"},
+  {tkr:"VOOV",name:"Vanguard S&P 500 Value ETF",cls:"equity",vehicle:"etf",er:0.07,yld:1.9,sponsor:"Vanguard"},
+  {tkr:"VIOO",name:"Vanguard S&P Small-Cap 600 ETF",cls:"equity",vehicle:"etf",er:0.07,yld:1.6,sponsor:"Vanguard"},
+  {tkr:"VIOG",name:"Vanguard S&P Small-Cap 600 Growth ETF",cls:"equity",vehicle:"etf",er:0.10,yld:1.0,sponsor:"Vanguard"},
+  {tkr:"VIOV",name:"Vanguard S&P Small-Cap 600 Value ETF",cls:"equity",vehicle:"etf",er:0.10,yld:2.0,sponsor:"Vanguard"},
+  {tkr:"IVOO",name:"Vanguard S&P Mid-Cap 400 ETF",cls:"equity",vehicle:"etf",er:0.07,yld:1.4,sponsor:"Vanguard"},
+  {tkr:"IVOG",name:"Vanguard S&P Mid-Cap 400 Growth ETF",cls:"equity",vehicle:"etf",er:0.10,yld:0.9,sponsor:"Vanguard"},
+  {tkr:"IVOV",name:"Vanguard S&P Mid-Cap 400 Value ETF",cls:"equity",vehicle:"etf",er:0.10,yld:1.9,sponsor:"Vanguard"},
+  {tkr:"VIGI",name:"Vanguard International Dividend Appreciation ETF",cls:"equity",vehicle:"etf",er:0.15,yld:2.0,sponsor:"Vanguard"},
+  {tkr:"VFMF",name:"Vanguard U.S. Multifactor ETF",cls:"equity",vehicle:"etf",er:0.18,yld:1.6,sponsor:"Vanguard"},
+  {tkr:"VFMO",name:"Vanguard U.S. Momentum Factor ETF",cls:"equity",vehicle:"etf",er:0.13,yld:0.8,sponsor:"Vanguard"},
+  {tkr:"VFVA",name:"Vanguard U.S. Value Factor ETF",cls:"equity",vehicle:"etf",er:0.13,yld:2.2,sponsor:"Vanguard"},
+  {tkr:"VFQY",name:"Vanguard U.S. Quality Factor ETF",cls:"equity",vehicle:"etf",er:0.13,yld:1.3,sponsor:"Vanguard"},
+
+  // ─── Vanguard — fixed income ETFs ───
+  {tkr:"BSV",name:"Vanguard Short-Term Bond ETF",cls:"fixed_income",vehicle:"etf",er:0.03,yld:4.3,sponsor:"Vanguard"},
+  {tkr:"BIV",name:"Vanguard Intermediate-Term Bond ETF",cls:"fixed_income",vehicle:"etf",er:0.03,yld:4.3,sponsor:"Vanguard"},
+  {tkr:"BLV",name:"Vanguard Long-Term Bond ETF",cls:"fixed_income",vehicle:"etf",er:0.04,yld:5.0,sponsor:"Vanguard"},
+  {tkr:"VCRB",name:"Vanguard Core Bond ETF",cls:"fixed_income",vehicle:"etf",er:0.10,yld:4.4,sponsor:"Vanguard"},
+  {tkr:"VPLS",name:"Vanguard Core-Plus Bond ETF",cls:"fixed_income",vehicle:"etf",er:0.20,yld:4.9,sponsor:"Vanguard"},
+  {tkr:"VTES",name:"Vanguard Short-Term Tax-Exempt Bond ETF",cls:"fixed_income",vehicle:"etf",er:0.07,yld:3.0,sponsor:"Vanguard"},
+  {tkr:"VCEB",name:"Vanguard ESG U.S. Corporate Bond ETF",cls:"fixed_income",vehicle:"etf",er:0.12,yld:4.5,sponsor:"Vanguard",esg:true},
+
+  // ─── Vanguard — cash ───
+  {tkr:"VUSB",name:"Vanguard Ultra-Short Bond ETF",cls:"cash",vehicle:"etf",er:0.10,yld:5.1,sponsor:"Vanguard",ccy:"USD",act40:true},
+  {tkr:"VMRXX",name:"Vanguard Cash Reserves Federal Money Market",cls:"cash",vehicle:"money_market",er:0.10,yld:5.2,sponsor:"Vanguard",ccy:"USD",act40:true},
+
+  // ─── Vanguard — active & balanced mutual funds ───
+  {tkr:"VDIGX",name:"Vanguard Dividend Growth Fund",cls:"equity",vehicle:"mutual_fund",er:0.29,yld:1.7,sponsor:"Vanguard"},
+  {tkr:"VEIPX",name:"Vanguard Equity Income Fund",cls:"equity",vehicle:"mutual_fund",er:0.28,yld:2.7,sponsor:"Vanguard"},
+  {tkr:"VWNDX",name:"Vanguard Windsor Fund",cls:"equity",vehicle:"mutual_fund",er:0.33,yld:1.6,sponsor:"Vanguard"},
+  {tkr:"VWNFX",name:"Vanguard Windsor II Fund",cls:"equity",vehicle:"mutual_fund",er:0.34,yld:1.6,sponsor:"Vanguard"},
+  {tkr:"VGHCX",name:"Vanguard Health Care Fund",cls:"equity",vehicle:"mutual_fund",er:0.35,yld:1.3,sponsor:"Vanguard"},
+  {tkr:"VASGX",name:"Vanguard LifeStrategy Growth Fund",cls:"mixed",vehicle:"mutual_fund",er:0.14,yld:2.2,sponsor:"Vanguard"},
+  {tkr:"VSMGX",name:"Vanguard LifeStrategy Moderate Growth Fund",cls:"mixed",vehicle:"mutual_fund",er:0.13,yld:2.4,sponsor:"Vanguard"},
+  {tkr:"VSCGX",name:"Vanguard LifeStrategy Conservative Growth Fund",cls:"mixed",vehicle:"mutual_fund",er:0.12,yld:2.7,sponsor:"Vanguard"},
+  {tkr:"VASIX",name:"Vanguard LifeStrategy Income Fund",cls:"mixed",vehicle:"mutual_fund",er:0.11,yld:3.0,sponsor:"Vanguard"},
+  {tkr:"VTMFX",name:"Vanguard Tax-Managed Balanced Fund",cls:"mixed",vehicle:"mutual_fund",er:0.09,yld:1.8,sponsor:"Vanguard"},
+
+  // ─── Vanguard — UCITS (Ireland) ───
+  {tkr:"VWRP",name:"Vanguard FTSE All-World UCITS ETF (Acc)",cls:"equity",vehicle:"etf",er:0.22,yld:0.0,sponsor:"Vanguard",dom:"IE",ucits:true,ccy:"GBP"},
+  {tkr:"VNRT",name:"Vanguard FTSE North America UCITS ETF (Dist)",cls:"equity",vehicle:"etf",er:0.10,yld:1.2,sponsor:"Vanguard",dom:"IE",ucits:true,ccy:"USD"},
+  {tkr:"VNRA",name:"Vanguard FTSE North America UCITS ETF (Acc)",cls:"equity",vehicle:"etf",er:0.10,yld:0.0,sponsor:"Vanguard",dom:"IE",ucits:true,ccy:"USD"},
+
+  // ─── Fidelity — MSCI sector index ETFs ───
+  {tkr:"FTEC",name:"Fidelity MSCI Information Technology Index ETF",cls:"equity",vehicle:"etf",er:0.08,yld:0.6,sponsor:"Fidelity"},
+  {tkr:"FHLC",name:"Fidelity MSCI Health Care Index ETF",cls:"equity",vehicle:"etf",er:0.08,yld:1.4,sponsor:"Fidelity"},
+  {tkr:"FNCL",name:"Fidelity MSCI Financials Index ETF",cls:"equity",vehicle:"etf",er:0.08,yld:1.7,sponsor:"Fidelity"},
+  {tkr:"FENY",name:"Fidelity MSCI Energy Index ETF",cls:"equity",vehicle:"etf",er:0.08,yld:3.2,sponsor:"Fidelity"},
+  {tkr:"FDIS",name:"Fidelity MSCI Consumer Discretionary Index ETF",cls:"equity",vehicle:"etf",er:0.08,yld:0.8,sponsor:"Fidelity"},
+  {tkr:"FSTA",name:"Fidelity MSCI Consumer Staples Index ETF",cls:"equity",vehicle:"etf",er:0.08,yld:2.4,sponsor:"Fidelity"},
+  {tkr:"FIDU",name:"Fidelity MSCI Industrials Index ETF",cls:"equity",vehicle:"etf",er:0.08,yld:1.3,sponsor:"Fidelity"},
+  {tkr:"FUTY",name:"Fidelity MSCI Utilities Index ETF",cls:"equity",vehicle:"etf",er:0.08,yld:2.8,sponsor:"Fidelity"},
+  {tkr:"FMAT",name:"Fidelity MSCI Materials Index ETF",cls:"equity",vehicle:"etf",er:0.08,yld:1.7,sponsor:"Fidelity"},
+  {tkr:"FCOM",name:"Fidelity MSCI Communication Services Index ETF",cls:"equity",vehicle:"etf",er:0.08,yld:0.9,sponsor:"Fidelity"},
+
+  // ─── Fidelity — factor ETFs ───
+  {tkr:"FDVV",name:"Fidelity High Dividend ETF",cls:"equity",vehicle:"etf",er:0.16,yld:3.0,sponsor:"Fidelity"},
+  {tkr:"FQAL",name:"Fidelity Quality Factor ETF",cls:"equity",vehicle:"etf",er:0.15,yld:1.2,sponsor:"Fidelity"},
+  {tkr:"FVAL",name:"Fidelity Value Factor ETF",cls:"equity",vehicle:"etf",er:0.15,yld:1.6,sponsor:"Fidelity"},
+  {tkr:"FDLO",name:"Fidelity Low Volatility Factor ETF",cls:"equity",vehicle:"etf",er:0.15,yld:1.5,sponsor:"Fidelity"},
+  {tkr:"FDMO",name:"Fidelity Momentum Factor ETF",cls:"equity",vehicle:"etf",er:0.15,yld:0.8,sponsor:"Fidelity"},
+  {tkr:"FSMD",name:"Fidelity Small-Mid Cap Multifactor ETF",cls:"equity",vehicle:"etf",er:0.15,yld:1.4,sponsor:"Fidelity"},
+  {tkr:"FDRR",name:"Fidelity Dividend ETF for Rising Rates",cls:"equity",vehicle:"etf",er:0.15,yld:2.2,sponsor:"Fidelity"},
+  {tkr:"FELG",name:"Fidelity Enhanced Large Cap Core ETF",cls:"equity",vehicle:"etf",er:0.18,yld:1.0,sponsor:"Fidelity"},
+  {tkr:"FDIG",name:"Fidelity Crypto Industry and Digital Payments ETF",cls:"equity",vehicle:"etf",er:0.39,yld:0.5,sponsor:"Fidelity"},
+
+  // ─── Fidelity — index mutual funds ───
+  {tkr:"FNILX",name:"Fidelity ZERO Large Cap Index Fund",cls:"equity",vehicle:"mutual_fund",er:0.00,yld:1.2,sponsor:"Fidelity"},
+  {tkr:"FZIPX",name:"Fidelity ZERO Extended Market Index Fund",cls:"equity",vehicle:"mutual_fund",er:0.00,yld:1.1,sponsor:"Fidelity"},
+  {tkr:"FSPGX",name:"Fidelity Large Cap Growth Index Fund",cls:"equity",vehicle:"mutual_fund",er:0.04,yld:0.5,sponsor:"Fidelity"},
+  {tkr:"FLCOX",name:"Fidelity Large Cap Value Index Fund",cls:"equity",vehicle:"mutual_fund",er:0.04,yld:2.0,sponsor:"Fidelity"},
+  {tkr:"FSSNX",name:"Fidelity Small Cap Index Fund",cls:"equity",vehicle:"mutual_fund",er:0.03,yld:1.3,sponsor:"Fidelity"},
+  {tkr:"FSMDX",name:"Fidelity Mid Cap Index Fund",cls:"equity",vehicle:"mutual_fund",er:0.03,yld:1.3,sponsor:"Fidelity"},
+  {tkr:"FTIHX",name:"Fidelity Total International Index Fund",cls:"equity",vehicle:"mutual_fund",er:0.06,yld:3.0,sponsor:"Fidelity"},
+  {tkr:"FSGGX",name:"Fidelity Global ex US Index Fund",cls:"equity",vehicle:"mutual_fund",er:0.06,yld:3.0,sponsor:"Fidelity"},
+  {tkr:"FIPDX",name:"Fidelity Inflation-Protected Bond Index Fund",cls:"fixed_income",vehicle:"mutual_fund",er:0.05,yld:3.6,sponsor:"Fidelity"},
+  {tkr:"FUAMX",name:"Fidelity Intermediate Treasury Bond Index Fund",cls:"fixed_income",vehicle:"mutual_fund",er:0.03,yld:4.0,sponsor:"Fidelity"},
+  {tkr:"FUMBX",name:"Fidelity Short-Term Treasury Bond Index Fund",cls:"fixed_income",vehicle:"mutual_fund",er:0.03,yld:4.2,sponsor:"Fidelity"},
+  {tkr:"FNBGX",name:"Fidelity Long-Term Treasury Bond Index Fund",cls:"fixed_income",vehicle:"mutual_fund",er:0.03,yld:4.5,sponsor:"Fidelity"},
+
+  // ─── Fidelity — active mutual funds ───
+  {tkr:"FBALX",name:"Fidelity Balanced Fund",cls:"mixed",vehicle:"mutual_fund",er:0.47,yld:1.6,sponsor:"Fidelity"},
+  {tkr:"FPURX",name:"Fidelity Puritan Fund",cls:"mixed",vehicle:"mutual_fund",er:0.51,yld:1.7,sponsor:"Fidelity"},
+  {tkr:"FLPSX",name:"Fidelity Low-Priced Stock Fund",cls:"equity",vehicle:"mutual_fund",er:0.83,yld:1.8,sponsor:"Fidelity"},
+  {tkr:"FMAGX",name:"Fidelity Magellan Fund",cls:"equity",vehicle:"mutual_fund",er:0.50,yld:0.5,sponsor:"Fidelity"},
+  {tkr:"FSELX",name:"Fidelity Select Semiconductors Portfolio",cls:"equity",vehicle:"mutual_fund",er:0.63,yld:0.1,sponsor:"Fidelity"},
+  {tkr:"FSPTX",name:"Fidelity Select Technology Portfolio",cls:"equity",vehicle:"mutual_fund",er:0.63,yld:0.0,sponsor:"Fidelity"},
+  {tkr:"FSPHX",name:"Fidelity Select Health Care Portfolio",cls:"equity",vehicle:"mutual_fund",er:0.63,yld:0.3,sponsor:"Fidelity"},
+  {tkr:"FAGIX",name:"Fidelity Capital & Income Fund",cls:"fixed_income",vehicle:"mutual_fund",er:0.66,yld:5.5,sponsor:"Fidelity"},
+  {tkr:"FSICX",name:"Fidelity Strategic Income Fund",cls:"fixed_income",vehicle:"mutual_fund",er:0.67,yld:5.0,sponsor:"Fidelity"},
+
+  // ─── Fidelity — cash ───
+  {tkr:"FDRXX",name:"Fidelity Government Cash Reserves",cls:"cash",vehicle:"money_market",er:0.34,yld:5.0,sponsor:"Fidelity",ccy:"USD",act40:true},
+  {tkr:"FTEXX",name:"Fidelity Municipal Money Market Fund",cls:"cash",vehicle:"money_market",er:0.42,yld:3.3,sponsor:"Fidelity",ccy:"USD",act40:true},
+
+  // ─── Fidelity — UCITS (Ireland) ───
+  {tkr:"FUSD",name:"Fidelity US Quality Income UCITS ETF",cls:"equity",vehicle:"etf",er:0.25,yld:1.9,sponsor:"Fidelity",dom:"IE",ucits:true,ccy:"USD"},
+  {tkr:"FEME",name:"Fidelity Emerging Markets Quality Income UCITS ETF",cls:"equity",vehicle:"etf",er:0.50,yld:3.0,sponsor:"Fidelity",dom:"IE",ucits:true,ccy:"USD"},
+
+  // ─── iShares — global sector ETFs ───
+  {tkr:"IXN",name:"iShares Global Tech ETF",cls:"equity",vehicle:"etf",er:0.41,yld:0.6,sponsor:"BlackRock"},
+  {tkr:"IXJ",name:"iShares Global Healthcare ETF",cls:"equity",vehicle:"etf",er:0.41,yld:1.4,sponsor:"BlackRock"},
+  {tkr:"IXG",name:"iShares Global Financials ETF",cls:"equity",vehicle:"etf",er:0.41,yld:2.4,sponsor:"BlackRock"},
+  {tkr:"IXC",name:"iShares Global Energy ETF",cls:"equity",vehicle:"etf",er:0.41,yld:3.6,sponsor:"BlackRock"},
+  {tkr:"IXP",name:"iShares Global Comm Services ETF",cls:"equity",vehicle:"etf",er:0.41,yld:1.2,sponsor:"BlackRock"},
+  {tkr:"MXI",name:"iShares Global Materials ETF",cls:"equity",vehicle:"etf",er:0.41,yld:2.4,sponsor:"BlackRock"},
+  {tkr:"EXI",name:"iShares Global Industrials ETF",cls:"equity",vehicle:"etf",er:0.41,yld:1.4,sponsor:"BlackRock"},
+  {tkr:"KXI",name:"iShares Global Consumer Staples ETF",cls:"equity",vehicle:"etf",er:0.41,yld:2.4,sponsor:"BlackRock"},
+  {tkr:"RXI",name:"iShares Global Consumer Discretionary ETF",cls:"equity",vehicle:"etf",er:0.41,yld:1.1,sponsor:"BlackRock"},
+  {tkr:"JXI",name:"iShares Global Utilities ETF",cls:"equity",vehicle:"etf",er:0.41,yld:3.0,sponsor:"BlackRock"},
+  {tkr:"IGF",name:"iShares Global Infrastructure ETF",cls:"equity",vehicle:"etf",er:0.42,yld:2.7,sponsor:"BlackRock"},
+
+  // ─── iShares — US sector ETFs ───
+  {tkr:"IYY",name:"iShares Dow Jones U.S. ETF",cls:"equity",vehicle:"etf",er:0.20,yld:1.2,sponsor:"BlackRock"},
+  {tkr:"IYC",name:"iShares U.S. Consumer Discretionary ETF",cls:"equity",vehicle:"etf",er:0.39,yld:0.8,sponsor:"BlackRock"},
+  {tkr:"IYK",name:"iShares U.S. Consumer Staples ETF",cls:"equity",vehicle:"etf",er:0.39,yld:2.3,sponsor:"BlackRock"},
+  {tkr:"IYJ",name:"iShares U.S. Industrials ETF",cls:"equity",vehicle:"etf",er:0.39,yld:1.0,sponsor:"BlackRock"},
+  {tkr:"IYM",name:"iShares U.S. Basic Materials ETF",cls:"equity",vehicle:"etf",er:0.39,yld:1.6,sponsor:"BlackRock"},
+  {tkr:"IYZ",name:"iShares U.S. Telecommunications ETF",cls:"equity",vehicle:"etf",er:0.39,yld:1.3,sponsor:"BlackRock"},
+  {tkr:"IDU",name:"iShares U.S. Utilities ETF",cls:"equity",vehicle:"etf",er:0.39,yld:2.5,sponsor:"BlackRock"},
+  {tkr:"IYT",name:"iShares U.S. Transportation ETF",cls:"equity",vehicle:"etf",er:0.39,yld:1.1,sponsor:"BlackRock"},
+  {tkr:"IYG",name:"iShares U.S. Financial Services ETF",cls:"equity",vehicle:"etf",er:0.39,yld:1.5,sponsor:"BlackRock"},
+  {tkr:"IHF",name:"iShares U.S. Healthcare Providers ETF",cls:"equity",vehicle:"etf",er:0.39,yld:0.5,sponsor:"BlackRock"},
+  {tkr:"IHE",name:"iShares U.S. Pharmaceuticals ETF",cls:"equity",vehicle:"etf",er:0.39,yld:2.0,sponsor:"BlackRock"},
+  {tkr:"IEZ",name:"iShares U.S. Oil Equipment & Services ETF",cls:"equity",vehicle:"etf",er:0.39,yld:2.0,sponsor:"BlackRock"},
+  {tkr:"IGE",name:"iShares North American Natural Resources ETF",cls:"equity",vehicle:"etf",er:0.41,yld:2.4,sponsor:"BlackRock"},
+  {tkr:"PICK",name:"iShares MSCI Global Metals & Mining Producers ETF",cls:"equity",vehicle:"etf",er:0.39,yld:3.5,sponsor:"BlackRock"},
+  {tkr:"SLVP",name:"iShares MSCI Global Silver and Metals Miners ETF",cls:"equity",vehicle:"etf",er:0.39,yld:1.0,sponsor:"BlackRock"},
+
+  // ─── iShares — technology & thematic ───
+  {tkr:"IGV",name:"iShares Expanded Tech-Software Sector ETF",cls:"equity",vehicle:"etf",er:0.41,yld:0.0,sponsor:"BlackRock"},
+  {tkr:"IGM",name:"iShares Expanded Tech Sector ETF",cls:"equity",vehicle:"etf",er:0.41,yld:0.1,sponsor:"BlackRock"},
+  {tkr:"IHAK",name:"iShares Cybersecurity and Tech ETF",cls:"equity",vehicle:"etf",er:0.47,yld:0.3,sponsor:"BlackRock"},
+  {tkr:"IDRV",name:"iShares Self-Driving EV and Tech ETF",cls:"equity",vehicle:"etf",er:0.47,yld:1.2,sponsor:"BlackRock"},
+
+  // ─── iShares — US style & size ───
+  {tkr:"IUSG",name:"iShares Core S&P U.S. Growth ETF",cls:"equity",vehicle:"etf",er:0.04,yld:0.6,sponsor:"BlackRock"},
+  {tkr:"IUSV",name:"iShares Core S&P U.S. Value ETF",cls:"equity",vehicle:"etf",er:0.04,yld:2.0,sponsor:"BlackRock"},
+  {tkr:"IWY",name:"iShares Russell Top 200 Growth ETF",cls:"equity",vehicle:"etf",er:0.20,yld:0.4,sponsor:"BlackRock"},
+  {tkr:"IWX",name:"iShares Russell Top 200 Value ETF",cls:"equity",vehicle:"etf",er:0.20,yld:2.0,sponsor:"BlackRock"},
+  {tkr:"IWL",name:"iShares Russell Top 200 ETF",cls:"equity",vehicle:"etf",er:0.15,yld:1.1,sponsor:"BlackRock"},
+  {tkr:"IWP",name:"iShares Russell Mid-Cap Growth ETF",cls:"equity",vehicle:"etf",er:0.23,yld:0.4,sponsor:"BlackRock"},
+  {tkr:"IWS",name:"iShares Russell Mid-Cap Value ETF",cls:"equity",vehicle:"etf",er:0.23,yld:1.8,sponsor:"BlackRock"},
+  {tkr:"IWV",name:"iShares Russell 3000 ETF",cls:"equity",vehicle:"etf",er:0.20,yld:1.2,sponsor:"BlackRock"},
+  {tkr:"IWC",name:"iShares Micro-Cap ETF",cls:"equity",vehicle:"etf",er:0.60,yld:1.1,sponsor:"BlackRock"},
+
+  // ─── iShares — fixed income ───
+  {tkr:"ISTB",name:"iShares Core 1-5 Year USD Bond ETF",cls:"fixed_income",vehicle:"etf",er:0.06,yld:4.4,sponsor:"BlackRock"},
+  {tkr:"BINC",name:"BlackRock Flexible Income ETF",cls:"fixed_income",vehicle:"etf",er:0.40,yld:5.9,sponsor:"BlackRock"},
+  {tkr:"IGOV",name:"iShares International Treasury Bond ETF",cls:"fixed_income",vehicle:"etf",er:0.35,yld:2.3,sponsor:"BlackRock"},
+  {tkr:"BGRN",name:"iShares USD Green Bond ETF",cls:"fixed_income",vehicle:"etf",er:0.20,yld:4.0,sponsor:"BlackRock",esg:true},
+  {tkr:"HYDB",name:"iShares High Yield Systematic Bond ETF",cls:"fixed_income",vehicle:"etf",er:0.35,yld:6.5,sponsor:"BlackRock"},
+
+  // ─── iShares iBonds — defined-maturity Treasury ladder (goal-year matching) ───
+  {tkr:"IBTF",name:"iShares iBonds Dec 2025 Term Treasury ETF",cls:"fixed_income",vehicle:"etf",er:0.07,yld:4.5,sponsor:"BlackRock"},
+  {tkr:"IBTG",name:"iShares iBonds Dec 2026 Term Treasury ETF",cls:"fixed_income",vehicle:"etf",er:0.07,yld:4.3,sponsor:"BlackRock"},
+  {tkr:"IBTH",name:"iShares iBonds Dec 2027 Term Treasury ETF",cls:"fixed_income",vehicle:"etf",er:0.07,yld:4.3,sponsor:"BlackRock"},
+  {tkr:"IBTI",name:"iShares iBonds Dec 2028 Term Treasury ETF",cls:"fixed_income",vehicle:"etf",er:0.07,yld:4.3,sponsor:"BlackRock"},
+  {tkr:"IBTJ",name:"iShares iBonds Dec 2029 Term Treasury ETF",cls:"fixed_income",vehicle:"etf",er:0.07,yld:4.3,sponsor:"BlackRock"},
+  {tkr:"IBTK",name:"iShares iBonds Dec 2030 Term Treasury ETF",cls:"fixed_income",vehicle:"etf",er:0.07,yld:4.3,sponsor:"BlackRock"},
+  {tkr:"IBTL",name:"iShares iBonds Dec 2031 Term Treasury ETF",cls:"fixed_income",vehicle:"etf",er:0.07,yld:4.3,sponsor:"BlackRock"},
+
+  // ─── iShares — option-overlay income (alternative sleeve) ───
+  {tkr:"TLTW",name:"iShares 20+ Year Treasury Bond BuyWrite Strategy ETF",cls:"alternative",vehicle:"etf",er:0.35,yld:14.0,sponsor:"BlackRock"},
+  {tkr:"HYGW",name:"iShares High Yield Corporate Bond BuyWrite Strategy ETF",cls:"alternative",vehicle:"etf",er:0.35,yld:12.0,sponsor:"BlackRock"},
+  {tkr:"LQDW",name:"iShares Investment Grade Corporate Bond BuyWrite Strategy ETF",cls:"alternative",vehicle:"etf",er:0.35,yld:8.5,sponsor:"BlackRock"},
+
+  // ─── iShares — UCITS (Ireland) ───
+  {tkr:"WSML",name:"iShares MSCI World Small Cap UCITS ETF (Acc)",cls:"equity",vehicle:"etf",er:0.35,yld:0.0,sponsor:"BlackRock",dom:"IE",ucits:true,ccy:"USD"},
+  {tkr:"AGGU",name:"iShares Core Global Aggregate Bond UCITS ETF USD Hedged (Acc)",cls:"fixed_income",vehicle:"etf",er:0.10,yld:0.0,sponsor:"BlackRock",dom:"IE",ucits:true,ccy:"USD"},
+  {tkr:"IEGA",name:"iShares Core Euro Government Bond UCITS ETF",cls:"fixed_income",vehicle:"etf",er:0.09,yld:2.8,sponsor:"BlackRock",dom:"IE",ucits:true,ccy:"EUR"},
+  // --- UCITS alternatives: fills a sleeve that had no eligible fund at all ---
+  // Strategy-diverse on purpose (listed PE, managed futures, market neutral,
+  // macro, event driven, multi-strategy, long/short, insurance-linked) so the
+  // sleeve is fillable across risk profiles rather than by one lucky match.
+  {tkr:"IPRV",name:"iShares Listed Private Equity UCITS ETF",cls:"alternative",vehicle:"etf",er:0.75,yld:2.5,sponsor:"BlackRock",dom:"IE",ucits:true,ccy:"USD"},
+  {tkr:"DWSCK",name:"DWS Concept Kaldemorgen LC EUR (absolute return multi-asset)",cls:"alternative",vehicle:"mutual_fund",er:1.55,yld:1.5,sponsor:"DWS",dom:"LU",ucits:true,ccy:"EUR",family:"dws-kaldemorgen"},
+  {tkr:"JPGMO",name:"JPMorgan Investment Funds Global Macro Opportunities A EUR",cls:"alternative",vehicle:"mutual_fund",er:1.70,yld:0.0,sponsor:"JPMorgan",dom:"LU",ucits:true,ccy:"EUR",family:"jpm-global-macro"},
+  {tkr:"MANTGR",name:"Man AHL TargetRisk D USD (systematic multi-asset)",cls:"alternative",vehicle:"mutual_fund",er:0.90,yld:0.0,sponsor:"Man Group",dom:"IE",ucits:true,ccy:"USD",family:"man-ahl-targetrisk"},
+  {tkr:"MANTRD",name:"Man AHL Trend Alternative DNY USD (managed futures)",cls:"alternative",vehicle:"mutual_fund",er:1.30,yld:0.0,sponsor:"Man Group",dom:"IE",ucits:true,ccy:"USD",family:"man-ahl-trend"},
+  {tkr:"PICTAT",name:"Pictet TR Atlas I EUR (equity market neutral)",cls:"alternative",vehicle:"mutual_fund",er:1.60,yld:0.0,sponsor:"Pictet",dom:"LU",ucits:true,ccy:"EUR",family:"pictet-tr-atlas"},
+  {tkr:"PICTDA",name:"Pictet TR Diversified Alpha I EUR (multi-strategy)",cls:"alternative",vehicle:"mutual_fund",er:1.55,yld:0.0,sponsor:"Pictet",dom:"LU",ucits:true,ccy:"EUR",family:"pictet-tr-divalpha"},
+  {tkr:"SGAIBT",name:"Schroder GAIA BlueTrend C USD (managed futures)",cls:"alternative",vehicle:"mutual_fund",er:1.75,yld:0.0,sponsor:"Schroders",dom:"LU",ucits:true,ccy:"USD",family:"gaia-bluetrend"},
+  {tkr:"SGAICB",name:"Schroder GAIA Cat Bond C USD (insurance-linked securities)",cls:"alternative",vehicle:"mutual_fund",er:1.45,yld:0.0,sponsor:"Schroders",dom:"LU",ucits:true,ccy:"USD",family:"gaia-cat-bond"},
+  {tkr:"GAMSCB",name:"GAM Star Cat Bond Institutional USD (insurance-linked securities)",cls:"alternative",vehicle:"mutual_fund",er:1.15,yld:0.0,sponsor:"GAM",dom:"IE",ucits:true,ccy:"USD",family:"gam-star-cat-bond"},
+  {tkr:"NORA10",name:"Nordea 1 Alpha 10 MA Fund BI EUR (multi-asset absolute return)",cls:"alternative",vehicle:"mutual_fund",er:1.05,yld:0.0,sponsor:"Nordea",dom:"LU",ucits:true,ccy:"EUR",family:"nordea-alpha-10"},
+  {tkr:"BSFGED",name:"BlackRock Strategic Funds Global Event Driven A2 USD",cls:"alternative",vehicle:"mutual_fund",er:1.60,yld:0.0,sponsor:"BlackRock",dom:"LU",ucits:true,ccy:"USD",family:"bsf-event-driven"},
+  {tkr:"LUMMWT",name:"Lumyna MW TOPS UCITS A USD (Marshall Wace long/short equity)",cls:"alternative",vehicle:"mutual_fund",er:1.75,yld:0.0,sponsor:"Lumyna",dom:"IE",ucits:true,ccy:"USD",family:"lumyna-mw-tops"},
+  {tkr:"JUPGAR",name:"Jupiter Merian Global Equity Absolute Return I USD",cls:"alternative",vehicle:"mutual_fund",er:0.90,yld:0.0,sponsor:"Jupiter",dom:"IE",ucits:true,ccy:"USD",family:"jupiter-gear"},
+  {tkr:"ELEVAR",name:"Eleva Absolute Return Europe I EUR (long/short equity)",cls:"alternative",vehicle:"mutual_fund",er:1.50,yld:0.0,sponsor:"Eleva",dom:"LU",ucits:true,ccy:"EUR",family:"eleva-are"},
+  {tkr:"BNYGRR",name:"BNY Mellon Global Real Return EUR (absolute return multi-asset)",cls:"alternative",vehicle:"mutual_fund",er:1.10,yld:1.5,sponsor:"BNY Mellon",dom:"IE",ucits:true,ccy:"EUR",family:"bny-global-real-return"},
+  // --- CHF-hedged share classes of the UCITS alternatives above. Same fund,
+  //     same portfolio; mu is reduced by the cost of hedging into CHF (the rate
+  //     differential), so Sharpe against the CHF risk-free matches the base class.
+  //     `family` pairs them so a portfolio can never hold both. ---
+  {tkr:"DWSCKC",name:"DWS Concept Kaldemorgen LCH CHF (hedged)",cls:"alternative",vehicle:"mutual_fund",er:1.55,yld:0.0,sponsor:"DWS",dom:"LU",ucits:true,ccy:"CHF",family:"dws-kaldemorgen"},
+  {tkr:"JPGMOC",name:"JPMorgan Investment Funds Global Macro Opportunities A CHF (hedged)",cls:"alternative",vehicle:"mutual_fund",er:1.70,yld:0.0,sponsor:"JPMorgan",dom:"LU",ucits:true,ccy:"CHF",family:"jpm-global-macro"},
+  {tkr:"MANTGRC",name:"Man AHL TargetRisk D CHF Hedged",cls:"alternative",vehicle:"mutual_fund",er:0.90,yld:0.0,sponsor:"Man Group",dom:"IE",ucits:true,ccy:"CHF",family:"man-ahl-targetrisk"},
+  {tkr:"MANTRDC",name:"Man AHL Trend Alternative DNY CHF Hedged",cls:"alternative",vehicle:"mutual_fund",er:1.30,yld:0.0,sponsor:"Man Group",dom:"IE",ucits:true,ccy:"CHF",family:"man-ahl-trend"},
+  {tkr:"PICTATC",name:"Pictet TR Atlas I CHF (hedged)",cls:"alternative",vehicle:"mutual_fund",er:1.60,yld:0.0,sponsor:"Pictet",dom:"LU",ucits:true,ccy:"CHF",family:"pictet-tr-atlas"},
+  {tkr:"PICTDAC",name:"Pictet TR Diversified Alpha I CHF (hedged)",cls:"alternative",vehicle:"mutual_fund",er:1.55,yld:0.0,sponsor:"Pictet",dom:"LU",ucits:true,ccy:"CHF",family:"pictet-tr-divalpha"},
+  {tkr:"SGAIBTC",name:"Schroder GAIA BlueTrend C CHF Hedged",cls:"alternative",vehicle:"mutual_fund",er:1.75,yld:0.0,sponsor:"Schroders",dom:"LU",ucits:true,ccy:"CHF",family:"gaia-bluetrend"},
+  {tkr:"SGAICBC",name:"Schroder GAIA Cat Bond C CHF Hedged",cls:"alternative",vehicle:"mutual_fund",er:1.45,yld:0.0,sponsor:"Schroders",dom:"LU",ucits:true,ccy:"CHF",family:"gaia-cat-bond"},
+  {tkr:"GAMSCBC",name:"GAM Star Cat Bond Institutional CHF Hedged",cls:"alternative",vehicle:"mutual_fund",er:1.15,yld:0.0,sponsor:"GAM",dom:"IE",ucits:true,ccy:"CHF",family:"gam-star-cat-bond"},
+  {tkr:"NORA10C",name:"Nordea 1 Alpha 10 MA Fund BI CHF (hedged)",cls:"alternative",vehicle:"mutual_fund",er:1.05,yld:0.0,sponsor:"Nordea",dom:"LU",ucits:true,ccy:"CHF",family:"nordea-alpha-10"},
+  {tkr:"BSFGEDC",name:"BlackRock Strategic Funds Global Event Driven A2 CHF Hedged",cls:"alternative",vehicle:"mutual_fund",er:1.60,yld:0.0,sponsor:"BlackRock",dom:"LU",ucits:true,ccy:"CHF",family:"bsf-event-driven"},
+  {tkr:"LUMMWTC",name:"Lumyna MW TOPS UCITS A CHF Hedged",cls:"alternative",vehicle:"mutual_fund",er:1.75,yld:0.0,sponsor:"Lumyna",dom:"IE",ucits:true,ccy:"CHF",family:"lumyna-mw-tops"},
+  {tkr:"JUPGARC",name:"Jupiter Merian Global Equity Absolute Return I CHF (hedged)",cls:"alternative",vehicle:"mutual_fund",er:0.90,yld:0.0,sponsor:"Jupiter",dom:"IE",ucits:true,ccy:"CHF",family:"jupiter-gear"},
+  {tkr:"ELEVARC",name:"Eleva Absolute Return Europe I CHF (hedged)",cls:"alternative",vehicle:"mutual_fund",er:1.50,yld:0.0,sponsor:"Eleva",dom:"LU",ucits:true,ccy:"CHF",family:"eleva-are"},
+  {tkr:"BNYGRRC",name:"BNY Mellon Global Real Return CHF Hedged",cls:"alternative",vehicle:"mutual_fund",er:1.10,yld:0.0,sponsor:"BNY Mellon",dom:"IE",ucits:true,ccy:"CHF",family:"bny-global-real-return"},
+
+
 ];
 
 // ════════════════════════════════════════════════════════════════════
@@ -940,8 +1182,14 @@ const CLASS_DEFAULTS = {
   crypto:       {mu:25.0, sigma:65.0, holdings:1,    aum:10,  beta:1.80, r1y:80.0, r3y:25.0, r5y:30.0, r10y:0.0}
 };
 
-// Explicit performance overrides for flagship funds (~2024 actuals, rounded)
+// Explicit performance overrides for flagship funds.
 // Format: {mu,sigma,holdings,aum(B USD),beta,r1y,r3y,r5y,r10y,maxDD,sharpe(optional)}
+// A trailing-return field of 0 is a SENTINEL meaning "the fund is younger than
+// this window"; enrichment converts it to null so it is never displayed or fed
+// to the model as a real 0.0% return. Figures are a point-in-time snapshot —
+// surface FUND_DATA_AS_OF wherever they are shown rather than implying they are
+// live market data.
+const FUND_DATA_AS_OF = "2024-12-31";
 const FUND_OVERRIDES = {
   // ─── US Large Cap Core ───
   VOO:{mu:10.5,sigma:15.0,holdings:503,aum:1100,beta:1.00,r1y:24.2,r3y:9.8,r5y:14.8,r10y:12.5,maxDD:-23.9},
@@ -1017,6 +1265,20 @@ const FUND_OVERRIDES = {
   HYG:{mu:7.0,sigma:9.0,holdings:1230,aum:14,beta:0.55,r1y:9.0,r3y:1.5,r5y:3.5,r10y:4.0,maxDD:-23.5},
   MUB:{mu:3.5,sigma:5.0,holdings:5550,aum:38,beta:0.05,r1y:3.0,r3y:-0.5,r5y:1.0,r10y:2.5,maxDD:-11.0},
   BIL:{mu:5.2,sigma:0.4,holdings:18,aum:38,beta:0.00,r1y:5.3,r3y:3.2,r5y:1.9,r10y:1.2,maxDD:-0.2},
+  // ─── 1940 Act ultra-short ETFs ───
+  JPST:{mu:5.3,sigma:0.5,holdings:700,aum:39,beta:0.02,r1y:5.5,r3y:3.6,r5y:2.6,r10y:0,maxDD:-1.0},
+  ICSH:{mu:5.3,sigma:0.5,holdings:400,aum:7.8,beta:0.02,r1y:5.5,r3y:3.6,r5y:2.5,r10y:1.8,maxDD:-1.0},
+  GBIL:{mu:5.0,sigma:0.3,holdings:40,aum:7.5,beta:0.00,r1y:5.2,r3y:3.3,r5y:2.2,r10y:0,maxDD:-0.3},
+  // ─── UCITS money market / ultra-short ───
+  // TER and fund size are the published figures; the return series uses the 0
+  // sentinel for windows a line has not run (converted to null = "n/a", never
+  // shown as a real 0.0% return). μ reflects the currency's short rate at the
+  // FUND_DATA_AS_OF basis, not a forecast.
+  XEON:{mu:3.0,sigma:0.3,holdings:1,aum:22.4,beta:0.00,r1y:3.8,r3y:2.4,r5y:1.3,r10y:0.4,maxDD:-0.1},
+  ERNE:{mu:3.4,sigma:0.6,holdings:280,aum:3.4,beta:0.02,r1y:4.1,r3y:2.3,r5y:1.4,r10y:0,maxDD:-1.2},
+  ERNA:{mu:5.0,sigma:0.6,holdings:340,aum:2.6,beta:0.02,r1y:5.4,r3y:3.4,r5y:2.4,r10y:0,maxDD:-1.4},
+  ERNS:{mu:4.8,sigma:0.6,holdings:200,aum:0.9,beta:0.02,r1y:5.1,r3y:3.2,r5y:2.0,r10y:0,maxDD:-1.3},
+  IB01:{mu:4.6,sigma:0.4,holdings:20,aum:8.5,beta:0.00,r1y:5.0,r3y:3.1,r5y:0,r10y:0,maxDD:-0.3},
   // ─── Real Estate ───
   VNQ:{mu:7.0,sigma:18.0,holdings:160,aum:35,beta:0.85,r1y:9.0,r3y:-1.5,r5y:4.0,r10y:6.5,maxDD:-35.0},
   // ─── Commodities ───
@@ -1041,7 +1303,208 @@ const FUND_OVERRIDES = {
   // ─── Crypto ───
   IBIT:{mu:35.0,sigma:62.0,holdings:1,aum:55,beta:1.85,r1y:120.0,r3y:0.0,r5y:0.0,r10y:0.0,maxDD:-22.0},
   FBTC:{mu:35.0,sigma:62.0,holdings:1,aum:20,beta:1.85,r1y:120.0,r3y:0.0,r5y:0.0,r10y:0.0,maxDD:-22.0},
-  ETHA:{mu:30.0,sigma:75.0,holdings:1,aum:5,beta:2.10,r1y:45.0,r3y:0.0,r5y:0.0,r10y:0.0,maxDD:-30.0}
+  ETHA:{mu:30.0,sigma:75.0,holdings:1,aum:5,beta:2.10,r1y:45.0,r3y:0.0,r5y:0.0,r10y:0.0,maxDD:-30.0},
+
+  // ─── Sponsor-depth additions: structural profile only (no curated trailing
+  //     returns — those fall back to class defaults like the rest of the tail) ───
+  // Vanguard style/size
+  VXF:{mu:9.5,sigma:20.0,holdings:3600,aum:20,beta:1.12,inception:2001},
+  VONG:{mu:12.5,sigma:19.0,holdings:390,aum:14,beta:1.11,inception:2010},
+  VONV:{mu:9.5,sigma:14.5,holdings:850,aum:10,beta:0.92,inception:2010},
+  VTHR:{mu:10.4,sigma:15.5,holdings:2800,aum:3.5,beta:1.02,inception:2010},
+  VTWG:{mu:9.0,sigma:22.5,holdings:1080,aum:1.0,beta:1.20,inception:2010},
+  VTWV:{mu:9.0,sigma:21.5,holdings:1420,aum:1.0,beta:1.16,inception:2010},
+  VOOG:{mu:12.0,sigma:18.0,holdings:230,aum:13,beta:1.09,inception:2010},
+  VOOV:{mu:9.5,sigma:14.5,holdings:400,aum:5.5,beta:0.92,inception:2010},
+  VIOO:{mu:9.5,sigma:21.0,holdings:600,aum:2.8,beta:1.15,inception:2010},
+  VIOG:{mu:9.5,sigma:22.0,holdings:340,aum:1.2,beta:1.17,inception:2010},
+  VIOV:{mu:9.5,sigma:21.5,holdings:460,aum:2.0,beta:1.14,inception:2010},
+  IVOO:{mu:10.0,sigma:18.5,holdings:400,aum:2.7,beta:1.08,inception:2010},
+  IVOG:{mu:10.0,sigma:19.5,holdings:230,aum:1.1,beta:1.10,inception:2010},
+  IVOV:{mu:10.0,sigma:18.5,holdings:290,aum:1.1,beta:1.06,inception:2010},
+  VIGI:{mu:8.5,sigma:15.0,holdings:350,aum:6.5,beta:0.80,inception:2016},
+  VFMF:{mu:10.0,sigma:17.0,holdings:600,aum:0.4,beta:1.00,inception:2018},
+  VFMO:{mu:11.0,sigma:19.0,holdings:600,aum:0.7,beta:1.05,inception:2018},
+  VFVA:{mu:10.0,sigma:19.5,holdings:750,aum:1.0,beta:1.08,inception:2018},
+  VFQY:{mu:10.5,sigma:16.5,holdings:450,aum:0.4,beta:0.98,inception:2018},
+  // Vanguard fixed income
+  BSV:{mu:4.3,sigma:2.5,holdings:2800,aum:33,beta:0.03,inception:2007},
+  BIV:{mu:4.8,sigma:6.0,holdings:2100,aum:22,beta:0.12,inception:2007},
+  BLV:{mu:5.2,sigma:12.0,holdings:3000,aum:6.0,beta:0.28,inception:2007},
+  VCRB:{mu:4.8,sigma:5.5,holdings:1600,aum:2.5,beta:0.10,inception:2023,r3y:0,r5y:0,r10y:0},
+  VPLS:{mu:5.3,sigma:6.0,holdings:1400,aum:1.0,beta:0.15,inception:2023,r3y:0,r5y:0,r10y:0},
+  VTES:{mu:3.2,sigma:1.5,holdings:1000,aum:1.5,beta:0.02,inception:2023,r3y:0,r5y:0,r10y:0},
+  VCEB:{mu:5.0,sigma:6.5,holdings:800,aum:0.6,beta:0.13,inception:2020,r5y:0,r10y:0},
+  // Vanguard cash
+  VUSB:{mu:4.9,sigma:0.8,holdings:700,aum:5.0,beta:0.01,inception:2021,r5y:0,r10y:0},
+  VMRXX:{mu:5.0,sigma:0.25,holdings:200,aum:200,beta:0.00},
+  // Vanguard active / balanced
+  VDIGX:{mu:9.5,sigma:13.0,holdings:45,aum:52,beta:0.83},
+  VEIPX:{mu:9.0,sigma:13.0,holdings:190,aum:55,beta:0.80},
+  VWNDX:{mu:9.5,sigma:17.0,holdings:130,aum:22,beta:1.02},
+  VWNFX:{mu:9.5,sigma:16.0,holdings:150,aum:50,beta:0.98},
+  VGHCX:{mu:8.5,sigma:14.5,holdings:100,aum:45,beta:0.70},
+  VASGX:{mu:8.5,sigma:14.0,holdings:4,aum:29,beta:0.80},
+  VSMGX:{mu:7.0,sigma:10.5,holdings:4,aum:33,beta:0.60},
+  VSCGX:{mu:5.8,sigma:7.5,holdings:4,aum:18,beta:0.40},
+  VASIX:{mu:4.8,sigma:5.0,holdings:4,aum:6.5,beta:0.20},
+  VTMFX:{mu:7.5,sigma:9.5,holdings:2,aum:9.0,beta:0.58},
+  // Vanguard UCITS
+  VWRP:{mu:9.0,sigma:15.0,holdings:3700,aum:14,beta:1.00},
+  VNRT:{mu:10.3,sigma:15.5,holdings:700,aum:4.0,beta:1.01},
+  VNRA:{mu:10.3,sigma:15.5,holdings:700,aum:2.0,beta:1.01},
+  // Fidelity sectors
+  FTEC:{mu:11.5,sigma:22.0,holdings:300,aum:13,beta:1.25,inception:2013},
+  FHLC:{mu:8.5,sigma:15.0,holdings:380,aum:2.6,beta:0.72,inception:2013},
+  FNCL:{mu:9.5,sigma:20.0,holdings:390,aum:2.0,beta:1.08,inception:2013},
+  FENY:{mu:8.0,sigma:26.0,holdings:110,aum:1.6,beta:1.02,inception:2013},
+  FDIS:{mu:10.0,sigma:20.0,holdings:290,aum:1.6,beta:1.20,inception:2013},
+  FSTA:{mu:7.5,sigma:13.0,holdings:100,aum:1.2,beta:0.58,inception:2013},
+  FIDU:{mu:9.5,sigma:18.0,holdings:350,aum:1.1,beta:1.05,inception:2013},
+  FUTY:{mu:7.5,sigma:15.0,holdings:70,aum:1.4,beta:0.55,inception:2013},
+  FMAT:{mu:8.0,sigma:19.5,holdings:120,aum:0.6,beta:1.05,inception:2013},
+  FCOM:{mu:9.0,sigma:19.0,holdings:120,aum:1.2,beta:1.05,inception:2013},
+  // Fidelity factors
+  FDVV:{mu:9.5,sigma:14.5,holdings:110,aum:4.5,beta:0.88,inception:2016},
+  FQAL:{mu:10.5,sigma:15.5,holdings:250,aum:1.2,beta:0.97,inception:2016},
+  FVAL:{mu:9.5,sigma:15.5,holdings:130,aum:1.5,beta:0.95,inception:2016},
+  FDLO:{mu:9.0,sigma:12.5,holdings:130,aum:1.0,beta:0.78,inception:2016},
+  FDMO:{mu:10.5,sigma:17.5,holdings:120,aum:0.4,beta:1.05,inception:2016},
+  FSMD:{mu:9.5,sigma:18.5,holdings:400,aum:1.5,beta:1.05,inception:2019},
+  FDRR:{mu:9.5,sigma:14.5,holdings:110,aum:0.5,beta:0.90,inception:2016},
+  FELG:{mu:10.8,sigma:15.5,holdings:200,aum:2.5,beta:1.02},
+  FDIG:{mu:14.0,sigma:45.0,holdings:40,aum:0.2,beta:1.70,inception:2022,r5y:0,r10y:0},
+  // Fidelity index mutual funds
+  FNILX:{mu:10.5,sigma:15.0,holdings:500,aum:10,beta:1.00,inception:2018},
+  FZIPX:{mu:9.5,sigma:20.0,holdings:2500,aum:2.0,beta:1.12,inception:2018},
+  FSPGX:{mu:12.5,sigma:19.0,holdings:390,aum:9.0,beta:1.11},
+  FLCOX:{mu:9.5,sigma:14.5,holdings:850,aum:8.0,beta:0.92},
+  FSSNX:{mu:9.0,sigma:21.0,holdings:1980,aum:9.0,beta:1.18},
+  FSMDX:{mu:10.0,sigma:18.5,holdings:820,aum:14,beta:1.08},
+  FTIHX:{mu:8.0,sigma:16.0,holdings:5200,aum:20,beta:0.85},
+  FSGGX:{mu:8.0,sigma:16.0,holdings:2300,aum:5.0,beta:0.85},
+  FIPDX:{mu:4.2,sigma:6.0,holdings:50,aum:6.5,beta:0.10},
+  FUAMX:{mu:4.3,sigma:6.5,holdings:30,aum:3.0,beta:0.08},
+  FUMBX:{mu:4.2,sigma:1.8,holdings:80,aum:2.5,beta:0.02},
+  FNBGX:{mu:4.6,sigma:14.0,holdings:35,aum:1.5,beta:0.25},
+  // Fidelity active
+  FBALX:{mu:8.0,sigma:11.0,holdings:1200,aum:39,beta:0.65},
+  FPURX:{mu:7.8,sigma:10.5,holdings:900,aum:29,beta:0.62},
+  FLPSX:{mu:9.0,sigma:15.5,holdings:800,aum:26,beta:0.85},
+  FMAGX:{mu:10.5,sigma:17.5,holdings:150,aum:29,beta:1.05},
+  FSELX:{mu:14.0,sigma:31.0,holdings:50,aum:22,beta:1.45},
+  FSPTX:{mu:12.5,sigma:24.0,holdings:130,aum:15,beta:1.28},
+  FSPHX:{mu:9.0,sigma:17.0,holdings:130,aum:9.0,beta:0.78},
+  FAGIX:{mu:7.0,sigma:9.5,holdings:500,aum:12,beta:0.55},
+  FSICX:{mu:5.8,sigma:7.0,holdings:1400,aum:7.0,beta:0.35},
+  // Fidelity cash
+  FDRXX:{mu:4.9,sigma:0.25,holdings:200,aum:250,beta:0.00},
+  FTEXX:{mu:3.2,sigma:0.30,holdings:400,aum:15,beta:0.00},
+  // Fidelity UCITS
+  FUSD:{mu:9.8,sigma:14.5,holdings:130,aum:1.2,beta:0.92,inception:2017},
+  FEME:{mu:8.5,sigma:17.0,holdings:180,aum:0.5,beta:0.90,inception:2017},
+  // iShares global sectors
+  IXN:{mu:11.5,sigma:21.0,holdings:130,aum:5.5,beta:1.22},
+  IXJ:{mu:8.5,sigma:14.0,holdings:120,aum:4.0,beta:0.68},
+  IXG:{mu:9.0,sigma:18.5,holdings:220,aum:0.5,beta:1.05},
+  IXC:{mu:8.0,sigma:23.0,holdings:60,aum:2.0,beta:0.95},
+  IXP:{mu:9.0,sigma:18.0,holdings:70,aum:0.4,beta:1.00},
+  MXI:{mu:8.0,sigma:19.0,holdings:110,aum:0.3,beta:1.00},
+  EXI:{mu:9.0,sigma:16.5,holdings:230,aum:0.6,beta:0.98},
+  KXI:{mu:7.0,sigma:12.5,holdings:100,aum:0.7,beta:0.55},
+  RXI:{mu:9.5,sigma:18.5,holdings:200,aum:0.4,beta:1.12},
+  JXI:{mu:7.0,sigma:14.0,holdings:70,aum:0.2,beta:0.55},
+  IGF:{mu:7.5,sigma:14.0,holdings:75,aum:3.5,beta:0.65},
+  // iShares US sectors
+  IYY:{mu:10.4,sigma:15.5,holdings:1100,aum:2.3,beta:1.02},
+  IYC:{mu:10.0,sigma:20.0,holdings:170,aum:1.6,beta:1.20},
+  IYK:{mu:7.5,sigma:13.0,holdings:55,aum:1.5,beta:0.58},
+  IYJ:{mu:9.5,sigma:18.0,holdings:180,aum:1.5,beta:1.05},
+  IYM:{mu:8.0,sigma:19.5,holdings:120,aum:0.6,beta:1.05},
+  IYZ:{mu:6.5,sigma:20.0,holdings:25,aum:0.4,beta:0.95},
+  IDU:{mu:7.5,sigma:15.0,holdings:45,aum:1.7,beta:0.55},
+  IYT:{mu:9.5,sigma:21.0,holdings:50,aum:0.7,beta:1.10},
+  IYG:{mu:9.5,sigma:20.0,holdings:100,aum:1.5,beta:1.10},
+  IHF:{mu:9.5,sigma:18.0,holdings:70,aum:0.6,beta:0.80},
+  IHE:{mu:8.0,sigma:15.0,holdings:40,aum:0.6,beta:0.68},
+  IEZ:{mu:7.0,sigma:32.0,holdings:35,aum:0.2,beta:1.30},
+  IGE:{mu:8.0,sigma:21.0,holdings:120,aum:0.6,beta:1.02},
+  PICK:{mu:7.5,sigma:27.0,holdings:230,aum:0.9,beta:1.18},
+  SLVP:{mu:7.0,sigma:38.0,holdings:35,aum:0.3,beta:1.05},
+  // iShares tech / thematic
+  IGV:{mu:12.0,sigma:24.0,holdings:120,aum:9.0,beta:1.20},
+  IGM:{mu:12.0,sigma:22.0,holdings:280,aum:5.5,beta:1.22},
+  IHAK:{mu:10.5,sigma:22.0,holdings:35,aum:0.9,beta:1.05,inception:2019},
+  IDRV:{mu:8.0,sigma:26.0,holdings:50,aum:0.3,beta:1.20,inception:2021,r5y:0,r10y:0},
+  // iShares style / size
+  IUSG:{mu:12.0,sigma:18.0,holdings:490,aum:20,beta:1.09},
+  IUSV:{mu:9.5,sigma:14.5,holdings:680,aum:19,beta:0.92},
+  IWY:{mu:13.0,sigma:19.5,holdings:110,aum:9.0,beta:1.12},
+  IWX:{mu:9.5,sigma:14.0,holdings:150,aum:1.5,beta:0.88},
+  IWL:{mu:10.8,sigma:15.5,holdings:200,aum:1.0,beta:1.00},
+  IWP:{mu:10.5,sigma:20.0,holdings:290,aum:15,beta:1.12},
+  IWS:{mu:9.5,sigma:17.5,holdings:700,aum:13,beta:1.00},
+  IWV:{mu:10.4,sigma:15.5,holdings:2500,aum:14,beta:1.02},
+  IWC:{mu:8.5,sigma:24.0,holdings:1400,aum:0.8,beta:1.22},
+  // iShares fixed income
+  ISTB:{mu:4.4,sigma:2.8,holdings:3000,aum:4.5,beta:0.04},
+  BINC:{mu:6.0,sigma:5.0,holdings:2000,aum:8.0,beta:0.30,inception:2023,r3y:0,r5y:0,r10y:0},
+  IGOV:{mu:3.0,sigma:8.0,holdings:750,aum:1.0,beta:0.15},
+  BGRN:{mu:4.6,sigma:6.0,holdings:400,aum:0.4,beta:0.12,inception:2018,r10y:0},
+  HYDB:{mu:6.5,sigma:8.0,holdings:900,aum:3.0,beta:0.45,inception:2017,r10y:0},
+  // iBonds Treasury ladder — vol scales with remaining term, then rolls to par
+  IBTF:{mu:4.5,sigma:0.8,holdings:20,aum:2.0,beta:0.01,inception:2023,r3y:0,r5y:0,r10y:0},
+  IBTG:{mu:4.3,sigma:1.6,holdings:20,aum:1.5,beta:0.02,inception:2023,r3y:0,r5y:0,r10y:0},
+  IBTH:{mu:4.3,sigma:2.4,holdings:20,aum:1.2,beta:0.03,inception:2023,r3y:0,r5y:0,r10y:0},
+  IBTI:{mu:4.3,sigma:3.2,holdings:20,aum:0.9,beta:0.04,inception:2023,r3y:0,r5y:0,r10y:0},
+  IBTJ:{mu:4.3,sigma:4.0,holdings:20,aum:0.7,beta:0.05,inception:2023,r3y:0,r5y:0,r10y:0},
+  IBTK:{mu:4.3,sigma:4.8,holdings:20,aum:0.5,beta:0.06,inception:2023,r3y:0,r5y:0,r10y:0},
+  IBTL:{mu:4.3,sigma:5.6,holdings:20,aum:0.4,beta:0.07,inception:2023,r3y:0,r5y:0,r10y:0},
+  // iShares buywrite overlays
+  TLTW:{mu:7.0,sigma:12.0,holdings:2,aum:1.0,beta:0.15,inception:2022,r5y:0,r10y:0},
+  HYGW:{mu:7.5,sigma:7.0,holdings:2,aum:0.3,beta:0.35,inception:2022,r5y:0,r10y:0},
+  LQDW:{mu:6.0,sigma:6.0,holdings:2,aum:0.3,beta:0.20,inception:2022,r5y:0,r10y:0},
+  // iShares UCITS
+  WSML:{mu:9.0,sigma:18.0,holdings:3300,aum:4.5,beta:1.05,inception:2018},
+  AGGU:{mu:4.6,sigma:5.0,holdings:9000,aum:3.0,beta:0.08,inception:2019},
+  IEGA:{mu:3.2,sigma:5.5,holdings:400,aum:4.0,beta:0.10},
+  // --- UCITS alternatives. maxDD is set explicitly where the sigma-derived
+  //     default would understate a real historical drawdown (listed PE in the
+  //     GFC, cat bonds in the 2017 hurricane season, CTAs in a trend reversal).
+  IPRV:{mu:9.0,sigma:25.0,holdings:80,aum:0.9,beta:1.20,maxDD:-60.0,inception:2007},
+  DWSCK:{mu:5.5,sigma:8.0,holdings:250,aum:9.0,beta:0.35,maxDD:-14.0,inception:2011},
+  JPGMO:{mu:5.0,sigma:7.5,holdings:300,aum:2.5,beta:0.20,maxDD:-12.0,inception:2013},
+  MANTGR:{mu:5.5,sigma:9.0,holdings:60,aum:2.0,beta:0.35,maxDD:-15.0,inception:2014},
+  MANTRD:{mu:6.0,sigma:12.0,holdings:80,aum:1.5,beta:0.05,maxDD:-18.0,inception:2015},
+  PICTAT:{mu:5.0,sigma:5.5,holdings:200,aum:3.0,beta:0.10,maxDD:-9.0,inception:2014},
+  PICTDA:{mu:4.8,sigma:4.5,holdings:400,aum:1.5,beta:0.15,maxDD:-8.0,inception:2018},
+  SGAIBT:{mu:6.0,sigma:13.0,holdings:150,aum:0.9,beta:0.05,maxDD:-20.0,inception:2012},
+  SGAICB:{mu:7.0,sigma:5.0,holdings:120,aum:1.3,beta:0.05,maxDD:-16.0,inception:2013},
+  GAMSCB:{mu:6.8,sigma:4.5,holdings:100,aum:2.5,beta:0.05,maxDD:-14.0,inception:2017},
+  NORA10:{mu:5.2,sigma:5.0,holdings:500,aum:1.2,beta:0.20,maxDD:-9.0,inception:2017},
+  BSFGED:{mu:5.5,sigma:6.5,holdings:180,aum:1.8,beta:0.25,maxDD:-11.0,inception:2015},
+  LUMMWT:{mu:6.5,sigma:8.0,holdings:400,aum:3.0,beta:0.25,maxDD:-12.0,inception:2013},
+  JUPGAR:{mu:4.8,sigma:6.0,holdings:300,aum:0.6,beta:0.05,maxDD:-12.0,inception:2009},
+  ELEVAR:{mu:5.5,sigma:6.5,holdings:120,aum:2.0,beta:0.20,maxDD:-11.0,inception:2018},
+  BNYGRR:{mu:5.0,sigma:6.0,holdings:300,aum:3.5,beta:0.30,maxDD:-12.0,inception:2010},
+  // --- CHF-hedged classes: derived from the base override, mu net of hedge carry ---
+  DWSCKC:{mu:3,sigma:8,holdings:250,aum:9,beta:0.35,maxDD:-14,inception:2011},
+  JPGMOC:{mu:2.5,sigma:7.5,holdings:300,aum:2.5,beta:0.2,maxDD:-12,inception:2013},
+  MANTGRC:{mu:1.5,sigma:9,holdings:60,aum:2,beta:0.35,maxDD:-15,inception:2014},
+  MANTRDC:{mu:2,sigma:12,holdings:80,aum:1.5,beta:0.05,maxDD:-18,inception:2015},
+  PICTATC:{mu:2.5,sigma:5.5,holdings:200,aum:3,beta:0.1,maxDD:-9,inception:2014},
+  PICTDAC:{mu:2.3,sigma:4.5,holdings:400,aum:1.5,beta:0.15,maxDD:-8,inception:2018},
+  SGAIBTC:{mu:2,sigma:13,holdings:150,aum:0.9,beta:0.05,maxDD:-20,inception:2012},
+  SGAICBC:{mu:3,sigma:5,holdings:120,aum:1.3,beta:0.05,maxDD:-16,inception:2013},
+  GAMSCBC:{mu:2.8,sigma:4.5,holdings:100,aum:2.5,beta:0.05,maxDD:-14,inception:2017},
+  NORA10C:{mu:2.7,sigma:5,holdings:500,aum:1.2,beta:0.2,maxDD:-9,inception:2017},
+  BSFGEDC:{mu:1.5,sigma:6.5,holdings:180,aum:1.8,beta:0.25,maxDD:-11,inception:2015},
+  LUMMWTC:{mu:2.5,sigma:8,holdings:400,aum:3,beta:0.25,maxDD:-12,inception:2013},
+  JUPGARC:{mu:0.8,sigma:6,holdings:300,aum:0.6,beta:0.05,maxDD:-12,inception:2009},
+  ELEVARC:{mu:3,sigma:6.5,holdings:120,aum:2,beta:0.2,maxDD:-11,inception:2018},
+  BNYGRRC:{mu:2.5,sigma:6,holdings:300,aum:3.5,beta:0.3,maxDD:-12,inception:2010},
+
+
 };
 
 // Deterministic per-ticker hash for stable jitter
@@ -1052,8 +1515,19 @@ function _fundHash(tkr){
 }
 
 // Enrich every fund in-place with full metric set
+// Risk-free rate by currency, anchored to the same 2024-12-31 as FUND_DATA_AS_OF.
+// Sharpe has to be measured against the risk-free of the fund's OWN currency: a
+// CHF-hedged share class earns the (negative) CHF-vs-USD rate differential, so
+// against a flat USD 4.5% yardstick every hedged class looks like a bad fund
+// rather than the same fund in a different currency. Covered interest parity
+// means the base and hedged classes of one strategy then score the SAME Sharpe,
+// which is the correct answer and is asserted by a check in the release script.
+const RISK_FREE_BY_CCY = {
+  USD:4.5, EUR:3.0, CHF:0.5, GBP:4.75, JPY:0.25, SGD:3.0,
+  HKD:4.5, AUD:4.35, CAD:3.25, SEK:2.5, NOK:4.5, DKK:2.6
+};
+
 (function enrichAllFunds(){
-  const rf = 4.5; // risk-free rate, %
   FUND_UNIVERSE.forEach(f => {
     const d = CLASS_DEFAULTS[f.cls] || CLASS_DEFAULTS.equity;
     const ov = FUND_OVERRIDES[f.tkr] || {};
@@ -1075,13 +1549,24 @@ function _fundHash(tkr){
     f.r5y      = ov.r5y      ?? +(d.r5y  + j[2]*4).toFixed(2);
     f.r10y     = ov.r10y     ?? +(d.r10y + j[3]*3).toFixed(2);
     f.maxDD    = ov.maxDD    ?? -(+(f.sigma * 2.0 * (1 + Math.abs(j[4])*0.5)).toFixed(1));
+    const rf   = RISK_FREE_BY_CCY[(f.ccy || "USD").toUpperCase()] ?? RISK_FREE_BY_CCY.USD;
     f.sharpe   = ov.sharpe   ?? +((f.mu - rf) / Math.max(0.5, f.sigma)).toFixed(2);
     // Tracking error: active mutual funds 1.5-4%, ETFs <0.3%
     f.te = ov.te ?? (f.vehicle === "mutual_fund"
       ? +(1.5 + (h % 25) / 10).toFixed(2)
       : +(0.05 + (h % 25) / 100).toFixed(2));
-    // Inception year — flagships before 2010, others 2010-2022
-    f.inception = ov.inception ?? (FUND_OVERRIDES[f.tkr] ? 2005 : 2010 + (h % 13));
+    // Trailing returns: FUND_OVERRIDES uses 0.0 as a "fund is younger than this
+    // period" sentinel. Left as 0.0 it renders as a real 0.0% annualized return
+    // (e.g. a 2024-launched fund showing "10y: 0.0%") and drags portfolio
+    // aggregates toward zero. Normalize the sentinel to null = no track record.
+    ["r1y","r3y","r5y","r10y"].forEach(k => {
+      if(ov[k] === 0) f[k] = null;
+    });
+    // Inception year — only when actually curated. It used to be fabricated
+    // (every override fund got 2005, everything else 2010+hash), which stated a
+    // false launch year for funds that launched in 2024 and fed an "inception
+    // >= 5 years ago" quality screen with invented data.
+    f.inception = ov.inception ?? null;
     // Income type — derive from yield
     f.income = f.yld >= 4 ? "high" : (f.yld >= 2 ? "moderate" : "low");
   });

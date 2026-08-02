@@ -184,7 +184,7 @@ def table(headers, widths, n_rows, row_h=18):
 
 
 def goal_block(n):
-    """One Merrill-style goal block: name/owner, priority continuum,
+    """One goal block: name/owner, priority continuum,
     amount + timing, and per-goal trade-offs."""
     global y
     c.setFont("Helvetica-Bold", 9)
