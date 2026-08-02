@@ -393,7 +393,19 @@ network, verifiable against published check digits:
   the real one.
 - `detectInputType` classifies a 9-char string as a CUSIP only if its CHECK
   DIGIT validates, so a 9-character search phrase is not resolved as an
-  identifier.
+  identifier. **An ALL-NUMERIC 9-digit string is genuinely ambiguous** — it is
+  also the shape of a Valor, and ~1 in 10 Valoren pass the CUSIP check digit by
+  coincidence (measured: 20/200). In that case the resolver tries CUSIP, falls
+  back to the Valor reading, and fills NOTHING unless one of them resolves.
+  Filling the arithmetically-derived US ISIN there would substitute a US
+  security for a Swiss one, which is the exact failure the identifier work
+  exists to prevent. A CUSIP containing a letter is unambiguous and still
+  fills its ISIN offline.
+- **`lib/orders/__tests__/legacy-parity.test.ts` is what keeps the two copies
+  honest.** The arithmetic is implemented twice (the single-file app cannot
+  import), so that test extracts the legacy block from the shipped HTML and
+  diffs both implementations across ~1,900 real/malformed/hostile inputs. If
+  you change one, it will tell you that you did not change the other.
 - Wire preference is ISIN → CUSIP → symbol (Avaloq books on one identifier);
   the generic dialect sends all three. `ticketFingerprint` APPENDS the CUSIP
   only when present, so tickets without one keep their pre-existing hash and a

@@ -4010,7 +4010,7 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
 // ═══════════════════════════════════════════════════════════
 // VERSION — updated by build-standalone.pl on each build
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260802-1236";
+const APP_VERSION = "20260802-1244";
 
 // ═══════════════════════════════════════════════════════════
 // DATA
@@ -13584,6 +13584,9 @@ function applyAIRecommendationToProposal(){
       id: "pr_"+Date.now()+Math.random().toString(36).slice(2,6),
       name: fund?.name || p.ticker,
       tkr: p.ticker,
+      // The AI builder works from tickers; identifiers are added by the
+      // advisor or resolved later. Present-and-empty, never absent.
+      isin: "", cusip: "", valor: "",
       vehicle: fund?.vehicle || "etf",
       cls: fund?.cls || "mixed",
       region: region,
@@ -13721,7 +13724,7 @@ function addAltProposal(){
   const note=val("prAltNote").trim();
   const cls=vehicle; // private_equity / hedge_fund / structured map 1:1 to CMA asset classes
   if(!name||isNaN(alloc)||alloc<=0){alert("Enter name and allocation %"); return;}
-  proposals.push({id:"pr"+(++propSeq),name,tkr:"",isin:"",cusip:"",vehicle,cls,subcat,alloc,
+  proposals.push({id:"pr"+(++propSeq),name,tkr:"",isin:"",cusip:"",valor:"",vehicle,cls,subcat,alloc,
     exp:isNaN(exp)?null:exp,er:isNaN(er)?null:er,yld:isNaN(yld)?null:yld,note,metrics:null});
   ["prAltName","prAltAlloc","prAltExp","prAltEr","prAltYld","prAltNote"].forEach(id=>{const el=$(id); if(el) el.value="";});
   renderProposals(); renderProposalMetrics(); renderProposalBars(); drawProposalPie();
@@ -14499,32 +14502,64 @@ async function fetchInstrumentLive(prefix){
       symbol=figiData.ticker+vsuffix;
       setStatus('Valor '+vv+' → '+figiData.name+' ('+symbol+') — confirm this is the intended security.');
     } else if(inputType==='cusip'){
-      // A CUSIP gives us the ISIN for free — pure arithmetic, no network —
-      // so even if OpenFIGI is unreachable the advisor still leaves with a
-      // usable identifier for the order ticket.
+      // A CUSIP yields its ISIN by arithmetic alone, so a CUSIP that is
+      // definitely a CUSIP can fill it in even when OpenFIGI is unreachable.
+      //
+      // But an ALL-NUMERIC 9-digit string is genuinely ambiguous: it is also
+      // the shape of a Swiss Valor, and roughly one in ten such Valoren pass
+      // the CUSIP check digit by coincidence. Filling a US ISIN for what is
+      // actually a Swiss security is the identifier-substitution error this
+      // whole path exists to prevent — so in the ambiguous case nothing is
+      // filled until something RESOLVES, and the Valor reading is tried too.
       const cus=normalizeCusip(raw);
+      const ambiguous=/^[0-9]{9}$/.test(cus);
       const derivedIsin=cusipToIsin(cus,'US');
       setStatus('Resolving CUSIP '+cus+' via OpenFIGI…');
+      let figiErr=null;
       try{
         figiData=await openFigiMap('ID_CUSIP',cus,'US');
-      }catch(e){
-        // Degrade honestly: say what we could and could not establish, and
-        // never substitute a guess for the instrument.
-        _applyResolvedIds(prefix,cus,derivedIsin);
-        setStatus('⚠ Could not reach OpenFIGI ('+e.message+'). CUSIP '+cus
-          +' is valid and its ISIN '+derivedIsin+' has been filled in; enter the ticker by hand for pricing.','#a83232');
-        return;
+      }catch(e){ figiErr=e; figiData=null; }
+
+      if((!figiData||!figiData.ticker)&&ambiguous){
+        // Try it as a Valor before giving up.
+        const vCand=valorToIsin(cus);
+        if(vCand){
+          setStatus('No CUSIP match — trying '+cus+' as a Swiss Valor…');
+          try{
+            const vHit=await openFigiMap('ID_ISIN',vCand,'CH');
+            if(vHit&&vHit.ticker){
+              _applyResolvedIds(prefix,'',vCand,cus);
+              const vsfx=FIGI_SUFFIX[vHit.exchCode]||'';
+              symbol=vHit.ticker+vsfx;
+              figiData=vHit;
+              setStatus('Valor '+cus+' → '+vHit.name+' ('+symbol+') — confirm this is the intended security.');
+            }
+          }catch(_){ /* fall through to the honest failure below */ }
+        }
       }
+
       if(!figiData||!figiData.ticker){
-        _applyResolvedIds(prefix,cus,derivedIsin);
-        setStatus('⚠ CUSIP '+cus+' is valid but has no OpenFIGI listing. ISIN '+derivedIsin
-          +' filled in; enter the ticker by hand for pricing.','#a83232');
+        if(ambiguous){
+          // Could be either identifier and neither resolved — fill NOTHING.
+          setStatus('⚠ '+cus+' did not resolve as a CUSIP or as a Swiss Valor. '
+            +'Enter the ISIN directly, or use the Valor field if it is Swiss.','#a83232');
+        } else if(figiErr){
+          _applyResolvedIds(prefix,cus,derivedIsin);
+          setStatus('⚠ Could not reach OpenFIGI ('+figiErr.message+'). CUSIP '+cus
+            +' is valid and its ISIN '+derivedIsin+' has been filled in; enter the ticker by hand for pricing.','#a83232');
+        } else {
+          _applyResolvedIds(prefix,cus,derivedIsin);
+          setStatus('⚠ CUSIP '+cus+' is valid but has no OpenFIGI listing. ISIN '+derivedIsin
+            +' filled in; enter the ticker by hand for pricing.','#a83232');
+        }
         return;
       }
-      const csuffix=FIGI_SUFFIX[figiData.exchCode]||'';
-      symbol=figiData.ticker+csuffix;
-      _applyResolvedIds(prefix,cus,derivedIsin);
-      setStatus('CUSIP → '+symbol+' ('+figiData.exchCode+'), fetching quote…');
+      if(!symbol||symbol===cus){
+        const csuffix=FIGI_SUFFIX[figiData.exchCode]||'';
+        symbol=figiData.ticker+csuffix;
+        _applyResolvedIds(prefix,cus,derivedIsin);
+        setStatus('CUSIP → '+symbol+' ('+figiData.exchCode+'), fetching quote…');
+      }
     } else if(inputType==='search'){
       setStatus('Searching "'+raw+'"…');
       try{
