@@ -4009,7 +4009,7 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
 // ═══════════════════════════════════════════════════════════
 // VERSION — updated by build-standalone.pl on each build
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260801-2222";
+const APP_VERSION = "20260802-1534";
 
 // ═══════════════════════════════════════════════════════════
 // DATA
@@ -9505,6 +9505,10 @@ function _daInstruction(){
     +"Expense ratios and yields as WHOLE PERCENT numbers (1.8% -> 1.8, 0.03% -> 0.03 — NOT 0.018). Loan and inflation rates as whole percent (6.5% -> 6.5). "
     +"Dates as YYYY-MM-DD. Omit or null anything not present. For every classification use ONLY the allowed enum values; map each item to the closest one. "
     +"Holdings classes ("+Object.keys(INV_CLASS_LABELS).join(", ")+"); holding types ("+Object.keys(INV_TYPE_LABELS).join(", ")+"); regions ("+Object.keys(INV_REGION_LABELS).join(", ")+"). "
+    +"Every income and expense figure must be reported ANNUAL. Questionnaires are often filled in per month, "
+    +"so if a figure is written monthly (or the surrounding figures make monthly the only sensible reading), multiply by 12. "
+    +"accountTypeHint: give the most specific account type the document supports ('2nd pillar / occupational pension', "
+    +"'vested benefits', 'pillar 3a' - not a bare 'pension'), because it decides whether the money counts as locked or spendable. "
     +"Retirement: capture desired annual spending in retirement, each client's planned retirement age, and each client's pension / social-security ANNUAL benefit and start age. If a pension figure is written per month, multiply by 12 to report an annual amount. "
     +"Give a 0-1 confidence and a short sourceQuote for each value.";
 }
@@ -9716,15 +9720,49 @@ function renderReviewModal(){
 }
 function closeReviewModal(){ const m=$("aiReviewModal"); if(m) m.style.display="none"; }
 function daCheckAll(v){ document.querySelectorAll("#aiReviewModal .da-chk").forEach(c=>c.checked=v); }
-function _daCollect(dom,i){ const o={}; document.querySelectorAll(`#aiReviewModal .da-in[data-dom="${dom}"][data-i="${i}"]`).forEach(el=>{ o[el.dataset.f]=el.value; }); return o; }
+function _daCollect(dom,i){
+  // Start from the extracted record. The review table only renders a subset of the
+  // schema (street/city/state/postal, relationship, propertyValue, otherValue have no
+  // input), and anything it does not render would otherwise be dropped on apply.
+  const rec=(_daExtraction && _daExtraction[dom] && _daExtraction[dom][i]) || null;
+  const o=rec?Object.assign({},rec):{};
+  document.querySelectorAll(`#aiReviewModal .da-in[data-dom="${dom}"][data-i="${i}"]`).forEach(el=>{ o[el.dataset.f]=el.value; });
+  return o;
+}
 function _daChecked(dom,i){ const c=document.querySelector(`#aiReviewModal .da-chk[data-dom="${dom}"][data-i="${i}"]`); return c&&c.checked; }
 function _daSet(id,v){ const el=$(id); if(el!=null && v!=null && v!=="") el.value=v; }
+// Totals are appended, not overwritten: the review modal promises existing data is kept.
+function _daAddNum(id,v){ const el=$(id); if(!el) return; el.value=(parseFloat(el.value)||0)+v; }
+let _daSkipped=[];
 function _daSetSel(id,v){ const el=$(id); if(el && v && [...el.options].some(o=>o.value===v)){ el.value=v; try{ el.dispatchEvent(new Event("change")); }catch(_){} return true; } return false; }
-function _daMatchAccount(country,hint){
+function _daMatchAccount(country,hint,label){
   const c=COUNTRY_ACCOUNTS[country]||COUNTRY_ACCOUNTS.US; if(!c) return {type:"other",group:"Other assets",liquid:true};
-  const h=String(hint||"").toLowerCase().trim(); let best=null;
-  if(h) c.groups.forEach(g=>g.accounts.forEach(a=>{ const hay=(a.value+" "+a.label).toLowerCase(); if(!best && (hay.indexOf(h)>=0||h.indexOf(a.value.toLowerCase())>=0)) best={type:a.value,group:g.group,liquid:a.liquid}; }));
+  // Match on the hint AND the account label: a line reading "Walser 2nd Pillar" identifies
+  // the account far better than a generic hint like "pension". The old scan took the first
+  // catalogue entry containing the hint, so "pension" hit "Pillar 3b - Free pension"
+  // (liquid) before the occupational 2nd pillar (locked). Score instead, longest wins.
+  const h=String(hint||"").toLowerCase().trim();
+  const hay=(String(hint||"")+" "+String(label||"")).toLowerCase().replace(/[^a-z0-9]+/g," ").trim();
+  let best=null, bestScore=0;
+  if(hay) c.groups.forEach(g=>g.accounts.forEach(a=>{
+    const phrases=[a.value.replace(/_/g," ")].concat(a.label.toLowerCase().split(/[^a-z0-9]{2,}|[\/(),]/));
+    let score=0;
+    phrases.forEach(ph=>{ ph=ph.replace(/[^a-z0-9]+/g," ").trim();
+      if(ph.length>=3 && hay.indexOf(ph)>=0 && ph.length>score) score=ph.length; });
+    if(h && a.value.toLowerCase()===h) score=999;            // an exact type id always wins
+    if(score>bestScore){ bestScore=score; best={type:a.value,group:g.group,liquid:a.liquid}; }
+  }));
   if(best) return best;
+  // Something the client called a pension must never fall through to a liquid savings
+  // account: locked retirement money would then be counted as freely spendable and would
+  // inflate every drawdown and Monte Carlo result. Prefer a locked retirement type.
+  if(/pension|retirement|superannuation|provident|vorsorge|pilier|pillar/.test(hay)){
+    let ret=null;
+    c.groups.forEach(g=>g.accounts.forEach(a=>{ if(!ret && a.liquid===false
+      && /pension|retirement|pillar|vorsorge|super|provident|401|ira|rrsp/.test((a.value+" "+a.label).toLowerCase()))
+      ret={type:a.value,group:g.group,liquid:a.liquid}; }));
+    if(ret) return ret;
+  }
   c.groups.forEach(g=>g.accounts.forEach(a=>{ if(!best && /broker|taxable|securities|checking|current|savings|deposit/.test((a.value+a.label).toLowerCase())) best={type:a.value,group:g.group,liquid:a.liquid}; }));
   if(best) return best;
   const g0=c.groups[0], a0=g0&&g0.accounts[0]; return a0?{type:a0.value,group:g0.group,liquid:a0.liquid}:{type:"other",group:"Other assets",liquid:true};
@@ -9737,7 +9775,7 @@ function _daImportSource(){ return _daSourceLabel||"AI Data Agent"; }
 
 function applyDataAgent(){
   if(!_daExtraction) return;
-  const x=_daExtraction; let n=0; let needC2=false;
+  const x=_daExtraction; let n=0; let needC2=false; _daSkipped=[];
   // figure out if any client2 row is selected (so we reveal client 2 first)
   x.household.forEach((h,i)=>{ if(_daChecked("household",i) && _daCollect("household",i).role==="client2") needC2=true; });
   x.income.forEach((r,i)=>{ if(_daChecked("income",i) && _daCollect("income",i).who==="client2") needC2=true; });
@@ -9768,23 +9806,36 @@ function applyDataAgent(){
     if(r.inflationPct){ _daSet("inf",r.inflationPct); } });
 
   // Assets
-  x.assets.forEach((a0,i)=>{ if(!_daChecked("assets",i)) return; const r=_daCollect("assets",i); const v=parseFloat(r.value); if(!(v>0)) return; n++;
-    const ctry=r.country||val("c1co")||"US"; const mk=_daMatchAccount(ctry,r.accountTypeHint);
+  x.assets.forEach((a0,i)=>{ if(!_daChecked("assets",i)) return; const r=_daCollect("assets",i);
+    // Property and other-asset totals are separate schema fields on the same row.
+    const pv=parseFloat(r.propertyValue), ov=parseFloat(r.otherValue);
+    if(pv>0){ _daAddNum("aProp",pv); n++; }
+    if(ov>0){ _daAddNum("aOther",ov); n++; }
+    const v=parseFloat(r.value);
+    if(!(v>0)){ if(!(pv>0)&&!(ov>0)) _daSkipped.push("account \u201c"+(r.label||"unnamed")+"\u201d had no value"); return; }
+    n++;
+    const ctry=r.country||val("c1co")||"US"; const mk=_daMatchAccount(ctry,r.accountTypeHint,r.label);
     assets.push({id:"a"+(++assetSeq),type:mk.type,group:mk.group,label:r.label||mk.type,baseLabel:r.label||mk.type,value:v,liquid:mk.liquid,country:ctry,note:(r.accountTypeHint?(_daImportSource()+": "+r.accountTypeHint):("Imported by "+_daImportSource()))}); });
 
   // Liabilities
-  x.liabilities.forEach((l0,i)=>{ if(!_daChecked("liabilities",i)) return; const r=_daCollect("liabilities",i); const b=parseFloat(r.balance); if(!(b>0)) return; n++;
+  x.liabilities.forEach((l0,i)=>{ if(!_daChecked("liabilities",i)) return; const r=_daCollect("liabilities",i); const b=parseFloat(r.balance);
+    if(!(b>0)){ _daSkipped.push("loan \u201c"+(r.label||"unnamed")+"\u201d had no balance"); return; } n++;
     const t=(r.type in LOAN_LABELS)?r.type:"other";
     loans.push({id:"l"+(++loanSeq),type:t,label:r.label||LOAN_LABELS[t]||t,bal:b,rate:parseFloat(r.ratePct)||0,yrs:parseInt(r.years,10)||0}); });
 
   // Goals
-  x.goals.forEach((g0,i)=>{ if(!_daChecked("goals",i)) return; const r=_daCollect("goals",i); const amt=parseFloat(r.amount); if(!(amt>0)||!r.name) return; n++;
+  x.goals.forEach((g0,i)=>{ if(!_daChecked("goals",i)) return; const r=_daCollect("goals",i);
+    if(!r.name){ _daSkipped.push("a goal with no name"); return; }
+    // A goal the client stated without a figure ("financial stability") is still a goal:
+    // keep it at 0 so it reaches the Goals tab to be priced, instead of vanishing.
+    const amt=parseFloat(r.amount)>0?parseFloat(r.amount):0; n++;
     const sY=parseInt(r.startYear,10)||(typeof currentYear==="function"?currentYear():new Date().getFullYear());
     let eY=parseInt(r.endYear,10); if(!eY||eY<sY) eY=sY+1;
-    goals.push({id:"g"+(++goalSeq),name:r.name,amt:amt,homePrice:(r.category==="home"?parseFloat(r.amount):undefined),startYear:sY,endYear:eY,cat:r.category||"other",tier:r.tier||"important"}); });
+    goals.push({id:"g"+(++goalSeq),name:r.name,amt:amt,homePrice:(r.category==="home"&&amt>0?amt:undefined),startYear:sY,endYear:eY,cat:r.category||"other",tier:r.tier||"important"}); });
 
   // Holdings
-  x.holdings.forEach((h0,i)=>{ if(!_daChecked("holdings",i)) return; const r=_daCollect("holdings",i); const v=parseFloat(r.val); if(!(v>0)||!r.name) return; n++;
+  x.holdings.forEach((h0,i)=>{ if(!_daChecked("holdings",i)) return; const r=_daCollect("holdings",i); const v=parseFloat(r.val);
+    if(!(v>0)||!r.name){ _daSkipped.push("holding \u201c"+(r.name||"unnamed")+"\u201d had no value"); return; } n++;
     investments.push({id:"inv"+(++invSeq),name:r.name,tkr:r.tkr||"",
       type:(r.type in INV_TYPE_LABELS)?r.type:"other", cls:(r.cls in INV_CLASS_LABELS)?r.cls:"other", region:(r.region in INV_REGION_LABELS)?r.region:"other",
       val:v, er:(r.er!==""&&r.er!=null&&isFinite(+r.er))?+r.er:null, yld:(r.yld!==""&&r.yld!=null&&isFinite(+r.yld))?+r.yld:null, note:"Imported by "+_daImportSource()}); });
@@ -9807,8 +9858,10 @@ function applyDataAgent(){
   // Re-render everything affected
   const safe=fn=>{ try{ if(typeof window[fn]==="function") window[fn](); }catch(e){ console.warn("[DataAgent] "+fn,e); } };
   ["renderChildren","updateDisplays","updateIncTotal","updateExpTotal","updateTaxPanel","renderAssets","renderLoans","renderGoals","renderInvestments","renderPortfolioMetrics","drawPortfolioPie","refreshTopMetrics"].forEach(safe);
-  const stt=$("daApplyStatus"); if(stt){ stt.textContent="✓ Added "+n+" item"+(n!==1?"s":"")+" to the app."; stt.style.color="var(--green)"; }
-  const ast=$("aiAgentStatus"); if(ast){ ast.textContent="✓ Applied "+n+" item"+(n!==1?"s":"")+"."; ast.style.color="var(--green)"; }
+  const skipNote=_daSkipped.length?("  ⚠ Skipped "+_daSkipped.length+": "+_daSkipped.join("; ")):"";
+  const skipCol=_daSkipped.length?"var(--amber)":"var(--green)";
+  const stt=$("daApplyStatus"); if(stt){ stt.textContent="✓ Added "+n+" item"+(n!==1?"s":"")+" to the app."+skipNote; stt.style.color=skipCol; }
+  const ast=$("aiAgentStatus"); if(ast){ ast.textContent="✓ Applied "+n+" item"+(n!==1?"s":"")+"."+skipNote; ast.style.color=skipCol; }
   try{ if(typeof _topStatus==="function") _topStatus("AI Data Agent added "+n+" item"+(n!==1?"s":"")); }catch(_){}
   // Auto-close the review modal after a beat, so the success message is seen
   // but the user isn't left dismissing a modal that already did its job.
