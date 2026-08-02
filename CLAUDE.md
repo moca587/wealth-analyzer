@@ -378,6 +378,79 @@ adversarial pass found the opposite behaviour:
   only — never upstream body text, which routinely echoes the account, the
   client name, and sometimes the credential.
 
+**Instrument identifiers — ISIN, CUSIP, ticker** (`lib/orders/identifiers.ts`,
+mirrored in the legacy app above `detectInputType`). All arithmetic, no
+network, verifiable against published check digits:
+- For US/CA issuers an ISIN IS the country code + the 9-char CUSIP + an ISIN
+  check digit, so `cusipToIsin` / `isinToCusip` are exact. `cusipToIsin`
+  defaults to `US` and never guesses CA — nothing inside a CUSIP distinguishes
+  them, and guessing yields a valid-looking ISIN for a different security.
+- `checkIdentifierAgreement` is the highest-value check: two identifiers on one
+  row that name DIFFERENT securities is an error no custodian can catch (it
+  books whichever the wire carries). Both being individually valid is not
+  enough. A non-US/CA ISIN beside a CUSIP is deliberately NOT flagged —
+  cross-listing is legitimate and a false alarm trains people to click through
+  the real one.
+- `detectInputType` classifies a 9-char string as a CUSIP only if its CHECK
+  DIGIT validates, so a 9-character search phrase is not resolved as an
+  identifier. **An ALL-NUMERIC 9-digit string is genuinely ambiguous** — it is
+  also the shape of a Valor, and ~1 in 10 Valoren pass the CUSIP check digit by
+  coincidence (measured: 20/200). In that case the resolver tries CUSIP, falls
+  back to the Valor reading, and fills NOTHING unless one of them resolves.
+  Filling the arithmetically-derived US ISIN there would substitute a US
+  security for a Swiss one, which is the exact failure the identifier work
+  exists to prevent. A CUSIP containing a letter is unambiguous and still
+  fills its ISIN offline.
+- **`lib/orders/__tests__/legacy-parity.test.ts` is what keeps the two copies
+  honest.** The arithmetic is implemented twice (the single-file app cannot
+  import), so that test extracts the legacy block from the shipped HTML and
+  diffs both implementations across ~1,900 real/malformed/hostile inputs. If
+  you change one, it will tell you that you did not change the other.
+- Wire preference is ISIN → CUSIP → symbol (Avaloq books on one identifier);
+  the generic dialect sends all three. `ticketFingerprint` APPENDS the CUSIP
+  only when present, so tickets without one keep their pre-existing hash and a
+  stored fingerprint still matches on retry.
+- **No manual CUSIP field, by product decision.** CUSIP is US/Canada-only and
+  the launch market is Swiss EAMs, whose UCITS instruments have no CUSIP at
+  all (the Keller sample's seven positions: zero). A third identifier box on
+  the proposal row earned its keep for nobody, and it widened the blast radius
+  of the reset bug above. The ARITHMETIC stays, because CUSIPs do reach the
+  app — via the statement importer, whose column map already includes
+  `cusip` — and turning one into a bookable ISIN offline is real value in the
+  direction they actually arrive. A position's `cusip` is now DERIVED from a
+  US/CA ISIN (`isinToCusip`), so a US line still carries it to the PM system
+  with nothing typed. Pasting a CUSIP into the universal ticker box still
+  resolves it: `detectInputType` recognises one by its check digit.
+- **Valor (Swiss Valorennummer) IS a first-class field**, and the contrast with
+  CUSIP is the point: the field earns its place when the market actually uses
+  the identifier. Two properties shape the code and must not be smoothed over:
+  1. **A Valor has NO check digit.** It is an ordinal, so a typo is simply a
+     different valid Valor and no arithmetic catches it. Verified empirically:
+     three single-digit typos of Nestlé's Valor all produced structurally
+     valid CH ISINs. They happened to resolve to nothing — that is the
+     sparseness of the number space, not a guarantee. The real defence is
+     showing the resolved instrument NAME for a human to confirm.
+  2. **Valor → CH ISIN is exact only for Swiss-DOMICILED issues**, where the
+     Valor is the ISIN's national number. SIX also assigns Valoren to foreign
+     instruments listed here — an Irish UCITS keeps its IE ISIN — so the
+     derived ISIN is a CANDIDATE. It is therefore filled in ONLY after OpenFIGI
+     resolves it, never on the arithmetic alone. `checkValorAgreement`
+     consequently ignores a non-CH ISIN beside a Valor: that is the normal
+     case for a Swiss portfolio, and flagging it would fire on most holdings.
+- **OpenFIGI does NOT accept `ID_VALOREN`** (verified against the live API —
+  it returns "Invalid value for idType"; the supported national types are
+  ID_CUSIP, ID_SEDOL, ID_WERTPAPIER, ID_CINS, ID_COMMON). So a Valor is
+  resolved via the CH ISIN it implies, which is also what makes the
+  resolve-before-filling rule necessary rather than merely cautious.
+- Wire preference is ISIN → Valor → CUSIP → symbol; Valor outranks CUSIP
+  because Avaloq is a Swiss system that books on it natively.
+- **Market data**: OpenFIGI (already used for ISIN) is generalized to
+  `openFigiMap(idType, idValue, hintCc)`; `ID_CUSIP` resolves directly to a
+  ticker, which then feeds the existing Yahoo quote/performance path. Verified
+  live: CUSIP 037833100 → US0378331005 → AAPL → "Apple Inc.". If OpenFIGI is
+  unreachable the flow still fills the derived ISIN and says so rather than
+  substituting a guess.
+
 **Legacy side** (`wealth-analyzer.html`, Investment Proposal tab): the same
 ticket shape, built by `ordBuildTicket`, reviewed line-by-line before any
 send. Three defects found and fixed there in the same pass:

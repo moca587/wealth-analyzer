@@ -3134,7 +3134,7 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
       <div class="fld"><label>Ticker</label>
         <div style="display:flex;gap:4px;align-items:stretch">
           <input id="pfTkr" placeholder="Ticker / ISIN / fund name" oninput="applyHoldingTickerPrefill()" onblur="fetchInstrumentLive('pf')" onkeydown="if(event.key==='Enter'){event.preventDefault();fetchInstrumentLive('pf');}" style="flex:1;min-width:0">
-          <button type="button" id="pfAvBtn" onclick="fetchInstrumentLive('pf')" title="Fetch data — supports tickers (VOO), ISINs/UCITs (IE00B3RBWM25), exchange symbols (VUSA.L), or fund name search" style="padding:4px 8px;font-size:11px;border:1px solid var(--gold);background:var(--bg3);color:var(--gold);border-radius:4px;cursor:pointer;white-space:nowrap;font-weight:600">↻ Fetch</button>
+          <button type="button" id="pfAvBtn" onclick="fetchInstrumentLive('pf')" title="Fetch data — supports tickers (VOO), ISINs (IE00B3RBWM25), Swiss Valoren (3886335), CUSIPs (037833100), exchange symbols (VUSA.L), or fund name search" style="padding:4px 8px;font-size:11px;border:1px solid var(--gold);background:var(--bg3);color:var(--gold);border-radius:4px;cursor:pointer;white-space:nowrap;font-weight:600">↻ Fetch</button>
         </div>
       </div>
       <div class="fld"><label>Class</label>
@@ -3351,7 +3351,7 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
       <div class="fld"><label>Ticker</label>
         <div style="display:flex;gap:4px;align-items:stretch">
           <input id="prTkr" placeholder="Ticker / ISIN / fund name" oninput="applyTickerPrefill()" onblur="fetchInstrumentLive('pr')" onkeydown="if(event.key==='Enter'){event.preventDefault();fetchInstrumentLive('pr');}" style="flex:1;min-width:0">
-          <button type="button" id="prAvBtn" onclick="fetchInstrumentLive('pr')" title="Fetch data — supports tickers (VOO), ISINs/UCITs (IE00B3RBWM25), exchange symbols (VUSA.L), or fund name search" style="padding:4px 8px;font-size:11px;border:1px solid var(--gold);background:var(--bg3);color:var(--gold);border-radius:4px;cursor:pointer;white-space:nowrap;font-weight:600">↻ Fetch</button>
+          <button type="button" id="prAvBtn" onclick="fetchInstrumentLive('pr')" title="Fetch data — supports tickers (VOO), ISINs (IE00B3RBWM25), Swiss Valoren (3886335), CUSIPs (037833100), exchange symbols (VUSA.L), or fund name search" style="padding:4px 8px;font-size:11px;border:1px solid var(--gold);background:var(--bg3);color:var(--gold);border-radius:4px;cursor:pointer;white-space:nowrap;font-weight:600">↻ Fetch</button>
         </div>
       </div>
       <div class="fld"><label>Class</label>
@@ -3369,6 +3369,7 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
         </select>
       </div>
       <div class="fld"><label>ISIN <span style="color:var(--text3);font-weight:400">(for order routing)</span></label><input id="prIsin" placeholder="e.g. IE00B4L5Y983" maxlength="12" style="text-transform:uppercase"></div>
+      <div class="fld"><label>Valor <span style="color:var(--text3);font-weight:400">(Swiss)</span></label><input id="prValor" placeholder="e.g. 3886335" maxlength="12" oninput="onValorInput('pr')" onblur="onValorBlur('pr')"></div>
       <div class="fld"><label>Weight %</label><input type="number" id="prAlloc" placeholder="0" min="0" max="100" step="0.1"></div>
       <div class="fld"><label>10yr Exp Return %</label><input type="number" id="prExp" placeholder="0" step="0.1"></div>
       <div class="fld"><label>Expense Ratio %</label><input type="number" id="prErIn" placeholder="0" min="0" max="10" step="0.01"></div>
@@ -4024,7 +4025,7 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
 // ═══════════════════════════════════════════════════════════
 // VERSION — updated by build-standalone.pl on each build
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260802-1741";
+const APP_VERSION = "20260802-1759";
 
 // ═══════════════════════════════════════════════════════════
 // DATA
@@ -10668,6 +10669,8 @@ function ordBuildTicket(ticketId){
       side:"BUY",
       instrument:{
         isin:String(p.isin||"").trim().toUpperCase(),
+        cusip:normalizeCusip(p.cusip||""),
+        valor:normalizeValor(p.valor||""),
         ticker:String(p.tkr||"").trim().toUpperCase(),
         name:p.name||"",
         vehicle:p.vehicle||"",
@@ -10711,11 +10714,32 @@ function ordValidate(ticket){
   if(!(ticket.totals.amount>0)) errors.push("Set a target amount in Proposal Setup — without it every order line is zero.");
   if(!ticket.account.id) errors.push("No custody account. Orders must book to an account; enter one in Order Routing.");
 
-  const unidentified=ticket.lines.filter(function(l){ return !l.instrument.isin && !l.instrument.ticker; });
+  const unidentified=ticket.lines.filter(function(l){ return !l.instrument.isin && !l.instrument.cusip && !l.instrument.valor && !l.instrument.ticker; });
   if(unidentified.length){
-    errors.push(unidentified.length+" position(s) have neither an ISIN nor a ticker, so the PM system cannot identify them: "
+    errors.push(unidentified.length+" position(s) have no ISIN, CUSIP, Valor or ticker, so the PM system cannot identify them: "
       +unidentified.map(function(l){ return l.instrument.name||l.lineId; }).join(", "));
   }
+  // A CUSIP carries its own check digit, so a transposition is caught here
+  // rather than by a custodian booking a different security.
+  const badCusip=ticket.lines.filter(function(l){ return l.instrument.cusip && !isValidCusip(l.instrument.cusip); });
+  if(badCusip.length){
+    errors.push(badCusip.length+" position(s) carry a CUSIP that fails its check digit: "
+      +badCusip.map(function(l){ return l.instrument.cusip+" ("+(l.instrument.name||l.lineId)+")"; }).join(", "));
+  }
+  const badValor=ticket.lines.filter(function(l){ return l.instrument.valor && !isValidValorFormat(l.instrument.valor); });
+  if(badValor.length){
+    errors.push(badValor.length+" position(s) carry a Valor that is not a plain number: "
+      +badValor.map(function(l){ return l.instrument.valor+" ("+(l.instrument.name||l.lineId)+")"; }).join(", "));
+  }
+  // Identifiers that are individually valid must still name the SAME security.
+  ticket.lines.forEach(function(l){
+    const who=l.instrument.name||l.lineId;
+    const ac=checkIdentifierAgreement(l.instrument.cusip||"",l.instrument.isin||"");
+    if(!ac.ok) errors.push(who+": "+ac.conflict);
+    const av=checkValorAgreement(l.instrument.valor||"",l.instrument.isin||"");
+    if(!av.ok) errors.push(who+": "+av.conflict);
+  });
+
   const zero=ticket.lines.filter(function(l){ return !(l.amount>0); });
   if(zero.length) errors.push(zero.length+" position(s) compute to a zero amount — check their weights.");
 
@@ -10750,7 +10774,13 @@ function ordToWire(ticket,format){
         return {
           externalReference: ticket.ticketId+"."+l.lineId,   // idempotency, per line
           portfolioId: ticket.account.id,
-          instrument: l.instrument.isin ? {isin:l.instrument.isin} : {symbol:l.instrument.ticker},
+          // Most specific identifier available: ISIN, then CUSIP, then symbol.
+        // ISIN first, then the national identifiers, then the symbol. Valor
+        // outranks CUSIP because Avaloq is a Swiss system that books on it.
+        instrument: l.instrument.isin ? {isin:l.instrument.isin}
+                  : l.instrument.valor ? {valor:l.instrument.valor}
+                  : l.instrument.cusip ? {cusip:l.instrument.cusip}
+                  : {symbol:l.instrument.ticker},
           transactionType: l.side,
           orderType: "MARKET",
           amount: {value:l.amount, currency:l.currency},
@@ -10772,7 +10802,7 @@ function ordToWire(ticket,format){
       orders: ticket.lines.map(function(l){
         return {
           reference: ticket.ticketId+"."+l.lineId,
-          side: l.side, isin: l.instrument.isin||null, symbol: l.instrument.ticker||null,
+          side: l.side, isin: l.instrument.isin||null, cusip: l.instrument.cusip||null, valor: l.instrument.valor||null, symbol: l.instrument.ticker||null,
           name: l.instrument.name, amount: l.amount, currency: l.currency, type: l.orderType
         };
       })
@@ -10782,21 +10812,58 @@ function ordToWire(ticket,format){
 }
 
 /** Normalize whatever the PM system answered into something displayable. */
-function ordReadResponse(body,httpStatus){
-  const out={ok:httpStatus>=200&&httpStatus<300,ref:"",accepted:null,rejected:[],raw:""};
-  if(typeof body==="string"){ out.raw=body.slice(0,400); return out; }
-  if(!body||typeof body!=="object"){ return out; }
+/**
+ * Normalize whatever the PM system answered.
+ *
+ * The rule is POSITIVE ACKNOWLEDGEMENT: an order counts as staged only when
+ * the endpoint said so in a way we can read — a 2xx, a JSON object, and
+ * either a reference or a non-zero accepted count.
+ *
+ * Treating a bare 2xx as success was a real defect here: an expired
+ * credential, a WAF interstitial, or a URL typo’d onto a health endpoint all
+ * answer 200 with an HTML page, and this screen painted that green as
+ * “Staged in the PM system” — which stops anyone looking again. Anything we
+ * cannot positively read is UNKNOWN, never staged and never a plain failure,
+ * because the ticket may well have been staged before the page interposed.
+ */
+function ordReadResponse(body,httpStatus,contentType){
+  const httpOk=httpStatus>=200&&httpStatus<300;
+  const out={ok:false,state:"unknown",ref:"",accepted:null,rejected:[],raw:"",uncertainty:""};
+  const unknown=function(why){ out.state="unknown"; out.ok=false; out.uncertainty=why; return out; };
+  const reject=function(why){ out.state="rejected"; out.ok=false; if(why) out.rejected.push(why); return out; };
+
+  if(body==null||typeof body==="string"||typeof body!=="object"||Array.isArray(body)){
+    out.raw=typeof body==="string"?body.slice(0,400):"";
+    const snip=(typeof body==="string"&&body.trim())?(": "+body.trim().slice(0,160)):"";
+    if(!httpOk) return reject("the endpoint returned HTTP "+httpStatus+snip);
+    return unknown("The endpoint answered HTTP "+httpStatus+" but not with a JSON order acknowledgement, "
+      +"so the ticket’s status could not be confirmed. Check the PM system before re-sending.");
+  }
+  var _ct=String(contentType||"").split(";")[0].trim().toLowerCase();
+  if(_ct&&_ct!=="application/json"&&_ct.slice(-5)!=="+json"){
+    return unknown("The endpoint answered with content-type \""+String(contentType).split(";")[0]
+      +"\", not JSON, so the ticket’s status could not be confirmed. Check the PM system before re-sending.");
+  }
+
   out.ref=body.orderId||body.reference||body.clientReference||body.id||body.ticketId||"";
   const arr=Array.isArray(body.orders)?body.orders:Array.isArray(body.results)?body.results:null;
   if(arr){
-    const bad=function(o){ return o.status&&/reject|error|fail/i.test(String(o.status)); };
+    const bad=function(o){ return (o.status&&/reject|error|fail|denied|refus/i.test(String(o.status)))||!!o.error; };
     out.accepted=arr.filter(function(o){ return !bad(o); }).length;
     out.rejected=arr.filter(bad).map(function(o){
       return (o.externalReference||o.reference||o.isin||"line")+": "+(o.message||o.error||o.status);
     });
   }
+  // A top-level error beats a 200 — some gateways answer 200 with {"error":…}.
+  const topErr=body.error||body.errorMessage;
+  if(topErr) out.rejected.push(String(topErr).slice(0,200));
   try{ out.raw=JSON.stringify(body).slice(0,400); }catch(_){ }
-  return out;
+
+  if(out.rejected.length) return reject("");
+  if(!httpOk) return reject("the endpoint returned HTTP "+httpStatus);
+  if(out.ref||(out.accepted!=null&&out.accepted>0)){ out.state="staged"; out.ok=true; return out; }
+  return unknown("The endpoint answered HTTP "+httpStatus+" with JSON carrying no order reference and no "
+    +"accepted lines, so the ticket’s status could not be confirmed. Check the PM system before re-sending.");
 }
 
 
@@ -10863,21 +10930,23 @@ function ordRenderReview(){
   h+='<table style="width:100%;border-collapse:collapse;font-size:12px">'
     +'<thead><tr style="text-align:left;color:var(--text3);font-size:10px;text-transform:uppercase;letter-spacing:.07em">'
     +'<th style="padding:6px 4px">Side</th><th style="padding:6px 4px">Instrument</th>'
-    +'<th style="padding:6px 4px">ISIN</th><th style="padding:6px 4px">Ticker</th>'
+    +'<th style="padding:6px 4px">ISIN</th><th style="padding:6px 4px">Valor</th><th style="padding:6px 4px">CUSIP</th><th style="padding:6px 4px">Ticker</th>'
     +'<th style="padding:6px 4px;text-align:right">Weight</th><th style="padding:6px 4px;text-align:right">Amount</th>'
     +'</tr></thead><tbody>';
   ticket.lines.forEach(function(l){
-    const noId=!l.instrument.isin&&!l.instrument.ticker;
+    const noId=!l.instrument.isin&&!l.instrument.cusip&&!l.instrument.valor&&!l.instrument.ticker;
     h+='<tr style="border-top:1px solid var(--border)'+(noId?';background:rgba(220,38,38,.06)':'')+'">'
       +'<td style="padding:7px 4px"><span style="font-weight:700;color:var(--green)">BUY</span></td>'
       +'<td style="padding:7px 4px">'+_daEsc(l.instrument.name||"&mdash;")+'</td>'
       +'<td style="padding:7px 4px;font-family:var(--fm,monospace)">'+(l.instrument.isin?_daEsc(l.instrument.isin):'<span style="color:var(--text3)">&mdash;</span>')+'</td>'
+      +'<td style="padding:7px 4px;font-family:var(--fm,monospace)">'+(l.instrument.valor?_daEsc(l.instrument.valor):'<span style="color:var(--text3)">&mdash;</span>')+'</td>'
+      +'<td style="padding:7px 4px;font-family:var(--fm,monospace)">'+(l.instrument.cusip?_daEsc(l.instrument.cusip):'<span style="color:var(--text3)">&mdash;</span>')+'</td>'
       +'<td style="padding:7px 4px;font-family:var(--fm,monospace)">'+(l.instrument.ticker?_daEsc(l.instrument.ticker):'<span style="color:var(--text3)">&mdash;</span>')+'</td>'
       +'<td style="padding:7px 4px;text-align:right">'+fmtPct(l.weightPct)+'</td>'
       +'<td style="padding:7px 4px;text-align:right;font-weight:600">'+ordMoney(l.amount,l.currency)+'</td></tr>';
   });
   h+='</tbody><tfoot><tr style="border-top:2px solid var(--border);font-weight:700">'
-    +'<td colspan="5" style="padding:8px 4px;text-align:right">Total</td>'
+    +'<td colspan="7" style="padding:8px 4px;text-align:right">Total</td>'
     +'<td style="padding:8px 4px;text-align:right">'+ordMoney(ticket.totals.amount,ticket.totals.currency)+'</td></tr></tfoot></table>';
 
   h+='<div style="font-size:11px;color:var(--text3);margin-top:12px">Ticket <code>'+_daEsc(ticket.ticketId)+'</code> &mdash; '
@@ -10885,12 +10954,18 @@ function ordRenderReview(){
 
   if(_ordPending.sent&&_ordPending.result){
     const r=_ordPending.result;
-    const good=r.ok&&!(r.rejected||[]).length;
+    // THREE outcomes. "unknown" is not a failure: the ticket may have been
+    // staged before the endpoint answered with something unreadable, so the
+    // advisor must be told to check rather than told it failed (which invites
+    // a re-send, and that is how one portfolio becomes two).
+    const st=r.state||(r.ok&&!(r.rejected||[]).length?'staged':'rejected');
+    const tone=st==='staged'?{bg:'rgba(5,150,105,.08)',bd:'rgba(5,150,105,.3)',fg:'var(--green)',t:'Staged in the PM system'}
+             :st==='unknown'?{bg:'rgba(217,119,6,.08)',bd:'rgba(217,119,6,.35)',fg:'#b45309',t:'Could not confirm — check the PM system'}
+             :{bg:'rgba(220,38,38,.08)',bd:'rgba(220,38,38,.3)',fg:'var(--red)',t:'The PM system reported a problem'};
     h+='<div style="margin-top:14px;padding:10px 14px;border-radius:var(--rs);background:'
-      +(good?'rgba(5,150,105,.08)':'rgba(220,38,38,.08)')+';border:1px solid '
-      +(good?'rgba(5,150,105,.3)':'rgba(220,38,38,.3)')+'">'
-      +'<div style="font-size:12px;font-weight:700;color:'+(good?'var(--green)':'var(--red)')+'">'
-      +(good?'Staged in the PM system':'The PM system reported a problem')+'</div>'
+      +tone.bg+';border:1px solid '+tone.bd+'">'
+      +'<div style="font-size:12px;font-weight:700;color:'+tone.fg+'">'+tone.t+'</div>'
+      +(r.uncertainty?('<div style="font-size:12px;color:var(--text2);margin-top:4px">'+_daEsc(r.uncertainty)+'</div>'):'')
       +'<div style="font-size:12px;color:var(--text2);margin-top:4px">'
       +(r.ref?('Reference: <code>'+_daEsc(r.ref)+'</code><br>'):'')
       +(r.accepted!=null?(r.accepted+' line(s) accepted.<br>'):'')
@@ -10957,7 +11032,7 @@ async function ordSend(){
     catch(_){ headers["Authorization"]="Basic "+btoa(route.secret); }
   }
 
-  let httpStatus=0, parsed=null, errMsg="";
+  let httpStatus=0, parsed=null, errMsg="", _ordCtype="";
   try{
     // redirect:"manual" — a 3xx must NOT be followed. 307/308 would replay the
     // whole order body to whatever Location names, and while fetch strips
@@ -10975,6 +11050,8 @@ async function ordSend(){
       throw new Error("the endpoint redirected — point the connection at the final URL");
     }
     httpStatus=res.status;
+    const ctype=(res.headers&&res.headers.get)?(res.headers.get("content-type")||""):"";
+    _ordCtype=ctype;
     const txt=await res.text();
     try{ parsed=JSON.parse(txt); }catch(_){ parsed=txt; }
   }catch(e){
@@ -10988,27 +11065,30 @@ async function ordSend(){
     ? {ok:false,ref:"",accepted:null,rejected:["Could not reach the PM system: "+errMsg
         +". If this was a timeout the ticket may already be staged — check there before re-sending. "
         +"Use “Retry this ticket” rather than BUY: it reuses this reference, so a PM system that honours it will not stage the order twice."],raw:""}
-    : ordReadResponse(parsed,httpStatus);
+    : ordReadResponse(parsed,httpStatus,_ordCtype);
 
   _ordPending.sending=false; _ordPending.sent=true; _ordPending.result=result;
+
+  const good=result.state==='staged';
+  const unsure=result.state==='unknown';
 
   ordAppendLog({
     at:new Date().toISOString(), ticketId:ticket.ticketId, endpoint:route.url,
     format:route.format||"wa", account:ticket.account.id,
     positions:ticket.totals.positions, amount:ticket.totals.amount, currency:ticket.totals.currency,
-    httpStatus:httpStatus, ok:!!(result.ok&&!(result.rejected||[]).length),
+    httpStatus:httpStatus, ok:!!good, state:result.state||(good?'staged':'rejected'),
     ref:result.ref, note:(result.rejected||[]).join(" · ").slice(0,300)
   });
 
   ordRenderReview();
   ordRenderLog();
-  const good=result.ok&&!(result.rejected||[]).length;
   // Remember the reference only while the outcome is not a clean success, so
   // the next BUY on an unresolved ticket can reuse it rather than mint a new one.
   _ordRetryId=good?null:ticket.ticketId;
   ordStatus(good?("✓ Ticket "+ticket.ticketId+" staged — "+ticket.totals.positions+" order(s) sent to "+(route.name||"PM system"))
-                :("✗ Send reported a problem — see the review screen and the log below."),
-            good?"var(--green)":"var(--red)");
+           :unsure?("⚠ Ticket "+ticket.ticketId+" — outcome not confirmed. Check "+(route.name||"the PM system")+" before re-sending.")
+                  :("✗ Send reported a problem — see the review screen and the log below."),
+            good?"var(--green)":unsure?"#b45309":"var(--red)");
 }
 
 // ── Routing config + audit log UI ────────────────────────────────────
@@ -14267,7 +14347,7 @@ function renderAIGenResult(rec, brief){
   // Positions with full metrics + rationale
   if(rec.positions?.length){
     h += `<div style="background:#fff;border:1px solid var(--border);border-radius:8px;padding:14px 18px;margin-bottom:14px">
-      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin-bottom:10px">💼 Recommended Positions (${rec.positions.length}) — Full Metrics</div>`;
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin-bottom:10px">💼 Recommended Positions (${rec.positions.length})</div>`;
     rec.positions.forEach(p => {
       const fund = AI_FUND_UNIVERSE.find(f => f.tkr === p.ticker);
       const m = p.metrics || fund || {};
@@ -14279,27 +14359,14 @@ function renderAIGenResult(rec, brief){
           <span style="color:var(--text3);font-size:11.5px">${escapeForHTML(m.name||fund?.name||"")}${m.sponsor||fund?.sponsor?' · '+escapeForHTML(m.sponsor||fund.sponsor):''}${flags?' · <span style="background:rgba(124,58,237,.1);color:#7c3aed;padding:1px 6px;border-radius:3px;font-size:10px;font-weight:600">'+flags+'<span class="info-ic">i<span class="info-pop">UCITS: an EU-regulated fund structure legally distributable to non-US retail investors (EU/UK/Swiss/Asian/MENA) under PRIIPs. ESG: the fund applies an environmental/social/governance screen to its holdings. A country code (e.g. IE, LU) shows the fund\'s domicile when it is not the US.</span></span></span>':''}</span>
           <span style="margin-left:auto;font-size:13px;font-weight:700;color:#7c3aed">${p.weight.toFixed(1)}%</span>
         </div>
-        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(78px,1fr));gap:5px;margin:7px 0;padding:7px;background:rgba(0,0,0,.025);border-radius:5px;font-size:10.5px">
-          <div><div style="color:var(--text3);font-size:9px;text-transform:uppercase;letter-spacing:.05em">ER<span class="info-ic">i<span class="info-pop">The fund's annual expense ratio — the ongoing management fee charged as a % of assets, deducted automatically from returns.</span></span></div><strong>${(m.er||0).toFixed(2)}%</strong></div>
-          <div><div style="color:var(--text3);font-size:9px;text-transform:uppercase;letter-spacing:.05em">Yield<span class="info-ic">i<span class="info-pop">Income yield from dividends and interest, annualized.</span></span></div><strong>${(m.yld||0).toFixed(1)}%</strong></div>
-          <div><div style="color:var(--text3);font-size:9px;text-transform:uppercase;letter-spacing:.05em">Sharpe<span class="info-ic">i<span class="info-pop">Return earned per unit of risk taken; above 1.0 is generally considered good.</span></span></div><strong>${(m.sharpe||0).toFixed(2)}</strong></div>
-          <div><div style="color:var(--text3);font-size:9px;text-transform:uppercase;letter-spacing:.05em">μ<span class="info-ic">i<span class="info-pop">Expected annual return for this fund's asset class.</span></span></div><strong>${(m.mu||0).toFixed(1)}%</strong></div>
-          <div><div style="color:var(--text3);font-size:9px;text-transform:uppercase;letter-spacing:.05em">σ<span class="info-ic">i<span class="info-pop">Expected annual volatility (standard deviation) for this fund's asset class.</span></span></div><strong>${(m.sigma||0).toFixed(1)}%</strong></div>
-          <div><div style="color:var(--text3);font-size:9px;text-transform:uppercase;letter-spacing:.05em">β<span class="info-ic">i<span class="info-pop">Sensitivity to the broad market; 1.0 moves with the market, above 1.0 is more volatile.</span></span></div><strong>${(m.beta||0).toFixed(2)}</strong></div>
-          <div><div style="color:var(--text3);font-size:9px;text-transform:uppercase;letter-spacing:.05em">Max DD<span class="info-ic">i<span class="info-pop">The largest historical peak-to-trough decline.</span></span></div><strong style="color:var(--red)">${(m.maxDD||0).toFixed(0)}%</strong></div>
-          <div><div style="color:var(--text3);font-size:9px;text-transform:uppercase;letter-spacing:.05em">5y<span class="info-ic">i<span class="info-pop">Historical annualized total return over the trailing period, before fees.</span></span></div><strong style="color:${(m.r5y||0)>=0?'var(--green)':'var(--red)'}">${(m.r5y||0).toFixed(1)}%</strong></div>
-          <div><div style="color:var(--text3);font-size:9px;text-transform:uppercase;letter-spacing:.05em">10y<span class="info-ic">i<span class="info-pop">Historical annualized total return over the trailing period, before fees.</span></span></div><strong style="color:${(m.r10y||0)>=0?'var(--green)':'var(--red)'}">${(m.r10y||0).toFixed(1)}%</strong></div>
-          <div><div style="color:var(--text3);font-size:9px;text-transform:uppercase;letter-spacing:.05em">Holdings<span class="info-ic">i<span class="info-pop">Number of underlying securities held within this fund.</span></span></div><strong>${(m.holdings||0).toLocaleString()}</strong></div>
-          <div><div style="color:var(--text3);font-size:9px;text-transform:uppercase;letter-spacing:.05em">AUM<span class="info-ic">i<span class="info-pop">Assets under management in $B — a proxy for the fund's liquidity and stability.</span></span></div><strong>$${m.aum||0}B</strong></div>
-          <div><div style="color:var(--text3);font-size:9px;text-transform:uppercase;letter-spacing:.05em">Inception<span class="info-ic">i<span class="info-pop">The year this fund launched.</span></span></div><strong>${m.inception||'—'}</strong></div>
-        </div>
         <div style="font-size:11.5px;color:var(--text3);font-style:italic;display:flex;align-items:center;gap:6px">
           <span style="background:rgba(124,58,237,.1);color:#7c3aed;padding:2px 7px;border-radius:50px;font-size:10px;font-weight:700;font-style:normal">${expanded.tagline}</span>
-          <span>↓ hover for full reasoning</span>
+          <span>↓ hover for full metrics &amp; reasoning</span>
         </div>
-        <div class="ai-pos-why" style="overflow:hidden;max-height:0;transition:max-height .35s ease">
+        <div class="ai-pos-why">
           <div style="margin-top:10px;padding-top:10px;border-top:1px dashed rgba(124,58,237,.3)">
             <div style="font-size:12px;color:var(--text);line-height:1.6;margin-bottom:10px"><strong style="color:#7c3aed">💡 Why this fund:</strong><br>${expanded.why}</div>
+            ${expanded.metrics ? '<div style="margin-bottom:10px"><div style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);margin-bottom:6px">📊 Fund metrics</div><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(90px,1fr));gap:5px;font-size:10.5px;background:rgba(0,0,0,.025);padding:8px;border-radius:6px">' + expanded.metrics.map(mm => '<div style="text-align:center"><div style="color:var(--text3);font-size:9px;text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px">' + mm.label + '</div><strong style="font-size:11.5px;color:' + (mm.color||"var(--text)") + '">' + mm.value + '</strong></div>').join('') + '</div></div>' : ''}
             <div style="font-size:12px;color:var(--text2);line-height:1.6;padding:9px 12px;background:rgba(0,135,90,.05);border-left:3px solid var(--green);border-radius:0 6px 6px 0;margin-bottom:8px">
               <strong style="color:#1b6841">✓ Why it fits your profile:</strong><br>${expanded.fit}
             </div>
@@ -14460,6 +14527,9 @@ function applyAIRecommendationToProposal(){
       id: "pr_"+Date.now()+Math.random().toString(36).slice(2,6),
       name: fund?.name || p.ticker,
       tkr: p.ticker,
+      // The AI builder works from tickers; identifiers are added by the
+      // advisor or resolved later. Present-and-empty, never absent.
+      isin: "", cusip: "", valor: "",
       vehicle: fund?.vehicle || "etf",
       cls: fund?.cls || "mixed",
       region: region,
@@ -14597,7 +14667,7 @@ function addAltProposal(){
   const note=val("prAltNote").trim();
   const cls=vehicle; // private_equity / hedge_fund / structured map 1:1 to CMA asset classes
   if(!name||isNaN(alloc)||alloc<=0){alert("Enter name and allocation %"); return;}
-  proposals.push({id:"pr"+(++propSeq),name,tkr:"",vehicle,cls,subcat,alloc,
+  proposals.push({id:"pr"+(++propSeq),name,tkr:"",isin:"",cusip:"",valor:"",vehicle,cls,subcat,alloc,
     exp:isNaN(exp)?null:exp,er:isNaN(er)?null:er,yld:isNaN(yld)?null:yld,note,metrics:null});
   ["prAltName","prAltAlloc","prAltExp","prAltEr","prAltYld","prAltNote"].forEach(id=>{const el=$(id); if(el) el.value="";});
   renderProposals(); renderProposalMetrics(); renderProposalBars(); drawProposalPie();
@@ -14609,10 +14679,10 @@ function addProposal(){
   const exp=parseFloat(val("prExp")), er=parseFloat(val("prErIn")), yld=parseFloat(val("prYldIn"));
   const note=val("prNote").trim();
   if(!name||isNaN(alloc)||alloc<=0){alert("Enter name and allocation %"); return;}
-  proposals.push({id:"pr"+(++propSeq),name,tkr,isin:val("prIsin").trim().toUpperCase(),vehicle,cls,alloc,
+  proposals.push({id:"pr"+(++propSeq),name,tkr,isin:val("prIsin").trim().toUpperCase(),cusip:(isinToCusip(val("prIsin").trim().toUpperCase())||""),valor:(normalizeValor(val("prValor"))||isinToValor(val("prIsin").trim().toUpperCase())||""),vehicle,cls,alloc,
     exp:isNaN(exp)?null:exp,er:isNaN(er)?null:er,yld:isNaN(yld)?null:yld,note,
     metrics:(_lastFundPerf&&_lastFundPerf.tkr&&tkr&&_lastFundPerf.tkr===tkr.toUpperCase())?_lastFundPerf.metrics:null});
-  ["prName","prTkr","prIsin","prAlloc","prExp","prErIn","prYldIn","prNote"].forEach(id=>$(id).value="");
+  ["prName","prTkr","prIsin","prValor","prAlloc","prExp","prErIn","prYldIn","prNote"].forEach(id=>$(id).value="");
   setT("prTkrHint","");
   try{ renderFundPerf('pr',null); }catch(_){}  _lastFundPerf=null;   // clear fetched-performance panel after add
   renderProposals(); renderProposalMetrics(); renderProposalBars(); drawProposalPie();
@@ -14651,7 +14721,7 @@ function renderProposals(){
     return `<div class="pr-row">
       <span class="pv-tag pv-${p.vehicle}">${PROP_VEHICLE_LABELS[p.vehicle]||p.vehicle}</span>
       <span class="prname">${_daEsc(p.name)}</span>
-      <span style="color:var(--text3);font-size:11px">${_daEsc(p.tkr||"—")}</span>
+      <span style="color:var(--text3);font-size:11px">${_daEsc(p.tkr||"—")}${(p.isin||p.cusip||p.valor)?`<span style="font-family:var(--fm,monospace);margin-left:6px">${[p.isin,p.valor?("Valor "+p.valor):"",p.cusip].filter(Boolean).map(_daEsc).join(" · ")}</span>`:""}</span>
       <span style="color:var(--text2)">${INV_CLASS_LABELS[p.cls]||p.cls}${p.subcat?` <span style="color:var(--text3)">· ${_daEsc(p.subcat)}</span>`:""}</span>
       <span style="color:var(--text);font-variant-numeric:tabular-nums;font-weight:600">${p.alloc.toFixed(1)}%${target>0?'<br><span style="font-size:10px;color:var(--text3);font-weight:400">'+fmtMoney(dollar)+'</span>':''}</span>
       <span style="color:var(--text2);font-variant-numeric:tabular-nums">${p.exp!=null?p.exp.toFixed(1)+"%":"—"}</span>
@@ -14797,10 +14867,17 @@ function drawProposalPie(){
 function applyTickerPrefill(){
   const raw=(val("prTkr")||"").trim().toUpperCase();
   const hint=$("prTkrHint");
+  // A CUSIP or Valor is resolved on blur, not per keystroke — reporting "no
+  // local reference" on every character while one is typed is noise.
+  const _idKind=detectInputType((val("prTkr")||"").trim());
+  if(_idKind==='cusip'||_idKind==='valor'){
+    if(hint){ hint.textContent=(_idKind==='cusip'?'CUSIP':'Valor')+" recognised — leave the field to resolve it."; hint.style.color="var(--text3)"; }
+    return;
+  }
   if(!raw){ resetProposalForm(); return; }   // ticker cleared → wipe the form for a fresh lookup
   const t=TICKER_DB[raw];
   if(!t){
-    if(hint){hint.textContent="No local reference for "+raw+" — fill manually or click ↻ AV.";hint.style.color="var(--text3)";}
+    if(hint){hint.textContent="No local reference for "+raw+" — fill manually or click ↻ Fetch.";hint.style.color="var(--text3)";}
     return;
   }
   if(!val("prName").trim()) $("prName").value=t.name;
@@ -14814,7 +14891,10 @@ function applyTickerPrefill(){
 // Clear the Investment Proposal add form (fields, dropdowns, fetched performance)
 // so a freshly-entered ticker pulls correct data. Fired when Name or Ticker is emptied.
 function resetProposalForm(){
-  ["prName","prTkr","prAlloc","prExp","prErIn","prYldIn","prNote"].forEach(id=>{const el=$(id); if(el) el.value="";});
+  // prIsin MUST be in this list. It is what a custodian books on,
+  // so an identifier surviving a form reset attaches the previous security to
+  // the next position the advisor enters.
+  ["prName","prTkr","prIsin","prValor","prAlloc","prExp","prErIn","prYldIn","prNote"].forEach(id=>{const el=$(id); if(el) el.value="";});
   ["prVehicle","prClass"].forEach(id=>{const el=$(id); if(el) el.selectedIndex=0;});
   setT("prTkrHint","");
   const st=$("prAvStatus"); if(st) st.textContent="";
@@ -14858,10 +14938,183 @@ function onPfNameInput(){ if(!(val("pfName")||"").trim()) resetHoldingForm(); }
 // Sources: OpenFIGI (no key), Yahoo Finance (no key), Finnhub (optional), Alpha Vantage (optional)
 // ═══════════════════════════════════════════════════════════
 
+// ═══════════════════════════════════════════════════════════════════════
+//  SECURITY IDENTIFIERS — ISIN, CUSIP, and the arithmetic linking them.
+//
+//  All offline and deterministic. That matters here: the identifier is the
+//  one thing a custodian actually books on, so a lookup that quietly
+//  returns the wrong instrument is worse than no lookup at all. Every
+//  function below can be checked against a published check digit.
+//
+//  The useful fact: for US and Canadian issuers an ISIN is just the country
+//  code + the 9-character CUSIP + one ISIN check digit. So a CUSIP yields
+//  its ISIN with no network call, and a US/CA ISIN yields its CUSIP by
+//  slicing. Only CUSIP → TICKER needs a reference service, because tickers
+//  are exchange-scoped and not derivable from anything.
+// ═══════════════════════════════════════════════════════════════════════
+function _cusipCharVal(c){
+  if(c>='0'&&c<='9') return c.charCodeAt(0)-48;
+  if(c>='A'&&c<='Z') return c.charCodeAt(0)-55;   // A=10 … Z=35
+  if(c==='*') return 36; if(c==='@') return 37; if(c==='#') return 38;
+  return null;
+}
+function normalizeCusip(v){ return String(v||"").trim().toUpperCase().replace(/[\s-]/g,""); }
+
+/** 9th character of a CUSIP, from the first 8. Mod-10, doubling every 2nd. */
+function cusipCheckDigit(first8){
+  const s=String(first8||"").toUpperCase();
+  if(s.length!==8) return null;
+  let total=0;
+  for(let i=0;i<8;i++){
+    const v=_cusipCharVal(s[i]);
+    if(v===null) return null;
+    const d=(i%2===1)?v*2:v;
+    total+=Math.floor(d/10)+(d%10);        // sum the DIGITS of the product
+  }
+  return (10-(total%10))%10;
+}
+function isValidCusip(v){
+  const s=normalizeCusip(v);
+  if(!/^[0-9A-Z*@#]{8}[0-9]$/.test(s)) return false;
+  return cusipCheckDigit(s.slice(0,8))===Number(s[8]);
+}
+
+/** ISIN check digit (ISO 6166) over country code + 9-char national number. */
+function isinCheckDigit(body){
+  const s=String(body||"").toUpperCase();
+  if(!/^[A-Z]{2}[A-Z0-9]{9}$/.test(s)) return null;
+  let exp="";
+  for(const ch of s) exp += /[A-Z]/.test(ch) ? String(ch.charCodeAt(0)-55) : ch;
+  let sum=0, dbl=true;                      // rightmost digit is doubled
+  for(let i=exp.length-1;i>=0;i--){
+    let d=exp.charCodeAt(i)-48;
+    if(dbl){ d*=2; if(d>9) d-=9; }
+    sum+=d; dbl=!dbl;
+  }
+  return (10-(sum%10))%10;
+}
+function isValidIsinStrict(v){
+  const s=String(v||"").trim().toUpperCase();
+  if(!/^[A-Z]{2}[A-Z0-9]{9}[0-9]$/.test(s)) return false;
+  return isinCheckDigit(s.slice(0,11))===Number(s[11]);
+}
+
+/**
+ * ISIN for a CUSIP. Deterministic, no network.
+ * `country` defaults to US: nothing inside a CUSIP distinguishes a US from a
+ * Canadian issue, and guessing would produce a valid-looking ISIN for a
+ * different security — so the caller states it or takes the default.
+ */
+function cusipToIsin(cusip,country){
+  const cc=(country||"US").toUpperCase();
+  const s=normalizeCusip(cusip);
+  if(!isValidCusip(s)) return null;
+  const chk=isinCheckDigit(cc+s);
+  return chk===null?null:(cc+s+chk);
+}
+/** The CUSIP inside a US/CA ISIN. Null for any other jurisdiction. */
+function isinToCusip(isin){
+  const s=String(isin||"").trim().toUpperCase();
+  if(!isValidIsinStrict(s)) return null;
+  const cc=s.slice(0,2);
+  if(cc!=="US"&&cc!=="CA") return null;
+  const c=s.slice(2,11);
+  return isValidCusip(c)?c:null;
+}
+
+/**
+ * Cross-check a CUSIP against an ISIN when both are supplied.
+ *
+ * The highest-value check here: two identifiers on one row that name
+ * DIFFERENT securities is a data-entry error no custodian can catch — it
+ * simply books whichever identifier the wire format carries. Each being
+ * individually valid is not enough; they must agree with each other.
+ *
+ * A non-US/CA ISIN beside a CUSIP is NOT a conflict (a US issue can be
+ * cross-listed with an Irish-domiciled line), and flagging it would train
+ * people to click through the real warning.
+ */
+function checkIdentifierAgreement(cusip,isin){
+  const c=normalizeCusip(cusip), i=String(isin||"").trim().toUpperCase();
+  if(!c||!i) return {ok:true};
+  if(!isValidCusip(c)||!isValidIsinStrict(i)) return {ok:true};
+  const cc=i.slice(0,2);
+  if(cc!=="US"&&cc!=="CA") return {ok:true};
+  const derived=cusipToIsin(c,cc);
+  if(derived&&derived!==i){
+    return {ok:false,derivedIsin:derived,
+      conflict:"CUSIP "+c+" corresponds to ISIN "+derived+", but the ISIN entered is "+i
+        +". These are different securities — check which one is correct."};
+  }
+  return {ok:true,derivedIsin:derived||undefined};
+}
+
+
+// ─── Valorennummer (Swiss) ───────────────────────────────────────
+// The identifier a Swiss EAM actually sees: SIX assigns it, Avaloq books on
+// it, and it is on every Swiss custodian statement.
+//
+// It differs from a CUSIP in two ways that shape everything below:
+//  1. A Valor HAS NO CHECK DIGIT — it is an ordinal, not a coded identifier.
+//     A mistyped Valor is just a different valid Valor, so no arithmetic
+//     catches it. The number space is sparse enough that a typo usually
+//     resolves to nothing, but that is luck; the real defence is showing the
+//     resolved instrument NAME for a human to confirm.
+//  2. Valor -> ISIN is exact ONLY for Swiss-domiciled issues, where the Valor
+//     IS the national number inside a CH ISIN. SIX also assigns Valoren to
+//     FOREIGN instruments listed here — an Irish UCITS keeps its IE ISIN — so
+//     the derived CH ISIN is a CANDIDATE to be confirmed by resolution, never
+//     something to store unchecked.
+function normalizeValor(v){
+  const s=String(v==null?'':v).trim().replace(/[\s.'-]/g,'');
+  if(!/^[0-9]+$/.test(s)) return '';
+  return s.replace(/^0+/,'');
+}
+/** FORMAT only. A Valor cannot be validated the way a CUSIP can. */
+function isValidValorFormat(v){ return /^[1-9][0-9]{0,8}$/.test(normalizeValor(v)); }
+/** The CH ISIN a Valor implies — exact for Swiss issues, a candidate otherwise. */
+function valorToIsin(v){
+  const n=normalizeValor(v);
+  if(!isValidValorFormat(n)) return null;
+  const nsin=n.padStart(9,'0');
+  const chk=isinCheckDigit('CH'+nsin);
+  return chk===null?null:('CH'+nsin+chk);
+}
+/** The Valor inside a CH ISIN. Null for any other jurisdiction. */
+function isinToValor(isin){
+  const s=String(isin||'').trim().toUpperCase();
+  if(!isValidIsinStrict(s)||s.slice(0,2)!=='CH') return null;
+  const nsin=s.slice(2,11);
+  if(!/^[0-9]{9}$/.test(nsin)) return null;
+  return normalizeValor(nsin);
+}
+/** Only a CH ISIN can disagree with a Valor; a foreign one is the normal case. */
+function checkValorAgreement(valor,isin){
+  const v=normalizeValor(valor), i=String(isin||'').trim().toUpperCase();
+  if(!v||!i) return {ok:true};
+  if(!isValidValorFormat(v)||!isValidIsinStrict(i)) return {ok:true};
+  if(i.slice(0,2)!=='CH') return {ok:true};
+  const derived=valorToIsin(v);
+  if(derived&&derived!==i){
+    return {ok:false,derivedIsin:derived,
+      conflict:'Valor '+v+' corresponds to ISIN '+derived+', but the ISIN entered is '+i
+        +'. These are different securities — check which one is correct.'};
+  }
+  return {ok:true,derivedIsin:derived||undefined};
+}
+
 function detectInputType(raw){
   const s=(raw||'').trim();
   // ISIN: exactly 2 alpha + 10 alphanumeric = 12 chars total
   if(/^[A-Za-z]{2}[A-Za-z0-9]{10}$/.test(s)) return 'isin';
+  // CUSIP: 9 chars ending in a digit AND the check digit must validate.
+  // Demanding the check digit is what stops a 9-character search phrase
+  // being taken for an identifier and resolved to the wrong security.
+  if(/^[A-Za-z0-9*@#]{8}[0-9]$/.test(s) && isValidCusip(s)) return 'cusip';
+  // Valor: 6-9 digits. There is no check digit to confirm with, so the floor
+  // of 6 is what keeps numeric Asian tickers (Tokyo 4, Hong Kong up to 5)
+  // from being taken for one.
+  if(/^[0-9]{6,9}$/.test(s)) return 'valor';
   // Ticker with optional exchange suffix (e.g. VUSA.L, IWDA.AS, BX, VOO)
   if(/^[A-Za-z0-9]{1,7}(\.[A-Za-z]{1,3})?$/.test(s)&&!s.includes(' ')) return 'ticker';
   // Everything else = fund name search
@@ -14881,9 +15134,14 @@ const FIGI_SUFFIX={
 const ISIN_CC_TO_EXCH={CH:'SW',GB:'LN',IE:'LN',DE:'GY',FR:'PA',NL:'NA',IT:'IM',ES:'SM',SE:'SS',NO:'OS',DK:'DC',FI:'HN',AT:'AV',BE:'BT',GR:'AT',JP:'TK',HK:'HK',AU:'AU',SG:'SI',KR:'KS',TW:'TW',IN:'IN',MX:'MX',CA:'CN'};
 
 // OpenFIGI: ISIN → {ticker, name, exchCode, securityType2}
-async function openFigiLookup(isin){
+// OpenFIGI accepts several identifier types; ID_CUSIP is a first-class one,
+// so a CUSIP resolves directly rather than being routed through a derived
+// ISIN. `hintCc` only steers which listing is preferred, never which
+// security is chosen.
+async function openFigiMap(idType,idValue,hintCc){
+  const isin=(idType==='ID_ISIN')?idValue:'';
   const url='https://api.openfigi.com/v3/mapping';
-  const opts={ method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify([{idType:'ID_ISIN',idValue:isin.toUpperCase()}]) };
+  const opts={ method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify([{idType:idType,idValue:String(idValue||'').toUpperCase()}]) };
   let d=null;
   try{ const r=await fetch(url,opts); if(r.ok) d=await r.json(); }catch(e){}
   if(!d){ const r2=await fetch('https://corsproxy.io/?'+encodeURIComponent(url),opts); if(!r2.ok) throw new Error('OpenFIGI HTTP '+r2.status); d=await r2.json(); }   // OpenFIGI blocks direct browser calls (CORS) → proxy fallback
@@ -14891,7 +15149,7 @@ async function openFigiLookup(isin){
   if(!data?.length) return null;
   // Prefer the ISIN's home exchange (best Yahoo coverage), then a US listing,
   // then any Yahoo-supported exchange, then the first result.
-  const cc=(isin||'').slice(0,2).toUpperCase(), homeEx=ISIN_CC_TO_EXCH[cc];
+  const cc=((isin||'').slice(0,2)||hintCc||'').toUpperCase(), homeEx=ISIN_CC_TO_EXCH[cc];
   const usEx=['US','UN','UA','UF','UR','UT','UV'];
   const hit=(homeEx && data.find(x=>x.exchCode===homeEx))
         || data.find(x=>usEx.includes(x.exchCode))
@@ -14899,6 +15157,8 @@ async function openFigiLookup(isin){
         || data[0];
   return {ticker:(hit.ticker||'').trim(),name:(hit.name||'').trim(),exchCode:hit.exchCode||'',securityType:hit.securityType||'',securityType2:hit.securityType2||''};
 }
+/** Back-compat wrapper — existing callers pass an ISIN. */
+async function openFigiLookup(isin){ return openFigiMap('ID_ISIN',isin); }
 
 // Yahoo Finance search: query → array of {symbol, shortname, longname, quoteType, exchange, exchDisp}
 async function yahooSearchInstr(query){
@@ -15064,6 +15324,59 @@ function mapToAssetClass(quoteType,sector,category){
   return 'equity';
 }
 
+/**
+ * Write resolved identifiers into the entry row.
+ *
+ * Only ever FILLS a blank field or corrects one to a value we derived — it
+ * does not overwrite an identifier the advisor typed with a different one,
+ * because silently replacing a security is exactly the failure this whole
+ * path is built to avoid. A genuine disagreement is surfaced by
+ * checkIdentifierAgreement at validation time instead.
+ */
+function _applyResolvedIds(prefix,cusip,isin,valor){
+  const cEl=$(prefix+'Cusip'), iEl=$(prefix+'Isin');
+  if(cEl&&cusip&&!cEl.value.trim()) cEl.value=cusip;
+  if(iEl&&isin&&!iEl.value.trim()) iEl.value=isin;
+  const vEl=$(prefix+'Valor');
+  if(vEl&&valor&&!vEl.value.trim()) vEl.value=valor;
+}
+
+/**
+ * Live feedback while a Valor is typed.
+ *
+ * Deliberately does NOT claim the derived ISIN is correct. A Valor has no
+ * check digit, and the CH derivation only holds for Swiss-domiciled issues,
+ * so the honest statement at this point is 'if this is a Swiss issue, the
+ * ISIN would be X' — confirmed only once it resolves to a named instrument.
+ */
+function onValorInput(prefix){
+  const el=$(prefix+'Valor'), hint=$(prefix+'TkrHint');
+  if(!el||!hint) return;
+  const v=normalizeValor(el.value);
+  if(!v){ hint.textContent=''; return; }
+  if(!isValidValorFormat(v)){
+    hint.textContent='✗ A Valor is a plain number (up to 9 digits).';
+    hint.style.color='#a83232'; return;
+  }
+  const typedIsin=(val(prefix+'Isin')||'').trim().toUpperCase();
+  const ag=checkValorAgreement(v,typedIsin);
+  if(!ag.ok){ hint.textContent='✗ '+ag.conflict; hint.style.color='#a83232'; return; }
+  hint.textContent='Valor '+v+' — leave the field to look it up. (No check digit exists, so this is confirmed only by the name that comes back.)';
+  hint.style.color='var(--text3)';
+}
+/** Resolve on blur through the unified lookup, so pricing arrives too. */
+async function onValorBlur(prefix){
+  const el=$(prefix+'Valor'); if(!el) return;
+  const v=normalizeValor(el.value);
+  if(!isValidValorFormat(v)) return;
+  const tEl=$(prefix+'Tkr');
+  if(tEl&&!tEl.value.trim()){
+    tEl.value=v;
+    try{ await fetchInstrumentLive(prefix); }catch(_){ }
+    if(tEl.value.trim()===v) tEl.value='';
+  }
+}
+
 // Main unified instrument lookup
 async function fetchInstrumentLive(prefix){
   const raw=(val(prefix+'Tkr')||'').trim();
@@ -15072,7 +15385,7 @@ async function fetchInstrumentLive(prefix){
   function setStatus(msg,color){if(statusEl){statusEl.textContent=msg;statusEl.style.color=color||'var(--text3)';}}
   function setHint(msg,color){if(hintEl){hintEl.textContent=msg;hintEl.style.color=color||'#1b6841';}}
 
-  if(!raw){setStatus('Enter a ticker, ISIN, or fund name first.'); return;}
+  if(!raw){setStatus('Enter a ticker, ISIN, CUSIP, or fund name first.'); return;}
   // Skip trivially short inputs that are probably just keystrokes
   if(raw.length<2){return;}
 
@@ -15099,7 +15412,97 @@ async function fetchInstrumentLive(prefix){
       }
       const suffix=FIGI_SUFFIX[figiData.exchCode]||'';
       symbol=figiData.ticker+suffix;
+      // A US/CA ISIN contains its CUSIP, so fill that in too — the advisor
+      // typed one identifier and gets both, with no extra call.
+      _applyResolvedIds(prefix,isinToCusip(raw)||'',String(raw).trim().toUpperCase(),isinToValor(raw)||'');
       setStatus('ISIN → '+symbol+' ('+figiData.exchCode+'), fetching quote…');
+    } else if(inputType==='valor'){
+      // A Valor is resolved through the CH ISIN it would imply. That
+      // derivation is exact ONLY for a Swiss-domiciled issue, so the ISIN is
+      // filled in only once OpenFIGI confirms it names a real instrument —
+      // never on the arithmetic alone, which would invent an ISIN for any
+      // foreign instrument that merely has a SIX listing.
+      const vv=normalizeValor(raw);
+      const candidate=valorToIsin(vv);
+      if(!candidate){ setStatus('⚠ '+raw+' is not a usable Valor.','#a83232'); return; }
+      setStatus('Valor '+vv+' → checking '+candidate+' via OpenFIGI…');
+      try{
+        figiData=await openFigiMap('ID_ISIN',candidate,'CH');
+      }catch(e){
+        setStatus('⚠ Could not reach OpenFIGI ('+e.message+'). Valor '+vv+' would be ISIN '+candidate
+          +' IF this is a Swiss-domiciled issue — confirm before using it.','#a83232');
+        return;
+      }
+      if(!figiData||!figiData.ticker){
+        // The common honest outcome: either a typo, or a foreign instrument
+        // whose Valor is only a SIX listing number. Fill nothing.
+        setStatus('⚠ Valor '+vv+' did not resolve. It may be mistyped, or it may belong to a '
+          +'non-Swiss instrument listed here — those keep their own ISIN. Enter the ISIN directly.','#a83232');
+        return;
+      }
+      _applyResolvedIds(prefix,'',candidate,vv);
+      const vsuffix=FIGI_SUFFIX[figiData.exchCode]||'';
+      symbol=figiData.ticker+vsuffix;
+      setStatus('Valor '+vv+' → '+figiData.name+' ('+symbol+') — confirm this is the intended security.');
+    } else if(inputType==='cusip'){
+      // A CUSIP yields its ISIN by arithmetic alone, so a CUSIP that is
+      // definitely a CUSIP can fill it in even when OpenFIGI is unreachable.
+      //
+      // But an ALL-NUMERIC 9-digit string is genuinely ambiguous: it is also
+      // the shape of a Swiss Valor, and roughly one in ten such Valoren pass
+      // the CUSIP check digit by coincidence. Filling a US ISIN for what is
+      // actually a Swiss security is the identifier-substitution error this
+      // whole path exists to prevent — so in the ambiguous case nothing is
+      // filled until something RESOLVES, and the Valor reading is tried too.
+      const cus=normalizeCusip(raw);
+      const ambiguous=/^[0-9]{9}$/.test(cus);
+      const derivedIsin=cusipToIsin(cus,'US');
+      setStatus('Resolving CUSIP '+cus+' via OpenFIGI…');
+      let figiErr=null;
+      try{
+        figiData=await openFigiMap('ID_CUSIP',cus,'US');
+      }catch(e){ figiErr=e; figiData=null; }
+
+      if((!figiData||!figiData.ticker)&&ambiguous){
+        // Try it as a Valor before giving up.
+        const vCand=valorToIsin(cus);
+        if(vCand){
+          setStatus('No CUSIP match — trying '+cus+' as a Swiss Valor…');
+          try{
+            const vHit=await openFigiMap('ID_ISIN',vCand,'CH');
+            if(vHit&&vHit.ticker){
+              _applyResolvedIds(prefix,'',vCand,cus);
+              const vsfx=FIGI_SUFFIX[vHit.exchCode]||'';
+              symbol=vHit.ticker+vsfx;
+              figiData=vHit;
+              setStatus('Valor '+cus+' → '+vHit.name+' ('+symbol+') — confirm this is the intended security.');
+            }
+          }catch(_){ /* fall through to the honest failure below */ }
+        }
+      }
+
+      if(!figiData||!figiData.ticker){
+        if(ambiguous){
+          // Could be either identifier and neither resolved — fill NOTHING.
+          setStatus('⚠ '+cus+' did not resolve as a CUSIP or as a Swiss Valor. '
+            +'Enter the ISIN directly, or use the Valor field if it is Swiss.','#a83232');
+        } else if(figiErr){
+          _applyResolvedIds(prefix,cus,derivedIsin);
+          setStatus('⚠ Could not reach OpenFIGI ('+figiErr.message+'). CUSIP '+cus
+            +' is valid and its ISIN '+derivedIsin+' has been filled in; enter the ticker by hand for pricing.','#a83232');
+        } else {
+          _applyResolvedIds(prefix,cus,derivedIsin);
+          setStatus('⚠ CUSIP '+cus+' is valid but has no OpenFIGI listing. ISIN '+derivedIsin
+            +' filled in; enter the ticker by hand for pricing.','#a83232');
+        }
+        return;
+      }
+      if(!symbol||symbol===cus){
+        const csuffix=FIGI_SUFFIX[figiData.exchCode]||'';
+        symbol=figiData.ticker+csuffix;
+        _applyResolvedIds(prefix,cus,derivedIsin);
+        setStatus('CUSIP → '+symbol+' ('+figiData.exchCode+'), fetching quote…');
+      }
     } else if(inputType==='search'){
       setStatus('Searching "'+raw+'"…');
       try{

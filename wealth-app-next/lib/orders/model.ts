@@ -27,6 +27,18 @@ export type OrderSide = "BUY";
 export interface OrderInstrument {
   /** ISIN — what a European custodian actually books on. */
   isin?: string;
+  /**
+   * CUSIP — the US/Canadian identifier. For those issuers it determines the
+   * ISIN outright (see lib/orders/identifiers.ts), so the two must agree when
+   * both are present.
+   */
+  cusip?: string;
+  /**
+   * Valorennummer — the Swiss identifier SIX assigns and Avaloq books on.
+   * Unlike a CUSIP it carries NO check digit, and it maps to a CH ISIN only
+   * for Swiss-domiciled issues. See lib/orders/identifiers.ts.
+   */
+  valor?: string;
   /** Exchange ticker. Accepted, but many custodians will not resolve it. */
   ticker?: string;
   name?: string;
@@ -120,13 +132,24 @@ export function sameMoney(a: number, b: number): boolean {
  */
 export function ticketFingerprint(t: OrderTicket): string {
   const lines = t.lines
-    .map((l) => [
-      (l.instrument.isin || "").toUpperCase(),
-      (l.instrument.ticker || "").toUpperCase(),
-      l.side,
-      round2(l.amount).toFixed(2),
-      (l.currency || "").toUpperCase(),
-    ].join("|"))
+    .map((l) => {
+      const base = [
+        (l.instrument.isin || "").toUpperCase(),
+        (l.instrument.ticker || "").toUpperCase(),
+        l.side,
+        round2(l.amount).toFixed(2),
+        (l.currency || "").toUpperCase(),
+      ].join("|");
+      // CUSIP is APPENDED only when present, so adding the field did not
+      // change the fingerprint of any ticket that carries none — a stored
+      // fingerprint from before this field existed still matches, and a
+      // retry of such a ticket is still recognised as a retry.
+      // Both national identifiers are APPENDED only when present, so adding
+      // either field left the fingerprint of existing tickets untouched.
+      const cusip = (l.instrument.cusip || "").toUpperCase();
+      const valor = (l.instrument.valor || "").trim();
+      return base + (cusip ? `|C:${cusip}` : "") + (valor ? `|V:${valor}` : "");
+    })
     .sort();                       // line ORDER is not part of the instruction
   return [
     (t.account.id || "").trim(),
