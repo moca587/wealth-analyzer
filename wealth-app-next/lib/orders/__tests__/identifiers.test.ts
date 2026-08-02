@@ -251,3 +251,72 @@ describe("cross-checking a Valor against an ISIN", () => {
     expect(checkValorAgreement("", "CH0038863350").ok).toBe(true);
   });
 });
+
+// ═══ through the order path ═════════════════════════════════════
+import { ticketFingerprint, type OrderTicket, ORDER_SCHEMA, sumLines } from "../model";
+import { checkTicket, orderTicketSchema } from "../schema";
+import { ticketToWire } from "../adapters";
+
+const CONN = { account: "CH-1", currency: "CHF", maxTicketAmount: 10_000_000 };
+const mk = (inst: Record<string, string>): OrderTicket => {
+  const lines = [{
+    lineId: "ln1", side: "BUY" as const, instrument: inst as never,
+    weightPct: 100, amount: 1000, currency: "CHF", orderType: "market" as const, note: "",
+  }];
+  return {
+    schema: ORDER_SCHEMA, ticketId: "wo_probe_000001", createdAt: "", intent: "stage",
+    account: { id: "CH-1", custodian: "", currency: "CHF" }, client: { name: "", advisor: "" },
+    source: { system: "", version: "", objective: "" },
+    totals: { amount: sumLines(lines), currency: "CHF", positions: 1 }, lines,
+  };
+};
+
+describe("identifiers end-to-end through the order path", () => {
+  it("fingerprint of a valor-free ticket is unchanged by the new field", () => {
+    const noValor = mk({ isin: "CH0038863350", cusip: "", valor: "", ticker: "NESN", name: "N" });
+    expect(ticketFingerprint(noValor)).toBe(
+      ["CH-1", "CHF", "1000.00", "CH0038863350|NESN|BUY|1000.00|CHF"].join("\n"));
+  });
+
+  it("fingerprint CHANGES when a valor is added — it is part of the instruction", () => {
+    const a = ticketFingerprint(mk({ isin: "CH0038863350", valor: "", ticker: "NESN" }));
+    const b = ticketFingerprint(mk({ isin: "CH0038863350", valor: "3886335", ticker: "NESN" }));
+    expect(b).not.toBe(a);
+  });
+
+  it("a VALOR-ONLY line is identifiable and reaches the wire", () => {
+    const t = orderTicketSchema.parse(mk({ isin: "", cusip: "", valor: "3886335", ticker: "", name: "Nestle" })) as OrderTicket;
+    const r = checkTicket(t, CONN);
+    expect(r.ok, r.errors.join(" | ")).toBe(true);
+    const w = ticketToWire(r.ticket, "avaloq") as { orders: { instrument: Record<string, string> }[] };
+    expect(w.orders[0].instrument).toEqual({ valor: "3886335" });
+  });
+
+  it("valor normalisation survives the Zod round-trip (apostrophes on the wire)", () => {
+    const t = orderTicketSchema.parse(mk({ isin: "", valor: "3'886'335", ticker: "", name: "N" })) as OrderTicket;
+    const r = checkTicket(t, CONN);
+    expect(r.ticket.lines[0].instrument.valor).toBe("3886335");
+  });
+
+  it("a non-numeric valor is refused rather than silently dropped", () => {
+    const t = orderTicketSchema.parse(mk({ isin: "CH0038863350", valor: "ABC123", ticker: "" })) as OrderTicket;
+    const r = checkTicket(t, CONN);
+    expect(r.ok).toBe(false);
+    expect(r.errors.join(" ")).toMatch(/not a plain number/);
+  });
+
+  it("Beatrice's real Swiss holdings back-fill their Valors", () => {
+    expect(isinToValor("CH0237935652")).toBe("23793565");
+    expect(isinToValor("CH0226976816")).toBe("22697681");
+    expect(isinToValor("CH0106027193")).toBe("10602719");
+    expect(isinToValor("IE00B3RBWM25")).toBeNull();
+    expect(isinToValor("IE00BKM4GZ66")).toBeNull();
+    expect(isinToValor("IE00BDBRDM35")).toBeNull();
+  });
+
+  it("round-trips those back to the same ISIN", () => {
+    for (const i of ["CH0237935652", "CH0226976816", "CH0106027193"]) {
+      expect(valorToIsin(isinToValor(i)!), i).toBe(i);
+    }
+  });
+});

@@ -3565,7 +3565,7 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
       <div class="fld"><label>Ticker</label>
         <div style="display:flex;gap:4px;align-items:stretch">
           <input id="pfTkr" placeholder="Ticker / ISIN / fund name" oninput="applyHoldingTickerPrefill()" onblur="fetchInstrumentLive('pf')" onkeydown="if(event.key==='Enter'){event.preventDefault();fetchInstrumentLive('pf');}" style="flex:1;min-width:0">
-          <button type="button" id="pfAvBtn" onclick="fetchInstrumentLive('pf')" title="Fetch data — supports tickers (VOO), ISINs/UCITs (IE00B3RBWM25), exchange symbols (VUSA.L), or fund name search" style="padding:4px 8px;font-size:11px;border:1px solid var(--gold);background:var(--bg3);color:var(--gold);border-radius:4px;cursor:pointer;white-space:nowrap;font-weight:600">↻ Fetch</button>
+          <button type="button" id="pfAvBtn" onclick="fetchInstrumentLive('pf')" title="Fetch data — supports tickers (VOO), ISINs (IE00B3RBWM25), Swiss Valoren (3886335), CUSIPs (037833100), exchange symbols (VUSA.L), or fund name search" style="padding:4px 8px;font-size:11px;border:1px solid var(--gold);background:var(--bg3);color:var(--gold);border-radius:4px;cursor:pointer;white-space:nowrap;font-weight:600">↻ Fetch</button>
         </div>
       </div>
       <div class="fld"><label>Class</label>
@@ -3782,7 +3782,7 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
       <div class="fld"><label>Ticker</label>
         <div style="display:flex;gap:4px;align-items:stretch">
           <input id="prTkr" placeholder="Ticker / ISIN / fund name" oninput="applyTickerPrefill()" onblur="fetchInstrumentLive('pr')" onkeydown="if(event.key==='Enter'){event.preventDefault();fetchInstrumentLive('pr');}" style="flex:1;min-width:0">
-          <button type="button" id="prAvBtn" onclick="fetchInstrumentLive('pr')" title="Fetch data — supports tickers (VOO), ISINs/UCITs (IE00B3RBWM25), exchange symbols (VUSA.L), or fund name search" style="padding:4px 8px;font-size:11px;border:1px solid var(--gold);background:var(--bg3);color:var(--gold);border-radius:4px;cursor:pointer;white-space:nowrap;font-weight:600">↻ Fetch</button>
+          <button type="button" id="prAvBtn" onclick="fetchInstrumentLive('pr')" title="Fetch data — supports tickers (VOO), ISINs (IE00B3RBWM25), Swiss Valoren (3886335), CUSIPs (037833100), exchange symbols (VUSA.L), or fund name search" style="padding:4px 8px;font-size:11px;border:1px solid var(--gold);background:var(--bg3);color:var(--gold);border-radius:4px;cursor:pointer;white-space:nowrap;font-weight:600">↻ Fetch</button>
         </div>
       </div>
       <div class="fld"><label>Class</label>
@@ -4456,7 +4456,7 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
 // ═══════════════════════════════════════════════════════════
 // VERSION — updated by build-standalone.pl on each build
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260801-2233";
+const APP_VERSION = "20260802-1236";
 
 // ═══════════════════════════════════════════════════════════
 // DATA
@@ -14367,16 +14367,17 @@ function drawProposalPie(){
 function applyTickerPrefill(){
   const raw=(val("prTkr")||"").trim().toUpperCase();
   const hint=$("prTkrHint");
-  // A CUSIP is resolved on blur, not per keystroke — saying "no local
-  // reference" nine times while one is typed is noise.
-  if(detectInputType((val("prTkr")||"").trim())==='cusip'){
-    if(hint){ hint.textContent="CUSIP recognised — leave the field to resolve it."; hint.style.color="var(--text3)"; }
+  // A CUSIP or Valor is resolved on blur, not per keystroke — reporting "no
+  // local reference" on every character while one is typed is noise.
+  const _idKind=detectInputType((val("prTkr")||"").trim());
+  if(_idKind==='cusip'||_idKind==='valor'){
+    if(hint){ hint.textContent=(_idKind==='cusip'?'CUSIP':'Valor')+" recognised — leave the field to resolve it."; hint.style.color="var(--text3)"; }
     return;
   }
   if(!raw){ resetProposalForm(); return; }   // ticker cleared → wipe the form for a fresh lookup
   const t=TICKER_DB[raw];
   if(!t){
-    if(hint){hint.textContent="No local reference for "+raw+" — fill manually or click ↻ AV.";hint.style.color="var(--text3)";}
+    if(hint){hint.textContent="No local reference for "+raw+" — fill manually or click ↻ Fetch.";hint.style.color="var(--text3)";}
     return;
   }
   if(!val("prName").trim()) $("prName").value=t.name;
