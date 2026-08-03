@@ -1548,9 +1548,30 @@ const RISK_FREE_BY_CCY = {
     f.r3y      = ov.r3y      ?? +(d.r3y  + j[1]*5).toFixed(2);
     f.r5y      = ov.r5y      ?? +(d.r5y  + j[2]*4).toFixed(2);
     f.r10y     = ov.r10y     ?? +(d.r10y + j[3]*3).toFixed(2);
-    f.maxDD    = ov.maxDD    ?? -(+(f.sigma * 2.0 * (1 + Math.abs(j[4])*0.5)).toFixed(1));
+    // A long-only, unlevered fund cannot draw down more than 100%. The
+    // sigma-derived fallback is unbounded and crypto's sigma of 65 pushed 19
+    // funds past -100% (worst -145.7), a figure that then reached the LLM
+    // prompt and the client-facing "Max DD" chip as though it were historical.
+    // Levered and inverse products are exempt — they genuinely can exceed it.
+    const _levered = /\b(2x|3x|ultra|leveraged|inverse|short|bull|bear)\b/i.test(f.name || "");
+    const _rawDD   = ov.maxDD ?? -(+(f.sigma * 2.0 * (1 + Math.abs(j[4])*0.5)).toFixed(1));
+    f.maxDD    = _levered ? _rawDD : Math.max(-100, _rawDD);
     const rf   = RISK_FREE_BY_CCY[(f.ccy || "USD").toUpperCase()] ?? RISK_FREE_BY_CCY.USD;
-    f.sharpe   = ov.sharpe   ?? +((f.mu - rf) / Math.max(0.5, f.sigma)).toFixed(2);
+    // The Math.max(0.5, sigma) floor binds only on cash (most cash funds sit
+    // well below 0.5), which pinned the divisor and reduced Sharpe to
+    // (mu - rf) * 2 — where mu is the class default jittered by a hash of the
+    // TICKER STRING. Two near-identical government money-market funds came out
+    // at +2.48 and -0.38 purely on their names. A money-market fund earns about
+    // the risk-free rate by construction, so its excess return is ~0 and any
+    // large Sharpe here is an artefact, not information. Report it as ~0 and
+    // let the sleeve's own currency and expense-ratio logic do the ranking.
+    if(ov.sharpe != null){
+      f.sharpe = ov.sharpe;
+    } else if(f.cls === "cash"){
+      f.sharpe = +Math.max(-0.5, Math.min(0.5, (f.mu - rf) / 2)).toFixed(2);
+    } else {
+      f.sharpe = +((f.mu - rf) / Math.max(0.5, f.sigma)).toFixed(2);
+    }
     // Tracking error: active mutual funds 1.5-4%, ETFs <0.3%
     f.te = ov.te ?? (f.vehicle === "mutual_fund"
       ? +(1.5 + (h % 25) / 10).toFixed(2)
