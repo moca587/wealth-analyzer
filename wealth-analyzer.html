@@ -1405,6 +1405,12 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
         <div id="regimeNote" class="set-note" style="margin-top:2px"></div>
         <div class="set-row-lbl" style="margin-top:10px"><b>External processors</b><small>Every host this app can contact, and what it receives. Tick the ones your firm has approved.</small></div>
         <div id="subprocList" style="margin-top:6px"></div>
+        <div class="set-actions" style="margin-top:12px">
+          <button class="btn-secondary" onclick="waCompliancePack()" style="padding:8px 16px">⬇ Data protection summary</button>
+          <button class="btn-secondary" onclick="saveProfile()" style="padding:8px 16px">⬇ Export all data</button>
+          <button class="btn-secondary" onclick="waEraseAll()" style="padding:8px 16px;color:var(--red)">✕ Erase everything</button>
+        </div>
+        <div class="set-note" style="margin-top:6px">The summary lists every processor, what it receives and your approvals, with the audit trail — the document a risk team asks for. Erasing removes every household record, setting, key and log entry from this browser.</div>
       </div>
       <div class="set-sec">
       <div class="set-sec-h">About</div>
@@ -4024,7 +4030,7 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
 // ═══════════════════════════════════════════════════════════
 // VERSION — updated by build-standalone.pl on each build
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260803-1641";
+const APP_VERSION = "20260803-1720";
 
 // ═══════════════════════════════════════════════════════════
 // DATA
@@ -14602,16 +14608,111 @@ const WA_REGIMES = {
 // What each external host actually receives. Kept honest deliberately: this
 // list is what a due diligence team is handed, so it must match the code.
 const WA_SUBPROCESSORS = [
-  {host:"api.anthropic.com", name:"Anthropic (AI intake and builder)", region:"United States",
-   receives:"Documents an advisor submits to the AI, and the profile extracted from them", group:"ai"},
-  {host:"cdnjs.cloudflare.com", name:"Cloudflare CDN", region:"Global edge network",
-   receives:"Browser IP address and user agent when a library is loaded", group:"cdn"},
-  {host:"query1.finance.yahoo.com", name:"Yahoo Finance", region:"United States",
-   receives:"Ticker symbols being priced", group:"market"},
-  {host:"finnhub.io", name:"Finnhub", region:"United States", receives:"Ticker symbols being priced", group:"market"},
-  {host:"www.alphavantage.co", name:"Alpha Vantage", region:"United States", receives:"Ticker symbols being priced", group:"market"},
-  {host:"openexchangerates.org", name:"Open Exchange Rates", region:"United States", receives:"Currency pairs requested", group:"market"}
+  {host:"api.anthropic.com", name:"Anthropic (AI intake and builder)", region:"United States", group:"ai",
+   receives:"Documents an advisor submits to the AI, and the profile extracted from them",
+   transfer:"Outside the EEA/CH. Record the provider's current mechanism (adequacy decision, Data Privacy Framework certification, or standard contractual clauses) in your file before use.",
+   retention:"Per the provider's API terms. No client record is stored by WealthAnalyzer on their side."},
+  {host:"corsproxy.io", name:"corsproxy.io (public relay)", region:"Not disclosed by the operator", group:"relay",
+   receives:"The market data URL being requested, which reveals the ticker symbol looked up",
+   transfer:"Operator location undisclosed, so no transfer mechanism can be evidenced. Leave blocked for institutional use.",
+   retention:"Unknown."},
+  {host:"fonts.googleapis.com", name:"Google Fonts", region:"United States", group:"cdn",
+   receives:"Browser IP address and user agent on every page load",
+   transfer:"Avoidable: self-host the font files and this processor disappears.",
+   retention:"Per Google's terms."},
+  {host:"cdnjs.cloudflare.com", name:"Cloudflare CDN", region:"Global edge network", group:"cdn",
+   receives:"Browser IP address and user agent when a library is loaded",
+   transfer:"Avoidable: bundle the libraries and this processor disappears.",
+   retention:"Per Cloudflare's terms."},
+  {host:"query1.finance.yahoo.com", name:"Yahoo Finance", region:"United States", group:"market",
+   receives:"Ticker symbols being priced. No client identifier is sent.",
+   transfer:"No personal data is sent, but the symbols reveal portfolio composition.",
+   retention:"Per the vendor's terms."},
+  {host:"finnhub.io", name:"Finnhub", region:"United States", group:"market",
+   receives:"Ticker symbols being priced. No client identifier is sent.",
+   transfer:"No personal data is sent.", retention:"Per the vendor's terms."},
+  {host:"www.alphavantage.co", name:"Alpha Vantage", region:"United States", group:"market",
+   receives:"Ticker symbols being priced. No client identifier is sent.",
+   transfer:"No personal data is sent.", retention:"Per the vendor's terms."},
+  {host:"openexchangerates.org", name:"Open Exchange Rates", region:"United States", group:"market",
+   receives:"Currency pairs requested. No client identifier is sent.",
+   transfer:"No personal data is sent.", retention:"Per the vendor's terms."}
 ];
+
+// ── Audit trail ────────────────────────────────────────────────────────────
+// A short, local, append-only record of the events a reviewer asks about: who
+// approved which processor, when documents went to the AI, when data was
+// exported or erased. Capped so it cannot grow without bound.
+const WA_AUDIT_MAX = 500;
+function waAudit(event, detail){
+  try{
+    const log = JSON.parse(localStorage.getItem("wa_audit_log") || "[]");
+    log.push({t:new Date().toISOString(), e:String(event), d:String(detail||"")});
+    while(log.length > WA_AUDIT_MAX) log.shift();
+    localStorage.setItem("wa_audit_log", JSON.stringify(log));
+  }catch(_){ }
+}
+function waAuditLog(){
+  try{ return JSON.parse(localStorage.getItem("wa_audit_log") || "[]"); }catch(_){ return []; }
+}
+
+// ── Data subject support ───────────────────────────────────────────────────
+// Erasure has to be real and total, including the keys and the audit trail, or
+// it is not erasure. The confirmation names what goes.
+function waEraseAll(){
+  const n = waAuditLog().length;
+  if(!confirm("Erase every household record, saved setting, API key and the audit trail ("
+      + n + " entries) from this browser?\n\nThis cannot be undone. Export first if you need a copy."))
+    return;
+  try{ localStorage.clear(); }catch(_){ }
+  try{ sessionStorage.clear(); }catch(_){ }
+  alert("Erased. The page will reload.");
+  location.reload();
+}
+
+// The artefact a due diligence team is handed: regime, every processor, what it
+// receives, the firm's own approvals, and the audit trail. Generated from the
+// same constants the code enforces, so it cannot drift from reality.
+function waCompliancePack(){
+  const r = WA_REGIMES[waRegime()] || WA_REGIMES.ch;
+  const approved = waApprovedHosts(), inst = waInstitutional();
+  const L = [];
+  L.push("WealthAnalyzer \u2014 data protection summary");
+  L.push("Generated: " + new Date().toISOString());
+  L.push("");
+  L.push("REGIME");
+  L.push("  " + r.label);
+  L.push("  " + r.law);
+  L.push("  Institutional mode: " + (inst ? "ON \u2014 only approved hosts are contacted"
+                                          : "OFF \u2014 any processor below may be contacted"));
+  L.push("");
+  L.push("EXTERNAL PROCESSORS");
+  WA_SUBPROCESSORS.forEach(function(s){
+    const on = approved.indexOf(s.host) >= 0;
+    L.push("  " + s.name);
+    L.push("    Host       : " + s.host);
+    L.push("    Region     : " + s.region);
+    L.push("    Receives   : " + s.receives);
+    L.push("    Transfer   : " + (s.transfer || "\u2014"));
+    L.push("    Retention  : " + (s.retention || "\u2014"));
+    L.push("    Status     : " + (inst ? (on ? "APPROVED by this firm" : "BLOCKED") : "reachable (institutional mode off)"));
+    L.push("");
+  });
+  L.push("PROCESSING CARRIED OUT IN THE BROWSER");
+  L.push("  Planning, simulation, drawdown and proposal calculations run locally.");
+  L.push("  Household records are held in this browser's local storage unless the firm exports them.");
+  L.push("");
+  L.push("AUDIT TRAIL (" + waAuditLog().length + " entries)");
+  waAuditLog().forEach(function(a){ L.push("  " + a.t + "  " + a.e + (a.d ? "  \u2014 " + a.d : "")); });
+  const blob = new Blob([L.join("\n")], {type:"text/plain;charset=utf-8"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "wealthanalyzer-data-protection-" + new Date().toISOString().slice(0,10) + ".txt";
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(function(){ URL.revokeObjectURL(a.href); }, 1000);
+  waAudit("compliance-pack-exported", r.label);
+}
+
 
 function waRegime(){ return localStorage.getItem("wa_regime") || "ch"; }
 function waInstitutional(){ return localStorage.getItem("wa_institutional") === "1"; }
@@ -14827,15 +14928,18 @@ function renderRegimeNote(){
 }
 function onRegimeChange(){
   const sel = document.getElementById("setRegime");
-  if(sel) localStorage.setItem("wa_regime", sel.value);
+  if(sel){ localStorage.setItem("wa_regime", sel.value); waAudit("regime-changed", sel.value); }
   renderRegimeNote();
 }
 function onInstitutionalChange(){
   const el = document.getElementById("setInstitutional");
   localStorage.setItem("wa_institutional", (el && el.checked) ? "1" : "0");
+  waAudit("institutional-mode", (el && el.checked) ? "on" : "off");
   renderRegimeNote(); renderSubprocessors();
 }
-function onSubprocToggle(host, on){ waSetApproved(host, on); renderSubprocessors(); renderRegimeNote(); }
+function onSubprocToggle(host, on){ waSetApproved(host, on);
+  waAudit(on ? "processor-approved" : "processor-blocked", host);
+  renderSubprocessors(); renderRegimeNote(); }
 function renderCompliance(){ renderRegimeNote(); renderSubprocessors(); }
 
 // Advisors must see where a document is going before it leaves the browser.
@@ -14846,6 +14950,7 @@ function waAiConsent(){
   const ok = confirm("The documents you selected, and the profile extracted from them, will be sent to "
     + where + " for processing.\n\nRegime: " + (WA_REGIMES[waRegime()] || {}).label
     + "\n\nContinue?");
+  waAudit(ok ? "ai-consent-granted" : "ai-consent-declined", where);
   if(ok) sessionStorage.setItem("wa_ai_consent", "1");
   return ok;
 }
