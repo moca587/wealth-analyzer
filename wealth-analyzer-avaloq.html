@@ -744,6 +744,33 @@ input[type=date]{color-scheme:light}
   </div>
 </div>
 <script>
+// ── Public relay: off unless a firm opts in ────────────────────────────────
+// A relay of undisclosed jurisdiction cannot be covered by a processor
+// agreement, so it is disabled by default. Where a firm enables it, vendor
+// credentials are still stripped before anything is handed over.
+function waRelayAllowed(){
+  try{ return localStorage.getItem("wa_allow_public_relay") === "1"; }catch(_){ return false; }
+}
+function waRelayStrip(opts){
+  if(!opts || !opts.headers) return opts;
+  var out = {}, k;
+  for(k in opts) if(Object.prototype.hasOwnProperty.call(opts,k)) out[k]=opts[k];
+  var hs = {}, drop = /^(authorization|x-api-key|x-openfigi-apikey|apikey|token|cookie)$/i, src = opts.headers;
+  if(src && typeof src.forEach === "function" && !Array.isArray(src)){
+    src.forEach(function(v,kk){ if(!drop.test(kk)) hs[kk]=v; });
+  } else {
+    Object.keys(src).forEach(function(kk){ if(!drop.test(kk)) hs[kk]=src[kk]; });
+  }
+  out.headers = hs;
+  return out;
+}
+function waRelay(url, opts){
+  if(!waRelayAllowed())
+    return Promise.reject(new Error("Blocked: this request needs a public relay of undisclosed "
+      + "jurisdiction, which is off by default. A firm can enable it deliberately."));
+  return fetch("https://corsproxy.io/?" + encodeURIComponent(url), waRelayStrip(opts));
+}
+
   // Defined inline (before the main app script) so the Launch button + Settings work immediately.
   function launchApp(){
     var s=document.getElementById('introScreen');
@@ -9977,8 +10004,8 @@ const MarketData = (function(){
       throw new Error("HTTP "+r.status);
     } catch(_){
       // Network error → retry through CORS proxy
-      const proxied = "https://corsproxy.io/?" + encodeURIComponent(url);
-      return await fetch(proxied, opts);
+      const proxied = null; // relay is gated below
+      return await waRelay(url, opts);
     }
   }
 
@@ -10114,7 +10141,7 @@ const MarketData = (function(){
   async function tryYahoo(t){
     const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(t)}?interval=1d`;
     let r;
-    try { r = await fetch(url); } catch(e){ r = await fetch(`https://corsproxy.io/?${encodeURIComponent(url)}`); }
+    try { r = await fetch(url); } catch(e){ r = await waRelay(url); }
     if(!r.ok) throw new Error("HTTP "+r.status);
     const j = await r.json(); const m = j.chart && j.chart.result && j.chart.result[0] && j.chart.result[0].meta;
     if(!m) throw new Error("No meta");
@@ -10144,7 +10171,7 @@ const MarketData = (function(){
     const sym = t.includes(".") ? t.toLowerCase() : t.toLowerCase() + ".us";
     const url = `https://stooq.com/q/l/?s=${encodeURIComponent(sym)}&f=sd2t2ohlcv&h&e=csv`;
     let r;
-    try { r = await fetch(url); } catch(e){ r = await fetch(`https://corsproxy.io/?${encodeURIComponent(url)}`); }
+    try { r = await fetch(url); } catch(e){ r = await waRelay(url); }
     if(!r.ok) throw new Error("HTTP "+r.status);
     const txt = await r.text();
     const lines = txt.trim().split("\n"); if(lines.length < 2) throw new Error("No data");

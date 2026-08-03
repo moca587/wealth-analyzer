@@ -1080,6 +1080,33 @@ Citations:<br>
 </div>
 
 <script>
+// ── Public relay: off unless a firm opts in ────────────────────────────────
+// A relay of undisclosed jurisdiction cannot be covered by a processor
+// agreement, so it is disabled by default. Where a firm enables it, vendor
+// credentials are still stripped before anything is handed over.
+function waRelayAllowed(){
+  try{ return localStorage.getItem("wa_allow_public_relay") === "1"; }catch(_){ return false; }
+}
+function waRelayStrip(opts){
+  if(!opts || !opts.headers) return opts;
+  var out = {}, k;
+  for(k in opts) if(Object.prototype.hasOwnProperty.call(opts,k)) out[k]=opts[k];
+  var hs = {}, drop = /^(authorization|x-api-key|x-openfigi-apikey|apikey|token|cookie)$/i, src = opts.headers;
+  if(src && typeof src.forEach === "function" && !Array.isArray(src)){
+    src.forEach(function(v,kk){ if(!drop.test(kk)) hs[kk]=v; });
+  } else {
+    Object.keys(src).forEach(function(kk){ if(!drop.test(kk)) hs[kk]=src[kk]; });
+  }
+  out.headers = hs;
+  return out;
+}
+function waRelay(url, opts){
+  if(!waRelayAllowed())
+    return Promise.reject(new Error("Blocked: this request needs a public relay of undisclosed "
+      + "jurisdiction, which is off by default. A firm can enable it deliberately."));
+  return fetch("https://corsproxy.io/?" + encodeURIComponent(url), waRelayStrip(opts));
+}
+
 "use strict";
 // One-time migration: move the AI-assistant key from its old provider-specific
 // name to the neutral key (localStorage is shared with the main app).
@@ -1110,7 +1137,7 @@ function toggleQuestionnairePreview(){
 // ═══════════════════════════════════════════════════════════
 // VERSION + UTILS
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260803-1720";
+const APP_VERSION = "20260803-1737";
 const $ = (id) => document.getElementById(id);
 const $$ = (sel, ctx) => Array.from((ctx||document).querySelectorAll(sel));
 
@@ -2862,7 +2889,7 @@ function curatedItems(id){
 async function fetchFeedItems(url){
   if(!url) return [];
   try {
-    const r = await fetch("https://corsproxy.io/?"+encodeURIComponent(url));
+    const r = await waRelay(url);
     if(!r.ok) return [];
     const text = await r.text();
     const doc = new DOMParser().parseFromString(text, "application/xml");
@@ -3870,7 +3897,7 @@ async function fetchQuote(ticker, provider){
       case "yahoo": {
         let r;
         try { r = await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?interval=1d`); }
-        catch(_) { r = await fetch(`https://corsproxy.io/?https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?interval=1d`); }
+        catch(_) { r = await waRelay(`https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?interval=1d`); }
         if(!r.ok) throw new Error("HTTP "+r.status);
         const j=await r.json(); const m=j.chart?.result?.[0]?.meta; if(!m) throw new Error("No data");
         return {price:m.regularMarketPrice,change:m.regularMarketPrice-m.previousClose,changePct:(m.regularMarketPrice/m.previousClose-1)*100,high:m.regularMarketDayHigh,low:m.regularMarketDayLow,currency:m.currency,exchange:m.exchangeName,source:"yahoo"};
@@ -3879,7 +3906,7 @@ async function fetchQuote(ticker, provider){
         const sym = ticker.includes(".") ? ticker.toLowerCase() : ticker.toLowerCase() + ".us";
         const url = `https://stooq.com/q/l/?s=${sym}&f=sd2t2ohlcv&h&e=csv`;
         let r;
-        try { r = await fetch(url); } catch(_){ r = await fetch(`https://corsproxy.io/?${encodeURIComponent(url)}`); }
+        try { r = await fetch(url); } catch(_){ r = await waRelay(url); }
         if(!r.ok) throw new Error("HTTP "+r.status);
         const txt = await r.text();
         const lines = txt.trim().split("\n"); if(lines.length < 2) throw new Error("No data");
@@ -4426,7 +4453,7 @@ async function corsFetch(url, opts){
     if(r.status >= 400 && r.status < 500) return r;
     throw new Error("HTTP "+r.status);
   } catch(_){
-    return await fetch("https://corsproxy.io/?" + encodeURIComponent(url), opts);
+    return await waRelay(url, opts);
   }
 }
 
