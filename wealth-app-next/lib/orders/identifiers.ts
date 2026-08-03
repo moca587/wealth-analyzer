@@ -185,7 +185,22 @@ export function isValidValorFormat(valor: string | number): boolean {
 
 /** Trim, drop separators and leading zeros. Valors are written unpadded. */
 export function normalizeValor(valor: string | number): string {
-  const s = String(valor ?? "").trim().replace(/[\s.'-]/g, "");
+  // A Valor is an integer. Apostrophes always group (1'222'171), but '.' is
+  // ambiguous: de-CH/de-DE group with it ("3.886.335" = 3886335) while
+  // "12032.04" is a decimal. Stripping '.' unconditionally turned the latter
+  // into 1203204 — Roche GS's real Valor — a silent swap to a different
+  // tradeable security that no check digit downstream can catch. Treat '.' as
+  // grouping only when it genuinely groups in threes.
+  let s = String(valor ?? "").trim().replace(/[\s'-]/g, "");
+  if (s.includes(".")) {
+    const parts = s.split(".");
+    const grouped =
+      parts.length > 1 &&
+      /^[0-9]{1,3}$/.test(parts[0]) &&
+      parts.slice(1).every((p) => /^[0-9]{3}$/.test(p));
+    if (!grouped) return "";
+    s = parts.join("");
+  }
   if (!/^[0-9]+$/.test(s)) return "";
   return s.replace(/^0+/, "");
 }

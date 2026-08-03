@@ -1146,21 +1146,21 @@ const FUND_UNIVERSE = [
   //     same portfolio; mu is reduced by the cost of hedging into CHF (the rate
   //     differential), so Sharpe against the CHF risk-free matches the base class.
   //     `family` pairs them so a portfolio can never hold both. ---
-  {tkr:"DWSCKC",name:"DWS Concept Kaldemorgen LCH CHF (hedged)",cls:"alternative",vehicle:"mutual_fund",er:1.55,yld:0.0,sponsor:"DWS",dom:"LU",ucits:true,ccy:"CHF",family:"dws-kaldemorgen"},
-  {tkr:"JPGMOC",name:"JPMorgan Investment Funds Global Macro Opportunities A CHF (hedged)",cls:"alternative",vehicle:"mutual_fund",er:1.70,yld:0.0,sponsor:"JPMorgan",dom:"LU",ucits:true,ccy:"CHF",family:"jpm-global-macro"},
-  {tkr:"MANTGRC",name:"Man AHL TargetRisk D CHF Hedged",cls:"alternative",vehicle:"mutual_fund",er:0.90,yld:0.0,sponsor:"Man Group",dom:"IE",ucits:true,ccy:"CHF",family:"man-ahl-targetrisk"},
-  {tkr:"MANTRDC",name:"Man AHL Trend Alternative DNY CHF Hedged",cls:"alternative",vehicle:"mutual_fund",er:1.30,yld:0.0,sponsor:"Man Group",dom:"IE",ucits:true,ccy:"CHF",family:"man-ahl-trend"},
-  {tkr:"PICTATC",name:"Pictet TR Atlas I CHF (hedged)",cls:"alternative",vehicle:"mutual_fund",er:1.60,yld:0.0,sponsor:"Pictet",dom:"LU",ucits:true,ccy:"CHF",family:"pictet-tr-atlas"},
-  {tkr:"PICTDAC",name:"Pictet TR Diversified Alpha I CHF (hedged)",cls:"alternative",vehicle:"mutual_fund",er:1.55,yld:0.0,sponsor:"Pictet",dom:"LU",ucits:true,ccy:"CHF",family:"pictet-tr-divalpha"},
-  {tkr:"SGAIBTC",name:"Schroder GAIA BlueTrend C CHF Hedged",cls:"alternative",vehicle:"mutual_fund",er:1.75,yld:0.0,sponsor:"Schroders",dom:"LU",ucits:true,ccy:"CHF",family:"gaia-bluetrend"},
-  {tkr:"SGAICBC",name:"Schroder GAIA Cat Bond C CHF Hedged",cls:"alternative",vehicle:"mutual_fund",er:1.45,yld:0.0,sponsor:"Schroders",dom:"LU",ucits:true,ccy:"CHF",family:"gaia-cat-bond"},
-  {tkr:"GAMSCBC",name:"GAM Star Cat Bond Institutional CHF Hedged",cls:"alternative",vehicle:"mutual_fund",er:1.15,yld:0.0,sponsor:"GAM",dom:"IE",ucits:true,ccy:"CHF",family:"gam-star-cat-bond"},
-  {tkr:"NORA10C",name:"Nordea 1 Alpha 10 MA Fund BI CHF (hedged)",cls:"alternative",vehicle:"mutual_fund",er:1.05,yld:0.0,sponsor:"Nordea",dom:"LU",ucits:true,ccy:"CHF",family:"nordea-alpha-10"},
-  {tkr:"BSFGEDC",name:"BlackRock Strategic Funds Global Event Driven A2 CHF Hedged",cls:"alternative",vehicle:"mutual_fund",er:1.60,yld:0.0,sponsor:"BlackRock",dom:"LU",ucits:true,ccy:"CHF",family:"bsf-event-driven"},
-  {tkr:"LUMMWTC",name:"Lumyna MW TOPS UCITS A CHF Hedged",cls:"alternative",vehicle:"mutual_fund",er:1.75,yld:0.0,sponsor:"Lumyna",dom:"IE",ucits:true,ccy:"CHF",family:"lumyna-mw-tops"},
-  {tkr:"JUPGARC",name:"Jupiter Merian Global Equity Absolute Return I CHF (hedged)",cls:"alternative",vehicle:"mutual_fund",er:0.90,yld:0.0,sponsor:"Jupiter",dom:"IE",ucits:true,ccy:"CHF",family:"jupiter-gear"},
-  {tkr:"ELEVARC",name:"Eleva Absolute Return Europe I CHF (hedged)",cls:"alternative",vehicle:"mutual_fund",er:1.50,yld:0.0,sponsor:"Eleva",dom:"LU",ucits:true,ccy:"CHF",family:"eleva-are"},
-  {tkr:"BNYGRRC",name:"BNY Mellon Global Real Return CHF Hedged",cls:"alternative",vehicle:"mutual_fund",er:1.10,yld:0.0,sponsor:"BNY Mellon",dom:"IE",ucits:true,ccy:"CHF",family:"bny-global-real-return"},
+  {tkr:"DWSCKC",name:"DWS Concept Kaldemorgen LCH CHF (hedged)",cls:"alternative",vehicle:"mutual_fund",er:1.55,yld:0.0,sponsor:"DWS",dom:"LU",ucits:true,ccy:"CHF",family:"dws-kaldemorgen",hedged:true},
+  {tkr:"JPGMOC",name:"JPMorgan Investment Funds Global Macro Opportunities A CHF (hedged)",cls:"alternative",vehicle:"mutual_fund",er:1.70,yld:0.0,sponsor:"JPMorgan",dom:"LU",ucits:true,ccy:"CHF",family:"jpm-global-macro",hedged:true},
+  {tkr:"MANTGRC",name:"Man AHL TargetRisk D CHF Hedged",cls:"alternative",vehicle:"mutual_fund",er:0.90,yld:0.0,sponsor:"Man Group",dom:"IE",ucits:true,ccy:"CHF",family:"man-ahl-targetrisk",hedged:true},
+  {tkr:"MANTRDC",name:"Man AHL Trend Alternative DNY CHF Hedged",cls:"alternative",vehicle:"mutual_fund",er:1.30,yld:0.0,sponsor:"Man Group",dom:"IE",ucits:true,ccy:"CHF",family:"man-ahl-trend",hedged:true},
+  {tkr:"PICTATC",name:"Pictet TR Atlas I CHF (hedged)",cls:"alternative",vehicle:"mutual_fund",er:1.60,yld:0.0,sponsor:"Pictet",dom:"LU",ucits:true,ccy:"CHF",family:"pictet-tr-atlas",hedged:true},
+  {tkr:"PICTDAC",name:"Pictet TR Diversified Alpha I CHF (hedged)",cls:"alternative",vehicle:"mutual_fund",er:1.55,yld:0.0,sponsor:"Pictet",dom:"LU",ucits:true,ccy:"CHF",family:"pictet-tr-divalpha",hedged:true},
+  {tkr:"SGAIBTC",name:"Schroder GAIA BlueTrend C CHF Hedged",cls:"alternative",vehicle:"mutual_fund",er:1.75,yld:0.0,sponsor:"Schroders",dom:"LU",ucits:true,ccy:"CHF",family:"gaia-bluetrend",hedged:true},
+  {tkr:"SGAICBC",name:"Schroder GAIA Cat Bond C CHF Hedged",cls:"alternative",vehicle:"mutual_fund",er:1.45,yld:0.0,sponsor:"Schroders",dom:"LU",ucits:true,ccy:"CHF",family:"gaia-cat-bond",hedged:true},
+  {tkr:"GAMSCBC",name:"GAM Star Cat Bond Institutional CHF Hedged",cls:"alternative",vehicle:"mutual_fund",er:1.15,yld:0.0,sponsor:"GAM",dom:"IE",ucits:true,ccy:"CHF",family:"gam-star-cat-bond",hedged:true},
+  {tkr:"NORA10C",name:"Nordea 1 Alpha 10 MA Fund BI CHF (hedged)",cls:"alternative",vehicle:"mutual_fund",er:1.05,yld:0.0,sponsor:"Nordea",dom:"LU",ucits:true,ccy:"CHF",family:"nordea-alpha-10",hedged:true},
+  {tkr:"BSFGEDC",name:"BlackRock Strategic Funds Global Event Driven A2 CHF Hedged",cls:"alternative",vehicle:"mutual_fund",er:1.60,yld:0.0,sponsor:"BlackRock",dom:"LU",ucits:true,ccy:"CHF",family:"bsf-event-driven",hedged:true},
+  {tkr:"LUMMWTC",name:"Lumyna MW TOPS UCITS A CHF Hedged",cls:"alternative",vehicle:"mutual_fund",er:1.75,yld:0.0,sponsor:"Lumyna",dom:"IE",ucits:true,ccy:"CHF",family:"lumyna-mw-tops",hedged:true},
+  {tkr:"JUPGARC",name:"Jupiter Merian Global Equity Absolute Return I CHF (hedged)",cls:"alternative",vehicle:"mutual_fund",er:0.90,yld:0.0,sponsor:"Jupiter",dom:"IE",ucits:true,ccy:"CHF",family:"jupiter-gear",hedged:true},
+  {tkr:"ELEVARC",name:"Eleva Absolute Return Europe I CHF (hedged)",cls:"alternative",vehicle:"mutual_fund",er:1.50,yld:0.0,sponsor:"Eleva",dom:"LU",ucits:true,ccy:"CHF",family:"eleva-are",hedged:true},
+  {tkr:"BNYGRRC",name:"BNY Mellon Global Real Return CHF Hedged",cls:"alternative",vehicle:"mutual_fund",er:1.10,yld:0.0,sponsor:"BNY Mellon",dom:"IE",ucits:true,ccy:"CHF",family:"bny-global-real-return",hedged:true},
 
 
 ];
@@ -1548,9 +1548,30 @@ const RISK_FREE_BY_CCY = {
     f.r3y      = ov.r3y      ?? +(d.r3y  + j[1]*5).toFixed(2);
     f.r5y      = ov.r5y      ?? +(d.r5y  + j[2]*4).toFixed(2);
     f.r10y     = ov.r10y     ?? +(d.r10y + j[3]*3).toFixed(2);
-    f.maxDD    = ov.maxDD    ?? -(+(f.sigma * 2.0 * (1 + Math.abs(j[4])*0.5)).toFixed(1));
+    // A long-only, unlevered fund cannot draw down more than 100%. The
+    // sigma-derived fallback is unbounded and crypto's sigma of 65 pushed 19
+    // funds past -100% (worst -145.7), a figure that then reached the LLM
+    // prompt and the client-facing "Max DD" chip as though it were historical.
+    // Levered and inverse products are exempt — they genuinely can exceed it.
+    const _levered = /\b(2x|3x|ultra|leveraged|inverse|short|bull|bear)\b/i.test(f.name || "");
+    const _rawDD   = ov.maxDD ?? -(+(f.sigma * 2.0 * (1 + Math.abs(j[4])*0.5)).toFixed(1));
+    f.maxDD    = _levered ? _rawDD : Math.max(-100, _rawDD);
     const rf   = RISK_FREE_BY_CCY[(f.ccy || "USD").toUpperCase()] ?? RISK_FREE_BY_CCY.USD;
-    f.sharpe   = ov.sharpe   ?? +((f.mu - rf) / Math.max(0.5, f.sigma)).toFixed(2);
+    // The Math.max(0.5, sigma) floor binds only on cash (most cash funds sit
+    // well below 0.5), which pinned the divisor and reduced Sharpe to
+    // (mu - rf) * 2 — where mu is the class default jittered by a hash of the
+    // TICKER STRING. Two near-identical government money-market funds came out
+    // at +2.48 and -0.38 purely on their names. A money-market fund earns about
+    // the risk-free rate by construction, so its excess return is ~0 and any
+    // large Sharpe here is an artefact, not information. Report it as ~0 and
+    // let the sleeve's own currency and expense-ratio logic do the ranking.
+    if(ov.sharpe != null){
+      f.sharpe = ov.sharpe;
+    } else if(f.cls === "cash"){
+      f.sharpe = +Math.max(-0.5, Math.min(0.5, (f.mu - rf) / 2)).toFixed(2);
+    } else {
+      f.sharpe = +((f.mu - rf) / Math.max(0.5, f.sigma)).toFixed(2);
+    }
     // Tracking error: active mutual funds 1.5-4%, ETFs <0.3%
     f.te = ov.te ?? (f.vehicle === "mutual_fund"
       ? +(1.5 + (h % 25) / 10).toFixed(2)

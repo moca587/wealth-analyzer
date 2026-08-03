@@ -184,18 +184,50 @@ function loadUniverse(text, globalName) {
 
     // 5. The injected copies must match the canonical file exactly. Drift here
     //    is how an app ships a universe the release notes do not describe.
-    const key = (u) => u.map((f) => [f.tkr, f.cls, f.er, f.yld, f.mu, f.sigma, f.beta, f.sharpe, f.ccy || "", f.family || ""].join(":")).sort().join("|");
+    //
+    //    This used to compare a hand-picked 10 of the 27 enriched fields, and
+    //    only the three SOURCES. A tampered name, vehicle, sponsor, maxDD,
+    //    holdings, aum, te, inception or any trailing return sailed through
+    //    green, and the STANDALONES — the files that actually ship — were never
+    //    universe-compared at all, so a corrupted build passed too. Compare
+    //    every field on every artifact, and derive the field list from the data
+    //    rather than restating it, so a field added later is covered by default.
+    const FIELDS = [...new Set(canonical.flatMap((f) => Object.keys(f)))].sort();
+    const key = (u) =>
+      u
+        .map((f) => FIELDS.map((k) => `${k}=${f[k] === undefined ? "" : String(f[k])}`).join(""))
+        .sort()
+        .join("");
     const canonKey = key(canonical);
+    // Report the first differing fund/field rather than just "differs" — the
+    // whole point is to make the fix obvious.
+    const firstDiff = (u) => {
+      const byTkr = new Map(canonical.map((f) => [f.tkr, f]));
+      for (const f of u) {
+        const c = byTkr.get(f.tkr);
+        if (!c) return `${f.tkr} is not in fund-universe.js`;
+        for (const k of FIELDS) {
+          const a = c[k] === undefined ? "" : String(c[k]);
+          const b = f[k] === undefined ? "" : String(f[k]);
+          if (a !== b) return `${f.tkr}.${k}: canonical=${a || "(absent)"} artifact=${b || "(absent)"}`;
+        }
+      }
+      return "field sets differ";
+    };
     for (const [file, globalName] of [
       ["admin.html", "FUND_UNIVERSE"],
       ["wealth-analyzer.html", "AI_FUND_UNIVERSE"],
       ["wealth-analyzer-avaloq.html", "AI_FUND_UNIVERSE"],
+      ["admin-standalone.html", "FUND_UNIVERSE"],
+      ["wealth-analyzer-standalone.html", "AI_FUND_UNIVERSE"],
+      ["wealth-analyzer-avaloq-standalone.html", "AI_FUND_UNIVERSE"],
     ]) {
+      if (!existsSync(p(file))) { fail(APP, `${file} not found`); continue; }
       const u = loadUniverse(readFileSync(p(file), "utf8"), globalName);
       if (!u) { fail(APP, `could not evaluate ${globalName} from ${file}`); continue; }
-      if (u.length !== canonical.length) fail(APP, `${file} has ${u.length} funds, canonical has ${canonical.length} — re-run inject-universe.pl`);
-      else if (key(u) !== canonKey) fail(APP, `${file} fund data differs from fund-universe.js — re-run inject-universe.pl`);
-      else ok(`${file}: universe matches fund-universe.js (${u.length} funds)`);
+      if (u.length !== canonical.length) fail(APP, `${file} has ${u.length} funds, canonical has ${canonical.length} — re-run the build`);
+      else if (key(u) !== canonKey) fail(APP, `${file} fund data differs from fund-universe.js (${firstDiff(u)}) — re-run the build`);
+      else ok(`${file}: universe matches canonical on all ${FIELDS.length} fields (${u.length} funds)`);
     }
   }
 }

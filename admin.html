@@ -350,7 +350,7 @@ textarea{font-family:var(--fm);font-size:12px;width:100%;min-height:70px;resize:
         <div class="row"><label class="lbl">Liquidity needs</label>
           <select id="agLiq" class="fw"><option value="low">Low</option><option value="medium" selected>Medium</option><option value="high">High</option></select>
         </div>
-        <div class="row"><label class="lbl">Max single position</label><input type="number" id="agMaxPos" value="20" class="fw" step="5"></div>
+        <div class="row"><label class="lbl">Max single position</label><input type="number" id="agMaxPos" value="20" class="fw" step="5" min="1" max="100"></div>
       </div>
     </div>
     <div style="margin-top:14px">
@@ -868,7 +868,7 @@ Citations:<br>
 <div class="tab" id="tab-market">
   <div class="hero">
     <h1>📈 Market Data Console</h1>
-    <p>Test live quote retrieval. Verified keyless on 2026-08-02: <strong>Yahoo Finance</strong> (equities/ETFs), <strong>CoinGecko</strong> and <strong>Coinbase</strong> (crypto), <strong>Frankfurter/ECB</strong> and <strong>Open ER API</strong> (FX), <strong>Treasury.gov</strong> (yield curve) and <strong>SEC EDGAR</strong> (filings). Everything else needs a key in the API Keys tab; enterprise feeds (Bloomberg, FactSet, Refinitiv) need a user-deployed proxy.</p>
+    <p>Test live quote retrieval. Verified keyless on 2026-08-02: <strong>Yahoo Finance</strong> (equities/ETFs), <strong>CoinGecko</strong> and <strong>Coinbase</strong> (crypto), <strong>Frankfurter/ECB</strong> and <strong>Open ER API</strong> (FX), <strong>Treasury.gov</strong> (yield curve). <strong>SEC EDGAR</strong> resolves ticker&rarr;CIK but its filings API refuses browser requests &mdash; that half needs a server relay. Everything else needs a key in the API Keys tab; enterprise feeds (Bloomberg, FactSet, Refinitiv) need a user-deployed proxy.</p>
   </div>
   <div class="panel">
     <div class="row">
@@ -1043,8 +1043,13 @@ Citations:<br>
       <a href="https://fred.stlouisfed.org/docs/api/api_key.html" target="_blank" style="color:var(--blue)">FRED</a> ·
       <span style="color:var(--ink2)">AI Assistant</span>
       <br><br>
-      <strong style="color:var(--green)">No key needed (always work):</strong>
-      Yahoo Finance · Stooq · CoinGecko · CryptoCompare · Coinbase Spot · Frankfurter · ExchangeRate.host · Open ER API · OpenFIGI (ISIN/CUSIP) · SEC EDGAR · Treasury.gov
+      <strong style="color:var(--green)">No key needed (verified working 2026-08-02):</strong>
+      Yahoo Finance · CoinGecko · Coinbase Spot · Frankfurter (ECB) · Open ER API · Treasury.gov
+      <br>
+      <strong style="color:var(--amber)">No longer usable from the browser:</strong>
+      Stooq (CSV endpoint retired) · CryptoCompare (now key-required) · ExchangeRate.host (now key-required) ·
+      SEC EDGAR filings (data.sec.gov blocks browser requests; ticker&rarr;CIK lookup still works) ·
+      OpenFIGI (rate-limited without a key)
     </div>
   </div>
 </div>
@@ -1143,7 +1148,7 @@ function toggleQuestionnairePreview(){
 // ═══════════════════════════════════════════════════════════
 // VERSION + UTILS
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260802-1759";
+const APP_VERSION = "20260803-1637";
 const $ = (id) => document.getElementById(id);
 const $$ = (sel, ctx) => Array.from((ctx||document).querySelectorAll(sel));
 
@@ -2478,21 +2483,21 @@ const FUND_UNIVERSE = [
   //     same portfolio; mu is reduced by the cost of hedging into CHF (the rate
   //     differential), so Sharpe against the CHF risk-free matches the base class.
   //     `family` pairs them so a portfolio can never hold both. ---
-  {tkr:"DWSCKC",name:"DWS Concept Kaldemorgen LCH CHF (hedged)",cls:"alternative",vehicle:"mutual_fund",er:1.55,yld:0.0,sponsor:"DWS",dom:"LU",ucits:true,ccy:"CHF",family:"dws-kaldemorgen"},
-  {tkr:"JPGMOC",name:"JPMorgan Investment Funds Global Macro Opportunities A CHF (hedged)",cls:"alternative",vehicle:"mutual_fund",er:1.70,yld:0.0,sponsor:"JPMorgan",dom:"LU",ucits:true,ccy:"CHF",family:"jpm-global-macro"},
-  {tkr:"MANTGRC",name:"Man AHL TargetRisk D CHF Hedged",cls:"alternative",vehicle:"mutual_fund",er:0.90,yld:0.0,sponsor:"Man Group",dom:"IE",ucits:true,ccy:"CHF",family:"man-ahl-targetrisk"},
-  {tkr:"MANTRDC",name:"Man AHL Trend Alternative DNY CHF Hedged",cls:"alternative",vehicle:"mutual_fund",er:1.30,yld:0.0,sponsor:"Man Group",dom:"IE",ucits:true,ccy:"CHF",family:"man-ahl-trend"},
-  {tkr:"PICTATC",name:"Pictet TR Atlas I CHF (hedged)",cls:"alternative",vehicle:"mutual_fund",er:1.60,yld:0.0,sponsor:"Pictet",dom:"LU",ucits:true,ccy:"CHF",family:"pictet-tr-atlas"},
-  {tkr:"PICTDAC",name:"Pictet TR Diversified Alpha I CHF (hedged)",cls:"alternative",vehicle:"mutual_fund",er:1.55,yld:0.0,sponsor:"Pictet",dom:"LU",ucits:true,ccy:"CHF",family:"pictet-tr-divalpha"},
-  {tkr:"SGAIBTC",name:"Schroder GAIA BlueTrend C CHF Hedged",cls:"alternative",vehicle:"mutual_fund",er:1.75,yld:0.0,sponsor:"Schroders",dom:"LU",ucits:true,ccy:"CHF",family:"gaia-bluetrend"},
-  {tkr:"SGAICBC",name:"Schroder GAIA Cat Bond C CHF Hedged",cls:"alternative",vehicle:"mutual_fund",er:1.45,yld:0.0,sponsor:"Schroders",dom:"LU",ucits:true,ccy:"CHF",family:"gaia-cat-bond"},
-  {tkr:"GAMSCBC",name:"GAM Star Cat Bond Institutional CHF Hedged",cls:"alternative",vehicle:"mutual_fund",er:1.15,yld:0.0,sponsor:"GAM",dom:"IE",ucits:true,ccy:"CHF",family:"gam-star-cat-bond"},
-  {tkr:"NORA10C",name:"Nordea 1 Alpha 10 MA Fund BI CHF (hedged)",cls:"alternative",vehicle:"mutual_fund",er:1.05,yld:0.0,sponsor:"Nordea",dom:"LU",ucits:true,ccy:"CHF",family:"nordea-alpha-10"},
-  {tkr:"BSFGEDC",name:"BlackRock Strategic Funds Global Event Driven A2 CHF Hedged",cls:"alternative",vehicle:"mutual_fund",er:1.60,yld:0.0,sponsor:"BlackRock",dom:"LU",ucits:true,ccy:"CHF",family:"bsf-event-driven"},
-  {tkr:"LUMMWTC",name:"Lumyna MW TOPS UCITS A CHF Hedged",cls:"alternative",vehicle:"mutual_fund",er:1.75,yld:0.0,sponsor:"Lumyna",dom:"IE",ucits:true,ccy:"CHF",family:"lumyna-mw-tops"},
-  {tkr:"JUPGARC",name:"Jupiter Merian Global Equity Absolute Return I CHF (hedged)",cls:"alternative",vehicle:"mutual_fund",er:0.90,yld:0.0,sponsor:"Jupiter",dom:"IE",ucits:true,ccy:"CHF",family:"jupiter-gear"},
-  {tkr:"ELEVARC",name:"Eleva Absolute Return Europe I CHF (hedged)",cls:"alternative",vehicle:"mutual_fund",er:1.50,yld:0.0,sponsor:"Eleva",dom:"LU",ucits:true,ccy:"CHF",family:"eleva-are"},
-  {tkr:"BNYGRRC",name:"BNY Mellon Global Real Return CHF Hedged",cls:"alternative",vehicle:"mutual_fund",er:1.10,yld:0.0,sponsor:"BNY Mellon",dom:"IE",ucits:true,ccy:"CHF",family:"bny-global-real-return"},
+  {tkr:"DWSCKC",name:"DWS Concept Kaldemorgen LCH CHF (hedged)",cls:"alternative",vehicle:"mutual_fund",er:1.55,yld:0.0,sponsor:"DWS",dom:"LU",ucits:true,ccy:"CHF",family:"dws-kaldemorgen",hedged:true},
+  {tkr:"JPGMOC",name:"JPMorgan Investment Funds Global Macro Opportunities A CHF (hedged)",cls:"alternative",vehicle:"mutual_fund",er:1.70,yld:0.0,sponsor:"JPMorgan",dom:"LU",ucits:true,ccy:"CHF",family:"jpm-global-macro",hedged:true},
+  {tkr:"MANTGRC",name:"Man AHL TargetRisk D CHF Hedged",cls:"alternative",vehicle:"mutual_fund",er:0.90,yld:0.0,sponsor:"Man Group",dom:"IE",ucits:true,ccy:"CHF",family:"man-ahl-targetrisk",hedged:true},
+  {tkr:"MANTRDC",name:"Man AHL Trend Alternative DNY CHF Hedged",cls:"alternative",vehicle:"mutual_fund",er:1.30,yld:0.0,sponsor:"Man Group",dom:"IE",ucits:true,ccy:"CHF",family:"man-ahl-trend",hedged:true},
+  {tkr:"PICTATC",name:"Pictet TR Atlas I CHF (hedged)",cls:"alternative",vehicle:"mutual_fund",er:1.60,yld:0.0,sponsor:"Pictet",dom:"LU",ucits:true,ccy:"CHF",family:"pictet-tr-atlas",hedged:true},
+  {tkr:"PICTDAC",name:"Pictet TR Diversified Alpha I CHF (hedged)",cls:"alternative",vehicle:"mutual_fund",er:1.55,yld:0.0,sponsor:"Pictet",dom:"LU",ucits:true,ccy:"CHF",family:"pictet-tr-divalpha",hedged:true},
+  {tkr:"SGAIBTC",name:"Schroder GAIA BlueTrend C CHF Hedged",cls:"alternative",vehicle:"mutual_fund",er:1.75,yld:0.0,sponsor:"Schroders",dom:"LU",ucits:true,ccy:"CHF",family:"gaia-bluetrend",hedged:true},
+  {tkr:"SGAICBC",name:"Schroder GAIA Cat Bond C CHF Hedged",cls:"alternative",vehicle:"mutual_fund",er:1.45,yld:0.0,sponsor:"Schroders",dom:"LU",ucits:true,ccy:"CHF",family:"gaia-cat-bond",hedged:true},
+  {tkr:"GAMSCBC",name:"GAM Star Cat Bond Institutional CHF Hedged",cls:"alternative",vehicle:"mutual_fund",er:1.15,yld:0.0,sponsor:"GAM",dom:"IE",ucits:true,ccy:"CHF",family:"gam-star-cat-bond",hedged:true},
+  {tkr:"NORA10C",name:"Nordea 1 Alpha 10 MA Fund BI CHF (hedged)",cls:"alternative",vehicle:"mutual_fund",er:1.05,yld:0.0,sponsor:"Nordea",dom:"LU",ucits:true,ccy:"CHF",family:"nordea-alpha-10",hedged:true},
+  {tkr:"BSFGEDC",name:"BlackRock Strategic Funds Global Event Driven A2 CHF Hedged",cls:"alternative",vehicle:"mutual_fund",er:1.60,yld:0.0,sponsor:"BlackRock",dom:"LU",ucits:true,ccy:"CHF",family:"bsf-event-driven",hedged:true},
+  {tkr:"LUMMWTC",name:"Lumyna MW TOPS UCITS A CHF Hedged",cls:"alternative",vehicle:"mutual_fund",er:1.75,yld:0.0,sponsor:"Lumyna",dom:"IE",ucits:true,ccy:"CHF",family:"lumyna-mw-tops",hedged:true},
+  {tkr:"JUPGARC",name:"Jupiter Merian Global Equity Absolute Return I CHF (hedged)",cls:"alternative",vehicle:"mutual_fund",er:0.90,yld:0.0,sponsor:"Jupiter",dom:"IE",ucits:true,ccy:"CHF",family:"jupiter-gear",hedged:true},
+  {tkr:"ELEVARC",name:"Eleva Absolute Return Europe I CHF (hedged)",cls:"alternative",vehicle:"mutual_fund",er:1.50,yld:0.0,sponsor:"Eleva",dom:"LU",ucits:true,ccy:"CHF",family:"eleva-are",hedged:true},
+  {tkr:"BNYGRRC",name:"BNY Mellon Global Real Return CHF Hedged",cls:"alternative",vehicle:"mutual_fund",er:1.10,yld:0.0,sponsor:"BNY Mellon",dom:"IE",ucits:true,ccy:"CHF",family:"bny-global-real-return",hedged:true},
 
 
 ];
@@ -2838,36 +2843,6 @@ const FUND_OVERRIDES = {
 
 };
 
-// ── Data-freshness helpers ───────────────────────────────────────────────
-// Fund metrics are a point-in-time snapshot, not live market data. These let
-// the UI say so in the same breath as the numbers instead of leaving the
-// operator to assume they are current.
-function fundDataAgeMonths(){
-  const d = new Date(FUND_DATA_AS_OF);
-  if(isNaN(d)) return 0;
-  return Math.max(0, (Date.now() - d.getTime()) / 86400000 / 30.44);
-}
-function fundDataAgeLabel(){
-  const m = Math.round(fundDataAgeMonths());
-  if(m < 1) return "current";
-  if(m < 24) return m + " month" + (m === 1 ? "" : "s") + " old";
-  return (m / 12).toFixed(1) + " years old";
-}
-// How many providers actually returned live feed items on their last refresh.
-// liveCount is undefined for a provider not refreshed since it was introduced,
-// so "measured" reports whether we know at all rather than guessing zero.
-function researchLiveSummary(){
-  const cfg = getResearchCfg();
-  let measured = 0, liveProviders = 0, liveItems = 0;
-  RESEARCH_PROVIDERS.forEach(p => {
-    const c = cfg[p.id] || {};
-    if(c.liveCount === undefined) return;
-    measured++;
-    if(c.liveCount > 0){ liveProviders++; liveItems += c.liveCount; }
-  });
-  return {measured: measured === RESEARCH_PROVIDERS.length, partial: measured, liveProviders, liveItems};
-}
-
 // Deterministic per-ticker hash for stable jitter
 function _fundHash(tkr){
   let h = 0;
@@ -2909,9 +2884,30 @@ const RISK_FREE_BY_CCY = {
     f.r3y      = ov.r3y      ?? +(d.r3y  + j[1]*5).toFixed(2);
     f.r5y      = ov.r5y      ?? +(d.r5y  + j[2]*4).toFixed(2);
     f.r10y     = ov.r10y     ?? +(d.r10y + j[3]*3).toFixed(2);
-    f.maxDD    = ov.maxDD    ?? -(+(f.sigma * 2.0 * (1 + Math.abs(j[4])*0.5)).toFixed(1));
+    // A long-only, unlevered fund cannot draw down more than 100%. The
+    // sigma-derived fallback is unbounded and crypto's sigma of 65 pushed 19
+    // funds past -100% (worst -145.7), a figure that then reached the LLM
+    // prompt and the client-facing "Max DD" chip as though it were historical.
+    // Levered and inverse products are exempt — they genuinely can exceed it.
+    const _levered = /\b(2x|3x|ultra|leveraged|inverse|short|bull|bear)\b/i.test(f.name || "");
+    const _rawDD   = ov.maxDD ?? -(+(f.sigma * 2.0 * (1 + Math.abs(j[4])*0.5)).toFixed(1));
+    f.maxDD    = _levered ? _rawDD : Math.max(-100, _rawDD);
     const rf   = RISK_FREE_BY_CCY[(f.ccy || "USD").toUpperCase()] ?? RISK_FREE_BY_CCY.USD;
-    f.sharpe   = ov.sharpe   ?? +((f.mu - rf) / Math.max(0.5, f.sigma)).toFixed(2);
+    // The Math.max(0.5, sigma) floor binds only on cash (most cash funds sit
+    // well below 0.5), which pinned the divisor and reduced Sharpe to
+    // (mu - rf) * 2 — where mu is the class default jittered by a hash of the
+    // TICKER STRING. Two near-identical government money-market funds came out
+    // at +2.48 and -0.38 purely on their names. A money-market fund earns about
+    // the risk-free rate by construction, so its excess return is ~0 and any
+    // large Sharpe here is an artefact, not information. Report it as ~0 and
+    // let the sleeve's own currency and expense-ratio logic do the ranking.
+    if(ov.sharpe != null){
+      f.sharpe = ov.sharpe;
+    } else if(f.cls === "cash"){
+      f.sharpe = +Math.max(-0.5, Math.min(0.5, (f.mu - rf) / 2)).toFixed(2);
+    } else {
+      f.sharpe = +((f.mu - rf) / Math.max(0.5, f.sigma)).toFixed(2);
+    }
     // Tracking error: active mutual funds 1.5-4%, ETFs <0.3%
     f.te = ov.te ?? (f.vehicle === "mutual_fund"
       ? +(1.5 + (h % 25) / 10).toFixed(2)
@@ -2934,6 +2930,45 @@ const RISK_FREE_BY_CCY = {
 })();
 
 
+
+
+// ═══════════════════════════════════════════════════════════
+// DATA-FRESHNESS HELPERS
+// ═══════════════════════════════════════════════════════════
+// NOTE: these MUST live outside the FUND METRICS ENRICHMENT block above.
+// They were originally placed just before _fundHash, which sits inside the
+// region inject-universe.pl regenerates from fund-universe.js — so the next
+// injection silently deleted all three declarations and left five call sites
+// throwing ReferenceError on dashboard render. Anything hand-written near the
+// injected universe block is temporary by definition; keep it down here.
+
+// Fund metrics are a point-in-time snapshot, not live market data. These let
+// the UI say so in the same breath as the numbers.
+function fundDataAgeMonths(){
+  const d = new Date(FUND_DATA_AS_OF);
+  if(isNaN(d)) return 0;
+  return Math.max(0, (Date.now() - d.getTime()) / 86400000 / 30.44);
+}
+function fundDataAgeLabel(){
+  const m = Math.round(fundDataAgeMonths());
+  if(m < 1) return "current";
+  if(m < 24) return m + " month" + (m === 1 ? "" : "s") + " old";
+  return (m / 12).toFixed(1) + " years old";
+}
+// How many providers actually returned live feed items on their last refresh.
+// liveCount is undefined for a provider not refreshed since it was introduced,
+// so "measured" reports whether we know at all rather than guessing zero.
+function researchLiveSummary(){
+  const cfg = getResearchCfg();
+  let measured = 0, liveProviders = 0, liveItems = 0;
+  RESEARCH_PROVIDERS.forEach(p => {
+    const c = cfg[p.id] || {};
+    if(c.liveCount === undefined) return;
+    measured++;
+    if(c.liveCount > 0){ liveProviders++; liveItems += c.liveCount; }
+  });
+  return {measured: measured === RESEARCH_PROVIDERS.length, partial: measured, liveProviders, liveItems};
+}
 
 // ═══════════════════════════════════════════════════════════
 // FINANCIAL MATH
@@ -3619,9 +3654,9 @@ function renderDashboard(){
     ]},
     {label:"Equities — No key", items:[
       {n:"Yahoo Finance",   k:"always"},
-      {n:"Stooq (CSV)",     k:"always"},
+      {n:"Stooq (CSV)",     k:null, unavailable:"CSV endpoint retired upstream"},
       {n:"OpenFIGI (ref)",  k:"always"},
-      {n:"SEC EDGAR (ref)", k:"always"}
+      {n:"SEC EDGAR (ref)", k:null, unavailable:"data.sec.gov blocks browser requests — needs a server relay"}
     ]},
     {label:"News", items:[
       {n:"NewsAPI.org",   k:localStorage.getItem("wa_newsapi_key")},
@@ -3630,14 +3665,14 @@ function renderDashboard(){
     ]},
     {label:"Crypto", items:[
       {n:"CoinGecko",     k:"always"},
-      {n:"CryptoCompare", k:"always"},
+      {n:"CryptoCompare", k:null, unavailable:"now requires an API key"},
       {n:"Coinbase Spot", k:"always"},
       {n:"CoinMarketCap", k:localStorage.getItem("wa_cmc_key")},
       {n:"Messari",       k:localStorage.getItem("wa_messari_key")}
     ]},
     {label:"FX — No key", items:[
       {n:"Frankfurter (ECB)", k:"always"},
-      {n:"ExchangeRate.host", k:"always"},
+      {n:"ExchangeRate.host", k:null, unavailable:"now requires an API key"},
       {n:"Open ER API",       k:"always"}
     ]},
     {label:"FX — Keyed", items:[
@@ -3660,19 +3695,31 @@ function renderDashboard(){
     const parts = g.label.split(" — ");
     (prim[parts[0]] = prim[parts[0]] || []).push({sub: parts[1] || null, items: g.items});
   });
-  const conn = items => items.filter(p=>p.k).length;
+  // Count only what can actually be reached. A retired endpoint counted as
+  // available is exactly the overstatement this panel was making.
+  const conn = items => items.filter(p => p.k && !p.unavailable).length;
+  const reachable = items => items.filter(p => !p.unavailable).length;
   let ph = '';
   Object.keys(prim).forEach((p, idx) => {
     const subs = prim[p];
     const all = subs.reduce((a,s)=>a.concat(s.items), []);
     const open = idx===0 ? ' open' : '';
     ph += `<details${open} style="border:1px solid rgba(120,120,120,.18);border-radius:8px;margin-bottom:8px;overflow:hidden">`;
-    ph += `<summary style="cursor:pointer;padding:10px 12px;font-weight:600;font-size:12.5px;user-select:none">${escapeHtml(p)}<span style="float:right;font-weight:400;font-size:11px;color:var(--ink3)">${conn(all)}/${all.length} connected</span></summary>`;
+    ph += `<summary style="cursor:pointer;padding:10px 12px;font-weight:600;font-size:12.5px;user-select:none">${escapeHtml(p)}<span style="float:right;font-weight:400;font-size:11px;color:var(--ink3)">${conn(all)}/${reachable(all)} connected${all.length - reachable(all) ? " · " + (all.length - reachable(all)) + " unavailable" : ""}</span></summary>`;
     ph += '<div style="padding:0 12px 10px">';
     subs.forEach(s => {
-      if(s.sub) ph += `<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink3);margin:10px 0 4px">${escapeHtml(s.sub)} <span style="font-weight:400">(${conn(s.items)}/${s.items.length})</span></div>`;
+      if(s.sub) ph += `<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink3);margin:10px 0 4px">${escapeHtml(s.sub)} <span style="font-weight:400">(${conn(s.items)}/${reachable(s.items)})</span></div>`;
       ph += '<table class="tbl" style="margin-bottom:6px"><tbody>';
-      s.items.forEach(pr => { ph += `<tr><td><strong>${escapeHtml(pr.n)}</strong></td><td>${pr.k?'<span class="pill pill-on">Connected</span>':'<span class="pill pill-off">Not set</span>'}</td></tr>`; });
+      s.items.forEach(pr => {
+        // Three states, not two. "Not set" means the operator has not supplied a
+        // key yet; "Unavailable" means the endpoint no longer answers at all, so
+        // supplying a key would not help. Collapsing the second into the first
+        // sends someone hunting for a credential that does not exist.
+        const cell = pr.unavailable
+          ? `<span class="pill pill-off" style="border-color:var(--amber);color:var(--amber)" title="${escapeHtml(pr.unavailable)}">Unavailable</span> <span style="font-size:10.5px;color:var(--ink3)">${escapeHtml(pr.unavailable)}</span>`
+          : (pr.k ? '<span class="pill pill-on">Connected</span>' : '<span class="pill pill-off">Not set</span>');
+        ph += `<tr><td><strong>${escapeHtml(pr.n)}</strong></td><td>${cell}</td></tr>`;
+      });
       ph += '</tbody></table>';
     });
     ph += '</div></details>';
@@ -4062,7 +4109,7 @@ function renderAgentResult(rec){
     h += `<div class="ablock"><h3>📊 Strategic Allocation</h3>`;
     Object.entries(rec.allocationByClass).filter(([,v])=>v>0).forEach(([cls,pct])=>{
       const lbl = ({equity:"Equity",fixed_income:"Fixed Income",real_estate:"Real Estate",commodity:"Commodity",cash:"Cash",mixed:"Mixed",alternative:"Alternative"})[cls]||cls;
-      h += `<div class="abar"><div class="abar-fund">${lbl}</div><div class="abar-track"><div class="abar-fill" style="width:${pct}%"></div></div><div class="abar-pct">${pct.toFixed(1)}%</div></div>`;
+      h += `<div class="abar"><div class="abar-fund">${lbl}</div><div class="abar-track"><div class="abar-fill" style="width:${Math.min(100,Math.max(0,pct))}%"></div></div><div class="abar-pct">${pct.toFixed(1)}%</div></div>`;
     });
     h += `</div>`;
   }
@@ -4476,15 +4523,30 @@ function renderResearchCorpusSummary(){
   const s = researchLiveSummary();
   live = s.liveItems;
   if(!measured){ el.innerHTML = '<span style="color:var(--ink3)">Refresh to measure feed health.</span>'; return; }
-  const pct = total ? Math.round(live / total * 100) : 0;
-  const dark = RESEARCH_PROVIDERS.length - s.liveProviders;
+  // Scope every claim to the providers actually measured. Describing an
+  // unmeasured provider's items as "the curated library" is a statement we have
+  // no evidence for — those 1,170 items may well have come off the wire.
+  const unmeasured = RESEARCH_PROVIDERS.length - measured;
+  const measuredTotal = RESEARCH_PROVIDERS.reduce((n, p) => {
+    const c = cfg[p.id] || {};
+    return n + (c.liveCount === undefined ? 0 : (c.items || []).length);
+  }, 0);
+  const pct = measuredTotal ? Math.round(live / measuredTotal * 100) : 0;
+  const dark = measured - s.liveProviders;
+  const scope = unmeasured ? ' of the ' + measured + ' measured' : '';
   el.innerHTML =
     '<span style="color:' + (dark ? 'var(--amber)' : 'var(--green)') + ';font-weight:600">' +
-      s.liveProviders + ' of ' + RESEARCH_PROVIDERS.length + ' sources returning live items</span>' +
-    '<span style="color:var(--ink3)"> · ' + live + ' of ' + total + ' items (' + pct + '%) came off the wire; ' +
-      'the rest is the curated library bundled with the app' +
+      s.liveProviders + ' of ' + measured + ' measured source' + (measured === 1 ? '' : 's') +
+      ' returning live items</span>' +
+    '<span style="color:var(--ink3)"> · ' + live + ' of ' + measuredTotal + ' items (' + pct + '%)' +
+      scope + ' came off the wire; the rest is the curated library bundled with the app' +
       (stale ? ' · ' + stale + ' item' + (stale === 1 ? '' : 's') + ' older than a year' : '') +
     '</span>' +
+    (unmeasured
+      ? '<div style="color:var(--amber);margin-top:3px">' + unmeasured + ' source' + (unmeasured === 1 ? '' : 's') +
+        ' not yet refreshed since feed-health tracking was added — nothing above describes ' +
+        (unmeasured === 1 ? 'it' : 'them') + '. Use &ldquo;Refresh ALL&rdquo; for a complete picture.</div>'
+      : '') +
     (dark ? '<div style="color:var(--ink3);margin-top:3px">Sources on curated fallback still contribute to the tally — the agent is reading fewer independent live views than the source count suggests.</div>' : '');
 }
 
@@ -6295,6 +6357,18 @@ function aggregateAllSignals(selectedProviderIds){
 // Currency blocs — a CHF or DKK client is far better served by a EUR
 // money-market line than a USD one when no fund exists in their own currency,
 // because the FX exposure is a fraction of the size.
+// A brief that names a country but no currency is not a USD client. The client
+// app has always derived this; admin defaulted to USD, which silently evaluated
+// every non-US client as a dollar investor on any path that omits currency.
+const COUNTRY_CCY = {US:"USD", CA:"CAD", GB:"GBP", AU:"AUD", CH:"CHF", JP:"JPY",
+                     SG:"SGD", HK:"HKD", DE:"EUR", FR:"EUR", IT:"EUR", ES:"EUR",
+                     NL:"EUR", BE:"EUR", AT:"EUR", IE:"EUR", PT:"EUR", FI:"EUR",
+                     LU:"EUR", GR:"EUR", SE:"SEK", NO:"NOK", DK:"DKK", PL:"PLN"};
+function briefCurrency(brief){
+  const c = brief && brief.currency;
+  if(c) return String(c).toUpperCase();
+  return (COUNTRY_CCY[String((brief && brief.country) || "US").toUpperCase()] || "USD");
+}
 const CCY_BLOC = {EUR:"EUR", CHF:"EUR", DKK:"EUR", SEK:"EUR", NOK:"EUR", PLN:"EUR",
                   USD:"USD", CAD:"USD", HKD:"USD", SGD:"USD",
                   GBP:"GBP", JPY:"JPY", AUD:"AUD"};
@@ -6321,13 +6395,32 @@ function tiltAllocation(baseline, signals){
     const tilt = Math.max(-maxTilt, Math.min(maxTilt, vote / 4)); // 1 vote unit = 0.25% tilt
     tilted[cls] += tilt;
   }
-  // Normalize to sum to 100
-  const total = Object.values(tilted).reduce((s,v)=>s+v, 0);
+  // Normalize to sum to 100.
+  // ORDER MATTERS. The floor has to be applied BEFORE the total is taken: a
+  // class the research drives negative must leave the basis entirely, not sit
+  // in the denominator shrinking it while its own weight is floored away. Doing
+  // it the other way round scaled every survivor by 100/total and returned
+  // allocations above 100% — {60,30,-4} became {69.8,34.9,0} = 104.7%.
+  Object.keys(tilted).forEach(k => { tilted[k] = Math.max(0, tilted[k]); });
+  let total = Object.values(tilted).reduce((s,v)=>s+v, 0);
   if(total > 0){
-    Object.keys(tilted).forEach(k => { tilted[k] = Math.max(0, tilted[k] * 100 / total); });
+    Object.keys(tilted).forEach(k => { tilted[k] = tilted[k] * 100 / total; });
+  } else {
+    // Every class floored to zero — fall back to the untilted baseline rather
+    // than returning an all-zero allocation.
+    Object.keys(tilted).forEach(k => { tilted[k] = baseline[k] || 0; });
   }
-  // Round
+  // Round to 1dp, then put the rounding residue back into the largest class so
+  // the allocation the advisor reads actually adds up.
   Object.keys(tilted).forEach(k => { tilted[k] = Math.round(tilted[k] * 10) / 10; });
+  const keys = Object.keys(tilted);
+  if(keys.length){
+    const drift = +(100 - keys.reduce((s,k)=>s+tilted[k], 0)).toFixed(1);
+    if(Math.abs(drift) >= 0.1){
+      const biggest = keys.reduce((a,b) => tilted[a] >= tilted[b] ? a : b);
+      tilted[biggest] = +Math.max(0, tilted[biggest] + drift).toFixed(1);
+    }
+  }
   return tilted;
 }
 
@@ -6420,14 +6513,29 @@ function fundBucketKeys(f){
   const hay = ((f.name||"") + " " + (f.tkr||"")).toLowerCase();
   const regions = [];
   const r = (f.region||"").toLowerCase();
-  if(/\bus\b|\bu\.s\.?|\busa\b|domestic|total market|total stock market|s&p|\b500\b|\brussell\b|dow jones|nasdaq/.test(r + " " + hay)) regions.push("us");
+  // "ex-US" / "ex US" is the OPPOSITE of a US mandate and has to be recognised
+  // before any positive match — \bus\b happily matches the very token that
+  // excludes the exposure, which tagged six ex-US funds as US.
+  const _exUs = /\bex[\s-]?u\.?s\.?a?\b|\bex[\s-]?united\s+states\b|\bexcluding\s+the\s+u\.?s\.?a?\b/.test(hay);
+  // S&P and Dow Jones are index PROVIDERS, not US mandates. They publish
+  // "S&P Global", "S&P Emerging Markets" and "Dow Jones Global" too, so their
+  // name only implies a US mandate when nothing broader is named alongside it.
+  const _broaderScope = /\bglobal\b|\bworld\b|\bemerging\b|\binternational\b|\bacwi\b|\beafe\b|\basia\b|\beurope\b|\bjapan\b|\bchina\b|\bswiss\b|\bex[\s-]/.test(hay);
+  // Note: bare "domestic" is deliberately NOT here. It denotes the home market
+  // of whichever country the fund belongs to — it tagged "iShares Swiss
+  // Domestic Government Bond" as US.
+  const _usToken = /\bus\b|\bu\.s\.?|\busa\b|\bunited\s+states\b|total market|total stock|total bond|\b500\b|\brussell\b|\bnasdaq\b|\bwilshire\b|\bus domestic\b/.test(r + " " + hay);
+  const _usIndexFamily = /s&p|dow jones/.test(hay) && !_broaderScope;
+  if(!_exUs && (_usToken || _usIndexFamily)) regions.push("us");
   if(/europe|eafe|developed international|ex-us/.test(r + " " + hay)) regions.push("europe","developed_intl");
   if(/emerging|\bem\b/.test(r + " " + hay)) regions.push("emerging");
   if(/japan/.test(hay)) regions.push("japan");
   if(/china/.test(hay)) regions.push("china");
   if(/india/.test(hay)) regions.push("india");
   const sectors = [];
-  if(/tech|semiconductor|software|\bxlk\b|qqq|nasdaq.?100|\bsoxx\b|\bsmh\b/.test(hay)) sectors.push("technology");
+  // \btech\b so "bioTECHnology" does not land here — IBB, XBI and GNOM are
+  // healthcare, and the branch below already claims them.
+  if(/\btech\b|\btechnology\b|semiconductor|software|\bxlk\b|qqq|nasdaq.?100|\bsoxx\b|\bsmh\b/.test(hay)) sectors.push("technology");
   if(/health|biotech|pharma|\bxlv\b/.test(hay)) sectors.push("healthcare");
   if(/financ|bank|\bxlf\b/.test(hay)) sectors.push("financials");
   if(/energy|\boil\b|\bxle\b/.test(hay)) sectors.push("energy");
@@ -6443,7 +6551,10 @@ function fundBucketKeys(f){
   if(/cyber|\bcrwd\b|\bpanw\b|hack|\bbug\b/.test(hay)) themes.push("cybersecurity");
   if(/defen|aerospace|\bita\b|\bppa\b/.test(hay)) themes.push("defense");
   if(/dividend|\bvig\b|\bschd\b|\bvym\b/.test(hay)) themes.push("dividend_growth");
-  if(/quality|qual/.test(hay)) themes.push("quality_factor");
+  // \bqual\b, not bare "qual": the bare token matched "EQual Weight" and put
+  // RSP — a fund whose whole point is refusing to factor-tilt — in the quality
+  // factor bucket, with the client-facing rationale to match.
+  if(/quality|\bqual\b/.test(hay)) themes.push("quality_factor");
   if(/bitcoin|crypto|\bibit\b|\bfbtc\b|\beth\b|ethereum/.test(hay)) themes.push("cryptocurrency");
   if(/water|infrastructure|\bpho\b|\bigf\b/.test(hay)) themes.push("water_infrastructure");
   return {regions, sectors, themes};
@@ -6464,9 +6575,23 @@ function pickFundsForClass(targetClass, targetWeight, brief, signals, used){
   if(brief.taxSensitivity === "high"){
     candidates.sort((a,b) => (a.vehicle === "etf" ? -1 : 1) - (b.vehicle === "etf" ? -1 : 1));
   }
-  // Apply liquidity → ETFs first
+  // Apply liquidity → exchange-traded and money-market vehicles only.
+  // NB "cash" is not a vehicle any fund carries — the histogram is
+  // etf / mutual_fund / alternative / money_market — so the old
+  // `f.vehicle === "cash"` branch matched nothing and silently removed every
+  // money-market fund. Physically-backed commodity ETCs are tagged
+  // vehicle:"alternative" but trade on-exchange like an ETF, and they are the
+  // ONLY UCITS-eligible commodity vehicles, so excluding them emptied that
+  // sleeve for all six UCITS jurisdictions and then blamed the jurisdiction.
   if(brief.liquidity === "high"){
-    candidates = candidates.filter(f => f.vehicle === "etf" || f.vehicle === "cash");
+    const liquidVehicles = new Set(["etf", "money_market"]);
+    const preLiquidity = candidates;
+    const liquidOnly = candidates.filter(f =>
+      liquidVehicles.has(f.vehicle) || (f.vehicle === "alternative" && f.cls === "commodity"));
+    // If the preference would empty the sleeve entirely, it is a preference,
+    // not a mandate — keep the sleeve fillable rather than dropping it and
+    // then reporting it as a jurisdiction problem.
+    candidates = liquidOnly.length ? liquidOnly : preLiquidity;
   }
   // Score candidates with rich metric-based formula:
   //   • Low expense ratio (0..1)
@@ -6511,7 +6636,7 @@ function pickFundsForClass(targetClass, targetWeight, brief, signals, used){
     // unhedged USD. Comparing nominal yields across currencies is meaningless;
     // cash is the one sleeve where the client's own currency is the whole point.
     if(targetClass === "cash"){
-      const want = (brief.currency || "USD").toUpperCase();
+      const want = briefCurrency(brief);
       const has = (f.ccy || "USD").toUpperCase();
       if(has === want) score += 3;
       else if(CCY_BLOC[want] && CCY_BLOC[want] === CCY_BLOC[has]) score += 1; // same bloc (e.g. CHF↔EUR)
@@ -6525,9 +6650,17 @@ function pickFundsForClass(targetClass, targetWeight, brief, signals, used){
       // Sharpe by construction, so something has to break the tie in favour of
       // the client's own currency — otherwise a Swiss client gets the unhedged
       // line and wears the FX risk the hedged class exists to remove.
-      const want = (brief.currency || "USD").toUpperCase();
+      const want = briefCurrency(brief);
       const has = f.ccy.toUpperCase();
       if(has === want) score += 0.5;
+      // A currency-HEDGED share class is built for one currency. Held by anyone
+      // else it pays the hedge cost and delivers the wrong exposure, so it is
+      // strictly worse than the same fund's base class. Penalised, not merely
+      // un-bonused: the two share the same Sharpe by construction, so without a
+      // penalty the choice fell to r5y jitter and the hedge won ~half the time.
+      // Checked BEFORE the bloc bonus so a CHF hedge is not rewarded to a EUR
+      // client for sitting in the same bloc.
+      else if(f.hedged) score -= 3;
       else if(CCY_BLOC[want] && CCY_BLOC[want] === CCY_BLOC[has]) score += 0.15;
     }
     // Diversity penalty
@@ -6574,7 +6707,12 @@ function buildPortfolioFromEngine(brief, signals){
   // 3. For each asset class with weight > 2%, pick funds
   const used = {sponsors: new Set()};
   const positions = [];
-  const maxPos = brief.maxPosition || 20;
+  // Sanitize the mandate before it drives sizing. A negative value flowed
+  // straight into Math.min(maxPos, weight/n) below, producing short positions
+  // and a 125% holding — reachable from the UI, since the number input had no
+  // min and five clicks of the native down-arrow reach -5.
+  const _mp = Number(brief.maxPosition);
+  const maxPos = Number.isFinite(_mp) && _mp > 0 ? Math.min(100, _mp) : 20;
 
   for(const [cls, weight] of Object.entries(allocation)){
     if(weight < 2) continue;
@@ -6657,38 +6795,73 @@ function buildPortfolioFromEngine(brief, signals){
   }
 
   // Renormalize weights to sum to 100, then enforce maxPosition cap and redistribute overflow
+  let capNotice = "";
+  let capEnforced = false;
   let totalW = positions.reduce((s,p) => s + p.weight, 0);
   if(totalW > 0){
     positions.forEach(p => { p.weight = +(p.weight * 100 / totalW).toFixed(1); });
   }
-  // Cap any position above maxPos, redistribute the excess proportionally to uncapped positions
-  if(positions.length > 1 && maxPos > 0){
-    for(let pass = 0; pass < 5; pass++){
-      const over = positions.filter(p => p.weight > maxPos);
-      if(over.length === 0) break;
-      let excess = 0;
-      over.forEach(p => { excess += (p.weight - maxPos); p.weight = maxPos; p._capped = true; });
-      const uncapped = positions.filter(p => !p._capped && p.weight < maxPos);
-      const denom = uncapped.reduce((s,p)=>s+p.weight, 0);
-      if(denom <= 0 || excess <= 0) break;
-      uncapped.forEach(p => { p.weight = +(p.weight + excess * (p.weight/denom)).toFixed(1); });
-    }
-    positions.forEach(p => { delete p._capped; });
-    // Final normalization to fix any rounding drift
-    totalW = positions.reduce((s,p) => s + p.weight, 0);
-    if(totalW > 0 && Math.abs(totalW - 100) > 0.1){
-      positions.forEach(p => { p.weight = +(p.weight * 100 / totalW).toFixed(1); });
+  // Cap any position above maxPos, redistributing the excess into the other
+  // positions' HEADROOM. Two things here are load-bearing; see validateAgentRec
+  // (~line 4004) which solves the same problem for the LLM path.
+  //
+  // 1. N positions can only sum to 100 with every weight <= maxPos when
+  //    N*maxPos >= 100. Below that the cap is arithmetically unsatisfiable, so
+  //    it is DISCLOSED rather than half-applied — silently shipping a breach of
+  //    the client's own mandate is the worse failure.
+  // 2. The excess is shared out in proportion to each receiver's REMAINING
+  //    ROOM, not to its current weight. Weight-proportional redistribution
+  //    pushes the receivers back over the cap, which is what made the old loop
+  //    stall with every position capped and the total at 80.
+  //
+  // There is deliberately NO blanket renormalize-to-100 after this. The old one
+  // ("final normalization to fix any rounding drift") could not tell a 0.1
+  // rounding residue from a 20-point cap deficit, and rescaling by 100/80
+  // restored exactly the weights the cap had just removed.
+  if(positions.length > 1 && maxPos > 0 && maxPos < 100){
+    if(positions.length * maxPos < 100 - 1e-9){
+      capNotice = `Max position ${maxPos}% cannot be satisfied by ${positions.length} position${positions.length === 1 ? "" : "s"} ` +
+                  `(at least ${Math.ceil(100 / maxPos)} are needed to reach 100%) — the cap was NOT applied to this portfolio`;
+    } else {
+      for(let pass = 0; pass < 20; pass++){
+        const over = positions.filter(p => p.weight > maxPos + 1e-9);
+        if(!over.length) break;
+        let freed = 0;
+        over.forEach(p => { freed += p.weight - maxPos; p.weight = maxPos; });
+        const rest = positions.filter(p => p.weight < maxPos - 1e-9);
+        const room = rest.reduce((s,p) => s + (maxPos - p.weight), 0);
+        if(room <= 1e-9 || freed <= 1e-9) break;
+        rest.forEach(p => { p.weight += freed * ((maxPos - p.weight) / room); });
+      }
+      positions.forEach(p => { p.weight = +p.weight.toFixed(1); });
+      capEnforced = true;
     }
   }
   // Rounding each weight to 1dp independently still leaves a residual (portfolios
   // were coming out at 100.2% / 99.9%), so absorb it into the largest position
   // that has cap headroom — a client-facing proposal has to add up.
   if(positions.length){
-    const drift = +(100 - positions.reduce((s,p) => s + p.weight, 0)).toFixed(1);
+    let drift = +(100 - positions.reduce((s,p) => s + p.weight, 0)).toFixed(1);
     if(Math.abs(drift) >= 0.1){
-      const room = positions.filter(p => maxPos <= 0 || p.weight + drift <= maxPos + 0.001);
-      const target = (room.length ? room : positions).reduce((a,b) => a.weight >= b.weight ? a : b);
-      target.weight = +(target.weight + drift).toFixed(1);
+      // Prefer a position that can absorb the whole residue without breaching
+      // the cap. If none can, spread it 0.1 at a time across whatever headroom
+      // exists rather than dumping it on the largest holding — and if there is
+      // genuinely no headroom left, stop at 99.9% instead of breaching. A
+      // tenth of a percent of cash is not worth violating the mandate.
+      const capBinds = capEnforced && maxPos > 0;
+      const fits = positions.filter(p => !capBinds || p.weight + drift <= maxPos + 1e-9);
+      if(fits.length){
+        const target = fits.reduce((a,b) => a.weight >= b.weight ? a : b);
+        target.weight = +(target.weight + drift).toFixed(1);
+      } else if(capBinds){
+        const step = drift > 0 ? 0.1 : -0.1;
+        for(let guard = 0; Math.abs(drift) >= 0.1 && guard < 400; guard++){
+          const p = positions.find(x => step > 0 ? x.weight + step <= maxPos + 1e-9 : x.weight + step >= 0);
+          if(!p) break;
+          p.weight = +(p.weight + step).toFixed(1);
+          drift = +(drift - step).toFixed(1);
+        }
+      }
     }
   }
 
@@ -6731,6 +6904,29 @@ function buildPortfolioFromEngine(brief, signals){
   const negRegions = Object.entries(signals.regions).filter(([,d]) => d.votes < -5).slice(0,2);
   negRegions.forEach(([r, d]) => risks.push(`${prettyRegion(r)} regional risk flagged by ${d.providerCount} providers`));
   if(brief.maxPosition < 20) risks.push("Position size constraint may limit conviction expression");
+  // Any holding denominated outside the client's own currency is an FX exposure.
+  // The cash sleeve disclosed this; nothing else did, so a Swiss-franc-hedged
+  // fund could reach a sterling client with no mention of it anywhere.
+  (function(){
+    const want = briefCurrency(brief);
+    const off = positions.map(p => {
+      const f = FUND_UNIVERSE.find(x => x.tkr === p.ticker);
+      if(!f || !f.ccy || f.cls === "cash") return null;
+      const has = f.ccy.toUpperCase();
+      return has === want ? null : {tkr: p.ticker, ccy: has, hedged: !!f.hedged, w: p.weight};
+    }).filter(Boolean);
+    if(!off.length) return;
+    const pct = off.reduce((a,b) => a + b.w, 0).toFixed(1);
+    risks.push(`${pct}% of the portfolio is denominated outside ${want} (` +
+      off.map(o => `${o.tkr} ${o.ccy}${o.hedged ? " hedged" : ""}`).join(", ") +
+      `) — unhedged currency movement affects these holdings in ${want} terms`);
+    off.filter(o => o.hedged).forEach(o => risks.push(
+      `${o.tkr} is a ${o.ccy}-HEDGED share class held by a ${want} client — the hedge ` +
+      `removes ${o.ccy} risk, not ${want} risk, and its cost is borne for no benefit here`));
+  })();
+  // An unsatisfiable position cap has to reach the advisor: the portfolio below
+  // does NOT respect the mandate they typed in.
+  if(capNotice) risks.push(capNotice);
   // Sleeves the client's jurisdiction cannot be sold — disclosed, not hidden
   unfillable.forEach(({cls, weight}) => risks.push(
     `${prettyClass(cls)} sleeve (${weight}% target) has no ${brief.country || "US"}-eligible fund in the universe — reallocated to ${cls === "cash" ? "fixed income" : "the remaining sleeves"}`
@@ -6981,7 +7177,7 @@ function renderEngineResult(r){
   Object.entries(r.allocation).filter(([,v]) => v > 0).forEach(([cls, pct]) => {
     h += `<div class="abar">
       <div class="abar-fund">${prettyClass(cls)}</div>
-      <div class="abar-track"><div class="abar-fill" style="width:${pct}%;background:var(--green)"></div></div>
+      <div class="abar-track"><div class="abar-fill" style="width:${Math.min(100,Math.max(0,pct))}%;background:var(--green)"></div></div>
       <div class="abar-pct">${pct.toFixed(1)}%</div>
     </div>`;
   });
