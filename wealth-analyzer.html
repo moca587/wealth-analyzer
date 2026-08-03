@@ -1168,6 +1168,7 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
 
   // ── Settings drawer ──
   function openSettings(){
+    try{ renderCompliance(); }catch(_){ }
     var o=document.getElementById('settingsOverlay'), p=document.getElementById('settingsPanel');
     if(o) o.classList.add('open');
     if(p){ p.classList.add('open'); p.setAttribute('aria-hidden','false'); }
@@ -1392,8 +1393,22 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
     </div>
 
     <div class="set-sec">
+        <div class="set-sec-h">Data protection</div>
+        <div class="set-row">
+          <div class="set-row-lbl">Regulatory regime<small>Sets the notice your firm operates under</small></div>
+          <select id="setRegime" class="w180" onchange="onRegimeChange()"></select>
+        </div>
+        <div class="set-row">
+          <div class="set-row-lbl">Institutional mode<small>Contact only the hosts you have approved below. Everything else is blocked.</small></div>
+          <label class="set-switch"><input type="checkbox" id="setInstitutional" onchange="onInstitutionalChange()"><span></span></label>
+        </div>
+        <div id="regimeNote" class="set-note" style="margin-top:2px"></div>
+        <div class="set-row-lbl" style="margin-top:10px"><b>External processors</b><small>Every host this app can contact, and what it receives. Tick the ones your firm has approved.</small></div>
+        <div id="subprocList" style="margin-top:6px"></div>
+      </div>
+      <div class="set-sec">
       <div class="set-sec-h">About</div>
-      <div class="set-note"><strong style="color:var(--text2)">WealthAnalyzer</strong> by Private Wealth Intelligence — market-simulation financial planner.<br>Version <span id="setVersion">—</span> · Beta version.<br>All calculations run locally; your data never leaves this device.</div>
+      <div class="set-note"><strong style="color:var(--text2)">WealthAnalyzer</strong> by Private Wealth Intelligence — market-simulation financial planner.<br>Version <span id="setVersion">—</span> · Beta version.<br>Planning calculations run locally in your browser. Features you switch on — AI intake, the portfolio builder and live market data — send data to the external processors listed above.</div>
     </div>
 
   </div>
@@ -4009,7 +4024,7 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
 // ═══════════════════════════════════════════════════════════
 // VERSION — updated by build-standalone.pl on each build
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260802-1534";
+const APP_VERSION = "20260803-0906";
 
 // ═══════════════════════════════════════════════════════════
 // DATA
@@ -9515,6 +9530,8 @@ function _daInstruction(){
 
 // ── AI call (forced tool_use → guaranteed structured object) ─────────────
 async function callAIExtract(content){
+  if(!waAiConsent()) throw new Error("Cancelled: the documents were not sent.");
+  if(!waHostAllowed("https://api.anthropic.com")) throw waBlocked("https://api.anthropic.com");
   const key=getAIKey(); if(!key) throw new Error("No AI key set.");
   const headers={ "x-api-key":key, "anthropic-version":"2023-06-01", "content-type":"application/json", "anthropic-dangerous-direct-browser-access":"true" };
   const body={ model:AI_MODEL, max_tokens:8192, system:"You are a meticulous financial-document data-extraction engine. Never fabricate values.",
@@ -14178,7 +14195,7 @@ async function openFigiMap(idType,idValue,hintCc){
   const opts={ method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify([{idType:idType,idValue:String(idValue||'').toUpperCase()}]) };
   let d=null;
   try{ const r=await fetch(url,opts); if(r.ok) d=await r.json(); }catch(e){}
-  if(!d){ const r2=await fetch('https://corsproxy.io/?'+encodeURIComponent(url),opts); if(!r2.ok) throw new Error('OpenFIGI HTTP '+r2.status); d=await r2.json(); }   // OpenFIGI blocks direct browser calls (CORS) → proxy fallback
+  if(!d){ const pu='https://corsproxy.io/?'+encodeURIComponent(url); if(!waHostAllowed(pu)) throw waBlocked(pu); const r2=await fetch(pu,waStripCredentials(opts)); if(!r2.ok) throw new Error('OpenFIGI HTTP '+r2.status); d=await r2.json(); }   // OpenFIGI blocks direct browser calls (CORS) → proxy fallback
   const data=d[0]?.data;
   if(!data?.length) return null;
   // Prefer the ISIN's home exchange (best Yahoo coverage), then a US listing,
@@ -14566,6 +14583,178 @@ function avGetKey(){try{return localStorage.getItem("avKey")||"";}catch(e){retur
 // Supports Finnhub, Alpha Vantage, Yahoo, Polygon (free); Bloomberg + FactSet (via user-deployed proxy)
 // Cache results in-memory for 60s. Automatic failover across providers.
 // ═══════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════════════════════
+// Data protection and compliance (Switzerland, EU, and European non-EU)
+// ----------------------------------------------------------------------
+// A firm selects the regime it operates under. That drives the notice text
+// and, when Institutional mode is on, a strict allowlist: the app will not
+// contact any host the firm has not approved. Nothing here changes what the
+// planning engine computes; it only governs what may leave the browser.
+// ══════════════════════════════════════════════════════════════════════
+const WA_REGIMES = {
+  ch:   {label:"Switzerland \u2014 revFADP",                 law:"Swiss Federal Act on Data Protection (revFADP) and FINMA outsourcing guidance."},
+  eu:   {label:"European Union \u2014 GDPR and DORA",        law:"GDPR Article 28 processor terms; DORA Article 30 contract clauses apply to every ICT provider below."},
+  uk:   {label:"United Kingdom \u2014 UK GDPR",              law:"UK GDPR and ICO rules on transfers to processors outside the UK."},
+  eea:  {label:"EEA \u2014 Liechtenstein, Norway, Iceland",  law:"GDPR applies through the EEA agreement; DORA applies to financial entities."},
+  other:{label:"Other European country",                     law:"Local data protection law applies. Treat every processor below as disclosable."}
+};
+
+// What each external host actually receives. Kept honest deliberately: this
+// list is what a due diligence team is handed, so it must match the code.
+const WA_SUBPROCESSORS = [
+  {host:"api.anthropic.com", name:"Anthropic (AI intake and builder)", region:"United States",
+   receives:"Documents an advisor submits to the AI, and the profile extracted from them", group:"ai"},
+  {host:"corsproxy.io", name:"corsproxy.io (public relay)", region:"Not disclosed by the operator",
+   receives:"The market data URL being requested, which reveals the ticker symbol looked up", group:"relay"},
+  {host:"fonts.googleapis.com", name:"Google Fonts", region:"United States",
+   receives:"Browser IP address and user agent on every page load", group:"cdn"},
+  {host:"cdnjs.cloudflare.com", name:"Cloudflare CDN", region:"Global edge network",
+   receives:"Browser IP address and user agent when a library is loaded", group:"cdn"},
+  {host:"query1.finance.yahoo.com", name:"Yahoo Finance", region:"United States",
+   receives:"Ticker symbols being priced", group:"market"},
+  {host:"finnhub.io", name:"Finnhub", region:"United States", receives:"Ticker symbols being priced", group:"market"},
+  {host:"www.alphavantage.co", name:"Alpha Vantage", region:"United States", receives:"Ticker symbols being priced", group:"market"},
+  {host:"openexchangerates.org", name:"Open Exchange Rates", region:"United States", receives:"Currency pairs requested", group:"market"}
+];
+
+function waRegime(){ return localStorage.getItem("wa_regime") || "ch"; }
+function waInstitutional(){ return localStorage.getItem("wa_institutional") === "1"; }
+function waApprovedHosts(){
+  try{ return JSON.parse(localStorage.getItem("wa_approved_hosts") || "[]"); }catch(_){ return []; }
+}
+function waSetApproved(host, on){
+  const s = new Set(waApprovedHosts());
+  if(on) s.add(host); else s.delete(host);
+  localStorage.setItem("wa_approved_hosts", JSON.stringify([...s]));
+}
+
+// In Institutional mode nothing reaches a host the firm has not ticked.
+function waHostAllowed(url){
+  if(!waInstitutional()) return true;
+  let host = "";
+  try{ host = new URL(url, location.href).hostname; }catch(_){ return false; }
+  return waApprovedHosts().some(function(h){ return host === h || host.endsWith("." + h); });
+}
+function waBlocked(url){
+  let host = url;
+  try{ host = new URL(url, location.href).hostname; }catch(_){ }
+  return new Error("Institutional mode: " + host + " is not on your approved list. "
+    + "Enable it under Settings \u2192 Data protection, or leave it blocked.");
+}
+
+// Credentials must never transit a third-party relay, whatever the mode.
+function waStripCredentials(opts){
+  if(!opts || !opts.headers) return opts;
+  const out = Object.assign({}, opts), hs = {};
+  const drop = /^(authorization|x-api-key|x-openfigi-apikey|apikey|token|cookie)$/i;
+  const src = opts.headers;
+  if(typeof src.forEach === "function" && !Array.isArray(src)){
+    src.forEach(function(v,k){ if(!drop.test(k)) hs[k] = v; });
+  } else {
+    Object.keys(src).forEach(function(k){ if(!drop.test(k)) hs[k] = src[k]; });
+  }
+  out.headers = hs;
+  return out;
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// Single egress choke point.
+// ----------------------------------------------------------------------
+// Guarding each call site does not scale: there are dozens, and every new
+// feature adds another that someone forgets to guard. Wrapping fetch once
+// means a host the firm has not approved cannot be reached from anywhere in
+// the app, including code written later. Same-origin, data: and blob: are
+// untouched, so nothing internal is affected.
+// ══════════════════════════════════════════════════════════════════════
+(function installEgressGuard(){
+  if(typeof window === "undefined" || !window.fetch || window.__waEgressGuard) return;
+  const native = window.fetch.bind(window);
+  // Hosts that merely relay a request on our behalf must never see a credential.
+  const RELAY = /(^|\.)corsproxy\.io$|(^|\.)allorigins\.win$|(^|\.)thingproxy\./i;
+
+  window.fetch = function(input, init){
+    let url = "";
+    try{ url = (typeof input === "string") ? input : (input && input.url) || ""; }catch(_){ }
+    if(!/^https?:/i.test(url)) return native(input, init);          // relative, data:, blob:
+    let u = null;
+    try{ u = new URL(url, location.href); }catch(_){ return native(input, init); }
+    if(u.origin === location.origin) return native(input, init);    // our own server
+
+    if(typeof waHostAllowed === "function" && !waHostAllowed(url)){
+      return Promise.reject(typeof waBlocked === "function"
+        ? waBlocked(url)
+        : new Error("Blocked: " + u.hostname + " is not on your approved list."));
+    }
+    if(RELAY.test(u.hostname) && typeof waStripCredentials === "function"){
+      return native(input, waStripCredentials(init || {}));
+    }
+    return native(input, init);
+  };
+  window.__waEgressGuard = true;
+})();
+
+
+function renderSubprocessors(){
+  const el = document.getElementById("subprocList"); if(!el) return;
+  const approved = waApprovedHosts(), inst = waInstitutional();
+  el.innerHTML = WA_SUBPROCESSORS.map(function(s){
+    const on = approved.indexOf(s.host) >= 0;
+    const state = inst ? (on ? "Approved" : "Blocked") : "Contacted when needed";
+    const col = inst ? (on ? "var(--green)" : "var(--red)") : "var(--text3)";
+    return '<div style="display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-top:1px solid var(--border)">'
+      + '<label class="set-switch" style="flex:0 0 auto;margin-top:2px"><input type="checkbox" ' + (on ? "checked" : "")
+      + ' onchange="onSubprocToggle(\'' + s.host + '\', this.checked)"><span></span></label>'
+      + '<div style="flex:1;min-width:0">'
+      + '<div style="font-size:12px;font-weight:700;color:var(--text)">' + _daEsc(s.name)
+      + ' <span style="font-weight:400;color:var(--text3)">\u00b7 ' + _daEsc(s.region) + '</span></div>'
+      + '<div style="font-size:11px;color:var(--text2);line-height:1.45">Receives: ' + _daEsc(s.receives) + '</div>'
+      + '<div style="font-size:10.5px;font-weight:700;color:' + col + ';margin-top:2px">' + state + '</div>'
+      + '</div></div>';
+  }).join("");
+}
+function renderRegimeNote(){
+  const sel = document.getElementById("setRegime"), note = document.getElementById("regimeNote");
+  if(sel && !sel.options.length){
+    Object.keys(WA_REGIMES).forEach(function(k){
+      const o = document.createElement("option"); o.value = k; o.textContent = WA_REGIMES[k].label; sel.appendChild(o);
+    });
+  }
+  if(sel) sel.value = waRegime();
+  const inst = document.getElementById("setInstitutional");
+  if(inst) inst.checked = waInstitutional();
+  if(note){
+    const r = WA_REGIMES[waRegime()] || WA_REGIMES.ch;
+    note.innerHTML = "<strong>" + _daEsc(r.label) + ".</strong> " + _daEsc(r.law)
+      + (waInstitutional()
+          ? " Institutional mode is on: only approved hosts are contacted."
+          : " Institutional mode is off: the app may contact any processor listed below.");
+  }
+}
+function onRegimeChange(){
+  const sel = document.getElementById("setRegime");
+  if(sel) localStorage.setItem("wa_regime", sel.value);
+  renderRegimeNote();
+}
+function onInstitutionalChange(){
+  const el = document.getElementById("setInstitutional");
+  localStorage.setItem("wa_institutional", (el && el.checked) ? "1" : "0");
+  renderRegimeNote(); renderSubprocessors();
+}
+function onSubprocToggle(host, on){ waSetApproved(host, on); renderSubprocessors(); renderRegimeNote(); }
+function renderCompliance(){ renderRegimeNote(); renderSubprocessors(); }
+
+// Advisors must see where a document is going before it leaves the browser.
+function waAiConsent(){
+  if(sessionStorage.getItem("wa_ai_consent") === "1") return true;
+  const s = WA_SUBPROCESSORS.filter(function(x){ return x.group === "ai"; })[0];
+  const where = s ? (s.name + ", " + s.region) : "the configured AI provider";
+  const ok = confirm("The documents you selected, and the profile extracted from them, will be sent to "
+    + where + " for processing.\n\nRegime: " + (WA_REGIMES[waRegime()] || {}).label
+    + "\n\nContinue?");
+  if(ok) sessionStorage.setItem("wa_ai_consent", "1");
+  return ok;
+}
+
 const MarketData = (function(){
   const cache = new Map(); const CACHE_MS = 60000;
 
@@ -14629,6 +14818,7 @@ const MarketData = (function(){
   // adds the missing Access-Control-Allow-Origin header for us.
   async function corsFetch(url, opts){
     opts = opts || {};
+    if(!waHostAllowed(url)) throw waBlocked(url);
     try {
       const r = await fetch(url, opts);
       // Note: opaque responses have r.ok===false but no readable body;
@@ -14638,9 +14828,11 @@ const MarketData = (function(){
       if(r.status >= 400 && r.status < 500) return r;
       throw new Error("HTTP "+r.status);
     } catch(_){
-      // Network error → retry through CORS proxy
+      // Network error → retry through the CORS relay, but only if the firm
+      // allows it, and never carrying credentials to a third party.
       const proxied = "https://corsproxy.io/?" + encodeURIComponent(url);
-      return await fetch(proxied, opts);
+      if(!waHostAllowed(proxied)) throw waBlocked(proxied);
+      return await fetch(proxied, waStripCredentials(opts));
     }
   }
 
