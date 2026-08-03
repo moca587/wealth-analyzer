@@ -13,6 +13,9 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { parsePlan } from "@/lib/plan/schema";
+import { recordEvent } from "@/lib/audit/record";
+import { diffPlans, planHash } from "@/lib/audit/diff";
+import type { AuditSource } from "@/lib/audit/types";
 
 export async function GET() {
   const supabase = await createClient();
@@ -59,6 +62,16 @@ export async function PUT(request: Request) {
     return NextResponse.json({ error: "Invalid plan", fieldErrors: parsed.fieldErrors }, { status: 400 });
   }
 
+  // Read the CURRENT plan before overwriting it. profiles.plan is a single
+  // JSONB column with no history, so this is the only moment the previous
+  // state exists — after the upsert it is gone for good.
+  const { data: existing } = await supabase
+    .from("profiles").select("plan").eq("id", user.id).maybeSingle();
+  const beforeRaw = existing?.plan && typeof existing.plan === "object" && Object.keys(existing.plan).length
+    ? existing.plan : null;
+  const beforeParsed = beforeRaw ? parsePlan(beforeRaw) : null;
+  const beforePlan = beforeParsed?.ok ? beforeParsed.plan : null;
+
   // upsert (not update): a user whose signup trigger never ran, or whose row
   // was deleted, would otherwise silently match zero rows and lose the save.
   const { error } = await supabase
@@ -66,5 +79,24 @@ export async function PUT(request: Request) {
     .upsert({ id: user.id, plan: parsed.plan }, { onConflict: "id" });
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json({ ok: true });
+
+  // The save has already succeeded. An audit failure must not undo it — but
+  // it must not be hidden either, so the warning rides back on the response.
+  const diff = diffPlans(beforePlan, parsed.plan);
+  const url = new URL(request.url);
+  const src = (url.searchParams.get("source") || "web") as AuditSource;
+  const audit = await recordEvent(supabase, user.id, {
+    action: "plan.updated",
+    source: ["web", "feed", "import", "api"].includes(src) ? src : "web",
+    summary: diff.summary,
+    changes: diff.changes,
+    netWorthBefore: beforePlan ? diff.netWorthBefore : null,
+    netWorthAfter: diff.netWorthAfter,
+    currency: diff.currency,
+    hashBefore: beforePlan ? planHash(beforePlan) : null,
+    hashAfter: planHash(parsed.plan),
+    detail: diff.truncated ? `${diff.truncated} further change(s) not itemised` : null,
+  });
+
+  return NextResponse.json({ ok: true, ...(audit.ok ? {} : { auditWarning: audit.warning }) });
 }

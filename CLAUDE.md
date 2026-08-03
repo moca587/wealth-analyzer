@@ -320,6 +320,40 @@ connection at `/api/feeds/<id>` and that panel works unchanged.
   checkboxes grouped by section with before → after values → Apply → one-click
   Undo (re-PUTs the pre-apply snapshot).
 
+### Audit trail — `/api/audit` + `audit_events` (migration `004_audit.sql`)
+The record of what happened to a client's plan. Before this, `profiles.plan`
+was a single JSONB column overwritten on every save, so "who changed this
+client's position, when, and from what to what" had **no answer at all**.
+
+- **Append-only, enforced TWICE.** RLS grants `SELECT` + `INSERT` and nothing
+  else (no update policy, no delete policy), AND a trigger raises on `UPDATE`
+  and `DELETE` regardless of caller — so a service-role key or a future policy
+  mistake still cannot rewrite history. `/api/audit` has no POST/DELETE handler
+  at all, so history can be neither fabricated nor erased through the API.
+- **Events, not snapshots.** Storing both plans per save would duplicate the
+  client's entire position on every keystroke. An event carries a summary, a
+  capped list of rows that moved with before/after, net worth on both sides,
+  and a `planHash` fingerprint of each side — enough to answer the review
+  question and to test later whether a given plan was the one in force.
+- **`lib/audit/diff.ts` is pure** (no DB, no clock), so the summary a reviewer
+  reads is reproducible from the two plans alone. It matches rows **by id** —
+  a client that regenerated ids on every save would make each save read as a
+  wholesale replacement, which `diff.test.ts` pins explicitly.
+- **`planNetWorth` is deliberately independent of the engine** (assets minus
+  loan balances). A compliance figure must not move because a projection model
+  changed.
+- **Audit failure is surfaced, never swallowed.** `recordEvent` never throws;
+  the plan PUT returns `auditWarning` alongside `ok:true` rather than either
+  losing the save or reporting a clean one. A trail with unreported holes is
+  worse than a short one. (Orders are different: `order_tickets` is written
+  BEFORE the upstream call and a failure there is fatal.)
+- Retention: nothing prunes the table, by design. Deleting audit history should
+  be a reviewed migration, not a background job; partition by month if volume
+  becomes a problem.
+- **Not covered:** the legacy single-file app. Its order log lives in
+  localStorage, which the user can clear — that is a convenience log, not an
+  audit trail, and pretending otherwise would be worse than the gap.
+
 ### Order routing — `/api/orders` (send a proposal to a PM/OMS)
 The outbound mirror of the feed relay. An advisor approves an Investment
 Proposal, presses **BUY**, and the positions go to a portfolio/order

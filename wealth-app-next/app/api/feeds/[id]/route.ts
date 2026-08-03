@@ -25,6 +25,7 @@ import { safeFetch, FeedFetchError } from "@/lib/feeds/ssrf";
 import { adaptFeed, FeedFormatError } from "@/lib/feeds/adapters";
 import { countRecords, type FeedFormat } from "@/lib/feeds/model";
 import { redact, HTTP_FOR } from "@/lib/feeds/redact";
+import { recordEvent } from "@/lib/audit/record";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";   // a relay run must never be cached
@@ -153,6 +154,12 @@ export async function GET(_request: Request, ctx: Ctx) {
     ...envelope.source,
   };
   await recordRun(supabase, id, `ok: ${records} record${records === 1 ? "" : "s"} (${format})`);
+  // last_status keeps only the latest run; the audit trail keeps all of them.
+  await recordEvent(supabase, user.id, {
+    action: "feed.run", source: "feed",
+    summary: `Fetched ${records} record${records === 1 ? "" : "s"} from ${row.name} (${format})`,
+    refType: "feed_connection", refId: id,
+  });
 
   return NextResponse.json(envelope, {
     headers: { "Cache-Control": "no-store" },
