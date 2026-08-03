@@ -68,6 +68,12 @@ $html =~ s|'DM Sans',sans-serif|-apple-system,BlinkMacSystemFont,'Segoe UI',syst
 $html =~ s|'DM Sans', sans-serif|-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,Arial,sans-serif|g;
 $html =~ s|'DM Sans',monospace|'Courier New',Courier,monospace|g;
 
+# 2b. Inline the vendored typeface (keeps the standalone offline, and keeps
+#     every client IP away from a font CDN)
+my $fonts_css = slurp_text("$V/fonts.css");
+my $fonts_block = "<style>/* Plus Jakarta Sans - vendored */\n$fonts_css\n</style>";
+$html =~ s|<link rel="stylesheet" href="vendor/fonts\.css">|$fonts_block|;
+
 # 3. Inline Chart.js
 my $chart_block = "<script>/* Chart.js 4.4.1 — inlined */\n$chart_js\n</script>";
 $html =~ s|<script (?:defer )?src="https://cdnjs\.cloudflare\.com/ajax/libs/Chart\.js/4\.4\.1/chart\.umd\.min\.js"></script>|$chart_block|;

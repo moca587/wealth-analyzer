@@ -11,10 +11,9 @@
      NON-blocking (media=print flips to all on load). display=swap means text
      paints immediately in the system-sans fallback and upgrades when Plus
      Jakarta Sans arrives — first paint no longer waits on the font network. -->
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" media="print" onload="this.media='all'" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,200;0,300;0,400;0,500;0,600;0,700;0,800;1,300;1,400;1,500&display=swap">
-<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,200;0,300;0,400;0,500;0,600;0,700;0,800;1,300;1,400;1,500&display=swap"></noscript>
+<!-- Typeface is vendored: no page load contacts a font CDN, so no client IP is
+     disclosed to a third party before the app has even started. -->
+<link rel="stylesheet" href="vendor/fonts.css">
 <!-- defer: none of these are used at parse time (all usage is inside functions
      that run at/after DOMContentLoaded, and deferred scripts are guaranteed to
      execute before DOMContentLoaded). Unblocks first paint — pdf.js alone is ~1MB. -->
@@ -4024,7 +4023,7 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
 // ═══════════════════════════════════════════════════════════
 // VERSION — updated by build-standalone.pl on each build
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260803-0906";
+const APP_VERSION = "20260803-1500";
 
 // ═══════════════════════════════════════════════════════════
 // DATA
@@ -14606,8 +14605,6 @@ const WA_SUBPROCESSORS = [
    receives:"Documents an advisor submits to the AI, and the profile extracted from them", group:"ai"},
   {host:"corsproxy.io", name:"corsproxy.io (public relay)", region:"Not disclosed by the operator",
    receives:"The market data URL being requested, which reveals the ticker symbol looked up", group:"relay"},
-  {host:"fonts.googleapis.com", name:"Google Fonts", region:"United States",
-   receives:"Browser IP address and user agent on every page load", group:"cdn"},
   {host:"cdnjs.cloudflare.com", name:"Cloudflare CDN", region:"Global edge network",
    receives:"Browser IP address and user agent when a library is loaded", group:"cdn"},
   {host:"query1.finance.yahoo.com", name:"Yahoo Finance", region:"United States",
@@ -14666,6 +14663,79 @@ function waStripCredentials(opts){
 // the app, including code written later. Same-origin, data: and blob: are
 // untouched, so nothing internal is affected.
 // ══════════════════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════════════════════
+// Credential handling.
+// ----------------------------------------------------------------------
+// API keys used to be written to localStorage, which means they survive the
+// browser being closed, sit on disk unencrypted, and are readable by any
+// script that ever manages to run on the page. They now live in
+// sessionStorage by default: still in the browser, but gone when the tab
+// closes and never written to disk. A firm that wants them to persist has to
+// opt in explicitly, and can wipe them at any time.
+//
+// This reduces exposure; it does not eliminate it. The complete answer is
+// server held credentials, which is what the hosted service does - the
+// browser never sees a provider key at all.
+// ══════════════════════════════════════════════════════════════════════
+(function installCredentialVault(){
+  if(typeof window === "undefined" || !window.localStorage || window.__waVault) return;
+  const SECRET = /(^|_)(key|secret|token|apikey)$|^wa_(ai|claude)_key$|^(avKey|fhKey)$/i;
+  const rawGet = Storage.prototype.getItem;
+  const rawSet = Storage.prototype.setItem;
+  const rawDel = Storage.prototype.removeItem;
+
+  function persists(){ return rawGet.call(window.localStorage, "wa_persist_keys") === "1"; }
+  window.waCredentialsPersist = function(on){
+    rawSet.call(window.localStorage, "wa_persist_keys", on ? "1" : "0");
+    if(!on) sweep();
+  };
+  // Move anything secret off disk and into the session.
+  function sweep(){
+    if(persists()) return;
+    const move = [];
+    for(let i = 0; i < window.localStorage.length; i++){
+      const k = window.localStorage.key(i);
+      if(k && SECRET.test(k)) move.push(k);
+    }
+    move.forEach(function(k){
+      const v = rawGet.call(window.localStorage, k);
+      if(v !== null) rawSet.call(window.sessionStorage, k, v);
+      rawDel.call(window.localStorage, k);
+    });
+    return move.length;
+  }
+  window.waClearCredentials = function(){
+    const wipe = function(store){
+      const ks = [];
+      for(let i = 0; i < store.length; i++){ const k = store.key(i); if(k && SECRET.test(k)) ks.push(k); }
+      ks.forEach(function(k){ rawDel.call(store, k); });
+      return ks.length;
+    };
+    return wipe(window.localStorage) + wipe(window.sessionStorage);
+  };
+
+  Storage.prototype.getItem = function(k){
+    if(this === window.localStorage && SECRET.test(k) && !persists()){
+      const v = rawGet.call(window.sessionStorage, k);
+      if(v !== null) return v;
+    }
+    return rawGet.call(this, k);
+  };
+  Storage.prototype.setItem = function(k, v){
+    if(this === window.localStorage && SECRET.test(k) && !persists()){
+      return rawSet.call(window.sessionStorage, k, v);
+    }
+    return rawSet.call(this, k, v);
+  };
+  Storage.prototype.removeItem = function(k){
+    if(this === window.localStorage && SECRET.test(k)) rawDel.call(window.sessionStorage, k);
+    return rawDel.call(this, k);
+  };
+
+  sweep();
+  window.__waVault = true;
+})();
+
 (function installEgressGuard(){
   if(typeof window === "undefined" || !window.fetch || window.__waEgressGuard) return;
   const native = window.fetch.bind(window);
