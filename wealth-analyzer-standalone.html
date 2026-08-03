@@ -1495,6 +1495,7 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
 .intro-launch svg{transition:transform .15s}
 .intro-launch:hover svg{transform:translateX(4px)}
 .intro-foot{margin-top:32px;font-size:11px;color:#7e9bc8;letter-spacing:.03em}
+.chflag{width:1em;height:1em;border-radius:2px;vertical-align:-.14em;margin:0 4px}
 .intro-credit{margin-top:10px;font-size:12px;color:#aec3e6;letter-spacing:.02em}
 .intro-credit strong{color:#fff;font-weight:700}
 /* ── Scroll hint + "learn more" section below the launch button ── */
@@ -1540,7 +1541,7 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
       <svg width="18" height="18" viewBox="0 0 16 16" fill="none"><path d="M1 8h11M8 3l5 5-5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
     </button>
     <div class="intro-foot">Press Enter to begin · Beta version</div>
-    <div class="intro-credit">WealthAnalyzer is by <strong>Private Wealth Intelligence</strong></div>
+    <div class="intro-credit">WealthAnalyzer is by <strong>Private Wealth Intelligence</strong><svg class="chflag" viewBox="0 0 32 32" role="img" aria-label="Swiss company"><rect width="32" height="32" fill="#FF0000"/><rect x="13" y="6" width="6" height="20" fill="#fff"/><rect x="6" y="13" width="20" height="6" fill="#fff"/></svg><span>Swiss company</span></div>
     <div class="intro-scroll-hint">Learn more
       <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 3v9M4 8l4 4 4-4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
     </div>
@@ -1679,7 +1680,7 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
 <!-- Top bar -->
 <div class="topbar">
   <div style="display:flex;align-items:center;gap:20px">
-    <div class="logo">WealthAnalyzer <small>by Private Wealth Intelligence</small></div>
+    <div class="logo">WealthAnalyzer <small>by Private Wealth Intelligence<svg class="chflag" viewBox="0 0 32 32" role="img" aria-label="Swiss company"><rect width="32" height="32" fill="#FF0000"/><rect x="13" y="6" width="6" height="20" fill="#fff"/><rect x="6" y="13" width="20" height="6" fill="#fff"/></svg></small></div>
   </div>
   <div style="display:flex;align-items:center;gap:12px">
     <span id="topbarStatus" style="font-size:11px;color:var(--green);font-weight:600;min-width:90px;text-align:right"></span>
@@ -1833,7 +1834,7 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
         <div id="mdKeysBody" style="display:none;padding-top:12px">
           <div style="font-size:11.5px;color:var(--text3);line-height:1.6;margin-bottom:12px">Paste free API keys to enable richer market data and AI features. Keys are stored only in your browser and are shared with the Admin console below. Get keys from each provider's link.</div>
           <div id="mdKeysGrid" style="display:grid;grid-template-columns:1fr;gap:10px"></div>
-          <div style="margin-top:12px;padding:10px 12px;background:rgba(245,158,11,.06);border-left:3px solid var(--amber);border-radius:6px;font-size:11px;color:var(--text2);line-height:1.6"><strong>CORS note:</strong> Some providers (CoinMarketCap, FRED, NewsAPI, Marketstack) block direct browser requests — the app retries those via corsproxy.io.</div>
+          <div style="margin-top:12px;padding:10px 12px;background:rgba(245,158,11,.06);border-left:3px solid var(--amber);border-radius:6px;font-size:11px;color:var(--text2);line-height:1.6"><strong>CORS note:</strong> Some providers (CoinMarketCap, FRED, NewsAPI, Marketstack) block direct browser requests. The app retries those through a relay only if your firm has configured one.</div>
           <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
             <button class="btn-secondary" onclick="testAllMdKeys()" style="font-size:12px;padding:7px 14px">⚡ Test all keys</button>
             <span id="mdKeysTestStatus" style="font-size:12px;color:var(--text3)"></span>
@@ -4477,7 +4478,7 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
 // ═══════════════════════════════════════════════════════════
 // VERSION — updated by build-standalone.pl on each build
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260803-1500";
+const APP_VERSION = "20260803-1641";
 
 // ═══════════════════════════════════════════════════════════
 // DATA
@@ -7589,7 +7590,7 @@ async function testAllMdKeys(){
       else if(k.id === "wa_fred_key")       await MarketData.getFREDSeries("DFF"); // Fed funds rate
       else if(k.id === "wa_ai_key"){
         // Quick ping — list models endpoint requires no body
-        const r = await fetch("https://api.anthropic.com/v1/models", {
+        const r = await fetch(waAiBase()+"/v1/models", {
           headers:{"x-api-key":localStorage.getItem("wa_ai_key"),"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"}
         });
         if(!r.ok) throw new Error("HTTP "+r.status);
@@ -9920,7 +9921,7 @@ async function fileToBlocks(file){
   if(_daLooksBinaryGarbage(raw)){
     throw new Error("Could not read "+name+" as text — this file type may not be supported. Try PDF, DOCX, an image, or a spreadsheet export instead.");
   }
-  return [{type:"text",text:"File "+name+":\n"+_daTruncateSmart(raw,30000)}];
+  return [{type:"text",text:"File "+name+":\n"+_daTruncateSmart(raw,300000)}];
 }
 
 // ── Extraction schema (enums generated LIVE from the app constants) ──────────
@@ -9990,7 +9991,7 @@ async function callAIExtract(content){
   const body={ model:AI_MODEL, max_tokens:8192, system:"You are a meticulous financial-document data-extraction engine. Never fabricate values.",
     tools:[buildExtractionSchema()], tool_choice:{type:"tool",name:"submit_profile"},
     messages:[{role:"user",content}] };
-  const r=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers,body:JSON.stringify(body)});
+  const r=await fetch(waAiBase()+"/v1/messages",{method:"POST",headers,body:JSON.stringify(body)});
   if(!r.ok){ const t=await r.text(); throw new Error("AI service "+r.status+": "+t.slice(0,300)); }
   const data=await r.json();
   const tu=(data.content||[]).find(b=>b.type==="tool_use");
@@ -13085,7 +13086,7 @@ Constraints:
 - Each rationale cites ≥1 quantitative metric AND ≥1 research source when available`;
 
   try {
-    const r = await fetch("https://api.anthropic.com/v1/messages", {
+    const r = await fetch(waAiBase()+"/v1/messages", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -14648,7 +14649,7 @@ async function openFigiMap(idType,idValue,hintCc){
   const opts={ method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify([{idType:idType,idValue:String(idValue||'').toUpperCase()}]) };
   let d=null;
   try{ const r=await fetch(url,opts); if(r.ok) d=await r.json(); }catch(e){}
-  if(!d){ const pu='https://corsproxy.io/?'+encodeURIComponent(url); if(!waHostAllowed(pu)) throw waBlocked(pu); const r2=await fetch(pu,waStripCredentials(opts)); if(!r2.ok) throw new Error('OpenFIGI HTTP '+r2.status); d=await r2.json(); }   // OpenFIGI blocks direct browser calls (CORS) → proxy fallback
+  if(!d){ const r2=await waProxyFetch(url, waStripCredentials(opts)); if(!r2) throw new Error('OpenFIGI unreachable and no relay is configured.'); if(!r2.ok) throw new Error('OpenFIGI HTTP '+r2.status); d=await r2.json(); }   // OpenFIGI blocks direct browser calls (CORS) → proxy fallback
   const data=d[0]?.data;
   if(!data?.length) return null;
   // Prefer the ISIN's home exchange (best Yahoo coverage), then a US listing,
@@ -14669,7 +14670,7 @@ async function yahooSearchInstr(query){
   const url=`https://query1.finance.yahoo.com/v1/finance/search?q=${encodeURIComponent(query)}&quotesCount=6&newsCount=0&enableFuzzyQuery=false`;
   let d=null;
   try{ const r=await fetch(url); if(r.ok) d=await r.json(); }catch(e){}
-  if(!d){ const r2=await fetch("https://corsproxy.io/?"+encodeURIComponent(url)); if(!r2.ok) throw new Error('Yahoo search HTTP '+r2.status); d=await r2.json(); }   // CORS fallback
+  if(!d){ const r2=await waProxyFetch(url); if(!r2) throw new Error('Yahoo unreachable and no relay is configured.'); if(!r2.ok) throw new Error('Yahoo search HTTP '+r2.status); d=await r2.json(); }   // CORS fallback
   return d?.finance?.result?.quotes||[];
 }
 
@@ -14678,20 +14679,20 @@ async function yahooChartMeta(symbol){
   const url=`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1d&range=1d&includePrePost=false`;
   let d=null;
   try{ const r=await fetch(url); if(r.ok) d=await r.json(); }catch(e){}
-  if(!d){ try{ const r2=await fetch("https://corsproxy.io/?"+encodeURIComponent(url)); if(r2.ok) d=await r2.json(); }catch(e){} }   // CORS fallback
+  if(!d){ try{ const r2=await waProxyFetch(url); if(r2 && r2.ok) d=await r2.json(); }catch(e){} }   // CORS fallback
   return d?.chart?.result?.[0]?.meta||null;
 }
 
 // Total-return performance from Yahoo: per-calendar-year returns, trailing 1/3/5/10yr
 // (annualized) and since-inception. Uses the v8 chart endpoint's adjusted close (= total
-// return, dividends reinvested) — same source as yahooChartMeta — with a corsproxy fallback.
+// return, dividends reinvested) — same source as yahooChartMeta — falling back to the firm’s relay if one is configured.
 // Returns null on failure. Figures track Morningstar closely; methodology may differ slightly.
 async function fetchFundPerformance(symbol){
   if(!symbol) return null;
   const url=`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1mo&range=max`;
   let d=null;
   try{ const r=await fetch(url); if(r.ok) d=await r.json(); }catch(e){}
-  if(!d){ try{ const r2=await fetch("https://corsproxy.io/?"+encodeURIComponent(url)); if(r2.ok) d=await r2.json(); }catch(_){ } }
+  if(!d){ try{ const r2=await waProxyFetch(url); if(r2 && r2.ok) d=await r2.json(); }catch(_){ } }
   const res=d&&d.chart&&d.chart.result&&d.chart.result[0]; if(!res) return null;
   const ts=res.timestamp||[];
   const adj=(res.indicators&&res.indicators.adjclose&&res.indicators.adjclose[0]&&res.indicators.adjclose[0].adjclose)
@@ -15057,8 +15058,6 @@ const WA_REGIMES = {
 const WA_SUBPROCESSORS = [
   {host:"api.anthropic.com", name:"Anthropic (AI intake and builder)", region:"United States",
    receives:"Documents an advisor submits to the AI, and the profile extracted from them", group:"ai"},
-  {host:"corsproxy.io", name:"corsproxy.io (public relay)", region:"Not disclosed by the operator",
-   receives:"The market data URL being requested, which reveals the ticker symbol looked up", group:"relay"},
   {host:"cdnjs.cloudflare.com", name:"Cloudflare CDN", region:"Global edge network",
    receives:"Browser IP address and user agent when a library is loaded", group:"cdn"},
   {host:"query1.finance.yahoo.com", name:"Yahoo Finance", region:"United States",
@@ -15106,6 +15105,32 @@ function waStripCredentials(opts){
   }
   out.headers = hs;
   return out;
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// Enterprise routing.
+// ----------------------------------------------------------------------
+// An institution can keep every outbound call inside a perimeter it owns.
+// Both settings are optional, and both default to the safe behaviour: the
+// AI gateway falls back to Anthropic's public endpoint, and the CORS relay
+// is DISABLED unless the firm supplies its own, so a request is never handed
+// to an unvetted third-party proxy just because a direct call failed.
+// ══════════════════════════════════════════════════════════════════════
+function waAiBase(){
+  const v = (localStorage.getItem("wa_ai_base") || "").trim();
+  return (v || "https://api.anthropic.com").replace(/\/+$/, "");
+}
+function waCorsProxy(){ return (localStorage.getItem("wa_cors_proxy") || "").trim(); }
+// A proxied URL, or null when the firm has configured no relay.
+function waProxyUrl(url){
+  const pxy = waCorsProxy();
+  return pxy ? pxy + encodeURIComponent(url) : null;
+}
+// fetch() through the configured relay; resolves to null when none is set, so
+// callers fall through to their own error path rather than silently leaking.
+async function waProxyFetch(url, opts){
+  const pu = waProxyUrl(url);
+  return pu ? fetch(pu, opts) : null;
 }
 
 // ══════════════════════════════════════════════════════════════════════
@@ -15338,8 +15363,9 @@ const MarketData = (function(){
 
   // ─── CORS-resilient fetch ──────────────────────────────────────────────
   // Tries the direct URL first. If it fails with a network/CORS error
-  // (TypeError or opaque response), retries through corsproxy.io which
-  // adds the missing Access-Control-Allow-Origin header for us.
+  // (TypeError or opaque response), retries through the relay the firm has
+  // configured, if any. There is no default relay: an unvetted third party
+  // must never see a request just because a direct call failed.
   async function corsFetch(url, opts){
     opts = opts || {};
     if(!waHostAllowed(url)) throw waBlocked(url);
@@ -15354,7 +15380,8 @@ const MarketData = (function(){
     } catch(_){
       // Network error → retry through the CORS relay, but only if the firm
       // allows it, and never carrying credentials to a third party.
-      const proxied = "https://corsproxy.io/?" + encodeURIComponent(url);
+      const proxied = waProxyUrl(url);
+      if(!proxied) throw new Error("Direct request failed and no relay is configured for your firm.");
       if(!waHostAllowed(proxied)) throw waBlocked(proxied);
       return await fetch(proxied, waStripCredentials(opts));
     }
@@ -15492,7 +15519,7 @@ const MarketData = (function(){
   async function tryYahoo(t){
     const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(t)}?interval=1d`;
     let r;
-    try { r = await fetch(url); } catch(e){ r = await fetch(`https://corsproxy.io/?${encodeURIComponent(url)}`); }
+    try { r = await fetch(url); } catch(e){ r = await waProxyFetch(url); if(!r) throw e; }
     if(!r.ok) throw new Error("HTTP "+r.status);
     const j = await r.json(); const m = j.chart && j.chart.result && j.chart.result[0] && j.chart.result[0].meta;
     if(!m) throw new Error("No meta");
@@ -15522,7 +15549,7 @@ const MarketData = (function(){
     const sym = t.includes(".") ? t.toLowerCase() : t.toLowerCase() + ".us";
     const url = `https://stooq.com/q/l/?s=${encodeURIComponent(sym)}&f=sd2t2ohlcv&h&e=csv`;
     let r;
-    try { r = await fetch(url); } catch(e){ r = await fetch(`https://corsproxy.io/?${encodeURIComponent(url)}`); }
+    try { r = await fetch(url); } catch(e){ r = await waProxyFetch(url); if(!r) throw e; }
     if(!r.ok) throw new Error("HTTP "+r.status);
     const txt = await r.text();
     const lines = txt.trim().split("\n"); if(lines.length < 2) throw new Error("No data");
