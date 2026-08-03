@@ -68,6 +68,16 @@ export interface AuditEventInput {
   /** Correlates an event with the thing it acted on (ticket id, connection id). */
   refType?: string | null;
   refId?: string | null;
+  /**
+   * WHOSE money this concerns — distinct from the actor, who is passed
+   * separately. 008 split the two because `user_id` answered "who did
+   * this" while a compliance review asks "what happened to this client".
+   * Omitted, the database trigger derives it from the actor, but only
+   * while that actor has exactly one household; passing it explicitly is
+   * what keeps that path from raising once they have two.
+   */
+  householdId?: string | null;
+  orgId?: string | null;
 }
 
 export interface AuditEvent extends AuditEventInput {

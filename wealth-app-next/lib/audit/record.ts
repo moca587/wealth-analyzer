@@ -52,6 +52,11 @@ export async function recordEvent(
       detail: event.detail ? String(event.detail).slice(0, AUDIT_MAX_DETAIL) : null,
       ref_type: event.refType ?? null,
       ref_id: event.refId ?? null,
+      // Null lets 008's BEFORE INSERT trigger derive these from the actor,
+      // which it will only do while that actor has exactly one household.
+      // Every caller that already knows the subject should say so.
+      household_id: event.householdId ?? null,
+      org_id: event.orgId ?? null,
     };
     const { error } = await supabase.from("audit_events").insert(row);
     if (error) {

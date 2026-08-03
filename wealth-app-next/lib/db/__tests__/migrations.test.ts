@@ -89,6 +89,7 @@ describe("every migration applies to a real Postgres", () => {
       "001_init.sql", "002_feeds.sql", "003_orders.sql",
       "004_audit.sql", "005_fix_erasure_and_entitlement.sql", "006_tenancy.sql",
       "007_fix_entitlement_grants.sql", "008_rekey_to_households.sql",
+      "009_household_management.sql",
     ]);
   });
 
@@ -465,6 +466,241 @@ describe("006: the access helpers keep RLS predicates indexable", () => {
       `select coalesce(cardinality(array(select unnest(public.auth_org_ids())
          intersect select unnest(array['${'00000000-0000-0000-0000-000000000000'}']::uuid[]))),0)::int as n`);
     expect(seenByB!.n).toBe(0);
+    await become(null);
+  });
+});
+
+describe("009: an advisor can hold a SECOND client", () => {
+  // The gap 006/008 left: `households_insert` lets a row be created, but
+  // `household_advisors` is unwritable by clients (007), so an advisor's new
+  // household was invisible to them the moment it existed. Create-then-vanish.
+  it("creates the household AND the creator's assignment, atomically", async () => {
+    const u = await one<{ id: string }>(
+      `insert into auth.users (email) values ('grow@x.example') returning id`);
+    const org = await one<{ org_id: string }>(
+      `select org_id from public.org_members where user_id = '${u!.id}'`);
+
+    await db.exec(`set role authenticated`);
+    await become(u!.id);
+    const hh = await one<{ create_household: string }>(
+      `select public.create_household('${org!.org_id}', 'Keller, Beatrice', 'CL-0042', 'chf')`);
+    // The whole point: it is visible to the advisor who made it.
+    const seen = await one<{ n: number }>(
+      `select count(*)::int as n from public.households where id = '${hh!.create_household}'`);
+    expect(seen!.n, "the creator must be able to see their own new client").toBe(1);
+    await db.exec(`reset role`);
+    await become(null);
+
+    const row = await one<{ currency: string; reference: string; org_id: string }>(
+      `select currency, reference, org_id from public.households where id='${hh!.create_household}'`);
+    expect(row!.currency, "currency is normalised, not stored as typed").toBe("CHF");
+    expect(row!.reference).toBe("CL-0042");
+    const asg = await one<{ n: number }>(
+      `select count(*)::int as n from public.household_advisors
+        where household_id='${hh!.create_household}' and user_id='${u!.id}'`);
+    expect(asg!.n, "the assignment is what makes it visible").toBe(1);
+  });
+
+  it("makes the DATABASE stop guessing once there are two", async () => {
+    // 008's trigger fills household_id from the actor only while that is
+    // unambiguous. Creating a second client is exactly the event that must
+    // flip unqualified inserts from working to failing loudly.
+    const u = await one<{ id: string }>(
+      `insert into auth.users (email) values ('two@x.example') returning id`);
+    const org = await one<{ org_id: string }>(
+      `select org_id from public.org_members where user_id = '${u!.id}'`);
+
+    // One household (from signup) — the old-style insert still works.
+    await db.exec(`insert into public.feed_connections (user_id, name, url)
+                   values ('${u!.id}', 'UBS', 'https://custodian.example.com/a')`);
+
+    await db.exec(`set role authenticated`);
+    await become(u!.id);
+    await db.exec(`select public.create_household('${org!.org_id}', 'Second client')`);
+    await db.exec(`reset role`);
+    await become(null);
+
+    await expect(db.exec(`insert into public.feed_connections (user_id, name, url)
+                          values ('${u!.id}', 'CS', 'https://custodian.example.com/b')`))
+      .rejects.toThrow(/explicitly/i);
+
+    // ...and the qualified insert the route now performs still works.
+    const h2 = await one<{ id: string }>(
+      `select id from public.households where org_id='${org!.org_id}' and name='Second client'`);
+    await db.exec(`insert into public.feed_connections (user_id, household_id, org_id, name, url)
+                   values ('${u!.id}', '${h2!.id}', '${org!.org_id}', 'CS', 'https://custodian.example.com/b')`);
+    const f = await one<{ household_id: string }>(
+      `select household_id from public.feed_connections where name='CS'`);
+    expect(f!.household_id).toBe(h2!.id);
+  });
+
+  it("refuses to create one in an organisation the caller is not in", async () => {
+    const outsider = await one<{ id: string }>(
+      `insert into auth.users (email) values ('outsider@x.example') returning id`);
+    const other = await one<{ id: string }>(
+      `insert into public.organizations (name) values ('Someone else AG') returning id`);
+    await db.exec(`set role authenticated`);
+    await become(outsider!.id);
+    await expect(db.query(`select public.create_household('${other!.id}', 'Not mine')`))
+      .rejects.toThrow(/not a member/i);
+    await db.exec(`reset role`);
+    await become(null);
+  });
+
+  it("refuses an unauthenticated caller", async () => {
+    const org = await one<{ id: string }>(`select id from public.organizations limit 1`);
+    await become(null);
+    await expect(db.query(`select public.create_household('${org!.id}', 'Anon')`))
+      .rejects.toThrow(/not authenticated|not a member/i);
+  });
+
+  it("pins search_path on the two new SECURITY DEFINER functions", async () => {
+    // These write, so they cannot be STABLE like the auth_* helpers — but
+    // they ARE SECURITY DEFINER, and an unpinned search_path there is a
+    // privilege-escalation hole: the caller gets to choose which
+    // `households` table the function actually writes to.
+    const fns = await rows<{ proname: string; prosecdef: boolean; proconfig: string[] | null }>(
+      `select proname, prosecdef, proconfig from pg_proc p
+         join pg_namespace n on n.oid=p.pronamespace
+        where n.nspname='public' and proname in ('create_household','set_advisor')
+        order by proname`);
+    expect(fns.map((f) => f.proname)).toEqual(["create_household", "set_advisor"]);
+    for (const f of fns) {
+      expect(f.prosecdef, `${f.proname} must be SECURITY DEFINER`).toBe(true);
+      expect((f.proconfig ?? []).join(","), `${f.proname} must pin search_path`).toMatch(/search_path/);
+    }
+  });
+});
+
+describe("009: versioned plans are what fix the lost update", () => {
+  let uid = "", org = "", hh = "";
+  beforeAll(async () => {
+    const u = await one<{ id: string }>(
+      `insert into auth.users (email) values ('ver@x.example') returning id`);
+    uid = u!.id;
+    const o = await one<{ org_id: string }>(
+      `select org_id from public.org_members where user_id='${uid}'`);
+    org = o!.org_id;
+    const h = await one<{ id: string }>(
+      `select id from public.households where org_id='${org}' limit 1`);
+    hh = h!.id;
+  });
+
+  const save = (v: number, nw: number) => db.exec(
+    `insert into public.plans (household_id, org_id, version, plan, created_by)
+     values ('${hh}', '${org}', ${v}, '{"netWorth": ${nw}}'::jsonb, '${uid}')`);
+
+  it("turns two concurrent saves into a conflict, not a silent overwrite", async () => {
+    await save(1, 100);
+    await save(2, 200);
+    // Two tabs both read version 2 and both compute 3. Under the old single
+    // JSONB column both upserts succeeded and one client's edits vanished.
+    await expect(save(2, 999)).rejects.toThrow(/duplicate key|unique/i);
+    const cur = await one<{ version: number; plan: { netWorth: number } }>(
+      `select version, plan from public.plans where household_id='${hh}'
+        order by version desc limit 1`);
+    expect(cur!.version).toBe(2);
+    expect(cur!.plan.netWorth, "the loser must not have overwritten the winner").toBe(200);
+  });
+
+  it("keeps every prior version — history is what the audit hashes point at", async () => {
+    const n = await one<{ n: number }>(
+      `select count(*)::int as n from public.plans where household_id='${hh}'`);
+    expect(n!.n).toBeGreaterThanOrEqual(2);
+    await db.exec(`set role authenticated`);
+    await become(uid);
+    await expect(db.exec(`update public.plans set plan='{}'::jsonb where household_id='${hh}'`))
+      .rejects.toThrow(/permission denied/i);
+    await expect(db.exec(`delete from public.plans where household_id='${hh}'`))
+      .rejects.toThrow(/permission denied/i);
+    await db.exec(`reset role`);
+    await become(null);
+  });
+});
+
+describe("009: assignment is an ADMIN action, not a self-service one", () => {
+  let owner = "", advisor = "", org = "", hidden = "";
+  beforeAll(async () => {
+    const o = await one<{ id: string }>(
+      `insert into auth.users (email) values ('owner@firm.example') returning id`);
+    owner = o!.id;
+    const om = await one<{ org_id: string }>(
+      `select org_id from public.org_members where user_id='${owner}'`);
+    org = om!.org_id;
+    // Make it a real firm, not the personal org the signup trigger made.
+    await db.exec(`update public.organizations set kind='institution' where id='${org}'`);
+
+    const a = await one<{ id: string }>(
+      `insert into auth.users (email) values ('advisor@firm.example') returning id`);
+    advisor = a!.id;
+    await db.exec(`insert into public.org_members (org_id, user_id, role)
+                   values ('${org}', '${advisor}', 'advisor')`);
+
+    // A client of the firm the advisor is NOT on.
+    const h = await one<{ id: string }>(
+      `insert into public.households (org_id, name, created_by)
+       values ('${org}', 'Not the advisor''s client', '${owner}') returning id`);
+    hidden = h!.id;
+  });
+
+  it("keeps an unassigned household out of the advisor's book", async () => {
+    await become(advisor);
+    const ids = await one<{ hit: boolean }>(
+      `select '${hidden}'::uuid = any(public.auth_household_ids()) as hit`);
+    expect(ids!.hit, "an advisor must not see the firm's whole book").toBe(false);
+    await become(null);
+  });
+
+  it("REFUSES to let an advisor assign themselves", async () => {
+    // The reason this is a function and not a `household_advisors_insert`
+    // policy: any policy wide enough to let an advisor create their own
+    // client is also wide enough to let them claim someone else's.
+    await db.exec(`set role authenticated`);
+    await become(advisor);
+    await expect(db.query(`select public.set_advisor('${hidden}', '${advisor}', true)`))
+      .rejects.toThrow(/household not found/i);
+    await db.exec(`reset role`);
+    await become(null);
+
+    await become(advisor);
+    const still = await one<{ hit: boolean }>(
+      `select '${hidden}'::uuid = any(public.auth_household_ids()) as hit`);
+    expect(still!.hit).toBe(false);
+    await become(null);
+  });
+
+  it("lets the OWNER assign, and the advisor then sees it", async () => {
+    await db.exec(`set role authenticated`);
+    await become(owner);
+    await db.exec(`select public.set_advisor('${hidden}', '${advisor}', true)`);
+    await db.exec(`reset role`);
+    await become(advisor);
+    const hit = await one<{ hit: boolean }>(
+      `select '${hidden}'::uuid = any(public.auth_household_ids()) as hit`);
+    expect(hit!.hit).toBe(true);
+    await become(null);
+  });
+
+  it("un-assigns the same way, and access goes with it", async () => {
+    await db.exec(`set role authenticated`);
+    await become(owner);
+    await db.exec(`select public.set_advisor('${hidden}', '${advisor}', false)`);
+    await db.exec(`reset role`);
+    await become(advisor);
+    const hit = await one<{ hit: boolean }>(
+      `select '${hidden}'::uuid = any(public.auth_household_ids()) as hit`);
+    expect(hit!.hit).toBe(false);
+    await become(null);
+  });
+
+  it("will not hand a client to someone outside the organisation", async () => {
+    const stranger = await one<{ id: string }>(
+      `insert into auth.users (email) values ('stranger@else.example') returning id`);
+    await db.exec(`set role authenticated`);
+    await become(owner);
+    await expect(db.query(`select public.set_advisor('${hidden}', '${stranger!.id}', true)`))
+      .rejects.toThrow(/not a member of this organisation/i);
+    await db.exec(`reset role`);
     await become(null);
   });
 });

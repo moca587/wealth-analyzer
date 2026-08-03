@@ -26,11 +26,12 @@ import { adaptFeed, FeedFormatError } from "@/lib/feeds/adapters";
 import { countRecords, type FeedFormat } from "@/lib/feeds/model";
 import { redact, HTTP_FOR } from "@/lib/feeds/redact";
 import { recordEvent } from "@/lib/audit/record";
+import { listHouseholds } from "@/lib/tenancy/context";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";   // a relay run must never be cached
 
-const SAFE_COLUMNS = "id, name, url, kind, format, auth, header, default_country, secret_ciphertext, last_run_at, last_status, created_at";
+const SAFE_COLUMNS = "id, name, url, kind, format, auth, header, default_country, secret_ciphertext, last_run_at, last_status, created_at, household_id, org_id";
 
 interface Ctx { params: Promise<{ id: string }> }
 
@@ -55,7 +56,15 @@ function throttled(userId: string): boolean {
   return hits.length > RUN_LIMIT;
 }
 
-/** Auth + ownership in one step; returns the row or an error response. */
+/**
+ * Auth + access in one step; returns the row or an error response.
+ *
+ * Access is by HOUSEHOLD, not by creator: a colleague who shares the
+ * client must be able to run and edit the client's feeds, and the advisor
+ * who created it must not reach it from a different client's context.
+ * RLS already enforces this, so the second check below only ever fires if
+ * a policy regressed — which is precisely when it is worth having.
+ */
 async function loadOwned(id: string) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -65,12 +74,16 @@ async function loadOwned(id: string) {
     .from("feed_connections")
     .select(SAFE_COLUMNS)
     .eq("id", id)
-    .eq("user_id", user.id)
     .maybeSingle();
 
   if (error) return { error: NextResponse.json({ error: error.message }, { status: 500 }) } as const;
-  // 404 (not 403) for someone else's row — don't confirm it exists.
+  // 404 (not 403) for a row outside the caller's book — don't confirm it exists.
   if (!data) return { error: NextResponse.json({ error: "Connection not found" }, { status: 404 }) } as const;
+
+  const visible = await listHouseholds(supabase);
+  if (!visible.some((h) => h.id === String(data.household_id))) {
+    return { error: NextResponse.json({ error: "Connection not found" }, { status: 404 }) } as const;
+  }
   return { supabase, user, row: data } as const;
 }
 
@@ -159,6 +172,7 @@ export async function GET(_request: Request, ctx: Ctx) {
     action: "feed.run", source: "feed",
     summary: `Fetched ${records} record${records === 1 ? "" : "s"} from ${row.name} (${format})`,
     refType: "feed_connection", refId: id,
+    householdId: String(row.household_id), orgId: String(row.org_id),
   });
 
   return NextResponse.json(envelope, {

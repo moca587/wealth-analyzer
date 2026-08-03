@@ -11,6 +11,7 @@
 // ─────────────────────────────────────────────────────────────────
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { apiFetch } from "@/lib/tenancy/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -87,7 +88,7 @@ export function FeedsManager() {
     setLoading(true);
     setLoadError(null);
     try {
-      const res = await fetch("/api/feeds");
+      const res = await apiFetch("/api/feeds");
       const body = await readJson(res);
       if (!res.ok) throw new Error(String(body.error || `Failed to load (HTTP ${res.status})`));
       setConnections((body.connections as FeedConnectionPublic[]) ?? []);
@@ -135,7 +136,7 @@ export function FeedsManager() {
       if (form.secret) payload.secret = form.secret;
       else if (!editingId) payload.secret = "";
 
-      const res = await fetch(editingId ? `/api/feeds/${editingId}` : "/api/feeds", {
+      const res = await apiFetch(editingId ? `/api/feeds/${editingId}` : "/api/feeds", {
         method: editingId ? "PATCH" : "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -158,7 +159,7 @@ export function FeedsManager() {
     if (!window.confirm(`Delete the connection “${c.name}”? Its stored credential is deleted too.`)) return;
     setBusyId(c.id);
     try {
-      const res = await fetch(`/api/feeds/${c.id}`, { method: "DELETE" });
+      const res = await apiFetch(`/api/feeds/${c.id}`, { method: "DELETE" });
       if (!res.ok) {
         const body = await readJson(res);
         throw new Error(String(body.error || `Delete failed (HTTP ${res.status})`));
@@ -176,7 +177,7 @@ export function FeedsManager() {
   async function testRun(c: FeedConnectionPublic) {
     setRun({ status: "running", id: c.id });
     try {
-      const res = await fetch(`/api/feeds/${c.id}`);
+      const res = await apiFetch(`/api/feeds/${c.id}`);
       const body = await readJson(res);
       if (!res.ok) throw new Error(String(body.error || `Run failed (HTTP ${res.status})`));
       setRun({ status: "ok", id: c.id, envelope: body as unknown as FeedEnvelope });
@@ -429,13 +430,19 @@ const SECTION_LABEL: Record<string, string> = {
 function ApplyPanel({ envelope }: { envelope: FeedEnvelope }) {
   const [state, setState] = useState<ApplyState>({ phase: "idle" });
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  // The plan version this review was computed against. A feed-apply racing a
+  // manual save is the exact case versioning exists for: the diff on screen
+  // describes a plan that is no longer the current one, so applying it would
+  // silently drop whatever the other save changed.
+  const [baseVersion, setBaseVersion] = useState<number | null>(null);
 
   async function review() {
     setState({ phase: "loading" });
     try {
-      const res = await fetch("/api/plan");
+      const res = await apiFetch("/api/plan");
       const body = await readJson(res);
-      if (!res.ok) throw new Error(String(body.error || `Could not load your plan (HTTP ${res.status})`));
+      if (!res.ok) throw new Error(String(body.error || `Could not load the plan (HTTP ${res.status})`));
+      setBaseVersion(typeof body.version === "number" && body.version > 0 ? body.version : null);
 
       // A never-saved plan comes back null — start from a blank one so a feed
       // can populate a fresh account. A stored-but-invalid plan is NOT merged
@@ -474,11 +481,19 @@ function ApplyPanel({ envelope }: { envelope: FeedEnvelope }) {
         // API bounce it back with a field path the advisor can't act on.
         throw new Error("The merged plan failed validation, so nothing was saved. Please report this feed payload.");
       }
-      const res = await fetch("/api/plan", {
-        method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(merged),
+      const res = await apiFetch("/api/plan?source=feed", {
+        method: "PUT", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ plan: merged, baseVersion }),
       });
       const body = await readJson(res);
+      if (res.status === 409) {
+        throw new Error(
+          "This client's plan changed while you were reviewing these records, so nothing " +
+          "was applied. Close this and run Test fetch again to review against the current plan.");
+      }
       if (!res.ok) throw new Error(String(body.error || `Save failed (HTTP ${res.status})`));
+      // The undo has to be based on what we just wrote, not on what we read.
+      if (typeof body.version === "number") setBaseVersion(body.version);
       const applied = changes.filter((c) => selected.has(c.key) && c.kind !== "unchanged").length;
       setState({ phase: "done", applied, previous: plan });
     } catch (e) {
@@ -489,10 +504,18 @@ function ApplyPanel({ envelope }: { envelope: FeedEnvelope }) {
   async function revert(previous: WealthPlan) {
     setState({ phase: "reverting", previous });
     try {
-      const res = await fetch("/api/plan", {
-        method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(previous),
+      const res = await apiFetch("/api/plan?source=feed", {
+        method: "PUT", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ plan: previous, baseVersion }),
       });
       const body = await readJson(res);
+      if (res.status === 409) {
+        // Restoring the snapshot on top of someone else's newer save would
+        // undo their work as well as ours, which is not what "Undo" means.
+        throw new Error(
+          "Someone else saved this client after the merge, so the undo was not applied — " +
+          "it would have discarded their change too. Open the plan to reconcile it.");
+      }
       if (!res.ok) throw new Error(String(body.error || `Undo failed (HTTP ${res.status})`));
       setState({ phase: "reverted" });
     } catch (e) {

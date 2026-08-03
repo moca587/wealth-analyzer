@@ -1,41 +1,57 @@
 // ─────────────────────────────────────────────────────────────────
-// GET  /api/orders — list the caller's PM/OMS connections
+// GET  /api/orders — the PM/OMS connections for one client
 // POST /api/orders — create one
 //
-// Mirrors /api/feeds. Secrets go in and are encrypted immediately; no
-// route ever selects them back out to a client (toPublic maps the
-// ciphertext to `hasSecret`).
+// Mirrors /api/feeds, and is household-scoped for a sharper reason: a
+// connection carries the CUSTODY ACCOUNT an order books into. Listing
+// one client's connection while another client's proposal is on screen
+// is how a ticket reaches the wrong account.
+//
+// Secrets go in and are encrypted immediately; no route ever selects
+// them back out to a client (toPublic maps the ciphertext to
+// `hasSecret`).
 // ─────────────────────────────────────────────────────────────────
 
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { orderConnectionInput, fieldErrors, toPublic } from "@/lib/orders/schema";
 import { encryptSecret, encryptionAvailable } from "@/lib/feeds/crypto";
+import { resolveHousehold } from "@/lib/tenancy/context";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const SAFE_COLUMNS = "id, name, url, format, auth, header, account, custodian, currency, max_ticket_amount, send_client_identity, secret_ciphertext, last_sent_at, last_status, created_at";
 
-export async function GET() {
+export async function GET(request: Request) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+  const hh = await resolveHousehold(supabase, request);
+  if (!hh.ok) {
+    return NextResponse.json({ error: hh.error, code: hh.code, households: hh.households }, { status: hh.status });
+  }
+
   const { data, error } = await supabase
     .from("order_connections")
     .select(SAFE_COLUMNS)
-    .eq("user_id", user.id)
+    .eq("household_id", hh.household.id)
     .order("created_at", { ascending: false });
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json({ connections: (data ?? []).map(toPublic) });
+  return NextResponse.json({ connections: (data ?? []).map(toPublic), household: hh.household });
 }
 
 export async function POST(request: Request) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const hh = await resolveHousehold(supabase, request);
+  if (!hh.ok) {
+    return NextResponse.json({ error: hh.error, code: hh.code, households: hh.households }, { status: hh.status });
+  }
 
   let body: unknown;
   try { body = await request.json(); }
@@ -57,6 +73,8 @@ export async function POST(request: Request) {
     .from("order_connections")
     .insert({
       user_id: user.id,
+      household_id: hh.household.id,
+      org_id: hh.household.orgId,
       name: c.name, url: c.url, format: c.format,
       auth: c.auth, header: c.header,
       account: c.account, custodian: c.custodian || null, currency: c.currency,

@@ -348,6 +348,9 @@ does NOT re-point `feed_connections` / `order_connections` / `order_tickets` /
   audit trail's before/after hashes mean anything.
 - **Entitlement moved to `organizations`**, which has no client write policy,
   so the hole 005/007 had to close on `profiles` cannot recur there.
+- The routes were re-pointed onto this model in **009** — see below. Until
+  then `/api/plan` still read `profiles.plan` and every other route filtered
+  on `user_id`.
 ### Re-keying onto households — `008_rekey_to_households.sql`
 Moves `feed_connections`, `order_connections`, `order_tickets`,
 `audit_events` and `simulations` off `user_id` and onto `household_id` +
@@ -366,8 +369,8 @@ Moves `feed_connections`, `order_connections`, `order_tickets`,
   household, so `tg_fill_household` derives it — but ONLY when the actor has
   exactly ONE household. With two or more it RAISES, because silently picking
   one would point a custodian feed or an order at the wrong client. Noisy now,
-  never silent later. The routes must pass `household_id` explicitly before
-  any advisor gets a second client.
+  never silent later. (009 makes the routes pass `household_id` explicitly,
+  which is what lets an advisor have a second client at all.)
 - **Audit separates actor from subject.** `user_id` meant both "who did this"
   and "whose money this is"; scoping now uses `household_id`, so a compliance
   officer sees another advisor's actions on their clients — and nothing
@@ -381,9 +384,70 @@ Moves `feed_connections`, `order_connections`, `order_tickets`,
   first cut of `resolve_default_household` failed on every insert. Count and
   fetch are now separate statements.
 
+### Household-aware routes — `009_household_management.sql` + `lib/tenancy/`
+006 built the model and 008 re-keyed the data onto it, but the app still
+behaved as if a login were a household: every route filtered on `user_id`,
+`/api/plan` still read and overwrote `profiles.plan`, and **there was no way
+to create a second client at all** — `households_insert` lets a row be made,
+but 007 revoked client writes to `household_advisors`, so an advisor's new
+household was invisible to them the instant it existed. 009 closes that.
+
+- **`lib/tenancy/context.ts` decides which client a request is about, and it
+  REFUSES to guess.** Precedence: `?household=` / `x-household-id` → the
+  switcher's `wa_household` cookie → the caller's only household → **400 with
+  the candidate list**. This is deliberately the same rule
+  `resolve_default_household()` applies inside the database, so the two layers
+  can never disagree; an advisor with two clients gets a clear API error
+  instead of a plpgsql exception surfacing as a 500. A household in another
+  firm returns **404, not 403** — "forbidden" would confirm it exists.
+  A malformed *explicit* id is a 400; a *stale cookie* is not an error at all
+  but falls through to the picker, because a cookie outlives a reassignment or
+  a different login on the same browser and failing hard would strand the user.
+- **`lib/tenancy/plans.ts` replaces `profiles.plan` with versions.** GET reads
+  the highest version; PUT inserts `version + 1` and checks the client's
+  `baseVersion` first. Both checks matter: the explicit one gives a good
+  message, and the `unique (household_id, version)` index catches the race that
+  opens *after* it. A conflict is a **409 that keeps the user's edits on
+  screen** — the old upsert silently discarded one of two concurrent saves and
+  then wrote an audit diff describing a change that never happened. The feed
+  Apply/Undo path carries the same version, so a feed-apply racing a manual
+  save is refused rather than merged over it (and an Undo that would also
+  discard someone else's later save is refused, because that is not what
+  "undo" means).
+- **Creation is an RPC, not a policy** (`create_household`). The safe operation
+  writes TWO rows — the household and the creator's assignment — and a policy
+  cannot make that atomic. Assignment (`set_advisor`) is owner/admin only: any
+  `household_advisors` INSERT policy wide enough to let an advisor claim their
+  own new client is also wide enough to let them claim someone else's, which
+  erases the whole point of the advisor role. Both are SECURITY DEFINER with a
+  pinned `search_path`, asserted by a test. `set_advisor` also refuses a target
+  outside the organisation — otherwise an admin could hand a client's book to
+  any user id they can guess.
+- **Every route is now household-scoped, not user-scoped**, so two advisors on
+  one client share its feeds, its OMS connection and its order history — which
+  is what makes 008's idempotency re-key meaningful in the first place. The
+  duplicate-ticket lookup was moved onto `household_id` too: on `user_id` it
+  would miss a colleague's send (the exact case that makes a duplicate
+  dangerous) and report "no prior row" for a collision that certainly happened.
+- **UI:** a client switcher at the top of the sidebar (`components/nav/
+  household-switcher.tsx`), writing localStorage **and** a `wa_household`
+  cookie so server components render the same client the switcher names.
+  Switching does `router.refresh()`, and `PlanForm` is **keyed on the household
+  id** so it remounts — otherwise the previous client's figures would sit in
+  component state under the new client's heading. Pages that cannot resolve a
+  client render `ChooseClient` rather than defaulting to one.
+- **`profiles.plan` is now write-dead.** 006's backfill copied it into `plans`
+  v1 and nothing reads it any more. It is left in place deliberately: dropping
+  a column holding every client's position belongs in its own reviewed
+  migration, not in this one.
+- **DEPLOY ORDER MATTERS.** These routes require 006-009 to have been applied.
+  Migrations 003-009 have still only ever run against PGlite — `.env.local`
+  points at a placeholder project — so the first real deployment must run them
+  before (or with) this code, or `/api/plan` 500s on a missing `plans` table.
+
 ### Migrations are executed, not just read — `lib/db/__tests__/migrations.test.ts`
-003-006 had never run anywhere: `.env.local` points at a placeholder Supabase
-project. The append-only audit guarantee, the order idempotency index and the
+003-009 have never run against a real Supabase project: `.env.local` points at
+a placeholder. The append-only audit guarantee, the order idempotency index and the
 tenancy model were all unverified SQL. That test now applies every migration
 to a **real Postgres 18** (PGlite, Postgres compiled to WASM — the triggers,
 plpgsql, constraints and grants are genuine), stubbing only `auth.users`,

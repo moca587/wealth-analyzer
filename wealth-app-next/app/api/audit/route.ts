@@ -1,15 +1,22 @@
 // ─────────────────────────────────────────────────────────────────
-// GET /api/audit        — the caller's audit trail, newest first
+// GET /api/audit        — one client's audit trail, newest first
 // GET /api/audit?format=csv — the same, as a file a reviewer can keep
 //
 // Read-only by construction. There is no POST here: events are written by
 // the routes that perform the action, so a client cannot fabricate
 // history. There is no DELETE either — see 004_audit.sql.
+//
+// Scoped on the HOUSEHOLD, which is the question a review actually asks:
+// "what happened to this client", not "what did this user do". 008 split
+// the two columns for exactly this — a compliance officer reading here
+// sees another advisor's actions on their firm's clients, and nothing
+// outside the firm.
 // ─────────────────────────────────────────────────────────────────
 
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import type { AuditEventRow, AuditFieldChange } from "@/lib/audit/types";
+import { resolveHousehold } from "@/lib/tenancy/context";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -55,6 +62,11 @@ export async function GET(request: Request) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+  const hh = await resolveHousehold(supabase, request);
+  if (!hh.ok) {
+    return NextResponse.json({ error: hh.error, code: hh.code, households: hh.households }, { status: hh.status });
+  }
+
   const url = new URL(request.url);
   const action = url.searchParams.get("action");
   const since = url.searchParams.get("since");
@@ -65,7 +77,7 @@ export async function GET(request: Request) {
   let q = supabase
     .from("audit_events")
     .select(COLUMNS)
-    .eq("user_id", user.id)
+    .eq("household_id", hh.household.id)
     .order("created_at", { ascending: false })
     .limit(format === "csv" ? MAX_LIMIT : limit);
 
@@ -79,16 +91,21 @@ export async function GET(request: Request) {
 
   if (format === "csv") {
     const stamp = new Date().toISOString().slice(0, 10);
+    // The client's name goes in the filename because a reviewer downloading
+    // several trails needs to tell them apart. ASCII-slugged: a raw name
+    // would put quotes and non-Latin characters into a header value.
+    const slug = hh.household.name.normalize("NFKD")
+      .replace(/[^\w-]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40).toLowerCase() || "client";
     return new NextResponse(toCsv(rows), {
       headers: {
         "Content-Type": "text/csv; charset=utf-8",
-        "Content-Disposition": `attachment; filename="audit-trail-${stamp}.csv"`,
+        "Content-Disposition": `attachment; filename="audit-trail-${slug}-${stamp}.csv"`,
         "Cache-Control": "no-store",
       },
     });
   }
 
-  return NextResponse.json({ events: rows, count: rows.length, limit }, {
+  return NextResponse.json({ events: rows, count: rows.length, limit, household: hh.household }, {
     headers: { "Cache-Control": "no-store" },
   });
 }

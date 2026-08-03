@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { apiFetch } from "@/lib/tenancy/client";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -31,11 +32,27 @@ function parseMoneyInput(value: string, previous: number): number {
   return Number.isFinite(n) ? n : previous;
 }
 
-export function PlanForm({ initialPlan }: { initialPlan: WealthPlan | null }) {
+export function PlanForm({
+  initialPlan,
+  /**
+   * The plan version this form was loaded from, sent back on save. The
+   * server refuses a save whose base is stale rather than overwriting a
+   * change it never saw — which is what the old single-column plan did
+   * silently, losing one of two concurrent saves AND writing an audit
+   * entry describing a change that never happened.
+   *
+   * 0 means "no version loaded" (a blank form, or the read-only preview),
+   * and is sent as null: last-write-wins is correct when there is nothing
+   * to be stale against.
+   */
+  initialVersion = 0,
+}: { initialPlan: WealthPlan | null; initialVersion?: number }) {
   const router = useRouter();
   const [plan, setPlan] = useState<WealthPlan>(() => initialPlan || emptyPlan());
+  const [version, setVersion] = useState(initialVersion);
   const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState<"idle" | "ok" | "err">("idle");
+  const [saved, setSaved] = useState<"idle" | "ok" | "err" | "conflict">("idle");
+  const [saveError, setSaveError] = useState("");
   const [dirty, setDirty] = useState(false);
 
   const set = (patch: Partial<WealthPlan>) => {
@@ -81,19 +98,38 @@ export function PlanForm({ initialPlan }: { initialPlan: WealthPlan | null }) {
   async function save() {
     setSaving(true);
     setSaved("idle");
+    setSaveError("");
     try {
-      const res = await fetch("/api/plan", {
+      const res = await apiFetch("/api/plan", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(plan)
+        body: JSON.stringify({ plan, baseVersion: version || null })
       });
-      if (!res.ok) throw new Error(await res.text());
+      const body = await res.json().catch(() => ({}));
+
+      if (res.status === 409) {
+        // Someone else saved this client while this form was open. The edits
+        // on screen are NOT discarded — the user keeps them and decides,
+        // which is the whole reason the version check exists.
+        setSaved("conflict");
+        setSaveError(String(body.error ?? "This plan changed while you were editing it."));
+        return;
+      }
+      if (!res.ok) {
+        setSaved("err");
+        setSaveError(String(body.error ?? `Save failed (HTTP ${res.status})`));
+        return;
+      }
+
+      if (typeof body.version === "number") setVersion(body.version);
       setSaved("ok");
+      setSaveError(body.auditWarning ? String(body.auditWarning) : "");
       setDirty(false);
       router.refresh();
     } catch (e) {
       console.error(e);
       setSaved("err");
+      setSaveError(e instanceof Error ? e.message : "Save failed");
     } finally {
       setSaving(false);
     }
@@ -180,15 +216,29 @@ export function PlanForm({ initialPlan }: { initialPlan: WealthPlan | null }) {
 
       {/* ─── SAVE ─── */}
       <div className="sticky bottom-0 bg-gradient-to-t from-background via-background to-background/95 backdrop-blur-sm pt-4 pb-6 -mx-6 px-6 flex items-center justify-between border-t border-border">
-        <div className="text-sm">
-          {saved === "ok" && <span className="text-emerald-600">✓ Saved</span>}
-          {saved === "err" && <span className="text-destructive">Save failed — check console</span>}
+        <div className="text-sm max-w-xl">
+          {saved === "ok" && (
+            <span className="text-emerald-600">
+              ✓ Saved{version ? ` — version ${version}` : ""}
+              {saveError && <span className="ml-2 text-amber-600">{saveError}</span>}
+            </span>
+          )}
+          {saved === "conflict" && (
+            <span className="text-amber-600">
+              {saveError} Your edits are still on screen — copy anything you need,
+              then reload to merge them into the current version.
+            </span>
+          )}
+          {saved === "err" && <span className="text-destructive">{saveError || "Save failed"}</span>}
           {saved === "idle" && (dirty
             ? <span className="text-amber-600">Unsaved changes</span>
             : <span className="text-muted-foreground">Click save to persist</span>)}
         </div>
-        <div className="flex gap-3">
+        <div className="flex gap-3 shrink-0">
           <Button variant="outline" onClick={() => router.push("/app")}>Cancel</Button>
+          {saved === "conflict"
+            ? <Button onClick={() => router.refresh()} size="lg" variant="outline">Reload</Button>
+            : null}
           <Button onClick={save} disabled={saving} size="lg">{saving ? "Saving…" : "Save plan"}</Button>
         </div>
       </div>

@@ -14,6 +14,7 @@
 // ─────────────────────────────────────────────────────────────────
 
 import { useCallback, useEffect, useState } from "react";
+import { apiFetch } from "@/lib/tenancy/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -96,7 +97,7 @@ export function OrdersManager() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/orders", { cache: "no-store" });
+      const res = await apiFetch("/api/orders", { cache: "no-store" });
       const json = await readJson(res);
       if (!res.ok) { setLoadError(String(json.error ?? `HTTP ${res.status}`)); setConnections([]); }
       else { setLoadError(""); setConnections((json.connections as OrderConnectionPublic[]) ?? []); }
@@ -128,7 +129,7 @@ export function OrdersManager() {
       // clear it, which is never what leaving a password field alone means.
       if (form.secret || !editingId) payload.secret = form.secret;
 
-      const res = await fetch(editingId ? `/api/orders/${editingId}` : "/api/orders", {
+      const res = await apiFetch(editingId ? `/api/orders/${editingId}` : "/api/orders", {
         method: editingId ? "PATCH" : "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -162,14 +163,14 @@ export function OrdersManager() {
   };
 
   const remove = async (id: string) => {
-    const res = await fetch(`/api/orders/${id}`, { method: "DELETE" });
+    const res = await apiFetch(`/api/orders/${id}`, { method: "DELETE" });
     if (res.ok) { if (editingId === id) resetForm(); await load(); }
   };
 
   const toggleHistory = async (id: string) => {
     if (openId === id) { setOpenId(null); return; }
     setOpenId(id);
-    const res = await fetch(`/api/orders/${id}`, { cache: "no-store" });
+    const res = await apiFetch(`/api/orders/${id}`, { cache: "no-store" });
     const json = await readJson(res);
     if (res.ok) setTickets((t) => ({ ...t, [id]: (json.tickets as TicketRow[]) ?? [] }));
   };

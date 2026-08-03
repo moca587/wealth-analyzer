@@ -5,13 +5,16 @@ import { usePathname, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { HouseholdSwitcher } from "@/components/nav/household-switcher";
 
 const items = [
   { href: "/app",          label: "Dashboard",    emoji: "🏠" },
-  { href: "/app/plan",     label: "Your plan",    emoji: "📋" },
+  { href: "/app/plan",     label: "Client plan",  emoji: "📋" },
   { href: "/app/feeds",    label: "Data feeds",   emoji: "🔌" },
   { href: "/app/simulate", label: "Simulation",   emoji: "🎲" },
-  { href: "/app/report",   label: "Report",       emoji: "📄" }
+  { href: "/app/report",   label: "Report",       emoji: "📄" },
+  { href: "/app/orders",   label: "Orders",       emoji: "📤" },
+  { href: "/app/audit",    label: "Audit trail",  emoji: "🧾" }
 ];
 
 export function Sidebar({ displayName }: { displayName: string | null }) {
@@ -33,6 +36,7 @@ export function Sidebar({ displayName }: { displayName: string | null }) {
           Wealth Analyzer
         </Link>
       </div>
+      <HouseholdSwitcher />
       <nav className="flex-1 px-3 py-4 space-y-1">
         {items.map((item) => {
           const active = pathname === item.href || (item.href !== "/app" && pathname.startsWith(item.href));

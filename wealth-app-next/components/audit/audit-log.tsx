@@ -13,6 +13,7 @@
 // ─────────────────────────────────────────────────────────────────
 
 import { useCallback, useEffect, useState } from "react";
+import { apiFetch, getHouseholdId } from "@/lib/tenancy/client";
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
@@ -74,7 +75,7 @@ export function AuditLog() {
     try {
       const qs = new URLSearchParams({ limit: "200" });
       if (action) qs.set("action", action);
-      const res = await fetch(`/api/audit?${qs}`, { cache: "no-store" });
+      const res = await apiFetch(`/api/audit?${qs}`, { cache: "no-store" });
       const json = await readJson(res);
       if (!res.ok) { setError(String(json.error ?? `HTTP ${res.status}`)); setEvents([]); }
       else { setError(""); setEvents((json.events as AuditEventRow[]) ?? []); setOpen(new Set()); }
@@ -90,6 +91,12 @@ export function AuditLog() {
   const exportCsv = () => {
     const qs = new URLSearchParams({ format: "csv" });
     if (action) qs.set("action", action);
+    // A browser navigation, so it cannot carry the x-household-id header
+    // apiFetch adds. The query parameter is the same input to the same
+    // resolver — without it the server would refuse to guess and the
+    // download would arrive as a JSON error named .csv.
+    const hh = getHouseholdId();
+    if (hh) qs.set("household", hh);
     window.location.href = `/api/audit?${qs}`;
   };
 

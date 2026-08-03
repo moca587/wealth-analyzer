@@ -34,11 +34,12 @@ import { ticketFingerprint, stripIdentity, type OrderFormat, type OrderTicket } 
 import { checkOrderHost } from "@/lib/orders/allowlist";
 import { recordEvent } from "@/lib/audit/record";
 import { encryptSecret, encryptionAvailable } from "@/lib/feeds/crypto";
+import { listHouseholds } from "@/lib/tenancy/context";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const SAFE_COLUMNS = "id, name, url, format, auth, header, account, custodian, currency, max_ticket_amount, send_client_identity, secret_ciphertext, last_sent_at, last_status, created_at";
+const SAFE_COLUMNS = "id, name, url, format, auth, header, account, custodian, currency, max_ticket_amount, send_client_identity, secret_ciphertext, last_sent_at, last_status, created_at, household_id, org_id";
 
 interface Ctx { params: Promise<{ id: string }> }
 
@@ -59,6 +60,12 @@ function throttled(userId: string): boolean {
   return hits.length > SEND_LIMIT;
 }
 
+/**
+ * Access is by HOUSEHOLD, not by creator. Two advisors sharing a client
+ * share that client's OMS connection — which is the whole point of 008's
+ * idempotency re-key: it is only meaningful if both of them route through
+ * the same connection and therefore collide on the same ticket id.
+ */
 async function loadOwned(id: string) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -68,13 +75,21 @@ async function loadOwned(id: string) {
     .from("order_connections")
     .select(SAFE_COLUMNS)
     .eq("id", id)
-    .eq("user_id", user.id)
     .maybeSingle();
 
   if (error) return { error: NextResponse.json({ error: error.message }, { status: 500 }) } as const;
-  // 404 (not 403) for someone else's row — don't confirm it exists.
+  // 404 (not 403) for a row outside the caller's book — don't confirm it exists.
   if (!data) return { error: NextResponse.json({ error: "Connection not found" }, { status: 404 }) } as const;
-  return { supabase, user, row: data } as const;
+
+  const visible = await listHouseholds(supabase);
+  if (!visible.some((h) => h.id === String(data.household_id))) {
+    return { error: NextResponse.json({ error: "Connection not found" }, { status: 404 }) } as const;
+  }
+  return {
+    supabase, user, row: data,
+    householdId: String(data.household_id),
+    orgId: String(data.org_id),
+  } as const;
 }
 
 // ─── PLACE AN ORDER ───────────────────────────────────────────────
@@ -82,7 +97,7 @@ export async function POST(request: Request, ctx: Ctx) {
   const { id } = await ctx.params;
   const owned = await loadOwned(id);
   if ("error" in owned) return owned.error;
-  const { supabase, user, row } = owned;
+  const { supabase, user, row, householdId, orgId } = owned;
 
   if (throttled(user.id)) {
     return NextResponse.json(
@@ -119,13 +134,18 @@ export async function POST(request: Request, ctx: Ctx) {
   const fingerprint = ticketFingerprint(ticket);
 
   // ── Idempotency, enforced in Postgres ──
-  // The unique index on (user_id, ticket_id) is the actual guarantee. Insert
-  // first: if it succeeds we own this placement, if it collides someone
-  // already sent this ticket and we must NOT send it again.
+  // The unique index on (household_id, ticket_id) is the actual guarantee.
+  // Insert first: if it succeeds we own this placement, if it collides the
+  // ticket was already sent — by anyone advising this client — and we must
+  // NOT send it again. Keyed on the household rather than the actor, because
+  // under the old (user_id, ticket_id) index two advisors on one client had
+  // separate namespaces and both BUYs reached the OMS. See 008.
   const { data: claimed, error: claimErr } = await supabase
     .from("order_tickets")
     .insert({
       user_id: user.id,
+      household_id: householdId,
+      org_id: orgId,
       connection_id: id,
       ticket_id: ticket.ticketId,
       fingerprint,
@@ -142,10 +162,14 @@ export async function POST(request: Request, ctx: Ctx) {
   if (claimErr) {
     // 23505 = unique_violation → this ticketId was already used.
     if (claimErr.code === "23505") {
+      // Look the prior attempt up on the SAME key the index enforces. On
+      // user_id it would miss a colleague's send on this client — the exact
+      // case that makes a duplicate dangerous — and report "no prior row"
+      // for a collision that certainly happened.
       const { data: prior } = await supabase
         .from("order_tickets")
         .select("fingerprint, status, http_status, upstream_ref, detail, created_at, positions, total_amount")
-        .eq("user_id", user.id)
+        .eq("household_id", householdId)
         .eq("ticket_id", ticket.ticketId)
         .maybeSingle();
 
@@ -162,6 +186,7 @@ export async function POST(request: Request, ctx: Ctx) {
         action: "order.duplicate_blocked", source: "order",
         summary: `Duplicate submission of ticket ${ticket.ticketId} blocked — not sent again`,
         refType: "order_ticket", refId: ticket.ticketId,
+        householdId, orgId,
       });
       return NextResponse.json({
         duplicate: true,
@@ -196,7 +221,7 @@ export async function POST(request: Request, ctx: Ctx) {
     try {
       await supabase.from("order_tickets")
         .update({ status, http_status: httpStatus || null, upstream_ref: ref || null, detail: detail.slice(0, 500) || null })
-        .eq("id", rowId).eq("user_id", user.id);
+        .eq("id", rowId).eq("household_id", householdId);
       // last_status is rendered in the connections list and is NOT per-ticket.
       // Upstream error bodies routinely echo the request — custody account,
       // client name, ISINs, sometimes the Authorization header — so only a
@@ -204,7 +229,7 @@ export async function POST(request: Request, ctx: Ctx) {
       // owner-scoped and shown per ticket.
       await supabase.from("order_connections")
         .update({ last_sent_at: new Date().toISOString(), last_status: summary.slice(0, 300) })
-        .eq("id", id).eq("user_id", user.id);
+        .eq("id", id).eq("household_id", householdId);
     } catch { /* audit is best-effort; never mask the real outcome */ }
   };
 
@@ -313,6 +338,7 @@ export async function POST(request: Request, ctx: Ctx) {
     currency: ticket.totals.currency,
     detail: detail || result.uncertainty || null,
     refType: "order_ticket", refId: ticket.ticketId,
+    householdId, orgId,
     changes: ticket.lines.slice(0, 60).map((l) => ({
       section: "order", action: "added" as const,
       label: `${l.instrument.name || l.lineId}`.slice(0, 120),
@@ -342,12 +368,14 @@ export async function GET(_request: Request, ctx: Ctx) {
   const { id } = await ctx.params;
   const owned = await loadOwned(id);
   if ("error" in owned) return owned.error;
-  const { supabase, user, row } = owned;
+  const { supabase, row, householdId } = owned;
 
+  // The client's order history, not the caller's. A colleague's sends on
+  // this client belong on the same timeline — that is what a review reads.
   const { data: tickets } = await supabase
     .from("order_tickets")
     .select("ticket_id, account, currency, positions, total_amount, status, http_status, upstream_ref, detail, created_at")
-    .eq("user_id", user.id)
+    .eq("household_id", householdId)
     .eq("connection_id", id)
     .order("created_at", { ascending: false })
     .limit(25);
