@@ -32,6 +32,7 @@ import { orderConnectionPatch, orderTicketSchema, checkTicket, fieldErrors, toPu
 import { ticketToWire, readPlacementResponse } from "@/lib/orders/adapters";
 import { ticketFingerprint, stripIdentity, type OrderFormat, type OrderTicket } from "@/lib/orders/model";
 import { checkOrderHost } from "@/lib/orders/allowlist";
+import { recordEvent } from "@/lib/audit/record";
 import { encryptSecret, encryptionAvailable } from "@/lib/feeds/crypto";
 
 export const runtime = "nodejs";
@@ -157,6 +158,11 @@ export async function POST(request: Request, ctx: Ctx) {
           code: "ticket_conflict",
         }, { status: 409 });
       }
+      await recordEvent(supabase, user.id, {
+        action: "order.duplicate_blocked", source: "order",
+        summary: `Duplicate submission of ticket ${ticket.ticketId} blocked — not sent again`,
+        refType: "order_ticket", refId: ticket.ticketId,
+      });
       return NextResponse.json({
         duplicate: true,
         code: "already_sent",
@@ -295,6 +301,24 @@ export async function POST(request: Request, ctx: Ctx) {
       : `unknown: unconfirmed response (HTTP ${sent.status})`;
 
   await finish(result.state, sent.status, result.ref, detail, summary);
+
+  // order_tickets is the instruction of record; this puts the OUTCOME on the
+  // same timeline as plan edits and feed runs, so a review reads one story.
+  await recordEvent(supabase, user.id, {
+    action: result.state === "staged" ? "order.staged"
+          : result.state === "rejected" ? "order.rejected" : "order.unknown",
+    source: "order",
+    summary: `${summary} to ${row.name}`,
+    netWorthAfter: null,
+    currency: ticket.totals.currency,
+    detail: detail || result.uncertainty || null,
+    refType: "order_ticket", refId: ticket.ticketId,
+    changes: ticket.lines.slice(0, 60).map((l) => ({
+      section: "order", action: "added" as const,
+      label: `${l.instrument.name || l.lineId}`.slice(0, 120),
+      after: `${l.currency} ${l.amount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+    })),
+  });
 
   // An unconfirmed outcome is NOT a 200. It must not read as success to any
   // client that only checks the status code.
