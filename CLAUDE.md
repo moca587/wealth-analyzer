@@ -348,14 +348,38 @@ does NOT re-point `feed_connections` / `order_connections` / `order_tickets` /
   audit trail's before/after hashes mean anything.
 - **Entitlement moved to `organizations`**, which has no client write policy,
   so the hole 005/007 had to close on `profiles` cannot recur there.
-- **STILL TO DO in 008, and it is the dangerous one:**
-  `idx_order_tickets_idem` is `unique (user_id, ticket_id)` and is the ONLY
-  thing preventing a double placement. Correct today only because a login has
-  one client. The moment two advisors share a household they get separate
-  namespaces — both press BUY on the same proposal and **the tickets do not
-  collide, so two live orders reach the OMS**. Re-key to
-  `unique (household_id, ticket_id)` in the SAME migration that introduces
-  shared households, never after.
+### Re-keying onto households — `008_rekey_to_households.sql`
+Moves `feed_connections`, `order_connections`, `order_tickets`,
+`audit_events` and `simulations` off `user_id` and onto `household_id` +
+`org_id`, and switches every policy to the 006 helpers.
+
+- **THE IDEMPOTENCY RE-KEY is why this migration exists.**
+  `idx_order_tickets_idem` was `unique (user_id, ticket_id)` — the only thing
+  preventing a double placement, and correct solely because a login had one
+  client. Two advisors on one household got SEPARATE namespaces: both press
+  BUY on the same proposal, the rows do not collide, **two live orders reach
+  the OMS**. Now `unique (household_id, ticket_id)`. The new index is created
+  BEFORE the old is dropped, so there is never a window without uniqueness.
+  A test puts two advisors on one household and asserts the second identical
+  ticket is refused and exactly one row exists.
+- **It ships without breaking the routes.** They insert with `user_id` and no
+  household, so `tg_fill_household` derives it — but ONLY when the actor has
+  exactly ONE household. With two or more it RAISES, because silently picking
+  one would point a custodian feed or an order at the wrong client. Noisy now,
+  never silent later. The routes must pass `household_id` explicitly before
+  any advisor gets a second client.
+- **Audit separates actor from subject.** `user_id` meant both "who did this"
+  and "whose money this is"; scoping now uses `household_id`, so a compliance
+  officer sees another advisor's actions on their clients — and nothing
+  outside the org. Rows whose actor was erased before 008 keep a null
+  household deliberately: they are unreadable through the API but still
+  present, because deleting them would break the append-only guarantee.
+- **Firm-level order ceiling.** `organizations.max_ticket_amount` clamps
+  `order_connections.max_ticket_amount` in a trigger — the advisor creates the
+  connection, so the firm needs a bound they cannot raise.
+- Found by running it: **`min(uuid)` does not exist in Postgres**, so the
+  first cut of `resolve_default_household` failed on every insert. Count and
+  fetch are now separate statements.
 
 ### Migrations are executed, not just read — `lib/db/__tests__/migrations.test.ts`
 003-006 had never run anywhere: `.env.local` points at a placeholder Supabase

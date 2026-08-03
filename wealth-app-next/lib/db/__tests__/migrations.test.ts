@@ -88,7 +88,7 @@ describe("every migration applies to a real Postgres", () => {
     expect(applied).toEqual([
       "001_init.sql", "002_feeds.sql", "003_orders.sql",
       "004_audit.sql", "005_fix_erasure_and_entitlement.sql", "006_tenancy.sql",
-      "007_fix_entitlement_grants.sql",
+      "007_fix_entitlement_grants.sql", "008_rekey_to_households.sql",
     ]);
   });
 
@@ -209,28 +209,131 @@ describe("007: entitlement is not self-writable", () => {
   });
 });
 
-describe("003: order idempotency", () => {
-  it("is enforced by a unique index, not by convention", async () => {
+describe("008: order idempotency is keyed on the HOUSEHOLD", () => {
+  it("re-keys the unique index and drops the user-scoped one", async () => {
+    const old = await rows(`select 1 from pg_indexes where indexname='idx_order_tickets_idem'`);
+    expect(old, "the user-keyed index must be gone").toEqual([]);
     const idx = await one<{ indexdef: string }>(
-      `select indexdef from pg_indexes where indexname='idx_order_tickets_idem'`);
+      `select indexdef from pg_indexes where indexname='idx_order_tickets_idem_household'`);
     expect(idx!.indexdef).toMatch(/UNIQUE/i);
-    // Documents the shape 007 must change: keyed on the USER, so two
-    // advisors sharing a household would get separate namespaces.
-    expect(idx!.indexdef).toMatch(/user_id/);
+    expect(idx!.indexdef).toMatch(/household_id/);
     expect(idx!.indexdef).toMatch(/ticket_id/);
   });
 
-  it("actually rejects a duplicate ticket for the same user", async () => {
-    const u = await one<{ id: string }>(`insert into auth.users (email) values ('ord@example.com') returning id`);
-    const c = await one<{ id: string }>(
-      `insert into public.order_connections (user_id, name, url, account)
-       values ('${u!.id}', 'PM', 'https://pm.example.com/o', 'CH-1') returning id`);
-    const ins = (n: number) => db.exec(
-      `insert into public.order_tickets (user_id, connection_id, ticket_id, fingerprint, account,
-        currency, positions, total_amount, payload)
-       values ('${u!.id}', '${c!.id}', 'wo_dup_00001', 'fp', 'CH-1', 'CHF', ${n}, 1000, '{}'::jsonb)`);
-    await ins(1);
-    await expect(ins(2)).rejects.toThrow(/duplicate key|unique/i);
+  it("STOPS the double order: two advisors, one household, one ticket id", async () => {
+    // The whole reason 008 exists. Under the old index each advisor had
+    // their own namespace, so both BUYs landed and two live orders reached
+    // the OMS.
+    const a = await one<{ id: string }>(`insert into auth.users (email) values ('adv-a@x.example') returning id`);
+    const b = await one<{ id: string }>(`insert into auth.users (email) values ('adv-b@x.example') returning id`);
+    const org = await one<{ org_id: string }>(
+      `select org_id from public.org_members where user_id = '${a!.id}'`);
+    await db.exec(`insert into public.org_members (org_id, user_id, role)
+                   values ('${org!.org_id}', '${b!.id}', 'advisor') on conflict do nothing`);
+    const hh = await one<{ id: string }>(
+      `select id from public.households where org_id = '${org!.org_id}' limit 1`);
+    await db.exec(`insert into public.household_advisors (household_id, user_id, org_id)
+                   values ('${hh!.id}', '${b!.id}', '${org!.org_id}') on conflict do nothing`);
+
+    const conn = await one<{ id: string }>(
+      `insert into public.order_connections (user_id, household_id, org_id, name, url, account)
+       values ('${a!.id}', '${hh!.id}', '${org!.org_id}', 'PM', 'https://pm.example.com/o', 'CH-1')
+       returning id`);
+
+    const place = (who: string) => db.exec(
+      `insert into public.order_tickets (user_id, household_id, org_id, connection_id, ticket_id,
+        fingerprint, account, currency, positions, total_amount, payload)
+       values ('${who}', '${hh!.id}', '${org!.org_id}', '${conn!.id}', 'wo_shared_0001',
+               'fp', 'CH-1', 'CHF', 7, 2400000, '{}'::jsonb)`);
+
+    await place(a!.id);
+    await expect(place(b!.id)).rejects.toThrow(/duplicate key|unique/i);
+
+    const n = await one<{ n: number }>(
+      `select count(*)::int as n from public.order_tickets where ticket_id = 'wo_shared_0001'`);
+    expect(n!.n, "exactly one order, not two").toBe(1);
+  });
+
+  it("still lets DIFFERENT households reuse a ticket id", async () => {
+    const u = await one<{ id: string }>(`insert into auth.users (email) values ('two-hh@x.example') returning id`);
+    const org = await one<{ org_id: string }>(`select org_id from public.org_members where user_id='${u!.id}'`);
+    const h2 = await one<{ id: string }>(
+      `insert into public.households (org_id, name, created_by)
+       values ('${org!.org_id}', 'Second client', '${u!.id}') returning id`);
+    await db.exec(`insert into public.household_advisors (household_id, user_id, org_id)
+                   values ('${h2!.id}', '${u!.id}', '${org!.org_id}')`);
+    const h1 = await one<{ id: string }>(
+      `select id from public.households where org_id='${org!.org_id}' and id <> '${h2!.id}' limit 1`);
+    const mk = (hh: string) => db.exec(
+      `insert into public.order_tickets (user_id, household_id, org_id, ticket_id, fingerprint,
+        account, currency, positions, total_amount, payload)
+       values ('${u!.id}', '${hh}', '${org!.org_id}', 'wo_reused_001', 'fp', 'A', 'CHF', 1, 100, '{}'::jsonb)`);
+    await mk(h1!.id);
+    await mk(h2!.id);          // same ticket id, different client — legitimate
+    const n = await one<{ n: number }>(
+      `select count(*)::int as n from public.order_tickets where ticket_id='wo_reused_001'`);
+    expect(n!.n).toBe(2);
+  });
+});
+
+describe("008: the household trigger keeps existing routes working", () => {
+  it("fills household_id from the actor while they have exactly one", async () => {
+    const u = await one<{ id: string }>(`insert into auth.users (email) values ('single@x.example') returning id`);
+    // Exactly the insert the CURRENT route performs — no household column.
+    await db.exec(`insert into public.feed_connections (user_id, name, url)
+                   values ('${u!.id}', 'UBS', 'https://custodian.example.com/f')`);
+    const f = await one<{ household_id: string; org_id: string }>(
+      `select household_id, org_id from public.feed_connections where user_id='${u!.id}'`);
+    expect(f!.household_id).toBeTruthy();
+    expect(f!.org_id).toBeTruthy();
+  });
+
+  it("REFUSES to guess once the advisor has two clients", async () => {
+    const u = await one<{ id: string }>(`insert into auth.users (email) values ('ambig@x.example') returning id`);
+    const org = await one<{ org_id: string }>(`select org_id from public.org_members where user_id='${u!.id}'`);
+    await db.exec(`insert into public.households (org_id, name, created_by)
+                   values ('${org!.org_id}', 'Second', '${u!.id}')`);
+    // Silently picking one would point a custodian feed at the wrong client.
+    await expect(db.exec(`insert into public.feed_connections (user_id, name, url)
+                          values ('${u!.id}', 'UBS', 'https://custodian.example.com/f')`))
+      .rejects.toThrow(/explicitly/i);
+  });
+});
+
+describe("008: firm-level order ceiling", () => {
+  it("clamps a connection limit the advisor set above the firm's", async () => {
+    const u = await one<{ id: string }>(`insert into auth.users (email) values ('cap@x.example') returning id`);
+    const org = await one<{ org_id: string }>(`select org_id from public.org_members where user_id='${u!.id}'`);
+    await db.exec(`update public.organizations set max_ticket_amount = 250000 where id='${org!.org_id}'`);
+    const hh = await one<{ id: string }>(`select id from public.households where org_id='${org!.org_id}' limit 1`);
+    await db.exec(`insert into public.order_connections (user_id, household_id, org_id, name, url, account, max_ticket_amount)
+                   values ('${u!.id}', '${hh!.id}', '${org!.org_id}', 'PM', 'https://pm.example.com/o', 'A', 9999999)`);
+    const c = await one<{ max_ticket_amount: string }>(
+      `select max_ticket_amount from public.order_connections where user_id='${u!.id}'`);
+    expect(Number(c!.max_ticket_amount)).toBe(250000);
+  });
+});
+
+describe("008: audit separates actor from subject", () => {
+  it("scopes on the household, so compliance sees another advisor's actions", async () => {
+    const cols = (await rows<{ column_name: string }>(
+      `select column_name from information_schema.columns
+        where table_name='audit_events' and column_name in ('household_id','org_id','user_id')
+        order by 1`)).map((r) => r.column_name);
+    expect(cols).toEqual(["household_id", "org_id", "user_id"]);
+    const pol = await one<{ qual: string }>(
+      `select qual from pg_policies where policyname='audit_events_household_select'`);
+    expect(pol!.qual).toMatch(/household_id/);
+  });
+
+  it("is STILL append-only after the re-key", async () => {
+    const u = await one<{ id: string }>(`insert into auth.users (email) values ('ap@x.example') returning id`);
+    await db.exec(`insert into public.audit_events (user_id, action, source, summary)
+                   values ('${u!.id}', 'plan.updated', 'web', 'after rekey')`);
+    await expect(db.exec(`delete from public.audit_events where summary='after rekey'`))
+      .rejects.toThrow(/append-only/i);
+    await expect(db.exec(`update public.audit_events set household_id = null where summary='after rekey'`))
+      .rejects.toThrow(/append-only/i);
   });
 });
 
