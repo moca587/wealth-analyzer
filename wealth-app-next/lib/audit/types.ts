@@ -9,9 +9,12 @@
 // Design constraints, all of which follow from it being an AUDIT trail:
 //
 //  • APPEND-ONLY, enforced by the database. RLS grants SELECT and INSERT
-//    and nothing else, and a trigger rejects UPDATE and DELETE outright —
-//    so a future policy mistake, or a service-role key, still cannot
-//    rewrite history.
+//    and nothing else, and a trigger rejects DELETE outright and permits
+//    exactly one UPDATE — nulling the actor on erasure. A future policy
+//    mistake, or a service-role key, still cannot rewrite history.
+//    (005 fixed the first cut of this: an unconditional DELETE trigger
+//    plus an ON DELETE CASCADE actor FK made every user who had saved a
+//    plan undeletable, because the cascade tripped the trigger.)
 //  • BOUNDED. A full plan snapshot per save would duplicate every client's
 //    financial position on every keystroke-save. Events carry a summary,
 //    a capped list of changed fields, and the two numbers a reviewer wants
@@ -76,6 +79,8 @@ export interface AuditEvent extends AuditEventInput {
 export interface AuditEventRow {
   id: string;
   created_at: string;
+  /** Null once the actor has been erased; the event itself survives. */
+  user_id?: string | null;
   action: string;
   source: string;
   summary: string;
