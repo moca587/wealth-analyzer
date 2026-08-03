@@ -320,6 +320,68 @@ connection at `/api/feeds/<id>` and that panel works unchanged.
   checkboxes grouped by section with before → after values → Apply → one-click
   Undo (re-PUTs the pre-apply snapshot).
 
+### Tenancy — `006_tenancy.sql` (Stage 1 of multi-institution support)
+`profiles.id` IS `auth.users(id)` and the client's whole position lives in
+`profiles.plan` on that identity row — so **a login IS a household**. An
+advisor cannot hold a second client, a firm cannot put two advisors on one
+client, and there is no tenant to bill, suspend or audit against. That is an
+architecture change, not a WHERE clause.
+
+006 is **additive and ships alone**: `organizations`, `org_members`,
+`households`, `household_advisors`, `plans` (versioned), the access helpers,
+RLS, and a backfill putting every existing profile into a personal org. It
+does NOT re-point `feed_connections` / `order_connections` / `order_tickets` /
+`audit_events` — the app keeps working unchanged until 008 does that.
+
+- **RLS is kept indexable.** The obvious `exists (select 1 from org_members ...)`
+  runs a correlated subquery PER ROW. Instead every tenant table carries a
+  denormalised `org_id`, and policies compare it against `STABLE SECURITY
+  DEFINER` helpers (`auth_org_ids()`, `auth_household_ids()`, ...) that Postgres
+  evaluates once per statement. Their `search_path` is pinned — an unpinned
+  SECURITY DEFINER function is a privilege-escalation hole — and a test asserts
+  all three properties.
+- **Plans are versioned, and that is a bug fix.** `/api/plan` PUT is a
+  read-modify-write: it SELECTs the old plan, UPSERTs, then diffs — so two
+  tabs silently lose one save AND write an audit diff describing a change that
+  never happened. `unique (household_id, version)` turns that into a 409.
+  Plan versions have no UPDATE/DELETE policy: immutability is what makes the
+  audit trail's before/after hashes mean anything.
+- **Entitlement moved to `organizations`**, which has no client write policy,
+  so the hole 005/007 had to close on `profiles` cannot recur there.
+- **STILL TO DO in 008, and it is the dangerous one:**
+  `idx_order_tickets_idem` is `unique (user_id, ticket_id)` and is the ONLY
+  thing preventing a double placement. Correct today only because a login has
+  one client. The moment two advisors share a household they get separate
+  namespaces — both press BUY on the same proposal and **the tickets do not
+  collide, so two live orders reach the OMS**. Re-key to
+  `unique (household_id, ticket_id)` in the SAME migration that introduces
+  shared households, never after.
+
+### Migrations are executed, not just read — `lib/db/__tests__/migrations.test.ts`
+003-006 had never run anywhere: `.env.local` points at a placeholder Supabase
+project. The append-only audit guarantee, the order idempotency index and the
+tenancy model were all unverified SQL. That test now applies every migration
+to a **real Postgres 18** (PGlite, Postgres compiled to WASM — the triggers,
+plpgsql, constraints and grants are genuine), stubbing only `auth.users`,
+`auth.uid()` and the three Supabase roles.
+
+It paid for itself immediately:
+- **004 made every user undeletable.** `audit_events.user_id` was `ON DELETE
+  CASCADE` from `auth.users` while a `BEFORE DELETE` trigger raised
+  unconditionally, so the cascade aborted the transaction — a GDPR erasure
+  blocker. 005 makes the actor FK `ON DELETE SET NULL` and lets the trigger
+  permit exactly one update: nulling the actor. The event survives; DELETE is
+  still refused.
+- **005's entitlement fix was a NO-OP.** It wrote `revoke update (is_paid, ...)`
+  against a role holding a TABLE-level grant. In Postgres a table-level grant
+  subsumes every column and a column REVOKE does not carve a hole in it — the
+  statement succeeds and changes nothing, so `update profiles set is_paid =
+  true` was still valid. **007** does it the documented way: revoke the
+  table-level privilege, grant back only `display_name` and `plan`. A test now
+  executes the self-grant as `authenticated` and asserts it is refused.
+
+Read a failure here as a real database defect, not a brittle assertion.
+
 ### Audit trail — `/api/audit` + `audit_events` (migration `004_audit.sql`)
 The record of what happened to a client's plan. Before this, `profiles.plan`
 was a single JSONB column overwritten on every save, so "who changed this
