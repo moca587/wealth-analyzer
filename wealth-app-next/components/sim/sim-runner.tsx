@@ -9,6 +9,21 @@ import { formatMoney } from "@/lib/engine/financial-math";
 import { SimChart } from "./sim-chart";
 import type { WealthPlan, SimulationResult } from "@/lib/engine/types";
 
+/**
+ * The same seed the report uses (report-view.tsx).
+ *
+ * These two screens MUST agree. Without a seed here, the median on the
+ * simulation tab and the median on the client's report were different
+ * numbers for the same unchanged plan — an advisor quoting one and handing
+ * over the other, in front of the client. A projection may be uncertain;
+ * it may not be inconsistent with itself.
+ *
+ * Re-running should also be reproducible: pressing Run twice on an
+ * untouched plan and getting two answers reads as a broken tool, not as
+ * sampling error.
+ */
+export const REPORT_SEED = 20260101;
+
 export function SimRunner({ plan }: { plan: WealthPlan }) {
   const [sims, setSims] = useState<200 | 500 | 1000>(1000);
   const [years, setYears] = useState(30);
@@ -20,7 +35,7 @@ export function SimRunner({ plan }: { plan: WealthPlan }) {
     // Use a short timeout so the UI updates before the JS-bound MC runs
     setTimeout(() => {
       try {
-        const r = runMonteCarlo({ plan, sims, years });
+        const r = runMonteCarlo({ plan, sims, years, seed: REPORT_SEED });
         setResult(r);
       } finally {
         setRunning(false);

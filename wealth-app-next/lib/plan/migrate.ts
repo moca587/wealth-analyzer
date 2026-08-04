@@ -1,4 +1,5 @@
 import { emptyPlan, newId } from "./default-plan";
+import { importLegacyPlan, isLegacyExport } from "./from-legacy";
 import type { Client, WealthPlan } from "@/lib/engine/types";
 
 /**
@@ -14,6 +15,13 @@ export function migratePlan(input: unknown): WealthPlan {
   const base = emptyPlan();
   if (!input || typeof input !== "object") return base;
   const src = input as Record<string, unknown>;
+
+  // A file from the single-file HTML app keeps the household, income,
+  // expenses, retirement and pensions in a flat `fields` bag — none of which
+  // the key-by-key logic below reads. Left to this function, a real client
+  // file imported with plausible net worth and ZERO cash flow, and reported
+  // success. from-legacy.ts is the adapter that actually reads that shape.
+  if (isLegacyExport(src)) return importLegacyPlan(src).plan;
 
   const asArray = (v: unknown): Record<string, unknown>[] =>
     Array.isArray(v) ? (v.filter((x) => x && typeof x === "object") as Record<string, unknown>[]) : [];

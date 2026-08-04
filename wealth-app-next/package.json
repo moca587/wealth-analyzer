@@ -9,7 +9,9 @@
     "lint": "next lint",
     "type-check": "tsc --noEmit",
     "test": "vitest",
-    "test:run": "vitest run"
+    "test:run": "vitest run",
+    "db:push": "supabase db push",
+    "db:diff": "supabase migration list"
   },
   "dependencies": {
     "@supabase/ssr": "^0.5.2",

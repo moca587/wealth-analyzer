@@ -17,10 +17,15 @@ A single-file (`wealth-analyzer.html`) personal wealth analysis web application 
 - Country-aware inflation region presets (50-year historical averages)
 - Risk profile + time horizon framework driving simulation parameters
 
-> **Two products in this repo:** the single-file HTML app documented above is the
-> **production** product. A parallel Next.js + Supabase SaaS rebuild lives in
-> `wealth-app-next/` — see [SaaS Migration](#saas-migration--wealth-app-next-stage-1)
-> below. The HTML app stays authoritative until the SaaS version reaches parity.
+> **DIRECTION CHANGE (2026-08-04): the SaaS is now the product.** `wealth-app-next/`
+> is what gets built and sold; the single-file HTML app documented above is no
+> longer the parity gate and no longer receives feature work. It stays in the
+> repo — it is 22k lines of working, shipped code and the only thing that has
+> ever run in front of a client — as reference for behaviour the SaaS still has
+> to reproduce, and as a fallback until the SaaS has been deployed and used in
+> anger. Do not delete it, and keep `legacy:check` green so the artifacts stay
+> coherent. New work goes in `wealth-app-next/`; see
+> [SaaS Migration](#saas-migration--wealth-app-next-stage-1) below.
 
 ---
 
@@ -197,9 +202,11 @@ Selecting a country in the Client 1 address field automatically updates the Asse
 `wealth-app-next/`, using Next.js 14 (App Router) + Supabase. It lives in the
 same repo as the legacy single-file app.
 
-**Status:** Stage-1 scaffold. **The legacy `wealth-analyzer.html` is still the
-production product** and stays authoritative until the SaaS version reaches
-parity. Do not delete or deprioritize the HTML app.
+**Status:** the product. As of 2026-08-04 this is what gets built and sold. The
+legacy `wealth-analyzer.html` is kept as reference and fallback but is not the
+parity gate any more (see the note at the top of this file). It has still never
+been deployed: migrations 002-010 have only ever run against PGlite, so the
+first real deployment is the next gate — `docs/deploy-runbook.md`.
 
 **Why a rebuild (not a port of the monolith):** the single file is ~22k lines
 of vanilla JS with all state in the DOM. A real product needs accounts, saved
@@ -444,6 +451,113 @@ household was invisible to them the instant it existed. 009 closes that.
   Migrations 003-009 have still only ever run against PGlite — `.env.local`
   points at a placeholder project — so the first real deployment must run them
   before (or with) this code, or `/api/plan` 500s on a missing `plans` table.
+
+### Phase 0 of the SaaS build — `010_survive_a_departure.sql` + boot/ops
+A readiness audit (six dimensions, adversarially verified) found the SaaS
+blocked on two structural things rather than on features: it had never run
+against a real Postgres, and the unit it sells — a seat — could not be
+created. Phase 0 is everything that must be true before either can be fixed.
+
+- **Deleting one advisor destroyed the firm's records.** 005 repointed
+  `audit_events.user_id` to `on delete set null` and stopped there.
+  `order_tickets`, `order_connections`, `feed_connections` and `simulations`
+  still cascaded from `auth.users` — and since 008, `user_id` on those tables
+  means "who did this", not "whose money this is". So offboarding an advisor
+  took the order-of-record, every custodian credential and every OMS route
+  with them, while 005's surviving audit rows pointed at tickets that no
+  longer existed. All four are now `set null`; a test asserts the only
+  remaining cascades are `org_members` and `household_advisors`, which are
+  memberships rather than records.
+- **Found by running it:** `on delete set null` is an UPDATE, so
+  `tg_order_tickets_immutable` refused it and the DELETE still aborted —
+  the same shape as 004's "every user is undeletable" bug. The trigger now
+  permits exactly one update: nulling the actor with every other column
+  byte-identical. Seven tests probe the keyhole (erase + move the custody
+  account, + change the amount, + reopen a terminal row, + repoint the
+  household) and all are refused.
+- **The audit vocabulary could not describe money-routing changes.**
+  `PATCH /api/orders/<id>` can repoint the custody account, raise
+  `max_ticket_amount` and change the endpoint and credential — and wrote
+  nothing, because 004's CHECK constraint had no value for it. That
+  undercuts "the custody account comes from the CONNECTION, never the
+  payload": the trusted half was silently mutable. 010 adds
+  `connection.*`, `household.*`, `advisor.*` and `member.*`.
+- **Credential encryption gained a rotation path.** `VERSION = "v1"` was a
+  format tag, not a key id, and decrypt required that literal — so there was
+  one key forever, and rotating or losing it bricked every custodian and OMS
+  secret, discovered one client at a time. `decryptSecret` now falls back to
+  `FEEDS_ENCRYPTION_KEY_PREVIOUS`, `activeKeyId()` fingerprints the current
+  key, `secret_key_id` (010) makes a re-encrypt job resumable and provable,
+  and `rotateSecret()` re-seals. A test asserts a forged ciphertext still
+  fails under BOTH keys — the fallback must not weaken GCM.
+- **`lib/env.ts` + `instrumentation.ts` fail at boot, not at the worst
+  moment.** `encryptionAvailable()` and `orderAllowlistConfigured()` already
+  existed and were never called until an advisor saved a credential or
+  pressed BUY. In production a fatal problem now refuses to start, because a
+  server that boots unable to authenticate and reports itself healthy is the
+  worst available failure. It specifically catches CI's placeholder Supabase
+  URL and a localhost `NEXT_PUBLIC_APP_URL`, both of which are inlined at
+  BUILD time and otherwise ship an app that renders perfectly, can never log
+  anyone in, and emails confirmation links to localhost.
+- **Security headers + `/api/health`.** `next.config.mjs` was seven lines;
+  `/app/orders` shipped the BUY control with no framing protection. CSP is
+  derived from `NEXT_PUBLIC_SUPABASE_URL` rather than wildcarded. Health is
+  unauthenticated so it reveals no version, no counts and no error text, and
+  distinguishes `degraded` (runs, some capability off) from `unhealthy` (take
+  it out of rotation) — pulling every instance because an allowlist is unset
+  would turn a config warning into an outage.
+
+### The legacy importer was silently hollowing every client — `lib/plan/from-legacy.ts`
+`migratePlan()` read `src.clients` / `src.incomes` / `src.expenses` /
+`src.retirement`. A real export from the HTML app contains **none** of those:
+the household, income, expenses, retirement, pensions, inflation and tax
+settings all live in a flat `fields` bag of ~88 string keys. Only `assets`,
+`loans`, `goals` and `children` happened to line up. So importing a genuine
+client file produced plausible net worth with ZERO cash flow — and the UI
+said "Imported — 1 client(s), 8 asset(s), 4 goal(s)". The Monte Carlo then
+ran on that and printed a confident median. `lib/plan/legacy-schema.ts` (388
+lines) modelled the real shape correctly and had **zero importers**.
+
+`from-legacy.ts` is the adapter, wired into `migratePlan` behind
+`isLegacyExport()`. It follows the feed adapters' rule — never invent a
+number — and returns `notes` describing what it could not carry, because an
+import that silently drops the client's salary must not read as a success. A
+blank country stays blank rather than defaulting to `US` (which would tax a
+Zurich household on US federal brackets); a pension with an amount but no
+start age is skipped rather than guessed; retirement specified only half-way
+is left off.
+
+**Two unit bugs in the first cut of this adapter, both caught by printing a
+real import rather than trusting the tests:**
+- Legacy `expL`/`expI`/`expO` are **ANNUAL** — the panel is titled "Annual
+  Household Expenses" — while `ExpenseCategory.amount` is MONTHLY. Carrying
+  them 1:1 turned CHF 78,000 a year into CHF 78,000 a month and made every
+  imported household look ruined. Now `/12`, pinned by a test asserting
+  annualised spend stays below annualised income for the Keller file.
+- `penSrc` is a `<select>` of `auto`/`manual` — how the figure was derived,
+  not what the benefit is called — so "manual" was printing on the client's
+  pension line. Now used only when it is a genuine name.
+
+Tests run against the **real** sample profiles in the repo, not fixtures:
+the original bug was precisely that hand-written fixtures matched what
+`migrate.ts` expected while no real export ever did.
+
+### Also in this pass
+- **The demo contradicted itself.** `sim-runner.tsx` ran unseeded while
+  `report-view.tsx` passed `seed: 20260101`, so the median on screen and the
+  median on the client's report were different numbers for the same
+  unchanged plan. Both now use the shared `REPORT_SEED`.
+- **`docs/deploy-runbook.md`** — the ordered procedure, the two irreversible
+  decisions taken at project creation (region, PITR tier), the rehearsal
+  step, the smoke test, and the key-rotation order. Three checked-in
+  documents told an operator to apply `001_init.sql` **and stop**; since 009
+  that produces an app that 500s on first login, because `/api/plan` reads
+  `plans` and `households`, which 001 does not create. All three corrected.
+- **`SUPABASE_SERVICE_ROLE_KEY` removed from the setup docs.** No code reads
+  it, and it bypasses every RLS policy in 006-010 — instructing a firm's ops
+  team to provision it was asking for the one credential that undoes the
+  tenancy model, for nothing.
+
 
 ### Migrations are executed, not just read — `lib/db/__tests__/migrations.test.ts`
 003-009 have never run against a real Supabase project: `.env.local` points at

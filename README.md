@@ -39,7 +39,7 @@ cp .env.local.example .env.local
 npm run dev
 ```
 
-Apply `wealth-app-next/supabase/migrations/001_init.sql` in Supabase before using authentication or persistence. See [docs/development.md](docs/development.md) for the complete setup.
+Apply **every** migration in `wealth-app-next/supabase/migrations/` in filename order (001 through 010) before using authentication or persistence — applying only 001 leaves the app 500ing on first login, because `/api/plan` reads tables created in 006-009. See [docs/deploy-runbook.md](docs/deploy-runbook.md).
 
 ## Capabilities
 

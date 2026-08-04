@@ -89,7 +89,7 @@ describe("every migration applies to a real Postgres", () => {
       "001_init.sql", "002_feeds.sql", "003_orders.sql",
       "004_audit.sql", "005_fix_erasure_and_entitlement.sql", "006_tenancy.sql",
       "007_fix_entitlement_grants.sql", "008_rekey_to_households.sql",
-      "009_household_management.sql",
+      "009_household_management.sql", "010_survive_a_departure.sql",
     ]);
   });
 
@@ -702,5 +702,259 @@ describe("009: assignment is an ADMIN action, not a self-service one", () => {
       .rejects.toThrow(/not a member of this organisation/i);
     await db.exec(`reset role`);
     await become(null);
+  });
+});
+
+describe("010: deleting a person must not delete the firm's records", () => {
+  // 005 fixed this for audit_events and stopped. Everywhere else `user_id`
+  // still cascaded, and since 008 `user_id` means "who did this", not "whose
+  // money this is" — so one advisor leaving took the firm's order-of-record,
+  // its custodian credentials and its OMS routes with them.
+  let uid = "", org = "", hh = "", conn = "";
+
+  beforeAll(async () => {
+    const u = await one<{ id: string }>(
+      `insert into auth.users (email) values ('leaver@firm.example') returning id`);
+    uid = u!.id;
+    const o = await one<{ org_id: string }>(
+      `select org_id from public.org_members where user_id='${uid}'`);
+    org = o!.org_id;
+    const h = await one<{ id: string }>(
+      `select id from public.households where org_id='${org}' limit 1`);
+    hh = h!.id;
+
+    const c = await one<{ id: string }>(
+      `insert into public.order_connections (user_id, household_id, org_id, name, url, account)
+       values ('${uid}', '${hh}', '${org}', 'PM', 'https://pm.example.com/o', 'CH-77')
+       returning id`);
+    conn = c!.id;
+    await db.exec(`insert into public.order_tickets
+        (user_id, household_id, org_id, connection_id, ticket_id, fingerprint,
+         account, currency, positions, total_amount, payload, status)
+       values ('${uid}', '${hh}', '${org}', '${conn}', 'wo_departure_001', 'fp',
+               'CH-77', 'CHF', 7, 2400000, '{}'::jsonb, 'staged')`);
+    await db.exec(`insert into public.feed_connections (user_id, household_id, org_id, name, url)
+                   values ('${uid}', '${hh}', '${org}', 'UBS', 'https://custodian.example.com/f')`);
+    await db.exec(`insert into public.simulations (user_id, household_id, input_hash, result)
+                   values ('${uid}', '${hh}', 'h1', '{}'::jsonb)`);
+    await db.exec(`insert into public.audit_events (user_id, household_id, org_id, action, source, summary)
+                   values ('${uid}', '${hh}', '${org}', 'order.staged', 'order', 'staged 7 lines')`);
+
+    // The advisor leaves and their login is erased (a GDPR request, or
+    // simply offboarding). This must SUCCEED — 004 once made it impossible.
+    await db.exec(`delete from auth.users where id = '${uid}'`);
+  });
+
+  it("keeps the order ticket — it is the instruction of record", async () => {
+    const t = await one<{ user_id: string | null; household_id: string; status: string }>(
+      `select user_id, household_id, status from public.order_tickets
+        where ticket_id = 'wo_departure_001'`);
+    expect(t, "the order must outlive the person who sent it").toBeTruthy();
+    expect(t!.user_id, "the actor is forgotten").toBeNull();
+    expect(t!.household_id, "the client it booked for is not").toBe(hh);
+    expect(t!.status).toBe("staged");
+  });
+
+  it("leaves no audit event pointing at a client whose tickets are gone", async () => {
+    // The specific incoherence the old cascade produced: 005 kept the audit
+    // row while the ticket it described was deleted underneath it.
+    const orphans = await rows(
+      `select a.id from public.audit_events a
+        where a.summary = 'staged 7 lines'
+          and not exists (select 1 from public.order_tickets t
+                           where t.household_id = a.household_id)`);
+    expect(orphans).toEqual([]);
+  });
+
+  it("keeps the OMS route and the custodian credential", async () => {
+    const oc = await one<{ n: number }>(
+      `select count(*)::int as n from public.order_connections where household_id='${hh}'`);
+    expect(oc!.n, "the client's OMS route survives the advisor").toBe(1);
+    const fc = await one<{ n: number }>(
+      `select count(*)::int as n from public.feed_connections where household_id='${hh}'`);
+    expect(fc!.n, "so does the custodian connection").toBe(1);
+  });
+
+  it("still erases the person themselves", async () => {
+    // Nulling the actor is forgetting them, not keeping them. profiles.id
+    // IS the person and stays ON DELETE CASCADE deliberately.
+    const p = await one<{ n: number }>(
+      `select count(*)::int as n from public.profiles where id='${uid}'`);
+    expect(p!.n, "the identity row is gone").toBe(0);
+    const m = await one<{ n: number }>(
+      `select count(*)::int as n from public.org_members where user_id='${uid}'`);
+    expect(m!.n, "and so is the membership").toBe(0);
+  });
+
+  it("leaves no user_id column able to cascade from auth.users", async () => {
+    // A guard against the next table: any new `user_id references
+    // auth.users(id) on delete cascade` is the same bug returning.
+    const cascading = await rows<{ table_name: string }>(
+      `select distinct tc.table_name
+         from information_schema.table_constraints tc
+         join information_schema.key_column_usage k
+           on k.constraint_name = tc.constraint_name
+         join information_schema.referential_constraints rc
+           on rc.constraint_name = tc.constraint_name
+        where tc.constraint_type = 'FOREIGN KEY'
+          and tc.table_schema = 'public'
+          and k.column_name = 'user_id'
+          and rc.delete_rule = 'CASCADE'
+        order by 1`);
+    // org_members and household_advisors are MEMBERSHIPS, not records:
+    // a departed advisor should stop being a member.
+    expect(cascading.map((r) => r.table_name))
+      .toEqual(["household_advisors", "org_members"]);
+  });
+});
+
+describe("010: the audit trail can describe money-routing changes", () => {
+  it("accepts the connection and tenancy actions the routes need", async () => {
+    const u = await one<{ id: string }>(
+      `insert into auth.users (email) values ('acts@x.example') returning id`);
+    const actions = [
+      "connection.created", "connection.updated", "connection.deleted",
+      "household.created", "household.updated",
+      "advisor.assigned", "advisor.unassigned",
+      "member.invited", "member.joined", "member.removed",
+    ];
+    for (const action of actions) {
+      await db.exec(`insert into public.audit_events (user_id, action, source, summary)
+                     values ('${u!.id}', '${action}', 'web', 'test')`);
+    }
+    const n = await one<{ n: number }>(
+      `select count(*)::int as n from public.audit_events where user_id='${u!.id}'`);
+    expect(n!.n).toBe(actions.length);
+  });
+
+  it("still refuses an action outside the vocabulary", async () => {
+    const u = await one<{ id: string }>(
+      `insert into auth.users (email) values ('badact@x.example') returning id`);
+    await expect(db.exec(`insert into public.audit_events (user_id, action, source, summary)
+                          values ('${u!.id}', 'order.executed', 'order', 'nope')`))
+      .rejects.toThrow(/check constraint|violates/i);
+  });
+});
+
+describe("010: operational plumbing", () => {
+  it("records which migrations have been applied", async () => {
+    const v = (await rows<{ version: string }>(
+      `select version from public.schema_migrations order by 1`)).map((r) => r.version);
+    expect(v).toContain("001_init");
+    expect(v).toContain("010_survive_a_departure");
+    expect(v.length).toBe(10);
+  });
+
+  it("keeps the ledger away from clients", async () => {
+    const g = await rows(
+      `select privilege_type from information_schema.table_privileges
+        where table_name='schema_migrations' and grantee in ('authenticated','anon')`);
+    expect(g, "deploy state is operator data").toEqual([]);
+  });
+
+  it("gives credential encryption a rotation handle", async () => {
+    for (const t of ["feed_connections", "order_connections"]) {
+      const c = await one(
+        `select 1 from information_schema.columns
+          where table_name='${t}' and column_name='secret_key_id'`);
+      expect(c, `${t} must be able to say which key sealed its secret`).toBeTruthy();
+    }
+  });
+});
+
+describe("010: the erasure exemption is a keyhole, not a door", () => {
+  // 010 had to widen tg_order_tickets_immutable so `on delete set null`
+  // could null the actor. That widening is the risk: if it lets ANY other
+  // field move alongside, "erase me" becomes a way to rewrite an order
+  // after the fact — which is the exact thing the trigger exists to stop.
+  let org = "", hh = "", uid = "";
+
+  beforeAll(async () => {
+    const u = await one<{ id: string }>(
+      `insert into auth.users (email) values ('keyhole@x.example') returning id`);
+    uid = u!.id;
+    const o = await one<{ org_id: string }>(
+      `select org_id from public.org_members where user_id='${uid}'`);
+    org = o!.org_id;
+    const h = await one<{ id: string }>(
+      `select id from public.households where org_id='${org}' limit 1`);
+    hh = h!.id;
+  });
+
+  const mk = async (ticket: string, status: string) => {
+    await db.exec(`insert into public.order_tickets
+        (user_id, household_id, org_id, ticket_id, fingerprint, account, currency,
+         positions, total_amount, payload, status)
+       values ('${uid}', '${hh}', '${org}', '${ticket}', 'fp', 'CH-1', 'CHF',
+               3, 500000, '{}'::jsonb, '${status}')`);
+  };
+
+  it("refuses an erasure that also moves the custody account", async () => {
+    await mk("wo_keyhole_0001", "staged");
+    await expect(db.exec(
+      `update public.order_tickets set user_id = null, account = 'CH-OTHER'
+        where ticket_id = 'wo_keyhole_0001'`))
+      .rejects.toThrow(/immutable/i);
+  });
+
+  it("refuses an erasure that also moves the amount", async () => {
+    await mk("wo_keyhole_0002", "staged");
+    await expect(db.exec(
+      `update public.order_tickets set user_id = null, total_amount = 1
+        where ticket_id = 'wo_keyhole_0002'`))
+      .rejects.toThrow(/immutable/i);
+  });
+
+  it("refuses an erasure that reopens a terminal row", async () => {
+    await mk("wo_keyhole_0003", "staged");
+    await expect(db.exec(
+      `update public.order_tickets set user_id = null, status = 'sending'
+        where ticket_id = 'wo_keyhole_0003'`))
+      .rejects.toThrow(/immutable|terminal/i);
+  });
+
+  it("refuses an erasure that re-points the ticket at another client", async () => {
+    // The worst version: forget who sent it AND move whose money it was.
+    await mk("wo_keyhole_0004", "staged");
+    const other = await one<{ id: string }>(
+      `insert into public.households (org_id, name) values ('${org}', 'Other') returning id`);
+    await expect(db.exec(
+      `update public.order_tickets set user_id = null, household_id = '${other!.id}'
+        where ticket_id = 'wo_keyhole_0004'`))
+      .rejects.toThrow(/immutable/i);
+  });
+
+  it("still refuses reopening a terminal row with no erasure involved", async () => {
+    await mk("wo_keyhole_0005", "rejected");
+    await expect(db.exec(
+      `update public.order_tickets set status = 'staged'
+        where ticket_id = 'wo_keyhole_0005'`))
+      .rejects.toThrow(/terminal/i);
+  });
+
+  it("still lets the route finish an in-flight ticket", async () => {
+    // The one legitimate update the relay performs: sending → outcome.
+    await mk("wo_keyhole_0006", "sending");
+    await db.exec(
+      `update public.order_tickets set status = 'staged', http_status = 200,
+              upstream_ref = 'PM-123'
+        where ticket_id = 'wo_keyhole_0006'`);
+    const t = await one<{ status: string; upstream_ref: string }>(
+      `select status, upstream_ref from public.order_tickets
+        where ticket_id = 'wo_keyhole_0006'`);
+    expect(t!.status).toBe("staged");
+    expect(t!.upstream_ref).toBe("PM-123");
+  });
+
+  it("permits the bare erasure, and only that", async () => {
+    await mk("wo_keyhole_0007", "staged");
+    await db.exec(
+      `update public.order_tickets set user_id = null where ticket_id = 'wo_keyhole_0007'`);
+    const t = await one<{ user_id: string | null; account: string; total_amount: string }>(
+      `select user_id, account, total_amount from public.order_tickets
+        where ticket_id = 'wo_keyhole_0007'`);
+    expect(t!.user_id).toBeNull();
+    expect(t!.account, "the instruction is untouched").toBe("CH-1");
+    expect(Number(t!.total_amount)).toBe(500000);
   });
 });

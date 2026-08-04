@@ -21,11 +21,10 @@ Configure `.env.local`:
 ```dotenv
 NEXT_PUBLIC_SUPABASE_URL=https://YOUR-PROJECT.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=...
-SUPABASE_SERVICE_ROLE_KEY=...
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 ```
 
-Apply `supabase/migrations/001_init.sql` in the Supabase SQL editor before testing authentication or persistence. Never commit `.env.local` or expose the service-role key to client code.
+Apply **every** migration in `supabase/migrations/` in filename order (001 through 010) before testing authentication or persistence — 001 alone is not enough, the app reads tables created through 009. See [../docs/deploy-runbook.md](../docs/deploy-runbook.md). Never commit `.env.local`.
 
 Open <http://localhost:3000>. Development-only design previews are available at `/preview/plan` and `/preview/report`; both return 404 in production.
 

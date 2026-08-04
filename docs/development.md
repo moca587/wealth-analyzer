@@ -61,13 +61,12 @@ Set:
 ```dotenv
 NEXT_PUBLIC_SUPABASE_URL=https://YOUR-PROJECT.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=...
-SUPABASE_SERVICE_ROLE_KEY=...
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 ```
 
-Never expose `SUPABASE_SERVICE_ROLE_KEY` to client code or commit `.env.local`.
+`SUPABASE_SERVICE_ROLE_KEY` is intentionally not part of the setup: no code reads it, and it bypasses every RLS policy in migrations 006-010. Do not provision it until something needs it. Never commit `.env.local`.
 
-Apply `supabase/migrations/001_init.sql` with the Supabase SQL editor. It creates profiles and simulation-cache tables, timestamps, signup provisioning, indexes, and Row-Level Security policies.
+Apply **every** migration in `supabase/migrations/` in filename order (001 through 010) with the Supabase SQL editor, or `npm run db:push`. 001 alone creates only profiles and the simulation cache; the plan itself lives in `plans` (006) and the routes read it from 009 onward, so a 001-only database 500s on first login. Full procedure, including the irreversible region decision: [deploy-runbook.md](deploy-runbook.md).
 
 ### Run locally
 

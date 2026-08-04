@@ -12,6 +12,7 @@ import { useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { SimChart } from "@/components/sim/sim-chart";
 import { runMonteCarlo } from "@/lib/engine/monte-carlo";
+import { REPORT_SEED } from "@/components/sim/sim-runner";
 import { formatMoney, estimateIncomeTax, ageFromDOB, calcMortgagePayment } from "@/lib/engine/financial-math";
 import { RISK_PROFILES } from "@/lib/engine/constants";
 import type { WealthPlan } from "@/lib/engine/types";
@@ -28,7 +29,9 @@ export function ReportView({ plan }: { plan: WealthPlan }) {
   const sum = <T,>(a: T[], g: (x: T) => number) => a.reduce((s, x) => s + (g(x) || 0), 0);
 
   const sim = useMemo(
-    () => runMonteCarlo({ plan, sims: 1000, years: 30, seed: 20260101 }),
+    // REPORT_SEED, shared with the simulation tab. The two screens showing
+    // different medians for the same plan is worse than either being wrong.
+    () => runMonteCarlo({ plan, sims: 1000, years: 30, seed: REPORT_SEED }),
     [plan]
   );
 
