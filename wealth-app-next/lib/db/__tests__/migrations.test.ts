@@ -26,6 +26,14 @@ create schema if not exists auth;
 create table if not exists auth.users (
   id                  uuid primary key default gen_random_uuid(),
   email               text,
+  -- Real Supabase leaves this NULL until the address is confirmed, and
+  -- 012's accept_invite refuses an unconfirmed one — the email binding is
+  -- the whole invite security model, and on a deployment with
+  -- confirmations off an unconfirmed address is just a string someone
+  -- typed. Defaulted to now() here so the many tests that only need "a
+  -- user" stay readable; the unconfirmed path is exercised by inserting
+  -- an explicit NULL.
+  email_confirmed_at  timestamptz default now(),
   raw_user_meta_data  jsonb not null default '{}'::jsonb,
   created_at          timestamptz not null default now()
 );
@@ -90,6 +98,7 @@ describe("every migration applies to a real Postgres", () => {
       "004_audit.sql", "005_fix_erasure_and_entitlement.sql", "006_tenancy.sql",
       "007_fix_entitlement_grants.sql", "008_rekey_to_households.sql",
       "009_household_management.sql", "010_survive_a_departure.sql",
+      "011_invites.sql", "012_seats_that_work.sql",
     ]);
   });
 
@@ -816,7 +825,7 @@ describe("010: the audit trail can describe money-routing changes", () => {
       "connection.created", "connection.updated", "connection.deleted",
       "household.created", "household.updated",
       "advisor.assigned", "advisor.unassigned",
-      "member.invited", "member.joined", "member.removed",
+      "member.invited", "member.joined", "member.removed", "member.role_changed",
     ];
     for (const action of actions) {
       await db.exec(`insert into public.audit_events (user_id, action, source, summary)
@@ -842,7 +851,7 @@ describe("010: operational plumbing", () => {
       `select version from public.schema_migrations order by 1`)).map((r) => r.version);
     expect(v).toContain("001_init");
     expect(v).toContain("010_survive_a_departure");
-    expect(v.length).toBe(10);
+    expect(v.length).toBe(12);
   });
 
   it("keeps the ledger away from clients", async () => {
@@ -956,5 +965,734 @@ describe("010: the erasure exemption is a keyhole, not a door", () => {
     expect(t!.user_id).toBeNull();
     expect(t!.account, "the instruction is untouched").toBe("CH-1");
     expect(Number(t!.total_amount)).toBe(500000);
+  });
+});
+
+describe("011: a firm can take on a second person", () => {
+  // Until now a "firm" could only ever have one member: 006 gives
+  // org_members no INSERT policy and 007 revokes the grant, deliberately,
+  // because any policy wide enough to let someone add themselves is a
+  // self-promotion-to-owner primitive.
+  let owner = "", org = "", invitee = "";
+
+  const invite = async (email: string, role = "advisor") =>
+    one<{ invite_id: string; token: string }>(
+      `select * from public.create_invite('${org}', '${email}', '${role}')`);
+
+  beforeAll(async () => {
+    const o = await one<{ id: string }>(
+      `insert into auth.users (email) values ('boss@eam.example') returning id`);
+    owner = o!.id;
+    const m = await one<{ org_id: string }>(
+      `select org_id from public.org_members where user_id='${owner}'`);
+    org = m!.org_id;
+    // Room for the whole describe: the seat cap is exercised properly in
+    // its own block below, and hitting it here would just mask these tests.
+    await db.exec(`update public.organizations set kind='institution', seats=50 where id='${org}'`);
+  });
+
+  it("mints an invitation with a token that is NOT stored", async () => {
+    await become(owner);
+    const inv = await invite("anna@eam.example");
+    expect(inv!.token).toMatch(/^[0-9a-f]{64}$/);
+    const row = await one<{ token_hash: string; email: string; role: string }>(
+      `select token_hash, email, role from public.org_invites where id='${inv!.invite_id}'`);
+    expect(row!.token_hash, "a leaked dump must not contain usable invitations")
+      .not.toBe(inv!.token);
+    expect(row!.token_hash).toMatch(/^[0-9a-f]{64}$/);
+    expect(row!.email, "email is normalised for the accept-time comparison").toBe("anna@eam.example");
+    await become(null);
+  });
+
+  it("REFUSES a forwarded invitation", async () => {
+    // The property this whole migration exists for. Invitation mails get
+    // forwarded to personal addresses and assistants constantly; without
+    // this check, whoever opens the message gets a seat inside a firm
+    // holding its clients' entire financial position.
+    await become(owner);
+    const inv = await invite("intended@eam.example");
+    await become(null);
+
+    const stranger = await one<{ id: string }>(
+      `insert into auth.users (email) values ('stranger@gmail.example') returning id`);
+    await become(stranger!.id);
+    await expect(db.query(`select public.accept_invite('${inv!.token}')`))
+      .rejects.toThrow(/signed in as/i);
+    await become(null);
+
+    const n = await one<{ n: number }>(
+      `select count(*)::int as n from public.org_members
+        where org_id='${org}' and user_id='${stranger!.id}'`);
+    expect(n!.n, "the stranger must not be in the firm").toBe(0);
+  });
+
+  it("lets the INTENDED person in, with the invited role", async () => {
+    const u = await one<{ id: string }>(
+      `insert into auth.users (email) values ('advisor2@eam.example') returning id`);
+    invitee = u!.id;
+    await become(owner);
+    const inv = await invite("advisor2@eam.example", "compliance");
+    await become(null);
+
+    await become(invitee);
+    const got = await one<{ accept_invite: string }>(
+      `select public.accept_invite('${inv!.token}')`);
+    expect(got!.accept_invite).toBe(org);
+    await become(null);
+
+    const m = await one<{ role: string }>(
+      `select role from public.org_members where org_id='${org}' and user_id='${invitee}'`);
+    expect(m!.role).toBe("compliance");
+  });
+
+  it("is single-use", async () => {
+    const u = await one<{ id: string }>(
+      `insert into auth.users (email) values ('once@eam.example') returning id`);
+    await become(owner);
+    const inv = await invite("once@eam.example");
+    await become(null);
+    await become(u!.id);
+    await db.query(`select public.accept_invite('${inv!.token}')`);
+    await expect(db.query(`select public.accept_invite('${inv!.token}')`))
+      .rejects.toThrow(/not valid/i);
+    await become(null);
+  });
+
+  it("expires", async () => {
+    const u = await one<{ id: string }>(
+      `insert into auth.users (email) values ('late@eam.example') returning id`);
+    await become(owner);
+    const inv = await invite("late@eam.example");
+    await become(null);
+    await db.exec(`update public.org_invites set expires_at = now() - interval '1 day'
+                    where id='${inv!.invite_id}'`);
+    await become(u!.id);
+    await expect(db.query(`select public.accept_invite('${inv!.token}')`))
+      .rejects.toThrow(/not valid/i);
+    await become(null);
+  });
+
+  it("gives ONE message for every bad token, so it is not an oracle", async () => {
+    // "expired" vs "no such invitation" would let someone probe which
+    // tokens exist.
+    const u = await one<{ id: string }>(
+      `insert into auth.users (email) values ('probe@eam.example') returning id`);
+    await become(u!.id);
+    await expect(db.query(`select public.accept_invite('${"f".repeat(64)}')`))
+      .rejects.toThrow(/not valid/i);
+    await expect(db.query(`select public.accept_invite('')`))
+      .rejects.toThrow(/not valid/i);
+    await become(null);
+  });
+
+  it("can be revoked before it is used", async () => {
+    const u = await one<{ id: string }>(
+      `insert into auth.users (email) values ('revoked@eam.example') returning id`);
+    await become(owner);
+    const inv = await invite("revoked@eam.example");
+    await db.query(`select public.revoke_invite('${inv!.invite_id}')`);
+    await become(null);
+    await become(u!.id);
+    await expect(db.query(`select public.accept_invite('${inv!.token}')`))
+      .rejects.toThrow(/not valid/i);
+    await become(null);
+  });
+
+  it("treats a re-send as a re-send, not a second seat", async () => {
+    await become(owner);
+    const first = await invite("resend@eam.example");
+    const second = await invite("resend@eam.example");
+    await become(null);
+    // The first token stops working; only one live invitation exists.
+    const live = await one<{ n: number }>(
+      `select count(*)::int as n from public.org_invites
+        where org_id='${org}' and email='resend@eam.example'
+          and accepted_at is null and revoked_at is null`);
+    expect(live!.n).toBe(1);
+    expect(second!.token).not.toBe(first!.token);
+  });
+});
+
+describe("011: roles cannot be escalated through an invitation", () => {
+  let owner = "", admin = "", org = "";
+
+  beforeAll(async () => {
+    const o = await one<{ id: string }>(
+      `insert into auth.users (email) values ('owner2@eam.example') returning id`);
+    owner = o!.id;
+    const m = await one<{ org_id: string }>(
+      `select org_id from public.org_members where user_id='${owner}'`);
+    org = m!.org_id;
+    await db.exec(`update public.organizations set kind='institution', seats=10 where id='${org}'`);
+    const a = await one<{ id: string }>(
+      `insert into auth.users (email) values ('admin2@eam.example') returning id`);
+    admin = a!.id;
+    await db.exec(`insert into public.org_members (org_id, user_id, role)
+                   values ('${org}', '${admin}', 'admin')`);
+  });
+
+  it("stops an ADMIN minting an owner", async () => {
+    // Otherwise "admin" is one invitation away from full control of
+    // billing and every household in the firm.
+    await become(admin);
+    await expect(db.query(
+      `select * from public.create_invite('${org}', 'newowner@eam.example', 'owner')`))
+      .rejects.toThrow(/only an owner/i);
+    await become(null);
+  });
+
+  it("lets an OWNER invite an owner", async () => {
+    await become(owner);
+    const inv = await one<{ token: string }>(
+      `select * from public.create_invite('${org}', 'coowner@eam.example', 'owner')`);
+    expect(inv!.token).toBeTruthy();
+    await become(null);
+  });
+
+  it("stops a non-member inviting into the firm at all", async () => {
+    const outsider = await one<{ id: string }>(
+      `insert into auth.users (email) values ('outsider2@x.example') returning id`);
+    await become(outsider!.id);
+    await expect(db.query(
+      `select * from public.create_invite('${org}', 'x@y.example', 'advisor')`))
+      .rejects.toThrow(/organisation not found/i);
+    await become(null);
+  });
+
+  it("stops an ADVISOR inviting anyone", async () => {
+    const adv = await one<{ id: string }>(
+      `insert into auth.users (email) values ('adv3@eam.example') returning id`);
+    await db.exec(`insert into public.org_members (org_id, user_id, role)
+                   values ('${org}', '${adv!.id}', 'advisor')`);
+    await become(adv!.id);
+    await expect(db.query(
+      `select * from public.create_invite('${org}', 'friend@x.example', 'advisor')`))
+      .rejects.toThrow(/organisation not found/i);
+    await become(null);
+  });
+
+  it("refuses an unknown role", async () => {
+    await become(owner);
+    await expect(db.query(
+      `select * from public.create_invite('${org}', 'weird@eam.example', 'superuser')`))
+      .rejects.toThrow(/unknown role|check/i);
+    await become(null);
+  });
+});
+
+describe("011: seats are enforced, not merely recorded", () => {
+  let owner = "", org = "";
+
+  beforeAll(async () => {
+    const o = await one<{ id: string }>(
+      `insert into auth.users (email) values ('small@eam.example') returning id`);
+    owner = o!.id;
+    const m = await one<{ org_id: string }>(
+      `select org_id from public.org_members where user_id='${owner}'`);
+    org = m!.org_id;
+    await db.exec(`update public.organizations set kind='institution', seats=2 where id='${org}'`);
+  });
+
+  it("counts a PENDING invite as a seat", async () => {
+    // Otherwise a 3-seat firm invites five people, all five accept, and the
+    // overage surfaces at renewal instead of at the moment it happens.
+    await become(owner);
+    const before = await one<{ n: number }>(`select public.org_seats_used('${org}') as n`);
+    expect(before!.n).toBe(1);                       // the owner
+    await db.query(`select * from public.create_invite('${org}', 'seat2@eam.example')`);
+    const after = await one<{ n: number }>(`select public.org_seats_used('${org}') as n`);
+    expect(after!.n).toBe(2);
+    await become(null);
+  });
+
+  it("refuses the invitation that would exceed the cap", async () => {
+    await become(owner);
+    await expect(db.query(`select * from public.create_invite('${org}', 'seat3@eam.example')`))
+      .rejects.toThrow(/seats in use/i);
+    await become(null);
+  });
+
+  it("frees the seat when an invitation is revoked", async () => {
+    const inv = await one<{ id: string }>(
+      `select id from public.org_invites where org_id='${org}' and email='seat2@eam.example'`);
+    await become(owner);
+    await db.query(`select public.revoke_invite('${inv!.id}')`);
+    const n = await one<{ n: number }>(`select public.org_seats_used('${org}') as n`);
+    expect(n!.n).toBe(1);
+    await become(null);
+  });
+
+  it("re-checks the cap at ACCEPT, not only at invite", async () => {
+    // The firm may have downgraded between sending and accepting.
+    const u = await one<{ id: string }>(
+      `insert into auth.users (email) values ('downgraded@eam.example') returning id`);
+    await become(owner);
+    const inv = await one<{ token: string }>(
+      `select * from public.create_invite('${org}', 'downgraded@eam.example')`);
+    await become(null);
+    await db.exec(`update public.organizations set seats = 1 where id='${org}'`);
+    await become(u!.id);
+    await expect(db.query(`select public.accept_invite('${inv!.token}')`))
+      .rejects.toThrow(/no seat available/i);
+    await become(null);
+  });
+});
+
+describe("011: offboarding", () => {
+  let owner = "", org = "", leaver = "", hh = "";
+
+  beforeAll(async () => {
+    const o = await one<{ id: string }>(
+      `insert into auth.users (email) values ('owner3@eam.example') returning id`);
+    owner = o!.id;
+    const m = await one<{ org_id: string }>(
+      `select org_id from public.org_members where user_id='${owner}'`);
+    org = m!.org_id;
+    await db.exec(`update public.organizations set kind='institution', seats=10 where id='${org}'`);
+    const l = await one<{ id: string }>(
+      `insert into auth.users (email) values ('leaving@eam.example') returning id`);
+    leaver = l!.id;
+    await db.exec(`insert into public.org_members (org_id, user_id, role)
+                   values ('${org}', '${leaver}', 'advisor')`);
+    const h = await one<{ id: string }>(
+      `select id from public.households where org_id='${org}' limit 1`);
+    hh = h!.id;
+    await db.exec(`insert into public.household_advisors (household_id, user_id, org_id)
+                   values ('${hh}', '${leaver}', '${org}') on conflict do nothing`);
+  });
+
+  it("removes the member and their client assignments", async () => {
+    await become(owner);
+    await db.query(`select public.remove_member('${org}', '${leaver}')`);
+    await become(null);
+    const m = await one<{ n: number }>(
+      `select count(*)::int as n from public.org_members where org_id='${org}' and user_id='${leaver}'`);
+    expect(m!.n).toBe(0);
+    // Scoped to THIS firm on purpose: the leaver still has their own
+    // personal org from signup, and removing them from an employer must
+    // not reach into it.
+    const a = await one<{ n: number }>(
+      `select count(*)::int as n from public.household_advisors
+        where user_id='${leaver}' and org_id='${org}'`);
+    expect(a!.n).toBe(0);
+    const elsewhere = await one<{ n: number }>(
+      `select count(*)::int as n from public.household_advisors
+        where user_id='${leaver}' and org_id <> '${org}'`);
+    expect(elsewhere!.n, "their own practice is untouched").toBe(1);
+  });
+
+  it("leaves the CLIENT untouched", async () => {
+    // The household, its plans and its history belong to the firm, not to
+    // the advisor who happened to hold it.
+    const h = await one<{ n: number }>(
+      `select count(*)::int as n from public.households where id='${hh}'`);
+    expect(h!.n).toBe(1);
+  });
+
+  it("refuses to remove the LAST owner", async () => {
+    // Nobody could then invite, assign or manage billing, with no
+    // self-service way back.
+    await become(owner);
+    await expect(db.query(`select public.remove_member('${org}', '${owner}')`))
+      .rejects.toThrow(/last owner/i);
+    await become(null);
+  });
+
+  it("refuses to demote the last owner", async () => {
+    await become(owner);
+    await expect(db.query(`select public.set_member_role('${org}', '${owner}', 'advisor')`))
+      .rejects.toThrow(/last owner/i);
+    await become(null);
+  });
+
+  it("lets an owner promote someone, then step down", async () => {
+    const heir = await one<{ id: string }>(
+      `insert into auth.users (email) values ('heir@eam.example') returning id`);
+    await db.exec(`insert into public.org_members (org_id, user_id, role)
+                   values ('${org}', '${heir!.id}', 'advisor')`);
+    await become(owner);
+    await db.query(`select public.set_member_role('${org}', '${heir!.id}', 'owner')`);
+    await db.query(`select public.set_member_role('${org}', '${owner}', 'admin')`);
+    await become(null);
+    const r = await one<{ role: string }>(
+      `select role from public.org_members where org_id='${org}' and user_id='${owner}'`);
+    expect(r!.role).toBe("admin");
+  });
+});
+
+describe("011: an invited signup joins the firm, not a shell company", () => {
+  it("does not mint a personal org when an invitation is pending", async () => {
+    // 006's trigger gives EVERY new user a personal org and a household
+    // named after their email prefix. For someone signing up because they
+    // were invited, that stray household is indistinguishable from a real
+    // client in the switcher.
+    const o = await one<{ id: string }>(
+      `insert into auth.users (email) values ('owner4@eam.example') returning id`);
+    const org = await one<{ org_id: string }>(
+      `select org_id from public.org_members where user_id='${o!.id}'`);
+    await db.exec(`update public.organizations set kind='institution', seats=10 where id='${org!.org_id}'`);
+
+    await become(o!.id);
+    const inv = await one<{ token: string }>(
+      `select * from public.create_invite('${org!.org_id}', 'joiner@eam.example')`);
+    await become(null);
+
+    // NOW they sign up.
+    const joiner = await one<{ id: string }>(
+      `insert into auth.users (email) values ('joiner@eam.example') returning id`);
+
+    const orgs = await one<{ n: number }>(
+      `select count(*)::int as n from public.org_members where user_id='${joiner!.id}'`);
+    expect(orgs!.n, "no shell company").toBe(0);
+    const hh = await one<{ n: number }>(
+      `select count(*)::int as n from public.households where created_by='${joiner!.id}'`);
+    expect(hh!.n, "and no phantom household in the client switcher").toBe(0);
+
+    // The profile still exists — they are a real user, just not a firm.
+    const p = await one<{ n: number }>(
+      `select count(*)::int as n from public.profiles where id='${joiner!.id}'`);
+    expect(p!.n).toBe(1);
+
+    await become(joiner!.id);
+    await db.query(`select public.accept_invite('${inv!.token}')`);
+    await become(null);
+    const after = await one<{ role: string }>(
+      `select role from public.org_members where user_id='${joiner!.id}'`);
+    expect(after!.role).toBe("advisor");
+  });
+
+  it("still mints one for an ordinary signup", async () => {
+    const solo = await one<{ id: string }>(
+      `insert into auth.users (email) values ('solo@practice.example') returning id`);
+    const n = await one<{ n: number }>(
+      `select count(*)::int as n from public.org_members where user_id='${solo!.id}'`);
+    expect(n!.n).toBe(1);
+  });
+});
+
+describe("011: the new functions are hardened like the rest", () => {
+  it("pins search_path on every SECURITY DEFINER function", async () => {
+    const fns = await rows<{ proname: string; prosecdef: boolean; proconfig: string[] | null }>(
+      `select proname, prosecdef, proconfig from pg_proc p
+         join pg_namespace n on n.oid=p.pronamespace
+        where n.nspname='public'
+          and proname in ('create_invite','accept_invite','revoke_invite',
+                          'remove_member','set_member_role','org_seats_used')
+        order by proname`);
+    expect(fns.length).toBe(6);
+    for (const f of fns) {
+      expect(f.prosecdef, `${f.proname} must be SECURITY DEFINER`).toBe(true);
+      expect((f.proconfig ?? []).join(","), `${f.proname} must pin search_path`).toMatch(/search_path/);
+    }
+  });
+
+  it("gives clients no direct write path to invitations", async () => {
+    const g = await rows(
+      `select privilege_type from information_schema.table_privileges
+        where table_name='org_invites' and grantee in ('authenticated','anon')
+          and privilege_type in ('INSERT','UPDATE','DELETE')`);
+    expect(g, "every write must go through the checked functions").toEqual([]);
+  });
+
+  it("still gives clients no write path to org_members", async () => {
+    // The invariant 007 established and this migration must not undo.
+    const g = await rows(
+      `select privilege_type from information_schema.table_privileges
+        where table_name='org_members' and grantee in ('authenticated','anon')
+          and privilege_type in ('INSERT','UPDATE','DELETE')`);
+    expect(g).toEqual([]);
+  });
+});
+
+describe("012: the seats feature is actually reachable", () => {
+  // THE TEST WHOSE ABSENCE HID THE BUG. Every 011 describe opened with
+  // `update organizations set seats = N` as a superuser — which no real
+  // deployment can do, because 007 revokes UPDATE on organizations from
+  // `authenticated` and nothing in app/ or lib/ writes the column. So a
+  // real firm sat at seats=1 forever and create_invite refused EVERY first
+  // invitation, while the UI advised revoking a pending invitation that
+  // could not exist.
+  //
+  // This runs the whole flow on a FRESH signup with the shipped defaults.
+  it("lets a brand-new firm invite someone with no hand-editing at all", async () => {
+    const boss = await one<{ id: string }>(
+      `insert into auth.users (email, email_confirmed_at)
+       values ('fresh@eam.example', now()) returning id`);
+    const org = await one<{ org_id: string }>(
+      `select org_id from public.org_members where user_id='${boss!.id}'`);
+
+    const seats = await one<{ seats: number }>(
+      `select seats from public.organizations where id='${org!.org_id}'`);
+    expect(seats!.seats, "a new firm must be able to hold more than one person")
+      .toBeGreaterThan(1);
+
+    await become(boss!.id);
+    const inv = await one<{ token: string }>(
+      `select * from public.create_invite('${org!.org_id}', 'colleague@eam.example')`);
+    expect(inv!.token, "the first invitation must succeed").toBeTruthy();
+    await become(null);
+
+    const joiner = await one<{ id: string }>(
+      `insert into auth.users (email, email_confirmed_at)
+       values ('colleague@eam.example', now()) returning id`);
+    await become(joiner!.id);
+    const joined = await one<{ accept_invite: string }>(
+      `select public.accept_invite('${inv!.token}')`);
+    expect(joined!.accept_invite).toBe(org!.org_id);
+    await become(null);
+
+    const n = await one<{ n: number }>(
+      `select count(*)::int as n from public.org_members where org_id='${org!.org_id}'`);
+    expect(n!.n, "two people, one firm, no superuser SQL anywhere").toBe(2);
+  });
+
+  it("keeps raising the cap OFF the client's reach", async () => {
+    // Same reasoning that moved entitlement off `profiles` in 006: a user
+    // who can UPDATE their own limit has no limit.
+    const g = await rows(
+      `select routine_name from information_schema.routine_privileges
+        where routine_name='set_org_seats' and grantee in ('authenticated','anon')`);
+    expect(g, "seats are a commercial act, not a self-service one").toEqual([]);
+  });
+
+  it("refuses to set seats below the members already in the firm", async () => {
+    const u = await one<{ id: string }>(
+      `insert into auth.users (email, email_confirmed_at) values ('cap@eam.example', now()) returning id`);
+    const org = await one<{ org_id: string }>(
+      `select org_id from public.org_members where user_id='${u!.id}'`);
+    await expect(db.query(`select public.set_org_seats('${org!.org_id}', 0)`))
+      .rejects.toThrow(/between 1 and/i);
+  });
+});
+
+describe("012: an admin cannot take the firm", () => {
+  let owner = "", admin = "", org = "";
+
+  beforeAll(async () => {
+    const o = await one<{ id: string }>(
+      `insert into auth.users (email, email_confirmed_at) values ('o5@eam.example', now()) returning id`);
+    owner = o!.id;
+    const m = await one<{ org_id: string }>(`select org_id from public.org_members where user_id='${owner}'`);
+    org = m!.org_id;
+    const a = await one<{ id: string }>(
+      `insert into auth.users (email, email_confirmed_at) values ('a5@eam.example', now()) returning id`);
+    admin = a!.id;
+    await db.exec(`insert into public.org_members (org_id, user_id, role)
+                   values ('${org}', '${admin}', 'admin')`);
+  });
+
+  it("REFUSES an admin removing an owner", async () => {
+    // One call — DELETE /api/team?userId=<owner> — was a full takeover.
+    // set_member_role already refused the weaker operation of changing an
+    // owner's role, which is what made this an obvious oversight.
+    await become(admin);
+    await expect(db.query(`select public.remove_member('${org}', '${owner}')`))
+      .rejects.toThrow(/only an owner may remove/i);
+    await become(null);
+    const still = await one<{ role: string }>(
+      `select role from public.org_members where org_id='${org}' and user_id='${owner}'`);
+    expect(still!.role).toBe("owner");
+  });
+
+  it("still lets an admin remove an advisor", async () => {
+    const adv = await one<{ id: string }>(
+      `insert into auth.users (email, email_confirmed_at) values ('adv5@eam.example', now()) returning id`);
+    await db.exec(`insert into public.org_members (org_id, user_id, role)
+                   values ('${org}', '${adv!.id}', 'advisor')`);
+    await become(admin);
+    await db.query(`select public.remove_member('${org}', '${adv!.id}')`);
+    await become(null);
+    const n = await one<{ n: number }>(
+      `select count(*)::int as n from public.org_members where org_id='${org}' and user_id='${adv!.id}'`);
+    expect(n!.n).toBe(0);
+  });
+
+  it("still lets an OWNER remove an owner, when another remains", async () => {
+    const co = await one<{ id: string }>(
+      `insert into auth.users (email, email_confirmed_at) values ('co5@eam.example', now()) returning id`);
+    await db.exec(`insert into public.org_members (org_id, user_id, role)
+                   values ('${org}', '${co!.id}', 'owner')`);
+    await become(owner);
+    await db.query(`select public.remove_member('${org}', '${co!.id}')`);
+    await become(null);
+    const n = await one<{ n: number }>(
+      `select count(*)::int as n from public.org_members where org_id='${org}' and role='owner'`);
+    expect(n!.n).toBe(1);
+  });
+});
+
+describe("012: an invitation does not outlive its author's authority", () => {
+  it("dies when the inviter is offboarded", async () => {
+    // The attack: an owner mints an owner-invite to a personal address,
+    // is offboarded, and redeems it weeks later — back in, as owner.
+    const boss = await one<{ id: string }>(
+      `insert into auth.users (email, email_confirmed_at) values ('o6@eam.example', now()) returning id`);
+    const org = await one<{ org_id: string }>(`select org_id from public.org_members where user_id='${boss!.id}'`);
+    const co = await one<{ id: string }>(
+      `insert into auth.users (email, email_confirmed_at) values ('co6@eam.example', now()) returning id`);
+    await db.exec(`insert into public.org_members (org_id, user_id, role)
+                   values ('${org!.org_id}', '${co!.id}', 'owner')`);
+
+    await become(boss!.id);
+    const inv = await one<{ token: string }>(
+      `select * from public.create_invite('${org!.org_id}', 'backdoor@gmail.example', 'owner')`);
+    await become(null);
+
+    // The other owner offboards them.
+    await become(co!.id);
+    await db.query(`select public.remove_member('${org!.org_id}', '${boss!.id}')`);
+    await become(null);
+
+    const backdoor = await one<{ id: string }>(
+      `insert into auth.users (email, email_confirmed_at) values ('backdoor@gmail.example', now()) returning id`);
+    await become(backdoor!.id);
+    await expect(db.query(`select public.accept_invite('${inv!.token}')`))
+      .rejects.toThrow(/not valid|no longer administers/i);
+    await become(null);
+
+    const n = await one<{ n: number }>(
+      `select count(*)::int as n from public.org_members
+        where org_id='${org!.org_id}' and user_id='${backdoor!.id}'`);
+    expect(n!.n, "the back door must be shut").toBe(0);
+  });
+
+  it("dies when the inviter is demoted below the role they granted", async () => {
+    const boss = await one<{ id: string }>(
+      `insert into auth.users (email, email_confirmed_at) values ('o7@eam.example', now()) returning id`);
+    const org = await one<{ org_id: string }>(`select org_id from public.org_members where user_id='${boss!.id}'`);
+    const co = await one<{ id: string }>(
+      `insert into auth.users (email, email_confirmed_at) values ('co7@eam.example', now()) returning id`);
+    await db.exec(`insert into public.org_members (org_id, user_id, role)
+                   values ('${org!.org_id}', '${co!.id}', 'owner')`);
+
+    await become(boss!.id);
+    const inv = await one<{ token: string }>(
+      `select * from public.create_invite('${org!.org_id}', 'later@eam.example', 'owner')`);
+    await become(null);
+
+    await become(co!.id);
+    await db.query(`select public.set_member_role('${org!.org_id}', '${boss!.id}', 'advisor')`);
+    await become(null);
+
+    const later = await one<{ id: string }>(
+      `insert into auth.users (email, email_confirmed_at) values ('later@eam.example', now()) returning id`);
+    await become(later!.id);
+    await expect(db.query(`select public.accept_invite('${inv!.token}')`))
+      .rejects.toThrow(/not valid|no longer administers/i);
+    await become(null);
+  });
+});
+
+describe("012: an unconfirmed address is a claim, not an identity", () => {
+  it("refuses to redeem before the address is confirmed", async () => {
+    // The email binding is the whole security model, and it rests on
+    // auth.users.email — which, on a deployment with confirmations off, is
+    // just a string someone typed. Nothing in this repo pins that setting,
+    // and signup/page.tsx even explains how to turn it off.
+    const boss = await one<{ id: string }>(
+      `insert into auth.users (email, email_confirmed_at) values ('o8@eam.example', now()) returning id`);
+    const org = await one<{ org_id: string }>(`select org_id from public.org_members where user_id='${boss!.id}'`);
+    await become(boss!.id);
+    const inv = await one<{ token: string }>(
+      `select * from public.create_invite('${org!.org_id}', 'unconfirmed@eam.example')`);
+    await become(null);
+
+    const u = await one<{ id: string }>(
+      `insert into auth.users (email, email_confirmed_at)
+       values ('unconfirmed@eam.example', null) returning id`);
+    await become(u!.id);
+    await expect(db.query(`select public.accept_invite('${inv!.token}')`))
+      .rejects.toThrow(/confirm your email/i);
+    await become(null);
+
+    // Confirming it makes the same token work.
+    await db.exec(`update auth.users set email_confirmed_at = now() where id='${u!.id}'`);
+    await become(u!.id);
+    await db.query(`select public.accept_invite('${inv!.token}')`);
+    await become(null);
+    const n = await one<{ n: number }>(
+      `select count(*)::int as n from public.org_members
+        where org_id='${org!.org_id}' and user_id='${u!.id}'`);
+    expect(n!.n).toBe(1);
+  });
+});
+
+describe("012: org_seats_used is no longer an oracle", () => {
+  it("tells a non-member nothing", async () => {
+    const insider = await one<{ id: string }>(
+      `insert into auth.users (email, email_confirmed_at) values ('in9@eam.example', now()) returning id`);
+    const org = await one<{ org_id: string }>(`select org_id from public.org_members where user_id='${insider!.id}'`);
+    const outsider = await one<{ id: string }>(
+      `insert into auth.users (email, email_confirmed_at) values ('out9@x.example', now()) returning id`);
+
+    await become(insider!.id);
+    const mine = await one<{ n: number | null }>(`select public.org_seats_used('${org!.org_id}') as n`);
+    expect(mine!.n).toBeGreaterThan(0);
+    await become(outsider!.id);
+    const theirs = await one<{ n: number | null }>(`select public.org_seats_used('${org!.org_id}') as n`);
+    expect(theirs!.n, "a seat count is a fact about someone else's firm").toBeNull();
+    await become(null);
+  });
+});
+
+describe("012: firm-level audit events are recorded AND readable", () => {
+  it("records a team event with no household, in a MULTI-client firm", async () => {
+    // Before this, recordEvent always sent household_id null, and 008's
+    // tg_fill_household then tried to derive one from the actor and RAISED
+    // for anyone advising more than one client — i.e. every real firm. So
+    // membership changes were recorded nowhere.
+    const u = await one<{ id: string }>(
+      `insert into auth.users (email, email_confirmed_at) values ('multi@eam.example', now()) returning id`);
+    const org = await one<{ org_id: string }>(`select org_id from public.org_members where user_id='${u!.id}'`);
+    await db.exec(`insert into public.households (org_id, name, created_by)
+                   values ('${org!.org_id}', 'Second client', '${u!.id}')`);
+
+    await db.exec(`insert into public.audit_events (user_id, org_id, action, source, summary)
+                   values ('${u!.id}', '${org!.org_id}', 'member.invited', 'web', 'Invited someone')`);
+
+    const e = await one<{ household_id: string | null; org_id: string }>(
+      `select household_id, org_id from public.audit_events where summary='Invited someone'`);
+    expect(e, "the event must exist").toBeTruthy();
+    expect(e!.household_id, "a firm event belongs to no client").toBeNull();
+    expect(e!.org_id).toBe(org!.org_id);
+  });
+
+  it("does NOT file a firm event onto an unrelated client's trail", async () => {
+    // In a single-client firm the old trigger succeeded and attached the
+    // team event to that client's regulatory record.
+    const u = await one<{ id: string }>(
+      `insert into auth.users (email, email_confirmed_at) values ('single9@eam.example', now()) returning id`);
+    const org = await one<{ org_id: string }>(`select org_id from public.org_members where user_id='${u!.id}'`);
+    await db.exec(`insert into public.audit_events (user_id, org_id, action, source, summary)
+                   values ('${u!.id}', '${org!.org_id}', 'member.removed', 'web', 'firm event single')`);
+    const e = await one<{ household_id: string | null }>(
+      `select household_id from public.audit_events where summary='firm event single'`);
+    expect(e!.household_id).toBeNull();
+  });
+
+  it("still derives the household for a CLIENT event", async () => {
+    // The org-scoped escape hatch must not disable the original behaviour.
+    const u = await one<{ id: string }>(
+      `insert into auth.users (email, email_confirmed_at) values ('client9@eam.example', now()) returning id`);
+    await db.exec(`insert into public.audit_events (user_id, action, source, summary)
+                   values ('${u!.id}', 'plan.updated', 'web', 'client event')`);
+    const e = await one<{ household_id: string | null }>(
+      `select household_id from public.audit_events where summary='client event'`);
+    expect(e!.household_id, "a plan edit is about a client").toBeTruthy();
+  });
+
+  it("lets a member READ their firm's events", async () => {
+    const u = await one<{ id: string }>(
+      `insert into auth.users (email, email_confirmed_at) values ('read9@eam.example', now()) returning id`);
+    const org = await one<{ org_id: string }>(`select org_id from public.org_members where user_id='${u!.id}'`);
+    await db.exec(`insert into public.audit_events (user_id, org_id, action, source, summary)
+                   values ('${u!.id}', '${org!.org_id}', 'member.invited', 'web', 'readable firm event')`);
+    await db.exec(`set role authenticated`);
+    await become(u!.id);
+    const seen = await rows(
+      `select id from public.audit_events where summary='readable firm event'`);
+    expect(seen.length, "written and never readable is the same as not written").toBe(1);
+    await db.exec(`reset role`);
+    await become(null);
   });
 });

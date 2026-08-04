@@ -6,6 +6,18 @@
 
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { securityHeaders } from "@/lib/csp";
+
+/**
+ * Stamp the security headers on whatever response we end up returning.
+ * Done here rather than in next.config's headers() because that is
+ * evaluated at BUILD time, which froze the CSP's Supabase origin to
+ * whatever the build environment happened to have. See lib/csp.ts.
+ */
+function secured(res: NextResponse): NextResponse {
+  for (const [k, v] of Object.entries(securityHeaders())) res.headers.set(k, v);
+  return res;
+}
 
 export async function middleware(request: NextRequest) {
   let response = NextResponse.next({ request: { headers: request.headers } });
@@ -41,7 +53,7 @@ export async function middleware(request: NextRequest) {
     user = data.user;
   } catch (e) {
     console.error("[middleware] supabase.auth.getUser failed:", e);
-    return response;
+    return secured(response);
   }
 
   // Gate the /app/* routes — must be signed in
@@ -54,15 +66,15 @@ export async function middleware(request: NextRequest) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     url.searchParams.set("next", request.nextUrl.pathname);
-    return NextResponse.redirect(url);
+    return secured(NextResponse.redirect(url));
   }
   if (isAuthRoute && user) {
     const url = request.nextUrl.clone();
     url.pathname = "/app";
-    return NextResponse.redirect(url);
+    return secured(NextResponse.redirect(url));
   }
 
-  return response;
+  return secured(response);
 }
 
 export const config = {

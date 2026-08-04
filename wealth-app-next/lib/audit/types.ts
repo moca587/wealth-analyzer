@@ -33,7 +33,16 @@ export type AuditAction =
   | "order.rejected"
   | "order.unknown"
   | "order.duplicate_blocked"
-  | "report.exported";
+  | "report.exported"
+  // Money-routing configuration (010). PATCH /api/orders/<id> can repoint
+  // the custody account every ticket books into; before these existed it
+  // wrote nothing, which undercut "the account comes from the CONNECTION".
+  | "connection.created" | "connection.updated" | "connection.deleted"
+  // Tenancy (010/011) — the question a compliance officer asks is "who
+  // gained access to this client, and when".
+  | "household.created" | "household.updated"
+  | "advisor.assigned" | "advisor.unassigned"
+  | "member.invited" | "member.joined" | "member.removed" | "member.role_changed";
 
 /** Where the change came from. Distinguishes a human edit from an automated one. */
 export type AuditSource = "web" | "feed" | "order" | "import" | "api";
