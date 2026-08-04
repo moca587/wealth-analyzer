@@ -102,6 +102,21 @@ if(-f "$V/qrcode.min.js"){
 #    Both carry raw control bytes that do not survive text inlining, so they
 #    are not embedded. The loaders already degrade gracefully, and an offline
 #    build must not reach a CDN the moment someone drops in a spreadsheet.
+# Inline SheetJS and JSZip. _daEnsureXLSX()/_daEnsureJSZip() short-circuit on
+# window.XLSX / window.JSZip, so defining them before the app runs means the
+# lazy <script src> loaders are never reached. Blanking the URLs alone left the
+# offline build unable to read a spreadsheet at all.
+my $libs = "";
+for my $lib (["xlsx.full.min.js", "SheetJS xlsx 0.18.5"], ["jszip.min.js", "JSZip 3.10.1"]) {
+  my ($file, $label) = @$lib;
+  die "Missing vendor/$file - the offline build would silently lose a feature.\n" unless -f "$V/$file";
+  $libs .= "<script>/* $label - inlined */\n" . slurp_text("$V/$file") . "\n</script>\n";
+}
+# One substitution, not one per library. SheetJS carries the literal string
+# </head> inside its own HTML-export template, so a second pass matched that
+# and injected the next library into the middle of the first one - corrupting
+# both, while the build still reported success.
+$html =~ s|</head>|$libs</head>|;
 $html =~ s|https://cdnjs\.cloudflare\.com/ajax/libs/xlsx/0\.18\.5/xlsx\.full\.min\.js||g;
 $html =~ s|https://cdnjs\.cloudflare\.com/ajax/libs/jszip/3\.10\.1/jszip\.min\.js||g;
 

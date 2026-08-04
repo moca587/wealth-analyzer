@@ -9066,8 +9066,14 @@ function cancelEditAltInvestment(){
 // ═══════════════════════════════════════════════════════════
 // HOLDINGS DOCUMENT IMPORT
 // ═══════════════════════════════════════════════════════════
-function getAIKey(){return localStorage.getItem("wa_ai_key")||"";}
+function getAIKey(){
+  // With a firm gateway the credential lives on the server. Returning "" here
+  // means no code path can read a stale key that should no longer exist.
+  if(typeof waAiIsGateway === "function" && waAiIsGateway()) return "";
+  return localStorage.getItem("wa_ai_key")||"";
+}
 function saveAIKey(){
+  if(typeof waAiIsGateway === "function" && waAiIsGateway()) return; // gateway holds it
   const v=$("aiKeyInput")?.value||"";
   if(v) localStorage.setItem("wa_ai_key",v);
 }
@@ -14955,6 +14961,14 @@ function onAiBaseChange(){
   const v = el ? el.value.trim() : "";
   if(v) localStorage.setItem("wa_ai_base", v); else localStorage.removeItem("wa_ai_base");
   waAudit("ai-gateway-set", v || "(cleared - direct to provider)");
+  // Not sending the key is weaker than not holding it: clear it from this
+  // workstation the moment the gateway takes over.
+  if(v && waAiIsGateway() && localStorage.getItem("wa_ai_key")){
+    localStorage.removeItem("wa_ai_key");
+    waAudit("ai-key-removed", "gateway configured; key cleared from this browser");
+    const ki = document.getElementById("aiKeyInput"); if(ki) ki.value = "";
+  }
+  try{ if(typeof syncAiKeyNote === "function") syncAiKeyNote(); }catch(_){ }
   renderRegimeNote(); renderSubprocessors();
 }
 function onRegimeChange(){
