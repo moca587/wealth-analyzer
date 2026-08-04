@@ -206,7 +206,8 @@ same repo as the legacy single-file app.
 legacy `wealth-analyzer.html` is kept as reference and fallback but is not the
 parity gate any more (see the note at the top of this file). It has still never
 been deployed: migrations 002-010 have only ever run against PGlite, so the
-first real deployment is the next gate — `docs/deploy-runbook.md`.
+first real deployment is the next gate — `docs/deploy-runbook.md`, and
+`docs/avaloq-deployment.md` for the Avaloq-hosted shape.
 
 **Why a rebuild (not a port of the monolith):** the single file is ~22k lines
 of vanilla JS with all state in the DOM. A real product needs accounts, saved
@@ -557,6 +558,106 @@ the original bug was precisely that hand-written fixtures matched what
   it, and it bypasses every RLS policy in 006-010 — instructing a firm's ops
   team to provision it was asking for the one credential that undoes the
   tenancy model, for nothing.
+
+
+### Seats — `011_invites.sql` + `012_seats_that_work.sql` + `/app/team`
+A firm could only ever hold one member: 006 gives `org_members` no INSERT
+policy and 007 revokes the grant outright, deliberately, because any policy
+wide enough to let someone add themselves to an org is a
+self-promotion-to-owner primitive. So there was nothing to meter and billing
+was premature. 011 adds the only way in — narrow SECURITY DEFINER functions
+(`create_invite`, `accept_invite`, `revoke_invite`, `remove_member`,
+`set_member_role`), each re-checking the caller's role, the seat cap and the
+last-owner rule.
+
+- **The load-bearing check is the email binding.** An invitation names an
+  address and redeeming it requires being signed in as that address.
+  Invitation mail gets forwarded — to a personal account, to an assistant —
+  and without it whoever opens the message gets a seat inside a firm holding
+  its clients' entire financial position. Everything else in the file is
+  ordinary.
+- Tokens are stored **hashed**, so a leaked dump contains no usable
+  invitations, and every failure path returns ONE message so the endpoint is
+  not an oracle for probing which tokens exist. Token generation uses only
+  core `gen_random_uuid()` + `sha256()` — **not pgcrypto**, so the migration
+  runs on a stock Postgres (an Avaloq-hosted one may not have extensions).
+- A pending invitation **holds a seat**, or a 3-seat firm invites five people
+  and the overage surfaces at renewal instead of at the moment it happens.
+- A signup with a pending invite **joins the inviting firm** rather than
+  getting a personal shell org plus a phantom household that is
+  indistinguishable from a real client in the switcher.
+- **No email sending, by decision.** That needs the service-role key, which
+  this app does not use and which bypasses every RLS policy in 006-012. The
+  invitation LINK is returned to the administrator once (only the hash is
+  stored, so it genuinely cannot be shown again). For a ten-person EAM that
+  is one fewer sub-processor on the DPA.
+- `set_advisor` — written and tested since 009 with **no caller** — finally
+  has one at `/api/households/<id>/advisors`, so an owner can actually give
+  a colleague a client.
+
+**012 exists because an adversarial review found six defects in 011.** Read
+them before changing this path; each is a test now:
+- **The feature was unreachable.** `organizations.seats` is `not null default
+  1`, 007 revokes UPDATE on `organizations` from `authenticated`, and nothing
+  in `app/` or `lib/` writes it — so `create_invite` refused EVERY first
+  invitation, and the UI's advice ("revoke a pending invitation or remove a
+  member") was impossible for a one-seat sole owner. **Every 011 test opened
+  with `update organizations set seats = N` as a superuser, which is why
+  nobody noticed.** There is now a test that runs the whole flow on a fresh
+  signup with shipped defaults and no hand-editing — that is the test whose
+  absence hid it.
+- **An admin could eject an owner.** `remove_member` gated only on
+  `auth_admin_org_ids()`, which includes admin, while `set_member_role` four
+  lines later refused the *weaker* operation of changing an owner's role.
+- **Invitations outlived their author's authority.** An owner could mint an
+  owner-invite to a personal address, be offboarded, and redeem it weeks
+  later — back in, as owner.
+- **The last-owner guards raced.** Two concurrent removals both read
+  `owners = 2` and both commit (different rows, so Read Committed never
+  forces a re-read), leaving a firm with zero owners and no way back. Now
+  serialized on the `organizations` row — note `select count(*) … for update`
+  is not legal Postgres, which the harness caught.
+- **An unconfirmed address is a claim, not an identity.** The email binding
+  rests on `auth.users.email`, which on a deployment with confirmations off
+  is a string someone typed — and nothing here pins that setting while
+  `signup/page.tsx` explains how to turn it off. `accept_invite` now requires
+  `email_confirmed_at`.
+- **Membership audit recorded nothing in any real firm.** `recordEvent`
+  always sent `household_id: null`, so 008's `tg_fill_household` tried to
+  derive one from the actor and RAISED for anyone advising more than one
+  client. In a single-client firm it was worse: the trigger succeeded and
+  filed "Invited X as owner" onto that client's regulatory trail. Firm-level
+  events are now legitimately household-less with their own RLS policies, and
+  the handlers surface `auditWarning`.
+
+**Nothing writes `organizations.seats` yet.** 012 sets a workable default (5)
+and adds `set_org_seats` for the **service role only** — raising a seat count
+is a commercial act, and the reason entitlement moved off `profiles` in 006
+was precisely that a user could UPDATE their own row. Until billing lands it
+is an operator action.
+
+### Deployable into an Avaloq environment — `Dockerfile`, `lib/csp.ts`
+The target is a Swiss EAM's Avaloq environment, not a PaaS, so the app has to
+be a container their platform team places. `output: "standalone"` + a
+non-root `node:20-alpine` image with a `HEALTHCHECK` against `/api/health`.
+See `docs/avaloq-deployment.md` for the build-arg/runtime split, the two
+Postgres options (managed vs in-estate, which is the residency answer), and
+the six questions that need Avaloq's platform team.
+
+Two bugs found by actually building and running it, not by reading it:
+- **`outputFileTracingRoot` was unset**, so Next inferred the trace root from
+  a lockfile above the app and buried `server.js` under the full host path
+  (`.next/standalone/.claude/worktrees/…/server.js`). The Dockerfile copies
+  the directory, so the image would have built and then failed to start. That
+  warning had been printing for a long time and reading as cosmetic.
+- **The CSP was frozen at BUILD time.** `next.config`'s `headers()` is
+  evaluated when the app is built, so an image built with a placeholder
+  shipped `connect-src https://placeholder-project.supabase.co` and then
+  silently blocked every auth call at runtime — renders perfectly, nobody can
+  sign in. Moved to `lib/csp.ts` and applied per request in `middleware.ts`.
+  Verified by running the standalone server with a *different* Supabase URL
+  than the build used and reading the header back. **Do not move security
+  headers back into `next.config`.**
 
 
 ### Migrations are executed, not just read — `lib/db/__tests__/migrations.test.ts`
