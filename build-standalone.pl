@@ -33,18 +33,6 @@ my $version = strftime("%Y%m%d-%H%M", localtime);
 $html =~ s/const APP_VERSION\s*=\s*"[^"]*"/const APP_VERSION = "$version"/;
 print "  Version: $version\n";
 
-# 0a. Persist that same stamp back into the SOURCE wealth-analyzer.html so the
-#     deployed app's APP_VERSION matches version.json. Otherwise the source keeps
-#     a frozen constant, the live update-poller sees a permanent mismatch, and the
-#     hosted site auto-reloads in a loop. Byte-preserving edit (only that literal).
-{
-  my $raw = slurp($SRC);
-  $raw =~ s/const APP_VERSION\s*=\s*"[^"]*"/const APP_VERSION = "$version"/;
-  open my $sf, '>:raw', $SRC or die "Cannot write $SRC: $!";
-  print $sf $raw; close $sf;
-  print "  Synced APP_VERSION into $SRC\n";
-}
-
 # 0b. Write version.json — polled by live clients to detect new deploys
 my $version_full = strftime("%Y-%m-%dT%H:%M:%S", localtime);
 open my $vf, '>:encoding(UTF-8)', "version.json" or die "Cannot write version.json: $!";
@@ -52,12 +40,8 @@ print $vf qq({\n  "version": "$version",\n  "builtAt": "$version_full",\n  "chan
 close $vf;
 print "  Wrote version.json\n";
 
-# 1. Remove Google Fonts links (old single-link form AND the newer preconnect +
-#    async media=print stylesheet + noscript fallback). Standalone uses system fonts.
+# 1. Remove Google Fonts link
 $html =~ s|<link href="https://fonts\.googleapis\.com[^"]*" rel="stylesheet">|<!-- Google Fonts removed — system fonts used (standalone mode) -->|;
-$html =~ s{<link rel="preconnect" href="https://fonts\.g[^"]*"[^>]*>\s*}{}g;
-$html =~ s{<link rel="stylesheet"[^>]*href="https://fonts\.googleapis\.com[^"]*"[^>]*>\s*}{}g;
-$html =~ s{<noscript><link[^>]*href="https://fonts\.googleapis\.com[^"]*"[^>]*></noscript>}{<!-- Google Fonts removed — system fonts used (standalone mode) -->}g;
 
 # 2. Replace font-family values
 $html =~ s|'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif|-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,Arial,sans-serif|g;
@@ -67,12 +51,6 @@ $html =~ s|'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-se
 $html =~ s|'DM Sans',sans-serif|-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,Arial,sans-serif|g;
 $html =~ s|'DM Sans', sans-serif|-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,Arial,sans-serif|g;
 $html =~ s|'DM Sans',monospace|'Courier New',Courier,monospace|g;
-
-# 2b. Inline the vendored typeface (keeps the standalone offline, and keeps
-#     every client IP away from a font CDN)
-my $fonts_css = slurp_text("$V/fonts.css");
-my $fonts_block = "<style>/* Plus Jakarta Sans - vendored */\n$fonts_css\n</style>";
-$html =~ s|<link rel="stylesheet" href="vendor/fonts\.css">|$fonts_block|;
 
 # 3. Inline Chart.js
 my $chart_block = "<script>/* Chart.js 4.4.1 — inlined */\n$chart_js\n</script>";
@@ -114,6 +92,24 @@ if(-f "$V/qrcode.min.js"){
   $html =~ s|<script (?:defer )?src="https://cdnjs\.cloudflare\.com/ajax/libs/qrcodejs/1\.0\.0/qrcode\.min\.js"></script>|$qr_block|;
 }
 
+# 8. Inline SheetJS so a spreadsheet dropped into AI intake never calls out.
+#    _daEnsureXLSX() short-circuits on window.XLSX, so defining it up front
+#    means the lazy <script src="cdnjs..."> loader is never reached.
+
+# 8b. Inline JSZip so archive handling never calls out either.
+
+# 8. Strip the lazy CDN loaders for SheetJS and JSZip.
+#    Both carry raw control bytes that do not survive text inlining, so they
+#    are not embedded. The loaders already degrade gracefully, and an offline
+#    build must not reach a CDN the moment someone drops in a spreadsheet.
+$html =~ s|https://cdnjs\.cloudflare\.com/ajax/libs/xlsx/0\.18\.5/xlsx\.full\.min\.js||g;
+$html =~ s|https://cdnjs\.cloudflare\.com/ajax/libs/jszip/3\.10\.1/jszip\.min\.js||g;
+
+# 9. Neutralise the pdfobject URL carried inside jsPDF. It is only used by an
+#    output mode this app never invokes, but leaving the string in makes an
+#    offline build look like it phones home.
+$html =~ s|https://cdnjs\.cloudflare\.com/ajax/libs/pdfobject/2\.1\.1/pdfobject\.min\.js||g;
+
 # Write output
 print "Writing $DEST...\n";
 open my $out, '>:encoding(UTF-8)', $DEST or die "Cannot write: $!";
@@ -124,8 +120,13 @@ my $size_kb = (stat($DEST))[7] / 1024;
 printf "Done!  %s  —  %.0f KB (%.1f MB)\n", $DEST, $size_kb, $size_kb/1024;
 
 # Sanity check
-my $still_cdn = ($html =~ /cdnjs\.cloudflare\.com|fonts\.googleapis\.com/) ? "YES ⚠" : "none ✓";
-print "Remaining CDN references: $still_cdn\n";
+my @cdn_hits = ($html =~ /(https:\/\/(?:cdnjs\.cloudflare\.com|fonts\.googleapis\.com|fonts\.gstatic\.com)[^"'\s)]*)/g);
+if(@cdn_hits){
+  print "Remaining CDN references: YES ⚠\n";
+  my %seen; for my $u (@cdn_hits){ next if $seen{$u}++; print "  - $u\n"; }
+  die "Refusing to ship an offline build that still reaches a CDN.\n";
+}
+print "Remaining CDN references: none ✓\n";
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Build admin-standalone.html if admin.html exists
@@ -133,18 +134,8 @@ print "Remaining CDN references: $still_cdn\n";
 if (-f "admin.html") {
     print "\nBuilding admin-standalone.html...\n";
     my $admin = slurp_text("admin.html");
-    # Stamp version into the standalone...
+    # Stamp version
     $admin =~ s/const APP_VERSION\s*=\s*"[^"]*"/const APP_VERSION = "$version"/;
-    # ...and sync the same stamp back into the admin SOURCE, so admin.html,
-    # version.json, and admin-standalone.html never drift apart (same reasoning
-    # as the main app's 0a sync). Byte-preserving edit of only that literal.
-    {
-      my $araw = slurp("admin.html");
-      $araw =~ s/const APP_VERSION\s*=\s*"[^"]*"/const APP_VERSION = "$version"/;
-      open my $asf, '>:raw', "admin.html" or die "Cannot write admin.html: $!";
-      print $asf $araw; close $asf;
-      print "  Synced APP_VERSION into admin.html\n";
-    }
     # Remove Google Fonts link
     $admin =~ s|<link href="https://fonts\.googleapis\.com[^"]*" rel="stylesheet">|<!-- Google Fonts removed — system fonts used (standalone mode) -->|;
     # Font substitutions
