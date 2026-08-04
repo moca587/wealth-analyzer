@@ -92,6 +92,22 @@ if(-f "$V/qrcode.min.js"){
   $html =~ s|<script src="https://cdnjs\.cloudflare\.com/ajax/libs/qrcodejs/1\.0\.0/qrcode\.min\.js"></script>|$qr_block|;
 }
 
+# 8. Inline SheetJS so a spreadsheet dropped into AI intake never calls out.
+#    _daEnsureXLSX() short-circuits on window.XLSX, so defining it up front
+#    means the lazy <script src="cdnjs..."> loader is never reached.
+if(-f "$V/xlsx.full.min.js"){
+  my $xlsx_js = slurp_text("$V/xlsx.full.min.js");
+  my $xlsx_block = "<script>/* SheetJS xlsx 0.18.5 — inlined */\n$xlsx_js\n</script>\n</head>";
+  $html =~ s|</head>|$xlsx_block|;
+  # the loader can no longer fire, so drop its URL rather than ship a dead one
+  $html =~ s|https://cdnjs\.cloudflare\.com/ajax/libs/xlsx/0\.18\.5/xlsx\.full\.min\.js||g;
+}
+
+# 9. Neutralise the pdfobject URL carried inside jsPDF. It is only used by an
+#    output mode this app never invokes, but leaving the string in makes an
+#    offline build look like it phones home.
+$html =~ s|https://cdnjs\.cloudflare\.com/ajax/libs/pdfobject/2\.1\.1/pdfobject\.min\.js||g;
+
 # Write output
 print "Writing $DEST...\n";
 open my $out, '>:encoding(UTF-8)', $DEST or die "Cannot write: $!";
@@ -102,8 +118,13 @@ my $size_kb = (stat($DEST))[7] / 1024;
 printf "Done!  %s  —  %.0f KB (%.1f MB)\n", $DEST, $size_kb, $size_kb/1024;
 
 # Sanity check
-my $still_cdn = ($html =~ /cdnjs\.cloudflare\.com|fonts\.googleapis\.com/) ? "YES ⚠" : "none ✓";
-print "Remaining CDN references: $still_cdn\n";
+my @cdn_hits = ($html =~ /(https:\/\/(?:cdnjs\.cloudflare\.com|fonts\.googleapis\.com|fonts\.gstatic\.com)[^"'\s)]*)/g);
+if(@cdn_hits){
+  print "Remaining CDN references: YES ⚠\n";
+  my %seen; for my $u (@cdn_hits){ next if $seen{$u}++; print "  - $u\n"; }
+  die "Refusing to ship an offline build that still reaches a CDN.\n";
+}
+print "Remaining CDN references: none ✓\n";
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Build admin-standalone.html if admin.html exists
