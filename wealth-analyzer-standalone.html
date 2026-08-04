@@ -1848,6 +1848,10 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
           <select id="setRegime" class="w180" onchange="onRegimeChange()"></select>
         </div>
         <div class="set-row">
+          <div class="set-row-lbl">AI gateway<small>Your own endpoint. Set this and the browser sends no AI key at all &mdash; the gateway holds it.</small></div>
+          <input id="setAiBase" class="w180" placeholder="https://your-app/api/ai" onchange="onAiBaseChange()">
+        </div>
+        <div class="set-row">
           <div class="set-row-lbl">Institutional mode<small>Contact only the hosts you have approved below. Everything else is blocked.</small></div>
           <label class="set-switch"><input type="checkbox" id="setInstitutional" onchange="onInstitutionalChange()"><span></span></label>
         </div>
@@ -4479,7 +4483,7 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
 // ═══════════════════════════════════════════════════════════
 // VERSION — updated by build-standalone.pl on each build
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260804-2256";
+const APP_VERSION = "20260804-2315";
 
 // ═══════════════════════════════════════════════════════════
 // DATA
@@ -7592,7 +7596,7 @@ async function testAllMdKeys(){
       else if(k.id === "wa_ai_key"){
         // Quick ping — list models endpoint requires no body
         const r = await fetch(waAiBase()+"/v1/models", {
-          headers:{"x-api-key":localStorage.getItem("wa_ai_key"),"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"}
+          headers: waAiHeaders()
         });
         if(!r.ok) throw new Error("HTTP "+r.status);
       }
@@ -9986,9 +9990,11 @@ function _daInstruction(){
 // ── AI call (forced tool_use → guaranteed structured object) ─────────────
 async function callAIExtract(content){
   if(!waAiConsent()) throw new Error("Cancelled: the documents were not sent.");
-  if(!waHostAllowed("https://api.anthropic.com")) throw waBlocked("https://api.anthropic.com");
-  const key=getAIKey(); if(!key) throw new Error("No AI key set.");
-  const headers={ "x-api-key":key, "anthropic-version":"2023-06-01", "content-type":"application/json", "anthropic-dangerous-direct-browser-access":"true" };
+  if(!waHostAllowed(waAiHost())) throw waBlocked(waAiHost());
+  // With a gateway the credential lives on the server, so no key is required here.
+  if(!waAiIsGateway() && !getAIKey()) throw new Error("No AI key set.");
+  const headers=waAiHeaders({ "content-type":"application/json" });
+  try{ waAudit("ai-request", waAiIsGateway() ? "via firm gateway "+waAiHost() : "direct to provider"); }catch(_){ }
   const body={ model:AI_MODEL, max_tokens:8192, system:"You are a meticulous financial-document data-extraction engine. Never fabricate values.",
     tools:[buildExtractionSchema()], tool_choice:{type:"tool",name:"submit_profile"},
     messages:[{role:"user",content}] };
@@ -13089,12 +13095,7 @@ Constraints:
   try {
     const r = await fetch(waAiBase()+"/v1/messages", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": aiKey,
-        "anthropic-version": "2023-06-01",
-        "anthropic-dangerous-direct-browser-access": "true"
-      },
+      headers: waAiHeaders({ "Content-Type": "application/json" }),
       body: JSON.stringify({
         model: AI_MODEL,
         max_tokens: 4000,
@@ -15216,6 +15217,27 @@ function waAiBase(){
   const v = (localStorage.getItem("wa_ai_base") || "").trim();
   return (v || "https://api.anthropic.com").replace(/\/+$/, "");
 }
+// True when the firm has pointed the app at its own gateway rather than the
+// provider. In that case the gateway holds the credential and the browser must
+// send neither the key nor the direct-browser-access header.
+function waAiIsGateway(){
+  const v = (localStorage.getItem("wa_ai_base") || "").trim();
+  if(!v) return false;
+  try{ return new URL(v, location.href).hostname !== "api.anthropic.com"; }
+  catch(_){ return false; }
+}
+// Headers for an AI request. extra is merged last so callers can add content-type.
+function waAiHeaders(extra){
+  const hh = Object.assign({ "anthropic-version":"2023-06-01" }, extra || {});
+  if(!waAiIsGateway()){
+    const k = (typeof getAIKey === "function") ? getAIKey() : localStorage.getItem("wa_ai_key");
+    if(k) hh["x-api-key"] = k;
+    hh["anthropic-dangerous-direct-browser-access"] = "true";
+  }
+  return hh;
+}
+// The host a request will actually reach, for the approved-host check.
+function waAiHost(){ try{ return new URL(waAiBase(), location.href).origin; }catch(_){ return waAiBase(); } }
 function waCorsProxy(){ return (localStorage.getItem("wa_cors_proxy") || "").trim(); }
 // A proxied URL, or null when the firm has configured no relay.
 function waProxyUrl(url){
@@ -15367,6 +15389,8 @@ function renderRegimeNote(){
   if(sel) sel.value = waRegime();
   const inst = document.getElementById("setInstitutional");
   if(inst) inst.checked = waInstitutional();
+  const ab = document.getElementById("setAiBase");
+  if(ab) ab.value = (localStorage.getItem("wa_ai_base") || "");
   if(note){
     const r = WA_REGIMES[waRegime()] || WA_REGIMES.ch;
     note.innerHTML = "<strong>" + _daEsc(r.label) + ".</strong> " + _daEsc(r.law)
@@ -15374,6 +15398,13 @@ function renderRegimeNote(){
           ? " Institutional mode is on: only approved hosts are contacted."
           : " Institutional mode is off: the app may contact any processor listed below.");
   }
+}
+function onAiBaseChange(){
+  const el = document.getElementById("setAiBase");
+  const v = el ? el.value.trim() : "";
+  if(v) localStorage.setItem("wa_ai_base", v); else localStorage.removeItem("wa_ai_base");
+  waAudit("ai-gateway-set", v || "(cleared - direct to provider)");
+  renderRegimeNote(); renderSubprocessors();
 }
 function onRegimeChange(){
   const sel = document.getElementById("setRegime");
@@ -15395,7 +15426,9 @@ function renderCompliance(){ renderRegimeNote(); renderSubprocessors(); }
 function waAiConsent(){
   if(sessionStorage.getItem("wa_ai_consent") === "1") return true;
   const s = WA_SUBPROCESSORS.filter(function(x){ return x.group === "ai"; })[0];
-  const where = s ? (s.name + ", " + s.region) : "the configured AI provider";
+  const where = waAiIsGateway()
+    ? ("your firm's AI gateway at " + waAiHost())
+    : (s ? (s.name + ", " + s.region) : "the configured AI provider");
   const ok = confirm("The documents you selected, and the profile extracted from them, will be sent to "
     + where + " for processing.\n\nRegime: " + (WA_REGIMES[waRegime()] || {}).label
     + "\n\nContinue?");
