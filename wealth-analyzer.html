@@ -17,11 +17,11 @@
 <!-- defer: none of these are used at parse time (all usage is inside functions
      that run at/after DOMContentLoaded, and deferred scripts are guaranteed to
      execute before DOMContentLoaded). Unblocks first paint — pdf.js alone is ~1MB. -->
-<script defer src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-<script defer src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-<script defer src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script defer src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
-<script defer src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script defer src="vendor/chart.min.js"></script>
+<script defer src="vendor/pdf.min.js"></script>
+<script defer src="vendor/jspdf.min.js"></script>
+<script defer src="vendor/autotable.min.js"></script>
+<script defer src="vendor/qrcode.min.js"></script>
 <style>
 :root{
   --bg:#f4f6fb;--bg2:#ffffff;--bg3:#eef1f8;--bg4:#e2e8f2;
@@ -7146,7 +7146,7 @@ async function testAllMdKeys(){
       else if(k.id === "wa_fred_key")       await MarketData.getFREDSeries("DFF"); // Fed funds rate
       else if(k.id === "wa_ai_key"){
         // Quick ping — list models endpoint requires no body
-        const r = await fetch(waAiBase()+"/v1/models", {
+        const r = await fetch(waAiUrl("/v1/models"), {
           headers: waAiHeaders()
         });
         if(!r.ok) throw new Error("HTTP "+r.status);
@@ -9168,7 +9168,7 @@ function onUploadDocFilesChange(){
 }
 async function runUploadDocExtract(){
   const st=$("uploadDocStatus");
-  if(!getAIKey()){ uploadDocKeyNote(); if(st){st.textContent="⚠ Add your AI key first."; st.style.color="var(--amber)";} return; }
+  if(!waAiIsGateway() && !getAIKey()){ uploadDocKeyNote(); if(st){st.textContent="⚠ Add your AI key first."; st.style.color="var(--amber)";} return; }
   const inp=$("uploadDocFiles"), files=inp&&inp.files?Array.from(inp.files):[];
   if(!files.length){ if(st){st.textContent="⚠ Choose one or more files first."; st.style.color="var(--amber)";} return; }
   try{
@@ -9253,7 +9253,7 @@ function _daEnsureJSZip(){
   if(_daJSZipLoad) return _daJSZipLoad;
   _daJSZipLoad=new Promise((res,rej)=>{
     const s=document.createElement("script");
-    s.src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js";
+    s.src="vendor/jszip.min.js";
     s.onload=()=>res(window.JSZip); s.onerror=()=>rej(new Error("zip support could not load — check your connection and try again."));
     document.head.appendChild(s);
   });
@@ -9437,7 +9437,7 @@ function _daEnsureXLSX(){
   if(_daXlsxLoad) return _daXlsxLoad;
   _daXlsxLoad=new Promise((res,rej)=>{
     const s=document.createElement("script");
-    s.src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js";
+    s.src="vendor/xlsx.full.min.js";
     s.onload=()=>res(window.XLSX); s.onerror=()=>rej(new Error("spreadsheet support could not load — export the sheet as CSV instead."));
     document.head.appendChild(s);
   });
@@ -9555,7 +9555,7 @@ async function callAIExtract(content){
   const body={ model:AI_MODEL, max_tokens:8192, system:"You are a meticulous financial-document data-extraction engine. Never fabricate values.",
     tools:[buildExtractionSchema()], tool_choice:{type:"tool",name:"submit_profile"},
     messages:[{role:"user",content}] };
-  const r=await fetch(waAiBase()+"/v1/messages",{method:"POST",headers,body:JSON.stringify(body)});
+  const r=await fetch(waAiUrl("/v1/messages"),{method:"POST",headers,body:JSON.stringify(body)});
   if(!r.ok){ const t=await r.text(); throw new Error("AI service "+r.status+": "+t.slice(0,300)); }
   const data=await r.json();
   const tu=(data.content||[]).find(b=>b.type==="tool_use");
@@ -9623,7 +9623,7 @@ function normalizeExtraction(raw){
 async function runDataAgent(){
   const st=$("aiAgentStatus");
   _fdActiveLabel=""; _daSourceLabel="AI Data Agent";   // keep provenance honest
-  if(!getAIKey()){ daKeyNote(); if(st){st.textContent="⚠ Add your AI key first."; st.style.color="var(--amber)";} return; }
+  if(!waAiIsGateway() && !getAIKey()){ daKeyNote(); if(st){st.textContent="⚠ Add your AI key first."; st.style.color="var(--amber)";} return; }
   const inp=$("aiAgentFiles"), files=inp&&inp.files?Array.from(inp.files):[];
   if(!files.length){ if(st){st.textContent="⚠ Choose one or more files first."; st.style.color="var(--amber)";} return; }
   try{
@@ -12650,7 +12650,7 @@ Constraints:
 - Each rationale cites ≥1 quantitative metric AND ≥1 research source when available`;
 
   try {
-    const r = await fetch(waAiBase()+"/v1/messages", {
+    const r = await fetch(waAiUrl("/v1/messages"), {
       method: "POST",
       headers: waAiHeaders({ "Content-Type": "application/json" }),
       body: JSON.stringify({
@@ -14735,9 +14735,18 @@ function waSetApproved(host, on){
 // In Institutional mode nothing reaches a host the firm has not ticked.
 function waHostAllowed(url){
   if(!waInstitutional()) return true;
-  let host = "";
-  try{ host = new URL(url, location.href).hostname; }catch(_){ return false; }
-  return waApprovedHosts().some(function(h){ return host === h || host.endsWith("." + h); });
+  let u = null;
+  try{ u = new URL(url, location.href); }catch(_){ return false; }
+  // The page's own origin is not a third party.
+  if(u.origin === location.origin) return true;
+  // Nor is the gateway the firm configured itself in Settings: blocking it
+  // would mean switching on institutional mode disabled the firm's own
+  // perimeter, which is the opposite of the intent.
+  try{
+    const base = (localStorage.getItem("wa_ai_base") || "").trim();
+    if(base && new URL(base, location.href).hostname === u.hostname) return true;
+  }catch(_){ }
+  return waApprovedHosts().some(function(h){ return u.hostname === h || u.hostname.endsWith("." + h); });
 }
 function waBlocked(url){
   let host = url;
@@ -14777,6 +14786,9 @@ function waAiBase(){
 // True when the firm has pointed the app at its own gateway rather than the
 // provider. In that case the gateway holds the credential and the browser must
 // send neither the key nor the direct-browser-access header.
+// A firm gateway exposes a single endpoint; only the provider has /v1/* paths.
+// Appending the provider path to a gateway base 404s every request.
+function waAiUrl(path){ return waAiIsGateway() ? waAiBase() : waAiBase() + path; }
 function waAiIsGateway(){
   const v = (localStorage.getItem("wa_ai_base") || "").trim();
   if(!v) return false;
@@ -14797,9 +14809,22 @@ function waAiHeaders(extra){
 function waAiHost(){ try{ return new URL(waAiBase(), location.href).origin; }catch(_){ return waAiBase(); } }
 function waCorsProxy(){ return (localStorage.getItem("wa_cors_proxy") || "").trim(); }
 // A proxied URL, or null when the firm has configured no relay.
+// Providers put their keys in the query string, so stripping headers alone
+// still handed every key to the relay operator. Redact before proxying.
+const WA_CRED_PARAMS = /^(token|apikey|api_key|api_token|access_key|apiKey|key|auth|password|secret)$/i;
+function waRedactUrl(url){
+  try{
+    const u = new URL(url, location.href);
+    let hit = false;
+    [...u.searchParams.keys()].forEach(function(k){
+      if(WA_CRED_PARAMS.test(k)){ u.searchParams.set(k, "REDACTED"); hit = true; }
+    });
+    return hit ? u.toString() : url;
+  }catch(_){ return url; }
+}
 function waProxyUrl(url){
   const pxy = waCorsProxy();
-  return pxy ? pxy + encodeURIComponent(url) : null;
+  return pxy ? pxy + encodeURIComponent(waRedactUrl(url)) : null;
 }
 // fetch() through the configured relay; resolves to null when none is set, so
 // callers fall through to their own error path rather than silently leaking.
@@ -24567,7 +24592,11 @@ document.addEventListener("DOMContentLoaded",function(){
       // user explicitly configured: every market-data/AI API key (APP_KEY_DEFS),
       // report branding & settings (wa_rpt_*), key health, and feature flags.
       // (The old filter deleted 12 saved API keys + the advisor logo per update.)
-      const keep = new Set(["wa_ai_key","wa_av_key","wa_fh_key","wa_ai_builder_enabled","wa_key_health","wa_app_version"]);
+      const keep = new Set(["wa_ai_key","wa_av_key","wa_fh_key","wa_ai_builder_enabled","wa_key_health","wa_app_version",
+        // Firm configuration and compliance evidence, not stale app state. Wiping
+        // the approvals silently reverted institutional mode to "allow nothing",
+        // and wiping the trail destroyed the record a reviewer asks for.
+        "wa_regime","wa_institutional","wa_approved_hosts","wa_audit_log","wa_ai_base","wa_cors_proxy","wa_allow_public_relay"]);
       try{ APP_KEY_DEFS.forEach(d => keep.add(d.id)); }catch(_){}
       Object.keys(localStorage)
         .filter(k => k.startsWith("wa_") && !keep.has(k) && !k.startsWith("wa_rpt_"))
