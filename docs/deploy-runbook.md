@@ -12,10 +12,33 @@ below are irreversible after that point.
 
 ## 0. Decisions that cannot be changed later
 
-| Decision | Why it is irreversible | Where it shows up |
-|---|---|---|
-| **Region** | A Supabase project's region is fixed at creation. Moving live household plans later is a migration with downtime. | `legal/PRIVACY-EN.md` promises "no data is transferred outside Switzerland or the EU". The sub-processor table there is still bracketed placeholders and names neither Supabase nor the hosting provider — **fill it in to match whatever is chosen here**, or the published policy is false. |
-| **Point-in-time recovery tier** | PITR is a paid add-on selected at project creation on some plans. `audit_events` is the one table whose entire value is being trustworthy over years. | Nothing in the repo names an RPO/RTO. Decide one and write it here. |
+### Region — DECIDED: **EU (Frankfurt), `eu-central-1`**
+
+Chosen 2026-08-05. Managed Supabase, EU region — "option A" in
+[avaloq-deployment.md](avaloq-deployment.md). This is the option that lets
+the app ship now: auth, RLS and the migrations all work as built, and the
+data sits inside the EU, which satisfies the "Switzerland or the EU"
+promise in `legal/PRIVACY-EN.md`.
+
+- When creating the Supabase project, select region **Central EU
+  (Frankfurt)**. It is fixed at creation; moving live household plans later
+  is a migration with downtime.
+- **`legal/PRIVACY-EN.md` must be finalised to match.** Its sub-processor
+  table is still bracketed placeholders and names neither Supabase nor the
+  compute host. Until it names *Supabase (EU/Frankfurt)* as the data
+  processor, the published policy is not true. This is a lawyer-and-founder
+  task, not an engineering one — flagged here so it is not forgotten.
+- If a customer later requires data physically in **Switzerland**, that is
+  "option B" (self-hosted Postgres in their Avaloq estate) and a separate
+  deployment — see avaloq-deployment.md. Do not promise it against this
+  Frankfurt project.
+
+### Point-in-time recovery tier
+
+PITR is a paid add-on selected at project creation on some plans.
+`audit_events` is the one table whose entire value is being trustworthy
+over years. Decide an RPO/RTO and record it here before creating the
+project.
 
 ---
 

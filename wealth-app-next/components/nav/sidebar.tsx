@@ -13,6 +13,7 @@ const items = [
   { href: "/app/feeds",    label: "Data feeds",   emoji: "🔌" },
   { href: "/app/simulate", label: "Simulation",   emoji: "🎲" },
   { href: "/app/report",   label: "Report",       emoji: "📄" },
+  { href: "/app/proposal", label: "Proposal",     emoji: "🧺" },
   { href: "/app/orders",   label: "Orders",       emoji: "📤" },
   { href: "/app/audit",    label: "Audit trail",  emoji: "🧾" },
   { href: "/app/team",     label: "Your firm",    emoji: "👥" }

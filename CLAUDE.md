@@ -205,9 +205,14 @@ same repo as the legacy single-file app.
 **Status:** the product. As of 2026-08-04 this is what gets built and sold. The
 legacy `wealth-analyzer.html` is kept as reference and fallback but is not the
 parity gate any more (see the note at the top of this file). It has still never
-been deployed: migrations 002-010 have only ever run against PGlite, so the
+been deployed: migrations 002-012 have only ever run against PGlite, so the
 first real deployment is the next gate — `docs/deploy-runbook.md`, and
-`docs/avaloq-deployment.md` for the Avaloq-hosted shape.
+`docs/avaloq-deployment.md` for the Avaloq-hosted shape. **Region decided
+2026-08-05: managed Supabase in the EU (Frankfurt / `eu-central-1`)** — the
+option that ships now; a Swiss-domiciled Postgres in a customer's Avaloq
+estate is a separate later deployment. `legal/PRIVACY-EN.md` still needs its
+sub-processor table finalised to name Supabase (EU) before that promise is
+true — a founder/lawyer task, flagged in the runbook.
 
 **Why a rebuild (not a port of the monolith):** the single file is ~22k lines
 of vanilla JS with all state in the DOM. A real product needs accounts, saved
@@ -718,6 +723,39 @@ client's position, when, and from what to what" had **no answer at all**.
 - **Not covered:** the legacy single-file app. Its order log lives in
   localStorage, which the user can clear — that is a convenience log, not an
   audit trail, and pretending otherwise would be worse than the gap.
+
+### Investment Proposal builder in the SaaS — `/app/proposal`
+The SaaS UI that finally reaches the hardened `/api/orders` path (before
+this it was fully built and unreachable — an advisor could configure the
+pipe and stare at an empty ticket table). `lib/orders/proposal.ts` is the
+pure half — the SaaS twin of legacy `ordBuildTicket`: a `Proposal`
+(positions with weights + identifiers, a target amount, a currency) →
+`checkProposal()` (advisory-only problems) → `buildTicket()` → the
+`wa.order/v1` ticket. `components/orders/proposal-builder.tsx` is the
+editor; `/app/proposal` is household-scoped and keyed on the household so
+switching clients resets it; `/preview/proposal` renders it outside the
+auth gate (404s in prod).
+
+- **`amount` is authoritative, not `weightPct`.** The amounts are what a
+  human confirms and the OMS books; weights are recorded for audit. So the
+  LAST line absorbs the rounding residue — a 3-way split of CHF 100,000
+  sends exactly 100,000, not 99,999.99, or the server's total-vs-lines
+  check in `checkTicket` rejects it after BUY. Pinned by a test that builds
+  a ticket and runs it through the real `checkTicket`.
+- **The account is NOT chosen in the proposal** — it comes from the
+  connection, on the server. The builder only says what to buy and how
+  much; `checkTicket` overwrites `ticket.account` with the connection's.
+- **Retry reuses the ticket id**, held until a clean `staged`, so the
+  server's Postgres idempotency dedupes a resend. A fresh id per press
+  turns one model portfolio into two — the exact bug the legacy side had.
+- **The three-state result is surfaced**: `staged` (green), `unknown`
+  (amber — "check the PM system", resend offered as safe *because* the id
+  is reused), `rejected` (red). A 2xx is never assumed to be success.
+- `checkProposal` mirrors `checkTicket`'s identity checks (ISIN/CUSIP/Valor
+  check digits, CUSIP↔ISIN and Valor↔ISIN agreement) so the advisor sees a
+  mismatch while editing rather than as a post-BUY rejection. The
+  identifier box routes by shape (5–9 digits → Valor, 9 alphanumerics →
+  CUSIP, else ticker). Ticker-only is a WARNING, not a block.
 
 ### Order routing — `/api/orders` (send a proposal to a PM/OMS)
 The outbound mirror of the feed relay. An advisor approves an Investment
