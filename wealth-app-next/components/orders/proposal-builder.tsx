@@ -35,6 +35,8 @@ import { formatMoney } from "@/lib/engine/financial-math";
 import {
   checkProposal, buildTicket, type Proposal, type ProposalPosition,
 } from "@/lib/orders/proposal";
+import { AllocationCompare } from "@/components/portfolio/allocation-compare";
+import type { WealthPlan } from "@/lib/engine/types";
 import type { OrderConnectionPublic } from "@/lib/orders/schema";
 import type { PlacementState } from "@/lib/orders/model";
 import { FundPicker } from "./fund-picker";
@@ -63,7 +65,7 @@ type SendState =
   | { phase: "result"; state: PlacementState | "failed"; message: string; ref?: string; duplicate?: boolean }
   | { phase: "error"; message: string };
 
-export function ProposalBuilder({ clientName }: { clientName?: string }) {
+export function ProposalBuilder({ clientName, plan }: { clientName?: string; plan?: WealthPlan | null }) {
   const [connections, setConnections] = useState<OrderConnectionPublic[]>([]);
   const [connId, setConnId] = useState<string>("");
   const [loading, setLoading] = useState(true);
@@ -324,6 +326,14 @@ export function ProposalBuilder({ clientName }: { clientName?: string }) {
               {targetAmount > 0 ? formatMoney(targetAmount, currency) : "Set a target amount"}
             </span>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* ─── Current vs proposed ─── */}
+      <Card>
+        <CardHeader><CardTitle>Current vs proposed portfolio</CardTitle></CardHeader>
+        <CardContent>
+          <AllocationCompare plan={plan ?? null} proposal={proposal} />
         </CardContent>
       </Card>
 

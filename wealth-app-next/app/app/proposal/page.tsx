@@ -25,7 +25,7 @@ export default async function ProposalPage() {
       </div>
       {/* Keyed on the household so switching client resets the builder rather
           than carrying one client's positions under another's heading. */}
-      <ProposalBuilder key={ctx.household!.id} clientName={clientName} />
+      <ProposalBuilder key={ctx.household!.id} clientName={clientName} plan={ctx.plan} />
     </div>
   );
 }
