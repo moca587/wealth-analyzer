@@ -1,0 +1,65 @@
+# ═══════════════════════════════════════════════════════════════════
+# Supabase project configuration.
+#
+# Two jobs:
+#   1. It lets `supabase link` / `supabase db push` / `supabase start`
+#      work at all — without it the CLI has no project to act on.
+#   2. It is the source of truth, in the repo, for the auth settings the
+#      APP DEPENDS ON. The one that matters most is email confirmations:
+#      migration 012's accept_invite REQUIRES email_confirmed_at, so a
+#      deployment with confirmations off can be tricked into letting a
+#      forwarded invitation through. This file pins confirmations ON for
+#      the local stack; the HOSTED project must match it in the dashboard
+#      (Authentication → Providers → Email → Confirm email = ON).
+#
+# `project_id` is set at `supabase link` time; the placeholder below is
+# replaced then.
+# ═══════════════════════════════════════════════════════════════════
+
+project_id = "wealth-analyzer"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+port = 54322
+# Match the hosted project's major version. Supabase EU projects are
+# Postgres 15+; the migrations use only core features (no pgcrypto — 011
+# deliberately avoids it) so any 15/16/17 is fine.
+major_version = 15
+
+[auth]
+enabled = true
+# The public origin. Confirmation and reset emails are built from it; a
+# localhost value here emails unusable links. env() reads the shell at
+# `supabase start` time.
+site_url = "env(NEXT_PUBLIC_APP_URL)"
+additional_redirect_urls = ["https://localhost:3000"]
+jwt_expiry = 3600
+enable_signup = true
+
+[auth.email]
+# LOAD-BEARING. See the header. Do not set this to false, and do not follow
+# any advice to disable confirmations — accept_invite's email binding is
+# the whole invite security model and rests on a confirmed address.
+enable_signup = true
+enable_confirmations = true
+# Give a real project an SMTP sender in the dashboard; the local stack
+# captures mail in Inbucket (port 54324) so a rehearsal can read the link.
+
+[studio]
+enabled = true
+port = 54323
+
+[inbucket]
+# Local-only mail catcher, so a `supabase start` rehearsal can complete the
+# signup + invite flows by reading the captured emails.
+enabled = true
+port = 54324
+
+[analytics]
+enabled = false

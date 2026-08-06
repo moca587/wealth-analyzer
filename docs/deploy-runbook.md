@@ -42,58 +42,88 @@ project.
 
 ---
 
-## 1. Rehearse on a throwaway project first
+## 1. Rehearse against a real Postgres first
 
-Not optional for the first run. Migration `008_rekey_to_households.sql` is
-322 lines that re-key order idempotency, and `010_survive_a_departure.sql`
-rewrites foreign keys and a trigger on the order-of-record table. Their
-first execution against real Postgres must not also be their first
-execution against client data.
+Not optional for the first run. `008_rekey_to_households.sql` re-keys order
+idempotency and `010_survive_a_departure.sql` rewrites foreign keys and a
+trigger on the order-of-record table. Their first execution against real
+Postgres must not also be their first execution against client data.
 
-Create a second, disposable Supabase project, run §2 against it, run §4,
-then delete it.
+Three fidelities, cheapest first — do at least the middle one before a real
+deploy:
+
+**CI (no Docker).** `lib/db/__tests__/migrations.test.ts` and
+`scripts/deploy/__tests__/apply.test.ts` apply all 13 migrations to real
+Postgres (PGlite) through the actual runner on every `npm run ci`. This
+proves the SQL and the apply loop; it stubs Supabase's `auth` schema.
+
+**Local throwaway Postgres (Docker).** Exercises the real triggers, RLS and
+grants against a disposable database:
+
+```bash
+cd wealth-app-next
+docker compose -f docker-compose.rehearsal.yml up -d
+export DATABASE_URL=postgres://postgres:rehearsal@localhost:55432/postgres
+npm run db:migrate -- --stub    # --stub creates the auth stand-ins a plain PG lacks
+npm run db:verify
+docker compose -f docker-compose.rehearsal.yml down -v   # discard
+```
+
+**Full-fidelity (Supabase CLI + Docker).** The only rehearsal with the REAL
+`auth` schema and the actual `auth.users` trigger — install the Supabase CLI
+separately, then `supabase start && supabase db reset`. Do this once before
+the very first production deploy.
 
 ## 2. Apply the migrations, in order
 
 ```bash
 cd wealth-app-next
-supabase link --project-ref <your-project-ref>
-npm run db:push
+# The DIRECT connection string (port 5432), NOT the pooler — 001 creates a
+# trigger on auth.users the pooled role cannot. Supabase dashboard:
+# Settings → Database → Connection string → URI. Append ?sslmode=require.
+# (TLS verification is ON by default; an in-estate Postgres with a
+# self-signed cert uses ?sslmode=no-verify instead — explicit, never silent.)
+export DATABASE_URL='postgresql://postgres:...@db.<ref>.supabase.co:5432/postgres?sslmode=require'
+
+npm run db:migrate -- --dry-run   # show the plan, change nothing
+npm run db:migrate                # apply all pending, each in its own txn
+npm run db:verify                 # assert the schema is what the app needs
 ```
 
-`db:push` applies every file in `supabase/migrations/` in filename order,
-which is the same order `migrations.test.ts` proves works.
+`db:migrate` applies every pending `NNN_*.sql` in order, one transaction
+each, recording `public.schema_migrations` as it goes. It refuses to run
+out of order, is idempotent (a second run applies nothing), and on a
+failure rolls that migration back and stops — so a re-run resumes cleanly
+from the one that failed. Do NOT pass `--stub` against a real project (it
+is rehearsal-only and the runner refuses it against a real auth schema).
 
-If applying by hand in the SQL editor instead, paste them **in filename
-order**, one at a time, and stop at the first error:
+> Prefer this over pasting into the SQL editor by hand. Applying files
+> one-at-a-time and "stopping at the first error" is how a database ends up
+> half-migrated: **applying only `001_init.sql` produces an app that 500s on
+> first login**, because since migration 009 `/api/plan` reads `public.plans`
+> and household resolution reads `public.households`, neither of which 001
+> creates. (The Supabase CLI path — `supabase link` + `npm run db:push` —
+> also works if you have the CLI installed.)
 
-```
-001_init  002_feeds  003_orders  004_audit
-005_fix_erasure_and_entitlement  006_tenancy
-007_fix_entitlement_grants  008_rekey_to_households
-009_household_management  010_survive_a_departure
-```
-
-> **`001_init.sql` must run as the SQL-editor `postgres` role.** It creates
-> a trigger on `auth.users`, which needs a privilege the pooled application
-> role does not hold. If that trigger silently fails to install, every
-> signup lands with no organisation and the app answers "choose a client"
-> with an empty list.
-
-**Applying only `001_init.sql` produces an app that 500s on first login.**
-Since migration 009, `/api/plan` reads `public.plans` (`lib/tenancy/plans.ts`)
-and household resolution reads `public.households` — neither of which 001
-creates. Older copies of `README.md`, `docs/development.md` and
-`wealth-app-next/README.md` said to apply 001 and stop; they were wrong.
+> **TLS.** The runner verifies the certificate by default. If `connect`
+> fails with a cert error against the Supabase direct endpoint, its cert
+> does not chain to a public CA in your trust store — append
+> `?sslmode=require&sslrootcert=</path/to/supabase-ca.crt>` (download the CA
+> from the dashboard) rather than dropping to `?sslmode=no-verify`, which
+> turns off verification on the channel carrying your DDL.
 
 ### Verify it took
 
-```sql
-select version, applied_at from public.schema_migrations order by version;
--- expect 10 rows, 001_init … 010_survive_a_departure
+`npm run db:verify` runs these assertions and exits non-zero on any
+failure. The key ones, if you want to check by hand in the SQL editor:
 
+```sql
+select count(*) from public.schema_migrations;              -- expect 13
 select tgname from pg_trigger where tgrelid = 'auth.users'::regclass;
--- expect trg_on_auth_user_created
+-- expect tg_on_auth_user_created; if absent, 001 ran as the wrong role
+select relname from pg_class c join pg_namespace n on n.oid = c.relnamespace
+ where n.nspname='public' and c.relkind='r' and not c.relrowsecurity;
+-- expect zero rows — every table must have RLS on
 ```
 
 ## 3. Environment
@@ -119,16 +149,34 @@ production refuses to start** if a fatal one is wrong. A misconfigured
 server that boots and reports itself healthy is the worst available
 failure mode.
 
-`SUPABASE_SERVICE_ROLE_KEY` is **not** currently read by any code. Do not
-provision it until something needs it — it bypasses every RLS policy in
-006–010.
+`SUPABASE_SERVICE_ROLE_KEY` is read by exactly one thing — the Stripe
+webhook (`lib/supabase/admin.ts`), to write `is_paid`. Provision it only if
+billing is enabled; it bypasses every RLS policy in 006–013, so nothing
+else should ever hold it.
+
+### Auth settings (dashboard, not env)
+
+**Confirm email must be ON** (Authentication → Providers → Email → Confirm
+email). This is not optional: migration 012's `accept_invite` refuses an
+unconfirmed address, because the invite security model rests on the invited
+email being one the user actually controls. `supabase/config.toml` pins this
+for the local stack; the hosted project must be set to match. The signup UI
+no longer suggests turning it off.
 
 ## 4. Smoke test
 
-Against the throwaway project, in this order. Each step catches a distinct
-class of failure:
+Machine half first — one command against the running instance:
 
-1. `GET /api/health` → `{"status":"healthy"}`. Any `down` check stops the deploy.
+```bash
+BASE_URL=https://wealth.<firm>.ch npm run smoke
+```
+
+`smoke` asserts `/api/health` is not `unhealthy` (which calls `lib/env.ts`
+server-side, so a fatal misconfiguration surfaces as `configuration: down`)
+and prints the human checklist below. Then, by hand, in this order — each
+step catches a distinct class of failure:
+
+1. `npm run smoke` → `status: healthy`. Any `down` check stops the deploy.
 2. Sign up. Confirm the email link points at `NEXT_PUBLIC_APP_URL`, not localhost.
 3. Land on `/app`. A named household must already exist — this proves
    `tg_on_auth_user_created` installed and fired.

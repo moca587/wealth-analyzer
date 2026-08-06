@@ -26,15 +26,20 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   const checks: Record<string, "ok" | "degraded" | "down"> = {};
 
-  // Reachability only. A trivially cheap query against a table that always
-  // exists after 001 — never a count, which would grow into a slow probe
-  // and leak scale.
+  // Reachability AND schema-completeness in one cheap query. `plans` is
+  // created in 006 and read by /api/plan on first login — probing it
+  // instead of a table that exists after 001 means a HALF-MIGRATED
+  // database (ledger present, 006-009 not applied) reports `down` rather
+  // than a false `healthy`. Never a count — that would leak scale and grow
+  // into a slow probe.
   try {
     const supabase = await createClient();
-    const { error } = await supabase.from("schema_migrations").select("version").limit(1);
-    // A permission error still proves the database answered. Only a
-    // transport/relation failure is "down".
-    checks.database = !error || error.code === "42501" || error.code === "PGRST301" ? "ok" : "down";
+    const { error } = await supabase.from("plans").select("household_id").limit(1);
+    // A permission error (RLS did its job) proves the table exists and the
+    // database answered → ok. Only a missing relation or a transport
+    // failure is `down`.
+    if (!error || error.code === "42501" || error.code === "PGRST301") checks.database = "ok";
+    else checks.database = "down"; // 42P01 undefined_table = schema incomplete
   } catch {
     checks.database = "down";
   }

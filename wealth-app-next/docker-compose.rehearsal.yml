@@ -1,0 +1,36 @@
+# ═══════════════════════════════════════════════════════════════════
+# A throwaway Postgres for rehearsing the migration run against a REAL
+# database — the thing PGlite (in migrations.test.ts) and the SQL editor
+# cannot both give you: real Postgres, on your machine, disposable.
+#
+#   docker compose -f docker-compose.rehearsal.yml up -d
+#   DATABASE_URL=postgres://postgres:rehearsal@localhost:55432/postgres \
+#     npm run db:migrate -- --stub
+#   DATABASE_URL=postgres://postgres:rehearsal@localhost:55432/postgres \
+#     npm run db:verify
+#   docker compose -f docker-compose.rehearsal.yml down -v   # discard
+#
+# --stub is required here (a plain Postgres has no Supabase auth schema);
+# the runner refuses it against a real project. For the HIGHEST-fidelity
+# rehearsal — real auth schema, the actual auth.users trigger — use
+# `supabase start` + `supabase db reset` instead (needs the Supabase CLI).
+#
+# Port 55432 avoids colliding with a local Postgres on 5432.
+# ═══════════════════════════════════════════════════════════════════
+
+services:
+  db:
+    image: postgres:15-alpine   # match config.toml major_version & the hosted project
+    environment:
+      POSTGRES_PASSWORD: rehearsal
+      POSTGRES_DB: postgres
+    ports:
+      - "55432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 3s
+      timeout: 3s
+      retries: 10
+    # Ephemeral by intent: no named volume, so `down` discards everything.
+    tmpfs:
+      - /var/lib/postgresql/data

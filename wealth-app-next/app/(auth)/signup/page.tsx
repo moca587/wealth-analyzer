@@ -55,7 +55,8 @@ export default function SignupPage() {
           We sent a confirmation link to <strong>{email}</strong>. Click it to activate your account.
         </p>
         <p className="text-xs text-muted-foreground pt-4">
-          (You can disable email confirmation in your Supabase dashboard → Authentication → Providers → Email)
+          The link is only valid from this address. Didn&apos;t arrive? Check spam, or
+          ask an administrator to re-send your invitation.
         </p>
       </div>
     );

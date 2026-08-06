@@ -665,6 +665,44 @@ Two bugs found by actually building and running it, not by reading it:
   headers back into `next.config`.**
 
 
+### Deployment tooling — `scripts/deploy/` + `supabase/config.toml` + `Dockerfile`
+The SaaS has never been deployed; migrations 002-013 have only run against
+PGlite. This kit makes the first real deployment mechanical instead of a
+hand-paste, and it is the answer to "prep deployment".
+
+- **`scripts/deploy/migrate.mjs`** applies every pending `NNN_*.sql` to a real
+  Postgres (managed Supabase's DIRECT connection, an in-estate Avaloq
+  Postgres, or a throwaway) via `DATABASE_URL`, one transaction per migration,
+  recording `public.schema_migrations`. Refuses to run out of order, is
+  idempotent, and on a failure rolls that file back and STOPS so a re-run
+  resumes from it. `planMigrations` (pure, ordering + inconsistent-ledger
+  guard) and `applyPending` (the loop that runs against prod) are BOTH tested
+  — `apply.test.ts` drives the actual runner over all 13 migrations against
+  real Postgres (PGlite), plus idempotency, partial-resume, and
+  rollback-on-failure. `sslFor()` verifies TLS by default (the DDL connection
+  is MITM-worth-protecting); an in-estate self-signed cert opts out visibly
+  with `?sslmode=no-verify`.
+- **`--stub`** applies `supabase-stub.sql` (the auth stand-ins a plain
+  Postgres lacks, mirroring the PGlite test's SUPABASE_STUB) for a rehearsal,
+  and is REFUSED against any DB that already has `auth.users`.
+- **`verify.mjs`** asserts the deployed schema is what the app needs (13
+  migrations recorded, the `auth.users` trigger installed, RLS on every
+  table, `is_paid` not client-writable, `plans` exists, no `user_id` still
+  cascading, the entitlement writer not client-callable) and exits non-zero to
+  gate a deploy. **`smoke.mjs`** hits `/api/health` on a running instance
+  (which runs `lib/env.ts` server-side, so it is the runtime preflight) and
+  prints the human checklist.
+- **`docker-compose.rehearsal.yml`** is a disposable Postgres so the whole
+  migrate→verify run can be rehearsed locally against real Postgres; `npm run
+  db:migrate` / `db:verify` / `smoke` wire it up. `pg` is a **devDependency
+  only** — deploy tooling runs on the operator's machine / CI, never inside
+  the container (the Dockerfile copies only `.next/standalone`).
+- **`supabase/config.toml`** was missing (the CLI needs it) and now pins the
+  auth setting the app depends on: **email confirmations ON**, because 012's
+  `accept_invite` refuses an unconfirmed address. The hosted project must
+  match it in the dashboard, and the signup UI no longer suggests turning it
+  off. `docs/deploy-runbook.md` §1-§4 drive all of this.
+
 ### Migrations are executed, not just read — `lib/db/__tests__/migrations.test.ts`
 003-009 have never run against a real Supabase project: `.env.local` points at
 a placeholder. The append-only audit guarantee, the order idempotency index and the
