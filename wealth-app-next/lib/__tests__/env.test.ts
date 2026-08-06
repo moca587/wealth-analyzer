@@ -70,6 +70,38 @@ describe("checkEnv", () => {
       .toContain("FEEDS_ENCRYPTION_KEY_PREVIOUS");
   });
 
+  it("makes a half-configured billing setup fatal (would charge but never grant)", () => {
+    // STRIPE_SECRET_KEY set, but the webhook can't write is_paid → the
+    // customer pays and stays locked out.
+    const p = names(env({ STRIPE_SECRET_KEY: "sk_live_x", STRIPE_PRICE_ID: "price_1" }), "fatal");
+    expect(p).toContain("STRIPE_WEBHOOK_SECRET");
+    expect(p).toContain("SUPABASE_SERVICE_ROLE_KEY");
+  });
+
+  it("passes a fully-configured billing setup", () => {
+    expect(checkEnv(env({
+      STRIPE_SECRET_KEY: "sk_live_x",
+      STRIPE_WEBHOOK_SECRET: "whsec_x",
+      STRIPE_PRICE_ID: "price_1",
+      SUPABASE_SERVICE_ROLE_KEY: "service_role_x",
+    }))).toEqual([]);
+  });
+
+  it("S3: flags Stripe configured WHILE the gate is turned off", () => {
+    // Would charge customers while checkOrgEntitlement short-circuits to ok.
+    const p = names(env({
+      STRIPE_SECRET_KEY: "sk_live_x", STRIPE_WEBHOOK_SECRET: "whsec_x",
+      STRIPE_PRICE_ID: "price_1", SUPABASE_SERVICE_ROLE_KEY: "service_role_x",
+      BILLING_ENFORCED: "false",
+    }), "fatal");
+    expect(p).toContain("BILLING_ENFORCED");
+  });
+
+  it("does NOT flag billing vars when Stripe is unconfigured (invoice-billed)", () => {
+    // A deployment with no STRIPE_SECRET_KEY is a valid, complete config.
+    expect(checkEnv(OK)).toEqual([]);
+  });
+
   it("is lenient in development so the UI can still be run", () => {
     const dev = { NODE_ENV: "development" } as unknown as NodeJS.ProcessEnv;
     const p = checkEnv(dev);

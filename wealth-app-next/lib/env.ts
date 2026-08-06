@@ -157,6 +157,48 @@ export function checkEnv(env: NodeJS.ProcessEnv = process.env): EnvProblem[] {
     });
   }
 
+  // ─── Billing (optional — a deployment can be billed by agreement) ───
+  // Billing is off unless STRIPE_SECRET_KEY is set, so a bare deployment is
+  // fine. But a HALF-configured one is dangerous: checkout would succeed
+  // and take a customer's money while the webhook — the only writer of
+  // is_paid — silently drops every event, so the firm pays and stays
+  // locked out. Those gaps are fatal precisely because they are invisible.
+  const stripeKey = get("STRIPE_SECRET_KEY");
+  if (stripeKey) {
+    if (!get("STRIPE_WEBHOOK_SECRET")) {
+      problems.push({
+        name: "STRIPE_WEBHOOK_SECRET", level: "fatal",
+        problem: "STRIPE_SECRET_KEY is set but this is not — checkout would work while entitlement is never written",
+        fix: "set the endpoint secret from the Stripe webhook you registered",
+      });
+    }
+    if (!get("SUPABASE_SERVICE_ROLE_KEY")) {
+      problems.push({
+        name: "SUPABASE_SERVICE_ROLE_KEY", level: "fatal",
+        problem: "billing is on but the webhook has no way to write is_paid (needs the service role)",
+        fix: "set it in the SERVER env only — it bypasses RLS and must never reach the browser",
+      });
+    }
+    if (!get("STRIPE_PRICE_ID")) {
+      problems.push({
+        name: "STRIPE_PRICE_ID", level: prod ? "fatal" : "warn",
+        problem: "billing is on but there is no price to sell — checkout will refuse",
+        fix: "set the recurring price id (price_…) for the subscription",
+      });
+    }
+    // Stripe configured (checkout charges) but the entitlement gate turned
+    // off: customers pay and every org is treated as entitled, so the money
+    // buys nothing the unpaid firm didn't already have. Almost always a
+    // mistake, and invisible without this.
+    if (get("BILLING_ENFORCED") === "false") {
+      problems.push({
+        name: "BILLING_ENFORCED", level: prod ? "fatal" : "warn",
+        problem: "is 'false' while Stripe is configured — checkout would charge while the gate lets every org through",
+        fix: "unset BILLING_ENFORCED to enforce, or unset STRIPE_SECRET_KEY to bill by agreement",
+      });
+    }
+  }
+
   return problems;
 }
 

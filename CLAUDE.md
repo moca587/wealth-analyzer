@@ -724,6 +724,65 @@ client's position, when, and from what to what" had **no answer at all**.
   localStorage, which the user can clear — that is a convenience log, not an
   audit trail, and pretending otherwise would be worse than the gap.
 
+### Billing & entitlement — `013_billing.sql` + `lib/billing/` + `/api/billing`
+Seats existed (011/012) but nothing metered them. This is the meter.
+Product line: **evaluate free, pay to operate** — capture/simulate/report
+are free; the OPERATIONAL routes (order placement `POST /api/orders/<id>`,
+feed runs `GET /api/feeds/<id>`) are gated on `organizations.is_paid`.
+
+- **`is_paid` is written by ONE caller: the Stripe webhook**, through the
+  service-role client (`lib/supabase/admin.ts`) — its first and only
+  legitimate use, since 007 revokes UPDATE on `organizations` from clients
+  and a user who can set their own `is_paid` has no entitlement. `grep`
+  confirms `createAdminClient` is imported only by the webhook.
+- **No Stripe SDK.** The whole surface (verify webhook, create checkout,
+  create portal) is a documented HMAC/HTTP contract done against
+  `node:crypto` + `fetch` (`lib/billing/stripe.ts`) — zero new dependency,
+  which matters for an Avaloq-hosted container's supply-chain review. The
+  webhook verifier is the security boundary (a forged event = free product)
+  so it's in code we can read: constant-time HMAC over `"t.body"`, explicit
+  replay window, fails CLOSED with no secret.
+- **The webhook MUST read the raw body** (`request.text()`) — re-serialising
+  the JSON changes bytes and every signature fails.
+- **`apply_stripe_event` (SECURITY DEFINER, service-role only) is the single
+  write path**, doing four things in ONE transaction — an adversarial review
+  reproduced the failure of each:
+  - *Idempotency + atomicity*: the ledger insert and the entitlement write
+    are in the same transaction (`applied` boolean distinguishes seen from
+    applied), so a crash between them can't strand an event that Stripe's
+    retry then dedupes away.
+  - *Monotonicity (M2)*: **Stripe does not deliver in order** and retries for
+    ~3 days. Every entitlement change is gated on the event's `created`
+    against a per-org `last_billing_event_at` watermark, so a stale `past_due`
+    arriving after `active` binds ids but does NOT flip a paying firm to
+    unpaid. Without this the firm was locked out indefinitely.
+  - *Seat floor*: seats only ever RAISED to cover members, never dropped
+    below them.
+  - *Customer binding* guarded so one Stripe customer can't attach to two orgs.
+- **M1 — an unsettled checkout must not grant.** `checkout.session.completed`
+  has `status === "complete"` ALWAYS, so keying `is_paid` on it granted the
+  product before funds settled — days of free access for the delayed-
+  settlement methods (SEPA/ACH) common in the CH/EU launch market. It now
+  grants only on `payment_status` settled; otherwise `isPaid: null`
+  (do-not-change) binds ids and the authoritative `customer.subscription.*`
+  event grants when it settles. Unknown status ⇒ NOT paid — granting on an
+  unrecognised status is the expensive mistake.
+- **An actionable-but-unattributable event returns 409, not 200** — a 200
+  would consume it permanently before its customer is bound; a non-2xx lets
+  Stripe retry.
+- **`billingEnforced()` is false unless `STRIPE_SECRET_KEY` is set**, so a
+  pilot / self-hosted install billed by agreement treats everyone as
+  entitled. The gate (`lib/billing/gate.ts`) fails OPEN on a DB read error —
+  a blip must not block a paying firm.
+- **`lib/env.ts` makes a HALF-configured billing setup FATAL at boot**:
+  `STRIPE_SECRET_KEY` set but no `STRIPE_WEBHOOK_SECRET` /
+  `SUPABASE_SERVICE_ROLE_KEY` / `STRIPE_PRICE_ID` means checkout takes money
+  while the webhook can never write `is_paid` — the customer pays and stays
+  locked out, invisibly. Caught at startup instead.
+- Checkout/portal (`/api/billing` POST) are **owner-only**; `/app/billing`
+  shows state and the Subscribe/Manage button. The org→Stripe-customer bind
+  happens in the webhook on `checkout.session.completed`.
+
 ### Investment Proposal builder in the SaaS — `/app/proposal`
 The SaaS UI that finally reaches the hardened `/api/orders` path (before
 this it was fully built and unreachable — an advisor could configure the

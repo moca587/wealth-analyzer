@@ -98,7 +98,7 @@ describe("every migration applies to a real Postgres", () => {
       "004_audit.sql", "005_fix_erasure_and_entitlement.sql", "006_tenancy.sql",
       "007_fix_entitlement_grants.sql", "008_rekey_to_households.sql",
       "009_household_management.sql", "010_survive_a_departure.sql",
-      "011_invites.sql", "012_seats_that_work.sql",
+      "011_invites.sql", "012_seats_that_work.sql", "013_billing.sql",
     ]);
   });
 
@@ -851,7 +851,7 @@ describe("010: operational plumbing", () => {
       `select version from public.schema_migrations order by 1`)).map((r) => r.version);
     expect(v).toContain("001_init");
     expect(v).toContain("010_survive_a_departure");
-    expect(v.length).toBe(12);
+    expect(v.length).toBe(13);
   });
 
   it("keeps the ledger away from clients", async () => {
@@ -1694,5 +1694,195 @@ describe("012: firm-level audit events are recorded AND readable", () => {
     expect(seen.length, "written and never readable is the same as not written").toBe(1);
     await db.exec(`reset role`);
     await become(null);
+  });
+});
+
+describe("013: entitlement can only be written by the service role", () => {
+  it("gives the client no way to call the entitlement writer", async () => {
+    const g = await rows(
+      `select routine_name from information_schema.routine_privileges
+        where routine_name = 'apply_stripe_event'
+          and grantee in ('authenticated','anon')`);
+    expect(g, "the entitlement writer must not be client-callable").toEqual([]);
+  });
+
+  it("still refuses a direct UPDATE of is_paid by a client", async () => {
+    const u = await one<{ id: string }>(
+      `insert into auth.users (email, email_confirmed_at) values ('cheat13@x.example', now()) returning id`);
+    await db.exec(`set role authenticated`);
+    await become(u!.id);
+    await expect(db.exec(`update public.organizations set is_paid = true
+                          where id = (select org_id from public.org_members where user_id='${u!.id}')`))
+      .rejects.toThrow(/permission denied/i);
+    await db.exec(`reset role`);
+    await become(null);
+  });
+});
+
+// A tiny helper mirroring the webhook's rpc call.
+const applyEvent = (args: {
+  id: string; type: string; created: number; org: string;
+  isPaid: boolean | null; status: string; seats: number | null;
+  customer?: string | null; subscription?: string | null;
+}) => one<{ apply_stripe_event: string }>(
+  `select public.apply_stripe_event(
+     '${args.id}', '${args.type}', ${args.created}, '${args.org}',
+     ${args.isPaid === null ? "null" : args.isPaid},
+     ${args.status === null ? "null" : `'${args.status}'`},
+     ${args.seats === null ? "null" : args.seats},
+     ${args.customer ? `'${args.customer}'` : "null"},
+     ${args.subscription ? `'${args.subscription}'` : "null"})`);
+
+describe("013: apply_stripe_event writes entitlement", () => {
+  it("applies an active subscription and flips is_paid", async () => {
+    const u = await one<{ id: string }>(
+      `insert into auth.users (email, email_confirmed_at) values ('pay13@x.example', now()) returning id`);
+    const org = await one<{ org_id: string }>(`select org_id from public.org_members where user_id='${u!.id}'`);
+    const r = await applyEvent({ id: "evt_a1", type: "customer.subscription.updated", created: 1000,
+      org: org!.org_id, isPaid: true, status: "active", seats: 5, customer: "cus_1", subscription: "sub_1" });
+    expect(r!.apply_stripe_event).toBe("applied");
+    const o = await one<{ is_paid: boolean; subscription_status: string; stripe_customer_id: string; seats: number }>(
+      `select is_paid, subscription_status, stripe_customer_id, seats from public.organizations where id='${org!.org_id}'`);
+    expect(o!.is_paid).toBe(true);
+    expect(o!.subscription_status).toBe("active");
+    expect(o!.stripe_customer_id).toBe("cus_1");
+    expect(o!.seats).toBe(5);
+  });
+
+  it("M1: an UNPAID checkout binds ids but does NOT grant the product", async () => {
+    // The delayed-settlement (SEPA/ACH) case: status is 'complete' but the
+    // money has not arrived. is_paid=null means "do not change".
+    const u = await one<{ id: string }>(
+      `insert into auth.users (email, email_confirmed_at) values ('sepa13@x.example', now()) returning id`);
+    const org = await one<{ org_id: string }>(`select org_id from public.org_members where user_id='${u!.id}'`);
+    const r = await applyEvent({ id: "evt_co1", type: "checkout.session.completed", created: 900,
+      org: org!.org_id, isPaid: null, status: "complete", seats: null, customer: "cus_sepa", subscription: "sub_sepa" });
+    expect(r!.apply_stripe_event).toBe("bound");
+    const o = await one<{ is_paid: boolean; stripe_customer_id: string }>(
+      `select is_paid, stripe_customer_id from public.organizations where id='${org!.org_id}'`);
+    expect(o!.is_paid, "no product before the money settles").toBe(false);
+    expect(o!.stripe_customer_id, "but the customer is bound for future events").toBe("cus_sepa");
+  });
+
+  it("M2: a STALE out-of-order event does NOT lock out a paying firm", async () => {
+    // active(t2) delivered, then a stale past_due(t1<t2) arrives late. The
+    // firm must stay paid — Stripe does not guarantee order.
+    const u = await one<{ id: string }>(
+      `insert into auth.users (email, email_confirmed_at) values ('order13@x.example', now()) returning id`);
+    const org = await one<{ org_id: string }>(`select org_id from public.org_members where user_id='${u!.id}'`);
+    await applyEvent({ id: "evt_active", type: "customer.subscription.updated", created: 2000,
+      org: org!.org_id, isPaid: true, status: "active", seats: 3, customer: "cus_2", subscription: "sub_2" });
+    const r = await applyEvent({ id: "evt_pastdue", type: "customer.subscription.updated", created: 1000,
+      org: org!.org_id, isPaid: false, status: "past_due", seats: null, customer: "cus_2", subscription: "sub_2" });
+    expect(r!.apply_stripe_event).toBe("stale");
+    const o = await one<{ is_paid: boolean; subscription_status: string }>(
+      `select is_paid, subscription_status from public.organizations where id='${org!.org_id}'`);
+    expect(o!.is_paid, "a stale past_due must not regress a paying firm").toBe(true);
+    expect(o!.subscription_status).toBe("active");
+  });
+
+  it("M2: a stale event cannot shrink seats below the current ceiling", async () => {
+    const u = await one<{ id: string }>(
+      `insert into auth.users (email, email_confirmed_at) values ('seats13@x.example', now()) returning id`);
+    const org = await one<{ org_id: string }>(`select org_id from public.org_members where user_id='${u!.id}'`);
+    await applyEvent({ id: "evt_up", type: "customer.subscription.updated", created: 2000,
+      org: org!.org_id, isPaid: true, status: "active", seats: 10, customer: "cus_3", subscription: "sub_3" });
+    await applyEvent({ id: "evt_old", type: "customer.subscription.updated", created: 1000,
+      org: org!.org_id, isPaid: true, status: "active", seats: 3, customer: "cus_3", subscription: "sub_3" });
+    const o = await one<{ seats: number }>(`select seats from public.organizations where id='${org!.org_id}'`);
+    expect(o!.seats, "the stale downgrade is ignored").toBe(10);
+  });
+
+  it("NEVER drops seats below the members already in the firm", async () => {
+    const owner = await one<{ id: string }>(
+      `insert into auth.users (email, email_confirmed_at) values ('floor13@x.example', now()) returning id`);
+    const org = await one<{ org_id: string }>(`select org_id from public.org_members where user_id='${owner!.id}'`);
+    for (const e of ["f1", "f2"]) {
+      const m = await one<{ id: string }>(
+        `insert into auth.users (email, email_confirmed_at) values ('${e}floor13@x.example', now()) returning id`);
+      await db.exec(`insert into public.org_members (org_id, user_id, role) values ('${org!.org_id}', '${m!.id}', 'advisor')`);
+    }
+    await applyEvent({ id: "evt_floor", type: "customer.subscription.updated", created: 3000,
+      org: org!.org_id, isPaid: true, status: "active", seats: 1, customer: null, subscription: null });
+    const o = await one<{ seats: number }>(`select seats from public.organizations where id='${org!.org_id}'`);
+    expect(o!.seats, "seats floored at the member count").toBe(3);
+  });
+
+  it("a lapse to past_due (in order) DOES revoke the product", async () => {
+    const u = await one<{ id: string }>(
+      `insert into auth.users (email, email_confirmed_at) values ('lapse13@x.example', now()) returning id`);
+    const org = await one<{ org_id: string }>(`select org_id from public.org_members where user_id='${u!.id}'`);
+    await applyEvent({ id: "evt_l1", type: "customer.subscription.updated", created: 1000,
+      org: org!.org_id, isPaid: true, status: "active", seats: 3, customer: "cus_4", subscription: "sub_4" });
+    await applyEvent({ id: "evt_l2", type: "customer.subscription.updated", created: 2000,
+      org: org!.org_id, isPaid: false, status: "past_due", seats: null, customer: null, subscription: null });
+    const o = await one<{ is_paid: boolean; subscription_status: string; stripe_subscription_id: string }>(
+      `select is_paid, subscription_status, stripe_subscription_id from public.organizations where id='${org!.org_id}'`);
+    expect(o!.is_paid).toBe(false);
+    expect(o!.subscription_status).toBe("past_due");
+    expect(o!.stripe_subscription_id, "the id survives for reconciliation").toBe("sub_4");
+  });
+});
+
+describe("013: idempotency and atomicity", () => {
+  it("returns 'duplicate' and does not re-apply a seen event", async () => {
+    const u = await one<{ id: string }>(
+      `insert into auth.users (email, email_confirmed_at) values ('dup13@x.example', now()) returning id`);
+    const org = await one<{ org_id: string }>(`select org_id from public.org_members where user_id='${u!.id}'`);
+    const a = await applyEvent({ id: "evt_once", type: "customer.subscription.updated", created: 1000,
+      org: org!.org_id, isPaid: true, status: "active", seats: 4, customer: "cus_5", subscription: "sub_5" });
+    expect(a!.apply_stripe_event).toBe("applied");
+    const b = await applyEvent({ id: "evt_once", type: "customer.subscription.updated", created: 1000,
+      org: org!.org_id, isPaid: true, status: "active", seats: 4, customer: "cus_5", subscription: "sub_5" });
+    expect(b!.apply_stripe_event).toBe("duplicate");
+    const n = await one<{ n: number }>(`select count(*)::int as n from public.stripe_events where id='evt_once'`);
+    expect(n!.n).toBe(1);
+  });
+
+  it("records seen AND applied together — an applied event ledger row is marked applied", async () => {
+    const u = await one<{ id: string }>(
+      `insert into auth.users (email, email_confirmed_at) values ('led13@x.example', now()) returning id`);
+    const org = await one<{ org_id: string }>(`select org_id from public.org_members where user_id='${u!.id}'`);
+    await applyEvent({ id: "evt_led", type: "customer.subscription.updated", created: 1000,
+      org: org!.org_id, isPaid: true, status: "active", seats: 2, customer: null, subscription: null });
+    const row = await one<{ applied: boolean; org_id: string }>(
+      `select applied, org_id from public.stripe_events where id='evt_led'`);
+    expect(row!.applied).toBe(true);
+    expect(row!.org_id).toBe(org!.org_id);
+  });
+
+  it("is not client-readable", async () => {
+    const g = await rows(
+      `select privilege_type from information_schema.table_privileges
+        where table_name='stripe_events' and grantee in ('authenticated','anon')`);
+    expect(g).toEqual([]);
+  });
+});
+
+describe("013: one Stripe customer cannot claim two orgs", () => {
+  it("refuses to bind a customer already bound elsewhere", async () => {
+    const a = await one<{ id: string }>(
+      `insert into auth.users (email, email_confirmed_at) values ('binda@x.example', now()) returning id`);
+    const orgA = await one<{ org_id: string }>(`select org_id from public.org_members where user_id='${a!.id}'`);
+    const b = await one<{ id: string }>(
+      `insert into auth.users (email, email_confirmed_at) values ('bindb@x.example', now()) returning id`);
+    const orgB = await one<{ org_id: string }>(`select org_id from public.org_members where user_id='${b!.id}'`);
+
+    await applyEvent({ id: "evt_ba", type: "customer.subscription.updated", created: 1000,
+      org: orgA!.org_id, isPaid: true, status: "active", seats: null, customer: "cus_shared", subscription: "sub_a" });
+    await expect(applyEvent({ id: "evt_bb", type: "customer.subscription.updated", created: 1000,
+      org: orgB!.org_id, isPaid: true, status: "active", seats: null, customer: "cus_shared", subscription: "sub_b" }))
+      .rejects.toThrow(/already bound/i);
+  });
+});
+
+describe("013: apply_stripe_event is SECURITY DEFINER with a pinned search_path", () => {
+  it("pins search_path", async () => {
+    const f = await one<{ prosecdef: boolean; proconfig: string[] | null }>(
+      `select prosecdef, proconfig from pg_proc p
+         join pg_namespace n on n.oid=p.pronamespace
+        where n.nspname='public' and proname = 'apply_stripe_event'`);
+    expect(f!.prosecdef).toBe(true);
+    expect((f!.proconfig ?? []).join(",")).toMatch(/search_path/);
   });
 });

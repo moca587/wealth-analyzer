@@ -27,6 +27,7 @@ import { countRecords, type FeedFormat } from "@/lib/feeds/model";
 import { redact, HTTP_FOR } from "@/lib/feeds/redact";
 import { recordEvent } from "@/lib/audit/record";
 import { listHouseholds } from "@/lib/tenancy/context";
+import { checkOrgEntitlement } from "@/lib/billing/gate";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";   // a relay run must never be cached
@@ -98,6 +99,16 @@ export async function GET(_request: Request, ctx: Ctx) {
     return NextResponse.json(
       { error: `Too many feed runs — the relay allows ${RUN_LIMIT} per minute.`, code: "rate_limited" },
       { status: 429, headers: { "Retry-After": "60" } },
+    );
+  }
+
+  // Pulling a live custodian feed is an operational action — it needs a
+  // subscription (evaluate free, pay to operate).
+  const ent = await checkOrgEntitlement(supabase, String(row.org_id));
+  if (!ent.ok) {
+    return NextResponse.json(
+      { error: ent.reason, code: "not_entitled", status: ent.status },
+      { status: 402 },
     );
   }
 

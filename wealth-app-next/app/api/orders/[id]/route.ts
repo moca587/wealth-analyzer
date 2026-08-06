@@ -35,6 +35,7 @@ import { checkOrderHost } from "@/lib/orders/allowlist";
 import { recordEvent } from "@/lib/audit/record";
 import { encryptSecret, encryptionAvailable } from "@/lib/feeds/crypto";
 import { listHouseholds } from "@/lib/tenancy/context";
+import { checkOrgEntitlement } from "@/lib/billing/gate";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -103,6 +104,18 @@ export async function POST(request: Request, ctx: Ctx) {
     return NextResponse.json(
       { error: `Too many order placements — the relay allows ${SEND_LIMIT} per minute.`, code: "rate_limited" },
       { status: 429, headers: { "Retry-After": "60" } },
+    );
+  }
+
+  // Staging a real order is the production action; it requires a
+  // subscription (evaluate free, pay to operate). Checked BEFORE the ticket
+  // is claimed in Postgres, so an unentitled attempt consumes no idempotency
+  // slot and books nothing.
+  const ent = await checkOrgEntitlement(supabase, orgId);
+  if (!ent.ok) {
+    return NextResponse.json(
+      { error: ent.reason, code: "not_entitled", status: ent.status },
+      { status: 402 },
     );
   }
 

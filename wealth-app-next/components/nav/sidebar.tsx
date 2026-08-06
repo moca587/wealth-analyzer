@@ -16,7 +16,8 @@ const items = [
   { href: "/app/proposal", label: "Proposal",     emoji: "🧺" },
   { href: "/app/orders",   label: "Orders",       emoji: "📤" },
   { href: "/app/audit",    label: "Audit trail",  emoji: "🧾" },
-  { href: "/app/team",     label: "Your firm",    emoji: "👥" }
+  { href: "/app/team",     label: "Your firm",    emoji: "👥" },
+  { href: "/app/billing",  label: "Billing",      emoji: "💳" }
 ];
 
 export function Sidebar({ displayName }: { displayName: string | null }) {
