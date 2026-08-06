@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { ProposalBuilder } from "@/components/orders/proposal-builder";
+import { PickerDemo } from "./picker-demo";
 
 // Design review outside the auth gate, like /preview/plan. 404s in
 // production; the /api/orders it calls still requires a session, so with no
@@ -13,6 +14,7 @@ export default function PreviewProposalPage() {
     <div className="container max-w-5xl py-10">
       <h1 className="font-display text-4xl mb-6">Investment proposal (preview)</h1>
       <ProposalBuilder clientName="Sample Client" />
+      <PickerDemo />
     </div>
   );
 }

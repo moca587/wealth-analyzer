@@ -37,6 +37,7 @@ import {
 } from "@/lib/orders/proposal";
 import type { OrderConnectionPublic } from "@/lib/orders/schema";
 import type { PlacementState } from "@/lib/orders/model";
+import { FundPicker } from "./fund-picker";
 
 async function readJson(res: Response): Promise<Record<string, unknown>> {
   try { return await res.json(); } catch { return { error: `HTTP ${res.status}` }; }
@@ -76,6 +77,9 @@ export function ProposalBuilder({ clientName }: { clientName?: string }) {
   // "staged", so a NEW proposal after success gets a NEW id.
   const [ticketId, setTicketId] = useState<string>(newTicketId());
   const [send, setSend] = useState<SendState>({ phase: "idle" });
+
+  // Which position (if any) the fund picker is filling.
+  const [pickingFor, setPickingFor] = useState<string | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -257,7 +261,16 @@ export function ProposalBuilder({ clientName }: { clientName?: string }) {
               <div key={p.id} className="rounded-lg border border-border p-3 space-y-2">
                 <div className="grid gap-2 sm:grid-cols-12 items-end">
                   <div className="sm:col-span-4 space-y-1">
-                    <Label>Instrument</Label>
+                    <div className="flex items-center justify-between">
+                      <Label>Instrument</Label>
+                      <button
+                        type="button"
+                        className="text-[11px] text-accent hover:underline"
+                        onClick={() => setPickingFor(p.id)}
+                      >
+                        From fund list
+                      </button>
+                    </div>
                     <Input value={p.name} onChange={(e) => setPos(p.id, { name: e.target.value })} placeholder="e.g. iShares Core MSCI World" />
                   </div>
                   <div className="sm:col-span-3 space-y-1">
@@ -365,6 +378,22 @@ export function ProposalBuilder({ clientName }: { clientName?: string }) {
           </div>
         </CardContent>
       </Card>
+
+      {pickingFor && (
+        <FundPicker
+          onClose={() => setPickingFor(null)}
+          onPick={(f) => {
+            // Fill name/ticker/class only. NOT an identifier — the universe
+            // carries none and guessing one is the failure the order path
+            // exists to prevent. Clear any stale identifier so a picked fund
+            // doesn't inherit the previous instrument's ISIN.
+            setPos(pickingFor, {
+              name: f.name, ticker: f.ticker, cls: f.cls, vehicle: f.vehicle,
+              isin: "", cusip: "", valor: "",
+            });
+          }}
+        />
+      )}
     </div>
   );
 }
