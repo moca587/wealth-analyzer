@@ -27,6 +27,10 @@ export interface FundPick {
   ticker: string;
   cls: string;
   vehicle: string;
+  /** Expense ratio / yield from the universe — used by the holdings editor
+   *  to auto-fill a position's cost. Absent when the fund has no figure. */
+  er?: number;
+  yld?: number;
 }
 
 const CLASSES: FundClass[] = [
@@ -121,7 +125,7 @@ export function FundPicker({
               key={f.tkr}
               type="button"
               onClick={() => {
-                onPick({ name: f.name, ticker: f.tkr, cls: f.cls, vehicle: f.vehicle });
+                onPick({ name: f.name, ticker: f.tkr, cls: f.cls, vehicle: f.vehicle, er: f.er, yld: f.yld });
                 onClose();
               }}
               className="w-full text-left rounded-lg px-3 py-2 hover:bg-accent/10 flex items-baseline gap-3"

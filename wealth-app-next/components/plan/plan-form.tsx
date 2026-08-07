@@ -11,6 +11,7 @@ import { emptyPlan, newId } from "@/lib/plan/default-plan";
 import { HouseholdSection } from "./sections/household-section";
 import { ChildrenSection } from "./sections/children-section";
 import { AssetsSection } from "./sections/assets-section";
+import { HoldingsSection } from "./sections/holdings-section";
 import { RetirementSection } from "./sections/retirement-section";
 import { ImportExportSection } from "./sections/import-export-section";
 import type {
@@ -171,6 +172,9 @@ export function PlanForm({
 
       {/* ─── ASSETS (country-aware) ─── */}
       <AssetsSection plan={plan} update={set} />
+
+      {/* ─── HOLDINGS (portfolio detail; analytics, not net worth) ─── */}
+      <HoldingsSection plan={plan} update={set} />
 
       {/* ─── LIABILITIES ─── */}
       <SectionList
