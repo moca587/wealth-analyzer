@@ -854,6 +854,41 @@ auth gate (404s in prod).
   identifier box routes by shape (5–9 digits → Valor, 9 alphanumerics →
   CUSIP, else ticker). Ticker-only is a WARNING, not a block.
 
+### Portfolio compare & the holdings layer — `lib/portfolio/` + `plan.holdings`
+The EAM's daily view: current book vs proposed target. Shown in the proposal
+builder (`components/portfolio/allocation-compare.tsx`) and its donut is
+reused in the client report.
+
+- **`lib/portfolio/` is pure and tested.** `comparePortfolios(current,
+  proposed)` → per-class allocation drift, per-position deltas, and
+  value-weighted TER/yield + concentration. It is **allocation-based**
+  (percent of each side) because the current book and the proposed target
+  need not be the same size; the one CHF figure ("to reach target")
+  rebalances the current book to the proposed mix and is labelled as such.
+  `asset-class.ts` is the ONE shared class vocabulary (label/order/colour/
+  normaliser) — the 8-class enum used to live by copy in four places, and a
+  compare only means something if both sides bucket identically.
+- **`portfolioFromPlan` prefers `plan.holdings` when present**, else derives
+  from account-level assets. Weighted TER blends only over positions that
+  report an er (a property line is not a "free fund"); a null TER is null,
+  never 0.
+- **The holdings layer (`plan.holdings`, optional/additive).** A security
+  POSITION with ticker/cls/value/**er/yld/region** and an `accountRef`.
+  HOLDINGS ARE FOR ANALYTICS, NOT NET WORTH: net worth sums `assets`, so a
+  holding and its parent account are the same money at two granularities and
+  are never both counted. No DB migration — the plan is JSONB, versioned in
+  `plans`; `migratePlan` defaults old plans to none.
+- **Two populators, both preserving the per-position cost/yield the account
+  balance cannot hold:**
+  - `from-legacy.ts` imports the legacy `investments` array (was dropped).
+  - `apply.ts` (feed) used to COLLAPSE a `FeedHolding` to a flat asset value,
+    discarding er/yld/region. It now rides the rich facts through as
+    `_holding` on the change patch; `applyChanges` strips it before writing
+    the **byte-identical** Asset and upserts the holdings layer. The
+    account/holding matching, the double-count guard and every hardening test
+    are untouched — the change is purely additive, idempotent on re-sync, and
+    never blanks an er a later partial payload omits.
+
 ### Order routing — `/api/orders` (send a proposal to a PM/OMS)
 The outbound mirror of the feed relay. An advisor approves an Investment
 Proposal, presses **BUY**, and the positions go to a portfolio/order
