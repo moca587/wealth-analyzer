@@ -21,8 +21,15 @@ export const ORDER_SCHEMA = "wa.order/v1" as const;
 /** Wire dialects the relay can speak. */
 export type OrderFormat = "wa" | "avaloq" | "generic";
 
-/** Only BUY today. SELL needs holdings-aware validation we do not do yet. */
-export type OrderSide = "BUY";
+/**
+ * BUY or SELL. A SELL is only accepted when it is holdings-aware: the
+ * instrument must match a position the client actually holds and the
+ * amount must not exceed it (checkTicket, given the plan's holdings). A
+ * line's `amount` is always the POSITIVE cash value of the leg; `side`
+ * gives the direction, and `totals.amount` is the GROSS notional traded
+ * (buys + sells), which is what the per-ticket ceiling bounds.
+ */
+export type OrderSide = "BUY" | "SELL";
 
 export interface OrderInstrument {
   /** ISIN — what a European custodian actually books on. */

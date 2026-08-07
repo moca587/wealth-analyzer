@@ -35,6 +35,7 @@ import { checkOrderHost } from "@/lib/orders/allowlist";
 import { recordEvent } from "@/lib/audit/record";
 import { encryptSecret, encryptionAvailable } from "@/lib/feeds/crypto";
 import { listHouseholds } from "@/lib/tenancy/context";
+import { currentPlan } from "@/lib/tenancy/plans";
 import { checkOrgEntitlement } from "@/lib/billing/gate";
 
 export const runtime = "nodejs";
@@ -131,12 +132,22 @@ export async function POST(request: Request, ctx: Ctx) {
     );
   }
 
-  // Semantic checks: arithmetic, identity, currency, account.
+  // A SELL is validated against the client's book of record — the plan's
+  // holdings — so a ticket cannot instruct the sale of a position the client
+  // does not hold, or more of one than they have. Loaded here, on the
+  // server, for the same reason the custody account is: a browser payload
+  // does not get to assert what the client holds. A ticket with no SELL
+  // lines does not need them, but loading is cheap and keeps one path.
+  const cur = await currentPlan(supabase, householdId);
+  const holdings = (cur.state === "ok" ? cur.version.plan.holdings : undefined) ?? [];
+
+  // Semantic checks: arithmetic, identity, currency, account, and — for
+  // SELL lines — that the client actually holds what is being sold.
   const checked = checkTicket(parsed.data as OrderTicket, {
     account: String(row.account ?? ""),
     currency: String(row.currency ?? ""),
     maxTicketAmount: row.max_ticket_amount == null ? null : Number(row.max_ticket_amount),
-  });
+  }, { holdings });
   if (!checked.ok) {
     return NextResponse.json(
       { error: "This ticket cannot be sent", code: "invalid_ticket", reasons: checked.errors },

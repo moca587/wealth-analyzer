@@ -35,6 +35,7 @@ import { formatMoney } from "@/lib/engine/financial-math";
 import {
   checkProposal, buildTicket, type Proposal, type ProposalPosition,
 } from "@/lib/orders/proposal";
+import { buildRebalanceTicket } from "@/lib/orders/rebalance";
 import { AllocationCompare } from "@/components/portfolio/allocation-compare";
 import type { WealthPlan } from "@/lib/engine/types";
 import type { OrderConnectionPublic } from "@/lib/orders/schema";
@@ -99,6 +100,13 @@ export function ProposalBuilder({ clientName, plan }: { clientName?: string; pla
   const conn = connections.find((c) => c.id === connId);
   const currency = conn?.currency ?? "CHF";
 
+  // "deploy" — buy the positions with new cash (the original flow).
+  // "rebalance" — move the CURRENT book to these weights: sells the
+  // overweight, buys the underweight. Needs the client's holdings.
+  const [mode, setMode] = useState<"deploy" | "rebalance">("deploy");
+  const holdings = useMemo(() => plan?.holdings ?? [], [plan]);
+  const bookValue = useMemo(() => holdings.reduce((s, h) => s + (Number.isFinite(h.value) ? Math.max(0, h.value) : 0), 0), [holdings]);
+
   const proposal: Proposal = useMemo(() => ({
     positions,
     targetAmount,
@@ -107,6 +115,17 @@ export function ProposalBuilder({ clientName, plan }: { clientName?: string; pla
     advisor: advisor || undefined,
     objective: objective || undefined,
   }), [positions, targetAmount, currency, clientName, advisor, objective]);
+
+  // The rebalance ticket (sells + buys) derived from the book and the target
+  // weights. createdAt is stamped at send time; "" here keeps the memo stable.
+  const rebalanceTicket = useMemo(() => {
+    if (mode !== "rebalance" || !conn || holdings.length === 0) return null;
+    return buildRebalanceTicket(holdings, proposal, {
+      account: conn.account, currency, ticketId, createdAt: "",
+      custodian: conn.custodian || undefined,
+      clientName, advisor: advisor || undefined, objective: objective || undefined,
+    });
+  }, [mode, conn, holdings, proposal, currency, ticketId, clientName, advisor, objective]);
 
   const problems = useMemo(() => checkProposal(proposal), [proposal]);
   const errors = problems.filter((p) => p.level === "error");
@@ -134,18 +153,26 @@ export function ProposalBuilder({ clientName, plan }: { clientName?: string; pla
   const amountFor = (w: number) =>
     targetAmount > 0 ? Math.round(targetAmount * ((Number(w) || 0) / 100) * 100) / 100 : 0;
 
-  const canSend = !!conn && errors.length === 0 && targetAmount > 0 && send.phase !== "sending";
-  const overCeiling = !!conn && targetAmount > conn.maxTicketAmount;
+  // Weights must still sum to ~100% in both modes; only the deploy mode also
+  // needs a positive target amount (rebalance's basis is the book value).
+  const weightsOk = Math.abs(weightSum - 100) <= 0.5;
+  const rebalanceGross = rebalanceTicket?.totals.amount ?? 0;
+  const canSend = mode === "deploy"
+    ? !!conn && errors.length === 0 && targetAmount > 0 && send.phase !== "sending"
+    : !!conn && weightsOk && holdings.length > 0 && (rebalanceTicket?.lines.length ?? 0) > 0 && send.phase !== "sending";
+  const overCeiling = !!conn && (mode === "deploy" ? targetAmount : rebalanceGross) > conn.maxTicketAmount;
 
   const place = useCallback(async () => {
     if (!conn) return;
     setSend({ phase: "sending" });
-    const ticket = buildTicket(proposal, {
-      ticketId,
-      account: conn.account,
-      custodian: conn.custodian || undefined,
-      createdAt: new Date().toISOString(),
-    });
+    const ticket = mode === "rebalance" && rebalanceTicket
+      ? { ...rebalanceTicket, createdAt: new Date().toISOString() }
+      : buildTicket(proposal, {
+          ticketId,
+          account: conn.account,
+          custodian: conn.custodian || undefined,
+          createdAt: new Date().toISOString(),
+        });
 
     const res = await apiFetch(`/api/orders/${conn.id}`, {
       method: "POST",
@@ -191,7 +218,7 @@ export function ProposalBuilder({ clientName, plan }: { clientName?: string; pla
         message: (result.rejected ?? []).join(" · ") || "The PM system rejected this ticket.",
       });
     }
-  }, [conn, proposal, ticketId]);
+  }, [conn, proposal, ticketId, mode, rebalanceTicket]);
 
   if (loading) return <p className="text-sm text-muted-foreground">Loading…</p>;
 
@@ -210,6 +237,26 @@ export function ProposalBuilder({ clientName, plan }: { clientName?: string; pla
 
   return (
     <div className="space-y-6">
+      {/* ─── Mode ─── */}
+      <div className="inline-flex rounded-lg border border-border p-1 text-sm">
+        {(["deploy", "rebalance"] as const).map((m) => (
+          <button
+            key={m} type="button"
+            onClick={() => setMode(m)}
+            className={`px-3 py-1.5 rounded-md transition-colors ${
+              mode === m ? "bg-accent/10 text-accent font-medium" : "text-muted-foreground hover:text-foreground"}`}
+          >
+            {m === "deploy" ? "New investment (buy)" : "Rebalance current holdings"}
+          </button>
+        ))}
+      </div>
+      {mode === "rebalance" && holdings.length === 0 && (
+        <p className="text-sm text-amber-600">
+          This client has no recorded holdings to rebalance. Add them under the plan&apos;s
+          Holdings section or import them from a feed, then return here.
+        </p>
+      )}
+
       {/* ─── Route + target ─── */}
       <Card>
         <CardHeader><CardTitle>Route and amount</CardTitle></CardHeader>
@@ -228,12 +275,26 @@ export function ProposalBuilder({ clientName, plan }: { clientName?: string; pla
             )}
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="pb-amount">Target amount ({currency})</Label>
-            <Input
-              id="pb-amount" type="number" min={0} value={targetAmount || ""}
-              onChange={(e) => setTargetAmount(Math.max(0, Number(e.target.value) || 0))}
-              placeholder="100000"
-            />
+            {mode === "deploy" ? (
+              <>
+                <Label htmlFor="pb-amount">Target amount ({currency})</Label>
+                <Input
+                  id="pb-amount" type="number" min={0} value={targetAmount || ""}
+                  onChange={(e) => setTargetAmount(Math.max(0, Number(e.target.value) || 0))}
+                  placeholder="100000"
+                />
+              </>
+            ) : (
+              <>
+                <Label>Rebalancing</Label>
+                <div className="rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm">
+                  {formatMoney(bookValue, currency)} <span className="text-muted-foreground">current book</span>
+                </div>
+                <p className="text-[11px] text-muted-foreground">
+                  The weights below become the target; the book is bought/sold to reach it.
+                </p>
+              </>
+            )}
             {overCeiling && (
               <p className="text-[11px] text-destructive">
                 Over this connection&apos;s ceiling — the server will refuse it.
@@ -337,6 +398,42 @@ export function ProposalBuilder({ clientName, plan }: { clientName?: string; pla
         </CardContent>
       </Card>
 
+      {/* ─── Rebalance orders preview ─── */}
+      {mode === "rebalance" && rebalanceTicket && rebalanceTicket.lines.length > 0 && (
+        <Card>
+          <CardHeader><CardTitle>Rebalance orders</CardTitle></CardHeader>
+          <CardContent className="space-y-2">
+            <p className="text-xs text-muted-foreground">
+              To move the {formatMoney(bookValue, currency)} book to the target weights. Sells are
+              validated against the recorded holdings before staging.
+            </p>
+            {rebalanceTicket.lines.map((l) => (
+              <div key={l.lineId} className="flex items-center gap-3 text-sm border-b border-border/50 py-1.5">
+                <span className={`font-medium w-12 ${l.side === "SELL" ? "text-destructive" : "text-emerald-600"}`}>
+                  {l.side}
+                </span>
+                <span className="flex-1 min-w-0 truncate">
+                  {l.instrument.name || l.instrument.ticker || l.instrument.isin}
+                </span>
+                <span className="tabular-nums">{formatMoney(l.amount, l.currency)}</span>
+              </div>
+            ))}
+            <div className="flex justify-between pt-2 text-sm">
+              <span className="text-muted-foreground">
+                {rebalanceTicket.lines.filter((l) => l.side === "SELL").length} sell,{" "}
+                {rebalanceTicket.lines.filter((l) => l.side === "BUY").length} buy · gross traded
+              </span>
+              <span className="font-medium">{formatMoney(rebalanceGross, currency)}</span>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+      {mode === "rebalance" && rebalanceTicket && rebalanceTicket.lines.length === 0 && holdings.length > 0 && (
+        <p className="text-sm text-muted-foreground">
+          The book already matches these weights — nothing to trade.
+        </p>
+      )}
+
       {/* ─── Objective + send ─── */}
       <Card>
         <CardHeader><CardTitle>Review &amp; send</CardTitle></CardHeader>
@@ -373,7 +470,9 @@ export function ProposalBuilder({ clientName, plan }: { clientName?: string; pla
               disabled={!canSend || overCeiling}
               size="lg"
             >
-              {send.phase === "sending" ? "Sending…" : "BUY — stage in PM system"}
+              {send.phase === "sending" ? "Sending…"
+                : mode === "rebalance" ? "Stage rebalance in PM system"
+                : "BUY — stage in PM system"}
             </Button>
             {send.phase === "result" && send.state !== "staged" && (
               // Retry reuses the same ticketId, so the relay dedupes it — this

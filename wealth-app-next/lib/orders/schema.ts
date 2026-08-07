@@ -146,7 +146,7 @@ const instrumentSchema = z.object({
 
 const lineSchema = z.object({
   lineId: z.string().trim().min(1).max(40),
-  side: z.literal("BUY"),
+  side: z.enum(["BUY", "SELL"]),
   instrument: instrumentSchema,
   weightPct: z.number().finite().min(0).max(100),
   amount: money,
@@ -191,6 +191,89 @@ export interface TicketCheck {
 }
 
 /**
+ * The subset of a Holding checkTicket needs to validate a SELL. A structural
+ * subset of engine `Holding`, so the route can pass `plan.holdings` directly.
+ */
+export interface HoldingRef {
+  isin?: string;
+  ticker?: string;
+  name?: string;
+  value: number;
+}
+
+const up = (s: string | undefined) => (s || "").trim().toUpperCase();
+
+/**
+ * A SELL must be of something the client HOLDS, and must not exceed it.
+ *
+ * This is the "holdings-aware validation we do not do yet" that gated SELL.
+ * A line is matched to a holding by ISIN first, then ticker. The SELL
+ * amounts matched to one holding are AGGREGATED (two SELL lines of the same
+ * position cannot together exceed it), and a tolerance absorbs the plan
+ * value being a snapshot while still catching a fat-finger.
+ *
+ * Refusing here is the whole point: the server has the client's book of
+ * record (the plan), so an over-sell or a sell of an unheld instrument is a
+ * coherence error it CAN catch — unlike ticket size, which it cannot.
+ */
+function checkSells(lines: OrderTicket["lines"], holdings: HoldingRef[]): string[] {
+  const errors: string[] = [];
+  const sells = lines.filter((l) => l.side === "SELL");
+  if (!sells.length) return errors;
+
+  if (!holdings.length) {
+    errors.push(
+      "this ticket sells positions but the client has no recorded holdings — " +
+      "import or enter the current portfolio before selling from it"
+    );
+    return errors;
+  }
+
+  // Match a line to a holding: ISIN wins, else ticker. Returns the index into
+  // `holdings` or -1.
+  const matchIndex = (l: OrderTicket["lines"][number]): number => {
+    const isin = up(l.instrument.isin);
+    if (isin) {
+      const i = holdings.findIndex((h) => up(h.isin) === isin);
+      if (i >= 0) return i;
+    }
+    const tk = up(l.instrument.ticker);
+    if (tk) {
+      const i = holdings.findIndex((h) => up(h.ticker) === tk);
+      if (i >= 0) return i;
+    }
+    return -1;
+  };
+
+  const soldPerHolding = new Map<number, number>();
+  for (const l of sells) {
+    const who = l.instrument.name || l.instrument.isin || l.instrument.ticker || l.lineId;
+    const idx = matchIndex(l);
+    if (idx < 0) {
+      errors.push(`cannot sell ${who}: no matching position in the client's portfolio`);
+      continue;
+    }
+    soldPerHolding.set(idx, round2((soldPerHolding.get(idx) ?? 0) + l.amount));
+  }
+
+  for (const [idx, sold] of soldPerHolding) {
+    const h = holdings[idx];
+    const held = Number.isFinite(h.value) ? h.value : 0;
+    // Snapshot drift: allow a small margin so "sell all" of a slightly-stale
+    // value is not refused, while a 10x fat-finger still is.
+    const ceiling = held + Math.max(100, held * 0.02);
+    if (sold > ceiling) {
+      errors.push(
+        `cannot sell ${round2(sold).toFixed(2)} of ${h.name || h.ticker || h.isin} — ` +
+        `the client holds ${round2(held).toFixed(2)}`
+      );
+    }
+  }
+
+  return errors;
+}
+
+/**
  * Semantic checks the type system cannot express. Every one of these is a
  * way a structurally-valid ticket still instructs the wrong trade.
  *
@@ -202,9 +285,11 @@ export interface TicketCheck {
 export function checkTicket(
   raw: OrderTicket,
   connection: { account: string; currency: string; maxTicketAmount?: number | null },
+  opts: { holdings?: HoldingRef[] } = {},
 ): TicketCheck {
   const errors: string[] = [];
   const ticket: OrderTicket = { ...raw };
+  const hasSell = ticket.lines.some((l) => l.side === "SELL");
 
   // The connection's currency is the account's currency of record. A ticket
   // denominated differently is not converted anywhere in this system — it
@@ -264,6 +349,11 @@ export function checkTicket(
   const zero = ticket.lines.filter((l) => !(l.amount > 0));
   if (zero.length) errors.push(`${zero.length} line(s) have a zero amount`);
 
+  // SELL lines must be of positions the client holds, and must not exceed
+  // them. The client's book of record is the plan; the route passes its
+  // holdings. Without them, a SELL cannot be validated and is refused.
+  errors.push(...checkSells(ticket.lines, opts.holdings ?? []));
+
   // An ISIN carries its own check digit; a transposition is caught here rather
   // than by the custodian booking a different security.
   const badIsin = ticket.lines.filter((l) => l.instrument.isin && !isValidIsin(l.instrument.isin));
@@ -322,8 +412,13 @@ export function checkTicket(
     dupIds.add(l.lineId);
   }
 
-  const alloc = ticket.lines.reduce((s, l) => s + l.weightPct, 0);
-  if (alloc > 100.5) errors.push(`allocation totals ${alloc.toFixed(1)}% — over 100%`);
+  // The weight cap is a sanity check on a pure allocation (a proposal's buys
+  // should sum to ~100%). A rebalance mixes buys and sells whose weights do
+  // not, so it only applies when there are no sells.
+  if (!hasSell) {
+    const alloc = ticket.lines.reduce((s, l) => s + l.weightPct, 0);
+    if (alloc > 100.5) errors.push(`allocation totals ${alloc.toFixed(1)}% — over 100%`);
+  }
 
   if (!connection.account) errors.push("this connection has no custody account configured");
 

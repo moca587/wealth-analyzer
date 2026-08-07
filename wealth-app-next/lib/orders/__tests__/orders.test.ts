@@ -70,9 +70,12 @@ describe("orderTicketSchema", () => {
     }
   });
 
-  it("refuses a side other than BUY", () => {
-    const bad = ticket({ lines: [line({ side: "SELL" as never })] });
-    expect(orderTicketSchema.safeParse(bad).success).toBe(false);
+  it("accepts BUY and SELL, and nothing else", () => {
+    // SELL is now a valid side; its holdings-aware validation lives in
+    // checkTicket, not the schema. Any other side is still rejected.
+    expect(orderTicketSchema.safeParse(ticket({ lines: [line({ side: "SELL" })] })).success).toBe(true);
+    expect(orderTicketSchema.safeParse(ticket({ lines: [line({ side: "BUY" })] })).success).toBe(true);
+    expect(orderTicketSchema.safeParse(ticket({ lines: [line({ side: "SHORT" as never })] })).success).toBe(false);
   });
 
   it("refuses non-finite or negative money", () => {
@@ -462,5 +465,92 @@ describe("order host allowlist", () => {
     setEnv("ORDERS_HOST_ALLOWLIST", "");
     setEnv("NODE_ENV", "development");
     expect(checkOrderHost("https://pm.example.com/api/orders").ok).toBe(true);
+  });
+});
+
+// ═══ SELL — holdings-aware validation ═════════════════════════════
+describe("checkTicket — SELL is refused unless the client holds it", () => {
+  const CONN = { account: "CH-8842-01", currency: "CHF", maxTicketAmount: 10_000_000 };
+  // A held book to validate sells against.
+  const holdings = [
+    { isin: "IE00B4L5Y983", ticker: "IWDA", name: "iShares Core MSCI World", value: 100000 },
+    { ticker: "VWRL", name: "FTSE All-World", value: 50000 },
+  ];
+  // A SELL ticket whose non-SELL checks all pass (account, currency, ids, total).
+  const sell = (over: Partial<OrderTicket["lines"][number]>, amount = 40000) =>
+    ticket({ lines: [{ ...line(), side: "SELL" as const, weightPct: 0, amount, ...over }] });
+
+  it("accepts a SELL within the held amount", () => {
+    const r = checkTicket(sell({}, 40000), CONN, { holdings });
+    expect(r.ok, r.errors.join(" | ")).toBe(true);
+  });
+
+  it("accepts selling the whole position (with snapshot tolerance)", () => {
+    const r = checkTicket(sell({}, 100000), CONN, { holdings });
+    expect(r.ok, r.errors.join(" | ")).toBe(true);
+  });
+
+  it("REFUSES selling more than the client holds", () => {
+    const r = checkTicket(sell({}, 150000), CONN, { holdings });
+    expect(r.ok).toBe(false);
+    expect(r.errors.join(" ")).toMatch(/cannot sell.*client holds/i);
+  });
+
+  it("REFUSES selling an instrument that is not in the portfolio", () => {
+    const r = checkTicket(sell({ instrument: { isin: "US0378331005", ticker: "AAPL", name: "Apple" } }, 1000), CONN, { holdings });
+    expect(r.ok).toBe(false);
+    expect(r.errors.join(" ")).toMatch(/no matching position/i);
+  });
+
+  it("REFUSES any SELL when the client has no recorded holdings", () => {
+    const r = checkTicket(sell({}, 1000), CONN, { holdings: [] });
+    expect(r.ok).toBe(false);
+    expect(r.errors.join(" ")).toMatch(/no recorded holdings/i);
+  });
+
+  it("REFUSES any SELL when holdings are not supplied at all", () => {
+    const r = checkTicket(sell({}, 1000), CONN);
+    expect(r.ok).toBe(false);
+    expect(r.errors.join(" ")).toMatch(/no recorded holdings/i);
+  });
+
+  it("AGGREGATES two SELL lines of the same position against the one holding", () => {
+    // 60k + 60k = 120k of a 100k position → refused, even though each line
+    // alone is under.
+    const two = ticket({ lines: [
+      { ...line(), lineId: "s1", side: "SELL" as const, weightPct: 0, amount: 60000 },
+      { ...line(), lineId: "s2", side: "SELL" as const, weightPct: 0, amount: 60000 },
+    ] });
+    const r = checkTicket(two, CONN, { holdings });
+    expect(r.ok).toBe(false);
+    expect(r.errors.join(" ")).toMatch(/cannot sell.*client holds/i);
+  });
+
+  it("matches by ticker when the line carries no ISIN", () => {
+    const r = checkTicket(sell({ instrument: { ticker: "VWRL", name: "FTSE All-World" } }, 30000), CONN, { holdings });
+    expect(r.ok, r.errors.join(" | ")).toBe(true);
+  });
+
+  it("does not apply the 100%-allocation cap to a mixed buy/sell ticket", () => {
+    // A rebalance's weights do not sum to 100; that sanity check is for a
+    // pure proposal only.
+    const mixed = ticket({ lines: [
+      { ...line(), lineId: "b1", side: "BUY" as const, weightPct: 80, amount: 20000 },
+      { ...line(), lineId: "s1", side: "SELL" as const, instrument: { ticker: "VWRL", name: "FTSE All-World" }, weightPct: 80, amount: 20000 },
+    ] });
+    const r = checkTicket(mixed, CONN, { holdings });
+    expect(r.errors.join(" ")).not.toMatch(/allocation totals/i);
+  });
+
+  it("still runs every other check on a SELL line (bad ISIN is caught)", () => {
+    const r = checkTicket(sell({ instrument: { isin: "IE00B4L5Y984", ticker: "IWDA", name: "x" } }, 1000), CONN, { holdings });
+    expect(r.ok).toBe(false);
+    expect(r.errors.join(" ")).toMatch(/check digit/i);
+  });
+
+  it("distinguishes a BUY from a SELL of the same instrument in the fingerprint", () => {
+    const buy = ticket({ lines: [{ ...line(), side: "BUY" as const }] });
+    const sellT = ticket({ lines: [{ ...line(), side: "SELL" as const }] });
+    expect(ticketFingerprint(buy)).not.toBe(ticketFingerprint(sellT));
   });
 });
