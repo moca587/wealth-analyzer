@@ -16,12 +16,8 @@ import { REPORT_SEED } from "@/components/sim/sim-runner";
 import { formatMoney, estimateIncomeTax, ageFromDOB, calcMortgagePayment } from "@/lib/engine/financial-math";
 import { RISK_PROFILES } from "@/lib/engine/constants";
 import type { WealthPlan } from "@/lib/engine/types";
-
-const CLASS_LABEL: Record<string, string> = {
-  equity: "Equity", fixed_income: "Fixed income", real_estate: "Real estate",
-  commodity: "Commodity", cash: "Cash", mixed: "Balanced / mixed",
-  alternative: "Alternatives", crypto: "Crypto",
-};
+import { CLASS_LABEL, CLASS_COLOR, normalizeClass, type AssetClass } from "@/lib/portfolio/asset-class";
+import { Donut, slicesFromValues } from "@/components/portfolio/donut";
 
 export function ReportView({ plan }: { plan: WealthPlan }) {
   const ccy = plan.currency || "USD";
@@ -49,13 +45,15 @@ export function ReportView({ plan }: { plan: WealthPlan }) {
   );
   const annualSurplus = grossIncome - tax - annualExpense - annualDebtService;
 
-  // Assets grouped by class.
-  const byClass = new Map<string, number>();
+  // Assets grouped by class, keyed on the canonical AssetClass so the
+  // donut colours and the shared labels line up with the rest of the app.
+  const byClass = new Map<AssetClass, number>();
   for (const a of plan.assets) {
-    const k = a.cls || "mixed";
+    const k = normalizeClass(a.cls || a.type);
     byClass.set(k, (byClass.get(k) || 0) + (a.value || 0));
   }
   const classRows = Array.from(byClass.entries()).sort((a, b) => b[1] - a[1]);
+  const allocSlices = slicesFromValues(byClass, totalAssets);
 
   const today = new Date().toISOString().slice(0, 10);
   const clientNames = plan.clients.map((c) => [c.first, c.last].filter(Boolean).join(" ")).filter(Boolean).join(" & ") || "Client";
@@ -148,14 +146,30 @@ export function ReportView({ plan }: { plan: WealthPlan }) {
         <section className="report-page bg-white text-slate-900 rounded-xl border border-slate-200 shadow-sm p-10">
           <SectionTitle n="03" title="Net worth statement" />
           <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 mt-5 mb-2">Assets by class</h3>
-          <table className="w-full text-sm">
-            <tbody>
-              {classRows.map(([cls, v]) => (
-                <Tr key={cls} cells={[CLASS_LABEL[cls] || cls, m(v), totalAssets > 0 ? pct(v / totalAssets) : "—"]} align={["left", "right", "right"]} />
-              ))}
-              <Tr strong cells={["Total assets", m(totalAssets), "100%"]} align={["left", "right", "right"]} />
-            </tbody>
-          </table>
+          <div className="flex flex-wrap items-center gap-8">
+            {allocSlices.length > 0 && (
+              <div className="text-slate-800 shrink-0">
+                <Donut slices={allocSlices} size={150} />
+              </div>
+            )}
+            <table className="flex-1 min-w-[240px] text-sm">
+              <tbody>
+                {classRows.map(([cls, v]) => (
+                  <tr key={cls} className="border-b border-slate-100">
+                    <td className="py-1.5">
+                      <span className="inline-flex items-center gap-2">
+                        <span className="inline-block h-2.5 w-2.5 rounded-sm" style={{ background: CLASS_COLOR[cls] }} />
+                        {CLASS_LABEL[cls]}
+                      </span>
+                    </td>
+                    <td className="py-1.5 text-right tabular-nums">{m(v)}</td>
+                    <td className="py-1.5 text-right tabular-nums text-slate-500">{totalAssets > 0 ? pct(v / totalAssets) : "—"}</td>
+                  </tr>
+                ))}
+                <Tr strong cells={["Total assets", m(totalAssets), "100%"]} align={["left", "right", "right"]} />
+              </tbody>
+            </table>
+          </div>
           <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 mt-6 mb-2">Liabilities</h3>
           <table className="w-full text-sm">
             <tbody>

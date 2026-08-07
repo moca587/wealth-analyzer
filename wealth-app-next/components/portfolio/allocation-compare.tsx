@@ -22,7 +22,8 @@ import type { Fund } from "@/lib/data/fund-universe";
 import { portfolioFromPlan, portfolioFromProposal } from "@/lib/portfolio/model";
 import { comparePortfolios, type Comparison } from "@/lib/portfolio/compare";
 import { fundLookup } from "@/lib/portfolio/enrich";
-import { CLASS_COLOR, CLASS_LABEL, ASSET_CLASSES, type AssetClass } from "@/lib/portfolio/asset-class";
+import { CLASS_COLOR, CLASS_LABEL, ASSET_CLASSES } from "@/lib/portfolio/asset-class";
+import { Donut } from "./donut";
 
 function fmtMoney(n: number, ccy: string): string {
   return `${ccy} ${Math.round(n).toLocaleString("en-US")}`;
@@ -32,37 +33,6 @@ function fmtPct(n: number, digits = 1): string {
 }
 function fmtDrift(n: number): string {
   return `${n > 0 ? "+" : ""}${n.toFixed(1)}pp`;
-}
-
-/** A donut built from stroke-dasharray arcs — crisp, no arc-path math, no
- *  chart library. Slices in canonical class order so current and proposed
- *  read consistently. */
-function Donut({ slices, size = 132 }: { slices: { cls: AssetClass; pct: number }[]; size?: number }) {
-  const stroke = 16;
-  const r = (size - stroke) / 2;
-  const c = 2 * Math.PI * r;
-  let offset = 0;
-  const drawable = slices.filter((s) => s.pct > 0);
-  return (
-    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="shrink-0" role="img"
-      aria-label="Allocation by asset class">
-      <g transform={`rotate(-90 ${size / 2} ${size / 2})`}>
-        {/* track */}
-        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="currentColor"
-          strokeOpacity={0.12} strokeWidth={stroke} />
-        {drawable.map((s) => {
-          const len = (s.pct / 100) * c;
-          const el = (
-            <circle key={s.cls} cx={size / 2} cy={size / 2} r={r} fill="none"
-              stroke={CLASS_COLOR[s.cls]} strokeWidth={stroke}
-              strokeDasharray={`${len} ${c - len}`} strokeDashoffset={-offset} />
-          );
-          offset += len;
-          return el;
-        })}
-      </g>
-    </svg>
-  );
 }
 
 function donutSlices(byClass: Comparison["byClass"], side: "current" | "proposed") {
