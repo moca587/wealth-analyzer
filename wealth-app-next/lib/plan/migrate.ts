@@ -130,6 +130,26 @@ export function migratePlan(input: unknown): WealthPlan {
     colaRate: typeof p.colaRate === "number" || typeof p.colaRate === "string" ? num(p.colaRate, 0) : undefined,
   }));
 
+  // Security positions inside investable accounts. Optional and additive —
+  // a plan from before holdings existed simply has none. Carried through so
+  // a SaaS export round-trips; feeds and the legacy importer are what
+  // usually populate it.
+  const holdings = asArray(src.holdings).map((h) => ({
+    id: id(h.id),
+    name: str(h.name),
+    ticker: typeof h.ticker === "string" ? h.ticker : undefined,
+    isin: typeof h.isin === "string" ? h.isin : undefined,
+    cls: (h.cls as WealthPlan["assets"][number]["cls"]) || undefined,
+    value: num(h.value),
+    er: typeof h.er === "number" || typeof h.er === "string" ? num(h.er) : undefined,
+    yld: typeof h.yld === "number" || typeof h.yld === "string" ? num(h.yld) : undefined,
+    region: typeof h.region === "string" ? h.region : undefined,
+    ccy: typeof h.ccy === "string" ? h.ccy : undefined,
+    accountRef: typeof h.accountRef === "string" ? h.accountRef : undefined,
+    feedRef: typeof h.feedRef === "string" ? h.feedRef : undefined,
+    note: typeof h.note === "string" ? h.note : undefined,
+  }));
+
   return {
     version: num(src.version, 1) || 1,
     currency: str(src.currency, base.currency),
@@ -142,6 +162,7 @@ export function migratePlan(input: unknown): WealthPlan {
     assets,
     loans,
     goals,
+    ...(holdings.length ? { holdings } : {}),
     ...(retirement ? { retirement } : {}),
     ...(pensions.length ? { pensions } : {}),
     notes: typeof src.notes === "string" ? src.notes : undefined,

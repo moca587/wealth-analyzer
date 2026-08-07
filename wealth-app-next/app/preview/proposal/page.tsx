@@ -23,6 +23,13 @@ const samplePlan: WealthPlan = {
     { id: newId(), type: "", label: "Cash (CHF)", cls: "cash", value: 90000, liquid: true },
     { id: newId(), type: "", label: "Primary residence", cls: "real_estate", value: 1400000, liquid: false },
   ],
+  // Position-level holdings (what a custodian feed provides): the compare
+  // prefers these, with the real per-position expense ratios.
+  holdings: [
+    { id: "h1", name: "FTSE All-World", ticker: "VWRL", cls: "equity", value: 620000, er: 0.22, yld: 1.9 },
+    { id: "h2", name: "Global Aggregate Bond", ticker: "AGGG", cls: "fixed_income", value: 240000, er: 0.10, yld: 2.4 },
+    { id: "h3", name: "Cash (CHF)", cls: "cash", value: 90000 },
+  ],
 };
 
 const sampleProposal: Proposal = {

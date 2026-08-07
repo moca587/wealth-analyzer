@@ -81,6 +81,38 @@ export interface Asset {
   feedRef?: string;
 }
 
+/**
+ * A security POSITION inside an investable account — the detail the
+ * `assets` list does not hold (an Asset is an account-level balance).
+ *
+ * Holdings are for PORTFOLIO ANALYTICS (allocation, blended cost/yield),
+ * NOT for net worth: net worth sums `assets`, so a holding and its parent
+ * account are two granularities of the same money and must never both be
+ * counted. `accountRef` links a holding to the account it sits in.
+ *
+ * The point of a durable holding is the per-position facts a custodian
+ * feed carries and the account balance does not — expense ratio, yield,
+ * region — which the feed→plan apply used to discard.
+ */
+export interface Holding {
+  id: string;
+  name: string;
+  ticker?: string;
+  isin?: string;
+  cls?: AssetClass;
+  value: number;          // market value, in plan currency
+  er?: number;            // expense ratio, percent (0.20 = 0.20%)
+  yld?: number;           // distribution yield, percent
+  region?: string;
+  ccy?: string;
+  /** The account this position sits in — feedRef of the parent Asset, e.g.
+   *  "acct:CH93…". Lets a re-sync match, and ties a holding to its balance. */
+  accountRef?: string;
+  /** See Asset.feedRef — "hold:<ticker>" for a fed position. */
+  feedRef?: string;
+  note?: string;
+}
+
 export interface Loan {
   id: string;
   type: string;       // "Mortgage", "Auto", "Student", "Credit Card", etc.
@@ -138,6 +170,13 @@ export interface WealthPlan {
   assets: Asset[];
   loans: Loan[];
   goals: Goal[];
+  /**
+   * Security positions inside the investable accounts. Optional and
+   * additive: net worth and the engine use `assets`; the portfolio
+   * compare/report prefer `holdings` when present for real per-position
+   * cost/yield. Populated by the custodian feed and the legacy importer.
+   */
+  holdings?: Holding[];
   retirement?: Retirement;
   pensions?: Pension[];
   notes?: string;

@@ -85,6 +85,34 @@ export interface FromPlanOptions {
  */
 export function portfolioFromPlan(plan: WealthPlan, opts: FromPlanOptions = {}): Portfolio {
   const lookup = opts.lookup ?? noLookup;
+
+  // Prefer real position-level holdings when the plan has them — they carry
+  // the per-position cost/yield a custodian feed provided and an account
+  // balance cannot. The account-derived path below is the fallback for a
+  // plan that only has account balances. Never mix the two: an account and
+  // its holdings are the same money at two granularities.
+  const holdings = plan.holdings ?? [];
+  if (holdings.length > 0) {
+    const raw = holdings.map((h) => {
+      const ticker = h.ticker?.trim().toUpperCase();
+      const ref = ticker ? lookup(ticker) : undefined;
+      return {
+        key: positionKey({ isin: h.isin, ticker, name: h.name || "Position" }),
+        name: h.name || ref?.name || ticker || "Position",
+        ticker,
+        isin: h.isin,
+        cls: normalizeClass(h.cls ?? ref?.cls),
+        value: Number.isFinite(h.value) ? Math.max(0, h.value) : 0,
+        // The feed's own figure wins; the universe only fills a gap.
+        er: h.er ?? ref?.er,
+        yld: h.yld ?? ref?.yld,
+        origin: "plan" as const,
+      };
+    });
+    const total = raw.reduce((s, p) => s + p.value, 0);
+    return { positions: withWeights(raw, total), total, currency: plan.currency || "CHF" };
+  }
+
   const assets: Asset[] = (plan.assets ?? []).filter((a) => (opts.investableOnly ? a.liquid : true));
 
   const raw = assets.map((a) => {

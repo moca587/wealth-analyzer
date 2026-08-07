@@ -19,7 +19,7 @@
 // ─────────────────────────────────────────────────────────────────
 
 import type {
-  WealthPlan, Asset, AssetClass, Loan, Goal, Client, Child,
+  WealthPlan, Asset, AssetClass, Loan, Goal, Client, Child, Holding,
   IncomeStream, ExpenseCategory, CountryCode,
 } from "@/lib/engine/types";
 import type {
@@ -402,11 +402,24 @@ export function diffPlan(plan: WealthPlan, envelope: FeedEnvelope, ccy?: string)
     if (dupe) return;
 
     const fx = foreign((h as { ccy?: string }).ccy);
+    const cls = feedClassToPlan(h.cls, inferClass(`${h.name} ${h.type ?? ""}`, "equity"));
+    // The rich, position-level facts a custodian carries and an account
+    // balance cannot — expense ratio, yield, region — which this branch used
+    // to discard when it collapsed a holding to an account-shaped Asset.
+    // Rides along on the patch as `_holding`; applyChanges strips it before
+    // writing the Asset and upserts it into plan.holdings (analytics layer).
+    const _holding = definedOnly({
+      name, ticker: h.tkr || undefined, cls, value: h.val,
+      er: typeof h.er === "number" && Number.isFinite(h.er) ? h.er : undefined,
+      yld: typeof h.yld === "number" && Number.isFinite(h.yld) ? h.yld : undefined,
+      region: typeof h.region === "string" && h.region ? h.region : undefined,
+      ccy: (h as { ccy?: string }).ccy || undefined,
+      feedRef: ref || undefined,
+    });
     const patch = definedOnly({
       label: name, value: h.val, type: h.tkr || h.type || "holding",
-      cls: feedClassToPlan(h.cls, inferClass(`${h.name} ${h.type ?? ""}`, "equity")),
-      liquid: true, country: plan.clients[0]?.country,
-      feedRef: ref || undefined,
+      cls, liquid: true, country: plan.clients[0]?.country,
+      feedRef: ref || undefined, _holding,
     });
     const shownLabel = h.tkr ? `${name} (${h.tkr})` : name;
     const risk = fx ? { risky: true, warning: `Amount is in ${fx}; the plan is kept in ${currency} and no conversion is applied.` } : {};
@@ -422,7 +435,7 @@ export function diffPlan(plan: WealthPlan, envelope: FeedEnvelope, ccy?: string)
       changes.push({ key: key("assets"), section: "assets", kind: noop ? "unchanged" : "update",
         label: shownLabel, before: money(existing.value, currency),
         after: money(h.val, currency), source: h._src, targetId: existing.id,
-        patch: { value: h.val, ...(patch.feedRef ? { feedRef: patch.feedRef } : {}) }, ...risk });
+        patch: { value: h.val, ...(patch.feedRef ? { feedRef: patch.feedRef } : {}), _holding }, ...risk });
     }
   });
 
@@ -575,6 +588,21 @@ function upsert<T extends { id: string }>(
   list.push({ ...blank(), ...patch } as T);
 }
 
+/**
+ * Upsert a position into the analytics holdings layer, matched on its feed
+ * origin key (`hold:<ticker>`), so a re-sync updates rather than duplicates.
+ * Only overwrites the fields the feed supplied — er/yld/region a later
+ * partial payload omits are preserved, mirroring the never-blank rule the
+ * asset/loan updates follow.
+ */
+function upsertHolding(next: WealthPlan, h: Record<string, unknown>): void {
+  const list = (next.holdings ??= []);
+  const feedRef = typeof h.feedRef === "string" ? h.feedRef : "";
+  const i = feedRef ? list.findIndex((x) => x.feedRef === feedRef) : -1;
+  if (i >= 0) list[i] = { ...list[i], ...h } as Holding;
+  else list.push({ id: newId(), name: "", value: 0, ...h } as Holding);
+}
+
 export function applyChanges(plan: WealthPlan, changes: PlanChange[], selectedKeys: Set<string>): WealthPlan {
   const next: WealthPlan = {
     ...plan,
@@ -585,6 +613,7 @@ export function applyChanges(plan: WealthPlan, changes: PlanChange[], selectedKe
     assets: plan.assets.map((c) => ({ ...c })),
     loans: plan.loans.map((c) => ({ ...c })),
     goals: plan.goals.map((c) => ({ ...c })),
+    holdings: (plan.holdings ?? []).map((c) => ({ ...c })),
     retirement: plan.retirement ? { ...plan.retirement } : undefined,
     updatedAt: new Date().toISOString(),
   };
@@ -621,7 +650,14 @@ export function applyChanges(plan: WealthPlan, changes: PlanChange[], selectedKe
         break;
       }
       case "assets": {
+        // A holding-sourced change carries the rich position facts as
+        // `_holding`. Strip it before writing the Asset (which stays a plain
+        // account-shaped balance, exactly as before), then upsert the
+        // holding into the analytics layer.
+        const holding = patch._holding as Record<string, unknown> | undefined;
+        delete patch._holding;
         upsert(next.assets, ch.targetId, patch, () => ({ id: newId(), type: "account", value: 0, liquid: true } as Asset));
+        if (holding) upsertHolding(next, holding);
         break;
       }
       case "loans": {
@@ -745,6 +781,24 @@ export function sanitizePlan(plan: WealthPlan): WealthPlan {
         tier: enumOr(g.tier, TIERS) as Goal["tier"],
       };
     }),
+    holdings: plan.holdings && plan.holdings.length
+      ? plan.holdings.map((h) => ({
+          ...h,
+          id: h.id || newId(),
+          name: String(h.name ?? ""),
+          value: num(h.value, 0, 0, Number.MAX_SAFE_INTEGER),
+          cls: enumOr(h.cls, CLASSES),
+          // er is a percent; the schema caps it at 20. yld at 100.
+          er: h.er == null ? undefined : num(h.er, 0, 0, 20),
+          yld: h.yld == null ? undefined : num(h.yld, 0, 0, 100),
+          ticker: h.ticker == null ? undefined : String(h.ticker).slice(0, 20),
+          isin: h.isin == null ? undefined : String(h.isin).slice(0, 12),
+          region: h.region == null ? undefined : String(h.region).slice(0, 60),
+          ccy: h.ccy == null ? undefined : String(h.ccy).slice(0, 3),
+          feedRef: h.feedRef == null ? undefined : String(h.feedRef).slice(0, 200),
+          note: h.note == null ? undefined : String(h.note).slice(0, 500),
+        }))
+      : plan.holdings,
     retirement: plan.retirement
       ? (() => {
           const age = Math.round(num(plan.retirement!.retirementAge, 65, 30, 100));

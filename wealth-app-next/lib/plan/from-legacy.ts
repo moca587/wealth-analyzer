@@ -35,7 +35,7 @@
 import { emptyPlan, newId } from "./default-plan";
 import type {
   WealthPlan, Client, IncomeStream, ExpenseCategory, Asset, Loan, Goal,
-  Pension, CountryCode, RiskProfile, TimeHorizon, AssetClass,
+  Pension, Holding, CountryCode, RiskProfile, TimeHorizon, AssetClass,
 } from "@/lib/engine/types";
 
 export interface LegacyImportResult {
@@ -50,6 +50,7 @@ export interface LegacyImportResult {
   carried: {
     clients: number; children: number; incomes: number; expenses: number;
     assets: number; loans: number; goals: number; pensions: number;
+    holdings: number;
     retirement: boolean;
   };
 }
@@ -218,6 +219,29 @@ export function importLegacyPlan(input: unknown): LegacyImportResult {
     };
   });
 
+  // ─── Holdings (legacy `investments`) ────────────────────────────
+  // The legacy app kept security POSITIONS in a separate `investments`
+  // array with per-position cost/yield/region — richer than the account
+  // rows, and previously dropped on import. They land in the plan's
+  // holdings section (analytics only; net worth still sums assets).
+  const holdings: Holding[] = arr(src.investments).map((h) => {
+    const rawCls = typeof h.cls === "string" ? h.cls : "";
+    const cls = ASSET_CLASSES.has(rawCls as AssetClass) ? (rawCls as AssetClass) : undefined;
+    return {
+      id: typeof h.id === "string" && h.id ? h.id : newId(),
+      name: typeof h.name === "string" ? h.name : (typeof h.tkr === "string" ? h.tkr : "Position"),
+      ticker: typeof h.tkr === "string" && h.tkr ? h.tkr : undefined,
+      cls,
+      value: typeof h.val === "number" && Number.isFinite(h.val) ? Math.max(0, h.val) : 0,
+      er: typeof h.er === "number" && Number.isFinite(h.er) ? h.er : undefined,
+      yld: typeof h.yld === "number" && Number.isFinite(h.yld) ? h.yld : undefined,
+      region: typeof h.region === "string" && h.region ? h.region : undefined,
+      note: typeof h.note === "string" && h.note ? h.note : undefined,
+      feedRef: typeof h.tkr === "string" && h.tkr ? `hold:${h.tkr}` : undefined,
+    };
+  });
+  if (holdings.length) plan.holdings = holdings;
+
   // aProp / aOther are standalone figures on the legacy household screen,
   // NOT rows in `assets`. Dropping them understates net worth.
   const prop = N(f, "aProp");
@@ -331,7 +355,6 @@ export function importLegacyPlan(input: unknown): LegacyImportResult {
   // Silence here is how a demo goes wrong: the advisor assumes the whole
   // file came across.
   const dropped: string[] = [];
-  if (arr(src.investments).length) dropped.push(`${arr(src.investments).length} portfolio holding(s)`);
   if (arr(src.beneficiaries).length) dropped.push(`${arr(src.beneficiaries).length} beneficiar(y/ies)`);
   if (arr(src.equityComp).length) dropped.push(`${arr(src.equityComp).length} equity-compensation grant(s)`);
   if (S(f, "taxMode") || S(f, "taxResidency")) dropped.push("tax assumptions");
@@ -356,6 +379,7 @@ export function importLegacyPlan(input: unknown): LegacyImportResult {
       loans: plan.loans.length,
       goals: plan.goals.length,
       pensions: pensions.length,
+      holdings: (plan.holdings ?? []).length,
       retirement: !!plan.retirement?.enabled,
     },
   };

@@ -81,6 +81,24 @@ const assetSchema = z.object({
   feedRef: z.string().max(200).optional(),
 });
 
+const holdingSchema = z.object({
+  id: nonEmptyId,
+  name: z.string(),
+  ticker: z.string().max(20).optional(),
+  isin: z.string().max(12).optional(),
+  cls: assetClassEnum.optional(),
+  value: money,
+  // Percent, not decimal: 0.20 = 0.20%. Generous upper bound (a wrapped
+  // structured product can be a few percent) but not absurd.
+  er: finiteNumber.min(0).max(20).optional(),
+  yld: finiteNumber.min(0).max(100).optional(),
+  region: z.string().max(60).optional(),
+  ccy: z.string().max(3).optional(),
+  accountRef: z.string().max(200).optional(),
+  feedRef: z.string().max(200).optional(),
+  note: z.string().max(500).optional(),
+});
+
 const loanSchema = z.object({
   id: nonEmptyId,
   type: z.string(),
@@ -153,6 +171,7 @@ export const wealthPlanSchema = z
     assets: z.array(assetSchema),
     loans: z.array(loanSchema),
     goals: z.array(goalSchema),
+    holdings: z.array(holdingSchema).optional(),
     retirement: retirementSchema.optional(),
     pensions: z.array(pensionSchema).optional(),
     notes: z.string().optional(),

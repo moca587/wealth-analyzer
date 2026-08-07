@@ -87,6 +87,42 @@ describe("portfolioFromPlan", () => {
   });
 });
 
+describe("portfolioFromPlan — prefers real holdings when present", () => {
+  const planWithHoldings = (): WealthPlan => ({
+    ...emptyPlan(), currency: "CHF",
+    // An account-level asset AND the positions inside it. Net worth would sum
+    // assets; the portfolio must use holdings (the finer, richer level) and
+    // NOT double-count.
+    assets: [asset({ label: "Custody account", cls: "equity", value: 200000, feedRef: "acct:CH1" })],
+    holdings: [
+      { id: "h1", name: "SPI ETF", ticker: "CHSPI", cls: "equity", value: 120000, er: 0.10, yld: 2.6 },
+      { id: "h2", name: "Corp Bonds", ticker: "CHCORP", cls: "fixed_income", value: 80000, er: 0.15, yld: 1.2 },
+    ],
+  });
+
+  it("builds the portfolio from holdings, not the account balance", () => {
+    const p = portfolioFromPlan(planWithHoldings());
+    expect(p.total, "sum of the two positions, not the account total + positions").toBe(200000);
+    expect(p.positions).toHaveLength(2);
+    expect(p.positions.map((x) => x.ticker).sort()).toEqual(["CHCORP", "CHSPI"]);
+  });
+
+  it("uses the holding's OWN expense ratio, not a universe guess", () => {
+    // A universe lookup that would return a DIFFERENT er must not override
+    // the figure the custodian actually reported.
+    const wrongLookup: FundLookup = () => ({ er: 9.99 });
+    const p = portfolioFromPlan(planWithHoldings(), { lookup: wrongLookup });
+    const spi = p.positions.find((x) => x.ticker === "CHSPI")!;
+    expect(spi.er, "the feed's figure wins over the universe").toBe(0.10);
+  });
+
+  it("blends the real per-position cost", () => {
+    const p = portfolioFromPlan(planWithHoldings());
+    // (120k*0.10 + 80k*0.15) / 200k = 0.12
+    expect(comparePortfolios(p, p).summary.currentTer).toBeCloseTo(0.12, 6);
+  });
+});
+
 describe("portfolioFromProposal", () => {
   it("derives value from weightPct × targetAmount", () => {
     const p = portfolioFromProposal(proposal([

@@ -247,3 +247,59 @@ describe("the merged plan stays schema-valid", () => {
     expect(parsePlan(next).ok).toBe(true);
   });
 });
+
+describe("feed holdings become durable holdings, preserving cost/yield/region", () => {
+  const applyAll = (plan: WealthPlan, env: FeedEnvelope) => {
+    const changes = diffPlan(plan, env);
+    return applyChanges(plan, changes, allKeys(changes));
+  };
+
+  it("preserves er / yld / region a custodian sent, which the asset row cannot hold", () => {
+    const env = feed({ holdings: [
+      { name: "FTSE All-World", tkr: "VWRL", val: 120000, cls: "equity", er: 0.22, yld: 1.9, region: "global" },
+      { name: "Swiss Corp Bonds", tkr: "CHCORP", val: 80000, cls: "fixed_income", er: 0.15, yld: 1.2, region: "ch" },
+    ] });
+    const out = applyAll(emptyPlan(), env);
+
+    // The analytics layer carries the rich facts...
+    const vwrl = (out.holdings ?? []).find((h) => h.ticker === "VWRL");
+    expect(vwrl, "the holding should exist").toBeTruthy();
+    expect(vwrl!.er).toBeCloseTo(0.22, 6);
+    expect(vwrl!.yld).toBeCloseTo(1.9, 6);
+    expect(vwrl!.region).toBe("global");
+    expect(vwrl!.cls).toBe("equity");
+
+    // ...while the position ALSO exists as an account-shaped asset, so net
+    // worth (which sums assets) is unchanged by the holdings layer.
+    const vwrlAsset = out.assets.find((a) => a.feedRef === "hold:vwrl");
+    expect(vwrlAsset, "the asset row is still created as before").toBeTruthy();
+    expect(vwrlAsset!.value).toBe(120000);
+    expect("er" in vwrlAsset!, "the Asset stays clean — no _holding leakage").toBe(false);
+  });
+
+  it("re-syncing the same feed does NOT duplicate a holding", () => {
+    const env = feed({ holdings: [{ name: "VWRL", tkr: "VWRL", val: 120000, cls: "equity", er: 0.22 }] });
+    const once = applyAll(emptyPlan(), env);
+    // Second run against the already-synced plan: the diff reports unchanged,
+    // so applyChanges skips it and the holdings list does not grow.
+    const twice = applyAll(once, env);
+    expect((twice.holdings ?? []).filter((h) => h.ticker === "VWRL")).toHaveLength(1);
+  });
+
+  it("updates a holding's value on the next sync without blanking its er", () => {
+    const first = applyAll(emptyPlan(), feed({
+      holdings: [{ name: "VWRL", tkr: "VWRL", val: 120000, cls: "equity", er: 0.22 }] }));
+    // Custodian sends a new value but no er this time.
+    const second = applyAll(first, feed({
+      holdings: [{ name: "VWRL", tkr: "VWRL", val: 135000, cls: "equity" }] }));
+    const h = (second.holdings ?? []).find((x) => x.ticker === "VWRL")!;
+    expect(h.value).toBe(135000);
+    expect(h.er, "a payload without er must not blank the stored one").toBeCloseTo(0.22, 6);
+  });
+
+  it("leaves the merged plan schema-valid", () => {
+    const out = applyAll(emptyPlan(), feed({
+      holdings: [{ name: "VWRL", tkr: "VWRL", val: 120000, cls: "equity", er: 0.22, yld: 1.9 }] }));
+    expect(parsePlan(out).ok).toBe(true);
+  });
+});

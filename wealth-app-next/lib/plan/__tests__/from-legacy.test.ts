@@ -123,6 +123,29 @@ describe.runIf(hasKeller)("the Keller household imports as a real plan", () => {
     expect(carried.goals).toBeGreaterThan(0);
   });
 
+  it("imports the legacy `investments` as holdings, with real cost/yield", () => {
+    // The recon's "7 portfolio holding(s)" that the importer used to DROP.
+    // They carry per-position expense ratio and yield the account rows do
+    // not — the whole reason the holdings layer exists.
+    const { plan, carried } = result();
+    expect(carried.holdings).toBe(7);
+    const holdings = plan.holdings ?? [];
+    const spi = holdings.find((h) => h.ticker === "CHSPI");
+    expect(spi, "the SPI ETF should be a holding").toBeTruthy();
+    expect(spi!.er).toBeCloseTo(0.1, 6);
+    expect(spi!.yld).toBeCloseTo(2.6, 6);
+    expect(spi!.cls).toBe("equity");
+    // An individual stock carries a yield but no expense ratio — not a fund.
+    const nestle = holdings.find((h) => h.ticker === "NESN");
+    expect(nestle!.er).toBeUndefined();
+    expect(nestle!.yld).toBeGreaterThan(0);
+  });
+
+  it("does not list holdings among the things it could not import", () => {
+    const { notes } = result();
+    expect(notes.join(" ")).not.toMatch(/portfolio holding/i);
+  });
+
   it("SAYS what it could not bring across", () => {
     // The whole point. Legacy files carry holdings, beneficiaries, equity
     // comp and tax assumptions that this app has nowhere to put; an import
