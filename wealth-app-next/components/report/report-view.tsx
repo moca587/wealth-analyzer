@@ -11,7 +11,7 @@
 import { useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { SimChart } from "@/components/sim/sim-chart";
-import { runMonteCarlo } from "@/lib/engine/monte-carlo";
+import { runMonteCarlo } from "@/lib/engine/monte-carlo-old";
 import { REPORT_SEED } from "@/components/sim/sim-runner";
 import { formatMoney, estimateIncomeTax, ageFromDOB, calcMortgagePayment } from "@/lib/engine/financial-math";
 import { RISK_PROFILES } from "@/lib/engine/constants";
