@@ -222,3 +222,13 @@ export const RRIF_RATES: Record<number, number> = {
   93: 16.34,
   94: 18.79,
 };
+
+export const US_STATE_TAX_RATES: Record<string, number> = {
+  AL: 4.8, AK: 0, AZ: 2.5, AR: 4.4, CA: 7.5, CO: 4.4, CT: 5.0, DE: 5.2,
+  FL: 0, GA: 5.49, HI: 8.25, ID: 5.8, IL: 4.95, IN: 3.15, IA: 4.82,
+  KS: 5.7, KY: 4.0, LA: 4.25, ME: 6.0, MD: 5.0, MA: 5.0, MI: 4.25,
+  MN: 7.0, MS: 5.0, MO: 4.8, MT: 6.5, NE: 5.5, NV: 0, NH: 0, NJ: 5.53,
+  NM: 4.9, NY: 6.85, NC: 4.75, ND: 1.5, OH: 3.0, OK: 4.75, OR: 8.5,
+  PA: 3.07, RI: 4.75, SC: 6.5, SD: 0, TN: 0, TX: 0, UT: 4.65, VT: 6.0,
+  VA: 5.75, WA: 0, WV: 5.12, WI: 5.3, WY: 0, DC: 8.5,
+};

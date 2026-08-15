@@ -4,7 +4,7 @@
 // Ported from the wealth-analyzer.html script block.
 // ─────────────────────────────────────────────────────────────────
 
-import { IRS_UNIFORM_LIFETIME, ASSET_CLASS_CMA, assetCorrelation, TAX_BRACKETS, RRIF_RATES } from "./constants";
+import { IRS_UNIFORM_LIFETIME, ASSET_CLASS_CMA, assetCorrelation, TAX_BRACKETS, RRIF_RATES, US_STATE_TAX_RATES } from "./constants";
 import type { AssetClass } from "./types";
 
 /**
@@ -93,6 +93,7 @@ export function portfolioReturnParams(
 ): { mean: number; sigma: number } {
   const byClass = new Map<AssetClass, number>();
   let total = 0;
+  
   for (const h of holdings) {
     const v = h.value || 0;
     if (v <= 0) continue;
@@ -290,6 +291,12 @@ export function ageFromDOB(
   return age;
 }
 
+export function computeStateTax(income: number, country: string, stateCode?: string): number {
+  if (income <= 0 || country !== "US" || !stateCode) return 0;
+  const rate = US_STATE_TAX_RATES[stateCode] ?? 0;
+  return income * (rate / 100);
+}
+
 /** Format a number as a currency string with the given ISO currency code */
 export function formatMoney(amount: number, currency = "USD", locale = "en-US"): string {
   try {
@@ -303,6 +310,8 @@ export function formatMoney(amount: number, currency = "USD", locale = "en-US"):
   }
 }
 
+
+// Functions used by the legacy wealth analyzer
 export function auSuperRate(age: number): number {
   if (age < 60) return 0;
   if (age < 65) return 4;
@@ -606,7 +615,6 @@ export function getEffectiveReturnParamsGross(
     val: number;
   }>,
 ): EffectiveReturnParams | null {
-  // HTML behavior:
   // only non-cash holdings determine invested return parameters.
   const nonCashHoldings =
     investments.filter(

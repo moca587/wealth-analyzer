@@ -207,17 +207,26 @@ export interface SimulationResult {
   /** Paths as [sim_index][year_index] of net worth */
   paths: number[][];
   /** Yearly percentiles */
-  percentiles: {
-    p10: number[]; p25: number[]; p50: number[];
-    p75: number[]; p80: number[]; p90: number[];
-  };
+  // percentiles: {
+  //   p10: number[]; p25: number[]; p50: number[];
+  //   p75: number[]; p80: number[]; p90: number[];
+  // };
+  percentiles: Record<string, number[]>;
+
+  realPercentiles: Record<string, number[]>;
   /** Goal probability of success (calendar-year aware) */
   goalSuccess: Array<{ goalId: string; goalName: string; probability: number }>;
   /** Aggregate stats at final year */
-  final: {
-    p10: number; p25: number; p50: number; p75: number; p90: number;
-    mean: number;
-  };
+  // final: {
+  //   p10: number; p25: number; p50: number; p75: number; p90: number;
+  //   mean: number;
+  // };
+  final: Record<string, number> & {mean: number};
+
+  realFinal: Record<string, number>;
+  
+  medianUnfunded: number;
+  depletionProbability?: number;
   /** Retirement "will my money last?" summary — present only when the plan enables retirement. */
   retirement?: {
     enabled: boolean;

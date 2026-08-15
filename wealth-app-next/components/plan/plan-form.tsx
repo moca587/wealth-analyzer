@@ -73,7 +73,7 @@ export function PlanForm({
   function importJsonText() {
     try {
       const raw: unknown = JSON.parse(jsonText);
-      const result = legacyWealthPlanSchema.safeParse(raw);
+      const result = wealthPlanSchema.safeParse(raw);
 
       if (!result.success) {
         const errors = result.error.issues
@@ -83,13 +83,13 @@ export function PlanForm({
           })
           .join("\n");
 
-        setMessage(`Invalid legacy profile:\n${errors}`);
+        setMessage(`Invalid plan:\n${errors}`);
         return;
       }
 
       setPlan(result.data);
       setJsonText(JSON.stringify(result.data, null, 2));
-      setMessage("JSON profile validated successfully.");
+      setMessage("JSON plan validated successfully.");
     } catch {
       setMessage("The text is not valid JSON.");
     }

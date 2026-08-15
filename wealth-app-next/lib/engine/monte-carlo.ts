@@ -38,6 +38,7 @@ export type PercentileSeries = Record<string, number[]>;
 // Stores only the percentile values at the final projection year
 export type FinalPercentiles = Record<string, number>;
 
+// Monte Carlo result interface
 export interface MonteCarloResult {
     paths: MonteCarloPath[];
     depletion: DepletionStats;
@@ -74,9 +75,7 @@ export type AssetBuckets = Record<string, number>;
 
 /**
  * These functions correspond to helpers called by the legacy HTML runMC.
- *
- * Keeping them explicit prevents important behavior from being silently
- * omitted while the rest of the application is migrated.
+ * MonteCarloDependencies defines all functions the Monte Carlo engine depends on. 
  */
 export interface MonteCarloDependencies {
     getActiveSimulationParams(
@@ -161,6 +160,7 @@ export function runMonteCarlo(
         createDefaultMonteCarloDependencies(),
     options: MonteCarloOptions = {}
 ): MonteCarloResult {
+    // Validate years and sims 
     validateSimulationArguments(years, sims);
 
     const requestedPercentiles =
@@ -193,7 +193,7 @@ export function runMonteCarlo(
         return boxMuller(random);
     };
 
-    // Override → proposal-driven → household effective defaults.
+    // Get parameters (mu and sig)
     const activeParameters =
         dependencies.getActiveSimulationParams(plan);
 
@@ -246,10 +246,10 @@ export function runMonteCarlo(
     const liquidAccountValue = Math.max(
         0,
         totalAccountValue - retirementSeed,
-    );
+    ); // comes from the assets array 
 
     const portfolioTotal =
-        portfolioInvested + portfolioCash;
+        portfolioInvested + portfolioCash; // comes from the investments array
 
     let investmentSeed: number;
     let cashSeed: number;
@@ -363,8 +363,9 @@ export function runMonteCarlo(
     const rebalancingFrequency =
         fields.rebalFreq || "none";
 
+    // desired percentage of invested portfolio in equities (0-100)
     const targetEquity =
-        numberField(fields.tgtEquity) / 100;
+        numberField(fields.tgtEquity) / 100; 
 
     // ───────────────────────────────────────────────────────────
     // Goal outflow map
@@ -398,6 +399,7 @@ export function runMonteCarlo(
         simulationIndex < sims;
         simulationIndex += 1
     ) {
+        // every simulation starts with the same amount of cash
         let cash = cashSeed;
         let property = propertyValue;
 

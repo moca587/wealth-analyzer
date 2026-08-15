@@ -21,7 +21,7 @@
 
 import {
   boxMuller, calcMortgagePayment, createSeededRandom, geometricMean,
-  portfolioReturnParams, estimateIncomeTax, ageFromDOB, calcRMD
+  portfolioReturnParams, estimateIncomeTax, ageFromDOB, calcRMD, computeStateTax
 } from "./financial-math";
 import { RISK_PROFILES } from "./constants";
 import type {
@@ -70,16 +70,31 @@ function amortizeLoan(loan: Loan): { newBal: number; interestPaid: number; princ
   return { newBal, interestPaid: interestTotal, principalPaid: loan.bal - newBal };
 }
 
+function validatePercentiles(percentiles: number[]): number[] {
+  if (percentiles.length === 0) {
+    throw new Error("At least one percentile is required");
+  }
+  const unique = [...new Set(percentiles)].sort((a, b) => a - b);
+  for (const value of unique) {
+    if (!Number.isFinite(value) || value < 0 || value > 100) {
+      throw new Error(`Invalid percentile: ${value}`);
+    }
+  }
+  return unique;
+}
+
 /**
  * Run the Monte Carlo simulation.
  *
  * This is the migration target — port verified to match the HTML
  * app's runSim() output within numerical noise (different RNG seeds).
  */
-export function runMonteCarlo(input: SimulationInput): SimulationResult {
+export function runMonteCarlo(input: SimulationInput, options: { percentiles?: number[] } = {}): SimulationResult {
   const t0 = performance.now();
   const { plan, sims, years, seed } = input;
   const rng = seed !== undefined ? createSeededRandom(seed) : Math.random;
+
+  const requestedPercentiles = validatePercentiles(options.percentiles ?? [10, 25, 50, 75, 80, 90]);
 
   // Anchor the run to a fixed calendar year so goal offsets and the primary
   // client's age are reproducible for a given seed (they otherwise drift with
@@ -119,7 +134,8 @@ export function runMonteCarlo(input: SimulationInput): SimulationResult {
   // Income tax on working income (flat income → computed once).
   const taxableIncome = sumOf(plan.incomes.filter((i) => i.taxable !== false), (i) => i.amount);
   const taxCountry = plan.clients[0]?.country || "US";
-  const afterTaxIncome = annualIncome - estimateIncomeTax(taxableIncome, taxCountry);
+  const afterTaxIncome = annualIncome - estimateIncomeTax(taxableIncome, taxCountry)
+    - computeStateTax(taxableIncome, taxCountry, plan.clients[0]?.state);
 
   // ─── Retirement / decumulation config ───
   // Guard against a malformed dob (the schema doesn't enforce date format):
@@ -128,14 +144,14 @@ export function runMonteCarlo(input: SimulationInput): SimulationResult {
   // const dobAge = plan.clients[0]?.dob ? ageFromDOB(plan.clients[0].dob, asOfDate) : NaN;
   // const currentAge = Number.isFinite(dobAge) ? dobAge : 40;
   const dobAge = plan.clients[0]?.dob
-  ? ageFromDOB(plan.clients[0].dob, asOfDate)
-  : null;
+    ? ageFromDOB(plan.clients[0].dob, asOfDate)
+    : null;
 
   const currentAge: number =
     dobAge !== null && Number.isFinite(dobAge)
       ? dobAge
       : 40;
-      
+
   const ret = plan.retirement;
   const retEnabled = !!(ret && ret.enabled && ret.retirementAge > 0);
   const retirementAge = retEnabled ? ret!.retirementAge : Infinity;
@@ -168,6 +184,7 @@ export function runMonteCarlo(input: SimulationInput): SimulationResult {
 
   // ─── Run all sims ───
   const paths: number[][] = [];
+  const pathMeta: Array<{ unfunded: number; shortfallYear: number | null; liquidityDepletedYear: number | null }> = []; // NEW
   const goalHits: Record<string, number> = {};
   plan.goals.forEach((g) => { goalHits[g.id] = 0; });
   let depletionCount = 0;
@@ -179,7 +196,11 @@ export function runMonteCarlo(input: SimulationInput): SimulationResult {
     const loanState: Loan[] = plan.loans.map((l) => ({ ...l }));
     const path: number[] = [];
     const goalFundedThisSim: Record<string, boolean> = {};
+
     let depleted = false;
+    let unfunded = 0;
+    let shortfallYear: number | null = null;
+    let liquidityDepletedYear: number | null = null;
 
     for (let y = 0; y < Y; y++) {
       const age = currentAge + y;
@@ -224,7 +245,7 @@ export function runMonteCarlo(input: SimulationInput): SimulationResult {
       if (retEnabled && age >= 73 && deferred > 0) {
         const rmd = calcRMD(deferred, age, "US");
         deferred -= rmd;
-        netRMD = rmd - estimateIncomeTax(rmd, taxCountry);
+        netRMD = rmd - estimateIncomeTax(rmd, taxCountry) - computeStateTax(rmd, taxCountry, plan.clients[0]?.state);
       }
 
       const inRetirement = retEnabled && age >= retirementAge;
@@ -243,7 +264,7 @@ export function runMonteCarlo(input: SimulationInput): SimulationResult {
         for (const p of pensions) {
           if (age >= p.startAge) pensionGross += (p.annualAmount || 0) * Math.pow(1 + (p.colaRate || 0), age - p.startAge);
         }
-        const netPension = pensionGross - estimateIncomeTax(pensionGross, taxCountry);
+        const netPension = pensionGross - estimateIncomeTax(pensionGross, taxCountry) - computeStateTax(pensionGross, taxCountry, plan.clients[0]?.state);
 
         const spending = retSpendToday * Math.pow(1 + inflation, y);
         let need = spending + debtService - netPension - netRMD;
@@ -260,13 +281,22 @@ export function runMonteCarlo(input: SimulationInput): SimulationResult {
             // outflow (spending + debt service), so a mortgage paid from the
             // deferred pool isn't modeled as tax-free when spending is small.
             const grossBase = spending + debtService;
-            const effRate = Math.min(0.5, Math.max(0, estimateIncomeTax(grossBase, taxCountry) / Math.max(1, grossBase)));
+            const effRate = Math.min(0.5, Math.max(0,
+              (estimateIncomeTax(grossBase, taxCountry) + computeStateTax(grossBase, taxCountry, plan.clients[0]?.state))
+              / Math.max(1, grossBase)
+            ));
+            // const effRate = Math.min(0.5, Math.max(0, estimateIncomeTax(grossBase, taxCountry) / Math.max(1, grossBase)));
             deferred -= need / (1 - effRate);
             need = 0;
           }
         }
         if (taxable < 0) { deferred += taxable; taxable = 0; }
-        if (deferred < 0) { depleted = true; deferred = 0; }
+        if (deferred < 0) {
+          unfunded += -deferred;
+          if (liquidityDepletedYear === null) liquidityDepletedYear = y;
+          depleted = true;
+          deferred = 0;
+        }
       }
 
       // 5. Goal funding — drawn from taxable then deferred (calendar-year aware).
@@ -280,15 +310,29 @@ export function runMonteCarlo(input: SimulationInput): SimulationResult {
           const fromTaxable = Math.min(Math.max(0, taxable), totalNeeded);
           taxable -= fromTaxable;
           deferred -= totalNeeded - fromTaxable;
+        } else {
+          // record dollar gap 
+          const available = Math.max(0, taxable) + Math.max(0, deferred);
+          const gap = totalNeeded - available;
+          if (gap > 0.5) {
+            unfunded += gap;
+            if (shortfallYear === null) shortfallYear = y;
+            if (liquidityDepletedYear === null) liquidityDepletedYear = y;
+          }
+          const fromTaxable = Math.max(0, taxable);
+          taxable -= fromTaxable;
+          deferred -= Math.max(0, deferred);
+          goalFundedThisSim[goal.id] = true;
         }
       });
 
       // 6. Net worth this year = investable pools + property − total debt
       const totalDebt = loanState.reduce((s, l) => s + Math.max(0, l.bal), 0);
-      path.push(taxable + deferred + propertyVal - totalDebt);
+      path.push(taxable + deferred + propertyVal - totalDebt - unfunded);
     }
 
     paths.push(path);
+    pathMeta.push({ unfunded, shortfallYear, liquidityDepletedYear }); // NEW
     if (depleted) depletionCount++;
     Object.entries(goalFundedThisSim).forEach(([gid, hit]) => {
       if (hit) goalHits[gid] = (goalHits[gid] || 0) + 1;
@@ -299,22 +343,82 @@ export function runMonteCarlo(input: SimulationInput): SimulationResult {
   const pct = (sortedRow: number[], p: number) =>
     sortedRow[Math.max(0, Math.min(sims - 1, Math.floor(sims * (p / 100))))];
 
-  const p10: number[] = [], p25: number[] = [], p50: number[] = [];
-  const p75: number[] = [], p80: number[] = [], p90: number[] = [];
+  // const p10: number[] = [], p25: number[] = [], p50: number[] = [];
+  // const p75: number[] = [], p80: number[] = [], p90: number[] = [];
 
-  for (let y = 0; y < Y; y++) {
-    const row = paths.map((p) => p[y]).sort((a, b) => a - b);
-    p10.push(pct(row, 10));
-    p25.push(pct(row, 25));
-    p50.push(pct(row, 50));
-    p75.push(pct(row, 75));
-    p80.push(pct(row, 80));
-    p90.push(pct(row, 90));
+  // for (let y = 0; y < Y; y++) {
+  //   const row = paths.map((p) => p[y]).sort((a, b) => a - b);
+  //   p10.push(pct(row, 10));
+  //   p25.push(pct(row, 25));
+  //   p50.push(pct(row, 50));
+  //   p75.push(pct(row, 75));
+  //   p80.push(pct(row, 80));
+  //   p90.push(pct(row, 90));
+  // }
+  const percentileSeries: Record<string, number[]> = {};
+
+  for (const p of requestedPercentiles) {
+    percentileSeries[`p${p}`] = [];
   }
 
-  const finalRow = paths.map((p) => p[Y - 1]).sort((a, b) => a - b);
-  const mean = finalRow.reduce((s, v) => s + v, 0) / sims;
+  for (let y = 0; y < Y; y++) {
+    const row = paths
+      .map((path) => path[y])
+      .sort((a, b) => a - b);
 
+    for (const p of requestedPercentiles) {
+      percentileSeries[`p${p}`].push(
+        pct(row, p)
+      );
+    }
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  // Convert nominal future dollars to today's dollars
+  // ─────────────────────────────────────────────────────────────
+
+  const realPercentileSeries:
+    Record<string, number[]> = {};
+
+  for (const p of requestedPercentiles) {
+    realPercentileSeries[`p${p}`] =
+      percentileSeries[`p${p}`].map(
+        (value, yearOffset) =>
+          value /
+          Math.pow(
+            1 + inflation,
+            yearOffset
+          )
+      );
+  }
+
+  const finalRow = paths
+    .map((path) => path[Y - 1])
+    .sort((a, b) => a - b);
+
+  const mean =
+    finalRow.reduce((sum, value) => sum + value, 0) /
+    sims;
+
+  const finalPercentiles:
+    Record<string, number> = {};
+
+  for (const p of requestedPercentiles) {
+    finalPercentiles[`p${p}`] =
+      pct(finalRow, p);
+  }
+
+  // Final values in today's dollars
+  const realFinalPercentiles:
+    Record<string, number> = {};
+
+  for (const p of requestedPercentiles) {
+    const series =
+      realPercentileSeries[`p${p}`];
+
+    realFinalPercentiles[`p${p}`] =
+      series[series.length - 1];
+  }
   // ─── Goal success rates ───
   // Retirement-category goals excluded from goal-funding (see coveredByRetirement
   // above) are met by the decumulation engine, so their "success" IS the
@@ -326,18 +430,23 @@ export function runMonteCarlo(input: SimulationInput): SimulationResult {
     probability: coveredByRetirement(g) ? retSuccessProb : (goalHits[g.id] || 0) / sims
   }));
 
+  const depletedMeta = pathMeta.filter((m) => m.liquidityDepletedYear !== null);
+  const medianUnfunded = depletedMeta.length
+    ? depletedMeta.map((m) => m.unfunded).sort((a, b) => a - b)[Math.floor(depletedMeta.length / 2)]
+    : 0;
+
   // ─── Hash input for caching (stable for identical plans) ───
   const inputHash = hashPlan(plan, sims, Y, seed, asOfYear);
 
   // ─── Retirement "will my money last?" summary ───
   const retirement = retEnabled
     ? {
-        enabled: true,
-        successProbability: (sims - depletionCount) / sims,
-        depletionProbability: depletionCount / sims,
-        retirementAge: ret!.retirementAge,
-        planToAge,
-      }
+      enabled: true,
+      successProbability: (sims - depletionCount) / sims,
+      depletionProbability: depletionCount / sims,
+      retirementAge: ret!.retirementAge,
+      planToAge,
+    }
     : undefined;
 
   return {
@@ -345,18 +454,34 @@ export function runMonteCarlo(input: SimulationInput): SimulationResult {
     sims,
     years: Y,
     paths,
-    percentiles: { p10, p25, p50, p75, p80, p90 },
+
+    // Nominal future dollars
+    percentiles: percentileSeries,
+
+    // Inflation-adjusted today's dollars
+    realPercentiles: realPercentileSeries,
+
     goalSuccess,
+
+    // Nominal ending values
     final: {
-      p10: pct(finalRow, 10),
-      p25: pct(finalRow, 25),
-      p50: pct(finalRow, 50),
-      p75: pct(finalRow, 75),
-      p90: pct(finalRow, 90),
-      mean
+      ...finalPercentiles,
+      mean,
     },
+
+    // Today's-dollar ending values
+    realFinal: realFinalPercentiles,
+
+    medianUnfunded,
+
+    depletionProbability:
+      depletedMeta.length / sims,
+
     ...(retirement ? { retirement } : {}),
-    runMs: Math.round(performance.now() - t0)
+
+    runMs: Math.round(
+      performance.now() - t0
+    ),
   };
 }
 
