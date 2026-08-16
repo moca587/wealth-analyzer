@@ -176,10 +176,16 @@ export function importLegacyPlan(input: unknown): LegacyImportResult {
     if (v === null || v === 0) return;
     incomes.push({ id: newId(), clientId: owner.id, source: label, amount: v });
   };
+  // addIncome(c1, "inc1", "Salary");
+  // addIncome(c1, "inc1b", "Bonus");
+  // addIncome(c2, "inc2", "Salary");
+  // addIncome(c2, "inc2b", "Bonus");
   addIncome(c1, "inc1", "Salary");
-  addIncome(c1, "inc1b", "Bonus");
-  addIncome(c2, "inc2", "Salary");
-  addIncome(c2, "inc2b", "Bonus");
+  addIncome(c1, "inc2", "Other income");
+
+  addIncome(c2, "inc1b", "Salary");
+  addIncome(c2, "inc2b", "Other income");
+  
   plan.incomes = incomes;
   if (!incomes.length) {
     notes.push("No income in the file. A projection with zero income will look far worse than reality — check this before showing it to the client.");
