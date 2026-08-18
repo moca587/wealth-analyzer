@@ -7,7 +7,7 @@ import {
 } from "@/lib/engine/financial-math";
 import { AssetAllocationDonut } from "./asset-allocation-donut";
 
-export function WealthOverview({ plan }: { plan: WealthPlan }) {
+export function WealthOverviewSection({ plan }: { plan: WealthPlan }) {
     const totalAssets = plan.assets.reduce(
         (sum, asset) => sum + (Number(asset.value) || 0),
         0

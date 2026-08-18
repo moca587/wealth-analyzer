@@ -1,10 +1,10 @@
 import { loadPageContext } from "@/lib/tenancy/page";
 import { ChooseClient } from "@/components/nav/choose-client";
-import { ProposalPageForm } from "@/components/proposal/proposal-page-form";
+import { PortfolioComparisonPageForm } from "@/components/portfolio-comparison/portfolio-comparison-page-form";
 
 export const dynamic = "force-dynamic";
 
-export default async function ProposalPage() {
+export default async function PortfolioComparisonPage() {
   const ctx = await loadPageContext();
 
   if (ctx.needsChoice) {
@@ -16,7 +16,7 @@ export default async function ProposalPage() {
   }
 
   return (
-    <ProposalPageForm
+    <PortfolioComparisonPageForm
       key={ctx.household!.id}
       initialPlan={ctx.plan}
       initialVersion={ctx.version}

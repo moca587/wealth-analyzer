@@ -1,22 +1,20 @@
 import { loadPageContext } from "@/lib/tenancy/page";
 import { ChooseClient } from "@/components/nav/choose-client";
-import { ProposalPageForm } from "@/components/proposal/proposal-page-form";
+import { AssetsPageForm } from "@/components/assets/assets-page-form";
 
 export const dynamic = "force-dynamic";
 
-export default async function ProposalPage() {
+export default async function AssetsPage() {
   const ctx = await loadPageContext();
 
   if (ctx.needsChoice) {
     return (
-      <ChooseClient
-        message={ctx.needsChoice.message}
-      />
+      <ChooseClient message={ctx.needsChoice.message} />
     );
   }
 
   return (
-    <ProposalPageForm
+    <AssetsPageForm
       key={ctx.household!.id}
       initialPlan={ctx.plan}
       initialVersion={ctx.version}

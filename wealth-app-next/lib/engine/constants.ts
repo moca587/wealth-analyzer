@@ -5,21 +5,107 @@
 
 import type { AssetClass, RiskProfile, TimeHorizon } from "./types";
 
-export const RISK_PROFILES: Record<RiskProfile, { label: string; mu: number; sigma: number }> = {
-  very_conservative:        { label: "Very Conservative",      mu: 3.5,  sigma: 4  },
-  conservative:             { label: "Conservative",           mu: 4.5,  sigma: 7  },
-  moderately_conservative:  { label: "Moderately Conservative",mu: 5.5,  sigma: 9  },
-  moderate:                 { label: "Moderate",               mu: 7.0,  sigma: 12 },
-  moderately_aggressive:    { label: "Moderately Aggressive",  mu: 8.5,  sigma: 15 },
-  aggressive:               { label: "Aggressive",             mu: 10.0, sigma: 18 },
-  very_aggressive:          { label: "Very Aggressive",        mu: 12.0, sigma: 22 }
+export const RISK_PROFILES: Record<
+  RiskProfile,
+  {
+    label: string;
+    mu: number;
+    sigma: number;
+    note: string;
+  }
+> = {
+  very_conservative: {
+    label: "Very Conservative",
+    mu: 3.5,
+    sigma: 4,
+    note:
+      "Capital-preservation focus. Mostly cash & short bonds, minimal equity (~10–20%).",
+  },
+
+  conservative: {
+    label: "Conservative",
+    mu: 4.5,
+    sigma: 7,
+    note:
+      "Income-oriented. Heavy fixed income, small equity allocation (~20–30%).",
+  },
+
+  moderately_conservative: {
+    label: "Moderately Conservative",
+    mu: 5.5,
+    sigma: 9,
+    note:
+      "Balanced tilt toward safety. ~40% equities, 60% fixed income.",
+  },
+
+  moderate: {
+    label: "Moderate",
+    mu: 7,
+    sigma: 12,
+    note:
+      "Classic 60/40 balanced portfolio. Equal focus on growth and stability.",
+  },
+
+  moderately_aggressive: {
+    label: "Moderately Aggressive",
+    mu: 8.5,
+    sigma: 15,
+    note:
+      "Growth-oriented. ~70–75% equities, 25–30% bonds.",
+  },
+
+  aggressive: {
+    label: "Aggressive",
+    mu: 10,
+    sigma: 18,
+    note:
+      "Primarily equities (~85–90%). Accepts significant short-term volatility.",
+  },
+
+  very_aggressive: {
+    label: "Very Aggressive",
+    mu: 12,
+    sigma: 22,
+    note:
+      "Maximum growth. ~95–100% equities incl. emerging/small-cap. Highest volatility.",
+  },
 };
 
-export const HORIZON_PROFILES: Record<TimeHorizon, { label: string; years: number }> = {
-  "0_5":      { label: "0–5 years",   years: 5  },
-  "5_10":     { label: "5–10 years",  years: 10 },
-  "10_15":    { label: "10–15 years", years: 15 },
-  "15_plus":  { label: "15+ years",   years: 30 }
+export const HORIZON_PROFILES: Record<
+  TimeHorizon,
+  {
+    label: string;
+    years: number;
+    note: string;
+  }
+> = {
+  "0_5": {
+    label: "0–5 years",
+    years: 5,
+    note:
+      "Short-term focus. Preserve capital. Favour low-volatility, income-oriented assets.",
+  },
+
+  "5_10": {
+    label: "5–10 years",
+    years: 10,
+    note:
+      "Medium-term. Balanced approach — measured equity exposure with a stability anchor.",
+  },
+
+  "10_15": {
+    label: "10–15 years",
+    years: 15,
+    note:
+      "Medium-to-long term. Can tolerate moderate volatility for meaningful compound growth.",
+  },
+
+  "15_plus": {
+    label: "15+ years",
+    years: 30,
+    note:
+      "Long horizon. Equity-heavy allocation is appropriate. Time smooths out volatility.",
+  },
 };
 
 /** 50-year historical inflation averages (1974-2024) per region. */

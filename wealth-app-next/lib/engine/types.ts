@@ -72,6 +72,10 @@ export interface Asset {
   country?: CountryCode;
   cls?: AssetClass;
   note?: string;
+
+  owner?: string;
+  ccy?: string;
+  withdrawAge?: number | null; 
   /**
    * Stable origin key when this record came from a data feed, e.g.
    * "acct:CH93…" or "hold:CHSPI". Lets a later sync find the same record even
@@ -79,6 +83,44 @@ export interface Asset {
    * bank account. Absent on hand-entered records.
    */
   feedRef?: string;
+}
+
+export interface EquityGrant {
+  id: string;
+  kind: "rsu" | "nqso" | "iso";
+  owner: string;
+
+  ticker: string;
+  shares: number;
+
+  strike: number;
+  price: number;
+  growth: number;
+
+  vestStart: number;
+  vestYears: number;
+
+  label: string;
+}
+
+export interface InsurancePolicy {
+  id: string;
+
+  type:
+    | "term_life"
+    | "whole_life"
+    | "universal_life"
+    | "disability"
+    | "ltc"
+    | "other";
+
+  insured: string;
+  benefit: number;
+  cashValue: number;
+  annualPremium: number;
+
+  beneficiary?: string;
+  label: string;
 }
 
 /**
@@ -99,6 +141,8 @@ export interface Holding {
   name: string;
   ticker?: string;
   isin?: string;
+
+  instrumentType?: string;
   cls?: AssetClass;
   value: number;          // market value, in plan currency
   er?: number;            // expense ratio, percent (0.20 = 0.20%)
@@ -120,6 +164,9 @@ export interface Loan {
   bal: number;        // current balance
   rate: number;       // annual % (e.g. 6.5 means 6.5%)
   yrs: number;        // remaining years
+
+  owner?: string; 
+  
   /** See Asset.feedRef. */
   feedRef?: string;
 }
@@ -177,11 +224,22 @@ export interface WealthPlan {
    * cost/yield. Populated by the custodian feed and the legacy importer.
    */
   holdings?: Holding[];
+
+  linkedPortfolioAssetId?: string;
+
   retirement?: Retirement;
   pensions?: Pension[];
   notes?: string;
   createdAt: string;      // ISO
   updatedAt: string;      // ISO
+
+  equityGrants?: EquityGrant[];
+
+  returnMean?: number;
+  returnVolatility?: number;
+
+  insurancePolicies?: InsurancePolicy[];
+  includeInsurancePremiums?: boolean;
 }
 
 // ─── Simulation inputs/outputs ───────────────────────────────────

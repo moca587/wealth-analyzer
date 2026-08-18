@@ -44,6 +44,11 @@ export interface ProposalPosition {
   cls?: string;
   /** Percent of the target amount, 0–100. */
   weightPct: number;
+
+  expectedReturn?: number;
+  er?: number;
+  yld?: number;
+  
   note?: string;
 }
 
@@ -55,6 +60,9 @@ export interface Proposal {
   clientName?: string;
   advisor?: string;
   objective?: string;
+
+  feeType?: "none" | "aum" | "flat";
+  feeRate?: number;
 }
 
 export interface ProposalProblem {
