@@ -3,25 +3,18 @@ type Props = {
   onRun: () => void;
 };
 
-export function SimulationHeaderSection({
-  running,
-  onRun,
-}: Props) {
+export function SimulationHeaderSection({ running, onRun }: Props) {
   return (
     <section className={sectionClass}>
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h2 className={titleClass}>
-            Run Simulation
-          </h2>
+          <h2 className={titleClass}>Run Simulation</h2>
 
           <p className="mt-2 text-[12px] leading-5 text-[#64748b]">
-            Fine-tune projection years, simulations,
-            probability bands and stress scenarios in the{" "}
-            <strong className="text-[#16213e]">
-              Settings
-            </strong>{" "}
-            panel (gear, top-right).
+            Fine-tune projection years, simulations, probability bands and
+            stress scenarios in the{" "}
+            <strong className="text-[#16213e]">Settings</strong> panel (gear,
+            top-right).
           </p>
         </div>
 
@@ -31,9 +24,7 @@ export function SimulationHeaderSection({
           disabled={running}
           className={buttonClass}
         >
-          {running
-            ? "Running simulation..."
-            : "Run Simulation"}
+          {running ? "Running simulation..." : "Run Simulation"}
         </button>
       </div>
     </section>

@@ -1,8 +1,5 @@
 // ─────────────────────────────────────────────────────────────────
-// Domain types for the wealth-analyzer plan
-// Mirrors the data shapes from the single-file HTML app so the
-// migration is 1:1 — same fields, same units, same calendar-year
-// semantics for goals.
+// Types
 // ─────────────────────────────────────────────────────────────────
 
 export type RiskProfile =
@@ -18,19 +15,264 @@ export type TimeHorizon = "0_5" | "5_10" | "10_15" | "15_plus";
 
 export type CountryCode =
   // Original 19
-  | "US" | "CA" | "GB" | "AU" | "CH" | "EU" | "JP" | "SG" | "HK"
-  | "CN" | "TW" | "KR" | "IN" | "ID" | "MX" | "BR" | "SA" | "ZA" | "OTHER"
+  | "US"
+  | "CA"
+  | "GB"
+  | "AU"
+  | "CH"
+  | "EU"
+  | "JP"
+  | "SG"
+  | "HK"
+  | "CN"
+  | "TW"
+  | "KR"
+  | "IN"
+  | "ID"
+  | "MX"
+  | "BR"
+  | "SA"
+  | "ZA"
+  | "OTHER"
   // Individual eurozone members (each has its own account taxonomy)
-  | "DE" | "FR" | "IT" | "ES" | "NL" | "BE" | "AT" | "IE" | "PT" | "LU"
-  | "FI" | "GR" | "CY" | "HR" | "EE" | "LV" | "LT" | "SK" | "SI" | "MT";
+  | "DE"
+  | "FR"
+  | "IT"
+  | "ES"
+  | "NL"
+  | "BE"
+  | "AT"
+  | "IE"
+  | "PT"
+  | "LU"
+  | "FI"
+  | "GR"
+  | "CY"
+  | "HR"
+  | "EE"
+  | "LV"
+  | "LT"
+  | "SK"
+  | "SI"
+  | "MT";
+
+// Stores the funding calculation for one financial goal
+export type GoalFundingMetric = {
+  goalId: string;
+  presentValueCost: number;
+  allocatedResources: number;
+
+  // allocatedResources / presentValueCost
+  fundingRatio: number;
+};
+
+// Represents one year of the required withdrawal projection
+export type RequiredWithdrawalRow = {
+  age: number;
+  year: number;
+  poolStart: number;
+  requiredRate: number;
+  withdrawal: number;
+  estimatedTax: number;
+  poolEnd: number;
+};
+
+// Contains the compete required withdrawal analysis
+export type RequiredWithdrawalProjection = {
+  rule: string;
+  startAge: number;
+  totalRequired: number;
+  estimatedTax: number;
+  rows: RequiredWithdrawalRow[];
+};
+
+// Result of analyzing the retirement-account conversion window
+export type RothConversionProjection = {
+  startAge: number;
+  endAge: number;
+  windowYears: number;
+  taxDeferredPool: number;
+  suggestedAnnualConversion: number;
+  estimatedTaxRate: number;
+  estimatedAnnualTax: number;
+  estimatedTotalTax: number;
+};
+
+// Recommendation for where one asset class should be ideally held
+// from a tax-efficiency perspective
+export type AssetLocationRecommendation = {
+  assetClass: AssetClass;
+  value: number;
+  recommendedLocation: string;
+  reason: string;
+};
+
+// Complete tax-efficiency analysis of the plan's asset location
+export type AssetLocationAnalysis = {
+  taxFree: number;
+  taxDeferred: number;
+  taxable: number;
+
+  score: number;
+
+  annualTaxDrag: number;
+  cumulativeTaxDrag: number;
+
+  shortfallCostBasisTax: number;
+
+  recommendations: AssetLocationRecommendation[];
+};
+
+// Result of the behavior-gap simulation
+// Compares staying invested vs. panicking and selling at the first sign of trouble
+export type BehaviorGapResult = {
+  years: number;
+
+  disciplinedPaths: number[][];
+  panicPaths: number[][];
+
+  startingInvested: number;
+
+  staysInvestedMedian: number;
+  panicMedian: number;
+
+  panicCost: number;
+  annualizedGap: number;
+
+  panicShare: number;
+};
+
+// Represents one person receiving part of the household's estate
+export type Beneficiary = {
+  id: string;
+  name: string;
+  relationship?: string;
+  share: number; // decimal: 0.5 = 50%
+};
+
+// Result of the estate-transfer calculation
+export type EstateTransferSummary = {
+  medianProjectedEstate: number;
+  lifeInsuranceBenefit: number;
+
+  grossEstate: number;
+
+  estateTaxExemption: number;
+  estateTaxRate: number;
+  taxableEstate: number;
+  estimatedEstateTax: number;
+
+  netToBeneficiaries: number;
+};
+
+// Country-specific default assumptions used by the estate-tax analysis
+export type EstateTaxDefaults = {
+  exemption: number;
+  rate: number;
+  label: string;
+  description: string;
+};
+
+// Indicates whether a deterministic cash-flow row occurs
+// before or after retirement
+export type CashFlowPhase = "Working" | "Retired";
+
+// Represents one year of the linear cash-flow projection
+export interface LinearCashFlowRow {
+  year: number;
+  age: number;
+
+  phase: CashFlowPhase;
+
+  earnedIncome: number;
+  pensionRmdIncome: number;
+
+  incomeTax: number;
+  expenses: number;
+  debtService: number;
+
+  savingsTarget: number;
+  surplusDeficit: number;
+
+  goalOutflow: number;
+
+  cash: number;
+  investments: number;
+  retirementPool: number;
+
+  propertyValue: number;
+  otherAssets: number;
+
+  totalDebt: number;
+  unfunded: number;
+
+  netWorth: number;
+
+  notes: string[];
+}
+
+// Complete result returned by buildLinearCashFlow()
+export interface LinearCashFlowResult {
+  rows: LinearCashFlowRow[];
+
+  startYear: number;
+  startAge: number;
+  endAge: number;
+
+  investmentReturn: number;
+  portfolioMean: number;
+  portfolioSigma: number;
+
+  propertyGrowth: number;
+  retirementPoolGrowth: number;
+}
+
+/*
+ * Some legacy cash-flow inputs do not yet have a clear canonical
+ * field in the migrated WealthPlan schema.
+ *
+ * Keep those assumptions explicit rather than hiding hardcoded
+ * values inside the engine.
+ */
+export interface LinearCashFlowOptions {
+  endAge?: number;
+
+  /*
+   * The legacy UI has an annual savings-target field.
+   *
+   * Until that field is present on the migrated WealthPlan,
+   * pass it into this engine explicitly.
+   */
+  annualSavingsTarget?: number;
+
+  /*
+   * Legacy deterministic retirement-account return.
+   * 0.035 = 3.5%.
+   */
+  retirementPoolGrowth?: number;
+
+  /*
+   * During accumulation, remaining positive surplus can be
+   * divided between cash and investments.
+   *
+   * Legacy description uses 30% cash / 70% invested.
+   */
+  cashSurplusShare?: number;
+
+  /*
+   * Anchor the calculation to a fixed calendar year when
+   * reproducibility is needed.
+   */
+  asOfYear?: number;
+}
 
 export interface Client {
   id: string;
   first: string;
   last: string;
-  dob?: string;       // ISO date YYYY-MM-DD
+  dob?: string; // ISO date YYYY-MM-DD
   country?: CountryCode;
-  state?: string;     // state/province/canton
+  state?: string; // state/province/canton
   city?: string;
   zip?: string;
   risk?: RiskProfile;
@@ -41,32 +283,38 @@ export interface Child {
   id: string;
   first: string;
   last: string;
-  dob: string;        // ISO date YYYY-MM-DD
+  dob: string; // ISO date YYYY-MM-DD
 }
 
 export interface IncomeStream {
   id: string;
-  clientId: string;   // which client owns it (for two-client households)
-  source: string;     // "salary", "bonus", "dividends", etc.
-  amount: number;     // annual, in plan currency
+  clientId: string; // which client owns it (for two-client households)
+  source: string; // "salary", "bonus", "dividends", etc.
+  amount: number; // annual, in plan currency
   taxable?: boolean;
 }
 
 export interface ExpenseCategory {
   id: string;
-  name: string;       // "Rent/mortgage", "Food", "Transport", etc.
-  amount: number;     // monthly, in plan currency
+  name: string; // "Rent/mortgage", "Food", "Transport", etc.
+  amount: number; // monthly, in plan currency
 }
 
 export type AssetClass =
-  | "equity" | "fixed_income" | "real_estate" | "commodity"
-  | "cash" | "mixed" | "alternative" | "crypto";
+  | "equity"
+  | "fixed_income"
+  | "real_estate"
+  | "commodity"
+  | "cash"
+  | "mixed"
+  | "alternative"
+  | "crypto";
 
 export interface Asset {
   id: string;
-  type: string;       // account type from country-specific menu
-  group?: string;     // group label (e.g. "Retirement", "Taxable", "Cash")
-  label?: string;     // free-form label
+  type: string; // account type from country-specific menu
+  group?: string; // group label (e.g. "Retirement", "Taxable", "Cash")
+  label?: string; // free-form label
   value: number;
   liquid: boolean;
   country?: CountryCode;
@@ -75,7 +323,7 @@ export interface Asset {
 
   owner?: string;
   ccy?: string;
-  withdrawAge?: number | null; 
+  withdrawAge?: number | null;
   /**
    * Stable origin key when this record came from a data feed, e.g.
    * "acct:CH93…" or "hold:CHSPI". Lets a later sync find the same record even
@@ -144,9 +392,9 @@ export interface Holding {
 
   instrumentType?: string;
   cls?: AssetClass;
-  value: number;          // market value, in plan currency
-  er?: number;            // expense ratio, percent (0.20 = 0.20%)
-  yld?: number;           // distribution yield, percent
+  value: number; // market value, in plan currency
+  er?: number; // expense ratio, percent (0.20 = 0.20%)
+  yld?: number; // distribution yield, percent
   region?: string;
   ccy?: string;
   /** The account this position sits in — feedRef of the parent Asset, e.g.
@@ -159,14 +407,14 @@ export interface Holding {
 
 export interface Loan {
   id: string;
-  type: string;       // "Mortgage", "Auto", "Student", "Credit Card", etc.
+  type: string; // "Mortgage", "Auto", "Student", "Credit Card", etc.
   label?: string;
-  bal: number;        // current balance
-  rate: number;       // annual % (e.g. 6.5 means 6.5%)
-  yrs: number;        // remaining years
+  bal: number; // current balance
+  rate: number; // annual % (e.g. 6.5 means 6.5%)
+  yrs: number; // remaining years
 
-  owner?: string; 
-  
+  owner?: string;
+
   /** See Asset.feedRef. */
   feedRef?: string;
 }
@@ -174,11 +422,11 @@ export interface Loan {
 export interface Goal {
   id: string;
   name: string;
-  cat?: string;       // "Retirement", "Education", "Travel", etc.
+  cat?: string; // "Retirement", "Education", "Travel", etc.
   tier?: "essential" | "important" | "aspirational";
-  amt: number;        // annual amount needed
-  startYear: number;  // calendar year (e.g. 2050)
-  endYear: number;    // calendar year (>= startYear)
+  amt: number; // annual amount needed
+  startYear: number; // calendar year (e.g. 2050)
+  endYear: number; // calendar year (>= startYear)
 }
 
 /** A pension / annuity / state benefit that pays out from a given age. */
@@ -186,9 +434,9 @@ export interface Pension {
   id: string;
   label: string;
   clientId?: string;
-  annualAmount: number;   // annual payout, in plan currency (today's dollars)
-  startAge: number;       // age the benefit begins
-  colaRate?: number;      // annual cost-of-living adjustment (decimal); default 0
+  annualAmount: number; // annual payout, in plan currency (today's dollars)
+  startAge: number; // age the benefit begins
+  colaRate?: number; // annual cost-of-living adjustment (decimal); default 0
 }
 
 /**
@@ -199,18 +447,18 @@ export interface Pension {
  */
 export interface Retirement {
   enabled?: boolean;
-  retirementAge: number;   // age the primary client stops working
-  annualSpending: number;  // desired annual retirement spend (today's dollars)
-  planToAge?: number;      // model horizon age (default 90)
+  retirementAge: number; // age the primary client stops working
+  annualSpending: number; // desired annual retirement spend (today's dollars)
+  planToAge?: number; // model horizon age (default 90)
 }
 
 // ─── Top-level plan ───────────────────────────────────────────────
 export interface WealthPlan {
   version: number;
-  currency: string;       // "USD", "EUR", "CHF", etc.
-  inflationRate: number;  // decimal (0.03 = 3%)
+  currency: string; // "USD", "EUR", "CHF", etc.
+  inflationRate: number; // decimal (0.03 = 3%)
   inflationRegion?: string;
-  clients: Client[];      // 1 or 2
+  clients: Client[]; // 1 or 2
   children: Child[];
   incomes: IncomeStream[];
   expenses: ExpenseCategory[];
@@ -230,8 +478,8 @@ export interface WealthPlan {
   retirement?: Retirement;
   pensions?: Pension[];
   notes?: string;
-  createdAt: string;      // ISO
-  updatedAt: string;      // ISO
+  createdAt: string; // ISO
+  updatedAt: string; // ISO
 
   equityGrants?: EquityGrant[];
 
@@ -240,13 +488,30 @@ export interface WealthPlan {
 
   insurancePolicies?: InsurancePolicy[];
   includeInsurancePremiums?: boolean;
+
+  // Tax fields
+  taxJurisdiction?: CountryCode;
+
+  incomeTaxSource?: "auto" | "manual" | "none";
+
+  flatIncomeTaxRate?: number;
+
+  capitalGainsTaxRate?: number;
+
+  portfolioTurnover?: number;
+
+  applyTaxToSimulation?: boolean;
+
+  beneficiaries?: Beneficiary[];
+  estateTaxExemption?: number;
+  estateTaxRate?: number;
 }
 
 // ─── Simulation inputs/outputs ───────────────────────────────────
 export interface SimulationInput {
   plan: WealthPlan;
   sims: 200 | 500 | 1000;
-  years: number;              // typically 30-40
+  years: number; // typically 30-40
   /** Fixes the PRNG for a byte-identical repeat run (tests, cache checks). Omit for a real random run. */
   seed?: number;
   /**
@@ -259,7 +524,7 @@ export interface SimulationInput {
 }
 
 export interface SimulationResult {
-  inputHash: string;          // for caching
+  inputHash: string; // for caching
   sims: number;
   years: number;
   /** Paths as [sim_index][year_index] of net worth */
@@ -279,10 +544,10 @@ export interface SimulationResult {
   //   p10: number; p25: number; p50: number; p75: number; p90: number;
   //   mean: number;
   // };
-  final: Record<string, number> & {mean: number};
+  final: Record<string, number> & { mean: number };
 
   realFinal: Record<string, number>;
-  
+
   medianUnfunded: number;
   depletionProbability?: number;
   /** Retirement "will my money last?" summary — present only when the plan enables retirement. */

@@ -61,12 +61,18 @@ import type {
 } from "@/lib/engine/types";
 
 import {
+    migratePlan,
+} from "@/lib/plan/migrate";
+
+import {
     WealthOverviewSection,
 } from "@/components/household/wealth-overview-section";
-
 import {
     HouseholdProfilesSection,
 } from "@/components/household/household-profiles-section";
+import {
+    ProfileDataSection,
+} from "@/components/household/profile-data-section";
 
 type Props = {
     initialPlan: WealthPlan | null;
@@ -108,6 +114,63 @@ export function HouseholdPageForm({
         });
     }
 
+    function loadProfileFile(
+        file: File
+    ) {
+        const reader =
+            new FileReader();
+
+        // once browser finishes reading the file, run this code
+        reader.onload = () => {
+            try {
+                const text =
+                    String(reader.result);
+
+                const raw: unknown =
+                    JSON.parse(text); // JSON -> JavaScript object
+
+                // Convert legacy JSON to the
+                // current WealthPlan structure.
+                const migrated =
+                    migratePlan(raw);
+
+                // Validate the converted plan.
+                const result =
+                    wealthPlanSchema.safeParse(
+                        migrated
+                    );
+
+                if (!result.success) {
+                    console.error(
+                        result.error
+                    );
+
+                    alert(
+                        "Invalid profile file."
+                    );
+
+                    return;
+                }
+
+                // Replace the current page plan
+                // with the imported profile.
+                setPlan(
+                    result.data
+                );
+            } catch (error) {
+                console.error(
+                    error
+                );
+
+                alert(
+                    "Could not load profile."
+                );
+            }
+        };
+
+        reader.readAsText(file);
+    }
+
     // The page cannot render household information
     // until a plan has been loaded.
     if (!plan) {
@@ -137,7 +200,10 @@ export function HouseholdPageForm({
                     update={updatePlan}
                 />
 
-               
+                <ProfileDataSection
+                    onLoad={loadProfileFile}
+                />
+
 
             </div>
         </main>

@@ -1,542 +1,568 @@
 "use client";
 
 import type {
-  CountryCode,
-  RiskProfile,
-  TimeHorizon,
-  WealthPlan,
+    CountryCode,
+    RiskProfile,
+    TimeHorizon,
+    WealthPlan,
 } from "@/lib/engine/types";
 
 import {
-  COUNTRY_LABELS,
-  HORIZON_PROFILES,
-  RISK_PROFILES,
-  US_STATE_TAX_RATES,
+    COUNTRY_LABELS,
+    HORIZON_PROFILES,
+    RISK_PROFILES,
+    US_STATE_TAX_RATES,
 } from "@/lib/engine/constants";
 
 import {
-  ageFromDOB,
+    ageFromDOB,
 } from "@/lib/engine/financial-math";
 
 type Props = {
-  plan: WealthPlan;
-  update: (
-    patch: Partial<WealthPlan>
-  ) => void;
+    plan: WealthPlan;
+    update: (
+        patch: Partial<WealthPlan>
+    ) => void;
 };
 
 export function HouseholdProfilesSection({
-  plan,
-  update,
+    plan,
+    update,
 }: Props) {
-  const client =
-    plan.clients[0];
+    const client =
+        plan.clients[0];
 
-  if (!client) {
+    if (!client) {
+        return (
+            <section className="rounded-xl border border-[rgba(0,87,184,.08)] bg-white p-6 shadow-sm">
+                <div className="mb-5 flex items-center gap-3">
+                    <h2 className="text-[11px] font-bold uppercase tracking-[0.10em] text-[#64748b]">
+                        Household Profiles
+                    </h2>
+
+                    <div className="h-px flex-1 bg-[rgba(0,87,184,.10)]" />
+                </div>
+
+                <p className="text-[12px] text-[#9ca3af]">
+                    No client added yet.
+                </p>
+            </section>
+        );
+    }
+
+    // Calculate the client's current age
+    // from their date of birth.
+    const age =
+        client.dob
+            ? ageFromDOB(
+                client.dob
+            )
+            : undefined;
+
+    // Get the selected risk-profile
+    // information from constants.ts.
+    const riskProfile =
+        client.risk
+            ? RISK_PROFILES[
+            client.risk
+            ]
+            : undefined;
+
+    // Get the selected time-horizon
+    // information from constants.ts.
+    const horizonProfile =
+        client.horizon
+            ? HORIZON_PROFILES[
+            client.horizon
+            ]
+            : undefined;
+
+    // Update only Client 1 while keeping
+    // every other client unchanged.
+    function updateClient(
+        patch: Partial<
+            typeof client
+        >
+    ) {
+        update({
+            clients:
+                plan.clients.map(
+                    (existingClient) =>
+                        existingClient.id ===
+                            client.id
+                            ? {
+                                ...existingClient,
+                                ...patch,
+                            }
+                            : existingClient
+                ),
+        });
+    }
+
+    // Add second client to the household if there is only one client.
+    function addClient2() {
+        if (plan.clients.length >= 2) {
+            return;
+        }
+
+        const newClient = {
+            id: crypto.randomUUID(),
+            first: "",
+            last: "",
+            dob: "",
+            country:
+                plan.clients[0]?.country,
+            risk:
+                plan.clients[0]?.risk,
+            horizon:
+                plan.clients[0]?.horizon,
+        };
+
+        update({
+            clients: [
+                ...plan.clients,
+                newClient,
+            ],
+        });
+    }
+
     return (
-      <section className="rounded-xl border border-[rgba(0,87,184,.08)] bg-white p-6 shadow-sm">
-        <div className="mb-5 flex items-center gap-3">
-          <h2 className="text-[11px] font-bold uppercase tracking-[0.10em] text-[#64748b]">
-            Household Profiles
-          </h2>
+        <section className="rounded-xl border border-[rgba(0,87,184,.08)] bg-white p-6 shadow-sm">
+            {/* Section heading */}
 
-          <div className="h-px flex-1 bg-[rgba(0,87,184,.10)]" />
-        </div>
+            <div className="mb-5 flex items-center gap-3">
+                <h2 className="text-[11px] font-bold uppercase tracking-[0.10em] text-[#64748b]">
+                    Household Profiles
+                </h2>
 
-        <p className="text-[12px] text-[#9ca3af]">
-          No client added yet.
-        </p>
-      </section>
-    );
-  }
+                <div className="h-px flex-1 bg-[rgba(0,87,184,.10)]" />
+            </div>
 
-  // Calculate the client's current age
-  // from their date of birth.
-  const age =
-    client.dob
-      ? ageFromDOB(
-          client.dob
-        )
-      : undefined;
+            {/* Client summary */}
 
-  // Get the selected risk-profile
-  // information from constants.ts.
-  const riskProfile =
-    client.risk
-      ? RISK_PROFILES[
-          client.risk
-        ]
-      : undefined;
+            <div className="mb-5 flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full border border-[rgba(91,155,213,.3)] bg-[rgba(91,155,213,.15)] text-[12px] font-bold text-[#0057b8]">
+                    {getInitials(
+                        client.first,
+                        client.last
+                    )}
+                </div>
 
-  // Get the selected time-horizon
-  // information from constants.ts.
-  const horizonProfile =
-    client.horizon
-      ? HORIZON_PROFILES[
-          client.horizon
-        ]
-      : undefined;
+                <div>
+                    <div className="font-bold text-[#16213e]">
+                        {getFullName(
+                            client.first,
+                            client.last
+                        )}
+                    </div>
 
-  // Update only Client 1 while keeping
-  // every other client unchanged.
-  function updateClient(
-    patch: Partial<
-      typeof client
-    >
-  ) {
-    update({
-      clients:
-        plan.clients.map(
-          (existingClient) =>
-            existingClient.id ===
-            client.id
-              ? {
-                  ...existingClient,
-                  ...patch,
-                }
-              : existingClient
-        ),
-    });
-  }
+                    <div className="text-[11px] text-[#9ca3af]">
+                        {getFullName(
+                            client.first,
+                            client.last
+                        )}
 
-  return (
-    <section className="rounded-xl border border-[rgba(0,87,184,.08)] bg-white p-6 shadow-sm">
-      {/* Section heading */}
+                        {age != null
+                            ? ` • age ${age}`
+                            : ""}
+                    </div>
+                </div>
+            </div>
 
-      <div className="mb-5 flex items-center gap-3">
-        <h2 className="text-[11px] font-bold uppercase tracking-[0.10em] text-[#64748b]">
-          Household Profiles
-        </h2>
+            {/* Basic information */}
 
-        <div className="h-px flex-1 bg-[rgba(0,87,184,.10)]" />
-      </div>
+            <div className="grid gap-4 md:grid-cols-3">
+                <div>
+                    <label className={labelClass}>
+                        First name
+                    </label>
 
-      {/* Client summary */}
+                    <input
+                        className={inputClass}
+                        value={
+                            client.first ?? ""
+                        }
+                        onChange={(e) =>
+                            updateClient({
+                                first:
+                                    e.target.value,
+                            })
+                        }
+                    />
+                </div>
 
-      <div className="mb-5 flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-full border border-[rgba(91,155,213,.3)] bg-[rgba(91,155,213,.15)] text-[12px] font-bold text-[#0057b8]">
-          {getInitials(
-            client.first,
-            client.last
-          )}
-        </div>
+                <div>
+                    <label className={labelClass}>
+                        Last name
+                    </label>
 
-        <div>
-          <div className="font-bold text-[#16213e]">
-            {getFullName(
-              client.first,
-              client.last
-            )}
-          </div>
+                    <input
+                        className={inputClass}
+                        value={
+                            client.last ?? ""
+                        }
+                        onChange={(e) =>
+                            updateClient({
+                                last:
+                                    e.target.value,
+                            })
+                        }
+                    />
+                </div>
 
-          <div className="text-[11px] text-[#9ca3af]">
-            {getFullName(
-              client.first,
-              client.last
-            )}
+                <div>
+                    <label className={labelClass}>
+                        Date of birth
+                    </label>
 
-            {age != null
-              ? ` • age ${age}`
-              : ""}
-          </div>
-        </div>
-      </div>
+                    <input
+                        type="date"
+                        className={inputClass}
+                        value={
+                            client.dob ?? ""
+                        }
+                        onChange={(e) =>
+                            updateClient({
+                                dob:
+                                    e.target.value,
+                            })
+                        }
+                    />
+                </div>
+            </div>
 
-      {/* Basic information */}
+            {/* Location */}
 
-      <div className="grid gap-4 md:grid-cols-3">
-        <div>
-          <label className={labelClass}>
-            First name
-          </label>
+            <div className="mt-5 grid gap-4 md:grid-cols-3">
+                <div>
+                    <label className={labelClass}>
+                        City
+                    </label>
 
-          <input
-            className={inputClass}
-            value={
-              client.first ?? ""
-            }
-            onChange={(e) =>
-              updateClient({
-                first:
-                  e.target.value,
-              })
-            }
-          />
-        </div>
+                    <input
+                        className={inputClass}
+                        value={
+                            client.city ?? ""
+                        }
+                        onChange={(e) =>
+                            updateClient({
+                                city:
+                                    e.target.value,
+                            })
+                        }
+                    />
+                </div>
 
-        <div>
-          <label className={labelClass}>
-            Last name
-          </label>
+                <div>
+                    <label className={labelClass}>
+                        State / Province / Canton
+                    </label>
 
-          <input
-            className={inputClass}
-            value={
-              client.last ?? ""
-            }
-            onChange={(e) =>
-              updateClient({
-                last:
-                  e.target.value,
-              })
-            }
-          />
-        </div>
+                    {client.country === "US" ? (
+                        <select
+                            className={inputClass}
+                            value={
+                                client.state ?? ""
+                            }
+                            onChange={(e) =>
+                                updateClient({
+                                    state:
+                                        e.target.value,
+                                })
+                            }
+                        >
+                            <option value="">
+                                — Select —
+                            </option>
 
-        <div>
-          <label className={labelClass}>
-            Date of birth
-          </label>
+                            {Object.entries(
+                                US_STATE_TAX_RATES
+                            ).map(
+                                ([
+                                    state,
+                                    rate,
+                                ]) => (
+                                    <option
+                                        key={state}
+                                        value={state}
+                                    >
+                                        {state} (
+                                        {rate.toFixed(2)}
+                                        %)
+                                    </option>
+                                )
+                            )}
+                        </select>
+                    ) : (
+                        <input
+                            className={inputClass}
+                            value={
+                                client.state ?? ""
+                            }
+                            onChange={(e) =>
+                                updateClient({
+                                    state:
+                                        e.target.value,
+                                })
+                            }
+                        />
+                    )}
+                </div>
 
-          <input
-            type="date"
-            className={inputClass}
-            value={
-              client.dob ?? ""
-            }
-            onChange={(e) =>
-              updateClient({
-                dob:
-                  e.target.value,
-              })
-            }
-          />
-        </div>
-      </div>
+                <div>
+                    <label className={labelClass}>
+                        Country
+                    </label>
 
-      {/* Location */}
+                    <select
+                        className={inputClass}
+                        value={
+                            client.country ?? ""
+                        }
+                        onChange={(e) =>
+                            updateClient({
+                                country:
+                                    e.target
+                                        .value as CountryCode,
+                            })
+                        }
+                    >
+                        <option value="">
+                            — Select —
+                        </option>
 
-      <div className="mt-5 grid gap-4 md:grid-cols-3">
-        <div>
-          <label className={labelClass}>
-            City
-          </label>
+                        {Object.entries(
+                            COUNTRY_LABELS
+                        ).map(
+                            ([
+                                code,
+                                label,
+                            ]) => (
+                                <option
+                                    key={code}
+                                    value={code}
+                                >
+                                    {countryFlag(
+                                        code
+                                    )}{" "}
+                                    {label}
+                                </option>
+                            )
+                        )}
+                    </select>
+                </div>
+            </div>
 
-          <input
-            className={inputClass}
-            value={
-              client.city ?? ""
-            }
-            onChange={(e) =>
-              updateClient({
-                city:
-                  e.target.value,
-              })
-            }
-          />
-        </div>
+            {/* Risk profile */}
 
-        <div>
-          <label className={labelClass}>
-            State / Province / Canton
-          </label>
+            <div className="mt-5">
+                <label className={labelClass}>
+                    Risk tolerance
+                </label>
 
-          {client.country === "US" ? (
-            <select
-              className={inputClass}
-              value={
-                client.state ?? ""
-              }
-              onChange={(e) =>
-                updateClient({
-                  state:
-                    e.target.value,
-                })
-              }
-            >
-              <option value="">
-                — Select —
-              </option>
-
-              {Object.entries(
-                US_STATE_TAX_RATES
-              ).map(
-                ([
-                  state,
-                  rate,
-                ]) => (
-                  <option
-                    key={state}
-                    value={state}
-                  >
-                    {state} (
-                    {rate.toFixed(2)}
-                    %)
-                  </option>
-                )
-              )}
-            </select>
-          ) : (
-            <input
-              className={inputClass}
-              value={
-                client.state ?? ""
-              }
-              onChange={(e) =>
-                updateClient({
-                  state:
-                    e.target.value,
-                })
-              }
-            />
-          )}
-        </div>
-
-        <div>
-          <label className={labelClass}>
-            Country
-          </label>
-
-          <select
-            className={inputClass}
-            value={
-              client.country ?? ""
-            }
-            onChange={(e) =>
-              updateClient({
-                country:
-                  e.target
-                    .value as CountryCode,
-              })
-            }
-          >
-            <option value="">
-              — Select —
-            </option>
-
-            {Object.entries(
-              COUNTRY_LABELS
-            ).map(
-              ([
-                code,
-                label,
-              ]) => (
-                <option
-                  key={code}
-                  value={code}
+                <select
+                    className={inputClass}
+                    value={
+                        client.risk ?? ""
+                    }
+                    onChange={(e) =>
+                        updateClient({
+                            risk:
+                                e.target
+                                    .value as RiskProfile,
+                        })
+                    }
                 >
-                  {countryFlag(
-                    code
-                  )}{" "}
-                  {label}
-                </option>
-              )
-            )}
-          </select>
-        </div>
-      </div>
+                    <option value="">
+                        — Select —
+                    </option>
 
-      {/* Risk profile */}
+                    {Object.entries(
+                        RISK_PROFILES
+                    ).map(
+                        ([
+                            value,
+                            profile,
+                        ]) => (
+                            <option
+                                key={value}
+                                value={value}
+                            >
+                                {profile.label}
+                            </option>
+                        )
+                    )}
+                </select>
 
-      <div className="mt-5">
-        <label className={labelClass}>
-          Risk tolerance
-        </label>
+                {riskProfile && (
+                    <div className="mt-4 rounded-xl border border-[rgba(0,87,184,.08)] bg-[#f8faff] p-4">
+                        <div className="text-[12px] text-[#64748b]">
+                            Risk Profile
+                        </div>
 
-        <select
-          className={inputClass}
-          value={
-            client.risk ?? ""
-          }
-          onChange={(e) =>
-            updateClient({
-              risk:
-                e.target
-                  .value as RiskProfile,
-            })
-          }
-        >
-          <option value="">
-            — Select —
-          </option>
+                        <div className="mt-1 text-[13px] font-semibold text-[#16213e]">
+                            {riskProfile.label}
+                            {" • "}
+                            μ {riskProfile.mu}%
+                            {" "}
+                            σ {riskProfile.sigma}%
+                        </div>
 
-          {Object.entries(
-            RISK_PROFILES
-          ).map(
-            ([
-              value,
-              profile,
-            ]) => (
-              <option
-                key={value}
-                value={value}
-              >
-                {profile.label}
-              </option>
-            )
-          )}
-        </select>
-
-        {riskProfile && (
-          <div className="mt-4 rounded-xl border border-[rgba(0,87,184,.08)] bg-[#f8faff] p-4">
-            <div className="text-[12px] text-[#64748b]">
-              Risk Profile
+                        <p className="mt-1 text-[11px] leading-5 text-[#9ca3af]">
+                            {riskProfile.note}
+                        </p>
+                    </div>
+                )}
             </div>
 
-            <div className="mt-1 text-[13px] font-semibold text-[#16213e]">
-              {riskProfile.label}
-              {" • "}
-              μ {riskProfile.mu}%
-              {" "}
-              σ {riskProfile.sigma}%
+            {/* Time horizon */}
+
+            <div className="mt-5">
+                <label className={labelClass}>
+                    Time horizon
+                </label>
+
+                <select
+                    className={inputClass}
+                    value={
+                        client.horizon ?? ""
+                    }
+                    onChange={(e) =>
+                        updateClient({
+                            horizon:
+                                e.target
+                                    .value as TimeHorizon,
+                        })
+                    }
+                >
+                    <option value="">
+                        — Select —
+                    </option>
+
+                    {Object.entries(
+                        HORIZON_PROFILES
+                    ).map(
+                        ([
+                            value,
+                            profile,
+                        ]) => (
+                            <option
+                                key={value}
+                                value={value}
+                            >
+                                {profile.label}
+                            </option>
+                        )
+                    )}
+                </select>
+
+                {horizonProfile && (
+                    <div className="mt-4 rounded-xl border border-[rgba(0,87,184,.08)] bg-[#f8faff] p-4">
+                        <div className="text-[12px] text-[#64748b]">
+                            Time horizon
+                        </div>
+
+                        <div className="mt-1 text-[13px] font-semibold text-[#16213e]">
+                            {horizonProfile.label}
+                        </div>
+
+                        <p className="mt-1 text-[11px] leading-5 text-[#9ca3af]">
+                            {horizonProfile.note}
+                        </p>
+                    </div>
+                )}
             </div>
 
-            <p className="mt-1 text-[11px] leading-5 text-[#9ca3af]">
-              {riskProfile.note}
-            </p>
-          </div>
-        )}
-      </div>
+            {/* Additional client */}
 
-      {/* Time horizon */}
-
-      <div className="mt-5">
-        <label className={labelClass}>
-          Time horizon
-        </label>
-
-        <select
-          className={inputClass}
-          value={
-            client.horizon ?? ""
-          }
-          onChange={(e) =>
-            updateClient({
-              horizon:
-                e.target
-                  .value as TimeHorizon,
-            })
-          }
-        >
-          <option value="">
-            — Select —
-          </option>
-
-          {Object.entries(
-            HORIZON_PROFILES
-          ).map(
-            ([
-              value,
-              profile,
-            ]) => (
-              <option
-                key={value}
-                value={value}
-              >
-                {profile.label}
-              </option>
-            )
-          )}
-        </select>
-
-        {horizonProfile && (
-          <div className="mt-4 rounded-xl border border-[rgba(0,87,184,.08)] bg-[#f8faff] p-4">
-            <div className="text-[12px] text-[#64748b]">
-              Time horizon
+            <div className="mt-5 border-t border-[rgba(0,87,184,.08)] pt-5">
+                <button
+                    type="button"
+                    onClick={addClient2}
+                    className="rounded-lg border border-[rgba(0,87,184,.14)] bg-white px-4 py-2 text-[12px] font-semibold text-[#0057b8] transition hover:bg-[#f8faff]"
+                >
+                    + Add Client 2
+                </button>
             </div>
-
-            <div className="mt-1 text-[13px] font-semibold text-[#16213e]">
-              {horizonProfile.label}
-            </div>
-
-            <p className="mt-1 text-[11px] leading-5 text-[#9ca3af]">
-              {horizonProfile.note}
-            </p>
-          </div>
-        )}
-      </div>
-
-      {/* Additional client */}
-
-      <div className="mt-5 border-t border-[rgba(0,87,184,.08)] pt-5">
-        <button
-          type="button"
-          className="rounded-lg border border-[rgba(0,87,184,.14)] bg-white px-4 py-2 text-[12px] font-semibold text-[#0057b8] transition hover:bg-[#f8faff]"
-        >
-          + Add Client 2
-        </button>
-      </div>
-    </section>
-  );
+        </section>
+    );
 }
 
 // Build the client's full display name.
 function getFullName(
-  first?: string,
-  last?: string
+    first?: string,
+    last?: string
 ): string {
-  const fullName =
-    [
-      first,
-      last,
-    ]
-      .filter(Boolean)
-      .join(" ");
+    const fullName =
+        [
+            first,
+            last,
+        ]
+            .filter(Boolean)
+            .join(" ");
 
-  return (
-    fullName ||
-    "Unnamed client"
-  );
+    return (
+        fullName ||
+        "Unnamed client"
+    );
 }
 
 // Build initials for the client avatar.
 function getInitials(
-  first?: string,
-  last?: string
+    first?: string,
+    last?: string
 ): string {
-  const initials =
-    `${
-      first?.[0] ?? ""
-    }${
-      last?.[0] ?? ""
-    }`.toUpperCase();
+    const initials =
+        `${first?.[0] ?? ""
+            }${last?.[0] ?? ""
+            }`.toUpperCase();
 
-  return initials || "?";
+    return initials || "?";
 }
 
 // Country emoji used in the country select.
 function countryFlag(
-  code: string
+    code: string
 ): string {
-  switch (code) {
-    case "US":
-      return "🇺🇸";
+    switch (code) {
+        case "US":
+            return "🇺🇸";
 
-    case "CA":
-      return "🇨🇦";
+        case "CA":
+            return "🇨🇦";
 
-    case "GB":
-      return "🇬🇧";
+        case "GB":
+            return "🇬🇧";
 
-    case "CH":
-      return "🇨🇭";
+        case "CH":
+            return "🇨🇭";
 
-    case "AU":
-      return "🇦🇺";
+        case "AU":
+            return "🇦🇺";
 
-    case "DE":
-      return "🇩🇪";
+        case "DE":
+            return "🇩🇪";
 
-    case "FR":
-      return "🇫🇷";
+        case "FR":
+            return "🇫🇷";
 
-    case "IT":
-      return "🇮🇹";
+        case "IT":
+            return "🇮🇹";
 
-    case "ES":
-      return "🇪🇸";
+        case "ES":
+            return "🇪🇸";
 
-    case "JP":
-      return "🇯🇵";
+        case "JP":
+            return "🇯🇵";
 
-    default:
-      return "🌐";
-  }
+        default:
+            return "🌐";
+    }
 }
 
 // Same field styles used by the other migrated sections.
 const labelClass =
-  "mb-1.5 block text-[11px] font-semibold text-[#64748b]";
+    "mb-1.5 block text-[11px] font-semibold text-[#64748b]";
 
 const inputClass =
-  "w-full rounded-lg border-[1.5px] border-[rgba(0,87,184,.14)] bg-white px-3 py-2 text-[13px] font-medium text-[#16213e] outline-none focus:border-[#0057b8] focus:ring-2 focus:ring-[rgba(0,87,184,.08)]";
+    "w-full rounded-lg border-[1.5px] border-[rgba(0,87,184,.14)] bg-white px-3 py-2 text-[13px] font-medium text-[#16213e] outline-none focus:border-[#0057b8] focus:ring-2 focus:ring-[rgba(0,87,184,.08)]";

@@ -42,6 +42,7 @@ export function ExpensesPageForm({
 
         <TaxSection
           plan={plan}
+          update={updatePlan}
         />
       </div>
     </main>

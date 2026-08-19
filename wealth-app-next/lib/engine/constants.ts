@@ -5,6 +5,28 @@
 
 import type { AssetClass, RiskProfile, TimeHorizon } from "./types";
 
+import type { CountryCode, EstateTaxDefaults } from "./types";
+
+export const ESTATE_TAX_DEFAULTS: Partial<
+  Record<string, EstateTaxDefaults>
+> = {
+  US: {
+    exemption: 13_610_000,
+    rate: 0.40,
+    label: "United States — Estate tax",
+    description:
+      "Federal estate tax model with a configurable exemption and tax rate.",
+  },
+
+  CA: {
+    exemption: 0,
+    rate: 0,
+    label: "Canada — Estate transfer",
+    description:
+      "No general federal estate tax modeled here; other taxes and deemed disposition rules are outside this simplified estimate.",
+  },
+};
+
 export const RISK_PROFILES: Record<
   RiskProfile,
   {
@@ -229,7 +251,6 @@ export const TAX_BRACKETS: Record<string, Array<{ upTo: number; rate: number }>>
   ],
 };
 
-/** IRS Uniform Lifetime Table for RMD calculations (US-specific). */
 /** IRS Uniform Lifetime Table for RMD calculations (US-specific). */
 export const IRS_UNIFORM_LIFETIME: Record<number, number> = {
   73: 26.5,

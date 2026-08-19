@@ -46,7 +46,7 @@ export function InvestmentParametersSection({
           <input
             type="number"
             step="0.5"
-            value={returnMean * 100}
+            value={Number((returnMean * 100).toFixed(2))}
             onChange={(e) =>
               update({
                 returnMean:
@@ -65,7 +65,7 @@ export function InvestmentParametersSection({
           <input
             type="number"
             step="0.5"
-            value={returnVolatility * 100}
+            value={Number((returnVolatility * 100).toFixed(2))}
             onChange={(e) =>
               update({
                 returnVolatility:

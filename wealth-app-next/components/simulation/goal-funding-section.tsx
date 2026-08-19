@@ -1,52 +1,65 @@
-import type { SimulationResult } from "@/lib/engine/types";
+import type { SimulationResult, WealthPlan } from "@/lib/engine/types";
+
+import { calculateGoalFundingMetrics } from "@/lib/engine/goal-funding";
 
 type Props = {
+  plan: WealthPlan;
   result: SimulationResult;
 };
 
-export function GoalFundingSection({
-  result,
-}: Props) {
-  const goals = result.goalSuccess;
+export function GoalFundingSection({ plan, result }: Props) {
+  //   const goals = result.goalSuccess;
+  const fundingMetrics = calculateGoalFundingMetrics(plan);
+
+  const goals = result.goalSuccess.map((goal) => {
+    const funding = fundingMetrics.find(
+      (metric) => metric.goalId === goal.goalId,
+    );
+
+    return {
+      ...goal,
+      presentValueCost: funding?.presentValueCost ?? 0,
+      allocatedResources: funding?.allocatedResources ?? 0,
+      fundingRatio: funding?.fundingRatio ?? 0,
+    };
+  });
+
+  const averageFundingRatio =
+    goals.length > 0
+      ? goals.reduce((sum, goal) => sum + goal.fundingRatio, 0) / goals.length
+      : undefined;
 
   const averageSuccess =
     goals.length > 0
-      ? goals.reduce(
-          (sum, goal) =>
-            sum + goal.probability,
-          0
-        ) / goals.length
+      ? goals.reduce((sum, goal) => sum + goal.probability, 0) / goals.length
       : undefined;
 
   return (
     <section className={sectionClass}>
-      <h2 className={titleClass}>
-        Goal Funding Probability + Present Value
-      </h2>
+      <h2 className={titleClass}>Goal Funding Probability + Present Value</h2>
 
       <p className="mt-2 text-[12px] leading-5 text-[#64748b]">
-        Each goal is scored using the simulated
-        probability of being fully funded. To do: Present-value
-        funding metrics. 
+        Each goal is scored using the simulated probability of being fully
+        funded. To do: Present-value funding metrics.
       </p>
 
       <div className="mt-5 grid gap-4 md:grid-cols-2">
         <SummaryCard
           label="Simulated success"
           value={
-            averageSuccess != null
-              ? formatProbability(
-                  averageSuccess
-                )
-              : "—"
+            averageSuccess != null ? formatProbability(averageSuccess) : "—"
           }
           description="Average probability across all goals, from the simulated outcomes"
         />
 
         <SummaryCard
           label="PV funding ratio"
-          value="—"
-          description="Present-value funding calculation not wired yet"
+          value={
+            averageFundingRatio != null
+              ? formatFundingRatio(averageFundingRatio)
+              : "—"
+          }
+          description="Average present-value funding ratio across all goals"
         />
       </div>
 
@@ -59,43 +72,27 @@ export function GoalFundingSection({
           goals.map((goal) => (
             <GoalFundingCard
               key={goal.goalId}
-              name={
-                goal.goalName ||
-                "Unnamed goal"
-              }
-              probability={
-                goal.probability
-              }
+              name={goal.goalName || "Unnamed goal"}
+              probability={goal.probability}
+              fundingRatio={goal.fundingRatio}
             />
           ))
         )}
       </div>
 
       <div className="mt-6 grid gap-3 md:grid-cols-4">
-        <LegendItem
-          label="Fully funded"
-          description="probability ≥ 80%"
-        />
+        <LegendItem label="Fully funded" description="probability ≥ 80%" />
 
-        <LegendItem
-          label="Partly funded"
-          description="50–79%"
-        />
+        <LegendItem label="Partly funded" description="50–79%" />
 
-        <LegendItem
-          label="At risk"
-          description="25–49%"
-        />
+        <LegendItem label="At risk" description="25–49%" />
 
-        <LegendItem
-          label="Underfunded"
-          description="< 25%"
-        />
+        <LegendItem label="Underfunded" description="< 25%" />
       </div>
 
       <p className="mt-5 text-[10px] leading-5 text-[#9ca3af]">
-        Simulated success is taken from the Monte Carlo
-        goal-success result for each goal.
+        Simulated success is taken from the Monte Carlo goal-success result for
+        each goal.
       </p>
     </section>
   );
@@ -104,26 +101,19 @@ export function GoalFundingSection({
 function GoalFundingCard({
   name,
   probability,
+  fundingRatio,
 }: {
   name: string;
   probability: number;
+  fundingRatio: number;
 }) {
-  const pct =
-    Math.min(
-      100,
-      Math.max(
-        0,
-        probability * 100
-      )
-    );
+  const pct = Math.min(100, Math.max(0, probability * 100));
 
   return (
     <div className="rounded-lg border border-[rgba(0,87,184,.08)] bg-[#f8faff] p-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <div className="text-[12px] font-bold text-[#16213e]">
-            {name}
-          </div>
+          <div className="text-[12px] font-bold text-[#16213e]">{name}</div>
 
           <div className="mt-1 text-[10px] text-[#9ca3af]">
             Simulated success
@@ -131,20 +121,16 @@ function GoalFundingCard({
         </div>
 
         <div
-          className={`text-[20px] font-extrabold ${successColor(
-            probability
-          )}`}
+          className={`text-[20px] font-extrabold ${successColor(probability)}`}
         >
-          {formatProbability(
-            probability
-          )}
+          {formatProbability(probability)}
         </div>
       </div>
 
       <div className="mt-4 h-2 overflow-hidden rounded-full bg-[#e8eef8]">
         <div
           className={`h-full rounded-full transition-all ${successBarColor(
-            probability
+            probability,
           )}`}
           style={{
             width: `${pct}%`,
@@ -159,9 +145,7 @@ function GoalFundingCard({
           </div>
 
           <div className="mt-1 text-[12px] font-semibold text-[#16213e]">
-            {formatProbability(
-              probability
-            )}
+            {formatProbability(probability)}
           </div>
         </div>
 
@@ -171,7 +155,7 @@ function GoalFundingCard({
           </div>
 
           <div className="mt-1 text-[12px] font-semibold text-[#9ca3af]">
-            —
+            {formatFundingRatio(fundingRatio)}
           </div>
         </div>
       </div>
@@ -214,28 +198,22 @@ function LegendItem({
 }) {
   return (
     <div className="rounded-lg bg-[#f8faff] px-3 py-2">
-      <div className="text-[10px] font-bold text-[#16213e]">
-        {label}
-      </div>
+      <div className="text-[10px] font-bold text-[#16213e]">{label}</div>
 
-      <div className="mt-0.5 text-[9px] text-[#9ca3af]">
-        {description}
-      </div>
+      <div className="mt-0.5 text-[9px] text-[#9ca3af]">{description}</div>
     </div>
   );
 }
 
-function formatProbability(
-  value: number
-): string {
-  return `${(
-    value * 100
-  ).toFixed(0)}%`;
+function formatProbability(value: number): string {
+  return `${(value * 100).toFixed(0)}%`;
 }
 
-function successColor(
-  probability: number
-): string {
+function formatFundingRatio(ratio: number): string {
+  return `${(ratio * 100).toFixed(0)}%`;
+}
+
+function successColor(probability: number): string {
   if (probability >= 0.8) {
     return "text-[#00875a]";
   }
@@ -247,9 +225,7 @@ function successColor(
   return "text-red-500";
 }
 
-function successBarColor(
-  probability: number
-): string {
+function successBarColor(probability: number): string {
   if (probability >= 0.8) {
     return "bg-[#00875a]";
   }

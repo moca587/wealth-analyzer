@@ -1,10 +1,6 @@
-import type {
-  SimulationResult,
-} from "@/lib/engine/types";
+import type { SimulationResult } from "@/lib/engine/types";
 
-import {
-  formatMoney,
-} from "@/lib/engine/financial-math";
+import { formatMoney } from "@/lib/engine/financial-math";
 
 type Props = {
   result: SimulationResult;
@@ -20,38 +16,25 @@ export function SimulationSummarySection({
   sustainableSpend,
   retirementFunding,
 }: Props) {
-  const projectedWealth =
-    result.realFinal.p50; // 50th percentile of final wealth distribution
+  const projectedWealth = result.realFinal.p50; // 50th percentile of final wealth distribution
 
   const goalSuccess =
     result.goalSuccess.length > 0
-      ? result.goalSuccess.reduce(
-          (sum, goal) =>
-            sum + goal.probability,
-          0
-        ) / result.goalSuccess.length // divide by number of goals
+      ? result.goalSuccess.reduce((sum, goal) => sum + goal.probability, 0) /
+        result.goalSuccess.length // divide by number of goals
       : undefined;
 
   return (
     <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
       <SummaryCard
         label="Projected wealth"
-        value={formatMoney(
-          projectedWealth,
-          currency
-        )}
+        value={formatMoney(projectedWealth, currency)}
         description="median · today's money"
       />
 
       <SummaryCard
         label="Goal success"
-        value={
-          goalSuccess != null
-            ? `${(
-                goalSuccess * 100
-              ).toFixed(0)}%`
-            : "—"
-        }
+        value={goalSuccess != null ? `${(goalSuccess * 100).toFixed(0)}%` : "—"}
         description="across your goals"
       />
 
@@ -59,10 +42,7 @@ export function SimulationSummarySection({
         label="Sustainable spend"
         value={
           sustainableSpend != null
-            ? formatMoney(
-                sustainableSpend,
-                currency
-              )
+            ? formatMoney(sustainableSpend, currency)
             : "—"
         }
         description="per year · today's money"
@@ -72,10 +52,7 @@ export function SimulationSummarySection({
         label="Retirement funding"
         value={
           retirementFunding != null
-            ? formatMoney(
-                retirementFunding,
-                currency
-              )
+            ? formatMoney(retirementFunding, currency)
             : "—"
         }
         description="vs. present-value target"
@@ -95,17 +72,13 @@ function SummaryCard({
 }) {
   return (
     <div className={cardClass}>
-      <div className={labelClass}>
-        {label}
-      </div>
+      <div className={labelClass}>{label}</div>
 
       <div className="mt-2 text-[24px] font-extrabold tracking-tight text-[#16213e]">
         {value}
       </div>
 
-      <div className="mt-1 text-[11px] text-[#64748b]">
-        {description}
-      </div>
+      <div className="mt-1 text-[11px] text-[#64748b]">{description}</div>
     </div>
   );
 }

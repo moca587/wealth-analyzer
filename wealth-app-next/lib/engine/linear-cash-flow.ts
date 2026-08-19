@@ -1,6 +1,9 @@
 import type {
   WealthPlan,
-  Loan,
+  CashFlowPhase,
+  LinearCashFlowRow,
+  LinearCashFlowResult,
+  LinearCashFlowOptions,
 } from "./types";
 
 import {
@@ -13,104 +16,7 @@ import {
   portfolioReturnParams,
 } from "./financial-math";
 
-import {
-  RISK_PROFILES,
-} from "./constants";
-
-// ─────────────────────────────────────────────────────────────
-// Public result types
-// ─────────────────────────────────────────────────────────────
-
-export type CashFlowPhase =
-  | "Working"
-  | "Retired";
-
-export interface LinearCashFlowRow {
-  year: number;
-  age: number;
-
-  phase: CashFlowPhase;
-
-  earnedIncome: number;
-  pensionRmdIncome: number;
-
-  incomeTax: number;
-  expenses: number;
-  debtService: number;
-
-  savingsTarget: number;
-  surplusDeficit: number;
-
-  goalOutflow: number;
-
-  cash: number;
-  investments: number;
-  retirementPool: number;
-
-  propertyValue: number;
-  otherAssets: number;
-
-  totalDebt: number;
-  unfunded: number;
-
-  netWorth: number;
-
-  notes: string[];
-}
-
-export interface LinearCashFlowResult {
-  rows: LinearCashFlowRow[];
-
-  startYear: number;
-  startAge: number;
-  endAge: number;
-
-  investmentReturn: number;
-  portfolioMean: number;
-  portfolioSigma: number;
-
-  propertyGrowth: number;
-  retirementPoolGrowth: number;
-}
-
-/*
- * Some legacy cash-flow inputs do not yet have a clear canonical
- * field in the migrated WealthPlan schema.
- *
- * Keep those assumptions explicit rather than hiding hardcoded
- * values inside the engine.
- */
-export interface LinearCashFlowOptions {
-  endAge?: number;
-
-  /*
-   * The legacy UI has an annual savings-target field.
-   *
-   * Until that field is present on the migrated WealthPlan,
-   * pass it into this engine explicitly.
-   */
-  annualSavingsTarget?: number;
-
-  /*
-   * Legacy deterministic retirement-account return.
-   * 0.035 = 3.5%.
-   */
-  retirementPoolGrowth?: number;
-
-  /*
-   * During accumulation, remaining positive surplus can be
-   * divided between cash and investments.
-   *
-   * Legacy description uses 30% cash / 70% invested.
-   */
-  cashSurplusShare?: number;
-
-  /*
-   * Anchor the calculation to a fixed calendar year when
-   * reproducibility is needed.
-   */
-  asOfYear?: number;
-}
+import { RISK_PROFILES } from "./constants";
 
 // ─────────────────────────────────────────────────────────────
 // Internal loan state
@@ -130,111 +36,68 @@ export function buildLinearCashFlow(
   plan: WealthPlan,
   options: LinearCashFlowOptions = {},
 ): LinearCashFlowResult {
-  const client =
-    plan.clients[0];
+  const client = plan.clients[0];
 
   if (!client) {
-    throw new Error(
-      "Linear cash flow requires at least one client",
-    );
+    throw new Error("Linear cash flow requires at least one client");
   }
 
   // ───────────────────────────────────────────────────────────
   // Projection horizon
   // ───────────────────────────────────────────────────────────
 
-  const startYear =
-    options.asOfYear ??
-    new Date().getFullYear();
+  const startYear = options.asOfYear ?? new Date().getFullYear();
 
-  const asOfDate =
-    new Date(startYear, 0, 1);
+  const asOfDate = new Date(startYear, 0, 1);
 
-  const startAge =
-    client.dob
-      ? ageFromDOB(
-          client.dob,
-          asOfDate,
-        ) ?? 40
-      : 40;
+  const startAge = client.dob ? (ageFromDOB(client.dob, asOfDate) ?? 40) : 40;
 
-  const endAge =
-    Math.max(
-      startAge,
-      options.endAge ?? 90,
-    );
+  const endAge = Math.max(startAge, options.endAge ?? 90);
 
   // Include both the starting age and final age.
   //
   // Example:
   // age 45 through age 90 = 46 rows.
-  const projectionYears =
-    endAge - startAge;
+  const projectionYears = endAge - startAge;
 
   // ───────────────────────────────────────────────────────────
   // Household assumptions
   // ───────────────────────────────────────────────────────────
 
-  const inflation =
-    plan.inflationRate;
+  const inflation = plan.inflationRate;
 
-  const country =
-    client.country || "US";
+  const country = client.country || "US";
 
-  const state =
-    client.state;
+  const state = client.state;
 
-  const retirement =
-    plan.retirement;
+  const retirement = plan.retirement;
 
-  const retirementEnabled =
-    !!(
-      retirement &&
-      retirement.enabled
-    );
+  const retirementEnabled = !!(retirement && retirement.enabled);
 
-  const retirementAge =
-    retirementEnabled
-      ? retirement!.retirementAge
-      : Infinity;
+  const retirementAge = retirementEnabled
+    ? retirement!.retirementAge
+    : Infinity;
 
-  const retirementSpendToday =
-    retirementEnabled
-      ? retirement!.annualSpending
-      : 0;
+  const retirementSpendToday = retirementEnabled
+    ? retirement!.annualSpending
+    : 0;
 
-  const annualSavingsTarget =
-    Math.max(
-      0,
-      options.annualSavingsTarget ?? 0,
-    );
+  const annualSavingsTarget = Math.max(0, options.annualSavingsTarget ?? 0);
 
-  const retirementPoolGrowth =
-    options.retirementPoolGrowth ??
-    0.035;
+  const retirementPoolGrowth = options.retirementPoolGrowth ?? 0.035;
 
-  const cashSurplusShare =
-    clamp(
-      options.cashSurplusShare ??
-      0.30,
-      0,
-      1,
-    );
+  const cashSurplusShare = clamp(options.cashSurplusShare ?? 0.3, 0, 1);
 
-  const investmentSurplusShare =
-    1 - cashSurplusShare;
+  const investmentSurplusShare = 1 - cashSurplusShare;
 
   // ───────────────────────────────────────────────────────────
   // Current income / expenses
   // ───────────────────────────────────────────────────────────
 
-  const baseIncome =
-    plan.incomes.reduce(
-      (sum, income) =>
-        sum +
-        Number(income.amount || 0),
-      0,
-    );
+  const baseIncome = plan.incomes.reduce(
+    (sum, income) => sum + Number(income.amount || 0),
+    0,
+  );
 
   /*
    * Your current Monte Carlo treats expenses as monthly
@@ -245,9 +108,7 @@ export function buildLinearCashFlow(
    */
   const baseAnnualExpenses =
     plan.expenses.reduce(
-      (sum, expense) =>
-        sum +
-        Number(expense.amount || 0),
+      (sum, expense) => sum + Number(expense.amount || 0),
       0,
     ) * 12;
 
@@ -262,66 +123,33 @@ export function buildLinearCashFlow(
    * liquid === false → retirement / deferred pool
    * real_estate      → property
    */
-  let cash =
-    plan.assets
-      .filter(
-        (asset) =>
-          asset.cls === "cash" &&
-          asset.liquid !== false,
-      )
-      .reduce(
-        (sum, asset) =>
-          sum +
-          Number(asset.value || 0),
-        0,
-      );
+  let cash = plan.assets
+    .filter((asset) => asset.cls === "cash" && asset.liquid !== false)
+    .reduce((sum, asset) => sum + Number(asset.value || 0), 0);
 
-  let retirementPool =
-    plan.assets
-      .filter(
-        (asset) =>
-          asset.cls !== "real_estate" &&
-          asset.liquid === false,
-      )
-      .reduce(
-        (sum, asset) =>
-          sum +
-          Number(asset.value || 0),
-        0,
-      );
+  let retirementPool = plan.assets
+    .filter((asset) => asset.cls !== "real_estate" && asset.liquid === false)
+    .reduce((sum, asset) => sum + Number(asset.value || 0), 0);
 
-  let propertyValue =
-    plan.assets
-      .filter(
-        (asset) =>
-          asset.cls === "real_estate",
-      )
-      .reduce(
-        (sum, asset) =>
-          sum +
-          Number(asset.value || 0),
-        0,
-      );
+  let propertyValue = plan.assets
+    .filter((asset) => asset.cls === "real_estate")
+    .reduce((sum, asset) => sum + Number(asset.value || 0), 0);
 
   /*
    * Invested assets are liquid non-cash, non-property assets.
    */
-  const investableAssets =
-    plan.assets.filter(
-      (asset) =>
-        asset.cls !== "real_estate" &&
-        asset.cls !== "cash" &&
-        asset.liquid !== false &&
-        Number(asset.value) > 0,
-    );
+  const investableAssets = plan.assets.filter(
+    (asset) =>
+      asset.cls !== "real_estate" &&
+      asset.cls !== "cash" &&
+      asset.liquid !== false &&
+      Number(asset.value) > 0,
+  );
 
-  let investments =
-    investableAssets.reduce(
-      (sum, asset) =>
-        sum +
-        Number(asset.value || 0),
-      0,
-    );
+  let investments = investableAssets.reduce(
+    (sum, asset) => sum + Number(asset.value || 0),
+    0,
+  );
 
   /*
    * Assets that do not fit the four tracked pools remain
@@ -329,37 +157,30 @@ export function buildLinearCashFlow(
    *
    * This prevents them from disappearing from net worth.
    */
-  const trackedAssetIds =
-    new Set([
-      ...plan.assets
-        .filter(
-          (asset) =>
-            asset.cls === "cash" ||
-            asset.cls === "real_estate" ||
-            asset.liquid === false ||
-            (
-              asset.cls !== "cash" &&
-              asset.cls !== "real_estate" &&
-              asset.liquid !== false
-            ),
-        )
-        .map((asset) => asset.id),
-    ]);
-
-  const otherAssets =
+  const trackedAssetIds = new Set(
     plan.assets
-      .filter(
-        (asset) =>
-          !trackedAssetIds.has(
-            asset.id,
-          ),
-      )
-      .reduce(
-        (sum, asset) =>
-          sum +
-          Number(asset.value || 0),
-        0,
-      );
+      .filter((asset) => {
+        const isCash = asset.cls === "cash" && asset.liquid !== false;
+
+        const isProperty = asset.cls === "real_estate";
+
+        const isRetirement =
+          asset.cls !== "real_estate" && asset.liquid === false;
+
+        const isInvestment =
+          asset.cls !== "real_estate" &&
+          asset.cls !== "cash" &&
+          asset.liquid !== false &&
+          Number(asset.value) > 0;
+
+        return isCash || isProperty || isRetirement || isInvestment;
+      })
+      .map((asset) => asset.id),
+  );
+
+  const otherAssets = plan.assets
+    .filter((asset) => !trackedAssetIds.has(asset.id))
+    .reduce((sum, asset) => sum + Number(asset.value || 0), 0);
 
   // ───────────────────────────────────────────────────────────
   // Deterministic portfolio return
@@ -373,30 +194,20 @@ export function buildLinearCashFlow(
    * are no usable classified investments.
    */
   const riskProfile =
-    client.risk &&
-    RISK_PROFILES[client.risk]
+    client.risk && RISK_PROFILES[client.risk]
       ? RISK_PROFILES[client.risk]
       : RISK_PROFILES.moderate;
 
-  const {
-    mean: portfolioMean,
-    sigma: portfolioSigma,
-  } =
-    portfolioReturnParams(
-      investableAssets.map(
-        (asset) => ({
-          cls: asset.cls,
-          value:
-            Number(asset.value),
-        }),
-      ),
-      {
-        mean:
-          riskProfile.mu / 100,
-        sigma:
-          riskProfile.sigma / 100,
-      },
-    );
+  const { mean: portfolioMean, sigma: portfolioSigma } = portfolioReturnParams(
+    investableAssets.map((asset) => ({
+      cls: asset.cls,
+      value: Number(asset.value),
+    })),
+    {
+      mean: riskProfile.mu / 100,
+      sigma: riskProfile.sigma / 100,
+    },
+  );
 
   /*
    * Deterministic "median-like" return:
@@ -404,22 +215,14 @@ export function buildLinearCashFlow(
    * geometric mean =
    * arithmetic mean - 1/2 * sigma^2
    */
-  const investmentReturn =
-    geometricMean(
-      portfolioMean,
-      portfolioSigma,
-    );
+  const investmentReturn = geometricMean(portfolioMean, portfolioSigma);
 
   /*
    * Legacy deterministic property assumption:
    * inflation minus 1 percentage point,
    * with a 1% minimum.
    */
-  const propertyGrowth =
-    Math.max(
-      0.01,
-      inflation - 0.01,
-    );
+  const propertyGrowth = Math.max(0.01, inflation - 0.01);
 
   // ───────────────────────────────────────────────────────────
   // Goal schedule
@@ -435,36 +238,25 @@ export function buildLinearCashFlow(
    * produces $10k of nominal goal outflow in each
    * calendar year from 2030 through 2034.
    */
-  const goalOutflows =
-    buildGoalOutflowMap(
-      plan,
-      startYear,
-    );
+  const goalOutflows = buildGoalOutflowMap(plan, startYear);
 
   // ───────────────────────────────────────────────────────────
   // Loan state
   // ───────────────────────────────────────────────────────────
 
-  const loans: LoanState[] =
-    plan.loans.map(
-      (loan) => ({
-        balance:
-          Number(loan.bal || 0),
+  const loans: LoanState[] = plan.loans.map((loan) => ({
+    balance: Number(loan.bal || 0),
 
-        ratePct:
-          Number(loan.rate || 0),
+    ratePct: Number(loan.rate || 0),
 
-        yearsRemaining:
-          Number(loan.yrs || 0),
-      }),
-    );
+    yearsRemaining: Number(loan.yrs || 0),
+  }));
 
   // ───────────────────────────────────────────────────────────
   // Projection state
   // ───────────────────────────────────────────────────────────
 
-  const rows:
-    LinearCashFlowRow[] = [];
+  const rows: LinearCashFlowRow[] = [];
 
   let unfunded = 0;
 
@@ -474,19 +266,12 @@ export function buildLinearCashFlow(
    * The updated balances from this year become the
    * starting balances for the next year.
    */
-  for (
-    let yearOffset = 0;
-    yearOffset <= projectionYears;
-    yearOffset += 1
-  ) {
-    const year =
-      startYear + yearOffset;
+  for (let yearOffset = 0; yearOffset <= projectionYears; yearOffset += 1) {
+    const year = startYear + yearOffset;
 
-    const age =
-      startAge + yearOffset;
+    const age = startAge + yearOffset;
 
-    const retired =
-      age >= retirementAge;
+    const retired = age >= retirementAge;
 
     const notes: string[] = [];
 
@@ -494,13 +279,8 @@ export function buildLinearCashFlow(
       notes.push("today");
     }
 
-    if (
-      retirementEnabled &&
-      age === retirementAge
-    ) {
-      notes.push(
-        "retirement starts",
-      );
+    if (retirementEnabled && age === retirementAge) {
+      notes.push("retirement starts");
     }
 
     // ─────────────────────────────────────────────────────────
@@ -512,14 +292,11 @@ export function buildLinearCashFlow(
      * Growth starts from year 1 onward.
      */
     if (yearOffset > 0) {
-      investments *=
-        1 + investmentReturn;
+      investments *= 1 + investmentReturn;
 
-      propertyValue *=
-        1 + propertyGrowth;
+      propertyValue *= 1 + propertyGrowth;
 
-      retirementPool *=
-        1 + retirementPoolGrowth;
+      retirementPool *= 1 + retirementPoolGrowth;
     }
 
     // ─────────────────────────────────────────────────────────
@@ -528,42 +305,21 @@ export function buildLinearCashFlow(
 
     let pensionIncome = 0;
 
-    for (
-      const pension of
-      plan.pensions ?? []
-    ) {
-      if (
-        age <
-        pension.startAge
-      ) {
+    for (const pension of plan.pensions ?? []) {
+      if (age < pension.startAge) {
         continue;
       }
 
-      const pensionYears =
-        age -
-        pension.startAge;
+      const pensionYears = age - pension.startAge;
 
       const amount =
-        Number(
-          pension.annualAmount || 0,
-        ) *
-        Math.pow(
-          1 +
-            Number(
-              pension.colaRate || 0,
-            ),
-          pensionYears,
-        );
+        Number(pension.annualAmount || 0) *
+        Math.pow(1 + Number(pension.colaRate || 0), pensionYears);
 
       pensionIncome += amount;
 
-      if (
-        age ===
-        pension.startAge
-      ) {
-        notes.push(
-          "pension starts",
-        );
+      if (age === pension.startAge) {
+        notes.push("pension starts");
       }
     }
 
@@ -573,84 +329,49 @@ export function buildLinearCashFlow(
 
     let retirementDistribution = 0;
 
-    if (
-      retired &&
-      retirementPool > 0
-    ) {
+    if (retired && retirementPool > 0) {
       /*
        * Legacy behavior:
        *
        * During retirement, draw at least 4% voluntarily,
        * but obey a larger mandatory RMD when required.
        */
-      const voluntaryDraw =
-        retirementPool * 0.04;
+      const voluntaryDraw = retirementPool * 0.04;
 
-      const mandatoryRmd =
-        calcRMD(
-          retirementPool,
-          age,
-          country,
-        );
+      const mandatoryRmd = calcRMD(retirementPool, age, country);
 
-      retirementDistribution =
-        Math.min(
-          retirementPool,
-          Math.max(
-            voluntaryDraw,
-            mandatoryRmd,
-          ),
-        );
+      retirementDistribution = Math.min(
+        retirementPool,
+        Math.max(voluntaryDraw, mandatoryRmd),
+      );
 
-      retirementPool -=
-        retirementDistribution;
+      retirementPool -= retirementDistribution;
 
-      if (
-        mandatoryRmd >
-        voluntaryDraw
-      ) {
-        notes.push(
-          "mandatory RMD",
-        );
+      if (mandatoryRmd > voluntaryDraw) {
+        notes.push("mandatory RMD");
       }
     }
 
-    const pensionRmdIncome =
-      pensionIncome +
-      retirementDistribution;
+    const pensionRmdIncome = pensionIncome + retirementDistribution;
 
     // ─────────────────────────────────────────────────────────
     // Earned income
     // ─────────────────────────────────────────────────────────
 
-    const earnedIncome =
-      retired
-        ? 0
-        : baseIncome;
+    const earnedIncome = retired ? 0 : baseIncome;
 
     // ─────────────────────────────────────────────────────────
     // Expenses
     // ─────────────────────────────────────────────────────────
 
     const workingExpenses =
-      baseAnnualExpenses *
-      Math.pow(
-        1 + inflation,
-        yearOffset,
-      );
+      baseAnnualExpenses * Math.pow(1 + inflation, yearOffset);
 
     const retirementExpenses =
-      retirementSpendToday *
-      Math.pow(
-        1 + inflation,
-        yearOffset,
-      );
+      retirementSpendToday * Math.pow(1 + inflation, yearOffset);
 
     const expenses =
-      retired &&
-      retirementEnabled
-        ? retirementExpenses
-        : workingExpenses;
+      retired && retirementEnabled ? retirementExpenses : workingExpenses;
 
     // ─────────────────────────────────────────────────────────
     // Debt service
@@ -658,91 +379,48 @@ export function buildLinearCashFlow(
 
     let debtService = 0;
 
-    for (
-      const loan of loans
-    ) {
-      if (
-        loan.balance <= 0 ||
-        loan.yearsRemaining <= 0
-      ) {
+    for (const loan of loans) {
+      if (loan.balance <= 0 || loan.yearsRemaining <= 0) {
         continue;
       }
 
-      const annualPayment =
-        calculateAnnualLoanPayment(
-          loan,
-        );
+      const annualPayment = calculateAnnualLoanPayment(loan);
 
       /*
        * Approximate annual amortization:
        * payment first covers interest,
        * remainder reduces principal.
        */
-      const interest =
-        loan.balance *
-        (loan.ratePct / 100);
+      const interest = loan.balance * (loan.ratePct / 100);
 
-      const principal =
-        Math.min(
-          loan.balance,
-          Math.max(
-            0,
-            annualPayment -
-              interest,
-          ),
-        );
+      const principal = Math.min(
+        loan.balance,
+        Math.max(0, annualPayment - interest),
+      );
 
-      loan.balance =
-        Math.max(
-          0,
-          loan.balance -
-            principal,
-        );
+      loan.balance = Math.max(0, loan.balance - principal);
 
-      loan.yearsRemaining =
-        Math.max(
-          0,
-          loan.yearsRemaining -
-            1,
-        );
+      loan.yearsRemaining = Math.max(0, loan.yearsRemaining - 1);
 
-      debtService +=
-        Math.min(
-          annualPayment,
-          interest +
-            principal,
-        );
+      debtService += Math.min(annualPayment, interest + principal);
     }
 
     // ─────────────────────────────────────────────────────────
     // Income tax
     // ─────────────────────────────────────────────────────────
 
-    const taxableIncome =
-      earnedIncome +
-      pensionRmdIncome;
+    const taxableIncome = earnedIncome + pensionRmdIncome;
 
     const incomeTax =
-      estimateIncomeTax(
-        taxableIncome,
-        country,
-      ) +
-      computeStateTax(
-        taxableIncome,
-        country,
-        state,
-      );
+      estimateIncomeTax(taxableIncome, country) +
+      computeStateTax(taxableIncome, country, state);
 
     // ─────────────────────────────────────────────────────────
     // Cash flow before savings / goals
     // ─────────────────────────────────────────────────────────
 
     const surplusBeforeSavings =
-      earnedIncome +
-      pensionRmdIncome -
-      incomeTax -
-      expenses -
-      debtService;
+      earnedIncome + pensionRmdIncome - incomeTax - expenses - debtService;
 
     /*
      * Savings target only applies while working.
@@ -750,20 +428,11 @@ export function buildLinearCashFlow(
      * It cannot exceed the positive cash flow produced
      * by the current year.
      */
-    const savingsTarget =
-      retired
-        ? 0
-        : Math.min(
-            annualSavingsTarget,
-            Math.max(
-              0,
-              surplusBeforeSavings,
-            ),
-          );
+    const savingsTarget = retired
+      ? 0
+      : Math.min(annualSavingsTarget, Math.max(0, surplusBeforeSavings));
 
-    let surplusDeficit =
-      surplusBeforeSavings -
-      savingsTarget;
+    let surplusDeficit = surplusBeforeSavings - savingsTarget;
 
     // ─────────────────────────────────────────────────────────
     // Apply savings target
@@ -776,13 +445,9 @@ export function buildLinearCashFlow(
      * described by the legacy deterministic projection.
      */
     if (savingsTarget > 0) {
-      cash +=
-        savingsTarget *
-        cashSurplusShare;
+      cash += savingsTarget * cashSurplusShare;
 
-      investments +=
-        savingsTarget *
-        investmentSurplusShare;
+      investments += savingsTarget * investmentSurplusShare;
     }
 
     // ─────────────────────────────────────────────────────────
@@ -794,28 +459,17 @@ export function buildLinearCashFlow(
        * Reinvest remaining positive surplus:
        * 30% cash / 70% investments by default.
        */
-      cash +=
-        surplusDeficit *
-        cashSurplusShare;
+      cash += surplusDeficit * cashSurplusShare;
 
-      investments +=
-        surplusDeficit *
-        investmentSurplusShare;
-    } else if (
-      surplusDeficit < 0
-    ) {
+      investments += surplusDeficit * investmentSurplusShare;
+    } else if (surplusDeficit < 0) {
       /*
        * Legacy rule:
        * deficits drain cash first.
        */
-      let need =
-        -surplusDeficit;
+      let need = -surplusDeficit;
 
-      const fromCash =
-        Math.min(
-          Math.max(0, cash),
-          need,
-        );
+      const fromCash = Math.min(Math.max(0, cash), need);
 
       cash -= fromCash;
       need -= fromCash;
@@ -824,20 +478,11 @@ export function buildLinearCashFlow(
        * If cash is exhausted,
        * drain investments next.
        */
-      const fromInvestments =
-        Math.min(
-          Math.max(
-            0,
-            investments,
-          ),
-          need,
-        );
+      const fromInvestments = Math.min(Math.max(0, investments), need);
 
-      investments -=
-        fromInvestments;
+      investments -= fromInvestments;
 
-      need -=
-        fromInvestments;
+      need -= fromInvestments;
 
       /*
        * Any amount that still cannot be funded becomes
@@ -856,70 +501,43 @@ export function buildLinearCashFlow(
     // Goal outflows
     // ─────────────────────────────────────────────────────────
 
-    const goalOutflow =
-      goalOutflows.get(year) ??
-      0;
+    const goalOutflow = goalOutflows.get(year) ?? 0;
 
     if (goalOutflow > 0) {
       notes.push("goal");
 
-      let need =
-        goalOutflow;
+      let need = goalOutflow;
 
       // Goals also drain cash first.
-      const fromCash =
-        Math.min(
-          Math.max(0, cash),
-          need,
-        );
+      const fromCash = Math.min(Math.max(0, cash), need);
 
       cash -= fromCash;
       need -= fromCash;
 
       // Then investments.
-      const fromInvestments =
-        Math.min(
-          Math.max(
-            0,
-            investments,
-          ),
-          need,
-        );
+      const fromInvestments = Math.min(Math.max(0, investments), need);
 
-      investments -=
-        fromInvestments;
+      investments -= fromInvestments;
 
-      need -=
-        fromInvestments;
+      need -= fromInvestments;
 
       if (need > 0) {
         unfunded += need;
       }
     }
 
-    cash =
-      Math.max(0, cash);
+    cash = Math.max(0, cash);
 
-    investments =
-      Math.max(
-        0,
-        investments,
-      );
+    investments = Math.max(0, investments);
 
     // ─────────────────────────────────────────────────────────
     // Ending balance sheet
     // ─────────────────────────────────────────────────────────
 
-    const totalDebt =
-      loans.reduce(
-        (sum, loan) =>
-          sum +
-          Math.max(
-            0,
-            loan.balance,
-          ),
-        0,
-      );
+    const totalDebt = loans.reduce(
+      (sum, loan) => sum + Math.max(0, loan.balance),
+      0,
+    );
 
     const netWorth =
       cash +
@@ -938,10 +556,7 @@ export function buildLinearCashFlow(
       year,
       age,
 
-      phase:
-        retired
-          ? "Retired"
-          : "Working",
+      phase: retired ? "Retired" : "Working",
 
       earnedIncome,
       pensionRmdIncome,
@@ -995,8 +610,7 @@ function buildGoalOutflowMap(
   plan: WealthPlan,
   startYear: number,
 ): Map<number, number> {
-  const result =
-    new Map<number, number>();
+  const result = new Map<number, number>();
 
   for (const goal of plan.goals) {
     /*
@@ -1005,39 +619,18 @@ function buildGoalOutflowMap(
      *
      * Avoid double-counting a retirement-category goal.
      */
-    if (
-      plan.retirement?.enabled &&
-      goal.cat === "Retirement"
-    ) {
+    if (plan.retirement?.enabled && goal.cat === "Retirement") {
       continue;
     }
 
-    const firstYear =
-      Math.max(
-        startYear,
-        goal.startYear,
-      );
+    const firstYear = Math.max(startYear, goal.startYear);
 
-    const lastYear =
-      Math.max(
-        firstYear,
-        goal.endYear,
-      );
+    const lastYear = Math.max(firstYear, goal.endYear);
 
-    for (
-      let year = firstYear;
-      year <= lastYear;
-      year += 1
-    ) {
-      const existing =
-        result.get(year) ??
-        0;
+    for (let year = firstYear; year <= lastYear; year += 1) {
+      const existing = result.get(year) ?? 0;
 
-      result.set(
-        year,
-        existing +
-          Number(goal.amt || 0),
-      );
+      result.set(year, existing + Number(goal.amt || 0));
     }
   }
 
@@ -1048,22 +641,16 @@ function buildGoalOutflowMap(
 // Loan helper
 // ─────────────────────────────────────────────────────────────
 
-function calculateAnnualLoanPayment(
-  loan: LoanState,
-): number {
-  if (
-    loan.balance <= 0 ||
-    loan.yearsRemaining <= 0
-  ) {
+function calculateAnnualLoanPayment(loan: LoanState): number {
+  if (loan.balance <= 0 || loan.yearsRemaining <= 0) {
     return 0;
   }
 
-  const monthlyPayment =
-    calcMortgagePayment(
-      loan.balance,
-      loan.ratePct,
-      loan.yearsRemaining,
-    );
+  const monthlyPayment = calcMortgagePayment(
+    loan.balance,
+    loan.ratePct,
+    loan.yearsRemaining,
+  );
 
   return monthlyPayment * 12;
 }
@@ -1072,13 +659,6 @@ function calculateAnnualLoanPayment(
 // Small utility
 // ─────────────────────────────────────────────────────────────
 
-function clamp(
-  value: number,
-  min: number,
-  max: number,
-): number {
-  return Math.min(
-    max,
-    Math.max(min, value),
-  );
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, value));
 }

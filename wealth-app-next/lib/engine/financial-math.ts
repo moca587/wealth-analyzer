@@ -4,7 +4,14 @@
 // Ported from the wealth-analyzer.html script block.
 // ─────────────────────────────────────────────────────────────────
 
-import { IRS_UNIFORM_LIFETIME, ASSET_CLASS_CMA, assetCorrelation, TAX_BRACKETS, RRIF_RATES, US_STATE_TAX_RATES } from "./constants";
+import {
+  IRS_UNIFORM_LIFETIME,
+  ASSET_CLASS_CMA,
+  assetCorrelation,
+  TAX_BRACKETS,
+  RRIF_RATES,
+  US_STATE_TAX_RATES,
+} from "./constants";
 import type { AssetClass } from "./types";
 
 /**
@@ -44,30 +51,46 @@ export function createSeededRandom(seed: number): () => number {
  * @param annualRatePct  annual interest rate as a percentage (e.g. 6.5 = 6.5%)
  * @param years  loan term in years
  */
-export function calcMortgagePayment(principal: number, annualRatePct: number, years: number): number {
+export function calcMortgagePayment(
+  principal: number,
+  annualRatePct: number,
+  years: number,
+): number {
   if (principal <= 0 || years <= 0) return 0;
 
   const m = annualRatePct / 100 / 12;
   const n = years * 12;
   if (m === 0) return principal / n;
-  return principal * (m * Math.pow(1 + m, n)) / (Math.pow(1 + m, n) - 1);
+  return (principal * (m * Math.pow(1 + m, n))) / (Math.pow(1 + m, n) - 1);
 }
 
 /** Present value of a future cashflow */
-export function presentValue(futureValue: number, ratePct: number, periods: number): number {
+export function presentValue(
+  futureValue: number,
+  ratePct: number,
+  periods: number,
+): number {
   return futureValue / Math.pow(1 + ratePct / 100, periods);
 }
 
 /** Future value compounded annually */
-export function futureValue(presentValue: number, ratePct: number, periods: number): number {
+export function futureValue(
+  presentValue: number,
+  ratePct: number,
+  periods: number,
+): number {
   return presentValue * Math.pow(1 + ratePct / 100, periods);
 }
 
 /** Present value of an annuity (ordinary, end-of-period payments) */
-export function annuityPV(payment: number, ratePct: number, periods: number): number {
+export function annuityPV(
+  payment: number,
+  ratePct: number,
+  periods: number,
+): number {
   const r = ratePct / 100;
   if (Math.abs(r) < 1e-10) return payment * periods;
-  return payment * (1 - Math.pow(1 + r, -periods)) / r;
+  return (payment * (1 - Math.pow(1 + r, -periods))) / r;
 }
 
 /** Geometric mean adjustment: log-normal mean from arithmetic μ, σ (both decimal) */
@@ -89,15 +112,15 @@ export function geometricMean(arithMean: number, vol: number): number {
  */
 export function portfolioReturnParams(
   holdings: Array<{ cls?: AssetClass; value: number }>,
-  fallback: { mean: number; sigma: number }
+  fallback: { mean: number; sigma: number },
 ): { mean: number; sigma: number } {
   const byClass = new Map<AssetClass, number>();
   let total = 0;
-  
+
   for (const h of holdings) {
     const v = h.value || 0;
     if (v <= 0) continue;
-    const cls: AssetClass = (h.cls && ASSET_CLASS_CMA[h.cls]) ? h.cls : "mixed";
+    const cls: AssetClass = h.cls && ASSET_CLASS_CMA[h.cls] ? h.cls : "mixed";
     byClass.set(cls, (byClass.get(cls) || 0) + v);
     total += v;
   }
@@ -112,7 +135,12 @@ export function portfolioReturnParams(
   let variance = 0;
   for (const a of classes) {
     for (const b of classes) {
-      variance += weight(a) * weight(b) * ASSET_CLASS_CMA[a].sigma * ASSET_CLASS_CMA[b].sigma * assetCorrelation(a, b);
+      variance +=
+        weight(a) *
+        weight(b) *
+        ASSET_CLASS_CMA[a].sigma *
+        ASSET_CLASS_CMA[b].sigma *
+        assetCorrelation(a, b);
     }
   }
   return { mean, sigma: Math.sqrt(Math.max(0, variance)) };
@@ -124,10 +152,14 @@ export function portfolioReturnParams(
  * federal-level only — excludes state/provincial/local layers and credits.
  * Returns the tax amount in the same units as the income.
  */
-export function estimateIncomeTax(taxableIncome: number, country = "US"): number {
+export function estimateIncomeTax(
+  taxableIncome: number,
+  country = "US",
+): number {
   if (!(taxableIncome > 0)) return 0;
   const brackets = TAX_BRACKETS[country] ?? TAX_BRACKETS.default;
-  let tax = 0, prev = 0;
+  let tax = 0,
+    prev = 0;
   for (const b of brackets) {
     const slice = Math.min(taxableIncome, b.upTo) - prev;
     if (slice > 0) tax += slice * b.rate;
@@ -142,18 +174,13 @@ export function estimateIncomeTax(taxableIncome: number, country = "US"): number
  * Uses the legacy Wealth Analyzer rules for US, Canada, Australia,
  * Europe, Switzerland, supported Asian countries, and fallback regions.
  */
-export function calcRMD(
-  balance: number,
-  age: number,
-  country: string
-): number {
+export function calcRMD(balance: number, age: number, country: string): number {
   if (balance <= 0) return 0;
 
   if (country === "US") {
     if (age < 73) return 0;
 
-    const factor =
-      IRS_UNIFORM_LIFETIME[Math.min(age, 120)] ?? 2.0;
+    const factor = IRS_UNIFORM_LIFETIME[Math.min(age, 120)] ?? 2.0;
 
     return balance / factor;
   }
@@ -161,22 +188,17 @@ export function calcRMD(
   if (country === "CA") {
     if (age < 71) return 0;
 
-    const rate =
-      (RRIF_RATES[Math.min(age, 94)] ?? 20) / 100;
+    const rate = (RRIF_RATES[Math.min(age, 94)] ?? 20) / 100;
 
     return balance * rate;
   }
 
   if (country === "AU") {
     if (age < 60) return 0;
-    return balance * auSuperRate(age) / 100;
+    return (balance * auSuperRate(age)) / 100;
   }
 
-  if (
-    country === "GB" ||
-    country === "EU" ||
-    country === "CH"
-  ) {
+  if (country === "GB" || country === "EU" || country === "CH") {
     return age >= 57 ? balance * 0.04 : 0;
   }
 
@@ -214,27 +236,20 @@ export function calcRetirementNumber(
   annualSpend: number,
   inflation: number,
   lifeExpectancy: number,
-  discountRate = 0.068
+  discountRate = 0.068,
 ): RetirementNumberResult {
   const yearsToRet = Math.max(0, retirementAge - currentAge);
 
   const effectiveLifeExpectancy =
-    Number.isFinite(lifeExpectancy) && lifeExpectancy > 0
-      ? lifeExpectancy
-      : 80;
+    Number.isFinite(lifeExpectancy) && lifeExpectancy > 0 ? lifeExpectancy : 80;
 
-  const planAge = Math.max(
-    98,
-    Math.round(effectiveLifeExpectancy) + 15
-  );
+  const planAge = Math.max(98, Math.round(effectiveLifeExpectancy) + 15);
 
   const yearsInRet = Math.max(0, planAge - retirementAge);
 
-  const realRate =
-    (discountRate - inflation) / (1 + inflation);
+  const realRate = (discountRate - inflation) / (1 + inflation);
 
-  const nominalSpend =
-    annualSpend * Math.pow(1 + inflation, yearsToRet);
+  const nominalSpend = annualSpend * Math.pow(1 + inflation, yearsToRet);
 
   let pvAtRet: number;
 
@@ -242,13 +257,10 @@ export function calcRetirementNumber(
     pvAtRet = nominalSpend * yearsInRet;
   } else {
     pvAtRet =
-      nominalSpend *
-      (1 - Math.pow(1 + realRate, -yearsInRet)) /
-      realRate;
+      (nominalSpend * (1 - Math.pow(1 + realRate, -yearsInRet))) / realRate;
   }
 
-  const pvToday =
-    pvAtRet / Math.pow(1 + discountRate, yearsToRet);
+  const pvToday = pvAtRet / Math.pow(1 + discountRate, yearsToRet);
 
   return {
     pvAtRet,
@@ -268,7 +280,7 @@ export function calcRetirementNumber(
  */
 export function ageFromDOB(
   dobIso: string,
-  asOf: Date = new Date()
+  asOf: Date = new Date(),
 ): number | null {
   if (!dobIso) return null;
 
@@ -281,35 +293,74 @@ export function ageFromDOB(
   let age = asOf.getFullYear() - dob.getFullYear();
   const m = asOf.getMonth() - dob.getMonth();
 
-  if (
-    m < 0 ||
-    (m === 0 && asOf.getDate() < dob.getDate())
-  ) {
+  if (m < 0 || (m === 0 && asOf.getDate() < dob.getDate())) {
     age--;
   }
 
   return age;
 }
 
-export function computeStateTax(income: number, country: string, stateCode?: string): number {
+export function computeStateTax(
+  income: number,
+  country: string,
+  stateCode?: string,
+): number {
   if (income <= 0 || country !== "US" || !stateCode) return 0;
   const rate = US_STATE_TAX_RATES[stateCode] ?? 0;
   return income * (rate / 100);
 }
 
 /** Format a number as a currency string with the given ISO currency code */
-export function formatMoney(amount: number, currency = "USD", locale = "en-US"): string {
+export function formatMoney(
+  amount: number,
+  currency = "USD",
+  locale = "en-US",
+): string {
   try {
     return new Intl.NumberFormat(locale, {
       style: "currency",
       currency,
-      maximumFractionDigits: amount >= 1000 ? 0 : 2
+      maximumFractionDigits: amount >= 1000 ? 0 : 2,
     }).format(amount);
   } catch {
     return `${currency} ${amount.toFixed(0)}`;
   }
 }
 
+// ─────────────────────────────────────────────
+// Compact money formatting
+//
+// Examples:
+//
+// 10000  → $10k
+// 267000 → $267k
+// 1780000 → $1.78M
+// ─────────────────────────────────────────────
+
+export function formatCompactMoney(value: number, currency: string): string {
+  const symbol =
+    currency === "USD"
+      ? "$"
+      : currency === "EUR"
+        ? "€"
+        : currency === "GBP"
+          ? "£"
+          : currency === "CHF"
+            ? "CHF "
+            : `${currency} `;
+
+  const abs = Math.abs(value);
+
+  if (abs >= 1_000_000) {
+    return `${symbol}${(abs / 1_000_000).toFixed(2)}M`;
+  }
+
+  if (abs >= 1_000) {
+    return `${symbol}${(abs / 1_000).toFixed(0)}k`;
+  }
+
+  return `${symbol}${abs.toFixed(0)}`;
+}
 
 // Functions used by the legacy wealth analyzer
 export function auSuperRate(age: number): number {
@@ -328,11 +379,7 @@ export function getRMDStartAge(country: string): number {
   if (country === "CA") return 71;
   if (country === "AU") return 60;
 
-  if (
-    country === "GB" ||
-    country === "EU" ||
-    country === "CH"
-  ) {
+  if (country === "GB" || country === "EU" || country === "CH") {
     return 57;
   }
 
@@ -359,10 +406,7 @@ export interface CapitalMarketAssumption {
   sigma: number;
 }
 
-export const CMA: Record<
-  string,
-  CapitalMarketAssumption
-> = {
+export const CMA: Record<string, CapitalMarketAssumption> = {
   equity: {
     arith: 8.58,
     sigma: 15.93,
@@ -424,10 +468,7 @@ export const CMA: Record<
   },
 };
 
-export const CMA_CORR: Record<
-  string,
-  Record<string, number>
-> = {
+export const CMA_CORR: Record<string, Record<string, number>> = {
   equity: {
     equity: 1.0,
     fixed_income: 0.019,
@@ -542,24 +583,18 @@ export const CMA_CORR: Record<
   },
 };
 
-
-export function cmaCorrelation(
-  classA: string,
-  classB: string,
-): number {
+export function cmaCorrelation(classA: string, classB: string): number {
   if (classA === classB) {
     return 1;
   }
 
-  const direct =
-    CMA_CORR[classA]?.[classB];
+  const direct = CMA_CORR[classA]?.[classB];
 
   if (direct != null) {
     return direct;
   }
 
-  const reverse =
-    CMA_CORR[classB]?.[classA];
+  const reverse = CMA_CORR[classB]?.[classA];
 
   if (reverse != null) {
     return reverse;
@@ -568,40 +603,29 @@ export function cmaCorrelation(
   return 0.3;
 }
 
-export function gbPortfolioRisk(
-  holdings: PortfolioClassWeight[],
-): number {
+export function gbPortfolioRisk(holdings: PortfolioClassWeight[]): number {
   let variance = 0;
 
   for (const holdingA of holdings) {
-    const cmaA =
-      CMA[holdingA.cls] ?? CMA.mixed;
+    const cmaA = CMA[holdingA.cls] ?? CMA.mixed;
 
-    const sigmaA =
-      (cmaA.sigma ?? 12) / 100;
+    const sigmaA = (cmaA.sigma ?? 12) / 100;
 
     for (const holdingB of holdings) {
-      const cmaB =
-        CMA[holdingB.cls] ?? CMA.mixed;
+      const cmaB = CMA[holdingB.cls] ?? CMA.mixed;
 
-      const sigmaB =
-        (cmaB.sigma ?? 12) / 100;
+      const sigmaB = (cmaB.sigma ?? 12) / 100;
 
       variance +=
         holdingA.weight *
         holdingB.weight *
         sigmaA *
         sigmaB *
-        cmaCorrelation(
-          holdingA.cls,
-          holdingB.cls,
-        );
+        cmaCorrelation(holdingA.cls, holdingB.cls);
     }
   }
 
-  return Math.sqrt(
-    Math.max(0, variance),
-  );
+  return Math.sqrt(Math.max(0, variance));
 }
 
 export interface EffectiveReturnParams {
@@ -616,59 +640,34 @@ export function getEffectiveReturnParamsGross(
   }>,
 ): EffectiveReturnParams | null {
   // only non-cash holdings determine invested return parameters.
-  const nonCashHoldings =
-    investments.filter(
-      (investment) =>
-        investment.cls !== "cash" &&
-        Number(investment.val) > 0,
-    );
+  const nonCashHoldings = investments.filter(
+    (investment) => investment.cls !== "cash" && Number(investment.val) > 0,
+  );
 
-  const totalValue =
-    nonCashHoldings.reduce(
-      (sum, investment) =>
-        sum +
-        Number(investment.val),
-      0,
-    );
+  const totalValue = nonCashHoldings.reduce(
+    (sum, investment) => sum + Number(investment.val),
+    0,
+  );
 
   if (totalValue <= 0) {
     return null;
   }
 
-  const weights: PortfolioClassWeight[] =
-    nonCashHoldings.map(
-      (investment) => {
-        const assetClass =
-          investment.cls &&
-          CMA[investment.cls]
-            ? investment.cls
-            : "mixed";
+  const weights: PortfolioClassWeight[] = nonCashHoldings.map((investment) => {
+    const assetClass =
+      investment.cls && CMA[investment.cls] ? investment.cls : "mixed";
 
-        return {
-          cls: assetClass,
-          weight:
-            Number(investment.val) /
-            totalValue,
-        };
-      },
-    );
+    return {
+      cls: assetClass,
+      weight: Number(investment.val) / totalValue,
+    };
+  });
 
-  const mu =
-    weights.reduce(
-      (sum, holding) => {
-        const assumption =
-          CMA[holding.cls] ??
-          CMA.mixed;
+  const mu = weights.reduce((sum, holding) => {
+    const assumption = CMA[holding.cls] ?? CMA.mixed;
 
-        return (
-          sum +
-          holding.weight *
-            ((assumption.arith ?? 7) /
-              100)
-        );
-      },
-      0,
-    );
+    return sum + holding.weight * ((assumption.arith ?? 7) / 100);
+  }, 0);
 
   return {
     mu,
@@ -684,9 +683,7 @@ export function calculatePercentile(
     return 0;
   }
 
-  const index =
-    (percentile / 100) *
-    (sortedValues.length - 1);
+  const index = (percentile / 100) * (sortedValues.length - 1);
 
   const lowerIndex = Math.floor(index);
   const upperIndex = Math.ceil(index);
@@ -699,8 +696,6 @@ export function calculatePercentile(
 
   return (
     sortedValues[lowerIndex] +
-    (sortedValues[upperIndex] -
-      sortedValues[lowerIndex]) *
-      weight
+    (sortedValues[upperIndex] - sortedValues[lowerIndex]) * weight
   );
 }

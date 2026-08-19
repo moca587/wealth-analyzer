@@ -94,7 +94,7 @@ export function runMonteCarlo(input: SimulationInput, options: { percentiles?: n
   const { plan, sims, years, seed } = input;
   const rng = seed !== undefined ? createSeededRandom(seed) : Math.random;
 
-  const requestedPercentiles = validatePercentiles(options.percentiles ?? [10, 25, 50, 75, 80, 90]);
+  const requestedPercentiles = validatePercentiles(options.percentiles ?? [10, 25, 30, 50, 75, 80, 90]);
 
   // Anchor the run to a fixed calendar year so goal offsets and the primary
   // client's age are reproducible for a given seed (they otherwise drift with
