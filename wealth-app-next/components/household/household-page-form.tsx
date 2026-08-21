@@ -52,160 +52,128 @@
 
 import { useState } from "react";
 
-import {
-    wealthPlanSchema,
-} from "@/lib/plan/schema";
+import { wealthPlanSchema } from "@/lib/plan/schema";
 
-import type {
-    WealthPlan,
-} from "@/lib/engine/types";
+import type { WealthPlan } from "@/lib/engine/types";
 
-import {
-    migratePlan,
-} from "@/lib/plan/migrate";
+import { migratePlan } from "@/lib/plan/migrate";
 
-import {
-    WealthOverviewSection,
-} from "@/components/household/wealth-overview-section";
-import {
-    HouseholdProfilesSection,
-} from "@/components/household/household-profiles-section";
-import {
-    ProfileDataSection,
-} from "@/components/household/profile-data-section";
+import { WealthOverviewSection } from "@/components/household/wealth-overview-section";
+import { HouseholdProfilesSection } from "@/components/household/household-profiles-section";
+import { ProfileDataSection } from "@/components/household/profile-data-section";
 
 type Props = {
-    initialPlan: WealthPlan | null;
-    initialVersion: number;
-    householdName?: string;
+  initialPlan: WealthPlan | null;
+  initialVersion: number;
+  householdName?: string;
 };
 
 export function HouseholdPageForm({
-    initialPlan,
-    initialVersion,
-    householdName,
+  initialPlan,
+  initialVersion,
+  householdName,
 }: Props) {
-    const [plan, setPlan] =
-        useState<WealthPlan | null>(
-            initialPlan
-        );
+  const [plan, setPlan] = useState<WealthPlan | null>(initialPlan);
 
-    const [version] =
-        useState(initialVersion);
+  const [version] = useState(initialVersion);
 
-    // Merge a partial WealthPlan update
-    // into the existing plan.
-    function updatePlan(
-        patch: Partial<WealthPlan>
-    ) {
-        setPlan((currentPlan) => {
-            if (!currentPlan) {
-                return currentPlan;
-            }
+  // Merge a partial WealthPlan update
+  // into the existing plan.
+  function updatePlan(patch: Partial<WealthPlan>) {
+    setPlan((currentPlan) => {
+      if (!currentPlan) {
+        return currentPlan;
+      }
 
-            return {
-                ...currentPlan,
-                ...patch,
-                updatedAt:
-                    new Date()
-                        .toISOString()
-                        .slice(0, 10),
-            };
+      return {
+        ...currentPlan,
+        ...patch,
+        updatedAt: new Date().toISOString().slice(0, 10),
+      };
+    });
+  }
+
+  function loadProfileFile(file: File) {
+    const reader = new FileReader();
+
+    // once browser finishes reading the file, run this code
+    reader.onload = async () => {
+      try {
+        const text = String(reader.result);
+
+        const raw: unknown = JSON.parse(text); // JSON -> JavaScript object
+
+        // Convert legacy JSON to the
+        // current WealthPlan structure.
+        const migrated = migratePlan(raw);
+
+        // Validate the converted plan.
+        const result = wealthPlanSchema.safeParse(migrated);
+
+        if (!result.success) {
+          console.error(result.error);
+
+          alert("Invalid profile file.");
+
+          return;
+        }
+
+        // Replace the current page plan
+        // with the imported profile.
+        // setPlan(result.data);
+        // Save the entire imported plan so every plan page
+        // sees the newly loaded profile.
+        const response = await fetch("/api/plan", {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(result.data),
         });
-    }
 
-    function loadProfileFile(
-        file: File
-    ) {
-        const reader =
-            new FileReader();
+        if (!response.ok) {
+          const error = await response.json();
+          console.error(error);
 
-        // once browser finishes reading the file, run this code
-        reader.onload = () => {
-            try {
-                const text =
-                    String(reader.result);
+          alert("Could not save imported profile.");
+          return;
+        }
 
-                const raw: unknown =
-                    JSON.parse(text); // JSON -> JavaScript object
+        // Update this page immediately too.
+        setPlan(result.data);
+      } catch (error) {
+        console.error(error);
 
-                // Convert legacy JSON to the
-                // current WealthPlan structure.
-                const migrated =
-                    migratePlan(raw);
+        alert("Could not load profile.");
+      }
+    };
 
-                // Validate the converted plan.
-                const result =
-                    wealthPlanSchema.safeParse(
-                        migrated
-                    );
+    reader.readAsText(file);
+  }
 
-                if (!result.success) {
-                    console.error(
-                        result.error
-                    );
-
-                    alert(
-                        "Invalid profile file."
-                    );
-
-                    return;
-                }
-
-                // Replace the current page plan
-                // with the imported profile.
-                setPlan(
-                    result.data
-                );
-            } catch (error) {
-                console.error(
-                    error
-                );
-
-                alert(
-                    "Could not load profile."
-                );
-            }
-        };
-
-        reader.readAsText(file);
-    }
-
-    // The page cannot render household information
-    // until a plan has been loaded.
-    if (!plan) {
-        return (
-            <main className="min-h-screen bg-[#f4f6fb] px-8 py-7">
-                <div className="mx-auto max-w-6xl">
-                    <p className="text-sm text-[#64748b]">
-                        No client plan loaded.
-                    </p>
-                </div>
-            </main>
-        );
-    }
-
+  // The page cannot render household information
+  // until a plan has been loaded.
+  if (!plan) {
     return (
-        <main className="min-h-screen bg-[#f4f6fb] px-8 py-7">
-            <div className="mx-auto max-w-6xl space-y-6">
-
-                {/* Household wealth summary */}
-                <WealthOverviewSection
-                    plan={plan}
-                />
-
-                {/* Client / household information */}
-                <HouseholdProfilesSection
-                    plan={plan}
-                    update={updatePlan}
-                />
-
-                <ProfileDataSection
-                    onLoad={loadProfileFile}
-                />
-
-
-            </div>
-        </main>
+      <main className="min-h-screen bg-[#f4f6fb] px-8 py-7">
+        <div className="mx-auto max-w-6xl">
+          <p className="text-sm text-[#64748b]">No client plan loaded.</p>
+        </div>
+      </main>
     );
+  }
+
+  return (
+    <main className="min-h-screen bg-[#f4f6fb] px-8 py-7">
+      <div className="mx-auto max-w-6xl space-y-6">
+        {/* Household wealth summary */}
+        <WealthOverviewSection plan={plan} />
+
+        {/* Client / household information */}
+        <HouseholdProfilesSection plan={plan} update={updatePlan} />
+
+        <ProfileDataSection onLoad={loadProfileFile} />
+      </div>
+    </main>
+  );
 }
