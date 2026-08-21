@@ -10,15 +10,31 @@ const today = () => new Date().toISOString();
  * (a known-good baseline) so all three never drift out of sync.
  */
 export function emptyPlan(): WealthPlan {
-  const c1: Client = { id: newId(), first: "", last: "", country: "US", risk: "moderate", horizon: "15_plus" };
+  const c1: Client = {
+    id: newId(),
+    first: "",
+    last: "",
+    country: "US",
+    risk: "moderate",
+    horizon: "15_plus",
+  };
   return {
     version: 1,
     currency: "USD",
     inflationRate: INFLATION_REGIONS.US.rate,
     inflationRegion: "US",
+    annualSavings: 0,
     clients: [c1],
     children: [],
-    incomes: [{ id: newId(), clientId: c1.id, source: "Salary", amount: 0, taxable: true }],
+    incomes: [
+      {
+        id: newId(),
+        clientId: c1.id,
+        source: "Salary",
+        amount: 0,
+        taxable: true,
+      },
+    ],
     expenses: [{ id: newId(), name: "Living expenses", amount: 0 }],
     assets: [],
     loans: [],

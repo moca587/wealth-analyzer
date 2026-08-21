@@ -14,23 +14,69 @@ const finiteNumber = z.number().finite();
 const nonEmptyId = z.string().min(1);
 
 const riskProfileEnum = z.enum([
-  "very_conservative", "conservative", "moderately_conservative", "moderate",
-  "moderately_aggressive", "aggressive", "very_aggressive",
+  "very_conservative",
+  "conservative",
+  "moderately_conservative",
+  "moderate",
+  "moderately_aggressive",
+  "aggressive",
+  "very_aggressive",
 ]);
 
 const timeHorizonEnum = z.enum(["0_5", "5_10", "10_15", "15_plus"]);
 
 const countryCodeEnum = z.enum([
-  "US", "CA", "GB", "AU", "CH", "EU", "JP", "SG", "HK",
-  "CN", "TW", "KR", "IN", "ID", "MX", "BR", "SA", "ZA", "OTHER",
+  "US",
+  "CA",
+  "GB",
+  "AU",
+  "CH",
+  "EU",
+  "JP",
+  "SG",
+  "HK",
+  "CN",
+  "TW",
+  "KR",
+  "IN",
+  "ID",
+  "MX",
+  "BR",
+  "SA",
+  "ZA",
+  "OTHER",
   // Individual eurozone members — each has its own account taxonomy.
-  "DE", "FR", "IT", "ES", "NL", "BE", "AT", "IE", "PT", "LU",
-  "FI", "GR", "CY", "HR", "EE", "LV", "LT", "SK", "SI", "MT",
+  "DE",
+  "FR",
+  "IT",
+  "ES",
+  "NL",
+  "BE",
+  "AT",
+  "IE",
+  "PT",
+  "LU",
+  "FI",
+  "GR",
+  "CY",
+  "HR",
+  "EE",
+  "LV",
+  "LT",
+  "SK",
+  "SI",
+  "MT",
 ]);
 
 const assetClassEnum = z.enum([
-  "equity", "fixed_income", "real_estate", "commodity",
-  "cash", "mixed", "alternative", "crypto",
+  "equity",
+  "fixed_income",
+  "real_estate",
+  "commodity",
+  "cash",
+  "mixed",
+  "alternative",
+  "crypto",
 ]);
 
 const clientSchema = z.object({
@@ -154,8 +200,8 @@ const retirementSchema = z
     path: ["planToAge"],
   });
 
-const MAX_INFLATION_DEFAULT = 0.30;
-const MAX_INFLATION_BR = 0.60;
+const MAX_INFLATION_DEFAULT = 0.3;
+const MAX_INFLATION_BR = 0.6;
 const MIN_INFLATION = -0.02;
 
 export const wealthPlanSchema = z
@@ -164,6 +210,7 @@ export const wealthPlanSchema = z
     currency: z.string().min(1),
     inflationRate: finiteNumber,
     inflationRegion: z.string().optional(),
+    annualSavings: z.number().min(0).default(0),
     clients: z.array(clientSchema).min(1).max(2),
     children: z.array(childSchema),
     incomes: z.array(incomeStreamSchema),
@@ -179,7 +226,8 @@ export const wealthPlanSchema = z
     updatedAt: z.string(),
   })
   .superRefine((plan, ctx) => {
-    const max = plan.inflationRegion === "BR" ? MAX_INFLATION_BR : MAX_INFLATION_DEFAULT;
+    const max =
+      plan.inflationRegion === "BR" ? MAX_INFLATION_BR : MAX_INFLATION_DEFAULT;
     if (plan.inflationRate < MIN_INFLATION || plan.inflationRate > max) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,

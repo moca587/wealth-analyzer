@@ -34,8 +34,19 @@
 
 import { emptyPlan, newId } from "./default-plan";
 import type {
-  WealthPlan, Client, IncomeStream, ExpenseCategory, Asset, Loan, Goal,
-  Pension, Holding, CountryCode, RiskProfile, TimeHorizon, AssetClass,
+  WealthPlan,
+  Client,
+  IncomeStream,
+  ExpenseCategory,
+  Asset,
+  Loan,
+  Goal,
+  Pension,
+  Holding,
+  CountryCode,
+  RiskProfile,
+  TimeHorizon,
+  AssetClass,
 } from "@/lib/engine/types";
 
 export interface LegacyImportResult {
@@ -48,8 +59,14 @@ export interface LegacyImportResult {
   notes: string[];
   /** Counts for the confirmation line, so it describes what actually landed. */
   carried: {
-    clients: number; children: number; incomes: number; expenses: number;
-    assets: number; loans: number; goals: number; pensions: number;
+    clients: number;
+    children: number;
+    incomes: number;
+    expenses: number;
+    assets: number;
+    loans: number;
+    goals: number;
+    pensions: number;
     holdings: number;
     retirement: boolean;
   };
@@ -59,8 +76,12 @@ export interface LegacyImportResult {
 export function isLegacyExport(input: unknown): boolean {
   if (!input || typeof input !== "object") return false;
   const o = input as Record<string, unknown>;
-  return !!o.fields && typeof o.fields === "object" && !Array.isArray(o.fields)
-    && !Array.isArray(o.clients);
+  return (
+    !!o.fields &&
+    typeof o.fields === "object" &&
+    !Array.isArray(o.fields) &&
+    !Array.isArray(o.clients)
+  );
 }
 
 // ─── Field readers ────────────────────────────────────────────────
@@ -69,7 +90,11 @@ export function isLegacyExport(input: unknown): boolean {
 // read as a real figure.
 
 const S = (f: Record<string, unknown>, k: string): string =>
-  typeof f[k] === "string" ? (f[k] as string).trim() : typeof f[k] === "number" ? String(f[k]) : "";
+  typeof f[k] === "string"
+    ? (f[k] as string).trim()
+    : typeof f[k] === "number"
+      ? String(f[k])
+      : "";
 
 /** A number, or null when the field was blank. Never NaN, never a silent 0. */
 function N(f: Record<string, unknown>, k: string): number | null {
@@ -85,19 +110,61 @@ function N(f: Record<string, unknown>, k: string): number | null {
 const N0 = (f: Record<string, unknown>, k: string): number => N(f, k) ?? 0;
 
 const arr = (v: unknown): Record<string, unknown>[] =>
-  Array.isArray(v) ? (v.filter((x) => x && typeof x === "object") as Record<string, unknown>[]) : [];
+  Array.isArray(v)
+    ? (v.filter((x) => x && typeof x === "object") as Record<string, unknown>[])
+    : [];
 
 const RISKS: RiskProfile[] = [
-  "very_conservative", "conservative", "moderately_conservative", "moderate",
-  "moderately_aggressive", "aggressive", "very_aggressive",
+  "very_conservative",
+  "conservative",
+  "moderately_conservative",
+  "moderate",
+  "moderately_aggressive",
+  "aggressive",
+  "very_aggressive",
 ];
 const HORIZONS: TimeHorizon[] = ["0_5", "5_10", "10_15", "15_plus"];
 
 const COUNTRIES = new Set<string>([
-  "US", "CA", "GB", "AU", "CH", "EU", "JP", "SG", "HK", "CN", "TW", "KR",
-  "IN", "ID", "MX", "BR", "SA", "ZA", "OTHER",
-  "DE", "FR", "IT", "ES", "NL", "BE", "AT", "IE", "PT", "LU",
-  "FI", "GR", "CY", "HR", "EE", "LV", "LT", "SK", "SI", "MT",
+  "US",
+  "CA",
+  "GB",
+  "AU",
+  "CH",
+  "EU",
+  "JP",
+  "SG",
+  "HK",
+  "CN",
+  "TW",
+  "KR",
+  "IN",
+  "ID",
+  "MX",
+  "BR",
+  "SA",
+  "ZA",
+  "OTHER",
+  "DE",
+  "FR",
+  "IT",
+  "ES",
+  "NL",
+  "BE",
+  "AT",
+  "IE",
+  "PT",
+  "LU",
+  "FI",
+  "GR",
+  "CY",
+  "HR",
+  "EE",
+  "LV",
+  "LT",
+  "SK",
+  "SI",
+  "MT",
 ]);
 
 /**
@@ -113,8 +180,14 @@ function country(raw: string): CountryCode | null {
 }
 
 const ASSET_CLASSES = new Set<AssetClass>([
-  "equity", "fixed_income", "real_estate", "commodity", "cash", "mixed",
-  "alternative", "crypto",
+  "equity",
+  "fixed_income",
+  "real_estate",
+  "commodity",
+  "cash",
+  "mixed",
+  "alternative",
+  "crypto",
 ]);
 
 // ─── The import ───────────────────────────────────────────────────
@@ -122,23 +195,33 @@ const ASSET_CLASSES = new Set<AssetClass>([
 export function importLegacyPlan(input: unknown): LegacyImportResult {
   const notes: string[] = [];
   const plan = emptyPlan();
-  const src = (input && typeof input === "object" ? input : {}) as Record<string, unknown>;
-  const f = (src.fields && typeof src.fields === "object" ? src.fields : {}) as Record<string, unknown>;
+  const src = (input && typeof input === "object" ? input : {}) as Record<
+    string,
+    unknown
+  >;
+  const f = (
+    src.fields && typeof src.fields === "object" ? src.fields : {}
+  ) as Record<string, unknown>;
 
   // ─── Household ──────────────────────────────────────────────────
   const clients: Client[] = [];
   const mkClient = (p: "c1" | "c2"): Client | null => {
-    const first = S(f, `${p}f`), last = S(f, `${p}l`);
+    const first = S(f, `${p}f`),
+      last = S(f, `${p}l`);
     // Client 2 is genuinely absent in a single-client household; the legacy
     // app keys that off `c2visible`, and empty names confirm it.
     if (!first && !last) return null;
     const cc = country(S(f, `${p}co`));
-    if (!cc) notes.push(`${first || last || `Client ${p === "c1" ? 1 : 2}`}: no country in the file — set it before running a projection (it drives tax and account types).`);
+    if (!cc)
+      notes.push(
+        `${first || last || `Client ${p === "c1" ? 1 : 2}`}: no country in the file — set it before running a projection (it drives tax and account types).`,
+      );
     const risk = S(f, `${p}r`) as RiskProfile;
     const horizon = S(f, `${p}h`) as TimeHorizon;
     return {
       id: newId(),
-      first, last,
+      first,
+      last,
       dob: S(f, `${p}d`) || undefined,
       country: cc ?? undefined,
       state: S(f, `${p}st`) || undefined,
@@ -156,7 +239,9 @@ export function importLegacyPlan(input: unknown): LegacyImportResult {
     // Keep the blank client the empty plan provides, and say so — an
     // unnamed household is exactly what the old broken import produced.
     clients.push(plan.clients[0]);
-    notes.push("No client name in the file — the household was imported unnamed.");
+    notes.push(
+      "No client name in the file — the household was imported unnamed.",
+    );
   }
   plan.clients = clients;
 
@@ -180,15 +265,17 @@ export function importLegacyPlan(input: unknown): LegacyImportResult {
   // addIncome(c1, "inc1b", "Bonus");
   // addIncome(c2, "inc2", "Salary");
   // addIncome(c2, "inc2b", "Bonus");
-  addIncome(c1, "inc1", "Salary");
-  addIncome(c1, "inc2", "Other income");
+  addIncome(c1, "inc1", "Primary income");
+  addIncome(c1, "inc2", "Secondary income");
 
-  addIncome(c2, "inc1b", "Salary");
-  addIncome(c2, "inc2b", "Other income");
-  
+  addIncome(c2, "inc1b", "Primary income");
+  addIncome(c2, "inc2b", "Secondary income");
+
   plan.incomes = incomes;
   if (!incomes.length) {
-    notes.push("No income in the file. A projection with zero income will look far worse than reality — check this before showing it to the client.");
+    notes.push(
+      "No income in the file. A projection with zero income will look far worse than reality — check this before showing it to the client.",
+    );
   }
 
   // ─── Expenses (legacy ANNUAL → plan MONTHLY) ────────────────────
@@ -198,28 +285,45 @@ export function importLegacyPlan(input: unknown): LegacyImportResult {
     if (v === null || v === 0) return;
     // The conversion the legacy UI's own heading dictates. Rounded to the
     // cent so a third of a franc does not accumulate across categories.
-    expenses.push({ id: newId(), name, amount: Math.round((v / 12) * 100) / 100 });
+    expenses.push({
+      id: newId(),
+      name,
+      amount: Math.round((v / 12) * 100) / 100,
+    });
   };
   addExpense("expL", "Living");
   addExpense("expI", "Insurance");
   addExpense("expO", "Other");
   plan.expenses = expenses;
   if (!expenses.length) {
-    notes.push("No expenses in the file. Zero spending makes every goal look funded — check this before showing it to the client.");
+    notes.push(
+      "No expenses in the file. Zero spending makes every goal look funded — check this before showing it to the client.",
+    );
+  }
+
+  // ─── Annual savings ────────────────────────────────────────────────
+  const annualSavings = N(f, "savAnnual");
+
+  if (annualSavings !== null) {
+    plan.annualSavings = annualSavings;
   }
 
   // ─── Assets ─────────────────────────────────────────────────────
   const assets: Asset[] = arr(src.assets).map((a) => {
-    const cls = typeof a.cls === "string" && ASSET_CLASSES.has(a.cls as AssetClass)
-      ? (a.cls as AssetClass) : undefined;
+    const cls =
+      typeof a.cls === "string" && ASSET_CLASSES.has(a.cls as AssetClass)
+        ? (a.cls as AssetClass)
+        : undefined;
     return {
       id: typeof a.id === "string" && a.id ? a.id : newId(),
       type: typeof a.type === "string" ? a.type : "",
       group: typeof a.group === "string" ? a.group : undefined,
       label: typeof a.label === "string" ? a.label : undefined,
-      value: typeof a.value === "number" && Number.isFinite(a.value) ? a.value : 0,
+      value:
+        typeof a.value === "number" && Number.isFinite(a.value) ? a.value : 0,
       liquid: a.liquid !== false,
-      country: country(typeof a.country === "string" ? a.country : "") ?? undefined,
+      country:
+        country(typeof a.country === "string" ? a.country : "") ?? undefined,
       cls,
       note: typeof a.note === "string" ? a.note : undefined,
     };
@@ -232,15 +336,26 @@ export function importLegacyPlan(input: unknown): LegacyImportResult {
   // holdings section (analytics only; net worth still sums assets).
   const holdings: Holding[] = arr(src.investments).map((h) => {
     const rawCls = typeof h.cls === "string" ? h.cls : "";
-    const cls = ASSET_CLASSES.has(rawCls as AssetClass) ? (rawCls as AssetClass) : undefined;
+    const cls = ASSET_CLASSES.has(rawCls as AssetClass)
+      ? (rawCls as AssetClass)
+      : undefined;
     return {
       id: typeof h.id === "string" && h.id ? h.id : newId(),
-      name: typeof h.name === "string" ? h.name : (typeof h.tkr === "string" ? h.tkr : "Position"),
+      name:
+        typeof h.name === "string"
+          ? h.name
+          : typeof h.tkr === "string"
+            ? h.tkr
+            : "Position",
       ticker: typeof h.tkr === "string" && h.tkr ? h.tkr : undefined,
       cls,
-      value: typeof h.val === "number" && Number.isFinite(h.val) ? Math.max(0, h.val) : 0,
+      value:
+        typeof h.val === "number" && Number.isFinite(h.val)
+          ? Math.max(0, h.val)
+          : 0,
       er: typeof h.er === "number" && Number.isFinite(h.er) ? h.er : undefined,
-      yld: typeof h.yld === "number" && Number.isFinite(h.yld) ? h.yld : undefined,
+      yld:
+        typeof h.yld === "number" && Number.isFinite(h.yld) ? h.yld : undefined,
       region: typeof h.region === "string" && h.region ? h.region : undefined,
       note: typeof h.note === "string" && h.note ? h.note : undefined,
       feedRef: typeof h.tkr === "string" && h.tkr ? `hold:${h.tkr}` : undefined,
@@ -253,15 +368,25 @@ export function importLegacyPlan(input: unknown): LegacyImportResult {
   const prop = N(f, "aProp");
   if (prop) {
     assets.push({
-      id: newId(), type: "Property", group: "Real estate",
-      label: "Primary residence", value: prop, liquid: false, cls: "real_estate",
+      id: newId(),
+      type: "Property",
+      group: "Real estate",
+      label: "Primary residence",
+      value: prop,
+      liquid: false,
+      cls: "real_estate",
     });
   }
   const other = N(f, "aOther");
   if (other) {
     assets.push({
-      id: newId(), type: "Other", group: "Other",
-      label: "Other assets", value: other, liquid: false, cls: "alternative",
+      id: newId(),
+      type: "Other",
+      group: "Other",
+      label: "Other assets",
+      value: other,
+      liquid: false,
+      cls: "alternative",
     });
   }
   plan.assets = assets;
@@ -270,26 +395,39 @@ export function importLegacyPlan(input: unknown): LegacyImportResult {
   // one, and every figure above is denominated in it.
   const ccy = typeof src.ccy === "string" ? src.ccy.trim().toUpperCase() : "";
   if (ccy.length === 3) plan.currency = ccy;
-  else notes.push("No currency in the file — defaulted to the plan default. Check it: every figure above is denominated in the file's currency.");
+  else
+    notes.push(
+      "No currency in the file — defaulted to the plan default. Check it: every figure above is denominated in the file's currency.",
+    );
 
   // ─── Loans ──────────────────────────────────────────────────────
-  plan.loans = arr(src.loans).map((l): Loan => ({
-    id: typeof l.id === "string" && l.id ? l.id : newId(),
-    type: typeof l.type === "string" ? l.type : "Loan",
-    label: typeof l.label === "string" ? l.label : undefined,
-    bal: typeof l.bal === "number" && Number.isFinite(l.bal) ? l.bal : 0,
-    rate: typeof l.rate === "number" && Number.isFinite(l.rate) ? l.rate : 0,
-    yrs: typeof l.yrs === "number" && Number.isFinite(l.yrs) ? l.yrs : 0,
-  }));
+  plan.loans = arr(src.loans).map(
+    (l): Loan => ({
+      id: typeof l.id === "string" && l.id ? l.id : newId(),
+      type: typeof l.type === "string" ? l.type : "Loan",
+      label: typeof l.label === "string" ? l.label : undefined,
+      bal: typeof l.bal === "number" && Number.isFinite(l.bal) ? l.bal : 0,
+      rate: typeof l.rate === "number" && Number.isFinite(l.rate) ? l.rate : 0,
+      yrs: typeof l.yrs === "number" && Number.isFinite(l.yrs) ? l.yrs : 0,
+    }),
+  );
 
   // ─── Goals ──────────────────────────────────────────────────────
   const thisYear = new Date().getFullYear();
   plan.goals = arr(src.goals).map((g): Goal => {
-    const start = typeof g.startYear === "number" ? g.startYear
-      : typeof g.targetYear === "number" ? g.targetYear : thisYear;
+    const start =
+      typeof g.startYear === "number"
+        ? g.startYear
+        : typeof g.targetYear === "number"
+          ? g.targetYear
+          : thisYear;
     const end = typeof g.endYear === "number" ? g.endYear : start;
-    const tier = g.tier === "essential" || g.tier === "important" || g.tier === "aspirational"
-      ? g.tier : undefined;   // legacy "legacy" tier has no equivalent
+    const tier =
+      g.tier === "essential" ||
+      g.tier === "important" ||
+      g.tier === "aspirational"
+        ? g.tier
+        : undefined; // legacy "legacy" tier has no equivalent
     return {
       id: typeof g.id === "string" && g.id ? g.id : newId(),
       name: typeof g.name === "string" ? g.name : "",
@@ -318,23 +456,38 @@ export function importLegacyPlan(input: unknown): LegacyImportResult {
       annualSpending: retSpend,
       // planToAge must exceed retirementAge or the schema rejects the plan
       // (a plan that "succeeds" over a zero-length retirement is a lie).
-      planToAge: retLife !== null && retLife > retAge ? retLife : Math.max(retAge + 1, 90),
+      planToAge:
+        retLife !== null && retLife > retAge
+          ? retLife
+          : Math.max(retAge + 1, 90),
     };
     if (retLife !== null && retLife <= retAge) {
-      notes.push(`Retirement horizon in the file (${retLife}) is not after the retirement age (${retAge}); used 90 instead.`);
+      notes.push(
+        `Retirement horizon in the file (${retLife}) is not after the retirement age (${retAge}); used 90 instead.`,
+      );
     }
   } else if (retAge !== null || retSpend !== null) {
-    notes.push("Retirement is only half-specified in the file (age or spending missing), so it was left off. Set both to model a drawdown.");
+    notes.push(
+      "Retirement is only half-specified in the file (age or spending missing), so it was left off. Set both to model a drawdown.",
+    );
   }
 
   // ─── Pensions ───────────────────────────────────────────────────
   const pensions: Pension[] = [];
-  const addPension = (owner: Client | null, srcKey: string, amtKey: string, ageKey: string, colaKey: string) => {
+  const addPension = (
+    owner: Client | null,
+    srcKey: string,
+    amtKey: string,
+    ageKey: string,
+    colaKey: string,
+  ) => {
     const amount = N(f, amtKey);
     const startAge = N(f, ageKey);
     if (!amount) return;
     if (startAge === null) {
-      notes.push(`Pension "${S(f, srcKey) || "unnamed"}" has an amount but no start age — not imported, because a start age cannot be guessed.`);
+      notes.push(
+        `Pension "${S(f, srcKey) || "unnamed"}" has an amount but no start age — not imported, because a start age cannot be guessed.`,
+      );
       return;
     }
     const cola = N(f, colaKey);
@@ -342,7 +495,8 @@ export function importLegacyPlan(input: unknown): LegacyImportResult {
     // the figure, not what the benefit is called. Writing it through as the
     // label put "manual" on the client's pension line in the report.
     const mode = S(f, srcKey).toLowerCase();
-    const named = mode && mode !== "auto" && mode !== "manual" ? S(f, srcKey) : "";
+    const named =
+      mode && mode !== "auto" && mode !== "manual" ? S(f, srcKey) : "";
     const who = owner ? `${owner.first} ${owner.last}`.trim() : "";
     pensions.push({
       id: newId(),
@@ -361,12 +515,17 @@ export function importLegacyPlan(input: unknown): LegacyImportResult {
   // Silence here is how a demo goes wrong: the advisor assumes the whole
   // file came across.
   const dropped: string[] = [];
-  if (arr(src.beneficiaries).length) dropped.push(`${arr(src.beneficiaries).length} beneficiar(y/ies)`);
-  if (arr(src.equityComp).length) dropped.push(`${arr(src.equityComp).length} equity-compensation grant(s)`);
+  if (arr(src.beneficiaries).length)
+    dropped.push(`${arr(src.beneficiaries).length} beneficiar(y/ies)`);
+  if (arr(src.equityComp).length)
+    dropped.push(`${arr(src.equityComp).length} equity-compensation grant(s)`);
   if (S(f, "taxMode") || S(f, "taxResidency")) dropped.push("tax assumptions");
-  if (S(f, "estExemption") || S(f, "estRate")) dropped.push("estate assumptions");
+  if (S(f, "estExemption") || S(f, "estRate"))
+    dropped.push("estate assumptions");
   if (dropped.length) {
-    notes.push(`Not imported (no equivalent in this app yet): ${dropped.join(", ")}.`);
+    notes.push(
+      `Not imported (no equivalent in this app yet): ${dropped.join(", ")}.`,
+    );
   }
 
   const now = new Date().toISOString();

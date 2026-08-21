@@ -15,7 +15,7 @@ export function IncomePageForm({
   initialVersion: number;
 }) {
   const [plan, setPlan] = useState<WealthPlan>(
-    () => initialPlan ?? emptyPlan()
+    () => initialPlan ?? emptyPlan(),
   );
 
   function updatePlan(patch: Partial<WealthPlan>) {
@@ -29,12 +29,9 @@ export function IncomePageForm({
   return (
     <main className="min-h-screen bg-[#f4f6fb] px-8 py-7">
       <div className="mx-auto max-w-5xl space-y-6">
-        <IncomeSection
-          plan={plan}
-          update={updatePlan}
-        />
+        <IncomeSection plan={plan} update={updatePlan} />
 
-        <SavingsSection plan={plan} />
+        <SavingsSection plan={plan} update={updatePlan} />
       </div>
     </main>
   );

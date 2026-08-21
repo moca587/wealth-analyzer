@@ -457,6 +457,7 @@ export interface WealthPlan {
   version: number;
   currency: string; // "USD", "EUR", "CHF", etc.
   inflationRate: number; // decimal (0.03 = 3%)
+  annualSavings: number;
   inflationRegion?: string;
   clients: Client[]; // 1 or 2
   children: Child[];

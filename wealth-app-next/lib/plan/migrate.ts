@@ -24,28 +24,37 @@ export function migratePlan(input: unknown): WealthPlan {
   if (isLegacyExport(src)) return importLegacyPlan(src).plan;
 
   const asArray = (v: unknown): Record<string, unknown>[] =>
-    Array.isArray(v) ? (v.filter((x) => x && typeof x === "object") as Record<string, unknown>[]) : [];
+    Array.isArray(v)
+      ? (v.filter((x) => x && typeof x === "object") as Record<
+          string,
+          unknown
+        >[])
+      : [];
   const num = (v: unknown, fallback = 0): number => {
     const n = typeof v === "string" ? Number(v) : (v as number);
     return Number.isFinite(n) ? n : fallback;
   };
-  const str = (v: unknown, fallback = ""): string => (typeof v === "string" ? v : fallback);
+  const str = (v: unknown, fallback = ""): string =>
+    typeof v === "string" ? v : fallback;
   const id = (v: unknown): string => (typeof v === "string" && v ? v : newId());
 
   const thisYear = new Date().getFullYear();
 
-  const clients: Client[] = asArray(src.clients).slice(0, 2).map((c) => ({
-    id: id(c.id),
-    first: str(c.first),
-    last: str(c.last),
-    dob: typeof c.dob === "string" ? c.dob : undefined,
-    country: (c.country as WealthPlan["clients"][number]["country"]) || "US",
-    state: typeof c.state === "string" ? c.state : undefined,
-    city: typeof c.city === "string" ? c.city : undefined,
-    zip: typeof c.zip === "string" ? c.zip : undefined,
-    risk: (c.risk as WealthPlan["clients"][number]["risk"]) || "moderate",
-    horizon: (c.horizon as WealthPlan["clients"][number]["horizon"]) || "15_plus",
-  }));
+  const clients: Client[] = asArray(src.clients)
+    .slice(0, 2)
+    .map((c) => ({
+      id: id(c.id),
+      first: str(c.first),
+      last: str(c.last),
+      dob: typeof c.dob === "string" ? c.dob : undefined,
+      country: (c.country as WealthPlan["clients"][number]["country"]) || "US",
+      state: typeof c.state === "string" ? c.state : undefined,
+      city: typeof c.city === "string" ? c.city : undefined,
+      zip: typeof c.zip === "string" ? c.zip : undefined,
+      risk: (c.risk as WealthPlan["clients"][number]["risk"]) || "moderate",
+      horizon:
+        (c.horizon as WealthPlan["clients"][number]["horizon"]) || "15_plus",
+    }));
   if (clients.length === 0) clients.push(base.clients[0]);
 
   const children = asArray(src.children).map((c) => ({
@@ -64,7 +73,9 @@ export function migratePlan(input: unknown): WealthPlan {
   }));
   // Reassign any income pointing at a client that didn't survive migration.
   const clientIds = new Set(clients.map((c) => c.id));
-  incomes.forEach((i) => { if (!clientIds.has(i.clientId)) i.clientId = clients[0].id; });
+  incomes.forEach((i) => {
+    if (!clientIds.has(i.clientId)) i.clientId = clients[0].id;
+  });
 
   const expenses = asArray(src.expenses).map((x) => ({
     id: id(x.id),
@@ -79,7 +90,8 @@ export function migratePlan(input: unknown): WealthPlan {
     label: typeof x.label === "string" ? x.label : undefined,
     value: num(x.value),
     liquid: typeof x.liquid === "boolean" ? x.liquid : true,
-    country: (x.country as WealthPlan["assets"][number]["country"]) || undefined,
+    country:
+      (x.country as WealthPlan["assets"][number]["country"]) || undefined,
     cls: (x.cls as WealthPlan["assets"][number]["cls"]) || undefined,
     note: typeof x.note === "string" ? x.note : undefined,
   }));
@@ -112,14 +124,15 @@ export function migratePlan(input: unknown): WealthPlan {
 
   // Retirement + pensions are optional; carry them through with coercion.
   const rSrc = src.retirement as Record<string, unknown> | undefined;
-  const retirement = rSrc && typeof rSrc === "object"
-    ? {
-        enabled: typeof rSrc.enabled === "boolean" ? rSrc.enabled : undefined,
-        retirementAge: num(rSrc.retirementAge, 65),
-        annualSpending: num(rSrc.annualSpending, 0),
-        planToAge: num(rSrc.planToAge, 90),
-      }
-    : undefined;
+  const retirement =
+    rSrc && typeof rSrc === "object"
+      ? {
+          enabled: typeof rSrc.enabled === "boolean" ? rSrc.enabled : undefined,
+          retirementAge: num(rSrc.retirementAge, 65),
+          annualSpending: num(rSrc.annualSpending, 0),
+          planToAge: num(rSrc.planToAge, 90),
+        }
+      : undefined;
 
   const pensions = asArray(src.pensions).map((p) => ({
     id: id(p.id),
@@ -127,7 +140,10 @@ export function migratePlan(input: unknown): WealthPlan {
     clientId: typeof p.clientId === "string" ? p.clientId : undefined,
     annualAmount: num(p.annualAmount),
     startAge: num(p.startAge, 65),
-    colaRate: typeof p.colaRate === "number" || typeof p.colaRate === "string" ? num(p.colaRate, 0) : undefined,
+    colaRate:
+      typeof p.colaRate === "number" || typeof p.colaRate === "string"
+        ? num(p.colaRate, 0)
+        : undefined,
   }));
 
   // Security positions inside investable accounts. Optional and additive —
@@ -141,8 +157,14 @@ export function migratePlan(input: unknown): WealthPlan {
     isin: typeof h.isin === "string" ? h.isin : undefined,
     cls: (h.cls as WealthPlan["assets"][number]["cls"]) || undefined,
     value: num(h.value),
-    er: typeof h.er === "number" || typeof h.er === "string" ? num(h.er) : undefined,
-    yld: typeof h.yld === "number" || typeof h.yld === "string" ? num(h.yld) : undefined,
+    er:
+      typeof h.er === "number" || typeof h.er === "string"
+        ? num(h.er)
+        : undefined,
+    yld:
+      typeof h.yld === "number" || typeof h.yld === "string"
+        ? num(h.yld)
+        : undefined,
     region: typeof h.region === "string" ? h.region : undefined,
     ccy: typeof h.ccy === "string" ? h.ccy : undefined,
     accountRef: typeof h.accountRef === "string" ? h.accountRef : undefined,
@@ -154,7 +176,11 @@ export function migratePlan(input: unknown): WealthPlan {
     version: num(src.version, 1) || 1,
     currency: str(src.currency, base.currency),
     inflationRate: num(src.inflationRate, base.inflationRate),
-    inflationRegion: typeof src.inflationRegion === "string" ? src.inflationRegion : base.inflationRegion,
+    inflationRegion:
+      typeof src.inflationRegion === "string"
+        ? src.inflationRegion
+        : base.inflationRegion,
+    annualSavings: num(src.annualSavings, base.annualSavings),
     clients,
     children,
     incomes,
