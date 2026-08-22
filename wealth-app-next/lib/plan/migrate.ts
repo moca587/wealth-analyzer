@@ -181,6 +181,7 @@ export function migratePlan(input: unknown): WealthPlan {
         ? src.inflationRegion
         : base.inflationRegion,
     annualSavings: num(src.annualSavings, base.annualSavings),
+    annualRaiseRate: num(src.annualRaiseRate, base.annualRaiseRate),
     clients,
     children,
     incomes,

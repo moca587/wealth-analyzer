@@ -211,6 +211,7 @@ export const wealthPlanSchema = z
     inflationRate: finiteNumber,
     inflationRegion: z.string().optional(),
     annualSavings: z.number().min(0).default(0),
+    annualRaiseRate: z.number().min(0).default(0),
     clients: z.array(clientSchema).min(1).max(2),
     children: z.array(childSchema),
     incomes: z.array(incomeStreamSchema),

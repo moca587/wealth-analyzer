@@ -24,6 +24,7 @@ export function emptyPlan(): WealthPlan {
     inflationRate: INFLATION_REGIONS.US.rate,
     inflationRegion: "US",
     annualSavings: 0,
+    annualRaiseRate: 0,
     clients: [c1],
     children: [],
     incomes: [

@@ -9,36 +9,27 @@ type Props = {
 export function IncomeSection({ plan, update }: Props) {
   const totalIncome = plan.incomes.reduce(
     (sum, income) => sum + income.amount,
-    0
+    0,
   );
 
   function getIncome(clientId: string, source: string) {
     return (
       plan.incomes.find(
-        (income) =>
-          income.clientId === clientId &&
-          income.source === source
+        (income) => income.clientId === clientId && income.source === source,
       )?.amount ?? 0
     );
   }
 
-  function updateIncome(
-    clientId: string,
-    source: string,
-    amount: number
-  ) {
+  function updateIncome(clientId: string, source: string, amount: number) {
     const exists = plan.incomes.some(
-      (income) =>
-        income.clientId === clientId &&
-        income.source === source
+      (income) => income.clientId === clientId && income.source === source,
     );
 
     const incomes = exists
       ? plan.incomes.map((income) =>
-          income.clientId === clientId &&
-          income.source === source
+          income.clientId === clientId && income.source === source
             ? { ...income, amount }
-            : income
+            : income,
         )
       : [
           ...plan.incomes,
@@ -60,15 +51,9 @@ export function IncomeSection({ plan, update }: Props) {
 
       <div className="space-y-6">
         {plan.clients.map((client) => {
-          const primary = getIncome(
-            client.id,
-            "Primary income"
-          );
+          const primary = getIncome(client.id, "Primary income");
 
-          const secondary = getIncome(
-            client.id,
-            "Secondary income"
-          );
+          const secondary = getIncome(client.id, "Secondary income");
 
           const subtotal = primary + secondary;
 
@@ -93,11 +78,7 @@ export function IncomeSection({ plan, update }: Props) {
                   label="Primary income (annual)"
                   value={primary}
                   onChange={(amount) =>
-                    updateIncome(
-                      client.id,
-                      "Primary income",
-                      amount
-                    )
+                    updateIncome(client.id, "Primary income", amount)
                   }
                 />
 
@@ -105,24 +86,41 @@ export function IncomeSection({ plan, update }: Props) {
                   label="Secondary income (annual)"
                   value={secondary}
                   onChange={(amount) =>
-                    updateIncome(
-                      client.id,
-                      "Secondary income",
-                      amount
-                    )
+                    updateIncome(client.id, "Secondary income", amount)
                   }
                 />
               </div>
 
               <div className="mt-3 text-[12px] text-[#64748b]">
                 Client subtotal:{" "}
-                <strong>
-                  {formatMoney(subtotal, plan.currency)}
-                </strong>
+                <strong>{formatMoney(subtotal, plan.currency)}</strong>
               </div>
             </div>
           );
         })}
+      </div>
+
+      <div className="mt-5">
+        <label>
+          <span className={labelClass}>Annual raise % (both)</span>
+
+          <input
+            type="number"
+            min={0}
+            step={0.1}
+            value={plan.annualRaiseRate}
+            onChange={(e) =>
+              update({
+                annualRaiseRate: Number(e.target.value),
+              })
+            }
+            className={inputClass}
+          />
+        </label>
+
+        <div className="mt-1 text-[11px] text-[#9ca3af]">
+          Applied annually to household employment income.
+        </div>
       </div>
 
       <div className="mt-5 rounded-xl bg-[#f8faff] p-5">
@@ -158,9 +156,7 @@ function IncomeField({
       <input
         type="number"
         value={value}
-        onChange={(e) =>
-          onChange(Number(e.target.value))
-        }
+        onChange={(e) => onChange(Number(e.target.value))}
         className={inputClass}
       />
     </label>
@@ -173,8 +169,7 @@ const sectionClass =
 const titleClass =
   "mb-4 text-[11px] font-bold uppercase tracking-[0.10em] text-[#64748b]";
 
-const labelClass =
-  "mb-1.5 block text-[11px] font-semibold text-[#64748b]";
+const labelClass = "mb-1.5 block text-[11px] font-semibold text-[#64748b]";
 
 const inputClass =
   "w-full rounded-lg border-[1.5px] border-[rgba(0,87,184,.14)] bg-white px-3 py-2 text-[13px] font-medium text-[#16213e] outline-none focus:border-[#0057b8]";

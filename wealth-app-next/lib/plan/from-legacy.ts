@@ -308,6 +308,12 @@ export function importLegacyPlan(input: unknown): LegacyImportResult {
     plan.annualSavings = annualSavings;
   }
 
+  const annualRaiseRate = N(f, "raise");
+
+  if (annualRaiseRate !== null) {
+    plan.annualRaiseRate = annualRaiseRate;
+  }
+
   // ─── Assets ─────────────────────────────────────────────────────
   const assets: Asset[] = arr(src.assets).map((a) => {
     const cls =
