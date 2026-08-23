@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { ReportView } from "@/components/report/report-view";
+// import { ReportView } from "@/components/report/report-view";
+import { ReportsPageForm } from "@/components/reports/reports-page-form";
 import { Card, CardContent } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
 import { loadPageContext } from "@/lib/tenancy/page";
@@ -9,7 +10,8 @@ export const dynamic = "force-dynamic";
 
 export default async function ReportPage() {
   const ctx = await loadPageContext();
-  if (ctx.needsChoice) return <ChooseClient message={ctx.needsChoice.message} />;
+  if (ctx.needsChoice)
+    return <ChooseClient message={ctx.needsChoice.message} />;
 
   const plan = ctx.plan;
   if (!plan || plan.clients.length === 0) {
@@ -19,24 +21,17 @@ export default async function ReportPage() {
           <CardContent className="text-center py-16">
             <h1 className="font-display text-3xl mb-3">No plan yet</h1>
             <p className="text-muted-foreground mb-6">
-              Build {ctx.household!.name}&apos;s plan before generating a report.
+              Build {ctx.household!.name}&apos;s plan before generating a
+              report.
             </p>
-            <Link href="/app/plan" className={buttonVariants()}>Build the plan &rarr;</Link>
+            <Link href="/app/plan" className={buttonVariants()}>
+              Build the plan &rarr;
+            </Link>
           </CardContent>
         </Card>
       </div>
     );
   }
 
-  return (
-    <div className="container max-w-5xl py-10 animate-fade-in">
-      <div className="mb-6 report-noprint">
-        <h1 className="font-display text-4xl mb-2">Report</h1>
-        <p className="text-muted-foreground">
-          A branded, printable wealth report for {ctx.household!.name}.
-        </p>
-      </div>
-      <ReportView key={ctx.household!.id} plan={plan} />
-    </div>
-  );
+  return <ReportsPageForm initialPlan={plan} />;
 }

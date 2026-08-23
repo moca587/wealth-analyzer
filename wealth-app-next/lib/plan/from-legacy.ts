@@ -190,6 +190,61 @@ const ASSET_CLASSES = new Set<AssetClass>([
   "crypto",
 ]);
 
+function normalizeInstrumentType(type: string): string {
+  switch (type.toLowerCase()) {
+    case "etf":
+      return "ETF";
+
+    case "mutual_fund":
+    case "mutual fund":
+      return "Mutual fund";
+
+    case "stock":
+      return "Stock";
+
+    case "bond":
+      return "Bond";
+
+    case "alternative":
+      return "Alternative";
+
+    case "private_equity":
+      return "Private equity fund";
+
+    case "hedge_fund":
+      return "Hedge fund";
+
+    case "structured":
+      return "Structured product";
+
+    default:
+      return "Other";
+  }
+}
+
+function normalizeRegion(region: string): string {
+  switch (region.toLowerCase()) {
+    case "us":
+      return "US";
+
+    case "dev_intl":
+    case "developed":
+    case "developed international":
+      return "Dev Intl";
+
+    case "em":
+    case "emerging":
+    case "emerging markets":
+      return "EM";
+
+    case "global":
+      return "Global";
+
+    default:
+      return "Other";
+  }
+}
+
 // ─── The import ───────────────────────────────────────────────────
 
 export function importLegacyPlan(input: unknown): LegacyImportResult {
@@ -288,12 +343,13 @@ export function importLegacyPlan(input: unknown): LegacyImportResult {
     expenses.push({
       id: newId(),
       name,
-      amount: Math.round((v / 12) * 100) / 100,
+      // amount: Math.round((v / 12) * 100) / 100,
+      amount: v / 12,
     });
   };
-  addExpense("expL", "Living");
-  addExpense("expI", "Insurance");
-  addExpense("expO", "Other");
+  addExpense("expL", "Living expenses");
+  addExpense("expI", "Insurance / health");
+  addExpense("expO", "Other expenses");
   plan.expenses = expenses;
   if (!expenses.length) {
     notes.push(
@@ -354,6 +410,10 @@ export function importLegacyPlan(input: unknown): LegacyImportResult {
             ? h.tkr
             : "Position",
       ticker: typeof h.tkr === "string" && h.tkr ? h.tkr : undefined,
+      instrumentType:
+        typeof h.type === "string" && h.type
+          ? normalizeInstrumentType(h.type)
+          : undefined, // new
       cls,
       value:
         typeof h.val === "number" && Number.isFinite(h.val)
@@ -362,7 +422,11 @@ export function importLegacyPlan(input: unknown): LegacyImportResult {
       er: typeof h.er === "number" && Number.isFinite(h.er) ? h.er : undefined,
       yld:
         typeof h.yld === "number" && Number.isFinite(h.yld) ? h.yld : undefined,
-      region: typeof h.region === "string" && h.region ? h.region : undefined,
+      // region: typeof h.region === "string" && h.region ? h.region : undefined,
+      region:
+        typeof h.region === "string" && h.region
+          ? normalizeRegion(h.region)
+          : undefined,
       note: typeof h.note === "string" && h.note ? h.note : undefined,
       feedRef: typeof h.tkr === "string" && h.tkr ? `hold:${h.tkr}` : undefined,
     };

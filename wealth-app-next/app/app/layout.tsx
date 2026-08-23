@@ -1,10 +1,18 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { Sidebar } from "@/components/nav/sidebar";
+import { SimulationProvider } from "@/lib/simulation/simulation-context";
+import { ReportProvider } from "@/lib/report/report-context";
 
-export default async function AppLayout({ children }: { children: React.ReactNode }) {
+export default async function AppLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
   // Middleware also enforces this, but defense-in-depth never hurts.
   if (!user) redirect("/login");
@@ -16,9 +24,14 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     .maybeSingle();
 
   return (
-    <div className="flex min-h-screen">
-      <Sidebar displayName={profile?.display_name ?? user.email ?? null} />
-      <main className="flex-1 min-w-0">{children}</main>
-    </div>
+    <SimulationProvider>
+      <ReportProvider>
+        <div className="flex min-h-screen">
+          <Sidebar displayName={profile?.display_name ?? user.email ?? null} />
+
+          <main className="flex-1 min-w-0">{children}</main>
+        </div>
+      </ReportProvider>
+    </SimulationProvider>
   );
 }

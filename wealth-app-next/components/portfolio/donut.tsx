@@ -48,11 +48,27 @@
 //     .filter((s) => s.pct > 0);
 // }
 
+import { CLASS_COLOR, type AssetClass } from "@/lib/portfolio/asset-class";
 
 export interface DonutSlice {
   key: string;
   pct: number;
   color: string;
+}
+
+export function slicesFromValues(
+  values: Map<AssetClass, number>,
+  total: number,
+): DonutSlice[] {
+  if (total <= 0) {
+    return [];
+  }
+
+  return Array.from(values.entries()).map(([key, value]) => ({
+    key,
+    pct: (value / total) * 100,
+    color: CLASS_COLOR[key] ?? "#94a3b8",
+  }));
 }
 
 export function Donut({
@@ -69,11 +85,7 @@ export function Donut({
 
   let offset = 0;
 
-  const drawable =
-    slices.filter(
-      (slice) =>
-        slice.pct > 0
-    );
+  const drawable = slices.filter((slice) => slice.pct > 0);
 
   return (
     <svg
@@ -84,9 +96,7 @@ export function Donut({
       role="img"
       aria-label="Allocation"
     >
-      <g
-        transform={`rotate(-90 ${size / 2} ${size / 2})`}
-      >
+      <g transform={`rotate(-90 ${size / 2} ${size / 2})`}>
         <circle
           cx={size / 2}
           cy={size / 2}
@@ -97,39 +107,27 @@ export function Donut({
           strokeWidth={stroke}
         />
 
-        {drawable.map(
-          (slice) => {
-            const len =
-              (slice.pct / 100) *
-              c;
+        {drawable.map((slice) => {
+          const len = (slice.pct / 100) * c;
 
-            const element = (
-              <circle
-                key={slice.key}
-                cx={size / 2}
-                cy={size / 2}
-                r={r}
-                fill="none"
-                stroke={
-                  slice.color
-                }
-                strokeWidth={
-                  stroke
-                }
-                strokeDasharray={`${len} ${
-                  c - len
-                }`}
-                strokeDashoffset={
-                  -offset
-                }
-              />
-            );
+          const element = (
+            <circle
+              key={slice.key}
+              cx={size / 2}
+              cy={size / 2}
+              r={r}
+              fill="none"
+              stroke={slice.color}
+              strokeWidth={stroke}
+              strokeDasharray={`${len} ${c - len}`}
+              strokeDashoffset={-offset}
+            />
+          );
 
-            offset += len;
+          offset += len;
 
-            return element;
-          }
-        )}
+          return element;
+        })}
       </g>
     </svg>
   );

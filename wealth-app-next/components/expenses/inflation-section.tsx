@@ -27,9 +27,7 @@ export function InflationSection({ plan, update }: Props) {
           <select
             value={plan.inflationRegion ?? "us"}
             onChange={(e) => {
-              const region = REGIONS.find(
-                (r) => r.value === e.target.value
-              );
+              const region = REGIONS.find((r) => r.value === e.target.value);
 
               if (!region) return;
 
@@ -41,10 +39,7 @@ export function InflationSection({ plan, update }: Props) {
             className={inputClass}
           >
             {REGIONS.map((region) => (
-              <option
-                key={region.value}
-                value={region.value}
-              >
+              <option key={region.value} value={region.value}>
                 {region.label}
               </option>
             ))}
@@ -56,18 +51,15 @@ export function InflationSection({ plan, update }: Props) {
         </label>
 
         <label>
-          <span className={labelClass}>
-            Inflation rate %
-          </span>
+          <span className={labelClass}>Inflation rate %</span>
 
           <input
             type="number"
             step="0.1"
-            value={(plan.inflationRate * 100).toFixed(1)}
+            value={Math.round(plan.inflationRate * 1000) / 10}
             onChange={(e) =>
               update({
-                inflationRate:
-                  Number(e.target.value) / 100,
+                inflationRate: Number(e.target.value) / 100,
               })
             }
             className={inputClass}
@@ -84,8 +76,7 @@ const sectionClass =
 const titleClass =
   "mb-4 text-[11px] font-bold uppercase tracking-[0.10em] text-[#64748b]";
 
-const labelClass =
-  "mb-1.5 block text-[11px] font-semibold text-[#64748b]";
+const labelClass = "mb-1.5 block text-[11px] font-semibold text-[#64748b]";
 
 const inputClass =
   "w-full rounded-lg border-[1.5px] border-[rgba(0,87,184,.14)] bg-white px-3 py-2 text-[13px] font-medium text-[#16213e] outline-none focus:border-[#0057b8] focus:ring-2 focus:ring-[rgba(0,87,184,.08)]";

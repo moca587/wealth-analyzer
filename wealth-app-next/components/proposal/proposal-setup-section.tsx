@@ -17,34 +17,22 @@ const OBJECTIVES = [
   "Speculation / opportunistic",
 ];
 
-export function ProposalSetupSection({
-  plan,
-  proposal,
-  update,
-}: Props) {
+export function ProposalSetupSection({ plan, proposal, update }: Props) {
   return (
     <section className={sectionClass}>
-      <h2 className={titleClass}>
-        Proposal Setup
-      </h2>
+      <h2 className={titleClass}>Proposal Setup</h2>
 
       <div className="grid gap-4 md:grid-cols-2">
         {/* Client */}
         <div>
-          <label className={labelClass}>
-            Client
-          </label>
+          <label className={labelClass}>Client</label>
 
-          <div className={readOnlyClass}>
-            {proposal.clientName || "—"}
-          </div>
+          <div className={readOnlyClass}>{proposal.clientName || "—"}</div>
         </div>
 
         {/* Advisor */}
         <div>
-          <label className={labelClass}>
-            Advisor name
-          </label>
+          <label className={labelClass}>Advisor name</label>
 
           <input
             type="text"
@@ -61,9 +49,7 @@ export function ProposalSetupSection({
 
         {/* Target amount */}
         <div>
-          <label className={labelClass}>
-            Target $ amount
-          </label>
+          <label className={labelClass}>Target $ amount</label>
 
           <input
             type="number"
@@ -71,8 +57,7 @@ export function ProposalSetupSection({
             value={proposal.targetAmount}
             onChange={(e) =>
               update({
-                targetAmount:
-                  Number(e.target.value) || 0,
+                targetAmount: Number(e.target.value) || 0,
               })
             }
             className={inputClass}
@@ -81,15 +66,10 @@ export function ProposalSetupSection({
 
         {/* Objective */}
         <div>
-          <label className={labelClass}>
-            Objective
-          </label>
+          <label className={labelClass}>Objective</label>
 
           <select
-            value={
-              proposal.objective ??
-              "Balanced"
-            }
+            value={proposal.objective ?? "Balanced"}
             onChange={(e) =>
               update({
                 objective: e.target.value,
@@ -97,18 +77,31 @@ export function ProposalSetupSection({
             }
             className={inputClass}
           >
-            {OBJECTIVES.map(
-              (objective) => (
-                <option
-                  key={objective}
-                  value={objective}
-                >
-                  {objective}
-                </option>
-              )
-            )}
+            {OBJECTIVES.map((objective) => (
+              <option key={objective} value={objective}>
+                {objective}
+              </option>
+            ))}
           </select>
         </div>
+      </div>
+
+      {/* Investment thesis / overall rationale */}
+      <div className="mt-4">
+        <label className={labelClass}>
+          Investment thesis / overall rationale
+        </label>
+
+        <textarea
+          value={proposal.investmentThesis ?? ""}
+          onChange={(e) =>
+            update({
+              investmentThesis: e.target.value,
+            })
+          }
+          className={`${inputClass} min-h-[120px] resize-y`}
+          placeholder="Describe the overall investment rationale, portfolio construction approach, and key considerations..."
+        />
       </div>
 
       <div className="mt-4 text-[11px] text-[#64748b]">
@@ -116,9 +109,7 @@ export function ProposalSetupSection({
         <span className="font-semibold text-[#16213e]">
           {getRiskLabel(plan)}
         </span>
-
         {" • "}
-
         Horizon:{" "}
         <span className="font-semibold text-[#16213e]">
           {getHorizonLabel(plan)}
@@ -129,15 +120,11 @@ export function ProposalSetupSection({
 }
 
 // To do: implement getRiskLabel and getHorizonLabel
-function getRiskLabel(
-  plan: WealthPlan
-): string {
+function getRiskLabel(plan: WealthPlan): string {
   return "Moderate";
 }
 
-function getHorizonLabel(
-  plan: WealthPlan
-): string {
+function getHorizonLabel(plan: WealthPlan): string {
   return "5–10 years";
 }
 
@@ -147,8 +134,7 @@ const sectionClass =
 const titleClass =
   "mb-4 text-[11px] font-bold uppercase tracking-[0.10em] text-[#64748b]";
 
-const labelClass =
-  "mb-1.5 block text-[11px] font-semibold text-[#64748b]";
+const labelClass = "mb-1.5 block text-[11px] font-semibold text-[#64748b]";
 
 const inputClass =
   "w-full rounded-lg border-[1.5px] border-[rgba(0,87,184,.14)] bg-white px-3 py-2 text-[13px] font-medium text-[#16213e] outline-none focus:border-[#0057b8]";

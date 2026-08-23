@@ -25,57 +25,46 @@ export function AnnualExpensesSection({ plan, update }: Props) {
   const annualInsurance = insurance * 12;
   const annualOther = other * 12;
 
-  const annualExpenses =
-    annualLiving + annualInsurance + annualOther;
+  const annualExpenses = annualLiving + annualInsurance + annualOther;
 
   const grossIncome = plan.incomes.reduce(
     (sum, income) => sum + income.amount,
-    0
+    0,
   );
 
   const primaryClient = plan.clients[0];
 
   const federalTax = estimateIncomeTax(
     grossIncome,
-    primaryClient?.country ?? "US"
+    primaryClient?.country ?? "US",
   );
 
   const stateTax = computeStateTax(
     grossIncome,
     primaryClient?.country ?? "US",
-    primaryClient?.state
+    primaryClient?.state,
   );
 
   const totalTax = federalTax + stateTax;
 
   const debtService = plan.loans.reduce((sum, loan) => {
-    const monthlyPayment = calcMortgagePayment(
-      loan.bal,
-      loan.rate,
-      loan.yrs
-    );
+    const monthlyPayment = calcMortgagePayment(loan.bal, loan.rate, loan.yrs);
 
     return sum + monthlyPayment * 12;
   }, 0);
 
-  const annualSurplus =
-    grossIncome -
-    totalTax -
-    annualExpenses -
-    debtService;
+  const annualSurplus = grossIncome - totalTax - annualExpenses - debtService;
 
   function updateExpense(name: string, annualAmount: number) {
     const monthlyAmount = annualAmount / 12;
 
-    const exists = plan.expenses.some(
-      (expense) => expense.name === name
-    );
+    const exists = plan.expenses.some((expense) => expense.name === name);
 
     const expenses = exists
       ? plan.expenses.map((expense) =>
           expense.name === name
             ? { ...expense, amount: monthlyAmount }
-            : expense
+            : expense,
         )
       : [
           ...plan.expenses,
@@ -91,39 +80,30 @@ export function AnnualExpensesSection({ plan, update }: Props) {
 
   return (
     <section className={sectionClass}>
-      <h2 className={titleClass}>
-        Annual Household Expenses
-      </h2>
+      <h2 className={titleClass}>Annual Household Expenses</h2>
 
       <p className="mb-5 text-[12px] leading-5 text-[#64748b]">
-        Enter total annual spending for the entire family — combined
-        across both clients, children, and all dependents living in the
-        household.
+        Enter total annual spending for the entire family — combined across both
+        clients, children, and all dependents living in the household.
       </p>
 
       <div className="grid gap-4 md:grid-cols-3">
         <ExpenseField
           label="Living expenses (household)"
           value={annualLiving}
-          onChange={(value) =>
-            updateExpense("Living expenses", value)
-          }
+          onChange={(value) => updateExpense("Living expenses", value)}
         />
 
         <ExpenseField
           label="Insurance / health (household)"
           value={annualInsurance}
-          onChange={(value) =>
-            updateExpense("Insurance / health", value)
-          }
+          onChange={(value) => updateExpense("Insurance / health", value)}
         />
 
         <ExpenseField
           label="Other expenses (household)"
           value={annualOther}
-          onChange={(value) =>
-            updateExpense("Other expenses", value)
-          }
+          onChange={(value) => updateExpense("Other expenses", value)}
         />
       </div>
 
@@ -221,7 +201,11 @@ function SummaryRow({
         {label}
       </span>
 
-      <span className={strong ? "font-bold text-[#0057b8]" : "font-semibold text-[#16213e]"}>
+      <span
+        className={
+          strong ? "font-bold text-[#0057b8]" : "font-semibold text-[#16213e]"
+        }
+      >
         {value}
       </span>
     </div>
@@ -234,8 +218,7 @@ const sectionClass =
 const titleClass =
   "mb-4 text-[11px] font-bold uppercase tracking-[0.10em] text-[#64748b]";
 
-const labelClass =
-  "mb-1.5 block text-[11px] font-semibold text-[#64748b]";
+const labelClass = "mb-1.5 block text-[11px] font-semibold text-[#64748b]";
 
 const inputClass =
   "w-full rounded-lg border-[1.5px] border-[rgba(0,87,184,.14)] bg-white px-3 py-2 text-[13px] font-medium text-[#16213e] outline-none focus:border-[#0057b8] focus:ring-2 focus:ring-[rgba(0,87,184,.08)]";

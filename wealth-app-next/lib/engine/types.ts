@@ -177,6 +177,13 @@ export type EstateTaxDefaults = {
 // before or after retirement
 export type CashFlowPhase = "Working" | "Retired";
 
+export type ReturnRiskMetrics = {
+  grossReturn: number;
+  advisoryFee: number;
+  netReturn: number;
+  volatility: number;
+};
+
 // Represents one year of the linear cash-flow projection
 export interface LinearCashFlowRow {
   year: number;
@@ -264,6 +271,8 @@ export interface LinearCashFlowOptions {
    * reproducibility is needed.
    */
   asOfYear?: number;
+
+  investmentReturnOverride?: number;
 }
 
 export interface Client {

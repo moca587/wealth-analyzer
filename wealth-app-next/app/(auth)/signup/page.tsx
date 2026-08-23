@@ -28,14 +28,17 @@ export default function SignupPage() {
       password,
       options: {
         data: { display_name: displayName || email.split("@")[0] },
-        emailRedirectTo: `${process.env.NEXT_PUBLIC_APP_URL || window.location.origin}/auth/callback?next=/app`
-      }
+        emailRedirectTo: `${process.env.NEXT_PUBLIC_APP_URL || window.location.origin}/auth/callback?next=/app/household`,
+      },
     });
     setLoading(false);
-    if (error) { setError(friendlyAuthError(error.message)); return; }
+    if (error) {
+      setError(friendlyAuthError(error.message));
+      return;
+    }
     // If email confirmation is enabled in Supabase settings, user must confirm before login.
     if (data.session) {
-      router.push("/app");
+      router.push("/app/household");
       router.refresh();
     } else {
       setConfirmSent(true);
@@ -46,17 +49,28 @@ export default function SignupPage() {
     return (
       <div className="text-center space-y-4">
         <div className="inline-grid h-16 w-16 place-items-center rounded-full bg-emerald-50 text-emerald-600">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="h-8 w-8">
-            <path d="M3 8l9 6 9-6M5 6h14a2 2 0 012 2v10a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2z" strokeLinecap="round" strokeLinejoin="round" />
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.5"
+            className="h-8 w-8"
+          >
+            <path
+              d="M3 8l9 6 9-6M5 6h14a2 2 0 012 2v10a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2z"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
           </svg>
         </div>
         <h1 className="font-display text-3xl">Check your inbox</h1>
         <p className="text-muted-foreground">
-          We sent a confirmation link to <strong>{email}</strong>. Click it to activate your account.
+          We sent a confirmation link to <strong>{email}</strong>. Click it to
+          activate your account.
         </p>
         <p className="text-xs text-muted-foreground pt-4">
-          The link is only valid from this address. Didn&apos;t arrive? Check spam, or
-          ask an administrator to re-send your invitation.
+          The link is only valid from this address. Didn&apos;t arrive? Check
+          spam, or ask an administrator to re-send your invitation.
         </p>
       </div>
     );
@@ -64,8 +78,12 @@ export default function SignupPage() {
 
   return (
     <div>
-      <h1 className="font-display text-4xl leading-tight mb-2">Build your plan.</h1>
-      <p className="text-muted-foreground mb-8">Sign up free — no credit card.</p>
+      <h1 className="font-display text-4xl leading-tight mb-2">
+        Build your plan.
+      </h1>
+      <p className="text-muted-foreground mb-8">
+        Sign up free — no credit card.
+      </p>
 
       <form onSubmit={onSubmit} className="space-y-5">
         <div className="space-y-2">
@@ -113,13 +131,17 @@ export default function SignupPage() {
           {loading ? "Creating account…" : "Create account"}
         </Button>
         <p className="text-xs text-muted-foreground text-center">
-          By signing up you agree to use this tool for educational purposes — it does not provide financial, tax, or legal advice.
+          By signing up you agree to use this tool for educational purposes — it
+          does not provide financial, tax, or legal advice.
         </p>
       </form>
 
       <div className="mt-8 pt-6 border-t border-border text-sm text-center">
         Already have an account?{" "}
-        <Link href="/login" className="font-semibold text-accent hover:underline">
+        <Link
+          href="/login"
+          className="font-semibold text-accent hover:underline"
+        >
           Sign in &rarr;
         </Link>
       </div>

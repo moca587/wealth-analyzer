@@ -23,16 +23,12 @@ export function ReturnRiskDetailsSection({
 }: Props) {
   return (
     <section className={sectionClass}>
-      <h2 className={titleClass}>
-        Return & Risk Profile — Detailed Figures
-      </h2>
+      <h2 className={titleClass}>Return & Risk Profile — Detailed Figures</h2>
 
       <p className="mt-2 text-[12px] leading-5 text-[#64748b]">
         Gross return, advisory fee, net return and volatility for each
         portfolio. These are the{" "}
-        <strong className="text-[#16213e]">
-          forward-looking expected
-        </strong>{" "}
+        <strong className="text-[#16213e]">forward-looking expected</strong>{" "}
         figures — not historical trailing returns.
       </p>
 
@@ -40,21 +36,13 @@ export function ReturnRiskDetailsSection({
         <table className="w-full border-collapse text-left">
           <thead>
             <tr className="border-b border-[rgba(0,87,184,.10)] bg-[#f8faff]">
-              <th className={thClass}>
-                Metric
-              </th>
+              <th className={thClass}>Metric</th>
 
-              <th className={thClass}>
-                Current portfolio
-              </th>
+              <th className={thClass}>Current portfolio</th>
 
-              <th className={thClass}>
-                Proposed portfolio
-              </th>
+              <th className={thClass}>Proposed portfolio</th>
 
-              <th className={thClass}>
-                Variance
-              </th>
+              <th className={thClass}>Variance</th>
             </tr>
           </thead>
 
@@ -102,26 +90,17 @@ function MetricRow({
   emphasize?: boolean;
 }) {
   const variance =
-    current != null &&
-    proposed != null
-      ? proposed - current
-      : undefined;
+    current != null && proposed != null ? proposed - current : undefined;
 
   return (
     <tr className="border-b border-[rgba(0,87,184,.07)] last:border-b-0">
       <td className={tdClass}>
-        <span className="font-semibold text-[#64748b]">
-          {label}
-        </span>
+        <span className="font-semibold text-[#64748b]">{label}</span>
       </td>
 
       <td className={tdClass}>
         <span
-          className={
-            emphasize
-              ? "font-bold text-[#16213e]"
-              : "text-[#16213e]"
-          }
+          className={emphasize ? "font-bold text-[#16213e]" : "text-[#16213e]"}
         >
           {formatPercent(current)}
         </span>
@@ -129,11 +108,7 @@ function MetricRow({
 
       <td className={tdClass}>
         <span
-          className={
-            emphasize
-              ? "font-bold text-[#16213e]"
-              : "text-[#16213e]"
-          }
+          className={emphasize ? "font-bold text-[#16213e]" : "text-[#16213e]"}
         >
           {formatPercent(proposed)}
         </span>
@@ -148,9 +123,7 @@ function MetricRow({
   );
 }
 
-function formatPercent(
-  value: number | undefined
-): string {
+function formatPercent(value: number | undefined): string {
   if (value == null) {
     return "—";
   }
@@ -158,24 +131,17 @@ function formatPercent(
   return `${value.toFixed(2)}%`;
 }
 
-function formatVariance(
-  value: number | undefined
-): string {
+function formatVariance(value: number | undefined): string {
   if (value == null) {
     return "—";
   }
 
-  const sign =
-    value > 0
-      ? "+"
-      : "";
+  const sign = value > 0 ? "+" : "";
 
   return `${sign}${value.toFixed(2)}%`;
 }
 
-function varianceClass(
-  value: number | undefined
-): string {
+function varianceClass(value: number | undefined): string {
   if (value == null) {
     return "text-[#9ca3af]";
   }
@@ -200,5 +166,4 @@ const titleClass =
 const thClass =
   "px-3 py-2 text-[10px] font-bold uppercase tracking-[0.06em] text-[#64748b]";
 
-const tdClass =
-  "px-3 py-3 text-[11px]";
+const tdClass = "px-3 py-3 text-[11px]";

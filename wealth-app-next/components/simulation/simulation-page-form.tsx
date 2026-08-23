@@ -9,6 +9,9 @@ import { ageFromDOB } from "@/lib/engine/financial-math";
 import { calculateSustainableSpend } from "@/lib/engine/sustainable-spend";
 import { calculateRetirementFunding } from "@/lib/engine/retirement-funding";
 
+import { useSimulation } from "@/lib/simulation/simulation-context";
+
+import { SimulationSettingsSheet } from "./simulation-settings-sheet";
 import { SimulationHeaderSection } from "./simulation-header-section";
 import { SimulationSummarySection } from "./simulation-summary-section";
 import { AnnualWealthSection } from "./annual-wealth-section";
@@ -23,6 +26,11 @@ import { BehaviorGapSection } from "./behavior-gap-section";
 import { EstateTransferSection } from "./estate-transfer-section";
 import { MethodologySection } from "./methodology-section";
 import { WealthOutlookSection } from "./wealth-outlook-section";
+import { LinearCashFlowSection } from "./linear-cash-flow-section";
+import { NetWorthComponentsSection } from "./net-worth-components-section";
+import { ThreeScenarioSection } from "./three-scenario-section";
+import { MeanVarianceSection } from "./mean-variance-section";
+import { SensitivityAnalysisSection } from "./sensitivity-analysis-section";
 
 export const REPORT_SEED = 20260101;
 
@@ -53,9 +61,12 @@ export function SimulationPageForm({ initialPlan, initialVersion }: Props) {
 
   const [years, setYears] = useState(30); // number of years the simulation projects
 
-  const [result, setResult] = useState<SimulationResult | null>(null); // monte carlo result
+  //   const [result, setResult] = useState<SimulationResult | null>(null); // monte carlo result
+  const { result, setResult } = useSimulation();
 
   const [running, setRunning] = useState(false);
+
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   // make sure plan exists and has at least one client before proceeding
   if (!plan || plan.clients.length === 0) {
@@ -106,8 +117,11 @@ export function SimulationPageForm({ initialPlan, initialVersion }: Props) {
   return (
     <main className="min-h-screen bg-[#f4f6fb] px-8 py-7">
       <div className="mx-auto max-w-6xl space-y-6">
-        <SimulationHeaderSection running={running} onRun={run} />
-
+        <SimulationHeaderSection
+          running={running}
+          onRun={run}
+          onSettings={() => setSettingsOpen(true)}
+        />
         {result && (
           <SimulationSummarySection
             result={result}
@@ -147,7 +161,24 @@ export function SimulationPageForm({ initialPlan, initialVersion }: Props) {
 
         {result && <RothConversionSection plan={plan} />}
 
+        {result && <LinearCashFlowSection plan={plan} />}
+
+        {result && <ThreeScenarioSection plan={plan} />}
+
+        {result && <NetWorthComponentsSection plan={plan} />}
+
+        {/* tax efficiency overlay  */}
         {result && <AssetLocationSection plan={plan} />}
+
+        {result && <MeanVarianceSection plan={plan} />}
+
+        {result && (
+          <SensitivityAnalysisSection
+            plan={plan}
+            result={result}
+            years={years}
+          />
+        )}
 
         {result && <BehaviorGapSection plan={plan} years={years} sims={sims} />}
 
@@ -160,6 +191,15 @@ export function SimulationPageForm({ initialPlan, initialVersion }: Props) {
         )}
 
         {result && <MethodologySection />}
+
+        <SimulationSettingsSheet
+          open={settingsOpen}
+          onClose={() => setSettingsOpen(false)}
+          years={years}
+          setYears={setYears}
+          sims={sims}
+          setSims={setSims}
+        />
       </div>
     </main>
   );

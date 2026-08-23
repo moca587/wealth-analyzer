@@ -82,8 +82,10 @@ export function buildLinearCashFlow(
     ? retirement!.annualSpending
     : 0;
 
-  const annualSavingsTarget = Math.max(0, options.annualSavingsTarget ?? 0);
-
+  const annualSavingsTarget = Math.max(
+    0,
+    options.annualSavingsTarget ?? plan.annualSavings ?? 0,
+  );
   const retirementPoolGrowth = options.retirementPoolGrowth ?? 0.035;
 
   const cashSurplusShare = clamp(options.cashSurplusShare ?? 0.3, 0, 1);
@@ -198,10 +200,14 @@ export function buildLinearCashFlow(
       ? RISK_PROFILES[client.risk]
       : RISK_PROFILES.moderate;
 
+  const portfolioPositions = plan.holdings?.length
+    ? plan.holdings
+    : investableAssets;
+
   const { mean: portfolioMean, sigma: portfolioSigma } = portfolioReturnParams(
-    investableAssets.map((asset) => ({
-      cls: asset.cls,
-      value: Number(asset.value),
+    portfolioPositions.map((position) => ({
+      cls: position.cls,
+      value: Number(position.value),
     })),
     {
       mean: riskProfile.mu / 100,
@@ -215,8 +221,9 @@ export function buildLinearCashFlow(
    * geometric mean =
    * arithmetic mean - 1/2 * sigma^2
    */
-  const investmentReturn = geometricMean(portfolioMean, portfolioSigma);
-
+  const investmentReturn =
+    options.investmentReturnOverride ??
+    geometricMean(portfolioMean, portfolioSigma);
   /*
    * Legacy deterministic property assumption:
    * inflation minus 1 percentage point,

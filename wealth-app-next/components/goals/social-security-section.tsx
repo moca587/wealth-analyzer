@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import type { WealthPlan, Pension } from "@/lib/engine/types";
 import { formatMoney } from "@/lib/engine/financial-math";
 
@@ -13,17 +14,19 @@ export function SocialSecuritySection({ plan, update }: Props) {
 
   const pension =
     plan.pensions?.find(
-      (p) =>
-        !p.clientId ||
-        p.clientId === primaryClient?.id
+      (p) => !p.clientId || p.clientId === primaryClient?.id,
     ) ?? null;
 
   const annualAmount = pension?.annualAmount ?? 22000;
   const startAge = pension?.startAge ?? 67;
   const colaRate = pension?.colaRate ?? plan.inflationRate;
 
-  const adjustmentPerYear = 0.07;
-  const evaluateToAge = 90;
+  // const adjustmentPerYear = 0.07;
+  // const evaluateToAge = 90;
+  const [adjustmentPerYear, setAdjustmentPerYear] = useState("7");
+  const [evaluateToAge, setEvaluateToAge] = useState(90);
+
+  const adjustmentRate = Number(adjustmentPerYear) / 100;
 
   function updatePension(patch: Partial<Pension>) {
     if (!primaryClient) return;
@@ -31,9 +34,7 @@ export function SocialSecuritySection({ plan, update }: Props) {
     if (pension) {
       update({
         pensions: (plan.pensions ?? []).map((p) =>
-          p.id === pension.id
-            ? { ...p, ...patch }
-            : p
+          p.id === pension.id ? { ...p, ...patch } : p,
         ),
       });
 
@@ -65,31 +66,16 @@ export function SocialSecuritySection({ plan, update }: Props) {
       yearsFromPlan === 0
         ? annualAmount
         : yearsFromPlan < 0
-          ? annualAmount *
-            Math.pow(
-              1 - adjustmentPerYear,
-              Math.abs(yearsFromPlan)
-            )
-          : annualAmount *
-            Math.pow(
-              1 + adjustmentPerYear,
-              yearsFromPlan
-            );
+          ? annualAmount * Math.pow(1 - adjustmentRate, Math.abs(yearsFromPlan))
+          : annualAmount * Math.pow(1 + adjustmentRate, yearsFromPlan);
 
-    const yearsPaid = Math.max(
-      0,
-      evaluateToAge - claimAge + 1
-    );
+    const yearsPaid = Math.max(0, evaluateToAge - claimAge + 1);
 
     const total = adjustedAnnual * yearsPaid;
 
-    const planYearsPaid = Math.max(
-      0,
-      evaluateToAge - startAge + 1
-    );
+    const planYearsPaid = Math.max(0, evaluateToAge - startAge + 1);
 
-    const planTotal =
-      annualAmount * planYearsPaid;
+    const planTotal = annualAmount * planYearsPaid;
 
     return {
       claimAge,
@@ -115,8 +101,7 @@ export function SocialSecuritySection({ plan, update }: Props) {
       {primaryClient && (
         <div className="mb-5 flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-full border border-[rgba(91,155,213,.3)] bg-[rgba(91,155,213,.15)] text-[12px] font-bold text-[#0057b8]">
-            {(primaryClient.first?.[0] ?? "")
-              + (primaryClient.last?.[0] ?? "")}
+            {(primaryClient.first?.[0] ?? "") + (primaryClient.last?.[0] ?? "")}
           </div>
 
           <div>
@@ -124,9 +109,7 @@ export function SocialSecuritySection({ plan, update }: Props) {
               {primaryClient.first} {primaryClient.last}
             </div>
 
-            <div className="text-[11px] text-[#9ca3af]">
-              Primary client
-            </div>
+            <div className="text-[11px] text-[#9ca3af]">Primary client</div>
           </div>
         </div>
       )}
@@ -136,15 +119,9 @@ export function SocialSecuritySection({ plan, update }: Props) {
           <label className={labelClass}>Programme</label>
 
           <select className={inputClass} defaultValue="auto">
-            <option value="auto">
-              Auto from country
-            </option>
-            <option value="manual">
-              Manual override
-            </option>
-            <option value="none">
-              None — exclude
-            </option>
+            <option value="auto">Auto from country</option>
+            <option value="manual">Manual override</option>
+            <option value="none">None — exclude</option>
           </select>
         </div>
 
@@ -186,9 +163,7 @@ export function SocialSecuritySection({ plan, update }: Props) {
             value={
               colaRate === 0
                 ? "none"
-                : Math.abs(
-                    colaRate - plan.inflationRate
-                  ) < 0.0001
+                : Math.abs(colaRate - plan.inflationRate) < 0.0001
                   ? "full"
                   : "partial"
             }
@@ -205,17 +180,11 @@ export function SocialSecuritySection({ plan, update }: Props) {
               });
             }}
           >
-            <option value="full">
-              Full COLA — adjusts each year
-            </option>
+            <option value="full">Full COLA — adjusts each year</option>
 
-            <option value="partial">
-              Partial — 50% of inflation
-            </option>
+            <option value="partial">Partial — 50% of inflation</option>
 
-            <option value="none">
-              None — fixed nominal
-            </option>
+            <option value="none">None — fixed nominal</option>
           </select>
         </div>
       </div>
@@ -226,9 +195,8 @@ export function SocialSecuritySection({ plan, update }: Props) {
         </summary>
 
         <p className="mt-2 leading-5">
-          COLA is a cost-of-living adjustment. It determines
-          whether the pension grows with inflation after benefits
-          begin.
+          COLA is a cost-of-living adjustment. It determines whether the pension
+          grows with inflation after benefits begin.
         </p>
       </details>
 
@@ -238,40 +206,38 @@ export function SocialSecuritySection({ plan, update }: Props) {
         </div>
 
         <div className="mt-1 text-[13px] font-semibold text-[#16213e]">
-          {formatMoney(annualAmount, plan.currency)}/yr from age{" "}
-          {startAge}
+          {formatMoney(annualAmount, plan.currency)}/yr from age {startAge}
         </div>
       </div>
 
       <p className="mt-5 text-[12px] leading-5 text-[#64748b]">
-        Claiming earlier shrinks the annual benefit; delaying grows it.
-        This compares total benefits received by a given age using the
-        configured pension as the reference benefit.
+        Claiming earlier shrinks the annual benefit; delaying grows it. This
+        compares total benefits received by a given age using the configured
+        pension as the reference benefit.
       </p>
 
       <div className="mt-5 grid gap-4 md:grid-cols-2">
         <div>
-          <label className={labelClass}>
-            Adjustment per year (±%)
-          </label>
+          <label className={labelClass}>Adjustment per year (±%)</label>
 
           <input
             type="number"
-            value={(adjustmentPerYear * 100).toFixed(1)}
-            readOnly
+            min={0}
+            step={0.1}
+            value={adjustmentPerYear}
+            onChange={(e) => setAdjustmentPerYear(e.target.value)}
             className={inputClass}
           />
         </div>
 
         <div>
-          <label className={labelClass}>
-            Evaluate to age
-          </label>
+          <label className={labelClass}>Evaluate to age</label>
 
           <input
             type="number"
+            min={62}
             value={evaluateToAge}
-            readOnly
+            onChange={(e) => setEvaluateToAge(Number(e.target.value))}
             className={inputClass}
           />
         </div>
@@ -281,25 +247,16 @@ export function SocialSecuritySection({ plan, update }: Props) {
         <table className="w-full border-collapse text-left text-[12px]">
           <thead className="bg-[#f4f7fc] text-[10px] uppercase tracking-[0.06em] text-[#64748b]">
             <tr>
-              <th className="px-4 py-3">
-                Claim at age
-              </th>
-              <th className="px-4 py-3">
-                Annual benefit
-              </th>
-              <th className="px-4 py-3">
-                Total by age {evaluateToAge}
-              </th>
-              <th className="px-4 py-3">
-                vs your plan
-              </th>
+              <th className="px-4 py-3">Claim at age</th>
+              <th className="px-4 py-3">Annual benefit</th>
+              <th className="px-4 py-3">Total by age {evaluateToAge}</th>
+              <th className="px-4 py-3">vs your plan</th>
             </tr>
           </thead>
 
           <tbody>
             {rows.map((row) => {
-              const isBest =
-                Math.abs(row.total - bestTotal) < 0.01;
+              const isBest = Math.abs(row.total - bestTotal) < 0.01;
 
               return (
                 <tr
@@ -314,30 +271,20 @@ export function SocialSecuritySection({ plan, update }: Props) {
                     {row.claimAge}
 
                     {row.isCurrent && (
-                      <span className="ml-1 text-[#0057b8]">
-                        (your plan)
-                      </span>
+                      <span className="ml-1 text-[#0057b8]">(your plan)</span>
                     )}
 
                     {isBest && (
-                      <span className="ml-1 text-[#f59e0b]">
-                        ★ best
-                      </span>
+                      <span className="ml-1 text-[#f59e0b]">★ best</span>
                     )}
                   </td>
 
                   <td className="px-4 py-3 text-[#16213e]">
-                    {formatMoney(
-                      row.adjustedAnnual,
-                      plan.currency
-                    )}
+                    {formatMoney(row.adjustedAnnual, plan.currency)}
                   </td>
 
                   <td className="px-4 py-3 font-bold text-[#16213e]">
-                    {formatMoney(
-                      row.total,
-                      plan.currency
-                    )}
+                    {formatMoney(row.total, plan.currency)}
                   </td>
 
                   <td
@@ -351,11 +298,9 @@ export function SocialSecuritySection({ plan, update }: Props) {
                   >
                     {row.isCurrent
                       ? "—"
-                      : `${
-                          row.difference > 0 ? "+" : ""
-                        }${formatMoney(
+                      : `${row.difference > 0 ? "+" : ""}${formatMoney(
                           row.difference,
-                          plan.currency
+                          plan.currency,
                         )}`}
                   </td>
                 </tr>
@@ -366,16 +311,15 @@ export function SocialSecuritySection({ plan, update }: Props) {
       </div>
 
       <p className="mt-4 text-[11px] leading-5 text-[#9ca3af]">
-        Nominal totals, before tax and COLA. Each year of early
-        claiming reduces the modeled benefit by 7.0%; each year
-        of delay increases it by the same amount.
+        Nominal totals, before tax and COLA. Each year of early claiming reduces
+        the modeled benefit by {Number(adjustmentPerYear || 0).toFixed(1)}%;
+        each year of delay increases it by the same amount.
       </p>
     </section>
   );
 }
 
-const labelClass =
-  "mb-1.5 block text-[11px] font-semibold text-[#64748b]";
+const labelClass = "mb-1.5 block text-[11px] font-semibold text-[#64748b]";
 
 const inputClass =
   "w-full rounded-lg border-[1.5px] border-[rgba(0,87,184,.14)] bg-white px-3 py-2 text-[13px] font-medium text-[#16213e] outline-none focus:border-[#0057b8] focus:ring-2 focus:ring-[rgba(0,87,184,.08)]";

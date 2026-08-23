@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label";
 export function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const nextPath = searchParams.get("next") || "/app";
+  const nextPath = searchParams.get("next") || "/app/household";
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -24,17 +24,27 @@ export function LoginForm() {
     setError(null);
     setLoading(true);
     const supabase = createClient();
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
     setLoading(false);
-    if (error) { setError(friendlyAuthError(error.message)); return; }
+    if (error) {
+      setError(friendlyAuthError(error.message));
+      return;
+    }
     router.push(nextPath);
     router.refresh();
   }
 
   return (
     <div>
-      <h1 className="font-display text-4xl leading-tight mb-2">Welcome back.</h1>
-      <p className="text-muted-foreground mb-8">Sign in to access your wealth plan.</p>
+      <h1 className="font-display text-4xl leading-tight mb-2">
+        Welcome back.
+      </h1>
+      <p className="text-muted-foreground mb-8">
+        Sign in to access your wealth plan.
+      </p>
 
       <form onSubmit={onSubmit} className="space-y-5">
         <div className="space-y-2">
@@ -52,7 +62,10 @@ export function LoginForm() {
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <Label htmlFor="password">Password</Label>
-            <Link href="/forgot" className="text-xs font-semibold text-accent hover:underline">
+            <Link
+              href="/forgot"
+              className="text-xs font-semibold text-accent hover:underline"
+            >
               Forgot?
             </Link>
           </div>
@@ -77,7 +90,10 @@ export function LoginForm() {
 
       <div className="mt-8 pt-6 border-t border-border text-sm text-center">
         Don&apos;t have an account?{" "}
-        <Link href="/signup" className="font-semibold text-accent hover:underline">
+        <Link
+          href="/signup"
+          className="font-semibold text-accent hover:underline"
+        >
           Sign up free &rarr;
         </Link>
       </div>

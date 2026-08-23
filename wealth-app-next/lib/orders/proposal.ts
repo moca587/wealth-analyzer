@@ -23,12 +23,19 @@
 // ─────────────────────────────────────────────────────────────────
 
 import {
-  ORDER_SCHEMA, round2, sumLines, ticketFingerprint,
-  type OrderTicket, type OrderLine,
+  ORDER_SCHEMA,
+  round2,
+  sumLines,
+  ticketFingerprint,
+  type OrderTicket,
+  type OrderLine,
 } from "./model";
 import {
-  isValidIsin, isValidCusip, isValidValorFormat,
-  checkIdentifierAgreement, checkValorAgreement,
+  isValidIsin,
+  isValidCusip,
+  isValidValorFormat,
+  checkIdentifierAgreement,
+  checkValorAgreement,
 } from "./identifiers";
 
 /** A single line an advisor is proposing to buy. */
@@ -48,7 +55,7 @@ export interface ProposalPosition {
   expectedReturn?: number;
   er?: number;
   yld?: number;
-  
+
   note?: string;
 }
 
@@ -60,6 +67,8 @@ export interface Proposal {
   clientName?: string;
   advisor?: string;
   objective?: string;
+
+  investmentThesis?: string;
 
   feeType?: "none" | "aum" | "flat";
   feeRate?: number;
@@ -88,24 +97,39 @@ export function checkProposal(p: Proposal): ProposalProblem[] {
   const out: ProposalProblem[] = [];
 
   if (!p.positions.length) {
-    out.push({ positionId: null, level: "error", message: "Add at least one position." });
+    out.push({
+      positionId: null,
+      level: "error",
+      message: "Add at least one position.",
+    });
   }
 
   if (!(p.targetAmount > 0)) {
-    out.push({ positionId: null, level: "error", message: "Set a target amount greater than zero." });
+    out.push({
+      positionId: null,
+      level: "error",
+      message: "Set a target amount greater than zero.",
+    });
   }
 
   if (!/^[A-Z]{3}$/.test((p.currency || "").toUpperCase())) {
-    out.push({ positionId: null, level: "error", message: "Set a 3-letter currency (e.g. CHF)." });
+    out.push({
+      positionId: null,
+      level: "error",
+      message: "Set a 3-letter currency (e.g. CHF).",
+    });
   }
 
   // Weights must sum to 100. A tenth of a percent of slack is fine — the
   // amounts, not the weights, are what the OMS books — but a proposal that
   // sums to 90% is almost certainly missing a line.
-  const weightSum = round2(p.positions.reduce((s, x) => s + (Number(x.weightPct) || 0), 0));
+  const weightSum = round2(
+    p.positions.reduce((s, x) => s + (Number(x.weightPct) || 0), 0),
+  );
   if (p.positions.length && Math.abs(weightSum - 100) > 0.1) {
     out.push({
-      positionId: null, level: "error",
+      positionId: null,
+      level: "error",
       message: `Weights sum to ${weightSum}%, not 100%.`,
     });
   }
@@ -113,10 +137,18 @@ export function checkProposal(p: Proposal): ProposalProblem[] {
   for (const pos of p.positions) {
     const w = Number(pos.weightPct);
     if (!(w > 0)) {
-      out.push({ positionId: pos.id, level: "error", message: "Weight must be greater than zero." });
+      out.push({
+        positionId: pos.id,
+        level: "error",
+        message: "Weight must be greater than zero.",
+      });
     }
     if (!pos.name?.trim()) {
-      out.push({ positionId: pos.id, level: "warning", message: "No instrument name." });
+      out.push({
+        positionId: pos.id,
+        level: "warning",
+        message: "No instrument name.",
+      });
     }
 
     const isin = cleanId(pos.isin);
@@ -125,13 +157,25 @@ export function checkProposal(p: Proposal): ProposalProblem[] {
     const ticker = cleanId(pos.ticker);
 
     if (isin && !isValidIsin(isin)) {
-      out.push({ positionId: pos.id, level: "error", message: `ISIN ${isin} fails its check digit.` });
+      out.push({
+        positionId: pos.id,
+        level: "error",
+        message: `ISIN ${isin} fails its check digit.`,
+      });
     }
     if (cusip && !isValidCusip(cusip)) {
-      out.push({ positionId: pos.id, level: "error", message: `CUSIP ${cusip} fails its check digit.` });
+      out.push({
+        positionId: pos.id,
+        level: "error",
+        message: `CUSIP ${cusip} fails its check digit.`,
+      });
     }
     if (valor && !isValidValorFormat(valor)) {
-      out.push({ positionId: pos.id, level: "error", message: `Valor ${valor} is not a valid Valorennummer.` });
+      out.push({
+        positionId: pos.id,
+        level: "error",
+        message: `Valor ${valor} is not a valid Valorennummer.`,
+      });
     }
 
     // The highest-value check: two identifiers on one row that name
@@ -141,13 +185,21 @@ export function checkProposal(p: Proposal): ProposalProblem[] {
     if (cusip && isin) {
       const ag = checkIdentifierAgreement(cusip, isin);
       if (!ag.ok) {
-        out.push({ positionId: pos.id, level: "error", message: `CUSIP and ISIN name different securities: ${ag.conflict}` });
+        out.push({
+          positionId: pos.id,
+          level: "error",
+          message: `CUSIP and ISIN name different securities: ${ag.conflict}`,
+        });
       }
     }
     if (valor && isin) {
       const ag = checkValorAgreement(valor, isin);
       if (!ag.ok) {
-        out.push({ positionId: pos.id, level: "error", message: `Valor and ISIN disagree: ${ag.conflict}` });
+        out.push({
+          positionId: pos.id,
+          level: "error",
+          message: `Valor and ISIN disagree: ${ag.conflict}`,
+        });
       }
     }
 
@@ -156,9 +208,18 @@ export function checkProposal(p: Proposal): ProposalProblem[] {
     // app takes.
     if (!isin && !cusip && !valor) {
       if (ticker) {
-        out.push({ positionId: pos.id, level: "warning", message: "Only a ticker — many custodians won't resolve it. Add an ISIN/Valor if you can." });
+        out.push({
+          positionId: pos.id,
+          level: "warning",
+          message:
+            "Only a ticker — many custodians won't resolve it. Add an ISIN/Valor if you can.",
+        });
       } else {
-        out.push({ positionId: pos.id, level: "error", message: "No identifier at all (ISIN, CUSIP, Valor or ticker)." });
+        out.push({
+          positionId: pos.id,
+          level: "error",
+          message: "No identifier at all (ISIN, CUSIP, Valor or ticker).",
+        });
       }
     }
   }
@@ -182,7 +243,12 @@ export function proposalIsSendable(p: Proposal): boolean {
  */
 export function buildTicket(
   p: Proposal,
-  opts: { ticketId: string; account: string; custodian?: string; createdAt: string },
+  opts: {
+    ticketId: string;
+    account: string;
+    custodian?: string;
+    createdAt: string;
+  },
 ): OrderTicket {
   const ccy = (p.currency || "USD").toUpperCase();
   const target = round2(p.targetAmount);
@@ -224,9 +290,19 @@ export function buildTicket(
     // Never "execute". A human with trading authority pulls the trigger in
     // the PM system; this app stages.
     intent: "stage",
-    account: { id: opts.account.trim(), custodian: opts.custodian?.trim() || undefined, currency: ccy },
-    client: { name: p.clientName?.trim() || undefined, advisor: p.advisor?.trim() || undefined },
-    source: { system: "Wealth Analyzer", objective: p.objective?.trim() || undefined },
+    account: {
+      id: opts.account.trim(),
+      custodian: opts.custodian?.trim() || undefined,
+      currency: ccy,
+    },
+    client: {
+      name: p.clientName?.trim() || undefined,
+      advisor: p.advisor?.trim() || undefined,
+    },
+    source: {
+      system: "Wealth Analyzer",
+      objective: p.objective?.trim() || undefined,
+    },
     totals: { amount: sumLines(lines), currency: ccy, positions: lines.length },
     lines,
   };

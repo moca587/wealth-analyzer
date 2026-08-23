@@ -1,9 +1,10 @@
 type Props = {
   running: boolean;
   onRun: () => void;
+  onSettings: () => void;
 };
 
-export function SimulationHeaderSection({ running, onRun }: Props) {
+export function SimulationHeaderSection({ running, onRun, onSettings }: Props) {
   return (
     <section className={sectionClass}>
       <div className="flex flex-wrap items-center justify-between gap-4">
@@ -18,18 +19,31 @@ export function SimulationHeaderSection({ running, onRun }: Props) {
           </p>
         </div>
 
-        <button
-          type="button"
-          onClick={onRun} // run monte carlo
-          disabled={running}
-          className={buttonClass}
-        >
-          {running ? "Running simulation..." : "Run Simulation"}
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={onSettings}
+            className={settingsButtonClass}
+          >
+            ⚙ Settings
+          </button>
+
+          <button
+            type="button"
+            onClick={onRun}
+            disabled={running}
+            className={buttonClass}
+          >
+            {running ? "Running simulation..." : "Run Simulation"}
+          </button>
+        </div>
       </div>
     </section>
   );
 }
+
+const settingsButtonClass =
+  "rounded-full border border-[rgba(0,87,184,.18)] bg-white px-5 py-2.5 text-[12px] font-bold text-[#0057b8] transition hover:bg-[#f8faff]";
 
 const sectionClass =
   "rounded-xl border border-[rgba(0,87,184,.08)] bg-white p-6 shadow-sm";

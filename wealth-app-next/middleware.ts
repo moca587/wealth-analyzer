@@ -32,16 +32,20 @@ export async function middleware(request: NextRequest) {
         },
         set(name: string, value: string, options: CookieOptions) {
           request.cookies.set({ name, value, ...options });
-          response = NextResponse.next({ request: { headers: request.headers } });
+          response = NextResponse.next({
+            request: { headers: request.headers },
+          });
           response.cookies.set({ name, value, ...options });
         },
         remove(name: string, options: CookieOptions) {
           request.cookies.set({ name, value: "", ...options });
-          response = NextResponse.next({ request: { headers: request.headers } });
+          response = NextResponse.next({
+            request: { headers: request.headers },
+          });
           response.cookies.set({ name, value: "", ...options });
-        }
-      }
-    }
+        },
+      },
+    },
   );
 
   // This refreshes the session if expired. If Supabase is unreachable, don't
@@ -70,7 +74,7 @@ export async function middleware(request: NextRequest) {
   }
   if (isAuthRoute && user) {
     const url = request.nextUrl.clone();
-    url.pathname = "/app";
+    url.pathname = "/app/household";
     return secured(NextResponse.redirect(url));
   }
 
@@ -80,6 +84,6 @@ export async function middleware(request: NextRequest) {
 export const config = {
   matcher: [
     // Skip Next.js internals and static assets
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)"
-  ]
+    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+  ],
 };

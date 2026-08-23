@@ -9,11 +9,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { HouseholdSwitcher } from "@/components/nav/household-switcher";
 
-function NavIcon({
-  path,
-}: {
-  path: string;
-}) {
+function NavIcon({ path }: { path: string }) {
   return (
     <svg
       viewBox="0 0 16 16"
@@ -25,104 +21,6 @@ function NavIcon({
     </svg>
   );
 }
-
-// const navGroups = [
-//   {
-//     label: "Profile",
-//     items: [
-//       {
-//         href: "/app/household",
-//         label: "Household",
-//         emoji: "👥",
-//       },
-//       {
-//         href: "/app/goals",
-//         label: "Goals",
-//         emoji: "🎯",
-//       },
-//     ],
-//   },
-
-//   {
-//     label: "Finances",
-//     items: [
-//       {
-//         href: "/app/expenses",
-//         label: "Expenses",
-//         emoji: "💳",
-//       },
-//       {
-//         href: "/app/income",
-//         label: "Income",
-//         emoji: "💰",
-//       },
-//       {
-//         href: "/app/assets",
-//         label: "Assets",
-//         emoji: "🏦",
-//       },
-//       {
-//         href: "/app/liabilities",
-//         label: "Liabilities",
-//         emoji: "📉",
-//       },
-//     ],
-//   },
-
-//   {
-//     label: "Portfolio",
-//     items: [
-//       {
-//         href: "/app/portfolio",
-//         label: "Current Portfolio",
-//         emoji: "📊",
-//       },
-//       {
-//         href: "/app/proposal",
-//         label: "Investment Proposal",
-//         emoji: "🧺",
-//       },
-//       {
-//         href: "/app/ai-portfolio",
-//         label: "AI Portfolio Builder",
-//         emoji: "🤖",
-//       },
-//       {
-//         href: "/app/comparison",
-//         label: "Portfolio Comparison",
-//         emoji: "⚖️",
-//       },
-//     ],
-//   },
-
-//   {
-//     label: "Analysis",
-//     items: [
-//       {
-//         href: "/app/simulate",
-//         label: "Simulation",
-//         emoji: "🎲",
-//       },
-//       {
-//         href: "/app/recommendations",
-//         label: "Recommendations",
-//         emoji: "💡",
-//       },
-//     ],
-//   },
-
-//   {
-//     label: "Reports",
-//     items: [
-//       {
-//         href: "/app/report",
-//         label: "PDF Report",
-//         emoji: "📄",
-//       },
-//     ],
-//   },
-// ];
-
 const navGroups = [
   {
     label: "Profile",
@@ -213,7 +111,7 @@ const navGroups = [
     label: "Reports",
     items: [
       {
-        href: "/app/report",
+        href: "/app/reports",
         label: "PDF Report",
         icon: "M3 1.5A1.5 1.5 0 0 1 4.5 0h5L13 3.5V14.5A1.5 1.5 0 0 1 11.5 16h-7A1.5 1.5 0 0 1 3 14.5v-13zM9 1v3h3L9 1zm-4 6.5h6v1H5v-1zM5 10h6v1H5v-1zm0 2.5h4v1H5v-1z",
       },
@@ -259,11 +157,7 @@ const platformItems = [
   },
 ];
 
-export function Sidebar({
-  displayName,
-}: {
-  displayName: string | null;
-}) {
+export function Sidebar({ displayName }: { displayName: string | null }) {
   const pathname = usePathname();
   const router = useRouter();
 
@@ -277,17 +171,14 @@ export function Sidebar({
   }
 
   function isActive(href: string) {
-    return (
-      pathname === href ||
-      (href !== "/app" && pathname.startsWith(href))
-    );
+    return pathname === href || (href !== "/app" && pathname.startsWith(href));
   }
 
   return (
     <aside className="sticky top-0 flex h-screen w-[265px] shrink-0 flex-col border-r border-[#e7edf6] bg-white">
       {/* BRAND */}
       <div className="border-b border-[#e7edf6] px-5 py-5">
-        <Link href="/app" className="flex items-center gap-3">
+        <Link href="/app/household" className="flex items-center gap-3">
           <div className="grid h-9 w-9 place-items-center rounded-[10px] bg-gradient-to-br from-[#0057b8] to-[#4da6ff] text-sm font-extrabold text-white shadow-sm">
             W
           </div>
@@ -305,9 +196,9 @@ export function Sidebar({
       </div>
 
       {/* CLIENT / HOUSEHOLD SWITCHER */}
-      <div className="border-b border-[#e7edf6]">
+      {/* <div className="border-b border-[#e7edf6]">
         <HouseholdSwitcher />
-      </div>
+      </div> */}
 
       {/* MAIN NAVIGATION */}
       <nav className="flex-1 overflow-y-auto px-3 py-4">
@@ -329,7 +220,7 @@ export function Sidebar({
                       "group flex items-center gap-3 rounded-[9px] px-3 py-2 text-[12px] font-semibold transition-colors",
                       active
                         ? "bg-[#eaf2ff] text-[#0057b8]"
-                        : "text-[#64748b] hover:bg-[#f5f8fc] hover:text-[#16213e]"
+                        : "text-[#64748b] hover:bg-[#f5f8fc] hover:text-[#16213e]",
                     )}
                   >
                     {/* <span
@@ -351,7 +242,6 @@ export function Sidebar({
                         NEW
                       </span>
                     )}
-
                   </Link>
                 );
               })}
@@ -360,7 +250,7 @@ export function Sidebar({
         ))}
 
         {/* PLATFORM / ADMIN */}
-        <div className="mt-2 border-t border-[#e7edf6] pt-5">
+        {/* <div className="mt-2 border-t border-[#e7edf6] pt-5">
           <div className="mb-1.5 px-3 text-[9px] font-bold uppercase tracking-[0.13em] text-[#a4acba]">
             Platform
           </div>
@@ -377,7 +267,7 @@ export function Sidebar({
                     "group flex items-center gap-3 rounded-[9px] px-3 py-2 text-[12px] font-semibold transition-colors",
                     active
                       ? "bg-[#eaf2ff] text-[#0057b8]"
-                      : "text-[#64748b] hover:bg-[#f5f8fc] hover:text-[#16213e]"
+                      : "text-[#64748b] hover:bg-[#f5f8fc] hover:text-[#16213e]",
                   )}
                 >
                   <span className="flex w-5 justify-center text-[15px]">
@@ -389,7 +279,7 @@ export function Sidebar({
               );
             })}
           </div>
-        </div>
+        </div> */}
       </nav>
 
       {/* USER / SIGN OUT */}
