@@ -1,16 +1,14 @@
 "use client";
 
-import { useState } from "react";
 import type { WealthPlan, Goal } from "@/lib/engine/types";
-import { emptyPlan } from "@/lib/plan/default-plan";
+import { usePlan } from "@/lib/plan/use-plan";
 
 import { RetirementGoalsSection } from "./retirement-goals-section";
 import { SocialSecuritySection } from "./social-security-section";
 import { FinancialGoalsSection } from "./financial-goals-section";
 import { ScenariosSection } from "./scenarios-section";
-// import { SocialSecuritySection } from "./social-security-section";
-// import { FinancialGoalsSection } from "./financial-goals-section";
-// import { ScenariosSection } from "./scenarios-section";
+
+import { NoPlanLoaded } from "@/components/plan/no-plan-loaded";
 
 export function GoalsPageForm({
   initialPlan,
@@ -19,25 +17,23 @@ export function GoalsPageForm({
   initialPlan: WealthPlan | null;
   initialVersion: number;
 }) {
-  const [plan, setPlan] = useState<WealthPlan>(
-    () => initialPlan ?? emptyPlan()
-  );
+  const { plan, updatePlan } = usePlan(initialPlan, initialVersion);
 
-  function updatePlan(patch: Partial<WealthPlan>) {
-    setPlan((prev) => ({
-      ...prev,
-      ...patch,
-      updatedAt: new Date().toISOString(),
-    }));
+  if (!plan) {
+    return <NoPlanLoaded />;
   }
 
   function addGoal(goal: Goal) {
+    if (!plan) return;
+
     updatePlan({
       goals: [...plan.goals, goal],
     });
   }
 
   function removeGoal(id: string) {
+    if (!plan) return;
+
     updatePlan({
       goals: plan.goals.filter((goal) => goal.id !== id),
     });
@@ -46,16 +42,9 @@ export function GoalsPageForm({
   return (
     <main className="min-h-screen bg-[#f4f6fb] px-8 py-7">
       <div className="mx-auto max-w-5xl space-y-6">
+        <RetirementGoalsSection plan={plan} update={updatePlan} />
 
-        <RetirementGoalsSection
-          plan={plan}
-          update={updatePlan}
-        />
-
-        <SocialSecuritySection
-          plan={plan}
-          update={updatePlan}
-        />
+        <SocialSecuritySection plan={plan} update={updatePlan} />
 
         <FinancialGoalsSection
           goals={plan.goals}
@@ -65,7 +54,6 @@ export function GoalsPageForm({
         />
 
         <ScenariosSection plan={plan} />
-
       </div>
     </main>
   );

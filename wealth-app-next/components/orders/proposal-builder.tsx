@@ -33,45 +33,70 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { apiFetch } from "@/lib/tenancy/client";
 import { formatMoney } from "@/lib/engine/financial-math";
 import {
-  checkProposal, buildTicket, type Proposal, type ProposalPosition,
+  checkProposal,
+  buildTicket,
+  type Proposal,
+  type ProposalPosition,
 } from "@/lib/orders/proposal";
 import { buildRebalanceTicket } from "@/lib/orders/rebalance";
-import { AllocationCompare } from "@/components/portfolio/allocation-compare";
+// import { AllocationCompare } from "@/components/portfolio/allocation-compare";
 import type { WealthPlan } from "@/lib/engine/types";
 import type { OrderConnectionPublic } from "@/lib/orders/schema";
 import type { PlacementState } from "@/lib/orders/model";
 import { FundPicker } from "./fund-picker";
 
 async function readJson(res: Response): Promise<Record<string, unknown>> {
-  try { return await res.json(); } catch { return { error: `HTTP ${res.status}` }; }
+  try {
+    return await res.json();
+  } catch {
+    return { error: `HTTP ${res.status}` };
+  }
 }
 
 function newTicketId(): string {
   // 8–80 chars per the schema. crypto.randomUUID is available in every
   // browser this app supports; the fallback keeps SSR/type-checking happy.
-  const rnd = typeof crypto !== "undefined" && crypto.randomUUID
-    ? crypto.randomUUID().replace(/-/g, "")
-    : Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2);
+  const rnd =
+    typeof crypto !== "undefined" && crypto.randomUUID
+      ? crypto.randomUUID().replace(/-/g, "")
+      : Math.random().toString(36).slice(2) +
+        Math.random().toString(36).slice(2);
   return "wo_" + rnd.slice(0, 32);
 }
 
 let seq = 0;
 const blankPosition = (): ProposalPosition => ({
-  id: "p" + Date.now() + "_" + (seq++), name: "", weightPct: 0,
+  id: "p" + Date.now() + "_" + seq++,
+  name: "",
+  weightPct: 0,
 });
 
 type SendState =
   | { phase: "idle" }
   | { phase: "sending" }
-  | { phase: "result"; state: PlacementState | "failed"; message: string; ref?: string; duplicate?: boolean }
+  | {
+      phase: "result";
+      state: PlacementState | "failed";
+      message: string;
+      ref?: string;
+      duplicate?: boolean;
+    }
   | { phase: "error"; message: string };
 
-export function ProposalBuilder({ clientName, plan }: { clientName?: string; plan?: WealthPlan | null }) {
+export function ProposalBuilder({
+  clientName,
+  plan,
+}: {
+  clientName?: string;
+  plan?: WealthPlan | null;
+}) {
   const [connections, setConnections] = useState<OrderConnectionPublic[]>([]);
   const [connId, setConnId] = useState<string>("");
   const [loading, setLoading] = useState(true);
 
-  const [positions, setPositions] = useState<ProposalPosition[]>([blankPosition()]);
+  const [positions, setPositions] = useState<ProposalPosition[]>([
+    blankPosition(),
+  ]);
   const [targetAmount, setTargetAmount] = useState<number>(0);
   const [objective, setObjective] = useState("");
   const [advisor, setAdvisor] = useState("");
@@ -105,74 +130,120 @@ export function ProposalBuilder({ clientName, plan }: { clientName?: string; pla
   // overweight, buys the underweight. Needs the client's holdings.
   const [mode, setMode] = useState<"deploy" | "rebalance">("deploy");
   const holdings = useMemo(() => plan?.holdings ?? [], [plan]);
-  const bookValue = useMemo(() => holdings.reduce((s, h) => s + (Number.isFinite(h.value) ? Math.max(0, h.value) : 0), 0), [holdings]);
+  const bookValue = useMemo(
+    () =>
+      holdings.reduce(
+        (s, h) => s + (Number.isFinite(h.value) ? Math.max(0, h.value) : 0),
+        0,
+      ),
+    [holdings],
+  );
 
-  const proposal: Proposal = useMemo(() => ({
-    positions,
-    targetAmount,
-    currency,
-    clientName,
-    advisor: advisor || undefined,
-    objective: objective || undefined,
-  }), [positions, targetAmount, currency, clientName, advisor, objective]);
+  const proposal: Proposal = useMemo(
+    () => ({
+      positions,
+      targetAmount,
+      currency,
+      clientName,
+      advisor: advisor || undefined,
+      objective: objective || undefined,
+    }),
+    [positions, targetAmount, currency, clientName, advisor, objective],
+  );
 
   // The rebalance ticket (sells + buys) derived from the book and the target
   // weights. createdAt is stamped at send time; "" here keeps the memo stable.
   const rebalanceTicket = useMemo(() => {
     if (mode !== "rebalance" || !conn || holdings.length === 0) return null;
     return buildRebalanceTicket(holdings, proposal, {
-      account: conn.account, currency, ticketId, createdAt: "",
+      account: conn.account,
+      currency,
+      ticketId,
+      createdAt: "",
       custodian: conn.custodian || undefined,
-      clientName, advisor: advisor || undefined, objective: objective || undefined,
+      clientName,
+      advisor: advisor || undefined,
+      objective: objective || undefined,
     });
-  }, [mode, conn, holdings, proposal, currency, ticketId, clientName, advisor, objective]);
+  }, [
+    mode,
+    conn,
+    holdings,
+    proposal,
+    currency,
+    ticketId,
+    clientName,
+    advisor,
+    objective,
+  ]);
 
   const problems = useMemo(() => checkProposal(proposal), [proposal]);
   const errors = problems.filter((p) => p.level === "error");
-  const problemFor = (id: string) => problems.filter((p) => p.positionId === id);
-  const weightSum = positions.reduce((s, p) => s + (Number(p.weightPct) || 0), 0);
+  const problemFor = (id: string) =>
+    problems.filter((p) => p.positionId === id);
+  const weightSum = positions.reduce(
+    (s, p) => s + (Number(p.weightPct) || 0),
+    0,
+  );
 
   const setPos = (id: string, patch: Partial<ProposalPosition>) =>
     setPositions((ps) => ps.map((p) => (p.id === id ? { ...p, ...patch } : p)));
   const addPos = () => setPositions((ps) => [...ps, blankPosition()]);
-  const removePos = (id: string) => setPositions((ps) => ps.filter((p) => p.id !== id));
+  const removePos = (id: string) =>
+    setPositions((ps) => ps.filter((p) => p.id !== id));
 
   // Even-split helper: the most common thing an advisor does first.
   const distributeEvenly = () => {
     if (!positions.length) return;
     const each = Math.floor((100 / positions.length) * 100) / 100;
-    setPositions((ps) => ps.map((p, i) => ({
-      ...p,
-      // Last line absorbs the residue so the sum is exactly 100.
-      weightPct: i === ps.length - 1
-        ? Math.round((100 - each * (ps.length - 1)) * 100) / 100
-        : each,
-    })));
+    setPositions((ps) =>
+      ps.map((p, i) => ({
+        ...p,
+        // Last line absorbs the residue so the sum is exactly 100.
+        weightPct:
+          i === ps.length - 1
+            ? Math.round((100 - each * (ps.length - 1)) * 100) / 100
+            : each,
+      })),
+    );
   };
 
   const amountFor = (w: number) =>
-    targetAmount > 0 ? Math.round(targetAmount * ((Number(w) || 0) / 100) * 100) / 100 : 0;
+    targetAmount > 0
+      ? Math.round(targetAmount * ((Number(w) || 0) / 100) * 100) / 100
+      : 0;
 
   // Weights must still sum to ~100% in both modes; only the deploy mode also
   // needs a positive target amount (rebalance's basis is the book value).
   const weightsOk = Math.abs(weightSum - 100) <= 0.5;
   const rebalanceGross = rebalanceTicket?.totals.amount ?? 0;
-  const canSend = mode === "deploy"
-    ? !!conn && errors.length === 0 && targetAmount > 0 && send.phase !== "sending"
-    : !!conn && weightsOk && holdings.length > 0 && (rebalanceTicket?.lines.length ?? 0) > 0 && send.phase !== "sending";
-  const overCeiling = !!conn && (mode === "deploy" ? targetAmount : rebalanceGross) > conn.maxTicketAmount;
+  const canSend =
+    mode === "deploy"
+      ? !!conn &&
+        errors.length === 0 &&
+        targetAmount > 0 &&
+        send.phase !== "sending"
+      : !!conn &&
+        weightsOk &&
+        holdings.length > 0 &&
+        (rebalanceTicket?.lines.length ?? 0) > 0 &&
+        send.phase !== "sending";
+  const overCeiling =
+    !!conn &&
+    (mode === "deploy" ? targetAmount : rebalanceGross) > conn.maxTicketAmount;
 
   const place = useCallback(async () => {
     if (!conn) return;
     setSend({ phase: "sending" });
-    const ticket = mode === "rebalance" && rebalanceTicket
-      ? { ...rebalanceTicket, createdAt: new Date().toISOString() }
-      : buildTicket(proposal, {
-          ticketId,
-          account: conn.account,
-          custodian: conn.custodian || undefined,
-          createdAt: new Date().toISOString(),
-        });
+    const ticket =
+      mode === "rebalance" && rebalanceTicket
+        ? { ...rebalanceTicket, createdAt: new Date().toISOString() }
+        : buildTicket(proposal, {
+            ticketId,
+            account: conn.account,
+            custodian: conn.custodian || undefined,
+            createdAt: new Date().toISOString(),
+          });
 
     const res = await apiFetch(`/api/orders/${conn.id}`, {
       method: "POST",
@@ -183,39 +254,65 @@ export function ProposalBuilder({ clientName, plan }: { clientName?: string; pla
 
     // A validation refusal (422) lists reasons; surface them.
     if (res.status === 422 && Array.isArray(body.reasons)) {
-      setSend({ phase: "error", message: (body.reasons as string[]).join(" · ") });
+      setSend({
+        phase: "error",
+        message: (body.reasons as string[]).join(" · "),
+      });
       return;
     }
     if (body.duplicate) {
       const r = (body.result ?? {}) as { state?: PlacementState; ref?: string };
       setSend({
-        phase: "result", state: r.state ?? "unknown", duplicate: true,
-        message: String(body.message ?? "This ticket was already submitted; not sent again."),
+        phase: "result",
+        state: r.state ?? "unknown",
+        duplicate: true,
+        message: String(
+          body.message ?? "This ticket was already submitted; not sent again.",
+        ),
         ref: r.ref,
       });
       return;
     }
     if (!res.ok && !body.state) {
-      setSend({ phase: "error", message: String(body.error ?? `HTTP ${res.status}`) });
+      setSend({
+        phase: "error",
+        message: String(body.error ?? `HTTP ${res.status}`),
+      });
       return;
     }
 
     const state = (body.state as PlacementState | "failed") ?? "failed";
-    const result = (body.result ?? {}) as { ref?: string; uncertainty?: string; rejected?: string[] };
+    const result = (body.result ?? {}) as {
+      ref?: string;
+      uncertainty?: string;
+      rejected?: string[];
+    };
     if (state === "staged") {
       // Clean success: a NEW proposal from here should get a NEW id.
-      setSend({ phase: "result", state, message: "Staged in the PM system.", ref: result.ref });
+      setSend({
+        phase: "result",
+        state,
+        message: "Staged in the PM system.",
+        ref: result.ref,
+      });
       setTicketId(newTicketId());
     } else if (state === "unknown") {
       setSend({
-        phase: "result", state,
-        message: String(body.message ?? result.uncertainty ??
-          "The outcome is unconfirmed — the PM system may or may not have received this. Check there before resending. Resending this same ticket is safe; the relay recognises it as a duplicate."),
+        phase: "result",
+        state,
+        message: String(
+          body.message ??
+            result.uncertainty ??
+            "The outcome is unconfirmed — the PM system may or may not have received this. Check there before resending. Resending this same ticket is safe; the relay recognises it as a duplicate.",
+        ),
       });
     } else {
       setSend({
-        phase: "result", state: state as PlacementState,
-        message: (result.rejected ?? []).join(" · ") || "The PM system rejected this ticket.",
+        phase: "result",
+        state: state as PlacementState,
+        message:
+          (result.rejected ?? []).join(" · ") ||
+          "The PM system rejected this ticket.",
       });
     }
   }, [conn, proposal, ticketId, mode, rebalanceTicket]);
@@ -227,8 +324,8 @@ export function ProposalBuilder({ clientName, plan }: { clientName?: string; pla
       <Card>
         <CardContent className="py-10 text-center space-y-3">
           <p className="text-muted-foreground">
-            No PM / OMS connection yet. Add one under <strong>Orders</strong> — it holds the
-            custody account and credential this proposal routes to.
+            No PM / OMS connection yet. Add one under <strong>Orders</strong> —
+            it holds the custody account and credential this proposal routes to.
           </p>
         </CardContent>
       </Card>
@@ -241,36 +338,52 @@ export function ProposalBuilder({ clientName, plan }: { clientName?: string; pla
       <div className="inline-flex rounded-lg border border-border p-1 text-sm">
         {(["deploy", "rebalance"] as const).map((m) => (
           <button
-            key={m} type="button"
+            key={m}
+            type="button"
             onClick={() => setMode(m)}
             className={`px-3 py-1.5 rounded-md transition-colors ${
-              mode === m ? "bg-accent/10 text-accent font-medium" : "text-muted-foreground hover:text-foreground"}`}
+              mode === m
+                ? "bg-accent/10 text-accent font-medium"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
           >
-            {m === "deploy" ? "New investment (buy)" : "Rebalance current holdings"}
+            {m === "deploy"
+              ? "New investment (buy)"
+              : "Rebalance current holdings"}
           </button>
         ))}
       </div>
       {mode === "rebalance" && holdings.length === 0 && (
         <p className="text-sm text-amber-600">
-          This client has no recorded holdings to rebalance. Add them under the plan&apos;s
-          Holdings section or import them from a feed, then return here.
+          This client has no recorded holdings to rebalance. Add them under the
+          plan&apos;s Holdings section or import them from a feed, then return
+          here.
         </p>
       )}
 
       {/* ─── Route + target ─── */}
       <Card>
-        <CardHeader><CardTitle>Route and amount</CardTitle></CardHeader>
+        <CardHeader>
+          <CardTitle>Route and amount</CardTitle>
+        </CardHeader>
         <CardContent className="grid gap-4 sm:grid-cols-3">
           <div className="space-y-1.5 sm:col-span-1">
             <Label htmlFor="pb-conn">Send through</Label>
-            <Select id="pb-conn" value={connId} onChange={(e) => setConnId(e.target.value)}>
+            <Select
+              id="pb-conn"
+              value={connId}
+              onChange={(e) => setConnId(e.target.value)}
+            >
               {connections.map((c) => (
-                <option key={c.id} value={c.id}>{c.name} · {c.account} ({c.currency})</option>
+                <option key={c.id} value={c.id}>
+                  {c.name} · {c.account} ({c.currency})
+                </option>
               ))}
             </Select>
             {conn && (
               <p className="text-[11px] text-muted-foreground">
-                Books to <strong>{conn.account}</strong>. Ceiling {formatMoney(conn.maxTicketAmount, conn.currency)}.
+                Books to <strong>{conn.account}</strong>. Ceiling{" "}
+                {formatMoney(conn.maxTicketAmount, conn.currency)}.
               </p>
             )}
           </div>
@@ -279,8 +392,13 @@ export function ProposalBuilder({ clientName, plan }: { clientName?: string; pla
               <>
                 <Label htmlFor="pb-amount">Target amount ({currency})</Label>
                 <Input
-                  id="pb-amount" type="number" min={0} value={targetAmount || ""}
-                  onChange={(e) => setTargetAmount(Math.max(0, Number(e.target.value) || 0))}
+                  id="pb-amount"
+                  type="number"
+                  min={0}
+                  value={targetAmount || ""}
+                  onChange={(e) =>
+                    setTargetAmount(Math.max(0, Number(e.target.value) || 0))
+                  }
                   placeholder="100000"
                 />
               </>
@@ -288,10 +406,12 @@ export function ProposalBuilder({ clientName, plan }: { clientName?: string; pla
               <>
                 <Label>Rebalancing</Label>
                 <div className="rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm">
-                  {formatMoney(bookValue, currency)} <span className="text-muted-foreground">current book</span>
+                  {formatMoney(bookValue, currency)}{" "}
+                  <span className="text-muted-foreground">current book</span>
                 </div>
                 <p className="text-[11px] text-muted-foreground">
-                  The weights below become the target; the book is bought/sold to reach it.
+                  The weights below become the target; the book is bought/sold
+                  to reach it.
                 </p>
               </>
             )}
@@ -303,7 +423,12 @@ export function ProposalBuilder({ clientName, plan }: { clientName?: string; pla
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="pb-advisor">Advisor (optional)</Label>
-            <Input id="pb-advisor" value={advisor} onChange={(e) => setAdvisor(e.target.value)} placeholder="Your name" />
+            <Input
+              id="pb-advisor"
+              value={advisor}
+              onChange={(e) => setAdvisor(e.target.value)}
+              placeholder="Your name"
+            />
           </div>
         </CardContent>
       </Card>
@@ -313,15 +438,27 @@ export function ProposalBuilder({ clientName, plan }: { clientName?: string; pla
         <CardHeader className="flex-row items-center justify-between">
           <CardTitle>Positions</CardTitle>
           <div className="flex gap-2">
-            <Button type="button" variant="outline" size="sm" onClick={distributeEvenly}>Even split</Button>
-            <Button type="button" size="sm" onClick={addPos}>Add position</Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={distributeEvenly}
+            >
+              Even split
+            </Button>
+            <Button type="button" size="sm" onClick={addPos}>
+              Add position
+            </Button>
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
           {positions.map((p) => {
             const probs = problemFor(p.id);
             return (
-              <div key={p.id} className="rounded-lg border border-border p-3 space-y-2">
+              <div
+                key={p.id}
+                className="rounded-lg border border-border p-3 space-y-2"
+              >
                 <div className="grid gap-2 sm:grid-cols-12 items-end">
                   <div className="sm:col-span-4 space-y-1">
                     <div className="flex items-center justify-between">
@@ -334,11 +471,19 @@ export function ProposalBuilder({ clientName, plan }: { clientName?: string; pla
                         From fund list
                       </button>
                     </div>
-                    <Input value={p.name} onChange={(e) => setPos(p.id, { name: e.target.value })} placeholder="e.g. iShares Core MSCI World" />
+                    <Input
+                      value={p.name}
+                      onChange={(e) => setPos(p.id, { name: e.target.value })}
+                      placeholder="e.g. iShares Core MSCI World"
+                    />
                   </div>
                   <div className="sm:col-span-3 space-y-1">
                     <Label>ISIN</Label>
-                    <Input value={p.isin ?? ""} onChange={(e) => setPos(p.id, { isin: e.target.value })} placeholder="IE00B4L5Y983" />
+                    <Input
+                      value={p.isin ?? ""}
+                      onChange={(e) => setPos(p.id, { isin: e.target.value })}
+                      placeholder="IE00B4L5Y983"
+                    />
                   </div>
                   <div className="sm:col-span-2 space-y-1">
                     <Label>Valor / CUSIP / ticker</Label>
@@ -348,29 +493,67 @@ export function ProposalBuilder({ clientName, plan }: { clientName?: string; pla
                         // One box, three identifier kinds — route by shape so an
                         // advisor doesn't need to pick the field first.
                         const v = e.target.value.trim();
-                        if (/^\d{5,9}$/.test(v)) setPos(p.id, { valor: v, cusip: "", ticker: "" });
-                        else if (/^[0-9A-Za-z]{9}$/.test(v)) setPos(p.id, { cusip: v.toUpperCase(), valor: "", ticker: "" });
-                        else setPos(p.id, { ticker: v.toUpperCase(), valor: "", cusip: "" });
+                        if (/^\d{5,9}$/.test(v))
+                          setPos(p.id, { valor: v, cusip: "", ticker: "" });
+                        else if (/^[0-9A-Za-z]{9}$/.test(v))
+                          setPos(p.id, {
+                            cusip: v.toUpperCase(),
+                            valor: "",
+                            ticker: "",
+                          });
+                        else
+                          setPos(p.id, {
+                            ticker: v.toUpperCase(),
+                            valor: "",
+                            cusip: "",
+                          });
                       }}
                       placeholder="1234567 / AAPL"
                     />
                   </div>
                   <div className="sm:col-span-2 space-y-1">
                     <Label>Weight %</Label>
-                    <Input type="number" min={0} max={100} value={p.weightPct || ""} onChange={(e) => setPos(p.id, { weightPct: Number(e.target.value) || 0 })} />
+                    <Input
+                      type="number"
+                      min={0}
+                      max={100}
+                      value={p.weightPct || ""}
+                      onChange={(e) =>
+                        setPos(p.id, { weightPct: Number(e.target.value) || 0 })
+                      }
+                    />
                   </div>
                   <div className="sm:col-span-1 flex items-end">
-                    <Button type="button" variant="ghost" size="sm" className="text-destructive" onClick={() => removePos(p.id)} disabled={positions.length === 1}>✕</Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="text-destructive"
+                      onClick={() => removePos(p.id)}
+                      disabled={positions.length === 1}
+                    >
+                      ✕
+                    </Button>
                   </div>
                 </div>
                 <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
                   <span className="text-muted-foreground">
-                    {targetAmount > 0 && p.weightPct > 0 ? formatMoney(amountFor(p.weightPct), currency) : "—"}
+                    {targetAmount > 0 && p.weightPct > 0
+                      ? formatMoney(amountFor(p.weightPct), currency)
+                      : "—"}
                   </span>
                   <div className="flex flex-col items-end gap-0.5">
                     {probs.map((x, i) => (
-                      <span key={i} className={x.level === "error" ? "text-destructive" : "text-amber-600"}>
-                        {x.level === "error" ? "✕ " : "! "}{x.message}
+                      <span
+                        key={i}
+                        className={
+                          x.level === "error"
+                            ? "text-destructive"
+                            : "text-amber-600"
+                        }
+                      >
+                        {x.level === "error" ? "✕ " : "! "}
+                        {x.message}
                       </span>
                     ))}
                   </div>
@@ -380,11 +563,19 @@ export function ProposalBuilder({ clientName, plan }: { clientName?: string; pla
           })}
 
           <div className="flex items-center justify-between text-sm border-t border-border pt-3">
-            <span className={Math.abs(weightSum - 100) > 0.1 ? "text-destructive" : "text-muted-foreground"}>
+            <span
+              className={
+                Math.abs(weightSum - 100) > 0.1
+                  ? "text-destructive"
+                  : "text-muted-foreground"
+              }
+            >
               Weights total {Math.round(weightSum * 100) / 100}%
             </span>
             <span className="font-medium">
-              {targetAmount > 0 ? formatMoney(targetAmount, currency) : "Set a target amount"}
+              {targetAmount > 0
+                ? formatMoney(targetAmount, currency)
+                : "Set a target amount"}
             </span>
           </div>
         </CardContent>
@@ -392,72 +583,123 @@ export function ProposalBuilder({ clientName, plan }: { clientName?: string; pla
 
       {/* ─── Current vs proposed ─── */}
       <Card>
-        <CardHeader><CardTitle>Current vs proposed portfolio</CardTitle></CardHeader>
+        <CardHeader>
+          <CardTitle>Current vs proposed portfolio</CardTitle>
+        </CardHeader>
         <CardContent>
-          <AllocationCompare plan={plan ?? null} proposal={proposal} />
+          {/* <AllocationCompare plan={plan ?? null} proposal={proposal} /> */}
         </CardContent>
       </Card>
 
       {/* ─── Rebalance orders preview ─── */}
-      {mode === "rebalance" && rebalanceTicket && rebalanceTicket.lines.length > 0 && (
-        <Card>
-          <CardHeader><CardTitle>Rebalance orders</CardTitle></CardHeader>
-          <CardContent className="space-y-2">
-            <p className="text-xs text-muted-foreground">
-              To move the {formatMoney(bookValue, currency)} book to the target weights. Sells are
-              validated against the recorded holdings before staging.
-            </p>
-            {rebalanceTicket.lines.map((l) => (
-              <div key={l.lineId} className="flex items-center gap-3 text-sm border-b border-border/50 py-1.5">
-                <span className={`font-medium w-12 ${l.side === "SELL" ? "text-destructive" : "text-emerald-600"}`}>
-                  {l.side}
+      {mode === "rebalance" &&
+        rebalanceTicket &&
+        rebalanceTicket.lines.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Rebalance orders</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <p className="text-xs text-muted-foreground">
+                To move the {formatMoney(bookValue, currency)} book to the
+                target weights. Sells are validated against the recorded
+                holdings before staging.
+              </p>
+              {rebalanceTicket.lines.map((l) => (
+                <div
+                  key={l.lineId}
+                  className="flex items-center gap-3 text-sm border-b border-border/50 py-1.5"
+                >
+                  <span
+                    className={`font-medium w-12 ${l.side === "SELL" ? "text-destructive" : "text-emerald-600"}`}
+                  >
+                    {l.side}
+                  </span>
+                  <span className="flex-1 min-w-0 truncate">
+                    {l.instrument.name ||
+                      l.instrument.ticker ||
+                      l.instrument.isin}
+                  </span>
+                  <span className="tabular-nums">
+                    {formatMoney(l.amount, l.currency)}
+                  </span>
+                </div>
+              ))}
+              <div className="flex justify-between pt-2 text-sm">
+                <span className="text-muted-foreground">
+                  {
+                    rebalanceTicket.lines.filter((l) => l.side === "SELL")
+                      .length
+                  }{" "}
+                  sell,{" "}
+                  {rebalanceTicket.lines.filter((l) => l.side === "BUY").length}{" "}
+                  buy · gross traded
                 </span>
-                <span className="flex-1 min-w-0 truncate">
-                  {l.instrument.name || l.instrument.ticker || l.instrument.isin}
+                <span className="font-medium">
+                  {formatMoney(rebalanceGross, currency)}
                 </span>
-                <span className="tabular-nums">{formatMoney(l.amount, l.currency)}</span>
               </div>
-            ))}
-            <div className="flex justify-between pt-2 text-sm">
-              <span className="text-muted-foreground">
-                {rebalanceTicket.lines.filter((l) => l.side === "SELL").length} sell,{" "}
-                {rebalanceTicket.lines.filter((l) => l.side === "BUY").length} buy · gross traded
-              </span>
-              <span className="font-medium">{formatMoney(rebalanceGross, currency)}</span>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-      {mode === "rebalance" && rebalanceTicket && rebalanceTicket.lines.length === 0 && holdings.length > 0 && (
-        <p className="text-sm text-muted-foreground">
-          The book already matches these weights — nothing to trade.
-        </p>
-      )}
+            </CardContent>
+          </Card>
+        )}
+      {mode === "rebalance" &&
+        rebalanceTicket &&
+        rebalanceTicket.lines.length === 0 &&
+        holdings.length > 0 && (
+          <p className="text-sm text-muted-foreground">
+            The book already matches these weights — nothing to trade.
+          </p>
+        )}
 
       {/* ─── Objective + send ─── */}
       <Card>
-        <CardHeader><CardTitle>Review &amp; send</CardTitle></CardHeader>
+        <CardHeader>
+          <CardTitle>Review &amp; send</CardTitle>
+        </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-1.5">
-            <Label htmlFor="pb-obj">Objective (optional, sent with the ticket)</Label>
-            <Input id="pb-obj" value={objective} onChange={(e) => setObjective(e.target.value)} placeholder="Rebalance to strategic allocation" />
+            <Label htmlFor="pb-obj">
+              Objective (optional, sent with the ticket)
+            </Label>
+            <Input
+              id="pb-obj"
+              value={objective}
+              onChange={(e) => setObjective(e.target.value)}
+              placeholder="Rebalance to strategic allocation"
+            />
           </div>
 
-          {errors.filter((e) => e.positionId === null).map((e, i) => (
-            <p key={i} className="text-sm text-destructive">✕ {e.message}</p>
-          ))}
+          {errors
+            .filter((e) => e.positionId === null)
+            .map((e, i) => (
+              <p key={i} className="text-sm text-destructive">
+                ✕ {e.message}
+              </p>
+            ))}
 
           {send.phase === "result" && (
-            <div className={`rounded-lg border px-4 py-3 text-sm ${
-              send.state === "staged" ? "border-emerald-500/30 bg-emerald-500/5 text-emerald-700"
-              : send.state === "unknown" ? "border-amber-500/30 bg-amber-500/5 text-amber-700"
-              : "border-destructive/30 bg-destructive/5 text-destructive"}`}>
+            <div
+              className={`rounded-lg border px-4 py-3 text-sm ${
+                send.state === "staged"
+                  ? "border-emerald-500/30 bg-emerald-500/5 text-emerald-700"
+                  : send.state === "unknown"
+                    ? "border-amber-500/30 bg-amber-500/5 text-amber-700"
+                    : "border-destructive/30 bg-destructive/5 text-destructive"
+              }`}
+            >
               <strong>
-                {send.state === "staged" ? "✓ Staged"
-                  : send.state === "unknown" ? "⚠ Outcome unconfirmed"
-                  : send.duplicate ? "Already submitted" : "✕ Rejected"}
+                {send.state === "staged"
+                  ? "✓ Staged"
+                  : send.state === "unknown"
+                    ? "⚠ Outcome unconfirmed"
+                    : send.duplicate
+                      ? "Already submitted"
+                      : "✕ Rejected"}
               </strong>
-              <div className="mt-1">{send.message}{send.ref ? ` (ref ${send.ref})` : ""}</div>
+              <div className="mt-1">
+                {send.message}
+                {send.ref ? ` (ref ${send.ref})` : ""}
+              </div>
             </div>
           )}
           {send.phase === "error" && (
@@ -470,19 +712,26 @@ export function ProposalBuilder({ clientName, plan }: { clientName?: string; pla
               disabled={!canSend || overCeiling}
               size="lg"
             >
-              {send.phase === "sending" ? "Sending…"
-                : mode === "rebalance" ? "Stage rebalance in PM system"
-                : "BUY — stage in PM system"}
+              {send.phase === "sending"
+                ? "Sending…"
+                : mode === "rebalance"
+                  ? "Stage rebalance in PM system"
+                  : "BUY — stage in PM system"}
             </Button>
             {send.phase === "result" && send.state !== "staged" && (
               // Retry reuses the same ticketId, so the relay dedupes it — this
               // is safe even after an "unknown", which is the whole point.
-              <Button variant="outline" onClick={place} disabled={send.phase !== "result"}>
+              <Button
+                variant="outline"
+                onClick={place}
+                disabled={send.phase !== "result"}
+              >
                 Retry this ticket
               </Button>
             )}
             <span className="text-xs text-muted-foreground">
-              Stages only — a person with trading authority executes in the PM system.
+              Stages only — a person with trading authority executes in the PM
+              system.
             </span>
           </div>
         </CardContent>
@@ -497,8 +746,13 @@ export function ProposalBuilder({ clientName, plan }: { clientName?: string; pla
             // exists to prevent. Clear any stale identifier so a picked fund
             // doesn't inherit the previous instrument's ISIN.
             setPos(pickingFor, {
-              name: f.name, ticker: f.ticker, cls: f.cls, vehicle: f.vehicle,
-              isin: "", cusip: "", valor: "",
+              name: f.name,
+              ticker: f.ticker,
+              cls: f.cls,
+              vehicle: f.vehicle,
+              isin: "",
+              cusip: "",
+              valor: "",
             });
           }}
         />

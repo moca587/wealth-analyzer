@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
-
 import type { WealthPlan } from "@/lib/engine/types";
 import type { Proposal } from "@/lib/orders/proposal";
+import { useProposal } from "@/lib/proposal/use-proposal";
+import { NoPlanLoaded } from "@/components/plan/no-plan-loaded";
 
 import { ProposalSetupSection } from "./proposal-setup-section";
 import { AdvisoryFeeSection } from "./advisory-fee-section";
@@ -14,96 +14,74 @@ import { AddAlternativePositionSection } from "./add-alternative-position-sectio
 import { OrderRoutingSection } from "./order-routing-section";
 
 export function ProposalPageForm({
-    initialPlan,
-    initialVersion,
+  initialPlan,
+  initialProposal,
 }: {
-    initialPlan: WealthPlan | null;
-    initialVersion: number;
+  initialPlan: WealthPlan | null;
+  initialProposal: Proposal | null;
 }) {
-    const plan = initialPlan;
+  const plan = initialPlan;
 
-    const [proposal, setProposal] =
-        useState<Proposal>(() => ({
-            clientName:
-                plan?.clients
-                    .map((client) =>
-                        `${client.first} ${client.last}`.trim()
-                    )
-                    .join(" & ") ?? "",
+  //   console.log("ProposalPageForm initialPlan:", initialPlan);
+  //   console.log("ProposalPageForm initialProposal:", initialProposal);
 
-            advisor: "",
+  const defaultProposal: Proposal = {
+    clientName:
+      plan?.clients
+        .map((client) => `${client.first} ${client.last}`.trim())
+        .join(" & ") ?? "",
 
-            targetAmount: 0,
+    advisor: "",
+    targetAmount: 0,
+    objective: "balanced",
+    positions: [],
+    currency: plan?.currency ?? "USD",
+  };
 
-            objective: "balanced",
+  const { proposal, updateProposal } = useProposal(
+    initialProposal ?? defaultProposal,
+  );
 
-            positions: [],
+  if (!plan) {
+    return <NoPlanLoaded />;
+  }
 
-            currency:
-                plan?.currency ?? "USD",
-        }));
+  //   console.log("ProposalPageForm rendering normal page");
 
-    function updateProposal(
-        patch: Partial<Proposal>
-    ) {
-        setProposal((prev) => ({
-            ...prev,
-            ...patch,
-        }));
-    }
+  return (
+    <main className="min-h-screen bg-[#f4f6fb] px-8 py-7">
+      <div className="mx-auto max-w-6xl space-y-6">
+        <ProposalSetupSection
+          plan={plan}
+          proposal={proposal}
+          update={updateProposal}
+        />
 
-    if (!plan) {
-        return (
-            <main className="min-h-screen bg-[#f4f6fb] px-8 py-7">
-                <div className="mx-auto max-w-6xl">
-                    <p className="text-sm text-[#64748b]">
-                        No client plan loaded.
-                    </p>
-                </div>
-            </main>
-        );
-    }
+        <AdvisoryFeeSection
+          proposal={proposal}
+          updateProposal={updateProposal}
+          grossReturn={0}
+        />
 
-    return (
-        <main className="min-h-screen bg-[#f4f6fb] px-8 py-7">
-            <div className="mx-auto max-w-6xl space-y-6">
-                <ProposalSetupSection
-                    plan={plan}
-                    proposal={proposal}
-                    update={updateProposal}
-                />
+        <ProposalSummarySection proposal={proposal} />
 
-                <AdvisoryFeeSection
-                    proposal={proposal}
-                    updateProposal={
-                        updateProposal
-                    }
-                    grossReturn={0}
-                />
+        <ProposedPositionsSection
+          proposal={proposal}
+          updateProposal={updateProposal}
+        />
 
-                <ProposalSummarySection
-                    proposal={proposal}
-                />
+        <AddPositionSection
+          proposal={proposal}
+          updateProposal={updateProposal}
+        />
 
-                <ProposedPositionsSection
-                    proposal={proposal}
-                    updateProposal={updateProposal}
-                />
+        <AddAlternativePositionSection
+          proposal={proposal}
+          updateProposal={updateProposal}
+        />
 
-                <AddPositionSection
-                    proposal={proposal}
-                    updateProposal={updateProposal}
-                />
-
-                <AddAlternativePositionSection
-                    proposal={proposal}
-                    updateProposal={updateProposal}
-                />
-
-                <OrderRoutingSection
-                    proposal={proposal}
-                />
-            </div>
-        </main>
-    );
+        <OrderRoutingSection proposal={proposal} />
+      </div>
+    </main>
+  );
 }

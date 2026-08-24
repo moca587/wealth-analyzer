@@ -1,58 +1,39 @@
 "use client";
 
-import { useState } from "react";
 import type { WealthPlan } from "@/lib/engine/types";
-import { emptyPlan } from "@/lib/plan/default-plan";
+import { usePlan } from "@/lib/plan/use-plan";
 
 import AccountsSection from "./accounts-section";
 import { AddAccountSection } from "./add-account-section";
 import { EquityCompSection } from "./equity-comp-section";
 import { InvestmentParametersSection } from "./investment-parameters-section";
 
+import { NoPlanLoaded } from "@/components/plan/no-plan-loaded";
+
 export function AssetsPageForm({
-    initialPlan,
-    initialVersion,
+  initialPlan,
+  initialVersion,
 }: {
-    initialPlan: WealthPlan | null;
-    initialVersion: number;
+  initialPlan: WealthPlan | null;
+  initialVersion: number;
 }) {
-    const [plan, setPlan] = useState<WealthPlan>(
-        () => initialPlan ?? emptyPlan()
-    );
+  const { plan, updatePlan } = usePlan(initialPlan, initialVersion);
 
-    function updatePlan(patch: Partial<WealthPlan>) {
-        setPlan((prev) => ({
-            ...prev,
-            ...patch,
-            updatedAt: new Date().toISOString(),
-        }));
-    }
+  if (!plan) {
+    return <NoPlanLoaded />;
+  }
 
-    return (
-        <main className="min-h-screen bg-[#f4f6fb] px-8 py-7">
-            <div className="mx-auto max-w-5xl space-y-6">
-                <AccountsSection
-                    plan={plan}
-                    update={updatePlan}
-                />
+  return (
+    <main className="min-h-screen bg-[#f4f6fb] px-8 py-7">
+      <div className="mx-auto max-w-5xl space-y-6">
+        <AccountsSection plan={plan} update={updatePlan} />
 
-                <AddAccountSection
-                    plan={plan}
-                    update={updatePlan}
-                />
+        <AddAccountSection plan={plan} update={updatePlan} />
 
-                <EquityCompSection
-                    plan={plan}
-                    update={updatePlan}
-                />
+        <EquityCompSection plan={plan} update={updatePlan} />
 
-                <InvestmentParametersSection
-                    plan={plan}
-                    update={updatePlan}
-                />
-
-
-            </div>
-        </main>
-    );
+        <InvestmentParametersSection plan={plan} update={updatePlan} />
+      </div>
+    </main>
+  );
 }

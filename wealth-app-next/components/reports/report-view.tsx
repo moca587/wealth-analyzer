@@ -232,6 +232,7 @@ export function ReportView({ plan }: Props) {
             date={today}
             page={6}
             totalPages={48}
+            annualSurplus={annualSurplus}
           />
         )}
         {/* Net worth */}

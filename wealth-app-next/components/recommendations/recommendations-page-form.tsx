@@ -7,6 +7,7 @@ import type { WealthPlan } from "@/lib/engine/types";
 import { buildPlanRecommendations } from "@/lib/engine/recommendations";
 
 import { PlanRecommendationsSection } from "@/components/recommendations/plan-recommendations-section";
+import { NoPlanLoaded } from "@/components/plan/no-plan-loaded";
 
 type Props = {
   initialPlan: WealthPlan | null;
@@ -26,13 +27,7 @@ export function RecommendationsPageForm({
   const [version] = useState(initialVersion);
 
   if (!plan) {
-    return (
-      <main className="min-h-screen bg-[#f4f6fb] px-8 py-7">
-        <div className="mx-auto max-w-6xl">
-          <p className="text-[12px] text-[#64748b]">No client plan loaded.</p>
-        </div>
-      </main>
-    );
+    return <NoPlanLoaded />;
   }
 
   // Run all deterministic plan checks

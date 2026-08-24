@@ -1,66 +1,21 @@
-// "use client";
-
-// import { useState } from "react";
-// import type { WealthPlan } from "@/lib/engine/types";
-// import { emptyPlan } from "@/lib/plan/default-plan";
-// import { WealthOverview } from "./wealth-overview";
-// import { HouseholdSection } from "@/components/plan/sections/household-section";
-// import { ChildrenSection } from "@/components/plan/sections/children-section";
-
-// export function HouseholdPageForm({
-//   initialPlan,
-//   initialVersion,
-//   householdName,
-// }: {
-//   initialPlan: WealthPlan | null;
-//   initialVersion: number;
-//   householdName: string;
-// }) {
-//   const [plan, setPlan] = useState<WealthPlan>(
-//     () => initialPlan ?? emptyPlan()
-//   );
-
-//   const updatePlan = (patch: Partial<WealthPlan>) => {
-//     setPlan((prev) => ({
-//       ...prev,
-//       ...patch,
-//       updatedAt: new Date().toISOString(),
-//     }));
-//   };
-
-//   return (
-//     <main className="min-h-screen bg-[#f4f6fb] px-8 py-7">
-//       <WealthOverview plan={plan} />
-
-//       <section className="mt-6 rounded-xl border border-[rgba(0,87,184,0.08)] bg-white px-[26px] py-[22px] shadow-[0_1px_4px_rgba(0,0,0,0.04)]">
-//         <div className="mb-[18px] flex items-center gap-2.5 text-[10.5px] font-bold uppercase tracking-[0.10em] text-[#9ca3af]">
-//           Household Profiles
-//           <div className="h-px flex-1 bg-[rgba(0,87,184,0.10)]" />
-//         </div>
-
-//         <HouseholdSection plan={plan} update={updatePlan} />
-
-//         <div className="mt-5">
-//           <ChildrenSection plan={plan} update={updatePlan} />
-//         </div>
-//       </section>
-//     </main>
-//   );
-// }
-
 "use client";
 
 import { useState } from "react";
+import { usePlan } from "@/lib/plan/use-plan";
 
 import { wealthPlanSchema } from "@/lib/plan/schema";
 
 import type { WealthPlan } from "@/lib/engine/types";
 
 import { migratePlan } from "@/lib/plan/migrate";
+import { migrateProposal } from "@/lib/proposal/migrate";
+import { saveProposal } from "@/lib/proposal/api";
 
 import { WealthOverviewSection } from "@/components/household/wealth-overview-section";
 import { HouseholdProfilesSection } from "@/components/household/household-profiles-section";
 import { ProfileDataSection } from "@/components/household/profile-data-section";
+
+import { NoPlanLoaded } from "@/components/plan/no-plan-loaded";
 
 type Props = {
   initialPlan: WealthPlan | null;
@@ -73,41 +28,26 @@ export function HouseholdPageForm({
   initialVersion,
   householdName,
 }: Props) {
-  const [plan, setPlan] = useState<WealthPlan | null>(initialPlan);
+  const { plan, updatePlan, replacePlan } = usePlan(
+    initialPlan,
+    initialVersion,
+  );
 
-  const [version] = useState(initialVersion);
-
-  // Merge a partial WealthPlan update
-  // into the existing plan.
-  function updatePlan(patch: Partial<WealthPlan>) {
-    setPlan((currentPlan) => {
-      if (!currentPlan) {
-        return currentPlan;
-      }
-
-      return {
-        ...currentPlan,
-        ...patch,
-        updatedAt: new Date().toISOString().slice(0, 10),
-      };
-    });
-  }
-
+  // Load profile from JSON and persist to supabase
   function loadProfileFile(file: File) {
     const reader = new FileReader();
 
-    // once browser finishes reading the file, run this code
     reader.onload = async () => {
       try {
         const text = String(reader.result);
 
-        const raw: unknown = JSON.parse(text); // JSON -> JavaScript object
+        const raw: unknown = JSON.parse(text);
 
-        // Convert legacy JSON to the
-        // current WealthPlan structure.
+        // Convert legacy profile data
+        // into the current WealthPlan.
         const migrated = migratePlan(raw);
 
-        // Validate the converted plan.
+        // Validate the migrated WealthPlan.
         const result = wealthPlanSchema.safeParse(migrated);
 
         if (!result.success) {
@@ -118,29 +58,26 @@ export function HouseholdPageForm({
           return;
         }
 
-        // Replace the current page plan
-        // with the imported profile.
-        // setPlan(result.data);
-        // Save the entire imported plan so every plan page
-        // sees the newly loaded profile.
-        const response = await fetch("/api/plan", {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(result.data),
-        });
+        // Save the main WealthPlan.
+        await replacePlan(result.data);
 
-        if (!response.ok) {
-          const error = await response.json();
-          console.error(error);
+        // Convert legacy proposal data
+        // into the new Proposal structure.
+        const migratedProposal = migrateProposal(raw);
 
-          alert("Could not save imported profile.");
-          return;
+        // Proposal data is stored separately
+        // from the WealthPlan.
+        if (migratedProposal) {
+          try {
+            await saveProposal(migratedProposal);
+          } catch (error) {
+            console.error("Could not save imported proposal:", error);
+
+            alert(
+              "Profile was loaded, but the investment proposal could not be saved.",
+            );
+          }
         }
-
-        // Update this page immediately too.
-        setPlan(result.data);
       } catch (error) {
         console.error(error);
 
@@ -154,13 +91,7 @@ export function HouseholdPageForm({
   // The page cannot render household information
   // until a plan has been loaded.
   if (!plan) {
-    return (
-      <main className="min-h-screen bg-[#f4f6fb] px-8 py-7">
-        <div className="mx-auto max-w-6xl">
-          <p className="text-sm text-[#64748b]">No client plan loaded.</p>
-        </div>
-      </main>
-    );
+    return <NoPlanLoaded />;
   }
 
   return (

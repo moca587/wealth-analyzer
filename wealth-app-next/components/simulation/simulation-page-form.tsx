@@ -32,6 +32,9 @@ import { ThreeScenarioSection } from "./three-scenario-section";
 import { MeanVarianceSection } from "./mean-variance-section";
 import { SensitivityAnalysisSection } from "./sensitivity-analysis-section";
 
+import { usePlan } from "@/lib/plan/use-plan";
+import { NoPlanLoaded } from "@/components/plan/no-plan-loaded";
+
 export const REPORT_SEED = 20260101;
 
 type Props = {
@@ -40,22 +43,7 @@ type Props = {
 };
 
 export function SimulationPageForm({ initialPlan, initialVersion }: Props) {
-  // const plan = initialPlan;
-  const [plan, setPlan] = useState<WealthPlan | null>(initialPlan); // plan can be null
-
-  function updatePlan(patch: Partial<WealthPlan>) {
-    setPlan((currentPlan) => {
-      if (!currentPlan) {
-        return currentPlan;
-      }
-
-      return {
-        ...currentPlan,
-        ...patch,
-        updatedAt: new Date().toISOString(),
-      };
-    });
-  }
+  const { plan, updatePlan } = usePlan(initialPlan, initialVersion);
 
   const [sims, setSims] = useState<200 | 500 | 1000>(1000);
 
@@ -70,13 +58,7 @@ export function SimulationPageForm({ initialPlan, initialVersion }: Props) {
 
   // make sure plan exists and has at least one client before proceeding
   if (!plan || plan.clients.length === 0) {
-    return (
-      <main className="min-h-screen bg-[#f4f6fb] px-8 py-7">
-        <div className="mx-auto max-w-6xl">
-          <p className="text-sm text-[#64748b]">No client plan loaded.</p>
-        </div>
-      </main>
-    );
+    return <NoPlanLoaded />;
   }
 
   const sustainableSpend = result
@@ -101,7 +83,7 @@ export function SimulationPageForm({ initialPlan, initialVersion }: Props) {
     setTimeout(() => {
       try {
         const simulation = runMonteCarlo({
-          plan: plan!, // plan might be null?
+          plan: plan!,
           sims,
           years,
           seed: REPORT_SEED,

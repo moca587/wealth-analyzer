@@ -18,6 +18,8 @@ const OBJECTIVES = [
 ];
 
 export function ProposalSetupSection({ plan, proposal, update }: Props) {
+  // console.log("ProposalSetupSection proposal:", proposal);
+
   return (
     <section className={sectionClass}>
       <h2 className={titleClass}>Proposal Setup</h2>

@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
 import type { WealthPlan } from "@/lib/engine/types";
-import { emptyPlan } from "@/lib/plan/default-plan";
+import { usePlan } from "@/lib/plan/use-plan";
 
 import { IncomeSection } from "./income-section";
 import { SavingsSection } from "./savings-section";
+
+import { NoPlanLoaded } from "@/components/plan/no-plan-loaded";
 
 export function IncomePageForm({
   initialPlan,
@@ -14,16 +15,10 @@ export function IncomePageForm({
   initialPlan: WealthPlan | null;
   initialVersion: number;
 }) {
-  const [plan, setPlan] = useState<WealthPlan>(
-    () => initialPlan ?? emptyPlan(),
-  );
+  const { plan, updatePlan } = usePlan(initialPlan, initialVersion);
 
-  function updatePlan(patch: Partial<WealthPlan>) {
-    setPlan((prev) => ({
-      ...prev,
-      ...patch,
-      updatedAt: new Date().toISOString(),
-    }));
+  if (!plan) {
+    return <NoPlanLoaded />;
   }
 
   return (
