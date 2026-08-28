@@ -28,6 +28,8 @@ export const proposalPositionSchema = z.object({
 
   vehicle: z.string().trim().max(40).optional(),
 
+  region: z.string().trim().max(60).optional(),
+
   cls: z.string().trim().max(40).optional(),
 
   weightPct: z.number().finite().min(0).max(100),

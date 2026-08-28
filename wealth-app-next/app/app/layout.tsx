@@ -27,7 +27,12 @@ export default async function AppLayout({
     <SimulationProvider>
       <ReportProvider>
         <div className="flex min-h-screen">
-          <Sidebar displayName={profile?.display_name ?? user.email ?? null} />
+          {/* <Sidebar displayName={profile?.display_name ?? user.email ?? null} /> */}
+          <div className="app-sidebar">
+            <Sidebar
+              displayName={profile?.display_name ?? user.email ?? null}
+            />
+          </div>
 
           <main className="flex-1 min-w-0">{children}</main>
         </div>

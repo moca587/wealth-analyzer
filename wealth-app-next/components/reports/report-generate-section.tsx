@@ -25,14 +25,11 @@ export function ReportGenerateSection({ plan, result, settings }: Props) {
   }
 
   function downloadPdf() {
-    // Next step:
-    // POST plan/result/settings
-    // to /api/report/pdf
-    console.log("Generate PDF", {
-      plan,
-      result,
-      settings,
-    });
+    if (!result) {
+      return;
+    }
+
+    router.push("/app/reports/print");
   }
 
   return (

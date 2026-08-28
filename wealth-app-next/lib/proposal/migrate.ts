@@ -69,9 +69,9 @@ function migratePosition(
 
     valor: stringValue(raw.valor),
 
-    vehicle: stringValue(raw.vehicle),
+    vehicle: normalizeProposalVehicle(raw.vehicle),
 
-    cls: stringValue(raw.cls),
+    cls: normalizeProposalClass(raw.cls),
 
     weightPct: numberValue(raw.weightPct ?? raw.alloc) ?? 0,
 
@@ -146,4 +146,85 @@ export function migrateProposal(raw: unknown): Proposal | null {
     feeType,
     feeRate,
   };
+}
+
+function normalizeProposalClass(value: unknown): string | undefined {
+  if (typeof value !== "string") return undefined;
+
+  switch (value.toLowerCase()) {
+    case "equity":
+      return "Equity";
+
+    case "fixed_income":
+    case "fixed income":
+      return "Fixed income";
+
+    case "real_estate":
+    case "real estate":
+      return "Real estate";
+
+    case "commodity":
+      return "Commodity";
+
+    case "cash":
+    case "cash / mm":
+      return "Cash / MM";
+
+    case "mixed":
+      return "Mixed";
+
+    case "hedge_fund":
+    case "hedge funds":
+      return "Hedge funds";
+
+    case "private_equity":
+    case "private equity":
+      return "Private equity";
+
+    case "structured":
+    case "structured products / notes":
+      return "Structured products / notes";
+
+    case "alternative":
+    case "alternatives (other)":
+      return "Alternatives (other)";
+
+    default:
+      return value;
+  }
+}
+
+function normalizeProposalVehicle(value: unknown): string | undefined {
+  if (typeof value !== "string") return undefined;
+
+  switch (value.toLowerCase()) {
+    case "etf":
+      return "ETF";
+
+    case "mutual_fund":
+    case "mutual fund":
+      return "Mutual fund";
+
+    case "stock":
+      return "Stock";
+
+    case "bond":
+      return "Bond";
+
+    case "alternative":
+      return "Alternative";
+
+    case "precious_metals":
+    case "precious metals":
+      return "Precious metals";
+
+    case "sma":
+      return "SMA";
+
+    case "futures":
+      return "Futures";
+
+    default:
+      return value;
+  }
 }

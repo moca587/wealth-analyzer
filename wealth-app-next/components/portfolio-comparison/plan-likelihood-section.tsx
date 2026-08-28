@@ -1,64 +1,68 @@
-import {
-  formatSignedPercent,
-} from "@/lib/portfolio-comparison/format";
-
 type Props = {
-  returnDifference?: number;
-  volatilityDifference?: number;
+  currentReturn?: number;
+  currentVolatility?: number;
+  proposedReturn?: number;
+  proposedVolatility?: number;
 };
 
 export function PlanLikelihoodSection({
-  returnDifference,
-  volatilityDifference,
+  currentReturn,
+  currentVolatility,
+  proposedReturn,
+  proposedVolatility,
 }: Props) {
+  const message = getLikelihoodMessage({
+    currentReturn,
+    currentVolatility,
+    proposedReturn,
+    proposedVolatility,
+  });
+
   return (
     <section className={sectionClass}>
-      <h2 className={titleClass}>
-        Plan Likelihood
-      </h2>
+      <h2 className={titleClass}>Plan Likelihood</h2>
 
-      <p className="mt-2 text-[12px] leading-5 text-[#64748b]">
-        {returnDifference == null ||
-        volatilityDifference == null ? (
-          <>
-            Comparison results are not
-            available yet.
-          </>
-        ) : returnDifference > 0 &&
-          volatilityDifference > 0 ? (
-          <>
-            <strong className="text-[#16213e]">
-              Proposed
-            </strong>{" "}
-            shows a higher expected return (
-            {formatSignedPercent(
-              returnDifference
-            )}
-            ) — at the cost of more volatility.
-          </>
-        ) : returnDifference > 0 &&
-          volatilityDifference <= 0 ? (
-          <>
-            <strong className="text-[#16213e]">
-              Proposed
-            </strong>{" "}
-            shows a higher expected return (
-            {formatSignedPercent(
-              returnDifference
-            )}
-            ) without higher expected volatility.
-          </>
-        ) : (
-          <>
-            <strong className="text-[#16213e]">
-              Proposed
-            </strong>{" "}
-            does not show a higher expected return
-            than the current portfolio.
-          </>
-        )}
-      </p>
+      <p className="mt-3 text-[13px] leading-6 text-[#64748b]">{message}</p>
     </section>
+  );
+}
+
+function getLikelihoodMessage({
+  currentReturn,
+  currentVolatility,
+  proposedReturn,
+  proposedVolatility,
+}: Props): string {
+  if (currentReturn == null || proposedReturn == null) {
+    return "Comparison results are not available yet.";
+  }
+
+  const difference = proposedReturn - currentReturn;
+
+  // Legacy threshold:
+  // 0.005 in decimal return = 0.5 percentage points.
+  if (Math.abs(difference) <= 0.5) {
+    return "Both portfolios are roughly equivalent on these inputs.";
+  }
+
+  if (difference > 0.5) {
+    const volatilityText =
+      proposedVolatility != null &&
+      currentVolatility != null &&
+      proposedVolatility > currentVolatility
+        ? "more"
+        : "comparable";
+
+    return (
+      `Proposed shows a higher expected return ` +
+      `(+${difference.toFixed(2)}%) — at the cost of ` +
+      `${volatilityText} volatility.`
+    );
+  }
+
+  return (
+    "Current has the higher expected return — " +
+    "Proposed appears more conservative."
   );
 }
 

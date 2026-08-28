@@ -17,6 +17,8 @@ import { ProfileDataSection } from "@/components/household/profile-data-section"
 
 import { NoPlanLoaded } from "@/components/plan/no-plan-loaded";
 
+import type { Proposal } from "@/lib/orders/proposal";
+
 type Props = {
   initialPlan: WealthPlan | null;
   initialVersion: number;
@@ -61,22 +63,28 @@ export function HouseholdPageForm({
         // Save the main WealthPlan.
         await replacePlan(result.data);
 
-        // Convert legacy proposal data
-        // into the new Proposal structure.
         const migratedProposal = migrateProposal(raw);
 
-        // Proposal data is stored separately
-        // from the WealthPlan.
-        if (migratedProposal) {
-          try {
-            await saveProposal(migratedProposal);
-          } catch (error) {
-            console.error("Could not save imported proposal:", error);
+        const proposalToSave: Proposal = migratedProposal ?? {
+          clientName: result.data.clients
+            .map((client) => `${client.first} ${client.last}`.trim())
+            .join(" & "),
 
-            alert(
-              "Profile was loaded, but the investment proposal could not be saved.",
-            );
-          }
+          advisor: "",
+          targetAmount: 0,
+          objective: "balanced",
+          positions: [],
+          currency: result.data.currency,
+        };
+
+        try {
+          await saveProposal(proposalToSave);
+        } catch (error) {
+          console.error("Could not save imported proposal:", error);
+
+          alert(
+            "Profile was loaded, but the investment proposal could not be saved.",
+          );
         }
       } catch (error) {
         console.error(error);

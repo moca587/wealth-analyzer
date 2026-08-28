@@ -132,6 +132,9 @@ const holdingSchema = z.object({
   name: z.string(),
   ticker: z.string().max(20).optional(),
   isin: z.string().max(12).optional(),
+
+  instrumentType: z.string().max(60).optional(),
+
   cls: assetClassEnum.optional(),
   value: money,
   // Percent, not decimal: 0.20 = 0.20%. Generous upper bound (a wrapped

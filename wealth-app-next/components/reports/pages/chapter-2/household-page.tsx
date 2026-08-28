@@ -101,8 +101,14 @@ export function HouseholdPage({
 
           <InfoLine label="Reporting Currency" value={plan.currency || "USD"} />
 
-          {/* add this later */}
-          {/* <InfoLine label="Target Retirement" value="—" /> */}
+          <InfoLine
+            label="Target Retirement"
+            value={
+              plan.retirement?.retirementAge != null
+                ? `Age ${plan.retirement.retirementAge}`
+                : "—"
+            }
+          />
 
           <InfoLine
             label="Children"

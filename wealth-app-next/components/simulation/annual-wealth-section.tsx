@@ -8,6 +8,8 @@ type Props = {
   startYear: number;
   startAge: number;
 
+  // displayYears: number;
+
   step?: number;
 };
 
@@ -16,6 +18,7 @@ export function AnnualWealthSection({
   currency,
   startYear,
   startAge,
+  // displayYears,
   step = 5,
 }: Props) {
   const p80 = result.realPercentiles["p80"] ?? [];
@@ -26,7 +29,7 @@ export function AnnualWealthSection({
 
   const rows = Array.from(
     {
-      length: result.years, // create this many rows
+      length: result.years,
     },
     (_, index) => ({
       index,
@@ -35,7 +38,7 @@ export function AnnualWealthSection({
 
       age: startAge + index,
 
-      p80: p80[index], // from year = index
+      p80: p80[index],
 
       p50: p50[index],
 

@@ -48,6 +48,9 @@ export interface ProposalPosition {
   valor?: string;
   ticker?: string;
   vehicle?: string;
+
+  region?: string;
+
   cls?: string;
   /** Percent of the target amount, 0–100. */
   weightPct: number;

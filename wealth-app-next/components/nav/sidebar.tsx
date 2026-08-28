@@ -250,7 +250,7 @@ export function Sidebar({ displayName }: { displayName: string | null }) {
         ))}
 
         {/* PLATFORM / ADMIN */}
-        {/* <div className="mt-2 border-t border-[#e7edf6] pt-5">
+        <div className="mt-2 border-t border-[#e7edf6] pt-5">
           <div className="mb-1.5 px-3 text-[9px] font-bold uppercase tracking-[0.13em] text-[#a4acba]">
             Platform
           </div>
@@ -279,7 +279,7 @@ export function Sidebar({ displayName }: { displayName: string | null }) {
               );
             })}
           </div>
-        </div> */}
+        </div>
       </nav>
 
       {/* USER / SIGN OUT */}

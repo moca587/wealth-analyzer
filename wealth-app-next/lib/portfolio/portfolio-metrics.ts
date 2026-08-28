@@ -1,6 +1,8 @@
 import type { Holding, ReturnRiskMetrics } from "@/lib/engine/types";
 import { CLASS_LABEL, type AssetClass } from "@/lib/portfolio/asset-class";
 import { portfolioReturnParams } from "@/lib/engine/financial-math";
+import type { Proposal } from "@/lib/orders/proposal";
+import { ASSET_CLASS_CMA } from "@/lib/engine/constants";
 
 const RISK_BY_CLASS: Record<string, number> = {
   equity: 8,
@@ -243,4 +245,71 @@ export function calcReturnRiskMetrics(
     netReturn,
     volatility,
   };
+}
+
+export function calcProposalReturnRiskMetrics(
+  proposal: Proposal,
+  advisoryFee = 0,
+): ReturnRiskMetrics | null {
+  if (proposal.positions.length === 0) {
+    return null;
+  }
+
+  const positions = proposal.positions
+    .map((position) => {
+      const cls = normalizeProposalAssetClass(position.cls);
+
+      if (!cls) {
+        return null;
+      }
+
+      return {
+        cls,
+        value: position.weightPct,
+      };
+    })
+    .filter(
+      (
+        item,
+      ): item is {
+        cls: AssetClass;
+        value: number;
+      } => item !== null,
+    );
+
+  if (positions.length === 0) {
+    return null;
+  }
+
+  const params = portfolioReturnParams(positions, {
+    mean: 0,
+    sigma: 0,
+  });
+
+  const grossReturn = params.mean * 100;
+  const volatility = params.sigma * 100;
+  const netReturn = grossReturn - advisoryFee;
+
+  return {
+    grossReturn,
+    advisoryFee,
+    netReturn,
+    volatility,
+  };
+}
+
+function normalizeProposalAssetClass(
+  cls: string | undefined,
+): AssetClass | null {
+  if (!cls) {
+    return null;
+  }
+
+  const normalized = cls.trim().toLowerCase().replace(/\s+/g, "_");
+
+  if (normalized in ASSET_CLASS_CMA) {
+    return normalized as AssetClass;
+  }
+
+  return null;
 }

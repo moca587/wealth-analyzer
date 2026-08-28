@@ -7,6 +7,7 @@ type Props = {
   currency: string;
   startYear: number;
   startAge: number;
+  displayYears: number;
 };
 
 export function WealthOutlookSection({
@@ -14,8 +15,10 @@ export function WealthOutlookSection({
   currency,
   startYear,
   startAge,
+  displayYears,
 }: Props) {
-  const endAge = startAge + result.years;
+  // const endAge = startAge + result.years;
+  const endAge = startAge + displayYears;
 
   return (
     <section className={sectionClass}>
@@ -37,6 +40,7 @@ export function WealthOutlookSection({
           currency={currency}
           startYear={startYear}
           startAge={startAge}
+          displayYears={displayYears}
         />
       </div>
     </section>

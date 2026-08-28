@@ -1,20 +1,36 @@
 import type { Proposal } from "@/lib/orders/proposal";
 import { formatMoney } from "@/lib/engine/financial-math";
 
+import {
+  calcProposalGrossReturn,
+  calcProposalWeightedExpenseRatio,
+  calcProposalWeightedYield,
+  calcProposalRiskScore,
+} from "@/lib/proposal/proposal-metrics";
+
 type Props = {
   proposal: Proposal;
 };
 
-export function ProposalSummarySection({
-  proposal,
-}: Props) {
+export function ProposalSummarySection({ proposal }: Props) {
   const positions = proposal.positions ?? [];
+
+  const grossReturn = calcProposalGrossReturn(positions);
+
+  const weightedExpenseRatio = calcProposalWeightedExpenseRatio(positions);
+
+  const weightedYield = calcProposalWeightedYield(positions);
+
+  const riskScore = calcProposalRiskScore(positions);
+
+  const advisoryFee = proposal.feeRate ?? 0;
+
+  const netReturn = grossReturn != null ? grossReturn - advisoryFee : null;
 
   // Sum of all the proposed position weights
   const allocationPct = positions.reduce(
-    (sum, position) =>
-      sum + (Number(position.weightPct) || 0),
-    0
+    (sum, position) => sum + (Number(position.weightPct) || 0),
+    0,
   );
 
   const targetMatch =
@@ -26,21 +42,22 @@ export function ProposalSummarySection({
 
   const byClass = groupByField(
     positions,
-    (position) =>
-      position.cls ?? "Other"
+    (position) => position.cls ?? "Other",
   );
 
   const byVehicle = groupByField(
     positions,
-    (position) =>
-      position.vehicle ?? "Other"
+    (position) => position.vehicle ?? "Other",
+  );
+
+  const byRegion = groupByField(
+    positions,
+    (position) => position.region ?? "Other",
   );
 
   return (
     <section className={sectionClass}>
-      <h2 className={titleClass}>
-        Allocation Summary & Asset Class Breakdown
-      </h2>
+      <h2 className={titleClass}>Allocation Summary & Asset Class Breakdown</h2>
 
       <div className="mb-5 space-y-1 text-[11px] text-[#64748b]">
         <div>
@@ -52,9 +69,7 @@ export function ProposalSummarySection({
 
         <div>
           Prepared by:{" "}
-          <strong className="text-[#16213e]">
-            {proposal.advisor || "—"}
-          </strong>
+          <strong className="text-[#16213e]">{proposal.advisor || "—"}</strong>
         </div>
 
         <div>
@@ -68,10 +83,7 @@ export function ProposalSummarySection({
           Target amount:{" "}
           <strong className="text-[#16213e]">
             {proposal.targetAmount > 0
-              ? formatMoney(
-                  proposal.targetAmount,
-                  proposal.currency
-                )
+              ? formatMoney(proposal.targetAmount, proposal.currency)
               : "Not set"}
           </strong>
         </div>
@@ -82,91 +94,61 @@ export function ProposalSummarySection({
           label="Target amount"
           value={
             proposal.targetAmount > 0
-              ? formatMoney(
-                  proposal.targetAmount,
-                  proposal.currency
-                )
+              ? formatMoney(proposal.targetAmount, proposal.currency)
               : "Not set"
           }
         />
 
-        <Metric
-          label="Positions"
-          value={String(
-            positions.length
-          )}
-        />
+        <Metric label="Positions" value={String(positions.length)} />
 
-        <Metric
-          label="Allocation"
-          value={`${allocationPct.toFixed(
-            1
-          )}%`}
-        />
+        <Metric label="Allocation" value={`${allocationPct.toFixed(1)}%`} />
 
-        <Metric
-          label="Target match"
-          value={targetMatch}
-        />
+        <Metric label="Target match" value={targetMatch} />
 
         <Metric
           label="Gross return"
-          value="—"
+          value={grossReturn != null ? `${grossReturn.toFixed(2)}%` : "—"}
         />
 
-        <Metric
-          label="Advisory fee"
-          value="—"
-        />
+        <Metric label="Advisory fee" value={`${advisoryFee.toFixed(2)}%`} />
 
         <Metric
           label="Net return"
-          value="—"
+          value={netReturn != null ? `${netReturn.toFixed(2)}%` : "—"}
         />
 
         <Metric
           label="Wtd expense ratio"
-          value="—"
+          value={
+            weightedExpenseRatio != null
+              ? `${weightedExpenseRatio.toFixed(2)}%`
+              : "—"
+          }
         />
 
         <Metric
           label="Wtd yield"
-          value="—"
+          value={weightedYield != null ? `${weightedYield.toFixed(2)}%` : "—"}
         />
 
         <Metric
           label="Risk score"
-          value="—"
+          value={riskScore != null ? `${riskScore.toFixed(1)} / 10` : "—"}
         />
       </div>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-3">
-        <BreakdownCard
-          title="By Asset Class"
-          rows={byClass}
-        />
+        <BreakdownCard title="By Asset Class" rows={byClass} />
 
-        <BreakdownCard
-          title="By Vehicle Type"
-          rows={byVehicle}
-        />
+        <BreakdownCard title="By Vehicle Type" rows={byVehicle} />
 
-        <BreakdownCard
-          title="By Geographic Region"
-          rows={[]}
-        />
+        <BreakdownCard title="By Geographic Region" rows={byRegion} />
       </div>
     </section>
   );
 }
 
-function Metric({
-  label,
-  value,
-}: {
-  label: string;
-  value: string;
-}) {
+function Metric({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-lg border border-[rgba(0,87,184,.08)] bg-[#f8faff] p-4">
       <div className="text-[10px] font-bold uppercase tracking-[0.06em] text-[#64748b]">
@@ -192,9 +174,7 @@ function BreakdownCard({
 }) {
   return (
     <div className="rounded-lg border border-[rgba(0,87,184,.08)] bg-[#f8faff] p-4">
-      <h3 className="mb-4 text-[11px] font-bold text-[#64748b]">
-        {title}
-      </h3>
+      <h3 className="mb-4 text-[11px] font-bold text-[#64748b]">{title}</h3>
 
       {rows.length === 0 ? (
         <div className="text-[11px] italic text-[#9ca3af]">
@@ -207,13 +187,9 @@ function BreakdownCard({
               key={row.name}
               className="flex items-center justify-between text-[11px]"
             >
-              <span className="font-semibold text-[#16213e]">
-                {row.name}
-              </span>
+              <span className="font-semibold text-[#16213e]">{row.name}</span>
 
-              <span className="text-[#64748b]">
-                {row.pct.toFixed(1)}%
-              </span>
+              <span className="text-[#64748b]">{row.pct.toFixed(1)}%</span>
             </div>
           ))}
         </div>
@@ -224,35 +200,23 @@ function BreakdownCard({
 
 function groupByField(
   positions: Proposal["positions"],
-  getGroup: (
-    position: Proposal["positions"][number]
-  ) => string
+  getGroup: (position: Proposal["positions"][number]) => string,
 ): {
   name: string;
   pct: number;
 }[] {
-  const groups =
-    positions.reduce<
-      Record<string, number>
-    >((acc, position) => {
-      const group =
-        getGroup(position);
+  const groups = positions.reduce<Record<string, number>>((acc, position) => {
+    const group = getGroup(position);
 
-      acc[group] =
-        (acc[group] ?? 0) +
-        (Number(
-          position.weightPct
-        ) || 0);
+    acc[group] = (acc[group] ?? 0) + (Number(position.weightPct) || 0);
 
-      return acc;
-    }, {});
+    return acc;
+  }, {});
 
-  return Object.entries(groups).map(
-    ([name, pct]) => ({
-      name,
-      pct,
-    })
-  );
+  return Object.entries(groups).map(([name, pct]) => ({
+    name,
+    pct,
+  }));
 }
 
 const sectionClass =

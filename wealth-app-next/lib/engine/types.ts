@@ -532,6 +532,9 @@ export interface SimulationInput {
    * not drift as the wall clock advances (golden-master tests rely on this).
    */
   asOfYear?: number;
+
+  returnMeanOverride?: number; // decimal
+  returnSigmaOverride?: number; // decimal
 }
 
 export interface SimulationResult {

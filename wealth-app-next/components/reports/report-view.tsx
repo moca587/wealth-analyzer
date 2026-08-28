@@ -28,18 +28,72 @@ import { SimChart } from "@/components/sim/sim-chart";
 import { CoverPage } from "./pages/cover-page";
 import { ContentsPage } from "./pages/contents-page";
 
+import { buildLinearCashFlow } from "@/lib/engine/linear-cash-flow";
+
 import { HowToReadPage } from "./pages/chapter-1/how-to-read-page";
 
 import { WhereYouStandDivider } from "./pages/chapter-2/where-you-stand-divider";
 import { HouseholdPage } from "./pages/chapter-2/household-page";
 import { ExecutiveSummaryPage } from "./pages/chapter-2/executive-summary-page";
 import { NetWorthPage } from "./pages/chapter-2/net-worth-page";
+import { IncomeExpensesPage } from "./pages/chapter-2/income-expenses-page";
+import { NetWorthSummaryPage } from "./pages/chapter-2/net-worth-summary-page";
+
+import { GoalsRetirementDivider } from "./pages/chapter-3/goals-retirement-divider";
+import { GoalsRetirementPage } from "./pages/chapter-3/goals-retirement-page";
+import { RetirementIncomePage } from "./pages/chapter-3/retirement-income-page";
+import { PlanStrategiesPage } from "./pages/chapter-3/plan-strategies-page";
+
+import { FutureDivider } from "./pages/chapter-4/future-divider";
+import { GoalSuccessPage } from "./pages/chapter-4/goal-success-page";
+import { GoalFundingStatusPage } from "./pages/chapter-4/goal-funding-status-page";
+import { GoalFundingStreamsPage } from "./pages/chapter-4/goal-funding-streams-page";
+import { AchievableLifestylePage } from "./pages/chapter-4/achievable-lifestyle-page";
+import { InvestmentsDivider } from "./pages/chapter-5/investments-divider";
+import { InvestmentPolicyStatementPage } from "./pages/chapter-5/investment-policy-statement-page";
+import { InvestmentPolicyStatementAllocationPage } from "./pages/chapter-5/investment-policy-statement-allocation-page";
+import { InvestmentPolicyStatementChartsPage } from "./pages/chapter-5/investment-policy-statement-charts-page";
+import { InvestmentPolicyStatementRebalancingPage } from "./pages/chapter-5/investment-policy-statement-rebalancing-page";
+import { InvestmentPolicyStatementMonitoringPage } from "./pages/chapter-5/investment-policy-statement-monitoring-page";
+import { PortfolioAnalysisPage } from "./pages/chapter-5/portfolio-analysis-page";
+import { PortfolioAllocationPage } from "./pages/chapter-5/portfolio-allocation-page";
+import { ProposedPortfolioPage } from "./pages/chapter-5/proposed-portfolio-page";
+import { TotalPortfolioPage } from "./pages/chapter-5/total-portfolio-page";
+import { PortfolioEfficiencyPage } from "./pages/chapter-5/portfolio-efficiency-page";
+import { AllocationPerformancePage } from "./pages/chapter-5/allocation-performance-page";
+import { WealthAllocationFrameworkPage } from "./pages/chapter-5/wealth-allocation-framework-page";
+import { RiskCategoriesPage } from "./pages/chapter-5/risk-categories-page";
+import { RiskCategoriesAspirationalPage } from "./pages/chapter-5/risk-categories-aspirational-page";
+import { WealthRiskCurrentStatusPage } from "./pages/chapter-5/wealth-risk-current-status-page";
+import { CurrentVsProposedPage } from "./pages/chapter-5/current-vs-proposed-page";
+
+import { RetirementDividerPage } from "./pages/chapter-6/retirement-divider-page";
+import { WealthProjectionPage } from "./pages/chapter-6/wealth-projection-page";
+import { WealthOutcomesPage } from "./pages/chapter-6/wealth-outcomes-page";
+import { AnnualPotentialWealthPage } from "./pages/chapter-6/annual-potential-wealth-page";
+import { AnnualPotentialWealthContinuationPage } from "./pages/chapter-6/annual-potential-wealth-continuation-page";
+import { CashFlowProjectionPage } from "./pages/chapter-6/cash-flow-projection-page";
+import { CashFlowProjectionContinuationPage } from "./pages/chapter-6/cash-flow-projection-continuation-page";
+import { RetirementPensionsPage } from "./pages/chapter-6/retirement-pensions-page";
+
+import { InvestmentFactSheetsDivider } from "./pages/chapter-7/investment-fact-sheets-divider";
+import { InvestmentVehicleFactSheetsPage } from "./pages/chapter-7/investment-vehicle-fact-sheets-page";
+
+import { AppendixDivider } from "./pages/chapter-8/appendix-divider";
+import { CapitalMarketAssumptionsPage } from "./pages/chapter-8/capital-market-assumptions-page";
+import { MethodologyAssumptionsPage } from "./pages/chapter-8/methodology-assumptions-page";
+import { GlossaryPage } from "./pages/chapter-8/glossary-page";
+import { GlossaryContinuationPage } from "./pages/chapter-8/glossary-continuation-page";
+import { DisclosuresPage } from "./pages/chapter-8/disclosures-page";
+
+import type { Proposal } from "@/lib/orders/proposal";
 
 type Props = {
   plan: WealthPlan;
+  proposal?: Proposal | null;
 };
 
-export function ReportView({ plan }: Props) {
+export function ReportView({ plan, proposal }: Props) {
   const { result: sim } = useSimulation();
 
   const { settings } = useReport();
@@ -55,6 +109,36 @@ export function ReportView({ plan }: Props) {
       </main>
     );
   }
+
+  // cash flow
+  const cashFlowResult = buildLinearCashFlow(plan);
+
+  const cashFlowRows = cashFlowResult.rows.map((row) => ({
+    year: row.year,
+    age: row.age,
+    phase: row.phase,
+
+    earnedIncome: row.earnedIncome,
+    pensionIncome: row.pensionRmdIncome,
+
+    expenses: row.expenses,
+    debtService: row.debtService,
+
+    savingsTarget: row.savingsTarget,
+    surplus: row.surplusDeficit,
+
+    goalOutflow: row.goalOutflow,
+
+    cash: row.cash,
+    investments: row.investments,
+    retirementPool: row.retirementPool,
+
+    propertyOther: row.propertyValue + row.otherAssets,
+
+    netWorth: row.netWorth,
+
+    notes: row.notes.join(", "),
+  }));
 
   const currency = plan.currency || "USD";
 
@@ -138,41 +222,55 @@ export function ReportView({ plan }: Props) {
   }
 
   @media print {
-    html,
-    body {
-      margin: 0 !important;
-      padding: 0 !important;
-      background: white !important;
-    }
+  .app-sidebar {
+  display: none !important;
+}
+  html,
+  body {
+    margin: 0 !important;
+    padding: 0 !important;
+    background: white !important;
 
-    .report-noprint {
-      display: none !important;
-    }
-
-    .report-root {
-      background: white !important;
-      padding: 0 !important;
-    }
-
-    .report-page {
-      margin: 0 !important;
-      box-shadow: none !important;
-      border: 0 !important;
-      border-radius: 0 !important;
-      break-after: page;
-      page-break-after: always;
-    }
-
-    .report-page:last-child {
-      break-after: auto;
-      page-break-after: auto;
-    }
-
-    .report-avoid {
-      break-inside: avoid;
-      page-break-inside: avoid;
-    }
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
+
+  .report-noprint {
+    display: none !important;
+  }
+
+  .report-root {
+    margin: 0 !important;
+    padding: 0 !important;
+    background: white !important;
+
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  .report-page {
+    margin: 0 !important;
+    box-shadow: none !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+
+    break-after: page;
+    page-break-after: always;
+  }
+
+  .report-page:last-child {
+    break-after: auto;
+    page-break-after: auto;
+  }
+
+  .report-avoid {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+}
 `}</style>
 
       {/* Preview controls */}
@@ -197,7 +295,7 @@ export function ReportView({ plan }: Props) {
           clientName={preparedFor}
           date={today}
           page={2}
-          totalPages={48}
+          totalPages={52}
         />
         {/* How to read */}
         <HowToReadPage
@@ -211,7 +309,7 @@ export function ReportView({ plan }: Props) {
           clientName={preparedFor}
           date={today}
           page={4}
-          totalPages={48}
+          totalPages={52}
         />
         {/* Household */}
         {settings.includeHousehold && (
@@ -220,7 +318,7 @@ export function ReportView({ plan }: Props) {
             clientName={preparedFor}
             date={today}
             page={5}
-            totalPages={48}
+            totalPages={52}
           />
         )}
         {/* Executive Summary */}
@@ -231,231 +329,376 @@ export function ReportView({ plan }: Props) {
             clientName={preparedFor}
             date={today}
             page={6}
-            totalPages={48}
+            totalPages={52}
             annualSurplus={annualSurplus}
           />
         )}
-        {/* Net worth */}
+        {/* Income & Expenses */}
+        {settings.includeIncomeExpenses && (
+          <IncomeExpensesPage
+            plan={plan}
+            clientName={preparedFor}
+            date={today}
+            page={7}
+            totalPages={52}
+          />
+        )}
+        {/* Net worth statement */}
         {settings.includeAssetsLiabilities && (
           <NetWorthPage
             plan={plan}
             clientName={preparedFor}
             date={today}
             page={8}
-            totalPages={48}
+            totalPages={52}
           />
         )}
-        {/* Cash flow */}
-        {settings.includeIncomeExpenses && (
-          <section className={pageClass}>
-            <SectionTitle title="Income & Expenses" clientName={preparedFor} />
-            <table className="mt-5 w-full text-[12px]">
-              <tbody>
-                <Tr
-                  cells={["Gross annual income", money(grossIncome)]}
-                  align={["left", "right"]}
-                />
-
-                <Tr
-                  cells={["Estimated income tax", `(${money(incomeTax)})`]}
-                  align={["left", "right"]}
-                />
-
-                <Tr
-                  cells={["Annual expenses", `(${money(annualExpenses)})`]}
-                  align={["left", "right"]}
-                />
-
-                <Tr
-                  cells={["Debt service", `(${money(annualDebtService)})`]}
-                  align={["left", "right"]}
-                />
-
-                <Tr
-                  strong
-                  cells={["Annual surplus", money(annualSurplus)]}
-                  align={["left", "right"]}
-                />
-              </tbody>
-            </table>
-          </section>
+        {/* Net Worth Summary */}
+        {settings.includeAssetsLiabilities && (
+          <NetWorthSummaryPage
+            plan={plan}
+            clientName={preparedFor}
+            date={today}
+            page={8}
+            totalPages={52}
+          />
         )}
-        {/* Goals */}
-        {settings.includeGoalsRetirement && plan.goals.length > 0 && (
-          <section className={pageClass}>
-            <SectionTitle
-              title="Goals & Retirement Plan"
-              clientName={preparedFor}
-            />
-            <table className="mt-5 w-full text-[12px]">
-              <thead>
-                <Tr
-                  head
-                  cells={["Goal", "Amount / yr", "Years", "Success"]}
-                  align={["left", "right", "left", "right"]}
-                />
-              </thead>
-
-              <tbody>
-                {plan.goals.map((goal) => {
-                  const success = sim.goalSuccess.find(
-                    (item) => item.goalId === goal.id,
-                  );
-
-                  return (
-                    <Tr
-                      key={goal.id}
-                      cells={[
-                        goal.name || "(unnamed)",
-
-                        money(goal.amt),
-
-                        `${goal.startYear}–${goal.endYear}`,
-
-                        success ? percent(success.probability) : "—",
-                      ]}
-                      align={["left", "right", "left", "right"]}
-                    />
-                  );
-                })}
-              </tbody>
-            </table>
-          </section>
+        {/* Goals retirement divider */}
+        <GoalsRetirementDivider
+          clientName={preparedFor}
+          date={today}
+          page={4}
+          totalPages={52}
+        />
+        {/* Goals & Retirement Plan */}
+        {settings.includeGoalsRetirement && (
+          <GoalsRetirementPage
+            plan={plan}
+            clientName={preparedFor}
+            date={today}
+            page={11}
+            totalPages={52}
+          />
         )}
-        {/* Monte Carlo */}
-        {settings.includeWealthProjection && (
-          <section className={pageClass}>
-            <SectionTitle
-              title="What Could Your Wealth Look Like"
-              clientName={preparedFor}
-            />
-            <p className="mb-5 mt-3 text-[12px] text-[#64748b]">
-              Net worth across {sim.sims.toLocaleString()} simulated market
-              paths over {sim.years} years.
-            </p>
-
-            <div className="report-avoid">
-              <SimChart result={sim} currency={currency} />
-            </div>
-
-            <div className="report-avoid mt-6 grid grid-cols-5 gap-2">
-              {[
-                ["P10", sim.realFinal.p10],
-                ["P25", sim.realFinal.p25],
-                ["P50", sim.realFinal.p50],
-                ["P75", sim.realFinal.p75],
-                ["P90", sim.realFinal.p90],
-              ].map(([label, value]) => (
-                <div key={label as string} className="text-center">
-                  <div className="text-[9px] font-bold uppercase tracking-[0.08em] text-[#9ca3af]">
-                    {label}
-                  </div>
-
-                  <div className="mt-1 text-[12px] font-bold text-[#16213e]">
-                    {money(value as number)}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </section>
+        <RetirementIncomePage
+          plan={plan}
+          clientName={preparedFor}
+          date={today}
+          page={12}
+          totalPages={52}
+        />
+        <PlanStrategiesPage
+          plan={plan}
+          clientName={preparedFor}
+          date={today}
+          page={13}
+          totalPages={52}
+        />
+        {/* Chapter 4 divider */}
+        <FutureDivider
+          clientName={preparedFor}
+          date={today}
+          page={14}
+          totalPages={52}
+        />
+        <GoalSuccessPage
+          plan={plan}
+          result={sim}
+          clientName={preparedFor}
+          date={today}
+          page={15}
+          totalPages={52}
+        />
+        <GoalFundingStatusPage
+          plan={plan}
+          result={sim}
+          clientName={preparedFor}
+          date={today}
+          page={16}
+          totalPages={52}
+        />
+        <GoalFundingStreamsPage
+          clientName={preparedFor}
+          date={today}
+          page={17}
+          totalPages={52}
+        />
+        <AchievableLifestylePage
+          plan={plan}
+          result={sim}
+          clientName={preparedFor}
+          date={today}
+          page={18}
+          totalPages={52}
+        />
+        {/* Chapter 5 */}
+        <InvestmentsDivider
+          clientName={preparedFor}
+          date={today}
+          page={19}
+          totalPages={52}
+        />
+        <InvestmentPolicyStatementPage
+          plan={plan}
+          clientName={preparedFor}
+          date={today}
+          page={20}
+          totalPages={52}
+        />
+        <InvestmentPolicyStatementAllocationPage
+          plan={plan}
+          clientName={preparedFor}
+          date={today}
+          page={21}
+          totalPages={52}
+        />
+        <InvestmentPolicyStatementChartsPage
+          plan={plan}
+          clientName={preparedFor}
+          date={today}
+          page={22}
+          totalPages={52}
+        />
+        <InvestmentPolicyStatementRebalancingPage
+          plan={plan}
+          clientName={preparedFor}
+          date={today}
+          page={23}
+          totalPages={52}
+        />
+        <InvestmentPolicyStatementMonitoringPage
+          plan={plan}
+          clientName={preparedFor}
+          date={today}
+          page={24}
+          totalPages={52}
+        />
+        <PortfolioAnalysisPage
+          plan={plan}
+          proposal={proposal ?? null}
+          clientName={preparedFor}
+          date={today}
+          page={25}
+          totalPages={52}
+        />
+        <PortfolioAllocationPage
+          plan={plan}
+          clientName={preparedFor}
+          date={today}
+          page={26}
+          totalPages={52}
+        />
+        {proposal && (
+          <ProposedPortfolioPage
+            proposal={proposal}
+            clientName={preparedFor}
+            date={today}
+            page={27}
+            totalPages={52}
+          />
         )}
-        {/* Goal Success */}
-        {settings.includeGoalSuccess && sim.goalSuccess.length > 0 && (
-          <section className={pageClass}>
-            <SectionTitle
-              title="Goal Success Probability"
-              clientName={preparedFor}
-            />
-            <div className="mt-5 space-y-4">
-              {sim.goalSuccess.map((goal) => (
-                <div
-                  key={goal.goalId}
-                  className="rounded-xl border border-[#e5eaf2] p-5"
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="font-semibold text-[#16213e]">
-                      {goal.goalName || "(unnamed goal)"}
-                    </span>
-
-                    <span className="text-[22px] font-extrabold text-[#0057b8]">
-                      {percent(goal.probability)}
-                    </span>
-                  </div>
-
-                  <div className="mt-3 h-2 overflow-hidden rounded-full bg-[#eef2f7]">
-                    <div
-                      className="h-full rounded-full bg-[#0057b8]"
-                      style={{
-                        width: `${Math.min(
-                          100,
-                          Math.max(0, goal.probability * 100),
-                        )}%`,
-                      }}
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </section>
+        {proposal && (
+          <CurrentVsProposedPage
+            plan={plan}
+            proposal={proposal}
+            clientName={preparedFor}
+            date={today}
+            page={28}
+            totalPages={52}
+          />
         )}
-        {/* Retirement */}
-        {settings.includeGoalsRetirement && sim.retirement && (
-          <section className={pageClass}>
-            <SectionTitle
-              title="Retirement Sustainability"
-              clientName={preparedFor}
-            />
-            <div className="report-avoid mt-6 flex items-center gap-8">
-              <div>
-                <div className="text-[10px] font-bold uppercase tracking-[0.08em] text-[#9ca3af]">
-                  Success probability
-                </div>
-
-                <div className="mt-2 text-[46px] font-extrabold text-[#0057b8]">
-                  {percent(sim.retirement.successProbability)}
-                </div>
-              </div>
-
-              <p className="flex-1 text-[12px] leading-6 text-[#64748b]">
-                Retirement begins at age {sim.retirement.retirementAge},
-                modelled through age {sim.retirement.planToAge}.{" "}
-                {percent(sim.retirement.depletionProbability)} of simulated
-                paths deplete the portfolio before the end of the plan.
-              </p>
-            </div>
-          </section>
+        <TotalPortfolioPage
+          plan={plan}
+          clientName={preparedFor}
+          date={today}
+          page={29}
+          totalPages={52}
+        />
+        <PortfolioEfficiencyPage
+          plan={plan}
+          clientName={preparedFor}
+          date={today}
+          page={30}
+          totalPages={52}
+        />
+        <AllocationPerformancePage
+          plan={plan}
+          clientName={preparedFor}
+          date={today}
+          page={31}
+          totalPages={52}
+        />
+        <WealthAllocationFrameworkPage
+          plan={plan}
+          clientName={preparedFor}
+          date={today}
+          page={32}
+          totalPages={52}
+        />
+        <RiskCategoriesPage
+          plan={plan}
+          clientName={preparedFor}
+          date={today}
+          page={33}
+          totalPages={52}
+        />
+        <RiskCategoriesAspirationalPage
+          plan={plan}
+          clientName={preparedFor}
+          date={today}
+          page={34}
+          totalPages={52}
+        />
+        <WealthRiskCurrentStatusPage
+          plan={plan}
+          clientName={preparedFor}
+          date={today}
+          page={35}
+          totalPages={52}
+        />
+        {/* Chapter 6 */}
+        <RetirementDividerPage
+          clientName={preparedFor}
+          date={today}
+          page={36}
+          totalPages={52}
+        />
+        {sim && (
+          <WealthProjectionPage
+            plan={plan}
+            result={sim}
+            clientName={preparedFor}
+            date={today}
+            page={37}
+            totalPages={52}
+          />
         )}
-        {/* Methodology */}
-        {settings.includeMethodology && (
-          <section className={pageClass}>
-            <SectionTitle
-              title="Methodology & Assumptions"
-              clientName={preparedFor}
-            />
-            <p className="mt-5 text-[12px] leading-6 text-[#64748b]">
-              WealthAnalyzer uses market-simulation analysis to model a range of
-              possible future outcomes using the household&apos;s financial
-              inputs, investment assumptions and configured goals.
-            </p>
-
-            <p className="mt-4 text-[12px] leading-6 text-[#64748b]">
-              Results are illustrative projections and are not predictions or
-              guarantees. Tax calculations are simplified estimates.
-            </p>
-
-            {settings.customDisclosure && (
-              <>
-                <h3 className="mt-7 text-[13px] font-bold text-[#16213e]">
-                  Additional Disclosure
-                </h3>
-
-                <p className="mt-3 whitespace-pre-wrap text-[12px] leading-6 text-[#64748b]">
-                  {settings.customDisclosure}
-                </p>
-              </>
-            )}
-          </section>
+        <WealthOutcomesPage
+          plan={plan}
+          result={sim}
+          clientName={preparedFor}
+          date={today}
+          page={38}
+          totalPages={52}
+        />
+        <AnnualPotentialWealthPage
+          plan={plan}
+          result={sim}
+          clientName={preparedFor}
+          date={today}
+          page={39}
+          totalPages={52}
+        />
+        <AnnualPotentialWealthContinuationPage
+          plan={plan}
+          result={sim}
+          clientName={preparedFor}
+          date={today}
+          page={40}
+          totalPages={52}
+        />
+        <CashFlowProjectionPage
+          plan={plan}
+          rows={cashFlowRows}
+          clientName={preparedFor}
+          date={today}
+          page={41}
+          totalPages={52}
+        />
+        <CashFlowProjectionContinuationPage
+          plan={plan}
+          rows={cashFlowRows}
+          startIndex={10}
+          endIndex={35}
+          clientName={preparedFor}
+          date={today}
+          page={42}
+          totalPages={52}
+        />
+        <CashFlowProjectionContinuationPage
+          plan={plan}
+          rows={cashFlowRows}
+          startIndex={35}
+          clientName={preparedFor}
+          date={today}
+          page={43}
+          totalPages={52}
+        />
+        <RetirementPensionsPage
+          plan={plan}
+          clientName={preparedFor}
+          date={today}
+          page={44}
+          totalPages={52}
+        />
+        {/* Chapter 7 */}
+        <InvestmentFactSheetsDivider
+          clientName={preparedFor}
+          date={today}
+          page={45}
+          totalPages={52}
+        />
+        {proposal && (
+          <InvestmentVehicleFactSheetsPage
+            proposal={proposal}
+            clientName={preparedFor}
+            date={today}
+            page={46}
+            totalPages={52}
+          />
         )}
+        {/* Chapter 8 */}
+        <AppendixDivider
+          clientName={preparedFor}
+          date={today}
+          page={47}
+          totalPages={52}
+        />
+        <CapitalMarketAssumptionsPage
+          plan={plan}
+          clientName={preparedFor}
+          date={today}
+          page={48}
+          totalPages={52}
+        />
+        <MethodologyAssumptionsPage
+          plan={plan}
+          clientName={preparedFor}
+          date={today}
+          page={49}
+          totalPages={52}
+        />
+        <MethodologyAssumptionsPage
+          plan={plan}
+          clientName={preparedFor}
+          date={today}
+          page={49}
+          totalPages={52}
+        />
+        <GlossaryPage
+          clientName={preparedFor}
+          date={today}
+          page={50}
+          totalPages={52}
+        />
+        <GlossaryContinuationPage
+          clientName={preparedFor}
+          date={today}
+          page={51}
+          totalPages={52}
+        />
+        <GlossaryContinuationPage
+          clientName={preparedFor}
+          date={today}
+          page={51}
+          totalPages={52}
+        />
+        <DisclosuresPage
+          clientName={preparedFor}
+          date={today}
+          page={52}
+          totalPages={52}
+        />
       </div>
     </div>
   );
@@ -560,5 +803,7 @@ function Tr({
   );
 }
 
+// const pageClass =
+//   "report-page relative mx-auto h-[210mm] w-[297mm] overflow-hidden bg-white px-[11mm] pb-[13mm] pt-[8mm] text-[#30343b] shadow-xl print:shadow-none";
 const pageClass =
-  "report-page relative mx-auto h-[210mm] w-[297mm] overflow-hidden bg-white px-[11mm] pb-[13mm] pt-[8mm] text-[#30343b] shadow-xl print:shadow-none";
+  "report-page relative mx-auto overflow-hidden bg-white px-[11mm] pb-[13mm] pt-[8mm] text-[#30343b] shadow-xl print:shadow-none";

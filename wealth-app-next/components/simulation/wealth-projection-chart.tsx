@@ -30,6 +30,7 @@ type Props = {
   currency: string;
   startYear: number;
   startAge: number;
+  displayYears: number;
 };
 
 export function WealthProjectionChart({
@@ -37,19 +38,35 @@ export function WealthProjectionChart({
   currency,
   startYear,
   startAge,
+  displayYears,
 }: Props) {
+  const maxPoints = Math.min(
+    displayYears + 1,
+    result.realPercentiles["p50"]?.length ?? 0,
+  );
+
   const years = Array.from(
     {
-      length: result.years + 1,
+      length: maxPoints,
     },
     (_, index) => startYear + index,
   );
+  // const years = Array.from(
+  //   {
+  //     length: result.years + 1,
+  //   },
+  //   (_, index) => startYear + index,
+  // );
 
-  const p80 = result.realPercentiles["p80"] ?? [];
+  // const p80 = result.realPercentiles["p80"] ?? [];
+  // const p50 = result.realPercentiles["p50"] ?? [];
+  // const p30 = result.realPercentiles["p30"] ?? [];
 
-  const p50 = result.realPercentiles["p50"] ?? [];
+  const p80 = (result.realPercentiles["p80"] ?? []).slice(0, maxPoints);
 
-  const p30 = result.realPercentiles["p30"] ?? [];
+  const p50 = (result.realPercentiles["p50"] ?? []).slice(0, maxPoints);
+
+  const p30 = (result.realPercentiles["p30"] ?? []).slice(0, maxPoints);
 
   const data = {
     labels: years,

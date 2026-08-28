@@ -155,6 +155,10 @@ export function migratePlan(input: unknown): WealthPlan {
     name: str(h.name),
     ticker: typeof h.ticker === "string" ? h.ticker : undefined,
     isin: typeof h.isin === "string" ? h.isin : undefined,
+
+    instrumentType:
+      typeof h.instrumentType === "string" ? h.instrumentType : undefined,
+
     cls: (h.cls as WealthPlan["assets"][number]["cls"]) || undefined,
     value: num(h.value),
     er:

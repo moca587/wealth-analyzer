@@ -5,9 +5,10 @@ import { useState } from "react";
 import type { WealthPlan, SimulationResult } from "@/lib/engine/types";
 
 import { runMonteCarlo } from "@/lib/engine/monte-carlo-old";
-import { ageFromDOB } from "@/lib/engine/financial-math";
-import { calculateSustainableSpend } from "@/lib/engine/sustainable-spend";
+import { ageFromDOB, portfolioReturnParams } from "@/lib/engine/financial-math";
+// import { calculateSustainableSpend } from "@/lib/engine/sustainable-spend";
 import { calculateRetirementFunding } from "@/lib/engine/retirement-funding";
+import { calculateAchievableLifestyle } from "@/lib/engine/achievable-lifestyle";
 
 import { useSimulation } from "@/lib/simulation/simulation-context";
 
@@ -31,6 +32,7 @@ import { NetWorthComponentsSection } from "./net-worth-components-section";
 import { ThreeScenarioSection } from "./three-scenario-section";
 import { MeanVarianceSection } from "./mean-variance-section";
 import { SensitivityAnalysisSection } from "./sensitivity-analysis-section";
+import { AchievableLifestyleSection } from "./achievable-lifestyle-section";
 
 import { usePlan } from "@/lib/plan/use-plan";
 import { NoPlanLoaded } from "@/components/plan/no-plan-loaded";
@@ -61,9 +63,9 @@ export function SimulationPageForm({ initialPlan, initialVersion }: Props) {
     return <NoPlanLoaded />;
   }
 
-  const sustainableSpend = result
-    ? calculateSustainableSpend(plan, result)
-    : undefined;
+  //   const sustainableSpend = result
+  //     ? calculateSustainableSpend(plan, result)
+  //     : undefined;
 
   const retirementFundingResult = calculateRetirementFunding(plan);
 
@@ -75,6 +77,35 @@ export function SimulationPageForm({ initialPlan, initialVersion }: Props) {
   const startAge = plan.clients[0]?.dob
     ? (ageFromDOB(plan.clients[0].dob, new Date(startYear, 0, 1)) ?? 40)
     : 40;
+
+  // portfolio parameters
+  const investableAssets = plan.assets.filter(
+    (asset) => asset.cls !== "real_estate" && asset.value > 0,
+  );
+
+  const portfolio = portfolioReturnParams(
+    investableAssets.map((asset) => ({
+      cls: asset.cls,
+      value: asset.value,
+    })),
+    {
+      mean: 0.07,
+      sigma: 0.12,
+    },
+  );
+
+  // achievable lifestyle
+  //   const achievableLifestyle = calculateAchievableLifestyle(plan, startYear);
+  const achievableLifestyle = result
+    ? calculateAchievableLifestyle(plan, {
+        paths: result.paths,
+        years: result.paths[0]?.length ? result.paths[0].length - 1 : 0,
+        mu: portfolio.mean,
+        sigma: portfolio.sigma,
+      })
+    : null;
+
+  const sustainableSpend = achievableLifestyle?.expected.annualSpending;
 
   // Runs the Monte Carlo simulation and saves the result into React state
   function run() {
@@ -119,6 +150,15 @@ export function SimulationPageForm({ initialPlan, initialVersion }: Props) {
             currency={plan.currency}
             startYear={startYear}
             startAge={startAge}
+            displayYears={years}
+          />
+        )}
+
+        {result && achievableLifestyle && (
+          <AchievableLifestyleSection
+            data={achievableLifestyle}
+            currency={plan.currency}
+            asOfYear={startYear}
           />
         )}
 
@@ -128,6 +168,7 @@ export function SimulationPageForm({ initialPlan, initialVersion }: Props) {
             currency={plan.currency}
             startYear={startYear}
             startAge={startAge}
+            // displayYears={years}
           />
         )}
 

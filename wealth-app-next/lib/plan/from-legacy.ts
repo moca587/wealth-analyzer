@@ -602,6 +602,8 @@ export function importLegacyPlan(input: unknown): LegacyImportResult {
   plan.createdAt = typeof src.createdAt === "string" ? src.createdAt : now;
   plan.updatedAt = now;
 
+  console.log("LEGACY HOLDINGS AFTER IMPORT:", holdings);
+
   return {
     plan,
     notes,
