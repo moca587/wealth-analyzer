@@ -1,34 +1,21 @@
 "use client";
 
 import type { WealthPlan } from "@/lib/engine/types";
+import type { Proposal } from "@/lib/orders/proposal";
+import type { ReportSectionId } from "@/lib/report/report-settings";
 
 import { useSimulation } from "@/lib/simulation/simulation-context";
 import { useReport } from "@/lib/report/report-context";
 
 import {
-  formatMoney,
   estimateIncomeTax,
-  ageFromDOB,
   calcMortgagePayment,
 } from "@/lib/engine/financial-math";
 
-import { RISK_PROFILES } from "@/lib/engine/constants";
-
-import {
-  CLASS_LABEL,
-  CLASS_COLOR,
-  normalizeClass,
-  type AssetClass,
-} from "@/lib/portfolio/asset-class";
-
-import { Donut, type DonutSlice } from "@/components/portfolio/donut";
-
-import { SimChart } from "@/components/sim/sim-chart";
+import { buildLinearCashFlow } from "@/lib/engine/linear-cash-flow";
 
 import { CoverPage } from "./pages/cover-page";
-import { ContentsPage } from "./pages/contents-page";
-
-import { buildLinearCashFlow } from "@/lib/engine/linear-cash-flow";
+import { ContentsPage, type ContentsItem } from "./pages/contents-page";
 
 import { HowToReadPage } from "./pages/chapter-1/how-to-read-page";
 
@@ -49,31 +36,39 @@ import { GoalSuccessPage } from "./pages/chapter-4/goal-success-page";
 import { GoalFundingStatusPage } from "./pages/chapter-4/goal-funding-status-page";
 import { GoalFundingStreamsPage } from "./pages/chapter-4/goal-funding-streams-page";
 import { AchievableLifestylePage } from "./pages/chapter-4/achievable-lifestyle-page";
+
 import { InvestmentsDivider } from "./pages/chapter-5/investments-divider";
 import { InvestmentPolicyStatementPage } from "./pages/chapter-5/investment-policy-statement-page";
 import { InvestmentPolicyStatementAllocationPage } from "./pages/chapter-5/investment-policy-statement-allocation-page";
 import { InvestmentPolicyStatementChartsPage } from "./pages/chapter-5/investment-policy-statement-charts-page";
 import { InvestmentPolicyStatementRebalancingPage } from "./pages/chapter-5/investment-policy-statement-rebalancing-page";
 import { InvestmentPolicyStatementMonitoringPage } from "./pages/chapter-5/investment-policy-statement-monitoring-page";
+
 import { PortfolioAnalysisPage } from "./pages/chapter-5/portfolio-analysis-page";
 import { PortfolioAllocationPage } from "./pages/chapter-5/portfolio-allocation-page";
+
 import { ProposedPortfolioPage } from "./pages/chapter-5/proposed-portfolio-page";
+import { CurrentVsProposedPage } from "./pages/chapter-5/current-vs-proposed-page";
+
 import { TotalPortfolioPage } from "./pages/chapter-5/total-portfolio-page";
 import { PortfolioEfficiencyPage } from "./pages/chapter-5/portfolio-efficiency-page";
 import { AllocationPerformancePage } from "./pages/chapter-5/allocation-performance-page";
+
 import { WealthAllocationFrameworkPage } from "./pages/chapter-5/wealth-allocation-framework-page";
 import { RiskCategoriesPage } from "./pages/chapter-5/risk-categories-page";
 import { RiskCategoriesAspirationalPage } from "./pages/chapter-5/risk-categories-aspirational-page";
 import { WealthRiskCurrentStatusPage } from "./pages/chapter-5/wealth-risk-current-status-page";
-import { CurrentVsProposedPage } from "./pages/chapter-5/current-vs-proposed-page";
 
 import { RetirementDividerPage } from "./pages/chapter-6/retirement-divider-page";
 import { WealthProjectionPage } from "./pages/chapter-6/wealth-projection-page";
 import { WealthOutcomesPage } from "./pages/chapter-6/wealth-outcomes-page";
+
 import { AnnualPotentialWealthPage } from "./pages/chapter-6/annual-potential-wealth-page";
 import { AnnualPotentialWealthContinuationPage } from "./pages/chapter-6/annual-potential-wealth-continuation-page";
+
 import { CashFlowProjectionPage } from "./pages/chapter-6/cash-flow-projection-page";
 import { CashFlowProjectionContinuationPage } from "./pages/chapter-6/cash-flow-projection-continuation-page";
+
 import { RetirementPensionsPage } from "./pages/chapter-6/retirement-pensions-page";
 
 import { InvestmentFactSheetsDivider } from "./pages/chapter-7/investment-fact-sheets-divider";
@@ -86,16 +81,35 @@ import { GlossaryPage } from "./pages/chapter-8/glossary-page";
 import { GlossaryContinuationPage } from "./pages/chapter-8/glossary-continuation-page";
 import { DisclosuresPage } from "./pages/chapter-8/disclosures-page";
 
-import type { Proposal } from "@/lib/orders/proposal";
+import { PowerOfCompoundingPage } from "./pages/chapter-8/power-of-compounding-page";
+import { CostOfTryingToTimeMarketPage } from "./pages/chapter-8/cost-of-trying-to-time-market-page";
+import { BehaviourGapPage } from "./pages/chapter-8/behaviour-gap-page";
+import { StayingInvestedThroughDownturnsPage } from "./pages/chapter-8/staying-invested-through-downturns-page";
+import { RiskAndReturnPage } from "./pages/chapter-8/risk-and-return-page";
+import { CostOfWaitingToStartPage } from "./pages/chapter-8/cost-of-waiting-to-start-page";
+import { RetirementMixShiftsPage } from "./pages/chapter-8/retirement-mix-shifts-page";
+import { DiversificationSmoothsPage } from "./pages/chapter-8/diversification-smooths-page";
+import { InflationPurchasingPowerPage } from "./pages/chapter-8/inflation-purchasing-power-page";
+import { BuildingRetirementPaycheckPage } from "./pages/chapter-8/building-retirement-paycheck-page";
+import { OrderOfReturnsPage } from "./pages/chapter-8/order-of-returns-page";
+import { EmotionsDriveInvestmentDecisionsPage } from "./pages/chapter-8/emotions-drive-investment-decisions-page";
+
+type ReportPageRenderer = (page: number, totalPages: number) => React.ReactNode;
+
+type ReportSectionDefinition = {
+  title: string;
+  pages: ReportPageRenderer[];
+};
 
 type Props = {
   plan: WealthPlan;
   proposal?: Proposal | null;
 };
 
+const FIXED_FRONT_PAGES = 3;
+
 export function ReportView({ plan, proposal }: Props) {
   const { result: sim } = useSimulation();
-
   const { settings } = useReport();
 
   if (!sim) {
@@ -110,7 +124,10 @@ export function ReportView({ plan, proposal }: Props) {
     );
   }
 
-  // cash flow
+  // -------------------------------------------------------
+  // Cash-flow data
+  // -------------------------------------------------------
+
   const cashFlowResult = buildLinearCashFlow(plan);
 
   const cashFlowRows = cashFlowResult.rows.map((row) => ({
@@ -140,18 +157,12 @@ export function ReportView({ plan, proposal }: Props) {
     notes: row.notes.join(", "),
   }));
 
-  const currency = plan.currency || "USD";
-
-  const money = (value: number) => formatMoney(value, currency);
+  // -------------------------------------------------------
+  // Executive-summary calculations
+  // -------------------------------------------------------
 
   const sum = <T,>(items: T[], getValue: (item: T) => number) =>
     items.reduce((total, item) => total + (getValue(item) || 0), 0);
-
-  const totalAssets = sum(plan.assets, (asset) => asset.value);
-
-  const totalLiabilities = sum(plan.loans, (loan) => loan.bal);
-
-  const netWorth = totalAssets - totalLiabilities;
 
   const grossIncome = sum(plan.incomes, (income) => income.amount);
 
@@ -176,28 +187,9 @@ export function ReportView({ plan, proposal }: Props) {
   const annualSurplus =
     grossIncome - incomeTax - annualExpenses - annualDebtService;
 
-  const byClass = new Map<AssetClass, number>();
-
-  for (const asset of plan.assets) {
-    const assetClass = normalizeClass(asset.cls || asset.type);
-
-    byClass.set(
-      assetClass,
-      (byClass.get(assetClass) ?? 0) + (asset.value || 0),
-    );
-  }
-
-  const classRows = Array.from(byClass.entries()).sort((a, b) => b[1] - a[1]);
-
-  const allocationSlices: DonutSlice[] = Array.from(byClass.entries()).map(
-    ([cls, value]) => ({
-      key: cls,
-
-      pct: totalAssets > 0 ? (value / totalAssets) * 100 : 0,
-
-      color: CLASS_COLOR[cls] ?? "#94a3b8",
-    }),
-  );
+  // -------------------------------------------------------
+  // Shared report info
+  // -------------------------------------------------------
 
   const today = new Date().toISOString().slice(0, 10);
 
@@ -209,73 +201,1280 @@ export function ReportView({ plan, proposal }: Props) {
 
   const preparedFor = settings.preparedFor || clientNames;
 
-  const percent = (value: number) => `${Math.round(value * 100)}%`;
+  // -------------------------------------------------------
+  // Logical report sections
+  // -------------------------------------------------------
+
+  const sections: Partial<Record<ReportSectionId, ReportSectionDefinition>> = {
+    // =====================================================
+    // CHAPTER 2
+    // =====================================================
+
+    "household-profile": {
+      title: "Household Profile",
+
+      pages: settings.includeHousehold
+        ? [
+            (page, totalPages) => (
+              <WhereYouStandDivider
+                clientName={preparedFor}
+                date={today}
+                page={page}
+                totalPages={totalPages}
+              />
+            ),
+
+            (page, totalPages) => (
+              <HouseholdPage
+                plan={plan}
+                clientName={preparedFor}
+                date={today}
+                page={page}
+                totalPages={totalPages}
+              />
+            ),
+          ]
+        : [],
+    },
+
+    "about-client": {
+      title: "About the Client",
+      pages: [],
+    },
+
+    "executive-summary": {
+      title: "Executive Summary: Key Findings",
+
+      pages: settings.includeExecutiveSummary
+        ? [
+            (page, totalPages) => (
+              <ExecutiveSummaryPage
+                plan={plan}
+                result={sim}
+                clientName={preparedFor}
+                date={today}
+                page={page}
+                totalPages={totalPages}
+                annualSurplus={annualSurplus}
+              />
+            ),
+          ]
+        : [],
+    },
+
+    "income-expenses": {
+      title: "Income & Expenses",
+
+      pages: settings.includeIncomeExpenses
+        ? [
+            (page, totalPages) => (
+              <IncomeExpensesPage
+                plan={plan}
+                clientName={preparedFor}
+                date={today}
+                page={page}
+                totalPages={totalPages}
+              />
+            ),
+          ]
+        : [],
+    },
+
+    "net-worth": {
+      title: "Net Worth Statement",
+
+      pages: settings.includeAssetsLiabilities
+        ? [
+            (page, totalPages) => (
+              <NetWorthPage
+                plan={plan}
+                clientName={preparedFor}
+                date={today}
+                page={page}
+                totalPages={totalPages}
+              />
+            ),
+
+            (page, totalPages) => (
+              <NetWorthSummaryPage
+                plan={plan}
+                clientName={preparedFor}
+                date={today}
+                page={page}
+                totalPages={totalPages}
+              />
+            ),
+          ]
+        : [],
+    },
+
+    "protection-insurance": {
+      title: "Protection & Insurance",
+      pages: [],
+    },
+
+    // =====================================================
+    // CHAPTER 3
+    // =====================================================
+
+    "goals-retirement": {
+      title: "Goals & Retirement Plan",
+
+      pages: settings.includeGoalsRetirement
+        ? [
+            (page, totalPages) => (
+              <GoalsRetirementDivider
+                clientName={preparedFor}
+                date={today}
+                page={page}
+                totalPages={totalPages}
+              />
+            ),
+
+            (page, totalPages) => (
+              <GoalsRetirementPage
+                plan={plan}
+                clientName={preparedFor}
+                date={today}
+                page={page}
+                totalPages={totalPages}
+              />
+            ),
+
+            (page, totalPages) => (
+              <RetirementIncomePage
+                plan={plan}
+                clientName={preparedFor}
+                date={today}
+                page={page}
+                totalPages={totalPages}
+              />
+            ),
+          ]
+        : [],
+    },
+
+    "plan-strategies": {
+      title: "Plan Strategies",
+
+      pages: [
+        (page, totalPages) => (
+          <PlanStrategiesPage
+            plan={plan}
+            clientName={preparedFor}
+            date={today}
+            page={page}
+            totalPages={totalPages}
+          />
+        ),
+      ],
+    },
+
+    // =====================================================
+    // CHAPTER 4
+    // =====================================================
+
+    "goal-success": {
+      title: "Goal Success Probability",
+
+      pages: settings.includeGoalSuccess
+        ? [
+            (page, totalPages) => (
+              <FutureDivider
+                clientName={preparedFor}
+                date={today}
+                page={page}
+                totalPages={totalPages}
+              />
+            ),
+
+            (page, totalPages) => (
+              <GoalSuccessPage
+                plan={plan}
+                result={sim}
+                clientName={preparedFor}
+                date={today}
+                page={page}
+                totalPages={totalPages}
+              />
+            ),
+          ]
+        : [],
+    },
+
+    "goal-funding": {
+      title: "Key Factors: Goal Funding Status",
+
+      pages: settings.includeGoalSuccess
+        ? [
+            (page, totalPages) => (
+              <GoalFundingStatusPage
+                plan={plan}
+                result={sim}
+                clientName={preparedFor}
+                date={today}
+                page={page}
+                totalPages={totalPages}
+              />
+            ),
+
+            (page, totalPages) => (
+              <GoalFundingStreamsPage
+                clientName={preparedFor}
+                date={today}
+                page={page}
+                totalPages={totalPages}
+              />
+            ),
+          ]
+        : [],
+    },
+
+    "achievable-lifestyle": {
+      title: "Potentially Achievable Lifestyle",
+
+      pages: settings.includeGoalSuccess
+        ? [
+            (page, totalPages) => (
+              <AchievableLifestylePage
+                plan={plan}
+                result={sim}
+                clientName={preparedFor}
+                date={today}
+                page={page}
+                totalPages={totalPages}
+              />
+            ),
+          ]
+        : [],
+    },
+
+    // =====================================================
+    // CHAPTER 5
+    // =====================================================
+
+    "investment-policy": {
+      title: "Investment Policy Statement",
+
+      pages: settings.includePortfolio
+        ? [
+            (page, totalPages) => (
+              <InvestmentsDivider
+                clientName={preparedFor}
+                date={today}
+                page={page}
+                totalPages={totalPages}
+              />
+            ),
+
+            (page, totalPages) => (
+              <InvestmentPolicyStatementPage
+                plan={plan}
+                clientName={preparedFor}
+                date={today}
+                page={page}
+                totalPages={totalPages}
+              />
+            ),
+
+            (page, totalPages) => (
+              <InvestmentPolicyStatementAllocationPage
+                plan={plan}
+                clientName={preparedFor}
+                date={today}
+                page={page}
+                totalPages={totalPages}
+              />
+            ),
+
+            (page, totalPages) => (
+              <InvestmentPolicyStatementChartsPage
+                plan={plan}
+                clientName={preparedFor}
+                date={today}
+                page={page}
+                totalPages={totalPages}
+              />
+            ),
+
+            (page, totalPages) => (
+              <InvestmentPolicyStatementRebalancingPage
+                plan={plan}
+                clientName={preparedFor}
+                date={today}
+                page={page}
+                totalPages={totalPages}
+              />
+            ),
+
+            (page, totalPages) => (
+              <InvestmentPolicyStatementMonitoringPage
+                plan={plan}
+                clientName={preparedFor}
+                date={today}
+                page={page}
+                totalPages={totalPages}
+              />
+            ),
+          ]
+        : [],
+    },
+
+    "portfolio-analysis": {
+      title: "Portfolio Analysis",
+
+      pages: settings.includePortfolio
+        ? [
+            (page, totalPages) => (
+              <PortfolioAnalysisPage
+                plan={plan}
+                proposal={proposal ?? null}
+                clientName={preparedFor}
+                date={today}
+                page={page}
+                totalPages={totalPages}
+              />
+            ),
+
+            (page, totalPages) => (
+              <PortfolioAllocationPage
+                plan={plan}
+                clientName={preparedFor}
+                date={today}
+                page={page}
+                totalPages={totalPages}
+              />
+            ),
+          ]
+        : [],
+    },
+
+    "proposed-portfolio": {
+      title: "Proposed Portfolio",
+
+      pages:
+        settings.includePortfolio && proposal
+          ? [
+              (page, totalPages) => (
+                <ProposedPortfolioPage
+                  proposal={proposal}
+                  clientName={preparedFor}
+                  date={today}
+                  page={page}
+                  totalPages={totalPages}
+                />
+              ),
+
+              (page, totalPages) => (
+                <CurrentVsProposedPage
+                  plan={plan}
+                  proposal={proposal}
+                  clientName={preparedFor}
+                  date={today}
+                  page={page}
+                  totalPages={totalPages}
+                />
+              ),
+            ]
+          : [],
+    },
+
+    "total-portfolio": {
+      title: "A View of Your Total Portfolio",
+
+      pages: settings.includePortfolio
+        ? [
+            (page, totalPages) => (
+              <TotalPortfolioPage
+                plan={plan}
+                clientName={preparedFor}
+                date={today}
+                page={page}
+                totalPages={totalPages}
+              />
+            ),
+          ]
+        : [],
+    },
+
+    "portfolio-efficiency": {
+      title: "Evaluating Portfolio Efficiency",
+
+      pages: settings.includePortfolio
+        ? [
+            (page, totalPages) => (
+              <PortfolioEfficiencyPage
+                plan={plan}
+                clientName={preparedFor}
+                date={today}
+                page={page}
+                totalPages={totalPages}
+              />
+            ),
+          ]
+        : [],
+    },
+
+    "allocation-performance": {
+      title: "Asset Class & Allocation Performance",
+
+      pages: settings.includePortfolio
+        ? [
+            (page, totalPages) => (
+              <AllocationPerformancePage
+                plan={plan}
+                clientName={preparedFor}
+                date={today}
+                page={page}
+                totalPages={totalPages}
+              />
+            ),
+          ]
+        : [],
+    },
+
+    "wealth-allocation-framework": {
+      title: "Overview: Wealth Allocation Framework",
+
+      pages: settings.includeWealthAllocation
+        ? [
+            (page, totalPages) => (
+              <WealthAllocationFrameworkPage
+                plan={plan}
+                clientName={preparedFor}
+                date={today}
+                page={page}
+                totalPages={totalPages}
+              />
+            ),
+          ]
+        : [],
+    },
+
+    "risk-categories": {
+      title: "Overview: Risk Categories",
+
+      pages: settings.includeWealthAllocation
+        ? [
+            (page, totalPages) => (
+              <RiskCategoriesPage
+                plan={plan}
+                clientName={preparedFor}
+                date={today}
+                page={page}
+                totalPages={totalPages}
+              />
+            ),
+
+            (page, totalPages) => (
+              <RiskCategoriesAspirationalPage
+                plan={plan}
+                clientName={preparedFor}
+                date={today}
+                page={page}
+                totalPages={totalPages}
+              />
+            ),
+          ]
+        : [],
+    },
+
+    "wealth-risk-status": {
+      title: "Wealth & Risk Allocation: Current Status",
+
+      pages: settings.includeWealthAllocation
+        ? [
+            (page, totalPages) => (
+              <WealthRiskCurrentStatusPage
+                plan={plan}
+                clientName={preparedFor}
+                date={today}
+                page={page}
+                totalPages={totalPages}
+              />
+            ),
+          ]
+        : [],
+    },
+
+    // =====================================================
+    // CHAPTER 6
+    // =====================================================
+
+    "wealth-projection": {
+      title: "What Could Your Wealth Look Like",
+
+      pages: settings.includeWealthProjection
+        ? [
+            (page, totalPages) => (
+              <RetirementDividerPage
+                clientName={preparedFor}
+                date={today}
+                page={page}
+                totalPages={totalPages}
+              />
+            ),
+
+            (page, totalPages) => (
+              <WealthProjectionPage
+                plan={plan}
+                result={sim}
+                clientName={preparedFor}
+                date={today}
+                page={page}
+                totalPages={totalPages}
+              />
+            ),
+
+            (page, totalPages) => (
+              <WealthOutcomesPage
+                plan={plan}
+                result={sim}
+                clientName={preparedFor}
+                date={today}
+                page={page}
+                totalPages={totalPages}
+              />
+            ),
+          ]
+        : [],
+    },
+
+    "annual-potential-wealth": {
+      title: "Annual Potential Wealth",
+
+      pages: settings.includeWealthProjection
+        ? [
+            (page, totalPages) => (
+              <AnnualPotentialWealthPage
+                plan={plan}
+                result={sim}
+                clientName={preparedFor}
+                date={today}
+                page={page}
+                totalPages={totalPages}
+              />
+            ),
+
+            (page, totalPages) => (
+              <AnnualPotentialWealthContinuationPage
+                plan={plan}
+                result={sim}
+                clientName={preparedFor}
+                date={today}
+                page={page}
+                totalPages={totalPages}
+              />
+            ),
+          ]
+        : [],
+    },
+
+    "cash-flow": {
+      title: "Cash-Flow Projection",
+
+      pages:
+        settings.includeWealthProjection && settings.cashFlowDetail !== "none"
+          ? [
+              (page, totalPages) => (
+                <CashFlowProjectionPage
+                  plan={plan}
+                  rows={cashFlowRows}
+                  clientName={preparedFor}
+                  date={today}
+                  page={page}
+                  totalPages={totalPages}
+                />
+              ),
+
+              (page, totalPages) => (
+                <CashFlowProjectionContinuationPage
+                  plan={plan}
+                  rows={cashFlowRows}
+                  startIndex={10}
+                  endIndex={35}
+                  clientName={preparedFor}
+                  date={today}
+                  page={page}
+                  totalPages={totalPages}
+                />
+              ),
+
+              (page, totalPages) => (
+                <CashFlowProjectionContinuationPage
+                  plan={plan}
+                  rows={cashFlowRows}
+                  startIndex={35}
+                  clientName={preparedFor}
+                  date={today}
+                  page={page}
+                  totalPages={totalPages}
+                />
+              ),
+            ]
+          : [],
+    },
+
+    "retirement-pensions": {
+      title: "Retirement Pensions",
+
+      pages: settings.includeWealthProjection
+        ? [
+            (page, totalPages) => (
+              <RetirementPensionsPage
+                plan={plan}
+                clientName={preparedFor}
+                date={today}
+                page={page}
+                totalPages={totalPages}
+              />
+            ),
+          ]
+        : [],
+    },
+
+    "what-if": {
+      title: "What-If Scenarios",
+      pages: [],
+    },
+
+    // =====================================================
+    // CHAPTER 7
+    // =====================================================
+
+    "investment-fact-sheets": {
+      title: "Investment Vehicle Fact Sheets",
+
+      pages:
+        settings.includePortfolio && proposal
+          ? [
+              (page, totalPages) => (
+                <InvestmentFactSheetsDivider
+                  clientName={preparedFor}
+                  date={today}
+                  page={page}
+                  totalPages={totalPages}
+                />
+              ),
+
+              (page, totalPages) => (
+                <InvestmentVehicleFactSheetsPage
+                  proposal={proposal}
+                  clientName={preparedFor}
+                  date={today}
+                  page={page}
+                  totalPages={totalPages}
+                />
+              ),
+            ]
+          : [],
+    },
+
+    // =====================================================
+    // CHAPTER 8
+    // =====================================================
+
+    "appendix-divider": {
+      title: "Appendix",
+
+      pages: [
+        (page, totalPages) => (
+          <AppendixDivider
+            clientName={preparedFor}
+            date={today}
+            page={page}
+            totalPages={totalPages}
+          />
+        ),
+      ],
+    },
+
+    "investor-education": {
+      title: "Investor Education",
+
+      pages: settings.includeInvestorEducation
+        ? [
+            (page, totalPages) => (
+              <PowerOfCompoundingPage
+                clientName={preparedFor}
+                date={today}
+                page={page}
+                totalPages={totalPages}
+              />
+            ),
+
+            (page, totalPages) => (
+              <CostOfTryingToTimeMarketPage
+                clientName={preparedFor}
+                date={today}
+                page={page}
+                totalPages={totalPages}
+              />
+            ),
+
+            (page, totalPages) => (
+              <BehaviourGapPage
+                clientName={preparedFor}
+                date={today}
+                page={page}
+                totalPages={totalPages}
+              />
+            ),
+
+            (page, totalPages) => (
+              <StayingInvestedThroughDownturnsPage
+                clientName={preparedFor}
+                date={today}
+                page={page}
+                totalPages={totalPages}
+              />
+            ),
+
+            (page, totalPages) => (
+              <RiskAndReturnPage
+                clientName={preparedFor}
+                date={today}
+                page={page}
+                totalPages={totalPages}
+              />
+            ),
+
+            (page, totalPages) => (
+              <CostOfWaitingToStartPage
+                clientName={preparedFor}
+                date={today}
+                page={page}
+                totalPages={totalPages}
+              />
+            ),
+
+            (page, totalPages) => (
+              <RetirementMixShiftsPage
+                clientName={preparedFor}
+                date={today}
+                page={page}
+                totalPages={totalPages}
+              />
+            ),
+
+            (page, totalPages) => (
+              <DiversificationSmoothsPage
+                clientName={preparedFor}
+                date={today}
+                page={page}
+                totalPages={totalPages}
+              />
+            ),
+
+            (page, totalPages) => (
+              <InflationPurchasingPowerPage
+                clientName={preparedFor}
+                date={today}
+                page={page}
+                totalPages={totalPages}
+              />
+            ),
+
+            (page, totalPages) => (
+              <BuildingRetirementPaycheckPage
+                clientName={preparedFor}
+                date={today}
+                page={page}
+                totalPages={totalPages}
+              />
+            ),
+
+            (page, totalPages) => (
+              <OrderOfReturnsPage
+                clientName={preparedFor}
+                date={today}
+                page={page}
+                totalPages={totalPages}
+              />
+            ),
+
+            (page, totalPages) => (
+              <EmotionsDriveInvestmentDecisionsPage
+                clientName={preparedFor}
+                date={today}
+                page={page}
+                totalPages={totalPages}
+              />
+            ),
+          ]
+        : [],
+    },
+
+    "capital-market-assumptions": {
+      title: "Capital Market Assumptions",
+
+      pages: [
+        (page, totalPages) => (
+          <CapitalMarketAssumptionsPage
+            plan={plan}
+            clientName={preparedFor}
+            date={today}
+            page={page}
+            totalPages={totalPages}
+          />
+        ),
+      ],
+    },
+
+    methodology: {
+      title: "Methodology & Assumptions",
+
+      pages: settings.includeMethodology
+        ? [
+            (page, totalPages) => (
+              <MethodologyAssumptionsPage
+                plan={plan}
+                clientName={preparedFor}
+                date={today}
+                page={page}
+                totalPages={totalPages}
+              />
+            ),
+          ]
+        : [],
+    },
+
+    glossary: {
+      title: "Glossary of Terms",
+
+      pages: settings.includeGlossary
+        ? [
+            (page, totalPages) => (
+              <GlossaryPage
+                clientName={preparedFor}
+                date={today}
+                page={page}
+                totalPages={totalPages}
+              />
+            ),
+
+            (page, totalPages) => (
+              <GlossaryContinuationPage
+                clientName={preparedFor}
+                date={today}
+                page={page}
+                totalPages={totalPages}
+              />
+            ),
+          ]
+        : [],
+    },
+
+    disclosures: {
+      title: "Disclosures",
+
+      pages:
+        settings.disclosureProfile !== "none"
+          ? [
+              (page, totalPages) => (
+                <DisclosuresPage
+                  clientName={preparedFor}
+                  date={today}
+                  page={page}
+                  totalPages={totalPages}
+                />
+              ),
+            ]
+          : [],
+    },
+  };
+
+  // -------------------------------------------------------
+  // Turn section order into physical page order
+  // -------------------------------------------------------
+
+  const orderedPages = settings.sectionOrder.flatMap(
+    (sectionId) => sections[sectionId]?.pages ?? [],
+  );
+
+  const totalPages = FIXED_FRONT_PAGES + orderedPages.length;
+
+  // -------------------------------------------------------
+  // Determine which logical sections actually exist
+  // -------------------------------------------------------
+
+  const activeSections = settings.sectionOrder
+    .map((sectionId) => ({
+      id: sectionId,
+      definition: sections[sectionId],
+    }))
+    .filter(
+      (
+        item,
+      ): item is {
+        id: ReportSectionId;
+        definition: ReportSectionDefinition;
+      } => item.definition != null && item.definition.pages.length > 0,
+    );
+
+  // -------------------------------------------------------
+  // Find starting physical page for every section
+  // -------------------------------------------------------
+
+  let nextPage = FIXED_FRONT_PAGES + 1;
+
+  const sectionStartPages = new Map<ReportSectionId, number>();
+
+  for (const section of activeSections) {
+    sectionStartPages.set(section.id, nextPage);
+
+    nextPage += section.definition.pages.length;
+  }
+
+  // -------------------------------------------------------
+  // Build Contents page
+  // -------------------------------------------------------
+
+  const contentsItems: ContentsItem[] = [
+    {
+      number: "CHAPTER 1",
+      title: "How to Read This Report",
+      page: 3,
+      chapter: true,
+    },
+    {
+      number: "01",
+      title: "How to Read This Report",
+      page: 3,
+    },
+  ];
+
+  function addContentsItem(
+    number: string,
+    sectionId: ReportSectionId,
+    title: string,
+  ) {
+    const page = sectionStartPages.get(sectionId);
+
+    if (page == null) {
+      return;
+    }
+
+    contentsItems.push({
+      number,
+      title,
+      page,
+    });
+  }
+
+  // -------------------------------------------------------
+  // Chapter 2
+  // -------------------------------------------------------
+
+  const chapter2Page =
+    sectionStartPages.get("household-profile") ??
+    sectionStartPages.get("executive-summary") ??
+    sectionStartPages.get("income-expenses") ??
+    sectionStartPages.get("net-worth");
+
+  if (chapter2Page != null) {
+    contentsItems.push({
+      number: "CHAPTER 2",
+      title: "Where You Stand Today",
+      page: chapter2Page,
+      chapter: true,
+    });
+
+    addContentsItem("02", "household-profile", "Household Profile");
+
+    addContentsItem(
+      "03",
+      "executive-summary",
+      "Executive Summary: Key Findings",
+    );
+
+    addContentsItem("04", "income-expenses", "Income & Expenses");
+
+    addContentsItem("05", "net-worth", "Net Worth Statement");
+  }
+
+  // -------------------------------------------------------
+  // Chapter 3
+  // -------------------------------------------------------
+
+  const chapter3Page =
+    sectionStartPages.get("goals-retirement") ??
+    sectionStartPages.get("plan-strategies");
+
+  if (chapter3Page != null) {
+    contentsItems.push({
+      number: "CHAPTER 3",
+      title: "Your Goals & Retirement Plan",
+      page: chapter3Page,
+      chapter: true,
+    });
+
+    addContentsItem("06", "goals-retirement", "Goals & Retirement Plan");
+
+    addContentsItem("07", "plan-strategies", "Plan Strategies");
+  }
+
+  // -------------------------------------------------------
+  // Chapter 4
+  // -------------------------------------------------------
+
+  const chapter4Page =
+    sectionStartPages.get("goal-success") ??
+    sectionStartPages.get("goal-funding") ??
+    sectionStartPages.get("achievable-lifestyle");
+
+  if (chapter4Page != null) {
+    contentsItems.push({
+      number: "CHAPTER 4",
+      title: "What the Future May Hold",
+      page: chapter4Page,
+      chapter: true,
+    });
+
+    addContentsItem("08", "goal-success", "Goal Success Probability");
+
+    addContentsItem("09", "goal-funding", "Key Factors: Goal Funding Status");
+
+    addContentsItem(
+      "10",
+      "achievable-lifestyle",
+      "Potentially Achievable Lifestyle",
+    );
+  }
+
+  // -------------------------------------------------------
+  // Chapter 5
+  // -------------------------------------------------------
+
+  const chapter5Page =
+    sectionStartPages.get("investment-policy") ??
+    sectionStartPages.get("portfolio-analysis") ??
+    sectionStartPages.get("proposed-portfolio") ??
+    sectionStartPages.get("total-portfolio");
+
+  if (chapter5Page != null) {
+    contentsItems.push({
+      number: "CHAPTER 5",
+      title: "Your Investments",
+      page: chapter5Page,
+      chapter: true,
+    });
+
+    addContentsItem("11", "investment-policy", "Investment Policy Statement");
+
+    addContentsItem("12", "portfolio-analysis", "Portfolio Analysis");
+
+    addContentsItem("13", "proposed-portfolio", "Proposed Portfolio");
+
+    addContentsItem("14", "total-portfolio", "A View of Your Total Portfolio");
+
+    addContentsItem(
+      "15",
+      "portfolio-efficiency",
+      "Evaluating Portfolio Efficiency",
+    );
+
+    addContentsItem(
+      "16",
+      "allocation-performance",
+      "Asset Class & Allocation Performance",
+    );
+
+    addContentsItem(
+      "17",
+      "wealth-allocation-framework",
+      "Overview: Wealth Allocation Framework",
+    );
+
+    addContentsItem("18", "risk-categories", "Overview: Risk Categories");
+
+    addContentsItem(
+      "19",
+      "wealth-risk-status",
+      "Wealth & Risk Allocation: Current Status",
+    );
+  }
+
+  // -------------------------------------------------------
+  // Chapter 6
+  // -------------------------------------------------------
+
+  const chapter6Page =
+    sectionStartPages.get("wealth-projection") ??
+    sectionStartPages.get("annual-potential-wealth") ??
+    sectionStartPages.get("cash-flow") ??
+    sectionStartPages.get("retirement-pensions");
+
+  if (chapter6Page != null) {
+    contentsItems.push({
+      number: "CHAPTER 6",
+      title: "Retirement",
+      page: chapter6Page,
+      chapter: true,
+    });
+
+    addContentsItem(
+      "20",
+      "wealth-projection",
+      "What Could Your Wealth Look Like",
+    );
+
+    addContentsItem("21", "annual-potential-wealth", "Annual Potential Wealth");
+
+    addContentsItem("22", "cash-flow", "Cash-Flow Projection");
+
+    addContentsItem("23", "retirement-pensions", "Retirement Pensions");
+  }
+
+  // -------------------------------------------------------
+  // Chapter 7
+  // -------------------------------------------------------
+
+  const chapter7Page = sectionStartPages.get("investment-fact-sheets");
+
+  if (chapter7Page != null) {
+    contentsItems.push({
+      number: "CHAPTER 7",
+      title: "Investment Fact Sheets",
+      page: chapter7Page,
+      chapter: true,
+    });
+
+    addContentsItem(
+      "24",
+      "investment-fact-sheets",
+      "Investment Vehicle Fact Sheets",
+    );
+  }
+
+  // -------------------------------------------------------
+  // Chapter 8
+  // -------------------------------------------------------
+
+  const chapter8Page =
+    sectionStartPages.get("appendix-divider") ??
+    sectionStartPages.get("investor-education") ??
+    sectionStartPages.get("capital-market-assumptions") ??
+    sectionStartPages.get("methodology") ??
+    sectionStartPages.get("glossary") ??
+    sectionStartPages.get("disclosures");
+
+  if (chapter8Page != null) {
+    contentsItems.push({
+      number: "CHAPTER 8",
+      title: "Appendix",
+      page: chapter8Page,
+      chapter: true,
+    });
+
+    addContentsItem("25", "investor-education", "Investor Education");
+
+    addContentsItem(
+      "26",
+      "capital-market-assumptions",
+      "Capital Market Assumptions",
+    );
+
+    addContentsItem("27", "methodology", "Methodology & Assumptions");
+
+    addContentsItem("28", "glossary", "Glossary of Terms");
+
+    addContentsItem("29", "disclosures", "Disclosures");
+  }
+
+  // -------------------------------------------------------
+  // Render
+  // -------------------------------------------------------
 
   return (
     <div className="report-root min-h-screen bg-[#eef2f7] py-8 print:bg-white print:py-0">
       <style>{`
-  @page {
-    size: ${settings.pageSize === "a4" ? "A4" : "Letter"} ${
-      settings.orientation
-    };
-    margin: 0;
-  }
+        @page {
+          size: ${
+            settings.pageSize === "a4" ? "A4" : "Letter"
+          } ${settings.orientation};
+          margin: 0;
+        }
 
-  @media print {
-  .app-sidebar {
-  display: none !important;
-}
-  html,
-  body {
-    margin: 0 !important;
-    padding: 0 !important;
-    background: white !important;
+        .report-page {
+          width: ${
+            settings.pageSize === "a4"
+              ? settings.orientation === "landscape"
+                ? "297mm"
+                : "210mm"
+              : settings.orientation === "landscape"
+                ? "11in"
+                : "8.5in"
+          };
 
-    -webkit-print-color-adjust: exact !important;
-    print-color-adjust: exact !important;
-  }
+          height: ${
+            settings.pageSize === "a4"
+              ? settings.orientation === "landscape"
+                ? "210mm"
+                : "297mm"
+              : settings.orientation === "landscape"
+                ? "8.5in"
+                : "11in"
+          };
+        }
 
-  .report-noprint {
-    display: none !important;
-  }
+        @media print {
+          .app-sidebar {
+            display: none !important;
+          }
 
-  .report-root {
-    margin: 0 !important;
-    padding: 0 !important;
-    background: white !important;
+          html,
+          body {
+            margin: 0 !important;
+            padding: 0 !important;
+            background: white !important;
 
-    -webkit-print-color-adjust: exact !important;
-    print-color-adjust: exact !important;
-  }
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
 
-  .report-page {
-    margin: 0 !important;
-    box-shadow: none !important;
-    border: 0 !important;
-    border-radius: 0 !important;
+          .report-noprint {
+            display: none !important;
+          }
 
-    -webkit-print-color-adjust: exact !important;
-    print-color-adjust: exact !important;
+          .report-root {
+            margin: 0 !important;
+            padding: 0 !important;
+            background: white !important;
 
-    break-after: page;
-    page-break-after: always;
-  }
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
 
-  .report-page:last-child {
-    break-after: auto;
-    page-break-after: auto;
-  }
+          .report-page {
+            margin: 0 !important;
+            box-shadow: none !important;
+            border: 0 !important;
+            border-radius: 0 !important;
 
-  .report-avoid {
-    break-inside: avoid;
-    page-break-inside: avoid;
-  }
-}
-`}</style>
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
 
-      {/* Preview controls */}
+            break-after: page;
+            page-break-after: always;
+          }
+
+          .report-page:last-child {
+            break-after: auto;
+            page-break-after: auto;
+          }
+
+          .report-avoid {
+            break-inside: avoid;
+            page-break-inside: avoid;
+          }
+        }
+      `}</style>
+
       <div className="report-noprint mx-auto mb-6 flex max-w-3xl items-center justify-between">
-        <div className="text-sm text-[#64748b]">Report preview</div>
+        <div className="text-sm text-[#64748b]">
+          Report preview · {totalPages} pages
+        </div>
 
         <button
           type="button"
@@ -287,523 +1486,29 @@ export function ReportView({ plan, proposal }: Props) {
       </div>
 
       <div className="space-y-8 print:space-y-0">
-        {" "}
-        {/* Cover */}
         <CoverPage clientName={preparedFor} date={today} settings={settings} />
-        {/* Contents */}
+
         <ContentsPage
           clientName={preparedFor}
           date={today}
           page={2}
-          totalPages={52}
+          totalPages={totalPages}
+          items={contentsItems}
         />
-        {/* How to read */}
+
         <HowToReadPage
           clientName={preparedFor}
           date={today}
           page={3}
-          totalPages={48}
+          totalPages={totalPages}
         />
-        {/* Where you stand */}
-        <WhereYouStandDivider
-          clientName={preparedFor}
-          date={today}
-          page={4}
-          totalPages={52}
-        />
-        {/* Household */}
-        {settings.includeHousehold && (
-          <HouseholdPage
-            plan={plan}
-            clientName={preparedFor}
-            date={today}
-            page={5}
-            totalPages={52}
-          />
-        )}
-        {/* Executive Summary */}
-        {settings.includeExecutiveSummary && (
-          <ExecutiveSummaryPage
-            plan={plan}
-            result={sim}
-            clientName={preparedFor}
-            date={today}
-            page={6}
-            totalPages={52}
-            annualSurplus={annualSurplus}
-          />
-        )}
-        {/* Income & Expenses */}
-        {settings.includeIncomeExpenses && (
-          <IncomeExpensesPage
-            plan={plan}
-            clientName={preparedFor}
-            date={today}
-            page={7}
-            totalPages={52}
-          />
-        )}
-        {/* Net worth statement */}
-        {settings.includeAssetsLiabilities && (
-          <NetWorthPage
-            plan={plan}
-            clientName={preparedFor}
-            date={today}
-            page={8}
-            totalPages={52}
-          />
-        )}
-        {/* Net Worth Summary */}
-        {settings.includeAssetsLiabilities && (
-          <NetWorthSummaryPage
-            plan={plan}
-            clientName={preparedFor}
-            date={today}
-            page={8}
-            totalPages={52}
-          />
-        )}
-        {/* Goals retirement divider */}
-        <GoalsRetirementDivider
-          clientName={preparedFor}
-          date={today}
-          page={4}
-          totalPages={52}
-        />
-        {/* Goals & Retirement Plan */}
-        {settings.includeGoalsRetirement && (
-          <GoalsRetirementPage
-            plan={plan}
-            clientName={preparedFor}
-            date={today}
-            page={11}
-            totalPages={52}
-          />
-        )}
-        <RetirementIncomePage
-          plan={plan}
-          clientName={preparedFor}
-          date={today}
-          page={12}
-          totalPages={52}
-        />
-        <PlanStrategiesPage
-          plan={plan}
-          clientName={preparedFor}
-          date={today}
-          page={13}
-          totalPages={52}
-        />
-        {/* Chapter 4 divider */}
-        <FutureDivider
-          clientName={preparedFor}
-          date={today}
-          page={14}
-          totalPages={52}
-        />
-        <GoalSuccessPage
-          plan={plan}
-          result={sim}
-          clientName={preparedFor}
-          date={today}
-          page={15}
-          totalPages={52}
-        />
-        <GoalFundingStatusPage
-          plan={plan}
-          result={sim}
-          clientName={preparedFor}
-          date={today}
-          page={16}
-          totalPages={52}
-        />
-        <GoalFundingStreamsPage
-          clientName={preparedFor}
-          date={today}
-          page={17}
-          totalPages={52}
-        />
-        <AchievableLifestylePage
-          plan={plan}
-          result={sim}
-          clientName={preparedFor}
-          date={today}
-          page={18}
-          totalPages={52}
-        />
-        {/* Chapter 5 */}
-        <InvestmentsDivider
-          clientName={preparedFor}
-          date={today}
-          page={19}
-          totalPages={52}
-        />
-        <InvestmentPolicyStatementPage
-          plan={plan}
-          clientName={preparedFor}
-          date={today}
-          page={20}
-          totalPages={52}
-        />
-        <InvestmentPolicyStatementAllocationPage
-          plan={plan}
-          clientName={preparedFor}
-          date={today}
-          page={21}
-          totalPages={52}
-        />
-        <InvestmentPolicyStatementChartsPage
-          plan={plan}
-          clientName={preparedFor}
-          date={today}
-          page={22}
-          totalPages={52}
-        />
-        <InvestmentPolicyStatementRebalancingPage
-          plan={plan}
-          clientName={preparedFor}
-          date={today}
-          page={23}
-          totalPages={52}
-        />
-        <InvestmentPolicyStatementMonitoringPage
-          plan={plan}
-          clientName={preparedFor}
-          date={today}
-          page={24}
-          totalPages={52}
-        />
-        <PortfolioAnalysisPage
-          plan={plan}
-          proposal={proposal ?? null}
-          clientName={preparedFor}
-          date={today}
-          page={25}
-          totalPages={52}
-        />
-        <PortfolioAllocationPage
-          plan={plan}
-          clientName={preparedFor}
-          date={today}
-          page={26}
-          totalPages={52}
-        />
-        {proposal && (
-          <ProposedPortfolioPage
-            proposal={proposal}
-            clientName={preparedFor}
-            date={today}
-            page={27}
-            totalPages={52}
-          />
-        )}
-        {proposal && (
-          <CurrentVsProposedPage
-            plan={plan}
-            proposal={proposal}
-            clientName={preparedFor}
-            date={today}
-            page={28}
-            totalPages={52}
-          />
-        )}
-        <TotalPortfolioPage
-          plan={plan}
-          clientName={preparedFor}
-          date={today}
-          page={29}
-          totalPages={52}
-        />
-        <PortfolioEfficiencyPage
-          plan={plan}
-          clientName={preparedFor}
-          date={today}
-          page={30}
-          totalPages={52}
-        />
-        <AllocationPerformancePage
-          plan={plan}
-          clientName={preparedFor}
-          date={today}
-          page={31}
-          totalPages={52}
-        />
-        <WealthAllocationFrameworkPage
-          plan={plan}
-          clientName={preparedFor}
-          date={today}
-          page={32}
-          totalPages={52}
-        />
-        <RiskCategoriesPage
-          plan={plan}
-          clientName={preparedFor}
-          date={today}
-          page={33}
-          totalPages={52}
-        />
-        <RiskCategoriesAspirationalPage
-          plan={plan}
-          clientName={preparedFor}
-          date={today}
-          page={34}
-          totalPages={52}
-        />
-        <WealthRiskCurrentStatusPage
-          plan={plan}
-          clientName={preparedFor}
-          date={today}
-          page={35}
-          totalPages={52}
-        />
-        {/* Chapter 6 */}
-        <RetirementDividerPage
-          clientName={preparedFor}
-          date={today}
-          page={36}
-          totalPages={52}
-        />
-        {sim && (
-          <WealthProjectionPage
-            plan={plan}
-            result={sim}
-            clientName={preparedFor}
-            date={today}
-            page={37}
-            totalPages={52}
-          />
-        )}
-        <WealthOutcomesPage
-          plan={plan}
-          result={sim}
-          clientName={preparedFor}
-          date={today}
-          page={38}
-          totalPages={52}
-        />
-        <AnnualPotentialWealthPage
-          plan={plan}
-          result={sim}
-          clientName={preparedFor}
-          date={today}
-          page={39}
-          totalPages={52}
-        />
-        <AnnualPotentialWealthContinuationPage
-          plan={plan}
-          result={sim}
-          clientName={preparedFor}
-          date={today}
-          page={40}
-          totalPages={52}
-        />
-        <CashFlowProjectionPage
-          plan={plan}
-          rows={cashFlowRows}
-          clientName={preparedFor}
-          date={today}
-          page={41}
-          totalPages={52}
-        />
-        <CashFlowProjectionContinuationPage
-          plan={plan}
-          rows={cashFlowRows}
-          startIndex={10}
-          endIndex={35}
-          clientName={preparedFor}
-          date={today}
-          page={42}
-          totalPages={52}
-        />
-        <CashFlowProjectionContinuationPage
-          plan={plan}
-          rows={cashFlowRows}
-          startIndex={35}
-          clientName={preparedFor}
-          date={today}
-          page={43}
-          totalPages={52}
-        />
-        <RetirementPensionsPage
-          plan={plan}
-          clientName={preparedFor}
-          date={today}
-          page={44}
-          totalPages={52}
-        />
-        {/* Chapter 7 */}
-        <InvestmentFactSheetsDivider
-          clientName={preparedFor}
-          date={today}
-          page={45}
-          totalPages={52}
-        />
-        {proposal && (
-          <InvestmentVehicleFactSheetsPage
-            proposal={proposal}
-            clientName={preparedFor}
-            date={today}
-            page={46}
-            totalPages={52}
-          />
-        )}
-        {/* Chapter 8 */}
-        <AppendixDivider
-          clientName={preparedFor}
-          date={today}
-          page={47}
-          totalPages={52}
-        />
-        <CapitalMarketAssumptionsPage
-          plan={plan}
-          clientName={preparedFor}
-          date={today}
-          page={48}
-          totalPages={52}
-        />
-        <MethodologyAssumptionsPage
-          plan={plan}
-          clientName={preparedFor}
-          date={today}
-          page={49}
-          totalPages={52}
-        />
-        <MethodologyAssumptionsPage
-          plan={plan}
-          clientName={preparedFor}
-          date={today}
-          page={49}
-          totalPages={52}
-        />
-        <GlossaryPage
-          clientName={preparedFor}
-          date={today}
-          page={50}
-          totalPages={52}
-        />
-        <GlossaryContinuationPage
-          clientName={preparedFor}
-          date={today}
-          page={51}
-          totalPages={52}
-        />
-        <GlossaryContinuationPage
-          clientName={preparedFor}
-          date={today}
-          page={51}
-          totalPages={52}
-        />
-        <DisclosuresPage
-          clientName={preparedFor}
-          date={today}
-          page={52}
-          totalPages={52}
-        />
+
+        {orderedPages.map((renderPage, index) => (
+          <div key={index}>
+            {renderPage(index + FIXED_FRONT_PAGES + 1, totalPages)}
+          </div>
+        ))}
       </div>
     </div>
   );
 }
-
-function SectionTitle({
-  title,
-  clientName,
-}: {
-  title: string;
-  clientName: string;
-}) {
-  return (
-    <>
-      <div className="flex items-center justify-between text-[10px]">
-        <span className="text-[#6b7280]">{clientName}</span>
-
-        <span className="font-bold text-[#0867b9]">
-          Private Wealth Intelligence
-        </span>
-      </div>
-
-      <h2 className="mt-3 text-[21px] font-bold leading-none text-[#2e333a]">
-        {title}
-      </h2>
-
-      <div className="mt-2 border-b-2 border-[#454c54]" />
-    </>
-  );
-}
-
-function SectionBar({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="mt-4 flex min-h-[32px] items-center border-l-[5px] border-[#0874c9] bg-[#dceaf7] px-3">
-      <h3 className="text-[14px] font-bold text-[#173d60]">{children}</h3>
-    </div>
-  );
-}
-
-function Stat({
-  label,
-  value,
-  big = false,
-}: {
-  label: string;
-  value: string;
-  big?: boolean;
-}) {
-  return (
-    <div className="rounded-xl bg-[#f8faff] p-4">
-      <div className="text-[9px] font-bold uppercase tracking-[0.08em] text-[#9ca3af]">
-        {label}
-      </div>
-
-      <div
-        className={`mt-2 font-extrabold text-[#16213e] ${
-          big ? "text-[25px]" : "text-[19px]"
-        }`}
-      >
-        {value}
-      </div>
-    </div>
-  );
-}
-
-function Tr({
-  cells,
-  head = false,
-  strong = false,
-  align,
-}: {
-  cells: string[];
-  head?: boolean;
-  strong?: boolean;
-  align?: ("left" | "right" | "center")[];
-}) {
-  const Tag = head ? "th" : "td";
-
-  return (
-    <tr className="border-b border-[#edf1f6]">
-      {cells.map((cell, index) => (
-        <Tag
-          key={index}
-          className={`px-2 py-2 ${
-            head
-              ? "text-[9px] font-bold uppercase tracking-[0.06em] text-[#9ca3af]"
-              : strong
-                ? "font-bold text-[#16213e]"
-                : "text-[#64748b]"
-          } ${
-            align?.[index] === "right"
-              ? "text-right"
-              : align?.[index] === "center"
-                ? "text-center"
-                : "text-left"
-          }`}
-        >
-          {cell}
-        </Tag>
-      ))}
-    </tr>
-  );
-}
-
-// const pageClass =
-//   "report-page relative mx-auto h-[210mm] w-[297mm] overflow-hidden bg-white px-[11mm] pb-[13mm] pt-[8mm] text-[#30343b] shadow-xl print:shadow-none";
-const pageClass =
-  "report-page relative mx-auto overflow-hidden bg-white px-[11mm] pb-[13mm] pt-[8mm] text-[#30343b] shadow-xl print:shadow-none";

@@ -10,6 +10,8 @@ import {
 
 import { Bar } from "react-chartjs-2";
 
+import { formatMoney } from "@/lib/engine/financial-math";
+
 ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip);
 
 type Point = {
@@ -93,14 +95,6 @@ export function AchievableLifestyleChart({ points, currency }: Props) {
       <Bar data={data} options={options} />
     </div>
   );
-}
-
-function formatMoney(value: number, currency: string) {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency,
-    maximumFractionDigits: 0,
-  }).format(value);
 }
 
 function formatCompactMoney(value: number, currency: string) {

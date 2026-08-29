@@ -9,6 +9,8 @@ import {
 
 import { Bar } from "react-chartjs-2";
 
+import { formatMoney } from "@/lib/engine/financial-math";
+
 // CategoryScale = x-axis categories
 // LinearScale = numerical y-axis
 // BarElement = ability to draw bars
@@ -150,12 +152,4 @@ export function AssetsLiabilitiesChart({
       <Bar data={data} options={options} plugins={[valueLabelPlugin]} />
     </div>
   );
-}
-
-function formatMoney(value: number, currency: string) {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency,
-    maximumFractionDigits: 0,
-  }).format(value);
 }

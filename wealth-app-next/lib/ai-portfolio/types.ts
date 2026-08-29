@@ -1,12 +1,66 @@
-export interface AiPortfolioPosition {
-  ticker: string;
-  weight: number;
-  rationale?: string;
-}
+export type AiRiskProfile =
+  | "very-safe"
+  | "conservative"
+  | "balanced-safe"
+  | "balanced"
+  | "growth"
+  | "aggressive"
+  | "maximum-growth";
 
-export interface AiPortfolioRecommendation {
+export type AiTimeHorizon = "1-5" | "5-10" | "10-15" | "15+";
+
+export type AiSustainability = "none" | "prefer-esg" | "esg-only";
+
+export type AiPortfolioPreferences = {
+  investmentAmount: number;
+  riskProfile: AiRiskProfile;
+  timeHorizon: AiTimeHorizon;
+  sustainability: AiSustainability;
+};
+
+export type AiPortfolioFund = {
+  ticker: string;
+  name: string;
+  provider: string;
+
+  weightPct: number;
+  amount: number;
+
+  category: string;
+  reasoning: string;
+
+  esg?: boolean;
+};
+
+export type AiAssetMix = {
+  stocks: number;
+  bonds: number;
+  realEstate: number;
+  alternatives: number;
+  commodities: number;
+  cash: number;
+};
+
+export type AiPortfolioResult = {
   summary: string;
-  expectedReturn: number;
+
+  expectedReturnGross: number;
+  expectedReturnNet: number;
   expectedVolatility: number;
-  positions: AiPortfolioPosition[];
-}
+
+  feePct: number;
+
+  assetMix: AiAssetMix;
+
+  funds: AiPortfolioFund[];
+
+  risks: string[];
+
+  eligibleFundCount: number;
+  totalFundCount: number;
+
+  researchItemCount: number;
+  institutionalSourceCount: number;
+
+  themes: string[];
+};

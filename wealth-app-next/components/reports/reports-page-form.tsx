@@ -12,6 +12,7 @@ import {
 import { ReportSetupSection } from "./report-setup-section";
 import { ReportContentsSection } from "./report-contents-section";
 import { ReportGenerateSection } from "./report-generate-section";
+import { ReportPageOrderSection } from "./report-page-order-section";
 
 import { useSimulation } from "@/lib/simulation/simulation-context";
 import { useReport } from "@/lib/report/report-context";
@@ -57,6 +58,15 @@ export function ReportsPageForm({ initialPlan }: Props) {
         />
 
         <ReportContentsSection settings={settings} update={updateSettings} />
+
+        <ReportPageOrderSection
+          order={settings.sectionOrder}
+          onChange={(sectionOrder) =>
+            updateSettings({
+              sectionOrder,
+            })
+          }
+        />
 
         <ReportGenerateSection
           plan={plan}

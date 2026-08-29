@@ -129,6 +129,96 @@ export function ReportContentsSection({ settings, update }: Props) {
         />
       </div>
 
+      <Toggle
+        label="Plan strategies summary"
+        checked={settings.includePlanStrategies}
+        onChange={(value) =>
+          update({
+            includePlanStrategies: value,
+          })
+        }
+      />
+
+      <Toggle
+        label="Investment Policy Statement"
+        checked={settings.includeInvestmentPolicy}
+        onChange={(value) =>
+          update({
+            includeInvestmentPolicy: value,
+          })
+        }
+      />
+
+      <Toggle
+        label="Morningstar fact sheets"
+        checked={settings.includeFactSheets}
+        onChange={(value) =>
+          update({
+            includeFactSheets: value,
+          })
+        }
+      />
+
+      <Toggle
+        label="Goal funding status (PV)"
+        checked={settings.includeGoalFunding}
+        onChange={(value) =>
+          update({
+            includeGoalFunding: value,
+          })
+        }
+      />
+
+      <Toggle
+        label="Achievable lifestyle"
+        checked={settings.includeAchievableLifestyle}
+        onChange={(value) =>
+          update({
+            includeAchievableLifestyle: value,
+          })
+        }
+      />
+
+      <Toggle
+        label="Annual potential wealth"
+        checked={settings.includeAnnualPotentialWealth}
+        onChange={(value) =>
+          update({
+            includeAnnualPotentialWealth: value,
+          })
+        }
+      />
+
+      <Toggle
+        label="Retirement pensions"
+        checked={settings.includeRetirementPensions}
+        onChange={(value) =>
+          update({
+            includeRetirementPensions: value,
+          })
+        }
+      />
+
+      <Toggle
+        label="Capital market assumptions"
+        checked={settings.includeCapitalMarketAssumptions}
+        onChange={(value) =>
+          update({
+            includeCapitalMarketAssumptions: value,
+          })
+        }
+      />
+
+      <Toggle
+        label="Investor education"
+        checked={settings.includeInvestorEducation}
+        onChange={(value) =>
+          update({
+            includeInvestorEducation: value,
+          })
+        }
+      />
+
       <div className="mt-5">
         <label className={labelClass}>Cash-flow projection</label>
 

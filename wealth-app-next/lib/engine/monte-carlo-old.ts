@@ -211,9 +211,7 @@ export function runMonteCarlo(
   const requestedYears = Number.isFinite(years)
     ? Math.min(100, Math.max(1, Math.floor(years)))
     : 30;
-  // const Y = retEnabled
-  //   ? Math.max(1, Math.min(70, planToAge - currentAge))
-  //   : requestedYears;
+
   const Y = retEnabled
     ? Math.max(requestedYears, planToAge - currentAge)
     : requestedYears;

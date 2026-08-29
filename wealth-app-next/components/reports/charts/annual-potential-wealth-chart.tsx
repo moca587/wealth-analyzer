@@ -2,6 +2,8 @@
 
 import { useEffect, useRef } from "react";
 
+import { formatMoney } from "@/lib/engine/financial-math";
+
 import {
   Chart,
   CategoryScale,
@@ -161,14 +163,6 @@ export function AnnualPotentialWealthChart({ rows, currency }: Props) {
   }, [rows, currency]);
 
   return <canvas ref={canvasRef} />;
-}
-
-function formatMoney(value: number, currency: string) {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency,
-    maximumFractionDigits: 0,
-  }).format(value);
 }
 
 function compactMoney(value: number, currency: string) {
