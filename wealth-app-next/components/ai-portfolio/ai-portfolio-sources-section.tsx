@@ -1,41 +1,39 @@
-const SOURCES = [
-  "Bank of America",
-  "JPMorgan AM",
-  "Morgan Stanley",
-  "Goldman Sachs",
-  "Citi Private Bank",
-  "UBS Wealth",
-  "Julius Baer",
-  "Pictet AM",
-  "Vontobel",
-  "BlackRock",
-  "Eaton Vance",
-  "Morningstar",
-  "FactSet",
-  "Bloomberg",
-  "Oppenheimer",
-  "Seeking Alpha",
-];
+type AiPortfolioSourcesSectionProps = {
+  sources: string[];
+};
 
-export function AiPortfolioSourcesSection() {
+export function AiPortfolioSourcesSection({
+  sources,
+}: AiPortfolioSourcesSectionProps) {
   return (
     <section className={sectionClass}>
       <h2 className={titleClass}>
-        Powered by research from {SOURCES.length} institutional sources
+        Powered by research from {sources.length} institutional sources
       </h2>
 
       <div className="mt-4 flex flex-wrap gap-2">
-        {SOURCES.map((source) => (
+        {sources.map((source) => (
           <span
             key={source}
             className="rounded-full border border-[#e2e8f0] bg-[#f8fafc] px-3 py-1.5 text-[11px] font-medium text-[#475569]"
           >
-            {source}
+            {formatSourceName(source)}
           </span>
         ))}
       </div>
     </section>
   );
+}
+
+function formatSourceName(source: string) {
+  const names: Record<string, string> = {
+    fidelity: "Fidelity",
+    blackrock: "BlackRock",
+    schwab: "Charles Schwab",
+    jpmorgan: "J.P. Morgan Asset Management",
+  };
+
+  return names[source] ?? source;
 }
 
 const sectionClass =

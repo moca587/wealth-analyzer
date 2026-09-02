@@ -15,16 +15,35 @@ import { AiPortfolioRisks } from "./ai-portfolio-risks";
 import { AiPortfolioNextSteps } from "./ai-portfolio-next-steps";
 import { AiPortfolioSourcesSection } from "./ai-portfolio-sources-section";
 
+import type { Proposal } from "@/lib/orders/proposal";
+import { useProposal } from "@/lib/proposal/use-proposal";
+
 type Props = {
   initialPlan: WealthPlan | null;
   initialVersion: number;
+  initialProposal: Proposal | null;
+  initialRecommendation: AiPortfolioResult | null;
 };
 
-export function AiPortfolioPageForm({ initialPlan, initialVersion }: Props) {
+export function AiPortfolioPageForm({
+  initialPlan,
+  initialVersion,
+  initialProposal,
+  initialRecommendation,
+}: Props) {
   const plan = initialPlan;
 
+  const emptyProposal: Proposal = {
+    positions: [],
+    targetAmount: 0,
+    currency: "USD",
+  };
+
+  const { proposal, replaceProposal } = useProposal(
+    initialProposal ?? emptyProposal,
+  );
   const [recommendation, setRecommendation] =
-    useState<AiPortfolioResult | null>(null);
+    useState<AiPortfolioResult | null>(initialRecommendation);
 
   const [amount, setAmount] = useState(100000);
 
@@ -42,6 +61,39 @@ export function AiPortfolioPageForm({ initialPlan, initialVersion }: Props) {
         </div>
       </main>
     );
+  }
+
+  // proposal
+  async function handleApplyToProposal() {
+    if (!recommendation) {
+      return;
+    }
+
+    const positions = recommendation.funds.map((fund) => ({
+      id: crypto.randomUUID(),
+
+      ticker: fund.ticker,
+
+      name: fund.name,
+
+      cls: fund.category,
+
+      weightPct: fund.weightPct,
+
+      note: fund.reasoning,
+    }));
+
+    const newProposal: Proposal = {
+      ...proposal,
+
+      positions,
+
+      targetAmount: amount,
+
+      investmentThesis: recommendation.summary,
+    };
+
+    await replaceProposal(newProposal);
   }
 
   return (
@@ -87,11 +139,15 @@ export function AiPortfolioPageForm({ initialPlan, initialVersion }: Props) {
         {recommendation && (
           <AiPortfolioNextSteps
             onApply={() => {
-              console.log("Apply to proposal", recommendation);
+              void handleApplyToProposal();
             }}
           />
         )}
-        {recommendation && <AiPortfolioSourcesSection />}
+        {recommendation && (
+          <AiPortfolioSourcesSection
+            sources={["fidelity", "blackrock", "schwab", "Nuveen"]}
+          />
+        )}
       </div>
     </main>
   );

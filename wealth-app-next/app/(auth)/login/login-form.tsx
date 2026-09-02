@@ -39,9 +39,7 @@ export function LoginForm() {
 
   return (
     <div>
-      <h1 className="font-display text-4xl leading-tight mb-2">
-        Welcome back.
-      </h1>
+      <h1 className="text-4xl font-bold leading-tight mb-2"> Welcome back.</h1>
       <p className="text-muted-foreground mb-8">
         Sign in to access your wealth plan.
       </p>

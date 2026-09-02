@@ -11,6 +11,7 @@ export type AiTimeHorizon = "1-5" | "5-10" | "10-15" | "15+";
 
 export type AiSustainability = "none" | "prefer-esg" | "esg-only";
 
+// what the user chooses
 export type AiPortfolioPreferences = {
   investmentAmount: number;
   riskProfile: AiRiskProfile;
@@ -18,6 +19,7 @@ export type AiPortfolioPreferences = {
   sustainability: AiSustainability;
 };
 
+// one fund in the final recommendation
 export type AiPortfolioFund = {
   ticker: string;
   name: string;
@@ -41,6 +43,7 @@ export type AiAssetMix = {
   cash: number;
 };
 
+// the whole final portfolio result that the frontend expects
 export type AiPortfolioResult = {
   summary: string;
 
