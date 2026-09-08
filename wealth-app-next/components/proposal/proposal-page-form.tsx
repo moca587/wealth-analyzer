@@ -26,14 +26,15 @@ export function ProposalPageForm({
   //   console.log("ProposalPageForm initialProposal:", initialProposal);
 
   const defaultProposal: Proposal = {
-    clientName:
-      plan?.clients
-        .map((client) => `${client.first} ${client.last}`.trim())
-        .join(" & ") ?? "",
+    clientId: plan?.clients[0]?.id ?? "",
+
+    clientName: plan?.clients[0]
+      ? `${plan.clients[0].first} ${plan.clients[0].last}`.trim()
+      : "",
 
     advisor: "",
     targetAmount: 0,
-    objective: "balanced",
+    objective: "Balanced",
     positions: [],
     currency: plan?.currency ?? "USD",
   };

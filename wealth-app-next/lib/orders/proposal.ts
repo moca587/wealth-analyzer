@@ -68,6 +68,9 @@ export interface Proposal {
   targetAmount: number;
   currency: string;
   clientName?: string;
+
+  clientId: string;
+
   advisor?: string;
   objective?: string;
 

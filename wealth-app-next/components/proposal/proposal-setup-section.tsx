@@ -26,10 +26,39 @@ export function ProposalSetupSection({ plan, proposal, update }: Props) {
 
       <div className="grid gap-4 md:grid-cols-2">
         {/* Client */}
-        <div>
+        {/* <div>
           <label className={labelClass}>Client</label>
 
           <div className={readOnlyClass}>{proposal.clientName || "—"}</div>
+        </div> */}
+        {/* Client */}
+        <div>
+          <label className={labelClass}>Client</label>
+
+          <select
+            value={proposal.clientId ?? ""}
+            onChange={(e) => {
+              const clientId = e.target.value;
+
+              const client = plan.clients.find(
+                (client) => client.id === clientId,
+              );
+
+              update({
+                clientId,
+                clientName: client
+                  ? `${client.first} ${client.last}`.trim()
+                  : "",
+              });
+            }}
+            className={inputClass}
+          >
+            {plan.clients.map((client) => (
+              <option key={client.id} value={client.id}>
+                {`${client.first} ${client.last}`.trim() || "Unnamed client"}
+              </option>
+            ))}
+          </select>
         </div>
 
         {/* Advisor */}

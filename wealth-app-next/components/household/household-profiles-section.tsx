@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+
 import type {
   CountryCode,
   RiskProfile,
@@ -131,16 +133,22 @@ export function HouseholdProfilesSection({ plan, update }: Props) {
         <div className="h-px flex-1 bg-[rgba(0,87,184,.10)]" />
       </div>
 
-      {plan.clients.map((client, index) => (
-        <ClientProfile
-          key={client.id}
-          client={client}
-          index={index}
-          updateClient={updateClient}
-          onRemove={() => removeClient(client.id)}
-          canRemove={index > 0}
-        />
-      ))}
+      <div
+        className={`grid gap-6 ${
+          plan.clients.length === 2 ? "lg:grid-cols-2" : "grid-cols-1"
+        }`}
+      >
+        {plan.clients.map((client, index) => (
+          <ClientProfile
+            key={client.id}
+            client={client}
+            index={index}
+            updateClient={updateClient}
+            onRemove={() => removeClient(client.id)}
+            canRemove={index > 0}
+          />
+        ))}
+      </div>
 
       {plan.clients.length < 2 && (
         <div className="mt-6 border-t border-[rgba(0,87,184,.08)] pt-5">
@@ -205,6 +213,8 @@ function ClientProfile({
   onRemove: () => void;
   canRemove: boolean;
 }) {
+  const [collapsed, setCollapsed] = useState(false);
+
   const age = client.dob ? ageFromDOB(client.dob) : undefined;
 
   const riskProfile = client.risk ? RISK_PROFILES[client.risk] : undefined;
@@ -214,11 +224,7 @@ function ClientProfile({
     : undefined;
 
   return (
-    <div
-      className={
-        index > 0 ? "mt-8 border-t border-[rgba(0,87,184,.10)] pt-8" : ""
-      }
-    >
+    <div className="rounded-xl border border-[rgba(0,87,184,.08)] bg-[#f8faff] p-5">
       <div className="mb-5 flex items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-full border border-[rgba(91,155,213,.3)] bg-[rgba(91,155,213,.15)] text-[12px] font-bold text-[#0057b8]">
@@ -237,206 +243,231 @@ function ClientProfile({
           </div>
         </div>
 
-        {canRemove && (
+        <div className="flex items-center gap-3">
           <button
             type="button"
-            onClick={onRemove}
-            className="text-[11px] font-semibold text-red-500 transition hover:text-red-600"
+            onClick={() => setCollapsed((prev) => !prev)}
+            className="text-[11px] font-semibold text-[#0057b8] transition hover:text-[#004494]"
           >
-            Remove client
+            {collapsed ? "Expand" : "Collapse"}
           </button>
-        )}
-      </div>
 
-      <div className="grid gap-4 md:grid-cols-3">
-        <div>
-          <label className={labelClass}>First name</label>
-
-          <input
-            className={inputClass}
-            value={client.first ?? ""}
-            onChange={(e) =>
-              updateClient(client.id, {
-                first: e.target.value,
-              })
-            }
-          />
-        </div>
-
-        <div>
-          <label className={labelClass}>Last name</label>
-
-          <input
-            className={inputClass}
-            value={client.last ?? ""}
-            onChange={(e) =>
-              updateClient(client.id, {
-                last: e.target.value,
-              })
-            }
-          />
-        </div>
-
-        <div>
-          <label className={labelClass}>Date of birth</label>
-
-          <input
-            type="date"
-            className={inputClass}
-            value={client.dob ?? ""}
-            onChange={(e) =>
-              updateClient(client.id, {
-                dob: e.target.value,
-              })
-            }
-          />
+          {canRemove && (
+            <button
+              type="button"
+              onClick={onRemove}
+              className="text-[11px] font-semibold text-red-500 transition hover:text-red-600"
+            >
+              Remove client
+            </button>
+          )}
         </div>
       </div>
 
-      <div className="mt-5 grid gap-4 md:grid-cols-3">
-        <div>
-          <label className={labelClass}>City</label>
+      {!collapsed && (
+        <>
+          <div className="grid gap-4 md:grid-cols-3">
+            <div>
+              <label className={labelClass}>First name</label>
 
-          <input
-            className={inputClass}
-            value={client.city ?? ""}
-            onChange={(e) =>
-              updateClient(client.id, {
-                city: e.target.value,
-              })
-            }
-          />
-        </div>
+              <input
+                className={inputClass}
+                value={client.first ?? ""}
+                onChange={(e) =>
+                  updateClient(client.id, {
+                    first: e.target.value,
+                  })
+                }
+              />
+            </div>
 
-        <div>
-          <label className={labelClass}>State / Province / Canton</label>
+            <div>
+              <label className={labelClass}>Last name</label>
 
-          {client.country === "US" ? (
+              <input
+                className={inputClass}
+                value={client.last ?? ""}
+                onChange={(e) =>
+                  updateClient(client.id, {
+                    last: e.target.value,
+                  })
+                }
+              />
+            </div>
+
+            <div>
+              <label className={labelClass}>Date of birth</label>
+
+              <input
+                type="date"
+                className={inputClass}
+                value={client.dob ?? ""}
+                onChange={(e) =>
+                  updateClient(client.id, {
+                    dob: e.target.value,
+                  })
+                }
+              />
+            </div>
+          </div>
+
+          <div className="mt-5 grid gap-4 md:grid-cols-3">
+            <div>
+              <label className={labelClass}>City</label>
+
+              <input
+                className={inputClass}
+                value={client.city ?? ""}
+                onChange={(e) =>
+                  updateClient(client.id, {
+                    city: e.target.value,
+                  })
+                }
+              />
+            </div>
+
+            <div>
+              <label className={labelClass}>State / Province / Canton</label>
+
+              {client.country === "US" ? (
+                <select
+                  className={inputClass}
+                  value={client.state ?? ""}
+                  onChange={(e) =>
+                    updateClient(client.id, {
+                      state: e.target.value,
+                    })
+                  }
+                >
+                  <option value="">— Select —</option>
+
+                  {Object.entries(US_STATE_TAX_RATES).map(([state, rate]) => (
+                    <option key={state} value={state}>
+                      {state} ({rate.toFixed(2)}%)
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <input
+                  className={inputClass}
+                  value={client.state ?? ""}
+                  onChange={(e) =>
+                    updateClient(client.id, {
+                      state: e.target.value,
+                    })
+                  }
+                />
+              )}
+            </div>
+
+            <div>
+              <label className={labelClass}>Country</label>
+
+              <select
+                className={inputClass}
+                value={client.country ?? ""}
+                onChange={(e) =>
+                  updateClient(client.id, {
+                    country: e.target.value as CountryCode,
+                  })
+                }
+              >
+                <option value="">— Select —</option>
+
+                {Object.entries(COUNTRY_LABELS).map(([code, label]) => (
+                  <option key={code} value={code}>
+                    {countryFlag(code)} {label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div className="mt-5">
+            <label className={labelClass}>Risk tolerance</label>
+
             <select
               className={inputClass}
-              value={client.state ?? ""}
+              value={client.risk ?? ""}
               onChange={(e) =>
                 updateClient(client.id, {
-                  state: e.target.value,
+                  risk: e.target.value as RiskProfile,
                 })
               }
             >
               <option value="">— Select —</option>
 
-              {Object.entries(US_STATE_TAX_RATES).map(([state, rate]) => (
-                <option key={state} value={state}>
-                  {state} ({rate.toFixed(2)}%)
+              {/* {Object.entries(RISK_PROFILES).map(([value, profile]) => (
+            <option key={value} value={value}>
+              {profile.label}
+            </option>
+          ))} */}
+              {Object.entries(RISK_PROFILES)
+                .filter(
+                  ([value]) =>
+                    value !== "very_conservative" &&
+                    value !== "very_aggressive",
+                )
+                .map(([value, profile]) => (
+                  <option key={value} value={value}>
+                    {profile.label}
+                  </option>
+                ))}
+            </select>
+
+            {riskProfile && (
+              <div className="mt-4 rounded-xl border border-[rgba(0,87,184,.08)] bg-[#f8faff] p-4">
+                <div className="text-[12px] text-[#64748b]">Risk Profile</div>
+
+                <div className="mt-1 text-[13px] font-semibold text-[#16213e]">
+                  {riskProfile.label}
+                  {" • "}μ {riskProfile.mu}% σ {riskProfile.sigma}%
+                </div>
+
+                <p className="mt-1 text-[11px] leading-5 text-[#9ca3af]">
+                  {riskProfile.note}
+                </p>
+              </div>
+            )}
+          </div>
+
+          <div className="mt-5">
+            <label className={labelClass}>Time horizon</label>
+
+            <select
+              className={inputClass}
+              value={client.horizon ?? ""}
+              onChange={(e) =>
+                updateClient(client.id, {
+                  horizon: e.target.value as TimeHorizon,
+                })
+              }
+            >
+              <option value="">— Select —</option>
+
+              {Object.entries(HORIZON_PROFILES).map(([value, profile]) => (
+                <option key={value} value={value}>
+                  {profile.label}
                 </option>
               ))}
             </select>
-          ) : (
-            <input
-              className={inputClass}
-              value={client.state ?? ""}
-              onChange={(e) =>
-                updateClient(client.id, {
-                  state: e.target.value,
-                })
-              }
-            />
-          )}
-        </div>
 
-        <div>
-          <label className={labelClass}>Country</label>
+            {horizonProfile && (
+              <div className="mt-4 rounded-xl border border-[rgba(0,87,184,.08)] bg-[#f8faff] p-4">
+                <div className="text-[12px] text-[#64748b]">Time horizon</div>
 
-          <select
-            className={inputClass}
-            value={client.country ?? ""}
-            onChange={(e) =>
-              updateClient(client.id, {
-                country: e.target.value as CountryCode,
-              })
-            }
-          >
-            <option value="">— Select —</option>
+                <div className="mt-1 text-[13px] font-semibold text-[#16213e]">
+                  {horizonProfile.label}
+                </div>
 
-            {Object.entries(COUNTRY_LABELS).map(([code, label]) => (
-              <option key={code} value={code}>
-                {countryFlag(code)} {label}
-              </option>
-            ))}
-          </select>
-        </div>
-      </div>
-
-      <div className="mt-5">
-        <label className={labelClass}>Risk tolerance</label>
-
-        <select
-          className={inputClass}
-          value={client.risk ?? ""}
-          onChange={(e) =>
-            updateClient(client.id, {
-              risk: e.target.value as RiskProfile,
-            })
-          }
-        >
-          <option value="">— Select —</option>
-
-          {Object.entries(RISK_PROFILES).map(([value, profile]) => (
-            <option key={value} value={value}>
-              {profile.label}
-            </option>
-          ))}
-        </select>
-
-        {riskProfile && (
-          <div className="mt-4 rounded-xl border border-[rgba(0,87,184,.08)] bg-[#f8faff] p-4">
-            <div className="text-[12px] text-[#64748b]">Risk Profile</div>
-
-            <div className="mt-1 text-[13px] font-semibold text-[#16213e]">
-              {riskProfile.label}
-              {" • "}μ {riskProfile.mu}% σ {riskProfile.sigma}%
-            </div>
-
-            <p className="mt-1 text-[11px] leading-5 text-[#9ca3af]">
-              {riskProfile.note}
-            </p>
+                <p className="mt-1 text-[11px] leading-5 text-[#9ca3af]">
+                  {horizonProfile.note}
+                </p>
+              </div>
+            )}
           </div>
-        )}
-      </div>
-
-      <div className="mt-5">
-        <label className={labelClass}>Time horizon</label>
-
-        <select
-          className={inputClass}
-          value={client.horizon ?? ""}
-          onChange={(e) =>
-            updateClient(client.id, {
-              horizon: e.target.value as TimeHorizon,
-            })
-          }
-        >
-          <option value="">— Select —</option>
-
-          {Object.entries(HORIZON_PROFILES).map(([value, profile]) => (
-            <option key={value} value={value}>
-              {profile.label}
-            </option>
-          ))}
-        </select>
-
-        {horizonProfile && (
-          <div className="mt-4 rounded-xl border border-[rgba(0,87,184,.08)] bg-[#f8faff] p-4">
-            <div className="text-[12px] text-[#64748b]">Time horizon</div>
-
-            <div className="mt-1 text-[13px] font-semibold text-[#16213e]">
-              {horizonProfile.label}
-            </div>
-
-            <p className="mt-1 text-[11px] leading-5 text-[#9ca3af]">
-              {horizonProfile.note}
-            </p>
-          </div>
-        )}
-      </div>
+        </>
+      )}
     </div>
   );
 }

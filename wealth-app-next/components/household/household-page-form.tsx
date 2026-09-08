@@ -66,13 +66,15 @@ export function HouseholdPageForm({
         const migratedProposal = migrateProposal(raw);
 
         const proposalToSave: Proposal = migratedProposal ?? {
-          clientName: result.data.clients
-            .map((client) => `${client.first} ${client.last}`.trim())
-            .join(" & "),
+          clientId: result.data.clients[0]?.id ?? "",
+
+          clientName: result.data.clients[0]
+            ? `${result.data.clients[0].first} ${result.data.clients[0].last}`.trim()
+            : "",
 
           advisor: "",
           targetAmount: 0,
-          objective: "balanced",
+          objective: "Balanced",
           positions: [],
           currency: result.data.currency,
         };
