@@ -32,8 +32,11 @@ export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user)
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const hh = await resolveHousehold(supabase, request);
   if (!hh.ok) {
@@ -46,14 +49,21 @@ export async function GET(request: Request) {
   const cur = await currentPlan(supabase, hh.household.id);
 
   if (cur.state === "none") {
-    return NextResponse.json({ plan: null, version: 0, household: hh.household });
+    return NextResponse.json({
+      plan: null,
+      version: 0,
+      household: hh.household,
+    });
   }
   if (cur.state === "invalid") {
     // A distinct "corrupted" state, so the UI shows a recoverable error
     // rather than being handed broken JSONB.
     return NextResponse.json({
-      plan: null, invalid: true, version: cur.version,
-      fieldErrors: cur.fieldErrors, household: hh.household,
+      plan: null,
+      invalid: true,
+      version: cur.version,
+      fieldErrors: cur.fieldErrors,
+      household: hh.household,
     });
   }
 
@@ -67,8 +77,11 @@ export async function GET(request: Request) {
 
 export async function PUT(request: Request) {
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user)
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const hh = await resolveHousehold(supabase, request);
   if (!hh.ok) {
@@ -79,24 +92,52 @@ export async function PUT(request: Request) {
   }
 
   let body: unknown;
-  try { body = await request.json(); }
-  catch { return NextResponse.json({ error: "Invalid JSON" }, { status: 400 }); }
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+  }
 
   // The version the client edited may ride in an envelope or as a header.
   // A bare plan (no envelope) is still accepted, so an older client keeps
   // working — it just gets last-write-wins instead of a 409.
-  const env = (body && typeof body === "object" ? body : {}) as Record<string, unknown>;
+  const env = (body && typeof body === "object" ? body : {}) as Record<
+    string,
+    unknown
+  >;
   const hasEnvelope = "plan" in env;
-  const rawBase = hasEnvelope ? env.baseVersion : request.headers.get("x-base-version");
+  const rawBase = hasEnvelope
+    ? env.baseVersion
+    : request.headers.get("x-base-version");
   const baseVersion =
-    rawBase === undefined || rawBase === null || rawBase === "" ? null : Number(rawBase);
+    rawBase === undefined || rawBase === null || rawBase === ""
+      ? null
+      : Number(rawBase);
   if (baseVersion !== null && !Number.isInteger(baseVersion)) {
-    return NextResponse.json({ error: "baseVersion must be an integer" }, { status: 400 });
+    return NextResponse.json(
+      { error: "baseVersion must be an integer" },
+      { status: 400 },
+    );
   }
 
   const parsed = parsePlan(hasEnvelope ? env.plan : body);
+  // if (!parsed.ok) {
+  //   return NextResponse.json({ error: "Invalid plan", fieldErrors: parsed.fieldErrors }, { status: 400 });
+  // }
   if (!parsed.ok) {
-    return NextResponse.json({ error: "Invalid plan", fieldErrors: parsed.fieldErrors }, { status: 400 });
+    console.error("PLAN VALIDATION FAILED:", parsed.fieldErrors);
+
+    console.dir(parsed.fieldErrors, {
+      depth: null,
+    });
+
+    return NextResponse.json(
+      {
+        error: "Invalid plan",
+        fieldErrors: parsed.fieldErrors,
+      },
+      { status: 400 },
+    );
   }
 
   // The previous version, for the audit diff. Unlike the old route this
@@ -115,12 +156,16 @@ export async function PUT(request: Request) {
 
   if (!saved.ok) {
     if (saved.conflict) {
-      return NextResponse.json({
-        error: "This plan was changed by someone else while you were editing it. " +
-               "Reload to see the current version before saving again.",
-        code: "version_conflict",
-        currentVersion: saved.currentVersion,
-      }, { status: 409 });
+      return NextResponse.json(
+        {
+          error:
+            "This plan was changed by someone else while you were editing it. " +
+            "Reload to see the current version before saving again.",
+          code: "version_conflict",
+          currentVersion: saved.currentVersion,
+        },
+        { status: 409 },
+      );
     }
     return NextResponse.json({ error: saved.error }, { status: 500 });
   }
@@ -128,7 +173,8 @@ export async function PUT(request: Request) {
   // The save has already succeeded. An audit failure must not undo it, but
   // it must not be hidden either, so the warning rides back on the response.
   const diff = diffPlans(beforePlan, parsed.plan);
-  const src = (new URL(request.url).searchParams.get("source") || "web") as AuditSource;
+  const src = (new URL(request.url).searchParams.get("source") ||
+    "web") as AuditSource;
   const audit = await recordEvent(supabase, user.id, {
     action: "plan.updated",
     source: ["web", "feed", "import", "api"].includes(src) ? src : "web",
@@ -139,7 +185,9 @@ export async function PUT(request: Request) {
     currency: diff.currency,
     hashBefore: beforePlan ? planHash(beforePlan) : null,
     hashAfter: planHash(parsed.plan),
-    detail: diff.truncated ? `${diff.truncated} further change(s) not itemised` : null,
+    detail: diff.truncated
+      ? `${diff.truncated} further change(s) not itemised`
+      : null,
     householdId: hh.household.id,
     orgId: hh.household.orgId,
   });

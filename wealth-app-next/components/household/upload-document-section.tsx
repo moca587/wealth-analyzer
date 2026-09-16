@@ -14,14 +14,15 @@ export function UploadDocumentSection({ onUpload }: Props) {
       </div>
 
       <p className="mb-4 text-[12px] leading-5 text-[#64748b]">
-        Upload a financial document to import household information.
+        Upload a financial document to import household information. Supported
+        document formats are CSV, TXT, PDF.
       </p>
 
       <label className="inline-flex cursor-pointer items-center rounded-lg border border-[rgba(0,87,184,.14)] bg-white px-4 py-2 text-[12px] font-semibold text-[#0057b8] transition hover:bg-[#f8faff]">
         ⬆ Upload document
         <input
           type="file"
-          accept=".csv,.pdf,.xlsx,.xls"
+          accept=".csv,.txt,.pdf"
           className="hidden"
           onChange={(e) => {
             const file = e.target.files?.[0];

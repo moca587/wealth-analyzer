@@ -34,6 +34,7 @@ export function AiPortfolioPageForm({
   const plan = initialPlan;
 
   const emptyProposal: Proposal = {
+    clientId: "",
     positions: [],
     targetAmount: 0,
     currency: "USD",
