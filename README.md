@@ -76,6 +76,16 @@ Notes:
   serves the gated layout for every route and all pages redirect to `/login`.
 - This setup is for development only. The production image is `wealth-app-next/Dockerfile`.
 
+#### Workflow
+
+1. docker compose build
+2. docker compose up -d
+3. open applciation https://localhost:3000
+4. create a new user
+5. email will be sent to local email inbox available on http://localhost:8025
+6. open email, click on link to verify email
+7. in new tab open new applciation instance an you will be logged in https://localhost:3000
+
 ### Next.js SaaS application — without Docker
 
 Requires Node.js 20+ and a Supabase project:
