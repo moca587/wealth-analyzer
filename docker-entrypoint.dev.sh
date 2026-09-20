@@ -9,15 +9,15 @@
 #   - stamp ≠ lockfile hash   → npm ci (deps actually changed)
 set -eu
 
-STAMP=/app/node_modules/.package-lock.sha
-LOCK=/app/package-lock.json
+STAMP=/workspace/node_modules/.package-lock.sha
+LOCK=/workspace/package-lock.json
 
-mkdir -p /app/node_modules /app/.next
+mkdir -p /workspace/node_modules /workspace/.next
 
 if [ -f "$LOCK" ]; then
   HASH=$(sha256sum "$LOCK" | awk '{print $1}')
 
-  if [ ! -d /app/node_modules/.bin ]; then
+  if [ ! -d /workspace/node_modules/.bin ]; then
     echo "docker-entrypoint: node_modules empty; running npm ci…"
     npm ci
     echo "$HASH" > "$STAMP"

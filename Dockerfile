@@ -15,12 +15,12 @@ FROM node:20-bookworm-slim AS dev
 ENV NEXT_TELEMETRY_DISABLED=1 \
     WATCHPACK_POLLING=true
 
-WORKDIR /app
+WORKDIR /workspace
 
 COPY --chown=node:node docker-entrypoint.dev.sh /usr/local/bin/docker-entrypoint.dev.sh
 RUN chmod +x /usr/local/bin/docker-entrypoint.dev.sh \
-    && mkdir -p /app/.next \
-    && chown node:node /app /app/.next
+    && mkdir -p /workspace/.next \
+    && chown node:node /workspace /workspace/.next
 
 # Lockfile first so the dependency layer is cached until deps change.
 COPY --chown=node:node wealth-app-next/package.json wealth-app-next/package-lock.json ./
