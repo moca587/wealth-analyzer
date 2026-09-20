@@ -1,0 +1,81 @@
+# Development environment for wealth-app-next/ (Next.js + Supabase client).
+#
+#   cp wealth-app-next/.env.local.example wealth-app-next/.env.local   # once
+#   docker compose up --build          # http://localhost:3000, hot reload
+#   docker compose up --build --watch  # also restart app when deps change
+#                                      # (entrypoint re-runs npm ci)
+#
+# Tests / type-check / lint run in the same container:
+#   docker compose run --rm app npm run test:run
+#   docker compose run --rm app npm run type-check
+#   docker compose run --rm app npm run lint
+#
+# Optional throwaway Postgres for rehearsing migrations (real Postgres, --stub
+# auth schema). Port 55432 matches wealth-app-next/docker-compose.rehearsal.yml
+# — do not run both at once (same host port). Prefer this profile when you
+# already have the app compose up; use the rehearsal file alone otherwise:
+#   docker compose --profile db up -d db
+#   docker compose run --rm -e DATABASE_URL=postgres://postgres:dev@db:5432/postgres \
+#     app npm run db:migrate -- --stub
+#
+# Auth/persistence need a real Supabase project (or `supabase start` on the
+# host) in .env.local; placeholder values are enough to render the UI.
+#
+# env_file path/required syntax needs Compose 2.24+.
+# If you change APP_PORT, also update NEXT_PUBLIC_APP_URL in .env.local —
+# auth redirects follow that URL, not the published port alone.
+#
+# Note: the source is bind-mounted, so npm scripts run in the container CAN
+# write to the host checkout. For inspecting untrusted code use a copy, not this.
+
+services:
+  app:
+    build:
+      context: .
+      target: dev
+    image: wealth-analyzer-dev
+    init: true
+    ports:
+      - "127.0.0.1:${APP_PORT:-3000}:3000"
+    env_file:
+      - path: wealth-app-next/.env.local
+        required: false
+    environment:
+      NODE_ENV: development
+    volumes:
+      - ./wealth-app-next:/app
+      - node_modules:/app/node_modules
+      - next_cache:/app/.next
+    # Bind-mount already hot-reloads source. Restart on lockfile/package.json
+    # change so the entrypoint can `npm ci` into the named volume (a Watch
+    # `rebuild` only refreshes the image and leaves the volume stale).
+    # sync+restart: this Compose build has no bare `restart` action; sync is
+    # a no-op under the bind mount but the restart is what we need.
+    develop:
+      watch:
+        - action: sync+restart
+          path: wealth-app-next/package-lock.json
+          target: /app/package-lock.json
+        - action: sync+restart
+          path: wealth-app-next/package.json
+          target: /app/package.json
+
+  db:
+    profiles: ["db"]
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_PASSWORD: dev
+      POSTGRES_DB: postgres
+    ports:
+      - "127.0.0.1:55432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 3s
+      timeout: 3s
+      retries: 10
+    tmpfs:
+      - /var/lib/postgresql/data
+
+volumes:
+  node_modules:
+  next_cache:
