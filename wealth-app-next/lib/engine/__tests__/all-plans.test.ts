@@ -114,9 +114,11 @@ describe("all-plans integration", () => {
 
     it("models an accumulate→decumulate horizon to planToAge", () => {
       // primary client age at asOf 2026 = 56 (born 1969-03, before Jan 1) → 95-56 = 39 yrs
-      expect(r.years).toBe(39);
+      // (the engine's horizon is max(requested years, planToAge - age), so ask for fewer)
+      const short = run(plan, { years: 30 });
+      expect(short.years).toBe(39);
       // horizon reaches past age 73, so the RMD branch is exercised
-      expect(r.years).toBeGreaterThan(73 - 56);
+      expect(short.years).toBeGreaterThan(73 - 56);
     });
 
     it("returns a 'will my money last?' summary that is internally consistent", () => {
