@@ -40,7 +40,7 @@ function richPlan(): WealthPlan {
     { id: "a_cr", type: "crypto", label: "Crypto", value: 50000, liquid: true, cls: "crypto" },
   ];
   return {
-    version: 1, currency: "USD", inflationRate: 0.038, inflationRegion: "US",
+    version: 1, annualSavings: 0, annualRaiseRate: 0, currency: "USD", inflationRate: 0.038, inflationRegion: "US",
     clients: [
       { id: "c1", first: "Marcus", last: "Vance", dob: "1969-03-01", country: "US", risk: "moderately_aggressive", horizon: "15_plus" },
       { id: "c2", first: "Lena", last: "Vance", dob: "1971-08-01", country: "US", risk: "moderate", horizon: "15_plus" },
