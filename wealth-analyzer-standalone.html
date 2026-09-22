@@ -3382,6 +3382,20 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
   <div id="pfCrossOverlap"><div class="cmp-empty">Add a second portfolio to screen for positions held in more than one.</div></div>
 </div>
 
+<!-- Live prices — free, via a user-deployed Cloudflare Worker proxy (no API key) -->
+<div class="panel">
+  <div class="ptitle">Live Prices <span style="font-size:11px;color:var(--text3);font-weight:500">— free, no API key</span></div>
+  <div style="font-size:12px;color:var(--text3);margin-bottom:8px;line-height:1.6">Pulls live quotes from Yahoo Finance with no API key, through a free proxy you deploy once (Yahoo can't be called directly from a browser). Paste your Cloudflare Worker URL below. Prices are cached, so the last-known value still shows if a fetch fails.</div>
+  <div class="frow"><label class="flbl">Data proxy URL</label>
+    <input id="pfProxyUrl" placeholder="https://your-worker.workers.dev" onchange="savePfProxy(this.value)" style="min-width:280px;flex:1">
+  </div>
+  <div style="display:flex;gap:8px;margin-top:10px;align-items:center;flex-wrap:wrap">
+    <button class="btn-primary" onclick="refreshAllPrices()">↻ Refresh live prices</button>
+    <span id="pfRefreshStatus" style="font-size:12px;color:var(--text3)"></span>
+  </div>
+  <div style="font-size:11px;color:var(--text3);margin-top:8px;line-height:1.6">No key means keyless free sources (Yahoo, Stooq); brokerage-account linking (Fidelity/Vanguard/Schwab holdings) needs a licensed aggregator and belongs in the server-side product.</div>
+</div>
+
 <!-- Market data API keys moved to Settings (gear, top-right) → "Data & integrations". -->
 
 <!-- Linked account -->
@@ -4514,7 +4528,7 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
 // ═══════════════════════════════════════════════════════════
 // VERSION — updated by build-standalone.pl on each build
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260922-1207";
+const APP_VERSION = "20260922-1218";
 
 // ═══════════════════════════════════════════════════════════
 // DATA
@@ -7477,6 +7491,7 @@ function showTab(name,el){
   if(name==="portfolio"){
     _pfEnsure(); renderPortfolioSwitcher();
     renderInvestments();renderPortfolioMetrics();drawPortfolioPie();
+    try{ const pe=$("pfProxyUrl"); if(pe) pe.value=localStorage.getItem("wa_cors_proxy")||""; }catch(_){}
     try { applyMdKeysState(); renderMdKeysGrid(); } catch(_){}
   }
   if(name==="proposal"){renderProposals();renderProposalMetrics();renderProposalBars();drawProposalPie();syncProposalClient();ordFillRouteForm();ordRenderRouteSummary();ordRenderLog();}
@@ -11819,6 +11834,12 @@ function pfDelete(){
   if(!confirm('Delete "'+cur.name+'" and its holdings? This cannot be undone.')) return;
   portfolios=portfolios.filter(x=>x.id!==activePfId);
   _pfLoadInto(portfolios[0].id);
+}
+
+// Save the free market-data proxy (Cloudflare Worker) URL used for live prices.
+function savePfProxy(v){
+  try{ localStorage.setItem("wa_cors_proxy", String(v||"").trim()); }catch(_){}
+  const s=$("pfRefreshStatus"); if(s) s.textContent = (v&&String(v).trim()) ? "Proxy saved — live prices will route through it." : "Proxy cleared — using public fallback (unreliable).";
 }
 
 // ── Position-overlap screening (matched by ticker → ISIN → name) ──────
@@ -16371,6 +16392,13 @@ const MarketData = (function(){
   // Tries the direct URL first. If it fails with a network/CORS error
   // (TypeError or opaque response), retries through corsproxy.io which
   // adds the missing Access-Control-Allow-Origin header for us.
+  // Build the proxy URL for a target. Prefers a user-configured proxy
+  // (a free Cloudflare Worker set in the Live Prices panel) over the public
+  // corsproxy.io fallback, so keyless sources like Yahoo work reliably.
+  function _proxyUrl(u){
+    const base=(localStorage.getItem("wa_cors_proxy")||"").trim().replace(/\/+$/,"");
+    return base ? (base+"/?url="+encodeURIComponent(u)) : ("https://corsproxy.io/?"+encodeURIComponent(u));
+  }
   async function corsFetch(url, opts){
     opts = opts || {};
     try {
@@ -16382,8 +16410,8 @@ const MarketData = (function(){
       if(r.status >= 400 && r.status < 500) return r;
       throw new Error("HTTP "+r.status);
     } catch(_){
-      // Network error → retry through CORS proxy
-      const proxied = "https://corsproxy.io/?" + encodeURIComponent(url);
+      // Network error → retry through the configured proxy (Worker) or public fallback
+      const proxied = _proxyUrl(url);
       return await fetch(proxied, opts);
     }
   }
@@ -16520,7 +16548,7 @@ const MarketData = (function(){
   async function tryYahoo(t){
     const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(t)}?interval=1d`;
     let r;
-    try { r = await fetch(url); } catch(e){ r = await fetch(`https://corsproxy.io/?${encodeURIComponent(url)}`); }
+    try { r = await fetch(url); } catch(e){ r = await fetch(_proxyUrl(url)); }
     if(!r.ok) throw new Error("HTTP "+r.status);
     const j = await r.json(); const m = j.chart && j.chart.result && j.chart.result[0] && j.chart.result[0].meta;
     if(!m) throw new Error("No meta");
@@ -16550,7 +16578,7 @@ const MarketData = (function(){
     const sym = t.includes(".") ? t.toLowerCase() : t.toLowerCase() + ".us";
     const url = `https://stooq.com/q/l/?s=${encodeURIComponent(sym)}&f=sd2t2ohlcv&h&e=csv`;
     let r;
-    try { r = await fetch(url); } catch(e){ r = await fetch(`https://corsproxy.io/?${encodeURIComponent(url)}`); }
+    try { r = await fetch(url); } catch(e){ r = await fetch(_proxyUrl(url)); }
     if(!r.ok) throw new Error("HTTP "+r.status);
     const txt = await r.text();
     const lines = txt.trim().split("\n"); if(lines.length < 2) throw new Error("No data");
@@ -16780,9 +16808,19 @@ const MarketData = (function(){
       if(needsKey[n] && !needsKey[n]()) continue;
       try {
         const d = await fetchOne(t, n);
-        if(d && d.price>0){ cache.set(k,{data:d,ts:Date.now()}); return d; }
+        if(d && d.price>0){
+          cache.set(k,{data:d,ts:Date.now()});
+          try{ localStorage.setItem("wa_lastquote_"+t, JSON.stringify({data:d,ts:Date.now()})); }catch(_){}
+          return d;
+        }
       } catch(e){ console.warn(`MarketData ${n} failed:`, e.message); }
     }
+    // Graceful fallback — serve the last good quote saved for this symbol so
+    // the app always shows a number even when every live source is unreachable.
+    try{
+      const saved=JSON.parse(localStorage.getItem("wa_lastquote_"+t)||"null");
+      if(saved && saved.data && saved.data.price>0){ return {...saved.data, stale:true, asOf:saved.ts}; }
+    }catch(_){}
     throw new Error("All providers failed for "+t);
   }
 
