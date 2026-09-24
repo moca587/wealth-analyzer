@@ -25,6 +25,7 @@ my $autotable_js = slurp_text("$V/autotable.min.js");
 my $pdfjs_main   = slurp_text("$V/pdf.min.js");
 my $worker_bytes = slurp("$V/pdf.worker.min.js");
 my $worker_b64   = encode_base64($worker_bytes, "");  # no line breaks
+my $lucide_js    = (-f "$V/lucide.min.js") ? slurp_text("$V/lucide.min.js") : "";
 
 print "Transforming...\n";
 
@@ -146,6 +147,15 @@ if (-f "admin.html") {
     $admin =~ s|'JetBrains Mono','SF Mono','Monaco','Consolas',monospace|'SF Mono','Monaco','Consolas','Courier New',monospace|g;
     # Inline Chart.js
     $admin =~ s|<script (?:defer )?src="https://cdnjs\.cloudflare\.com/ajax/libs/Chart\.js/4\.4\.1/chart\.umd\.min\.js"></script>|$chart_block|;
+    # Inline Lucide (local vendor script — admin source loads vendor/lucide.min.js)
+    if ($lucide_js ne "") {
+      my $lucide_block = "<script>/* Lucide 0.460.0 - inlined */\n$lucide_js\n</script>";
+      $admin =~ s|<script src="vendor/lucide\.min\.js"></script>|$lucide_block|;
+      # Drop the version comment that sits above the script tag (optional)
+      $admin =~ s|<!-- Lucide 0\.460\.0[^>]*-->\s*||;
+    } else {
+      warn "  WARNING: vendor/lucide.min.js missing — admin-standalone will still reference it\n";
+    }
 
     my $admin_dest = "admin-standalone.html";
     open my $aout, '>:encoding(UTF-8)', $admin_dest or die "Cannot write admin: $!";

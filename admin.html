@@ -8,6 +8,8 @@
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<!-- Lucide 0.460.0 (pinned; matches wealth-app-next lucide-react) -->
+<script src="vendor/lucide.min.js"></script>
 <style>
 /* ══════════════════════════════════════════════════════════════
    THEME TOKENS — docs/style-guide.md §4.
@@ -89,8 +91,8 @@ body{font-family:var(--font-sans);background:var(--color-bg-canvas);color:var(--
 .nav:hover{color:var(--color-text);background:var(--color-primary-tint-1);transform:translateX(2px)}
 .nav.active{color:var(--color-primary);border-left-color:var(--color-primary);background:linear-gradient(90deg,var(--color-primary-tint-2),transparent)}
 .nav svg{width:14px;height:14px;flex-shrink:0;opacity:.65}
-/* "NEW" badge: navy, not purple (plan §7.2a, Q12/Q19) */
-.nav-new{margin-left:auto;background:var(--color-bg-inverse);color:var(--color-text-on-inverse);font-size:8px;padding:2px 6px;border-radius:var(--radius-pill);font-weight:700;letter-spacing:.04em}
+/* "NEW" badge — same recipe as the demo (purple → primary) */
+.nav-new{margin-left:auto;background:linear-gradient(135deg,#7c3aed,var(--color-primary));color:var(--color-on-primary);font-size:8px;padding:2px 6px;border-radius:var(--radius-pill);font-weight:700;letter-spacing:.04em;pointer-events:none}
 .main{flex:1;min-width:0;overflow-y:auto;padding:28px 32px;background:radial-gradient(1100px 480px at 88% -8%,var(--color-glow-canvas),transparent 62%),var(--color-bg-canvas)}
 @media(max-width:900px){.sidebar{display:none}.main{padding:16px}}
 
@@ -108,17 +110,24 @@ body{font-family:var(--font-sans);background:var(--color-bg-canvas);color:var(--
 body.wa-page-hidden .wealth-hero::before{animation-play-state:paused}
 .wealth-hero>*{position:relative;z-index:var(--z-raised)}
 .wh-left{flex:1;padding:32px 36px;display:flex;flex-direction:column}
-.wh-title{font-size:27px;font-weight:800;margin-bottom:5px;letter-spacing:-.045em;line-height:1.1;
-  background:linear-gradient(93deg,var(--color-text-on-inverse) 0%,var(--color-primary-on-inverse) 55%,var(--color-primary-on-inverse-end) 100%);
+.wh-title{display:flex;align-items:center;gap:12px;font-size:27px;font-weight:800;margin-bottom:5px;letter-spacing:-.045em;line-height:1.1;color:var(--color-text-on-inverse)}
+.wh-title-text{background:linear-gradient(93deg,var(--color-text-on-inverse) 0%,var(--color-primary-on-inverse) 55%,var(--color-primary-on-inverse-end) 100%);
   -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.wh-title .icon{width:22px;height:22px;color:var(--color-primary-on-inverse);flex-shrink:0}
 .wh-sub{font-size:13px;color:var(--color-text-on-inverse-muted);margin-bottom:22px;line-height:1.65;font-weight:400}
 /* Admin headers hold a title and one line; without the demo's side panel the
    hero sizes to its content instead of the 290px showcase height. */
 .wealth-hero:not(:has(.wh-right)){min-height:0}
 .wealth-hero:not(:has(.wh-right)) .wh-left{padding:26px 32px}
 .wh-left>:last-child{margin-bottom:0}
-/* Emoji keep their own colours instead of being clipped to the title gradient */
-.wh-ico{-webkit-text-fill-color:initial}
+/* Lucide icons (§5.22) — stroke currentColor */
+.icon{width:16px;height:16px;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;fill:none;flex-shrink:0;display:inline-block;vertical-align:-0.2em}
+.icon-lg{width:32px;height:32px}
+.btn .icon,.btn-ghost .icon,.btn-link .icon,.rp-mini .icon{width:14px;height:14px}
+.ptitle .icon{width:14px;height:14px;color:var(--color-primary)}
+.ablock h3 .icon{width:14px;height:14px}
+.pill .icon{width:12px;height:12px;vertical-align:-0.15em}
+.test-badge .icon{width:14px;height:14px;stroke-width:2.5}
 
 /* ── Cards: panel and section title (§5.2) ── */
 .panel,.ablock,.rp-card,.test-card{position:relative;background:var(--color-bg-surface);border:1px solid var(--color-border-subtle);border-left:3px solid transparent;border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);transition:box-shadow .25s,border-left-color .2s}
@@ -222,7 +231,7 @@ textarea{font-family:var(--font-mono);font-size:12px;width:100%;min-height:70px;
 
 /* ── Agent result blocks (card recipe above) ── */
 .ablock{padding:18px 22px;margin-bottom:12px}
-.ablock h3{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.10em;color:var(--color-primary);margin-bottom:10px}
+.ablock h3{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.10em;color:var(--color-primary);margin-bottom:10px}
 .abar{display:grid;grid-template-columns:160px 1fr 80px;gap:10px;align-items:center;padding:7px 0;border-bottom:1px solid var(--color-border)}
 .abar-fund{font-weight:600}
 .abar-track{height:11px;background:var(--color-primary-tint-1);border-radius:6px;overflow:hidden}
@@ -231,7 +240,8 @@ textarea{font-family:var(--font-mono);font-size:12px;width:100%;min-height:70px;
 .arat{font-size:11px;color:var(--color-text-muted);grid-column:1/-1;padding:2px 0 4px;font-style:italic;line-height:1.5}
 
 /* ── Toast (restyled in P2-11) ── */
-#toast{position:fixed;bottom:24px;right:24px;background:var(--color-text);color:var(--color-text-on-inverse);padding:11px 18px;border-radius:var(--radius-pill);font-size:13px;font-weight:600;box-shadow:var(--shadow-xl);transform:translateY(20px);opacity:0;transition:all .25s;z-index:var(--z-tooltip);pointer-events:none}
+#toast{position:fixed;bottom:24px;right:24px;display:inline-flex;align-items:center;gap:8px;background:var(--color-text);color:var(--color-text-on-inverse);padding:11px 18px;border-radius:var(--radius-pill);font-size:13px;font-weight:600;box-shadow:var(--shadow-xl);transform:translateY(20px);opacity:0;transition:all .25s;z-index:var(--z-tooltip);pointer-events:none}
+#toast .icon{width:14px;height:14px}
 #toast.show{transform:translateY(0);opacity:1}
 #toast.ok{background:var(--color-success);color:var(--color-on-success)}
 #toast.err{background:var(--color-error);color:var(--color-on-error)}
@@ -329,7 +339,7 @@ textarea{font-family:var(--font-mono);font-size:12px;width:100%;min-height:70px;
 <!-- ─── DASHBOARD ─── -->
 <div class="tab active" id="tab-dashboard">
   <div class="wealth-hero"><div class="wh-left">
-    <h1 class="wh-title"><span class="wh-ico" aria-hidden="true">🎛</span> Admin Console Dashboard</h1>
+    <h1 class="wh-title"><i data-lucide="layout-dashboard" class="icon wh-ico" aria-hidden="true"></i><span class="wh-title-text">Admin Console Dashboard</span></h1>
     <p class="wh-sub">Connected to your local Wealth Analyzer app — shares localStorage for profile, keys, and configuration. No backend required.</p>
   </div></div>
   <div class="kpi-grid" id="dashKpis"></div>
@@ -348,7 +358,7 @@ textarea{font-family:var(--font-mono);font-size:12px;width:100%;min-height:70px;
 <!-- ─── USERS ─── -->
 <div class="tab" id="tab-users">
   <div class="wealth-hero"><div class="wh-left">
-    <h1 class="wh-title"><span class="wh-ico" aria-hidden="true">👥</span> User Management</h1>
+    <h1 class="wh-title"><i data-lucide="users" class="icon wh-ico" aria-hidden="true"></i><span class="wh-title-text">User Management</span></h1>
     <p class="wh-sub">Track every user who creates a financial plan. When a user saves their plan in the main app, it appears here automatically. Click <strong>Build Portfolio</strong> on any user to send their plan to the AI Agent and generate an institutional-grade recommendation.</p>
   </div></div>
 
@@ -358,13 +368,13 @@ textarea{font-family:var(--font-mono);font-size:12px;width:100%;min-height:70px;
     <div class="ptitle">All Users</div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;align-items:center">
       <button class="btn" data-action="addUser">+ Add User</button>
-      <button class="btn-ghost" data-action="captureFromMainApp">↻ Capture from Main App</button>
-      <button class="btn-ghost" data-action="buildAllPortfolios">⚡ Build Portfolios for All</button>
+      <button class="btn-ghost" data-action="captureFromMainApp"><i data-lucide="refresh-cw" class="icon" aria-hidden="true"></i> Capture from Main App</button>
+      <button class="btn-ghost" data-action="buildAllPortfolios"><i data-lucide="zap" class="icon" aria-hidden="true"></i> Build Portfolios for All</button>
       <input type="text" id="userSearch" placeholder="Search by name or email..." style="margin-left:auto;width:240px" oninput="renderUserTable()">
     </div>
     <div id="userTable"></div>
     <div style="font-size:11px;color:var(--color-text-muted);margin-top:14px;line-height:1.6;padding:10px 12px;background:rgba(0,87,184,.04);border-radius:6px">
-      <strong style="color:var(--color-primary)">💡 How users get added:</strong> the admin automatically watches the main app's <code>wa_pending_profile</code> localStorage key. When a user saves their profile in the main app and clicks "↻ Capture from Main App" here, the latest profile is registered as a user. You can also manually add users via the + Add User button.
+      <strong style="color:var(--color-primary)"><i data-lucide="lightbulb" class="icon" aria-hidden="true"></i> How users get added:</strong> the admin automatically watches the main app's <code>wa_pending_profile</code> localStorage key. When a user saves their profile in the main app and clicks Capture from Main App here, the latest profile is registered as a user. You can also manually add users via the + Add User button.
     </div>
   </div>
 
@@ -378,7 +388,7 @@ textarea{font-family:var(--font-mono);font-size:12px;width:100%;min-height:70px;
 <!-- ─── AI AGENT ─── -->
 <div class="tab" id="tab-agent">
   <div class="wealth-hero"><div class="wh-left">
-    <h1 class="wh-title"><span class="wh-ico" aria-hidden="true">🤖</span> AI Portfolio Construction Agent</h1>
+    <h1 class="wh-title"><i data-lucide="bot" class="icon wh-ico" aria-hidden="true"></i><span class="wh-title-text">AI Portfolio Construction Agent</span></h1>
     <p class="wh-sub">Synthesizes research from <span class="js-prov-count">16</span> institutional sources, the client's financial plan, and a curated fund universe to produce a complete portfolio recommendation. Powered by AI.</p>
   </div></div>
 
@@ -397,7 +407,7 @@ textarea{font-family:var(--font-mono);font-size:12px;width:100%;min-height:70px;
   <div class="panel">
     <div class="ptitle">① Client Brief</div>
     <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">
-      <button class="btn-ghost" data-action="loadProfile">↻ Refresh from main app</button>
+      <button class="btn-ghost" data-action="loadProfile"><i data-lucide="refresh-cw" class="icon" aria-hidden="true"></i> Refresh from main app</button>
       <button class="btn-ghost" data-action="loadProfileFile">⬆ Load JSON</button>
       <input type="file" id="profileFile" accept=".json" style="display:none">
     </div>
@@ -471,9 +481,9 @@ Down payment | 2028 | 150000</textarea>
     <div class="ptitle">② Research Sources <span style="color:var(--color-success);font-weight:600">— all <span class="js-prov-count">16</span> enabled by default</span></div>
     <div class="pdesc">All institutional sources are automatically pulled when you open this tab. <strong style="color:var(--color-success)">Auto-refresh runs every 5 minutes</strong>. Uncheck any you want to exclude from the agent's reasoning.</div>
     <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center">
-      <button class="btn-ghost" data-action="manualResearchRefresh">↻ Pull latest now</button>
-      <button class="btn-ghost" data-action="tickAllResearch">✓ Tick all</button>
-      <button class="btn-ghost" data-action="untickAllResearch">✕ Untick all</button>
+      <button class="btn-ghost" data-action="manualResearchRefresh"><i data-lucide="refresh-cw" class="icon" aria-hidden="true"></i> Pull latest now</button>
+      <button class="btn-ghost" data-action="tickAllResearch"><i data-lucide="check" class="icon" aria-hidden="true"></i> Tick all</button>
+      <button class="btn-ghost" data-action="untickAllResearch"><i data-lucide="x" class="icon" aria-hidden="true"></i> Untick all</button>
       <span id="autoRefreshCountdown" style="margin-left:auto;font-size:11px;color:var(--color-success);font-weight:600;font-family:var(--font-mono)"></span>
     </div>
     <div id="agResearch" class="grid3" style="gap:8px"></div>
@@ -485,7 +495,7 @@ Down payment | 2028 | 150000</textarea>
       The <strong>Research Engine</strong> scans every cached research item across all <span class="js-prov-count">16</span> institutions, extracts <strong>asset-class signals</strong>, <strong>theme votes</strong>, <strong>sector calls</strong>, and <strong>regional positioning</strong> via keyword matching. It then picks funds from the universe based on consensus strength and your constraints. <strong>Every decision is explained with full citations to the underlying research.</strong> No LLM call required — runs instantly and is fully deterministic + auditable.
     </div>
     <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
-      <button class="btn" data-action="runResearchEngine" style="font-size:14px;padding:11px 24px">🔬 Build with Research Engine</button>
+      <button class="btn" data-action="runResearchEngine" style="font-size:14px;padding:11px 24px"><i data-lucide="microscope" class="icon" aria-hidden="true"></i> Build with Research Engine</button>
       <span id="engineStatus" style="font-size:12px;color:var(--color-text-muted)"></span>
     </div>
   </div>
@@ -502,7 +512,7 @@ Down payment | 2028 | 150000</textarea>
       </select>
     </div>
     <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:14px;align-items:center">
-      <button class="btn" data-action="runAgent">🤖 Build with AI</button>
+      <button class="btn" data-action="runAgent"><i data-lucide="bot" class="icon" aria-hidden="true"></i> Build with AI</button>
       <button class="btn-ghost" data-action="exportToProposal" disabled id="agExportBtn">↗ Export to Main App's Investment Proposal</button>
       <span id="agStatus" style="font-size:12px;color:var(--color-text-muted)"></span>
     </div>
@@ -516,7 +526,7 @@ Down payment | 2028 | 150000</textarea>
   <!-- Methodology — How the Agent Selects Funds -->
   <div class="panel" style="background:linear-gradient(135deg,#fff,#f0f9ff);border:1px solid rgba(0,87,184,.20)">
     <div class="ptitle" style="color:var(--color-primary);display:flex;align-items:center;justify-content:space-between">
-      <span>🔬 How the Agent Selects Funds — Full Decision Logic</span>
+      <span><i data-lucide="microscope" class="icon" aria-hidden="true"></i> How the Agent Selects Funds — Full Decision Logic</span>
       <button class="btn-ghost" onclick="document.getElementById('methodBody').style.display = document.getElementById('methodBody').style.display==='none'?'block':'none'" style="font-size:11px;padding:4px 12px">Show / Hide</button>
     </div>
     <div id="methodBody">
@@ -634,7 +644,7 @@ Down payment | 2028 | 150000</textarea>
 
       <!-- Worked example -->
       <div style="background:linear-gradient(135deg,#fff,#fef3c7);border:1px solid rgba(245,158,11,.30);border-radius:8px;padding:16px 20px">
-        <div style="font-weight:700;font-size:13px;color:#92400e;margin-bottom:10px">📝 WORKED EXAMPLE — Moderate Profile, Sample Walkthrough</div>
+        <div style="font-weight:700;font-size:13px;color:#92400e;margin-bottom:10px;display:flex;align-items:center;gap:8px"><i data-lucide="notebook-pen" class="icon" aria-hidden="true"></i> WORKED EXAMPLE — Moderate Profile, Sample Walkthrough</div>
         <div style="font-size:11.5px;line-height:1.8;color:var(--color-text-secondary);font-family:var(--font-mono)">
 <strong>Brief:</strong> risk = moderate · NW = $500k · ESG = none · tax = medium · liquidity = medium · max pos = 20%<br>
 <strong>Research scanned:</strong> 1,420 items across 16 providers<br><br>
@@ -672,12 +682,12 @@ Citations:<br>
 
       <!-- Determinism note -->
       <div style="margin-top:14px;padding:12px 16px;background:rgba(0,87,184,.05);border-radius:6px;font-size:12px;color:var(--color-text-secondary);line-height:1.6">
-        <strong style="color:var(--color-primary)">🔒 Determinism guarantee:</strong> the Research Engine is fully deterministic. Same brief + same cached research → always same output. Run it twice in a row and verify identical fund picks via the Engine Stress Test tab → "Robustness Checks" → "Determinism" test. The only thing that changes the output is (a) you change the brief, (b) new research arrives in the cache, or (c) you modify the fund universe / risk-baseline / scoring constants directly in the code.
+        <strong style="color:var(--color-primary)"><i data-lucide="lock" class="icon" aria-hidden="true"></i> Determinism guarantee:</strong> the Research Engine is fully deterministic. Same brief + same cached research → always same output. Run it twice in a row and verify identical fund picks via the Engine Stress Test tab → "Robustness Checks" → "Determinism" test. The only thing that changes the output is (a) you change the brief, (b) new research arrives in the cache, or (c) you modify the fund universe / risk-baseline / scoring constants directly in the code.
       </div>
 
       <!-- Differences from AI agent version -->
       <div style="margin-top:10px;padding:12px 16px;background:var(--color-primary-tint-1);border-radius:6px;font-size:12px;color:var(--color-text-secondary);line-height:1.6">
-        <strong style="color:var(--color-primary)">🤖 How the AI agent differs:</strong> the AI version receives the same client brief + research items + fund universe as the deterministic engine, but uses an LLM to reason narratively over the inputs. It may suggest weights that deviate from the deterministic baseline (e.g. tactical overweights based on theme strength), and can produce richer prose rationale. Both produce the same JSON shape and feed the same Export-to-Proposal button. Pick deterministic for auditability, AI for narrative reasoning.
+        <strong style="color:var(--color-primary)"><i data-lucide="bot" class="icon" aria-hidden="true"></i> How the AI agent differs:</strong> the AI version receives the same client brief + research items + fund universe as the deterministic engine, but uses an LLM to reason narratively over the inputs. It may suggest weights that deviate from the deterministic baseline (e.g. tactical overweights based on theme strength), and can produce richer prose rationale. Both produce the same JSON shape and feed the same Export-to-Proposal button. Pick deterministic for auditability, AI for narrative reasoning.
       </div>
     </div>
   </div>
@@ -692,16 +702,16 @@ Citations:<br>
 <!-- ─── RESEARCH ─── -->
 <div class="tab" id="tab-research">
   <div class="wealth-hero"><div class="wh-left">
-    <h1 class="wh-title"><span class="wh-ico" aria-hidden="true">📚</span> Research Library</h1>
+    <h1 class="wh-title"><i data-lucide="library" class="icon wh-ico" aria-hidden="true"></i><span class="wh-title-text">Research Library</span></h1>
     <p class="wh-sub"><span class="js-prov-count">16</span> institutional sources from the world's largest wealth managers, investment banks, private banks, and analyst platforms. Refresh feeds and the AI Agent uses them when building portfolios.</p>
   </div></div>
   <div class="panel">
     <div class="ptitle">Sources <span style="color:var(--color-success);font-weight:600">— auto-refresh every 5 minutes</span></div>
     <div id="researchCorpusSummary" style="font-size:11.5px;margin:-2px 0 12px;line-height:1.5"></div>
     <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;align-items:center">
-      <button class="btn" data-action="refreshAll">↻ Refresh ALL</button>
-      <button class="btn-ghost" data-action="enableAll">✓ Enable all</button>
-      <button class="btn-ghost" data-action="disableAll">✕ Disable all</button>
+      <button class="btn" data-action="refreshAll"><i data-lucide="refresh-cw" class="icon" aria-hidden="true"></i> Refresh ALL</button>
+      <button class="btn-ghost" data-action="enableAll"><i data-lucide="check" class="icon" aria-hidden="true"></i> Enable all</button>
+      <button class="btn-ghost" data-action="disableAll"><i data-lucide="x" class="icon" aria-hidden="true"></i> Disable all</button>
       <span id="refreshStatus" style="font-size:11px;color:var(--color-text-muted);align-self:center"></span>
       <span id="autoRefreshCountdown2" style="margin-left:auto;font-size:11px;color:var(--color-success);font-weight:600;font-family:var(--font-mono);background:rgba(0,135,90,.08);padding:5px 12px;border-radius:50px"></span>
     </div>
@@ -712,7 +722,7 @@ Citations:<br>
   <!-- ─── Ingest a monthly issue you are entitled to ─── -->
   <div class="panel">
     <div class="ptitle section-dropdown" data-action="toggleIngest" style="margin:0;cursor:pointer">
-      📥 Ingest a monthly issue <span style="font-weight:400;color:var(--color-text-muted);font-size:12px">— paste or upload an issue you have access to · click to expand</span>
+      <i data-lucide="download" class="icon" aria-hidden="true"></i> Ingest a monthly issue <span style="font-weight:400;color:var(--color-text-muted);font-size:12px">— paste or upload an issue you have access to · click to expand</span>
     </div>
     <div id="ingestBody" style="display:none;padding-top:14px">
       <div class="pdesc" style="margin-bottom:12px">
@@ -731,9 +741,9 @@ Citations:<br>
       <textarea id="ingestText" rows="8" placeholder="Paste the issue text here — headings, bullets and paragraphs are all handled." style="width:100%;font-family:var(--font-mono);font-size:12px;padding:10px;margin-bottom:10px"></textarea>
       <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px">
         <input type="file" id="ingestFile" accept=".txt,.md,.text,.pdf" style="font-size:12px">
-        <button class="btn-ghost" data-action="previewIngest">🔍 Parse &amp; preview</button>
-        <button class="btn" data-action="commitIngest" id="ingestCommitBtn" disabled>📥 Ingest</button>
-        <button class="btn-ghost" data-action="clearIngest">✕ Clear</button>
+        <button class="btn-ghost" data-action="previewIngest"><i data-lucide="search" class="icon" aria-hidden="true"></i> Parse &amp; preview</button>
+        <button class="btn" data-action="commitIngest" id="ingestCommitBtn" disabled><i data-lucide="download" class="icon" aria-hidden="true"></i> Ingest</button>
+        <button class="btn-ghost" data-action="clearIngest"><i data-lucide="x" class="icon" aria-hidden="true"></i> Clear</button>
         <span id="ingestStatus" style="font-size:11.5px;color:var(--color-text-muted)"></span>
       </div>
       <div id="ingestPreview"></div>
@@ -749,16 +759,16 @@ Citations:<br>
 <!-- ─── ENGINE STRESS TEST ─── -->
 <div class="tab" id="tab-enginestress">
   <div class="wealth-hero"><div class="wh-left">
-    <h1 class="wh-title"><span class="wh-ico" aria-hidden="true">🧪</span> AI Portfolio Engine Stress Test</h1>
+    <h1 class="wh-title"><i data-lucide="flask-conical" class="icon wh-ico" aria-hidden="true"></i><span class="wh-title-text">AI Portfolio Engine Stress Test</span></h1>
     <p class="wh-sub">Daily sensitivity & robustness testing for the deterministic Research Engine. Sweep across risk profiles, net worth levels, ESG settings, and research provider counts — verify the engine reacts coherently to every input change. Daily benchmark snapshots track engine drift over time.</p>
   </div></div>
 
   <!-- Daily Benchmark — record today's engine output for a standard client -->
   <div class="panel">
-    <div class="ptitle">📅 Daily Benchmark Snapshot</div>
+    <div class="ptitle"><i data-lucide="calendar" class="icon" aria-hidden="true"></i> Daily Benchmark Snapshot</div>
     <div class="pdesc">Records today's engine output for a <strong>standard benchmark client</strong> (Moderate risk · $500k NW · $150k income · 15+ year horizon · Medium tax sensitivity · No ESG preference). Run daily to track how engine recommendations drift as institutional research evolves.</div>
     <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:14px">
-      <button class="btn" data-action="runDailyBenchmark">📅 Run Today's Benchmark</button>
+      <button class="btn" data-action="runDailyBenchmark"><i data-lucide="calendar" class="icon" aria-hidden="true"></i> Run Today's Benchmark</button>
       <button class="btn-ghost" data-action="clearBenchmarkHistory">↺ Clear history</button>
       <span id="benchmarkStatus" style="font-size:11px;color:var(--color-text-muted)"></span>
     </div>
@@ -767,31 +777,31 @@ Citations:<br>
 
   <!-- Sensitivity Sweeps -->
   <div class="panel">
-    <div class="ptitle">🎚 Sensitivity Sweeps</div>
+    <div class="ptitle"><i data-lucide="sliders-vertical" class="icon" aria-hidden="true"></i> Sensitivity Sweeps</div>
     <div class="pdesc">Run the engine 5-7 times with one parameter varied. See how allocation shifts in response. Useful for finding edge cases or verifying expected behavior.</div>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin-bottom:14px">
       <button class="btn-ghost" data-action="sweepRisk" style="text-align:left;padding:12px 16px;height:auto">
-        <div style="font-weight:700;font-size:13px;color:var(--color-primary)">🎯 Risk Profile Sweep</div>
+        <div style="font-weight:700;font-size:13px;color:var(--color-primary)"><i data-lucide="target" class="icon" aria-hidden="true"></i> Risk Profile Sweep</div>
         <div style="font-size:11px;color:var(--color-text-muted);margin-top:2px">7 profiles · Very Cons → Very Agg</div>
       </button>
       <button class="btn-ghost" data-action="sweepNW" style="text-align:left;padding:12px 16px;height:auto">
-        <div style="font-weight:700;font-size:13px;color:var(--color-primary)">💰 Net Worth Sweep</div>
+        <div style="font-weight:700;font-size:13px;color:var(--color-primary)"><i data-lucide="wallet" class="icon" aria-hidden="true"></i> Net Worth Sweep</div>
         <div style="font-size:11px;color:var(--color-text-muted);margin-top:2px">$100k · $500k · $2M · $10M · $50M</div>
       </button>
       <button class="btn-ghost" data-action="sweepESG" style="text-align:left;padding:12px 16px;height:auto">
-        <div style="font-weight:700;font-size:13px;color:var(--color-primary)">🌱 ESG Strictness Sweep</div>
+        <div style="font-weight:700;font-size:13px;color:var(--color-primary)"><i data-lucide="sprout" class="icon" aria-hidden="true"></i> ESG Strictness Sweep</div>
         <div style="font-size:11px;color:var(--color-text-muted);margin-top:2px">None · Prefer · Strict</div>
       </button>
       <button class="btn-ghost" data-action="sweepTax" style="text-align:left;padding:12px 16px;height:auto">
-        <div style="font-weight:700;font-size:13px;color:var(--color-primary)">💼 Tax Sensitivity Sweep</div>
+        <div style="font-weight:700;font-size:13px;color:var(--color-primary)"><i data-lucide="briefcase" class="icon" aria-hidden="true"></i> Tax Sensitivity Sweep</div>
         <div style="font-size:11px;color:var(--color-text-muted);margin-top:2px">Low · Medium · High</div>
       </button>
       <button class="btn-ghost" data-action="sweepLiquidity" style="text-align:left;padding:12px 16px;height:auto">
-        <div style="font-weight:700;font-size:13px;color:var(--color-primary)">💧 Liquidity Need Sweep</div>
+        <div style="font-weight:700;font-size:13px;color:var(--color-primary)"><i data-lucide="droplets" class="icon" aria-hidden="true"></i> Liquidity Need Sweep</div>
         <div style="font-size:11px;color:var(--color-text-muted);margin-top:2px">Low · Medium · High</div>
       </button>
       <button class="btn-ghost" data-action="sweepResearch" style="text-align:left;padding:12px 16px;height:auto">
-        <div style="font-weight:700;font-size:13px;color:var(--color-primary)">📚 Research Source Count Sweep</div>
+        <div style="font-weight:700;font-size:13px;color:var(--color-primary)"><i data-lucide="library" class="icon" aria-hidden="true"></i> Research Source Count Sweep</div>
         <div style="font-size:11px;color:var(--color-text-muted);margin-top:2px">1 · 4 · 8 · 16 sources</div>
       </button>
     </div>
@@ -800,7 +810,7 @@ Citations:<br>
 
   <!-- Robustness checks -->
   <div class="panel">
-    <div class="ptitle">🔒 Robustness Checks</div>
+    <div class="ptitle"><i data-lucide="lock" class="icon" aria-hidden="true"></i> Robustness Checks</div>
     <div class="pdesc">Verify the engine produces sensible output across edge cases. Each check runs the engine once and grades the result green/amber/red.</div>
     <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px">
       <button class="btn" data-action="runRobustnessChecks">▶ Run All Robustness Checks</button>
@@ -811,7 +821,7 @@ Citations:<br>
 
   <!-- Side-by-side comparison -->
   <div class="panel">
-    <div class="ptitle">🔀 A/B Comparison</div>
+    <div class="ptitle"><i data-lucide="git-compare-arrows" class="icon" aria-hidden="true"></i> A/B Comparison</div>
     <div class="pdesc">Run the engine twice with two different briefs side-by-side. Useful for showing clients how their portfolio changes between scenarios.</div>
     <div class="grid2">
       <div>
@@ -851,7 +861,7 @@ Citations:<br>
 <!-- ─── TEST BENCH ─── -->
 <div class="tab" id="tab-testbench">
   <div class="wealth-hero"><div class="wh-left">
-    <h1 class="wh-title"><span class="wh-ico" aria-hidden="true">🧪</span> Calculation Test Bench</h1>
+    <h1 class="wh-title"><i data-lucide="flask-conical" class="icon wh-ico" aria-hidden="true"></i><span class="wh-title-text">Calculation Test Bench</span></h1>
     <p class="wh-sub">Run any internal financial calculation with custom inputs, or run the full automated test suite to verify all math.</p>
   </div></div>
   <div class="panel">
@@ -872,7 +882,7 @@ Citations:<br>
     <div id="tbInputs"></div>
     <div style="display:flex;gap:10px;margin-top:14px">
       <button class="btn" data-action="runTb">▶ Run Once</button>
-      <button class="btn-ghost" data-action="runTbStress">⚡ Stress 1000×</button>
+      <button class="btn-ghost" data-action="runTbStress"><i data-lucide="zap" class="icon" aria-hidden="true"></i> Stress 1000×</button>
     </div>
     <div id="tbResult" style="margin-top:14px"></div>
   </div>
@@ -881,7 +891,7 @@ Citations:<br>
 <!-- ─── CONSTANTS ─── -->
 <div class="tab" id="tab-constants">
   <div class="wealth-hero"><div class="wh-left">
-    <h1 class="wh-title"><span class="wh-ico" aria-hidden="true">⚙</span> Constants Editor</h1>
+    <h1 class="wh-title"><i data-lucide="settings" class="icon wh-ico" aria-hidden="true"></i><span class="wh-title-text">Constants Editor</span></h1>
     <p class="wh-sub">Edit financial constants used throughout the main app. Export edited values as JSON for deployment.</p>
   </div></div>
   <div class="panel">
@@ -898,7 +908,7 @@ Citations:<br>
 <!-- ─── STRESS ─── -->
 <div class="tab" id="tab-stress">
   <div class="wealth-hero"><div class="wh-left">
-    <h1 class="wh-title"><span class="wh-ico" aria-hidden="true">📊</span> Monte Carlo Stress Test</h1>
+    <h1 class="wh-title"><i data-lucide="chart-column" class="icon wh-ico" aria-hidden="true"></i><span class="wh-title-text">Monte Carlo Stress Test</span></h1>
     <p class="wh-sub">Parameter sweep — vary one input while holding others constant, plot p10/p50/p90 across the sweep range.</p>
   </div></div>
   <div class="panel">
@@ -937,24 +947,24 @@ Citations:<br>
 <!-- ─── PROFILES ─── -->
 <div class="tab" id="tab-profiles">
   <div class="wealth-hero"><div class="wh-left">
-    <h1 class="wh-title"><span class="wh-ico" aria-hidden="true">👤</span> Profile Manager</h1>
+    <h1 class="wh-title"><i data-lucide="user" class="icon wh-ico" aria-hidden="true"></i><span class="wh-title-text">Profile Manager</span></h1>
     <p class="wh-sub">Load any <code>wealth-profile.json</code> from the main app, inspect it, edit fields, and push back to the main app's localStorage.</p>
   </div></div>
   <div class="panel">
     <div style="display:flex;gap:8px;flex-wrap:wrap">
       <button class="btn-ghost" data-action="loadProfileFile2">⬆ Load JSON</button>
       <button class="btn-ghost" data-action="saveProfile" id="pfSaveBtn" disabled>⬇ Save JSON</button>
-      <button class="btn" data-action="injectProfile" id="pfInjectBtn" disabled>↻ Inject into Main App</button>
+      <button class="btn" data-action="injectProfile" id="pfInjectBtn" disabled><i data-lucide="refresh-cw" class="icon" aria-hidden="true"></i> Inject into Main App</button>
       <input type="file" id="profileFile2" accept=".json" style="display:none">
     </div>
     <div class="kpi-grid" id="pfStats" style="margin-top:14px"></div>
   </div>
   <div class="panel" id="questionnairePanel">
-    <div class="ptitle">📄 Client Intake Questionnaire</div>
+    <div class="ptitle"><i data-lucide="file-text" class="icon" aria-hidden="true"></i> Client Intake Questionnaire</div>
     <p style="color:var(--color-text-muted);font-size:13px;margin:6px 0 12px;line-height:1.6">The blank 4-page client questionnaire (household, income, expenses, assets, goals, retirement, risk, tax, disclosure). Download it to send to a client, or print and have them fill it in — then transcribe into the main app.</p>
     <div style="display:flex;gap:8px;flex-wrap:wrap">
       <button class="btn" data-action="downloadQuestionnaire">⬇ Download questionnaire (PDF)</button>
-      <button class="btn-ghost" data-action="toggleQuestionnairePreview" id="qPreviewBtn">👁 Preview</button>
+      <button class="btn-ghost" data-action="toggleQuestionnairePreview" id="qPreviewBtn"><i data-lucide="eye" class="icon" aria-hidden="true"></i> Preview</button>
     </div>
     <div id="questionnairePreview" style="display:none;margin-top:14px">
       <iframe id="questionnaireFrame" style="width:100%;height:640px;border:1px solid var(--color-border);border-radius:8px;background:#fff"></iframe>
@@ -969,7 +979,7 @@ Citations:<br>
 <!-- ─── MARKET DATA ─── -->
 <div class="tab" id="tab-market">
   <div class="wealth-hero"><div class="wh-left">
-    <h1 class="wh-title"><span class="wh-ico" aria-hidden="true">📈</span> Market Data Console</h1>
+    <h1 class="wh-title"><i data-lucide="trending-up" class="icon wh-ico" aria-hidden="true"></i><span class="wh-title-text">Market Data Console</span></h1>
     <p class="wh-sub">Test live quote retrieval. Verified keyless on 2026-08-02: <strong>Yahoo Finance</strong> (equities/ETFs), <strong>CoinGecko</strong> and <strong>Coinbase</strong> (crypto), <strong>Frankfurter/ECB</strong> and <strong>Open ER API</strong> (FX), <strong>Treasury.gov</strong> (yield curve). <strong>SEC EDGAR</strong> resolves ticker&rarr;CIK but its filings API refuses browser requests &mdash; that half needs a server relay. Everything else needs a key in the API Keys tab; enterprise feeds (Bloomberg, FactSet, Refinitiv) need a user-deployed proxy.</p>
   </div></div>
   <div class="panel">
@@ -1037,7 +1047,7 @@ Citations:<br>
         </optgroup>
       </select>
       <button class="btn" data-action="testQuote">▶ Fetch Quote</button>
-      <button class="btn-ghost" data-action="testAllProviders">⚡ Test All</button>
+      <button class="btn-ghost" data-action="testAllProviders"><i data-lucide="zap" class="icon" aria-hidden="true"></i> Test All</button>
     </div>
   </div>
   <div class="panel"><div class="ptitle">Result</div><div id="mdResult"><div style="color:var(--color-text-muted);padding:8px 0">Enter a ticker and click Fetch Quote.</div></div></div>
@@ -1046,7 +1056,7 @@ Citations:<br>
 <!-- ─── TAX DB ─── -->
 <div class="tab" id="tab-taxdb">
   <div class="wealth-hero"><div class="wh-left">
-    <h1 class="wh-title"><span class="wh-ico" aria-hidden="true">🏛</span> Tax Database</h1>
+    <h1 class="wh-title"><i data-lucide="landmark" class="icon wh-ico" aria-hidden="true"></i><span class="wh-title-text">Tax Database</span></h1>
     <p class="wh-sub">Browse income tax for all 39 supported countries — national/federal brackets + representative regional/state/municipal tax, synced live from the client app. US ZIP auto-detection is wired into the main app (below).</p>
   </div></div>
   <div class="panel">
@@ -1074,7 +1084,7 @@ Citations:<br>
 <!-- ─── TAX DATA ACCURACY ─── -->
 <div class="tab" id="tab-taxaccuracy">
   <div class="wealth-hero"><div class="wh-left">
-    <h1 class="wh-title"><span class="wh-ico" aria-hidden="true">✅</span> Tax Data Accuracy</h1>
+    <h1 class="wh-title"><i data-lucide="badge-check" class="icon wh-ico" aria-hidden="true"></i><span class="wh-title-text">Tax Data Accuracy</span></h1>
     <p class="wh-sub">Tracks the income-tax dataset the client app actually uses — coverage, the official source authority per country, tax year, automated sanity checks, and your manual verification status. The dataset syncs live from the main app via shared browser storage.</p>
   </div></div>
   <div class="panel">
@@ -1082,7 +1092,7 @@ Citations:<br>
       <div class="ptitle" style="margin:0">Coverage &amp; verification</div>
       <div style="display:flex;gap:8px;align-items:center">
         <span id="taxAccSummary" style="font-size:11px;color:var(--color-text-muted)"></span>
-        <button class="btn-ghost" data-action="renderTaxAccuracy" style="font-size:12px;padding:8px 14px">↻ Refresh</button>
+        <button class="btn-ghost" data-action="renderTaxAccuracy" style="font-size:12px;padding:8px 14px"><i data-lucide="refresh-cw" class="icon" aria-hidden="true"></i> Refresh</button>
       </div>
     </div>
     <div id="taxAccBody"></div>
@@ -1092,7 +1102,7 @@ Citations:<br>
 <!-- ─── KEYS ─── -->
 <div class="tab" id="tab-keys">
   <div class="wealth-hero"><div class="wh-left">
-    <h1 class="wh-title"><span class="wh-ico" aria-hidden="true">🔑</span> API Keys & Endpoints</h1>
+    <h1 class="wh-title"><i data-lucide="key" class="icon wh-ico" aria-hidden="true"></i><span class="wh-title-text">API Keys & Endpoints</span></h1>
     <p class="wh-sub">All credentials stored in browser localStorage and shared with the main app. <strong>Keys are auto-tested every 2 minutes</strong> to ensure they're working — see the Health column.</p>
   </div></div>
   <div class="panel" style="padding:12px 16px">
@@ -1103,7 +1113,7 @@ Citations:<br>
       <div class="ptitle" style="margin:0">Free Providers <span style="color:var(--color-success);font-weight:600">— health-checked every 2 minutes</span></div>
       <div style="display:flex;gap:8px;align-items:center">
         <span id="keyHealthSummary" style="font-size:11px;color:var(--color-text-muted)"></span>
-        <button class="btn" data-action="testAllKeysNow" style="font-size:12px;padding:8px 14px">⚡ Test All Configured Keys Now</button>
+        <button class="btn" data-action="testAllKeysNow" style="font-size:12px;padding:8px 14px"><i data-lucide="zap" class="icon" aria-hidden="true"></i> Test All Configured Keys Now</button>
       </div>
     </div>
     <table class="tbl"><thead><tr><th>Provider</th><th>Key</th><th>Status</th><th>Health</th><th>Action</th></tr></thead><tbody id="keysTbl"></tbody></table>
@@ -1159,12 +1169,12 @@ Citations:<br>
 <!-- ─── LOGS ─── -->
 <div class="tab" id="tab-logs">
   <div class="wealth-hero"><div class="wh-left">
-    <h1 class="wh-title"><span class="wh-ico" aria-hidden="true">📋</span> System Logs</h1>
+    <h1 class="wh-title"><i data-lucide="clipboard-list" class="icon wh-ico" aria-hidden="true"></i><span class="wh-title-text">System Logs</span></h1>
     <p class="wh-sub">Action audit trail, browser environment, and full localStorage inspector.</p>
   </div></div>
   <div class="panel">
     <div style="display:flex;gap:8px;flex-wrap:wrap">
-      <button class="btn-ghost" data-action="copyLogs">📋 Copy logs</button>
+      <button class="btn-ghost" data-action="copyLogs"><i data-lucide="clipboard-list" class="icon" aria-hidden="true"></i> Copy logs</button>
       <button class="btn-ghost" data-action="downloadLogs">⬇ Download</button>
       <button class="btn-danger" data-action="clearLogs">Clear logs</button>
     </div>
@@ -1179,7 +1189,7 @@ Citations:<br>
 <!-- ─── DOCS ─── -->
 <div class="tab" id="tab-docs">
   <div class="wealth-hero"><div class="wh-left">
-    <h1 class="wh-title"><span class="wh-ico" aria-hidden="true">📖</span> Documentation</h1>
+    <h1 class="wh-title"><i data-lucide="book-open" class="icon wh-ico" aria-hidden="true"></i><span class="wh-title-text">Documentation</span></h1>
     <p class="wh-sub">How the admin connects to the main Wealth Analyzer app and how to use each tab.</p>
   </div></div>
   <div class="panel">
@@ -1242,15 +1252,15 @@ function toggleQuestionnairePreview(){
   const btn = document.getElementById("qPreviewBtn");
   if(!box) return;
   const showing = box.style.display !== "none";
-  if(showing){ box.style.display = "none"; if(frame) frame.src = "about:blank"; if(btn) btn.textContent = "👁 Preview"; }
-  else { box.style.display = "block"; if(frame && frame.src.indexOf("data:")<0) frame.src = QUESTIONNAIRE_DATA_URI; if(btn) btn.textContent = "✕ Hide preview"; }
+  if(showing){ box.style.display = "none"; if(frame) frame.src = "about:blank"; if(btn) setIconLabel(btn, "eye", "Preview"); }
+  else { box.style.display = "block"; if(frame && frame.src.indexOf("data:")<0) frame.src = QUESTIONNAIRE_DATA_URI; if(btn) setIconLabel(btn, "x", "Hide preview"); }
 }
 
 
 // ═══════════════════════════════════════════════════════════
 // VERSION + UTILS
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260924-2232";
+const APP_VERSION = "20260924-2256";
 const $ = (id) => document.getElementById(id);
 const $$ = (sel, ctx) => Array.from((ctx||document).querySelectorAll(sel));
 
@@ -1266,9 +1276,30 @@ const fmtN = (n,d=2) => n==null||isNaN(n)?"—":Number(n).toFixed(d);
 const fmtBytes = (n) => n<1024?n+" B":n<1024*1024?(n/1024).toFixed(1)+" KB":(n/1024/1024).toFixed(2)+" MB";
 const escapeHtml = (s) => String(s||"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 
+/* Lucide helpers — decorative icons; call refreshIcons() after injecting HTML */
+function icon(name, extraClass){
+  const cls = extraClass ? ("icon "+extraClass) : "icon";
+  return `<i data-lucide="${name}" class="${cls}" aria-hidden="true"></i>`;
+}
+function refreshIcons(root){
+  if(typeof lucide === "undefined" || !lucide.createIcons) return;
+  // UMD createIcons has no root option — scoped pass via temporarily limiting is unnecessary;
+  // fresh innerHTML always ships new <i data-lucide> placeholders.
+  lucide.createIcons();
+}
+function setIconLabel(el, name, label){
+  if(!el) return;
+  el.innerHTML = (name ? icon(name)+" " : "") + escapeHtml(label);
+  refreshIcons();
+}
+
 function toast(msg, type){
   const t=$("toast"); if(!t) return;
-  t.textContent=msg; t.className="show "+(type||"");
+  const clean = String(msg).replace(/^[✓✗⚠✅❌]\s*/, "");
+  const ico = type==="ok" ? "check" : type==="err" ? "x" : type==="warn" ? "triangle-alert" : null;
+  t.innerHTML = (ico ? icon(ico)+" " : "") + escapeHtml(clean);
+  t.className="show "+(type||"");
+  refreshIcons();
   setTimeout(()=>t.className="",2400);
 }
 
@@ -1293,7 +1324,7 @@ window.addEventListener("error",function(ev){
     addLog("err","Uncaught: "+(ev.message||"unknown")+" ("+(ev.filename||"").split("/").pop()+":"+ev.lineno+")");
     const bar=$("errBar"); if(!bar) return;
     const stack=(ev.error&&ev.error.stack)?ev.error.stack.split("\n").slice(0,3).join(" | "):"";
-    bar.innerHTML += `<div>⚠ ${escapeHtml(ev.message||"unknown")} <span style="opacity:.85">@ ${escapeHtml((ev.filename||"").split("/").pop())}:${ev.lineno}:${ev.colno||0}</span>${stack?'<br><span style="opacity:.7;font-size:11px">'+escapeHtml(stack)+'</span>':''}</div>`;
+    bar.innerHTML += `<div>${icon("triangle-alert")} ${escapeHtml(ev.message||"unknown")} <span style="opacity:.85">@ ${escapeHtml((ev.filename||"").split("/").pop())}:${ev.lineno}:${ev.colno||0}</span>${stack?'<br><span style="opacity:.7;font-size:11px">'+escapeHtml(stack)+'</span>':''}</div>`;
     bar.classList.add("show");
   } catch(_){}
 });
@@ -3856,7 +3887,7 @@ function renderAgentPicker(){
   picker.innerHTML = RESEARCH_PROVIDERS.map(p => {
     const cfg = getProviderCfg(p.id);
     const cnt = (cfg.items||[]).length;
-    // ✓ all sources checked by default (regardless of cache state)
+    // all sources checked by default (regardless of cache state)
     return `<label style="display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--color-border);border-radius:8px;background:#fff;font-size:11.5px;cursor:pointer" id="agPick-${p.id}">
       <input type="checkbox" data-prov="${p.id}" checked>
       <span class="rp-icon" style="background:${p.color};width:22px;height:22px;font-size:11px">${p.letter}</span>
@@ -3874,7 +3905,7 @@ async function autoRefreshAllResearch(silent){
   _agentRefreshInProgress = true;
   if(!silent) toast(`Pulling research from ${RESEARCH_PROVIDERS.length} sources…`,"ok");
   const status = $("agStatus");
-  if(status && !silent) status.textContent = `📡 Refreshing ${RESEARCH_PROVIDERS.length} institutional sources…`;
+  if(status && !silent) setIconLabel(status, "radio", `Refreshing ${RESEARCH_PROVIDERS.length} institutional sources…`);
   let done = 0, ok = 0;
   // Parallel refresh with cap of 4 concurrent (be polite to corsproxy)
   const queue = RESEARCH_PROVIDERS.slice();
@@ -3889,12 +3920,12 @@ async function autoRefreshAllResearch(silent){
         if(el){ el.textContent = cnt + ' items'; el.style.color = cnt > 0 ? 'var(--color-success)' : 'var(--color-warning)'; }
       } catch(_){}
       done++;
-      if(status && !silent) status.textContent = `📡 Refreshed ${done}/${RESEARCH_PROVIDERS.length} sources (${ok} with data)…`;
+      if(status && !silent) setIconLabel(status, "radio", `Refreshed ${done}/${RESEARCH_PROVIDERS.length} sources (${ok} with data)…`);
     }
   });
   await Promise.all(workers);
   _agentRefreshInProgress = false;
-  if(status && !silent) status.textContent = `✓ ${ok}/${RESEARCH_PROVIDERS.length} sources ready — click 🤖 Build Portfolio Now`;
+  if(status && !silent) setIconLabel(status, "check", `${ok}/${RESEARCH_PROVIDERS.length} sources ready — open AI Agent to build`);
   addLog("ok", `Auto-refreshed research: ${ok}/${RESEARCH_PROVIDERS.length} sources have items`);
   // If the Research Library tab is currently active, re-render it live
   if(document.getElementById("tab-research")?.classList.contains("active")){
@@ -3982,9 +4013,9 @@ let lastAgentRec = null;
 async function runAgent(){
   const key = localStorage.getItem("wa_ai_key")||"";
   if(!key){ toast("No AI key. Set one in API Keys tab.","err"); return; }
-  $("agStatus").textContent = "🤖 Thinking…";
+  setIconLabel($("agStatus"), "bot", "Thinking…");
   $("agResultPanel").style.display = "block";
-  $("agResult").innerHTML = '<div style="text-align:center;padding:30px;color:var(--color-text-muted)"><div style="font-size:32px">🤖</div>Synthesizing research, classifying client, constructing portfolio…</div>';
+  $("agResult").innerHTML = '<div style="text-align:center;padding:30px;color:var(--color-text-muted)">' + icon("bot","icon-lg") + '<div style="margin-top:8px">Synthesizing research, classifying client, constructing portfolio…</div></div>'; refreshIcons();
 
   const brief = {
     risk:$("agRisk").value, horizon:$("agHorizon").value,
@@ -4093,9 +4124,10 @@ Constraints:
     lastAgentRec = rec;
     renderAgentResult(rec);
     $("agExportBtn").disabled = false;
-    $("agStatus").textContent = rec.validation.warnings.length
-      ? "✓ Portfolio constructed — "+rec.validation.warnings.length+" auto-correction(s)"
-      : "✓ Portfolio constructed";
+    setIconLabel($("agStatus"), "check",
+      rec.validation.warnings.length
+        ? "Portfolio constructed — "+rec.validation.warnings.length+" auto-correction(s)"
+        : "Portfolio constructed");
     addLog(rec.validation.warnings.length ? "warn" : "ok",
       "Agent built portfolio: "+(rec.positions?.length||0)+" positions"
       + (rec.validation.warnings.length ? " · "+rec.validation.warnings.join(" · ") : ""));
@@ -4107,7 +4139,7 @@ Constraints:
         • Network/CORS — try a different model or check connection<br>
         • Rate-limited — wait 60s and retry
       </div>`;
-    $("agStatus").textContent = "✗ Failed";
+    setIconLabel($("agStatus"), "x", "Failed");
     addLog("err","Agent: "+e.message);
   }
 }
@@ -4201,11 +4233,11 @@ function validateAgentRec(rec, eligibleUniverse, brief){
 function renderAgentResult(rec){
   let h = '';
   if(rec.validation && rec.validation.warnings.length){
-    h += `<div class="ablock" style="border-left:4px solid var(--color-warning)"><h3 style="color:var(--color-warning)">⚠ Auto-corrections applied to the model output</h3>
+    h += `<div class="ablock" style="border-left:4px solid var(--color-warning)"><h3 style="color:var(--color-warning)">${icon("triangle-alert")} Auto-corrections applied to the model output</h3>
       <ul style="margin:6px 0 0 18px;line-height:1.7;font-size:12.5px">${rec.validation.warnings.map(w=>`<li>${escapeHtml(w)}</li>`).join("")}</ul>
       <div style="font-size:11px;color:var(--color-text-muted);margin-top:8px">Weights were renormalized to 100% and constrained to the client's eligible universe and position cap before export.</div></div>`;
   }
-  h += `<div class="ablock"><h3>🎯 Executive Summary</h3><div style="line-height:1.7">${escapeHtml(rec.summary||"")}</div></div>`;
+  h += `<div class="ablock"><h3>${icon("target")} Executive Summary</h3><div style="line-height:1.7">${escapeHtml(rec.summary||"")}</div></div>`;
   h += `<div class="kpi-grid">
     <div class="kpi tone-green"><div class="kpi-l">Expected Return</div><div class="kpi-v">${((rec.expectedReturn||0)*100).toFixed(2)}%</div></div>
     <div class="kpi tone-amber"><div class="kpi-l">Volatility</div><div class="kpi-v">${((rec.expectedVolatility||0)*100).toFixed(2)}%</div></div>
@@ -4213,7 +4245,7 @@ function renderAgentResult(rec){
     <div class="kpi"><div class="kpi-l">Sharpe (proxy)</div><div class="kpi-v">${(((rec.expectedReturn||0.05)-0.045)/((rec.expectedVolatility||0.12)||1)).toFixed(2)}</div></div>
   </div>`;
   if(rec.allocationByClass){
-    h += `<div class="ablock"><h3>📊 Strategic Allocation</h3>`;
+    h += `<div class="ablock"><h3>${icon("chart-column")} Strategic Allocation</h3>`;
     Object.entries(rec.allocationByClass).filter(([,v])=>v>0).forEach(([cls,pct])=>{
       const lbl = ({equity:"Equity",fixed_income:"Fixed Income",real_estate:"Real Estate",commodity:"Commodity",cash:"Cash",mixed:"Mixed",alternative:"Alternative"})[cls]||cls;
       h += `<div class="abar"><div class="abar-fund">${lbl}</div><div class="abar-track"><div class="abar-fill" style="width:${Math.min(100,Math.max(0,pct))}%"></div></div><div class="abar-pct">${pct.toFixed(1)}%</div></div>`;
@@ -4221,28 +4253,29 @@ function renderAgentResult(rec){
     h += `</div>`;
   }
   if(rec.positions?.length){
-    h += `<div class="ablock"><h3>💼 Positions (${rec.positions.length})</h3>`;
+    h += `<div class="ablock"><h3>${icon("briefcase")} Positions (${rec.positions.length})</h3>`;
     rec.positions.forEach(p => {
       const f = FUND_UNIVERSE.find(x => x.tkr===p.ticker);
       h += `<div class="abar">
         <div class="abar-fund">${escapeHtml(p.ticker)}<br><span style="font-size:10.5px;color:var(--color-text-muted);font-weight:400">${escapeHtml(f?.name||"")}</span></div>
         <div class="abar-track"><div class="abar-fill" style="width:${Math.min(100,p.weight*5)}%"></div></div>
         <div class="abar-pct">${p.weight.toFixed(1)}%</div>
-        <div class="arat">💡 ${escapeHtml(p.rationale||"")}</div>
+        <div class="arat">${icon("lightbulb")} ${escapeHtml(p.rationale||"")}</div>
       </div>`;
     });
     h += `</div>`;
   }
   if(rec.researchCitations?.length){
-    h += `<div class="ablock"><h3>📚 Research Citations</h3><ul style="margin:0;padding-left:20px;line-height:1.7">${rec.researchCitations.map(c=>`<li>${escapeHtml(c)}</li>`).join("")}</ul></div>`;
+    h += `<div class="ablock"><h3>${icon("library")} Research Citations</h3><ul style="margin:0;padding-left:20px;line-height:1.7">${rec.researchCitations.map(c=>`<li>${escapeHtml(c)}</li>`).join("")}</ul></div>`;
   }
   if(rec.risks?.length){
-    h += `<div class="ablock" style="border-left:4px solid var(--color-error)"><h3 style="color:var(--color-error)">⚠ Key Risks</h3><ul style="margin:0;padding-left:20px;line-height:1.7">${rec.risks.map(r=>`<li>${escapeHtml(r)}</li>`).join("")}</ul></div>`;
+    h += `<div class="ablock" style="border-left:4px solid var(--color-error)"><h3 style="color:var(--color-error)">${icon("triangle-alert")} Key Risks</h3><ul style="margin:0;padding-left:20px;line-height:1.7">${rec.risks.map(r=>`<li>${escapeHtml(r)}</li>`).join("")}</ul></div>`;
   }
   if(rec.rebalancingGuidance){
-    h += `<div class="ablock"><h3>🔄 Rebalancing Guidance</h3><div style="line-height:1.7">${escapeHtml(rec.rebalancingGuidance)}</div></div>`;
+    h += `<div class="ablock"><h3>${icon("refresh-cw")} Rebalancing Guidance</h3><div style="line-height:1.7">${escapeHtml(rec.rebalancingGuidance)}</div></div>`;
   }
   $("agResult").innerHTML = h;
+  refreshIcons();
 }
 
 function exportToProposal(){
@@ -4262,7 +4295,7 @@ function exportToProposal(){
     summary: lastAgentRec.summary
   };
   localStorage.setItem("wa_pending_proposal", JSON.stringify(payload));
-  toast("✓ Exported — open main app to see the import banner","ok");
+  toast("Exported — open main app to see the import banner","ok");
   addLog("ok","Exported recommendation to main app (wa_pending_proposal)");
 }
 
@@ -4528,7 +4561,7 @@ async function previewIngest(){
     return;
   }
   _ingestParsed = items;
-  if(commit){ commit.disabled = false; commit.textContent = `📥 Ingest ${items.length} item${items.length>1?'s':''}`; }
+  if(commit){ commit.disabled = false; setIconLabel(commit, "download", `Ingest ${items.length} item${items.length>1?'s':''}`); }
   status.textContent = `${items.length} item${items.length>1?'s':''} parsed from ${(raw.length/1024).toFixed(1)} KB`;
   host.innerHTML = `<div style="max-height:320px;overflow-y:auto;border:1px solid var(--color-border);border-radius:8px">${
     items.map((it,i) => `<div style="padding:8px 12px;border-bottom:1px solid var(--color-border);font-size:12px">
@@ -4558,7 +4591,7 @@ function commitIngest(){
   const kept = existing.filter(it => !(it.source === "issue" && it.issueYM === ym));
   setProviderCfg(pid, {items: stamped.concat(kept), lastIssueYM: ym, lastRefresh: Date.now()});
   addLog("ok", `Ingested ${stamped.length} items into ${p.name} (${ym} issue)`);
-  toast(`✓ ${stamped.length} items ingested — ${p.name} ${ym}`, "ok");
+  toast(`${stamped.length} items ingested — ${p.name} ${ym}`, "ok");
   clearIngest();
   renderResearch();
 }
@@ -4568,7 +4601,7 @@ function clearIngest(){
   if($("ingestFile")) $("ingestFile").value = "";
   if($("ingestPreview")) $("ingestPreview").innerHTML = "";
   if($("ingestStatus")) $("ingestStatus").textContent = "";
-  const c = $("ingestCommitBtn"); if(c){ c.disabled = true; c.textContent = "📥 Ingest"; }
+  const c = $("ingestCommitBtn"); if(c){ c.disabled = true; setIconLabel(c, "download", "Ingest"); }
 }
 
 function markIssue(el){ markIssueIngested(el.dataset.prov); }
@@ -4596,7 +4629,7 @@ function renderMonthlyIssueBanner(){
   if(outstanding.length === 0){
     const monthly = RESEARCH_PROVIDERS.filter(p => p.cadence === "monthly").length;
     host.innerHTML = monthly
-      ? `<div style="margin:0 0 12px;padding:10px 14px;background:rgba(0,135,90,.07);border:1px solid rgba(0,135,90,.25);border-radius:8px;font-size:12px;color:var(--color-success);font-weight:600">✓ All ${monthly} monthly publications are current for ${currentIssueYM()}.</div>`
+      ? `<div style="margin:0 0 12px;padding:10px 14px;background:rgba(0,135,90,.07);border:1px solid rgba(0,135,90,.25);border-radius:8px;font-size:12px;color:var(--color-success);font-weight:600;display:flex;align-items:center;gap:6px">${icon("check")} All ${monthly} monthly publications are current for ${currentIssueYM()}.</div>`
       : "";
     return;
   }
@@ -4605,7 +4638,7 @@ function renderMonthlyIssueBanner(){
   ).join("");
   const anyOverdue = outstanding.some(o => o.st.state === "overdue");
   host.innerHTML = `<div style="margin:0 0 12px;padding:11px 14px;background:${anyOverdue?'rgba(227,24,55,.06)':'rgba(245,158,11,.08)'};border:1px solid ${anyOverdue?'rgba(227,24,55,.3)':'rgba(245,158,11,.35)'};border-radius:8px;font-size:12px;line-height:1.65">
-    <div style="font-weight:700;color:${anyOverdue?'var(--color-error)':'var(--color-warning)'};margin-bottom:5px">${anyOverdue?'⚠':'●'} ${outstanding.length} monthly issue${outstanding.length>1?'s':''} outstanding for ${currentIssueYM()}</div>
+    <div style="font-weight:700;color:${anyOverdue?'var(--color-error)':'var(--color-warning)'};margin-bottom:5px">${anyOverdue?icon("triangle-alert"):icon("circle")} ${outstanding.length} monthly issue${outstanding.length>1?'s':''} outstanding for ${currentIssueYM()}</div>
     <ul style="margin:0 0 0 18px;padding:0;color:var(--color-text-secondary)">${rows}</ul>
     <div style="font-size:11px;color:var(--color-text-muted);margin-top:7px">The news feeds behind these sources refresh continuously, but the monthly issue itself has to be ingested — use “Mark ingested” on the card once it is in the library.</div>
   </div>`;
@@ -4675,7 +4708,7 @@ function renderResearch(){
     const feedNote = live === undefined ? ""
       : (live > 0 ? ` · ${live} live` : " · curated only");
     const feedWarn = live === 0
-      ? `<div style="font-size:11px;font-weight:600;color:var(--color-error);margin-top:3px" title="${escapeHtml((cfg.feedErrors||[]).join(" · "))}">⚠ ${cfg.feedsConfigured || 0} feed${(cfg.feedsConfigured||0) === 1 ? "" : "s"} unreachable — showing curated library only</div>`
+      ? `<div style="font-size:11px;font-weight:600;color:var(--color-error);margin-top:3px" title="${escapeHtml((cfg.feedErrors||[]).join(" · "))}">${icon("triangle-alert")} ${cfg.feedsConfigured || 0} feed${(cfg.feedsConfigured||0) === 1 ? "" : "s"} unreachable — showing curated library only</div>`
       : "";
     const iss = monthlyIssueStatus(p, cfg);
     const issColor = iss ? ({current:"var(--color-success)", pending:"var(--color-text-muted)", due:"var(--color-warning)", overdue:"var(--color-error)"})[iss.state] : "";
@@ -4690,15 +4723,16 @@ function renderResearch(){
       </div>
       <div style="font-size:11px;color:var(--color-text-muted)">Last: ${lr}</div>
       ${feedWarn}
-      ${iss ? `<div style="font-size:11px;font-weight:600;color:${issColor};margin-top:3px">${iss.state==="current"?"✓":"●"} ${escapeHtml(iss.label)}</div>` : ""}
+      ${iss ? `<div style="font-size:11px;font-weight:600;color:${issColor};margin-top:3px">${iss.state==="current"?icon("check"):icon("circle")} ${escapeHtml(iss.label)}</div>` : ""}
       <div class="rp-actions">
-        <button class="rp-mini" data-action="refreshOne" data-prov="${p.id}">↻ Refresh</button>
+        <button class="rp-mini" data-action="refreshOne" data-prov="${p.id}">${icon("refresh-cw")} Refresh</button>
         ${p.homepage ? `<a class="rp-mini" href="${p.homepage}" target="_blank" rel="noopener noreferrer" style="text-decoration:none;display:inline-block">↗ Publication</a>` : ""}
-        ${iss && iss.state !== "current" ? `<button class="rp-mini" data-action="markIssue" data-prov="${p.id}">✓ Mark ${iss.ym} ingested</button>` : ""}
+        ${iss && iss.state !== "current" ? `<button class="rp-mini" data-action="markIssue" data-prov="${p.id}">${icon("check")} Mark ${iss.ym} ingested</button>` : ""}
       </div>
     </div>`;
   }).join("");
   renderResearchFeed();
+  refreshIcons();
 }
 function renderResearchFeed(){
   const cfg = getResearchCfg();
@@ -4709,7 +4743,7 @@ function renderResearchFeed(){
   });
   items.sort((a,b) => a.date < b.date ? 1 : -1);
   if(items.length === 0){
-    $("rpFeed").innerHTML = '<div style="color:var(--color-text-muted);padding:14px">Click ↻ Refresh on cards above to populate.</div>';
+    $("rpFeed").innerHTML = '<div style="color:var(--color-text-muted);padding:14px">Click Refresh on cards above to populate.</div>';
     return;
   }
   $("rpFeed").innerHTML = items.slice(0,60).map(it =>
@@ -4726,13 +4760,13 @@ async function refreshOne(el){
   const id = el.dataset.prov;
   $("refreshStatus").textContent = "Refreshing "+id+"...";
   const cnt = await refreshProvider(id);
-  $("refreshStatus").textContent = "✓ "+cnt+" items";
+  setIconLabel($("refreshStatus"), "check", cnt+" items");
   renderResearch();
 }
 async function refreshAll(){
   $("refreshStatus").textContent = `Refreshing all ${RESEARCH_PROVIDERS.length}…`;
   for(const p of RESEARCH_PROVIDERS){ try { await refreshProvider(p.id); } catch(_){}; }
-  $("refreshStatus").textContent = "✓ Done";
+  setIconLabel($("refreshStatus"), "check", "Done");
   renderResearch();
   toast("All sources refreshed","ok");
 }
@@ -4879,7 +4913,7 @@ function runTbStress(){
     const mean = results.reduce((s,v)=>s+v,0)/N;
     const std = Math.sqrt(results.reduce((s,v)=>s+(v-mean)**2,0)/N);
     const stats = {N, dtMs:+dt.toFixed(1), mean:+mean.toFixed(4), median:+results[N/2].toFixed(4), stdDev:+std.toFixed(4), p10:+results[N*0.1|0].toFixed(4), p90:+results[N*0.9|0].toFixed(4), min:+results[0].toFixed(4), max:+results[N-1].toFixed(4)};
-    $("tbResult").innerHTML = `<div style="font-size:12.5px;color:var(--color-text-muted);margin-bottom:8px">⚡ <strong>${N}</strong> iterations in <strong style="color:var(--color-primary)">${dt.toFixed(0)} ms</strong></div><div class="code">${JSON.stringify(stats,null,2)}</div>`;
+    $("tbResult").innerHTML = `<div style="font-size:12.5px;color:var(--color-text-muted);margin-bottom:8px;display:flex;align-items:center;gap:6px">${icon("zap")} <strong>${N}</strong> iterations in <strong style="color:var(--color-primary)">${dt.toFixed(0)} ms</strong></div><div class="code">${JSON.stringify(stats,null,2)}</div>`; refreshIcons();
   } catch(e){ $("tbResult").innerHTML = '<div class="code" style="background:#7f1d1d">Error: '+escapeHtml(e.message)+'</div>'; }
 }
 
@@ -4893,7 +4927,7 @@ function runTests(){
       const actual = fn.run(test.inputs);
       if(test.validator){
         const ok = test.validator(actual);
-        return {...test, passed:ok, detail:test.description+" → "+(ok?"✓":"✗ "+JSON.stringify(actual).slice(0,80))};
+        return {...test, passed:ok, detail:test.description+" → "+(ok?"pass":"fail "+JSON.stringify(actual).slice(0,80))};
       } else {
         const num = typeof actual === "number" ? actual : (actual?.p50||actual?.pvToday||0);
         const ok = Math.abs(num-test.expected) <= test.tol;
@@ -4906,11 +4940,12 @@ function runTests(){
   $("testSummary").innerHTML = `<strong style="color:var(--color-success)">${passed} passed</strong> · <strong style="color:${failed>0?'var(--color-error)':'var(--color-text-muted)'}">${failed} failed</strong> · ${dt.toFixed(0)}ms`;
   $("testResults").innerHTML = results.map(r => `
     <div class="test-card ${r.passed?'pass':'fail'}">
-      <div class="test-badge ${r.passed?'pass':'fail'}">${r.passed?'✓':'✗'}</div>
+      <div class="test-badge ${r.passed?'pass':'fail'}">${r.passed?icon("check"):icon("x")}</div>
       <div><div class="test-name">${escapeHtml(r.name)}</div><div class="test-detail">${escapeHtml(r.detail)}</div></div>
       <div style="font-size:10.5px;color:var(--color-text-muted)">${r.fn}</div>
     </div>
   `).join("");
+  refreshIcons();
   addLog(failed===0?"ok":"warn",`Test suite: ${passed}/${results.length} passed`);
 }
 
@@ -5694,8 +5729,8 @@ function renderKeys(){
       if(hh.lastCheck){
         const age = Date.now() - hh.lastCheck;
         const ago = age < 60000 ? Math.floor(age/1000)+'s' : Math.floor(age/60000)+'m';
-        if(hh.ok) healthPill = `<span class="pill pill-on" title="Last check: ${ago} ago">✓ Working (${hh.latencyMs||"—"} ms · ${ago} ago)</span>`;
-        else healthPill = `<span class="pill pill-off" title="${escapeHtml(hh.error||"")}">✗ Failing (${ago} ago)</span>`;
+        if(hh.ok) healthPill = `<span class="pill pill-on" title="Last check: ${ago} ago">${icon("check")} Working (${hh.latencyMs||"—"} ms · ${ago} ago)</span>`;
+        else healthPill = `<span class="pill pill-off" title="${escapeHtml(hh.error||"")}">${icon("x")} Failing (${ago} ago)</span>`;
       } else {
         healthPill = '<span class="pill pill-warn">Pending check…</span>';
       }
@@ -5709,6 +5744,7 @@ function renderKeys(){
     </tr>`;
   });
   $("keysTbl").innerHTML = h;
+  refreshIcons();
 }
 
 function saveKey(el){
@@ -5944,7 +5980,7 @@ async function testKeyHealthNow(el){
   el.disabled = false;
   el.textContent = "Test now";
   renderKeys();
-  toast(r.ok ? `✓ ${id} working (${r.latencyMs}ms)` : `✗ ${id} failed: ${r.error}`, r.ok ? "ok" : "err");
+  toast(r.ok ? `${id} working (${r.latencyMs}ms)` : `${id} failed: ${r.error}`, r.ok ? "ok" : "err");
   addLog(r.ok ? "ok" : "err", `Key check ${id}: ${r.ok ? `OK ${r.latencyMs}ms` : "FAILED — "+r.error}`);
 }
 
@@ -5969,7 +6005,7 @@ async function testAllKeysNow(el){
     if(document.getElementById("tab-keys")?.classList.contains("active")) renderKeys();
     await new Promise(r => setTimeout(r, 500));
   }
-  if(el){ el.disabled = false; el.textContent = "⚡ Test All Configured Keys Now"; }
+  if(el){ el.disabled = false; setIconLabel(el, "zap", "Test All Configured Keys Now"); }
   if(summary) summary.innerHTML = `<span style="color:var(--color-success);font-weight:600">${ok} working</span> · <span style="color:${fail>0?'var(--color-error)':'var(--color-text-muted)'};font-weight:600">${fail} failing</span> · Tested ${new Date().toLocaleTimeString()}`;
   toast(`Tested ${configured.length} keys — ${ok} working, ${fail} failing`, fail>0?"warn":"ok");
   addLog(fail>0?"warn":"ok", `Manual key test complete: ${ok} working, ${fail} failing`);
@@ -7107,9 +7143,9 @@ function buildSummaryNarrative(brief, allocation, signals, eligibleCount){
 
 // ── ENGINE BUTTON HANDLER ─────────────────────────────────────
 async function runResearchEngine(){
-  $("engineStatus").textContent = "🔬 Extracting signals from all research…";
+  setIconLabel($("engineStatus"), "microscope", "Extracting signals from all research…");
   $("agResultPanel").style.display = "block";
-  $("agResult").innerHTML = '<div style="text-align:center;padding:30px;color:var(--color-text-muted)"><div style="font-size:32px">🔬</div>Scanning all research items, extracting signals, computing consensus…</div>';
+  $("agResult").innerHTML = '<div style="text-align:center;padding:30px;color:var(--color-text-muted)">' + icon("microscope","icon-lg") + '<div style="margin-top:8px">Scanning all research items, extracting signals, computing consensus…</div></div>'; refreshIcons();
 
   // Gather brief
   const brief = {
@@ -7126,7 +7162,7 @@ async function runResearchEngine(){
   // Get selected providers
   const checked = $$("#agResearch input:checked").map(el => el.dataset.prov);
   if(checked.length === 0){
-    $("engineStatus").textContent = "✗ No sources selected";
+    setIconLabel($("engineStatus"), "x", "No sources selected");
     $("agResult").innerHTML = '<div class="code" style="background:#7f1d1d">Tick at least one research source.</div>';
     return;
   }
@@ -7153,7 +7189,7 @@ async function runResearchEngine(){
 
   renderEngineResult(result);
   $("agExportBtn").disabled = false;
-  $("engineStatus").textContent = `✓ Engine analyzed ${signals.totalItems} items across ${signals.providerCount} sources — ${result.positions.length} positions`;
+  setIconLabel($("engineStatus"), "check", `Engine analyzed ${signals.totalItems} items across ${signals.providerCount} sources — ${result.positions.length} positions`);
   addLog("ok", `Engine built portfolio: ${result.positions.length} positions from ${signals.totalItems} research items`);
 }
 
@@ -7174,7 +7210,7 @@ function renderEngineResult(r){
     </div>`;
   }
   // Executive
-  h += `<div class="ablock"><h3>🎯 Engine Decision Summary</h3><div style="line-height:1.7">${escapeHtml(r.summary)}</div></div>`;
+  h += `<div class="ablock"><h3>${icon("target")} Engine Decision Summary</h3><div style="line-height:1.7">${escapeHtml(r.summary)}</div></div>`;
 
   // KPIs — primary portfolio metrics
   const pm = r.portfolioMetrics || {};
@@ -7212,7 +7248,7 @@ function renderEngineResult(r){
     const pretty = {classes:["Asset class", prettyClass], regions:["Geographic region", prettyRegion],
                     sectors:["Market sector", prettyClass], themes:["Themes", prettyTheme],
                     drivers:["Market drivers", k=>k.replace(/_/g," ").replace(/\b\w/g,c=>c.toUpperCase())]};
-    h += `<div class="ablock"><h3 style="color:var(--color-primary)">🧮 Points system — ${S.scoredItems} distinct research views scored`
+    h += `<div class="ablock"><h3 style="color:var(--color-primary)">${icon("calculator")} Points system — ${S.scoredItems} distinct research views scored`
        + (S.sharedDuplicatesSkipped ? ` <span style="font-weight:400;font-size:12px;color:var(--color-text-muted)">(${S.sharedDuplicatesSkipped} shared baseline duplicates counted once)</span>` : "")
        + `</h3>`;
     h += `<div style="font-size:11.5px;color:var(--color-text-muted);margin-bottom:10px">Every view lands in exactly one column — overweight, neutral or underweight. A bucket is only called when at least 3 views point the same way, the net margin is 3+, and the split is at least 2:1.</div>`;
@@ -7243,7 +7279,7 @@ function renderEngineResult(r){
     h += `</div>`;
   }
 
-  h += `<div class="ablock"><h3 style="color:var(--color-success)">📊 Asset Class Consensus (Net Votes Across ${r.signals.providerCount} Providers)</h3>`;
+  h += `<div class="ablock"><h3 style="color:var(--color-success)">${icon("chart-column")} Asset Class Consensus (Net Votes Across ${r.signals.providerCount} Providers)</h3>`;
   const sortedClasses = Object.entries(r.signals.classes).sort((a,b) => b[1].votes - a[1].votes);
   sortedClasses.forEach(([cls, d]) => {
     const vote = d.votes;
@@ -7265,7 +7301,7 @@ function renderEngineResult(r){
   h += `</div>`;
 
   // TOP THEMES
-  h += `<div class="ablock"><h3>🌐 Dominant Themes</h3>`;
+  h += `<div class="ablock"><h3>${icon("globe")} Dominant Themes</h3>`;
   const sortedThemes = Object.entries(r.signals.themes).sort((a,b) => b[1].providerCount - a[1].providerCount).slice(0,8);
   sortedThemes.forEach(([t, d]) => {
     h += `<div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--color-border)">
@@ -7280,7 +7316,7 @@ function renderEngineResult(r){
   h += `</div>`;
 
   // ALLOCATION
-  h += `<div class="ablock"><h3>📊 Strategic Allocation (Risk Baseline + Research Tilt)</h3>`;
+  h += `<div class="ablock"><h3>${icon("chart-column")} Strategic Allocation (Risk Baseline + Research Tilt)</h3>`;
   Object.entries(r.allocation).filter(([,v]) => v > 0).forEach(([cls, pct]) => {
     h += `<div class="abar">
       <div class="abar-fund">${prettyClass(cls)}</div>
@@ -7291,7 +7327,7 @@ function renderEngineResult(r){
   h += `</div>`;
 
   // POSITIONS WITH FULL RATIONALE + METRICS
-  h += `<div class="ablock"><h3>💼 Recommended Positions (${r.positions.length}) — Full Rationale & Metrics</h3>`;
+  h += `<div class="ablock"><h3>${icon("briefcase")} Recommended Positions (${r.positions.length}) — Full Rationale & Metrics</h3>`;
   r.positions.forEach(p => {
     const m = p.metrics || {};
     const flags = [m.ucits?'UCITS':'', m.esg?'ESG':'', (m.dom && m.dom!=='US')?m.dom:''].filter(Boolean).join(' · ');
@@ -7323,14 +7359,14 @@ function renderEngineResult(r){
 
   // RISKS
   if(r.risks.length){
-    h += `<div class="ablock" style="border-left:4px solid var(--color-error)"><h3 style="color:var(--color-error)">⚠ Key Risks (extracted from research)</h3>`;
+    h += `<div class="ablock" style="border-left:4px solid var(--color-error)"><h3 style="color:var(--color-error)">${icon("triangle-alert")} Key Risks (extracted from research)</h3>`;
     h += `<ul style="margin:0;padding-left:20px;line-height:1.7">${r.risks.map(rk => `<li>${escapeHtml(rk)}</li>`).join("")}</ul>`;
     h += `</div>`;
   }
 
   // METHODOLOGY
   h += `<div class="ablock" style="background:rgba(0,87,184,.04);font-size:11.5px;line-height:1.7">
-    <h3 style="color:var(--color-primary)">🔬 Methodology — How This Was Built</h3>
+    <h3 style="color:var(--color-primary)">${icon("microscope")} Methodology — How This Was Built</h3>
     <ol style="margin-left:20px;color:var(--color-text-secondary)">
       <li><strong>Signal extraction:</strong> Scanned ${r.signals.totalItems} research items via keyword lexicons across asset classes, sectors, regions, themes, and ticker mentions. Each item parsed for sentiment direction (overweight/underweight phrases).</li>
       <li><strong>Aggregation:</strong> Net votes computed per signal — provider count and total votes tracked. Tickers explicitly mentioned by multiple providers get conviction bonus.</li>
@@ -7341,6 +7377,7 @@ function renderEngineResult(r){
   </div>`;
 
   $("agResult").innerHTML = h;
+  refreshIcons();
 }
 function prettyRisk(){ return ""; }
 function renderEngineStressTab(){
@@ -7379,7 +7416,7 @@ function runDailyBenchmark(){
   status.textContent = "Running benchmark engine…";
   const providerIds = getAllEnabledProviders();
   if(providerIds.length === 0){
-    status.textContent = "✗ No research available — pull research first in Research Library";
+    setIconLabel(status, "x", "No research available — pull research first in Research Library");
     return;
   }
   const result = buildEngineRecommendation(STANDARD_BENCHMARK_BRIEF, providerIds);
@@ -7404,7 +7441,7 @@ function runDailyBenchmark(){
   // Cap history at 90 entries
   if(history.length > 90) history.length = 90;
   localStorage.setItem(BENCHMARK_KEY, JSON.stringify(history));
-  status.textContent = `✓ Saved snapshot for ${today} — ${result.positions.length} positions, ${(result.expectedReturn*100).toFixed(2)}% expected return`;
+  setIconLabel(status, "check", `Saved snapshot for ${today} — ${result.positions.length} positions, ${(result.expectedReturn*100).toFixed(2)}% expected return`);
   addLog("ok", `Daily benchmark recorded: ${result.positions.length} positions`);
   renderBenchmarkTimeline();
 }
@@ -7417,7 +7454,7 @@ function clearBenchmarkHistory(){
   if(!confirm("Clear all benchmark history?")) return;
   localStorage.removeItem(BENCHMARK_KEY);
   renderBenchmarkTimeline();
-  $("benchmarkStatus").textContent = "✓ History cleared";
+  setIconLabel($("benchmarkStatus"), "check", "History cleared");
 }
 
 function renderBenchmarkTimeline(){
@@ -7425,7 +7462,7 @@ function renderBenchmarkTimeline(){
   const el = $("benchmarkTimeline");
   if(!el) return;
   if(history.length === 0){
-    el.innerHTML = '<div style="text-align:center;padding:30px;color:var(--color-text-muted)"><div style="font-size:32px;margin-bottom:6px">📅</div>No benchmark snapshots yet. Click "Run Today\'s Benchmark" to start tracking.</div>';
+    el.innerHTML = '<div style="text-align:center;padding:30px;color:var(--color-text-muted)">' + icon("calendar","icon-lg") + '<div style="margin-top:8px">No benchmark snapshots yet. Click "Run Today\'s Benchmark" to start tracking.</div>';
     return;
   }
   // Stats
@@ -7475,10 +7512,10 @@ function makeBrief(overrides){
   return {...STANDARD_BENCHMARK_BRIEF, ...overrides};
 }
 
-function renderSweepResult(title, sweepVar, results){
+function renderSweepResult(ico, title, sweepVar, results){
   const allClasses = Array.from(new Set(results.flatMap(r => Object.keys(r.result.allocation))));
   let h = `<div style="background:#fff;border:1px solid var(--color-border);border-radius:8px;padding:16px 18px">
-    <div style="font-weight:700;font-size:14px;margin-bottom:14px">${escapeHtml(title)}</div>
+    <div style="font-weight:700;font-size:14px;margin-bottom:14px;display:flex;align-items:center;gap:8px">${icon(ico)} ${escapeHtml(title)}</div>
     <div class="tbl-wrap"><table class="tbl">
     <thead><tr><th>${escapeHtml(sweepVar)}</th>${allClasses.map(c => `<th class="num">${prettyClass(c)}</th>`).join("")}<th class="num">E[R]</th><th class="num">E[σ]</th><th class="num">Positions</th></tr></thead><tbody>`;
   results.forEach(r => {
@@ -7493,6 +7530,7 @@ function renderSweepResult(title, sweepVar, results){
   h += '<div style="position:relative;height:280px;margin-top:14px"><canvas id="sweepChart"></canvas></div>';
   h += '</div>';
   $("sweepResult").innerHTML = h;
+  refreshIcons();
   setTimeout(() => {
     const canvas = $("sweepChart"); if(!canvas) return;
     if(window._sweepChart) window._sweepChart.destroy();
@@ -7518,7 +7556,7 @@ function sweepRisk(){
     label: r.replace(/_/g," "),
     result: buildEngineRecommendation(makeBrief({risk: r}), providerIds)
   }));
-  renderSweepResult("🎯 Risk Profile Sweep — Allocation by Risk Tolerance", "Risk profile", results);
+  renderSweepResult("target", "Risk Profile Sweep — Allocation by Risk Tolerance", "Risk profile", results);
   addLog("ok", "Risk profile sweep complete");
 }
 
@@ -7530,7 +7568,7 @@ function sweepNW(){
     label: fmt$(nw),
     result: buildEngineRecommendation(makeBrief({nw, deploy:nw}), providerIds)
   }));
-  renderSweepResult("💰 Net Worth Sweep — Allocation by Wealth Level", "Net Worth", results);
+  renderSweepResult("wallet", "Net Worth Sweep — Allocation by Wealth Level", "Net Worth", results);
 }
 
 function sweepESG(){
@@ -7541,7 +7579,7 @@ function sweepESG(){
     label: o.l,
     result: buildEngineRecommendation(makeBrief({esg: o.v}), providerIds)
   }));
-  renderSweepResult("🌱 ESG Strictness Sweep — Position Universe Filter", "ESG mode", results);
+  renderSweepResult("sprout", "ESG Strictness Sweep — Position Universe Filter", "ESG mode", results);
 }
 
 function sweepTax(){
@@ -7552,7 +7590,7 @@ function sweepTax(){
     label: o.l,
     result: buildEngineRecommendation(makeBrief({taxSensitivity: o.v}), providerIds)
   }));
-  renderSweepResult("💼 Tax Sensitivity Sweep — Vehicle Preference", "Tax mode", results);
+  renderSweepResult("briefcase", "Tax Sensitivity Sweep — Vehicle Preference", "Tax mode", results);
 }
 
 function sweepLiquidity(){
@@ -7563,7 +7601,7 @@ function sweepLiquidity(){
     label: o.l,
     result: buildEngineRecommendation(makeBrief({liquidity: o.v}), providerIds)
   }));
-  renderSweepResult("💧 Liquidity Need Sweep — Universe Filter", "Liquidity mode", results);
+  renderSweepResult("droplets", "Liquidity Need Sweep — Universe Filter", "Liquidity mode", results);
 }
 
 function sweepResearch(){
@@ -7575,7 +7613,7 @@ function sweepResearch(){
     label: labels[i],
     result: buildEngineRecommendation(makeBrief({}), allProviders.slice(0, cnt))
   }));
-  renderSweepResult("📚 Research Source Count Sweep — Influence of Consensus Breadth", "Source count", results);
+  renderSweepResult("library", "Research Source Count Sweep — Influence of Consensus Breadth", "Source count", results);
 }
 
 // ── ROBUSTNESS CHECKS ──────────────────────────────────────
@@ -7680,11 +7718,12 @@ function runRobustnessChecks(){
   $("robustnessStatus").textContent = `${passed}/${results.length} checks passed`;
   $("robustnessResults").innerHTML = results.map(r => `
     <div style="display:grid;grid-template-columns:30px 1fr auto;gap:12px;align-items:center;padding:10px 14px;background:#fff;border:1px solid var(--color-border);border-radius:8px;margin-bottom:6px;border-left:3px solid ${r.pass?'var(--color-success)':'var(--color-error)'}">
-      <div style="width:26px;height:26px;border-radius:50%;background:${r.pass?'var(--color-success)':'var(--color-error)'};color:#fff;font-weight:800;display:flex;align-items:center;justify-content:center;font-size:13px">${r.pass?'✓':'✗'}</div>
+      <div style="width:26px;height:26px;border-radius:50%;background:${r.pass?'var(--color-success)':'var(--color-error)'};color:#fff;font-weight:800;display:flex;align-items:center;justify-content:center;font-size:13px">${r.pass?icon("check"):icon("x")}</div>
       <div><div style="font-weight:700;font-size:13px">${escapeHtml(r.name)}</div><div style="font-size:11px;color:var(--color-text-muted);font-family:var(--font-mono);margin-top:2px">${escapeHtml(r.msg)}</div></div>
       <div style="font-size:10px;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:.05em">${r.pass?'PASS':'FAIL'}</div>
     </div>
   `).join("");
+  refreshIcons();
   addLog(passed===results.length?"ok":"warn", `Robustness: ${passed}/${results.length} passed`);
 }
 
@@ -7865,7 +7904,7 @@ function viewUser(el){
   // Actions
   h += '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">';
   if(u.plan){
-    h += '<button class="btn" data-action="buildPortfolioForUser" data-uid="'+u.id+'">🤖 Build Portfolio with AI</button>';
+    h += '<button class="btn" data-action="buildPortfolioForUser" data-uid="'+u.id+'">' + icon("bot") + ' Build Portfolio with AI</button>';
     h += '<button class="btn-ghost" data-action="loadUserIntoAgent" data-uid="'+u.id+'">↗ Load into AI Agent</button>';
   }
   h += '<button class="btn-danger" data-action="deleteUser" data-uid="'+u.id+'">Delete user</button>';
@@ -7961,7 +8000,7 @@ function renderUserTable(){
   const q = ($("userSearch")?.value || "").toLowerCase().trim();
   const filtered = q ? users.filter(u => (u.name||"").toLowerCase().includes(q) || (u.email||"").toLowerCase().includes(q)) : users;
   if(filtered.length === 0){
-    $("userTable").innerHTML = '<div style="text-align:center;padding:30px;color:var(--color-text-muted)"><div style="font-size:36px;margin-bottom:8px">👤</div>No users yet. Click <strong>+ Add User</strong> or <strong>↻ Capture from Main App</strong> to get started.</div>';
+    $("userTable").innerHTML = '<div style="text-align:center;padding:30px;color:var(--color-text-muted)">' + icon("user","icon-lg") + '<div style="margin-top:8px">No users yet. Click <strong>+ Add User</strong> or <strong>Capture from Main App</strong> to get started.</div>'; refreshIcons();
     return;
   }
   let h = '<div class="tbl-wrap"><table class="tbl">';
@@ -7980,13 +8019,14 @@ function renderUserTable(){
       <td class="num">${u.portfolios?.length||0}</td>
       <td style="font-size:11px;color:var(--color-text-muted)">${updated}</td>
       <td>
-        ${u.plan?`<button class="btn-ghost" style="font-size:11px;padding:4px 12px" data-action="buildPortfolioForUser" data-uid="${u.id}">🤖 Build</button>`:''}
+        ${u.plan?`<button class="btn-ghost" style="font-size:11px;padding:4px 12px" data-action="buildPortfolioForUser" data-uid="${u.id}">${icon("bot")} Build</button>`:''}
         <button class="btn-ghost" style="font-size:11px;padding:4px 12px" data-action="viewUser" data-uid="${u.id}">View</button>
       </td>
     </tr>`;
   });
   h += '</tbody></table></div>';
   $("userTable").innerHTML = h;
+  refreshIcons();
 }
 
 // Auto-watch wa_pending_profile — when main app saves a profile, prompt to register
@@ -8026,7 +8066,7 @@ function startLivePoll(){
         available = true;
         const bar = $("liveUp");
         let secs = 5;
-        function render(){ bar.innerHTML = `🚀 <span><strong>New version v${escapeHtml(j.version)}</strong> — auto-reloading in <strong>${secs}</strong>s</span> <button class="btn-ghost" onclick="location.reload()" style="background:#fff;color:var(--color-primary)">Reload now</button> <button class="btn-ghost" onclick="this.parentElement.classList.remove('show')" style="border-color:rgba(255,255,255,.3);color:#fff">Cancel</button>`; }
+        function render(){ bar.innerHTML = `${icon("rocket")} <span><strong>New version v${escapeHtml(j.version)}</strong> — auto-reloading in <strong>${secs}</strong>s</span> <button class="btn-ghost" onclick="location.reload()" style="background:#fff;color:var(--color-primary)">Reload now</button> <button class="btn-ghost" onclick="this.parentElement.classList.remove('show')" style="border-color:rgba(255,255,255,.3);color:#fff">Cancel</button>`;  refreshIcons();}
         render(); bar.classList.add("show");
         const iv = setInterval(()=>{ if(!bar.classList.contains("show")){ clearInterval(iv); return;} secs--; render(); if(secs<=0){ clearInterval(iv); if(bar.classList.contains("show")) location.reload(); } }, 1000);
       }
@@ -8041,6 +8081,7 @@ function startLivePoll(){
 // INIT
 // ═══════════════════════════════════════════════════════════
 function init(){
+  refreshIcons();
   $("ver").textContent = "v"+APP_VERSION;
   function safe(name, fn){ try { fn(); } catch(e){ console.error("["+name+"]",e); addLog("err",name+": "+e.message); } }
   safe("providerCounts", syncProviderCounts);
@@ -8054,8 +8095,8 @@ function init(){
     console.error("[selfTest] MISSING elements:", missing);
     addLog("err","Self-test failed: "+missing.join(", "));
   } else {
-    console.log("[selfTest] ✓ All tabs present");
-    addLog("ok","Self-test ✓ — "+requiredEls.length+" tabs verified");
+    console.log("[selfTest] All tabs present");
+    addLog("ok","Self-test — "+requiredEls.length+" tabs verified");
   }
   addLog("info","Admin console loaded v"+APP_VERSION);
 
