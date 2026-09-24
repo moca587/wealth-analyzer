@@ -871,6 +871,15 @@ Citations:<br>
     <p>Test live quote retrieval. Verified keyless on 2026-08-02: <strong>Yahoo Finance</strong> (equities/ETFs), <strong>CoinGecko</strong> and <strong>Coinbase</strong> (crypto), <strong>Frankfurter/ECB</strong> and <strong>Open ER API</strong> (FX), <strong>Treasury.gov</strong> (yield curve). <strong>SEC EDGAR</strong> resolves ticker&rarr;CIK but its filings API refuses browser requests &mdash; that half needs a server relay. Everything else needs a key in the API Keys tab; enterprise feeds (Bloomberg, FactSet, Refinitiv) need a user-deployed proxy.</p>
   </div>
   <div class="panel">
+    <div style="margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid rgba(120,120,120,.2)">
+      <div class="row" style="margin-bottom:6px">
+        <label class="lbl">Live Prices — data proxy URL</label>
+        <input id="mdProxyUrl" placeholder="https://your-worker.workers.dev" class="w260" style="min-width:300px" onchange="saveMdProxy(this.value)">
+        <span id="mdProxyStatus" style="font-size:11px;color:var(--ink3)"></span>
+      </div>
+      <div style="font-size:11px;color:var(--ink3);line-height:1.5">Free Cloudflare Worker that proxies the keyless sources (Yahoo can't be called from a browser directly). Set once here — the client app and the tests below both use it. Leave blank to use the public fallback. Prices are cached so a last-known value still shows if a fetch fails.</div>
+      <script>(function(){var e=document.getElementById('mdProxyUrl');if(e){try{e.value=localStorage.getItem('wa_cors_proxy')||'';}catch(_){}}})();</script>
+    </div>
     <div class="row">
       <label class="lbl">Ticker</label><input id="mdTicker" placeholder="AAPL" class="w160" value="AAPL">
       <label class="lbl" style="min-width:60px">Provider</label>
@@ -1103,7 +1112,7 @@ function toggleQuestionnairePreview(){
 // ═══════════════════════════════════════════════════════════
 // VERSION + UTILS
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260924-1509";
+const APP_VERSION = "20260924-1858";
 const $ = (id) => document.getElementById(id);
 const $$ = (sel, ctx) => Array.from((ctx||document).querySelectorAll(sel));
 
@@ -5255,6 +5264,11 @@ async function testQuote(){
   } catch(e){ $("mdResult").innerHTML = '<div class="code" style="background:#7f1d1d">Error: '+escapeHtml(e.message)+'</div>'; addLog("err",`${ticker}: ${e.message}`); }
 }
 
+// Live-prices data proxy (shared with the client app via wa_cors_proxy in localStorage).
+function saveMdProxy(v){
+  try{ localStorage.setItem("wa_cors_proxy", String(v||"").trim()); }catch(_){}
+  var s=document.getElementById("mdProxyStatus"); if(s) s.textContent = (v&&String(v).trim()) ? "Saved — used by the client app and these tests." : "Cleared — using public fallback.";
+}
 async function testAllProviders(){
   const ticker = $("mdTicker").value.trim().toUpperCase();
   if(!ticker) return toast("Enter a ticker","err");
