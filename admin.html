@@ -9,80 +9,179 @@
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
+/* ══════════════════════════════════════════════════════════════
+   THEME TOKENS — docs/style-guide.md §4.
+   Values are identical to the demo (wealth-analyzer.html); names are the
+   target semantic names (docs/plans/style-guide-plan.md §7.1). Use tokens
+   only: no raw colours in rules, markup or generated HTML.
+   ══════════════════════════════════════════════════════════════ */
 :root{
-  --bg:#f4f6fb;--card:#ffffff;--ink:#16213e;--ink2:#374151;--ink3:#9ca3af;
-  --line:rgba(0,87,184,.12);--blue:#0057b8;--blue2:#0069d9;--green:#00875a;
-  --red:#e31837;--amber:#f59e0b;--purple:#7c3aed;--cyan:#06b6d4;
-  --fb:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;
-  --fm:'JetBrains Mono','SF Mono','Consolas',monospace;
+  /* Colour — core (§4.1, §4.2) */
+  --color-bg-canvas:#f4f6fb;--color-bg-surface:#ffffff;--color-bg-subtle:#eef1f8;--color-bg-muted:#e2e8f2;
+  --color-bg-surface-tinted:#f8faff;--color-bg-bar:rgba(255,255,255,.96);
+  --color-text:#16213e;--color-text-secondary:#374151;--color-text-muted:#9ca3af;
+  --color-border:rgba(0,87,184,.10);--color-border-strong:rgba(0,87,184,.22);
+  --color-border-subtle:rgba(0,87,184,.08);--color-border-input:rgba(0,87,184,.14);
+  --color-primary:#0057b8;--color-primary-hover:#0069d9;--color-primary-deep:#003d8f;--color-primary-light:#4da6ff;
+  --color-on-primary:#ffffff;
+  --color-primary-tint-1:rgba(0,87,184,.06);--color-primary-tint-2:rgba(0,87,184,.08);
+  --color-selection:rgba(0,105,217,.20);--color-focus-ring:rgba(0,105,217,.55);
+  /* Colour — navy / inverse (§4.1a) */
+  --color-bg-inverse:#061735;--color-bg-inverse-mid:#0a2a5e;--color-bg-inverse-end:#0d3f8a;
+  --color-brand-ink:#06173a;
+  --color-text-on-inverse:#ffffff;--color-text-on-inverse-muted:rgba(213,225,245,.74);
+  --color-primary-on-inverse:#bcd8ff;--color-primary-on-inverse-end:#8fbaff;
+  --color-glow-primary:rgba(77,166,255,.28);--color-highlight-warm:rgba(212,175,95,.16);
+  /* Colour — effects (§4.8) */
+  --color-glow-canvas:rgba(0,105,217,.05);--color-hairline-primary:rgba(0,105,217,.45);--color-sheen:rgba(255,255,255,.38);
+  /* Colour — status set (§4.1b) */
+  --color-success:#00875a;--color-on-success:#ffffff;--color-success-text:#1b6841;
+  --color-success-tint:rgba(0,135,90,.12);--color-success-border:rgba(0,135,90,.30);
+  --color-warning:#f59e0b;--color-on-warning:#16213e;--color-warning-text:#a8612b;
+  --color-warning-tint:rgba(245,158,11,.13);--color-warning-border:rgba(245,158,11,.35);
+  --color-error:#e31837;--color-on-error:#ffffff;--color-error-text:#a83232;
+  --color-error-tint:rgba(227,24,55,.10);--color-error-border:rgba(227,24,55,.30);
+  --color-info:#5ab8f5;--color-on-info:#16213e;--color-info-text:#0369a1;
+  --color-info-tint:rgba(90,184,245,.14);--color-info-border:rgba(90,184,245,.35);
+  /* Typography (§4.4). --font-mono is the one token whose value differs from the demo (Q16). */
+  --font-sans:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;
+  --font-mono:'JetBrains Mono','SF Mono','Consolas',monospace;
+  /* Spacing and layout (§4.5) */
+  --space-1:4px;--space-2:8px;--space-3:12px;--space-4:16px;--space-5:24px;--space-6:32px;
+  --topbar-h:64px;--sidebar-w:220px; /* demo: 200px; admin labels + NEW badges wrap at 200 */
+  /* Radius (§4.6) */
+  --radius-md:8px;--radius-lg:12px;--radius-xl:14px;--radius-pill:999px;--radius-full:50%;
+  /* Elevation (§4.7) */
+  --shadow-sm:0 1px 4px rgba(0,0,0,.04);
+  --shadow-md:0 6px 18px rgba(0,87,184,.10);
+  --shadow-md-soft:0 8px 26px rgba(10,40,100,.09);
+  --shadow-primary:0 4px 14px rgba(0,87,184,.30);
+  --shadow-primary-hover:0 9px 24px rgba(0,87,184,.42);
+  --shadow-xl:0 24px 70px rgba(0,40,120,.25);
+  --shadow-bar:0 2px 12px rgba(0,0,0,.05);
+  --shadow-inverse:0 22px 54px rgba(4,20,50,.38),0 2px 8px rgba(4,20,50,.22);
+  --shadow-focus:0 0 0 4px rgba(0,105,217,.10);
+  /* Motion (§4.8) */
+  --duration-fast:.15s;--ease-out-soft:cubic-bezier(.2,.7,.3,1);
+  /* Layering (§4.9) */
+  --z-raised:1;--z-sticky:200;--z-float:800;--z-popover:1000;--z-drawer:9000;--z-modal:9500;--z-tooltip:9999;--z-splash:100000;
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100%}
-body{font-family:var(--fb);background:var(--bg);color:var(--ink);font-size:14px;line-height:1.6;-webkit-font-smoothing:antialiased;letter-spacing:-.005em;overflow-x:hidden}
+body{font-family:var(--font-sans);background:var(--color-bg-canvas);color:var(--color-text);font-size:14px;line-height:1.6;-webkit-font-smoothing:antialiased;letter-spacing:-.005em;overflow-x:hidden}
 
-/* ── Layout ── */
+@keyframes wowAurora{0%{transform:translate3d(-7%,-5%,0) scale(1)}50%{transform:translate3d(7%,5%,0) scale(1.18)}100%{transform:translate3d(-7%,-5%,0) scale(1)}}
+@keyframes wowSheen{0%{transform:translateX(-140%) skewX(-18deg)}100%{transform:translateX(260%) skewX(-18deg)}}
+@keyframes wowFadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+
+/* ── App shell (§5.1) ── */
 .shell{display:flex;flex-direction:column;height:100vh}
-.topbar{background:#fff;border-bottom:1px solid var(--line);padding:0 28px;height:60px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:200;box-shadow:0 1px 8px rgba(0,0,0,.05)}
-.logo{font-size:18px;font-weight:800;color:var(--blue);letter-spacing:-.04em}
-.logo .badge{background:var(--red);color:#fff;font-size:9px;padding:2px 7px;border-radius:50px;margin-left:8px;letter-spacing:.08em;font-weight:700;vertical-align:middle}
-.logo small{font-size:11px;color:var(--ink3);margin-left:8px;font-weight:400}
-.btn-link{background:none;border:1px solid var(--line);color:var(--blue);padding:6px 14px;border-radius:50px;font-family:var(--fb);font-size:12px;font-weight:600;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:6px}
-.btn-link:hover{background:rgba(0,87,184,.05);border-color:var(--blue)}
+.topbar{background:var(--color-bg-bar);border-bottom:1px solid var(--color-border-subtle);padding:0 28px;height:var(--topbar-h);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;position:sticky;top:0;z-index:var(--z-sticky);box-shadow:var(--shadow-bar)}
+.logo{font-size:18px;font-weight:800;letter-spacing:-.04em;background:linear-gradient(93deg,var(--color-brand-ink) 0%,var(--color-primary-hover) 90%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+/* Admin identifier next to the wordmark (kept, P2-02) */
+.logo .badge{background:var(--color-error);color:var(--color-on-error);-webkit-text-fill-color:var(--color-on-error);font-size:9px;padding:2px 7px;border-radius:var(--radius-pill);margin-left:8px;letter-spacing:.08em;font-weight:700;vertical-align:middle}
+.logo small{font-size:11px;-webkit-text-fill-color:var(--color-text-muted);margin-left:10px;font-weight:400;letter-spacing:.02em}
 .body{display:flex;flex:1;overflow:hidden}
-.sidebar{width:220px;flex-shrink:0;background:#fff;border-right:1px solid var(--line);overflow-y:auto;padding:18px 0}
-.grp{font-size:10px;font-weight:700;letter-spacing:.10em;text-transform:uppercase;color:var(--ink3);padding:14px 18px 6px}
-.nav{display:flex;align-items:center;gap:9px;padding:9px 18px;cursor:pointer;color:var(--ink2);font-size:13px;font-weight:500;border-left:3px solid transparent;user-select:none;transition:all .12s}
+.sidebar{width:var(--sidebar-w);flex-shrink:0;background:var(--color-bg-surface);border-right:1px solid var(--color-border-subtle);overflow-y:auto;padding:20px 0}
+.grp{font-size:9.5px;font-weight:700;letter-spacing:.10em;text-transform:uppercase;color:var(--color-text-muted);padding:14px 18px 5px}
+.nav{display:flex;align-items:center;gap:9px;padding:9px 18px;cursor:pointer;color:var(--color-text-secondary);font-size:13px;font-weight:500;border-left:3px solid transparent;user-select:none;transition:all .18s var(--ease-out-soft)}
 .nav>*{pointer-events:none}
-.nav:hover{background:rgba(0,87,184,.04);color:var(--ink)}
-.nav.active{background:rgba(0,87,184,.07);border-left-color:var(--blue);color:var(--blue);font-weight:600}
-.nav svg{width:14px;height:14px;opacity:.7}
-.nav-new{margin-left:auto;background:linear-gradient(135deg,#7c3aed,#0057b8);color:#fff;font-size:8px;padding:2px 6px;border-radius:50px;font-weight:700}
-.main{flex:1;overflow-y:auto;padding:28px 34px}
+.nav:hover{color:var(--color-text);background:var(--color-primary-tint-1);transform:translateX(2px)}
+.nav.active{color:var(--color-primary);border-left-color:var(--color-primary);background:linear-gradient(90deg,var(--color-primary-tint-2),transparent)}
+.nav svg{width:14px;height:14px;flex-shrink:0;opacity:.65}
+/* "NEW" badge: navy, not purple (plan §7.2a, Q12/Q19) */
+.nav-new{margin-left:auto;background:var(--color-bg-inverse);color:var(--color-text-on-inverse);font-size:8px;padding:2px 6px;border-radius:var(--radius-pill);font-weight:700;letter-spacing:.04em}
+.main{flex:1;min-width:0;overflow-y:auto;padding:28px 32px;background:radial-gradient(1100px 480px at 88% -8%,var(--color-glow-canvas),transparent 62%),var(--color-bg-canvas)}
+@media(max-width:900px){.sidebar{display:none}.main{padding:16px}}
 
 /* ── Tabs ── */
 .tab{display:none}.tab.active{display:block}
 
-/* ── Common ── */
-.hero{background:linear-gradient(135deg,var(--blue),#003d82);color:#fff;border-radius:12px;padding:22px 26px;margin-bottom:18px;box-shadow:0 4px 16px rgba(0,87,184,.18)}
-.hero.purple{background:linear-gradient(135deg,#7c3aed,#0057b8)}
-.hero h1{font-size:22px;font-weight:800;letter-spacing:-.03em;margin-bottom:4px}
-.hero p{font-size:13px;opacity:.85;line-height:1.55}
-.panel{background:#fff;border:1px solid var(--line);border-radius:12px;padding:22px 26px;margin-bottom:20px;box-shadow:0 1px 3px rgba(0,0,0,.04)}
-.ptitle{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.10em;color:var(--ink3);margin-bottom:14px;display:flex;align-items:center;gap:10px}
-.ptitle::after{content:'';flex:1;height:1px;background:var(--line)}
-.pdesc{font-size:12.5px;color:var(--ink3);margin-bottom:14px;line-height:1.65}
+/* ── Tab header: the navy feature surface, reused from the demo (§5.13, Q11) ── */
+.wealth-hero{position:relative;display:flex;overflow:hidden;min-height:290px;margin-bottom:24px;border-radius:var(--radius-lg);
+  background:linear-gradient(128deg,var(--color-bg-inverse) 0%,var(--color-bg-inverse-mid) 52%,var(--color-bg-inverse-end) 100%);
+  box-shadow:var(--shadow-inverse);animation:wowFadeUp .5s ease both}
+.wealth-hero::before{content:"";position:absolute;inset:-18%;pointer-events:none;
+  background:radial-gradient(40% 58% at 24% 32%,var(--color-glow-primary),transparent 62%),
+             radial-gradient(32% 48% at 76% 70%,var(--color-highlight-warm),transparent 60%);
+  animation:wowAurora 17s ease-in-out infinite}
+body.wa-page-hidden .wealth-hero::before{animation-play-state:paused}
+.wealth-hero>*{position:relative;z-index:var(--z-raised)}
+.wh-left{flex:1;padding:32px 36px;display:flex;flex-direction:column}
+.wh-title{font-size:27px;font-weight:800;margin-bottom:5px;letter-spacing:-.045em;line-height:1.1;
+  background:linear-gradient(93deg,var(--color-text-on-inverse) 0%,var(--color-primary-on-inverse) 55%,var(--color-primary-on-inverse-end) 100%);
+  -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.wh-sub{font-size:13px;color:var(--color-text-on-inverse-muted);margin-bottom:22px;line-height:1.65;font-weight:400}
+/* Admin headers hold a title and one line; without the demo's side panel the
+   hero sizes to its content instead of the 290px showcase height. */
+.wealth-hero:not(:has(.wh-right)){min-height:0}
+.wealth-hero:not(:has(.wh-right)) .wh-left{padding:26px 32px}
+.wh-left>:last-child{margin-bottom:0}
+/* Emoji keep their own colours instead of being clipped to the title gradient */
+.wh-ico{-webkit-text-fill-color:initial}
 
-/* ── KPIs ── */
-.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px;margin-bottom:20px}
-.kpi{background:#fff;border:1px solid var(--line);border-radius:10px;padding:14px 16px;box-shadow:0 1px 3px rgba(0,0,0,.03)}
-.kpi.tone-green{border-left:3px solid var(--green)}
-.kpi.tone-red{border-left:3px solid var(--red)}
-.kpi.tone-blue{border-left:3px solid var(--blue)}
-.kpi.tone-amber{border-left:3px solid var(--amber)}
-.kpi-l{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink3);margin-bottom:5px}
-.kpi-v{font-size:22px;font-weight:700;color:var(--ink);letter-spacing:-.03em;font-variant-numeric:tabular-nums}
-.kpi-s{font-size:11px;color:var(--ink3);margin-top:3px}
+/* ── Cards: panel and section title (§5.2) ── */
+.panel,.ablock,.rp-card,.test-card{position:relative;background:var(--color-bg-surface);border:1px solid var(--color-border-subtle);border-left:3px solid transparent;border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);transition:box-shadow .25s,border-left-color .2s}
+.panel:hover,.ablock:hover,.rp-card:hover,.test-card:hover{box-shadow:var(--shadow-md-soft);border-left-color:var(--color-border-strong)}
+.panel{padding:22px 26px;margin-bottom:16px}
+.panel::after,.ablock::after{content:"";position:absolute;top:0;left:24px;right:24px;height:2px;border-radius:2px;pointer-events:none;
+  background:linear-gradient(90deg,var(--color-hairline-primary),transparent);opacity:0;transition:opacity .25s}
+.panel:hover::after,.ablock:hover::after{opacity:1}
+.ptitle{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.10em;color:var(--color-text-muted);margin-bottom:18px;display:flex;align-items:center;gap:10px}
+.ptitle::before{content:"";width:14px;height:3px;border-radius:2px;flex-shrink:0;background:linear-gradient(90deg,var(--color-primary-hover),var(--color-primary-light))}
+.ptitle::after{content:'';flex:1;height:1px;background:var(--color-border)}
+.pdesc{font-size:12.5px;color:var(--color-text-muted);margin-bottom:14px;line-height:1.65}
+
+/* ── KPIs: metric tile, results-strip recipe (§5.6) ── */
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:20px}
+.kpi{background:var(--color-bg-surface);border:1px solid var(--color-border);border-left:3px solid var(--color-primary);border-radius:var(--radius-lg);padding:14px 16px;box-shadow:var(--shadow-sm);cursor:default;transition:transform var(--duration-fast),box-shadow var(--duration-fast),border-color var(--duration-fast)}
+.kpi:hover{transform:translateY(-2px);box-shadow:var(--shadow-md);border-color:var(--color-border-strong)}
+.kpi.tone-green{border-left-color:var(--color-success)}
+.kpi.tone-amber{border-left-color:var(--color-warning)}
+.kpi.tone-red{border-left-color:var(--color-error)}
+.kpi.tone-blue{border-left-color:var(--color-primary)}
+.kpi-l{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--color-text-muted);margin-bottom:5px}
+.kpi-v{font-size:23px;font-weight:800;color:var(--color-text);letter-spacing:-.03em;font-variant-numeric:tabular-nums;line-height:1.05}
+.kpi-s{font-size:11px;color:var(--color-text-muted);margin-top:3px}
 
 /* ── Form ── */
 .row{display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap}
-.lbl{font-size:12px;color:var(--ink2);min-width:130px;font-weight:500}
-input,select,textarea,button{font-family:var(--fb);font-size:13px}
-input,select,textarea{background:#fff;border:1.5px solid rgba(0,87,184,.14);border-radius:8px;color:var(--ink);font-weight:500;padding:7px 11px;outline:none;transition:border-color .15s}
-input:focus,select:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(0,87,184,.08)}
-textarea{font-family:var(--fm);font-size:12px;width:100%;min-height:70px;resize:vertical}
+.lbl{font-size:12px;color:var(--color-text-secondary);min-width:130px;font-weight:500}
+input,select,textarea,button{font-family:var(--font-sans);font-size:13px}
+input,select,textarea{background:var(--color-bg-surface);border:1.5px solid var(--color-border-input);border-radius:var(--radius-md);color:var(--color-text);font-weight:500;padding:7px 11px;outline:none;transition:border-color var(--duration-fast)}
+input:focus,select:focus,textarea:focus{border-color:var(--color-primary);box-shadow:var(--shadow-focus)}
+textarea{font-family:var(--font-mono);font-size:12px;width:100%;min-height:70px;resize:vertical}
 .w120{width:120px}.w160{width:160px}.w200{width:200px}.w260{width:260px}.fw{width:100%}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px}
 .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
 @media(max-width:900px){.grid2,.grid3{grid-template-columns:1fr}}
 
-/* ── Buttons ── */
-.btn{background:var(--blue);color:#fff;border:none;padding:9px 20px;border-radius:50px;font-size:13px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:background .15s}
-.btn:hover{background:var(--blue2)}
-.btn-ghost{background:transparent;color:var(--blue);border:1.5px solid rgba(0,87,184,.25);padding:7px 16px;border-radius:50px;font-size:12px;font-weight:600;cursor:pointer}
-.btn-ghost:hover{background:rgba(0,87,184,.05)}
-/* Labelled ON/OFF toggle button (feature flags) */
-.wa-switch{position:relative;width:78px;height:30px;border-radius:50px;border:none;background:#9aa3b2;cursor:pointer;padding:0;flex:0 0 auto;transition:background .2s;font-family:var(--fb);font-size:11px;font-weight:800;letter-spacing:.06em}
-.wa-switch.on{background:var(--green)}
+/* ── Buttons (§5.4) ── */
+/* Primary: gradient, sheen on hover, presses to .97 */
+.btn{position:relative;overflow:hidden;display:inline-flex;align-items:center;gap:7px;padding:10px 24px;border:none;border-radius:var(--radius-pill);
+  background:linear-gradient(135deg,var(--color-primary-hover),var(--color-primary-deep));color:var(--color-on-primary);
+  font-size:13px;font-weight:600;letter-spacing:.01em;cursor:pointer;box-shadow:var(--shadow-primary);transition:transform .16s,box-shadow .16s,filter .16s}
+.btn:hover{transform:translateY(-1px);box-shadow:var(--shadow-primary-hover);filter:brightness(1.06)}
+.btn:active{transform:translateY(0) scale(.97)}
+.btn::after{content:"";position:absolute;top:0;bottom:0;left:0;width:45%;pointer-events:none;
+  background:linear-gradient(100deg,transparent,var(--color-sheen),transparent);transform:translateX(-140%) skewX(-18deg)}
+.btn:hover::after{animation:wowSheen .8s ease}
+/* Secondary (.btn-ghost) and small secondary (.btn-link, .rp-mini) */
+.btn-ghost,.btn-link,.rp-mini{display:inline-flex;align-items:center;gap:6px;background:transparent;border:1.5px solid var(--color-border-strong);color:var(--color-primary);border-radius:var(--radius-pill);font-family:var(--font-sans);font-weight:600;cursor:pointer;text-decoration:none;transition:all .18s}
+.btn-ghost{padding:8px 18px;font-size:12px}
+.btn-link,.rp-mini{padding:5px 14px;font-size:11px}
+.btn-ghost:hover,.btn-link:hover,.rp-mini:hover{background:var(--color-primary-tint-2);border-color:var(--color-primary);transform:translateY(-1px)}
+/* Danger: resting error red (Q15) */
+.btn-danger{display:inline-flex;align-items:center;gap:6px;background:var(--color-error);color:var(--color-on-error);border:none;padding:8px 18px;border-radius:var(--radius-pill);font-size:12px;font-weight:600;cursor:pointer;transition:transform .16s,filter .16s}
+.btn-danger:hover{filter:brightness(.9);transform:translateY(-1px)}
+.btn-danger:active{transform:translateY(0) scale(.97)}
+/* Disabled (§4.13) */
+.btn:disabled,.btn-ghost:disabled,.btn-link:disabled,.rp-mini:disabled,.btn-danger:disabled{opacity:.5;cursor:not-allowed;transform:none;filter:none;box-shadow:none}
+.btn:disabled::after{display:none}
+/* Labelled ON/OFF toggle (feature flags). Replaced by the demo switch in P2-05;
+   its literal colours go with it. */
+.wa-switch{position:relative;width:78px;height:30px;border-radius:50px;border:none;background:#9aa3b2;cursor:pointer;padding:0;flex:0 0 auto;transition:background .2s;font-family:var(--font-sans);font-size:11px;font-weight:800;letter-spacing:.06em}
+.wa-switch.on{background:var(--color-success)}
 .wa-switch .wa-knob{position:absolute;top:3px;left:3px;width:24px;height:24px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.3);transition:left .2s;z-index:2}
 .wa-switch.on .wa-knob{left:51px}
 .wa-switch .wa-on,.wa-switch .wa-off{position:absolute;top:50%;transform:translateY(-50%);color:#fff;pointer-events:none;transition:opacity .2s}
@@ -90,87 +189,89 @@ textarea{font-family:var(--fm);font-size:12px;width:100%;min-height:70px;resize:
 .wa-switch .wa-off{right:9px;opacity:1}
 .wa-switch.on .wa-on{opacity:1}
 .wa-switch.on .wa-off{opacity:0}
-.btn-danger{background:var(--red);color:#fff;border:none;padding:7px 16px;border-radius:50px;font-size:12px;font-weight:600;cursor:pointer}
-.btn-purple{background:linear-gradient(135deg,#7c3aed,#0057b8);color:#fff;border:none;padding:10px 24px;border-radius:50px;font-size:14px;font-weight:700;cursor:pointer;box-shadow:0 4px 12px rgba(124,58,237,.25)}
-.btn-purple:hover{filter:brightness(1.05)}
 
-/* ── Pills / status ── */
-.pill{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:50px;font-size:11px;font-weight:600}
-.pill-on{background:rgba(0,135,90,.13);color:var(--green)}
-.pill-off{background:rgba(227,24,55,.10);color:var(--red)}
-.pill-warn{background:rgba(245,158,11,.13);color:var(--amber)}
-.pill-info{background:rgba(0,87,184,.10);color:var(--blue)}
+/* ── Pills / status (status set §4.1b; full badge recipe in P2-07) ── */
+.pill{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:var(--radius-pill);font-size:11px;font-weight:600}
+.pill-on{background:var(--color-success-tint);color:var(--color-success-text)}
+.pill-off{background:var(--color-error-tint);color:var(--color-error-text)}
+.pill-warn{background:var(--color-warning-tint);color:var(--color-warning-text)}
+.pill-info{background:var(--color-primary-tint-2);color:var(--color-primary)}
 
-/* ── Tables ── */
-.tbl-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:8px}
+/* ── Tables (restyled in P2-08) ── */
+.tbl-wrap{overflow-x:auto;border:1px solid var(--color-border);border-radius:var(--radius-md)}
 .tbl{width:100%;border-collapse:collapse;font-size:13px}
-.tbl th{background:rgba(0,87,184,.04);font-size:10.5px;text-transform:uppercase;letter-spacing:.08em;color:var(--ink2);font-weight:700;padding:10px 12px;text-align:left;border-bottom:2px solid var(--line)}
-.tbl td{padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:middle}
-.tbl tr:hover td{background:rgba(0,87,184,.02)}
+.tbl th{background:var(--color-primary-tint-1);font-size:10.5px;text-transform:uppercase;letter-spacing:.08em;color:var(--color-text-secondary);font-weight:700;padding:10px 12px;text-align:left;border-bottom:2px solid var(--color-border)}
+.tbl td{padding:9px 12px;border-bottom:1px solid var(--color-border);vertical-align:middle}
+.tbl tr:hover td{background:var(--color-primary-tint-1)}
 .tbl tr:last-child td{border-bottom:none}
 .num{text-align:right;font-variant-numeric:tabular-nums}
 
-/* ── Code ── */
-.code{background:#0f172a;color:#e2e8f0;font-family:var(--fm);font-size:12px;padding:14px 16px;border-radius:8px;line-height:1.6;white-space:pre-wrap;word-break:break-word;overflow-x:auto;max-height:400px;overflow-y:auto}
+/* ── Code. Moves to the light code block (§5.14) in P2-17; its literal
+   colours go with it. ── */
+.code{background:#0f172a;color:#e2e8f0;font-family:var(--font-mono);font-size:12px;padding:14px 16px;border-radius:var(--radius-md);line-height:1.6;white-space:pre-wrap;word-break:break-word;overflow-x:auto;max-height:400px;overflow-y:auto}
 
-/* ── Research provider cards ── */
+/* ── Research provider cards (card recipe above) ── */
 .rp{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:12px}
-.rp-card{background:#fff;border:1px solid var(--line);border-radius:10px;padding:14px 16px;display:flex;flex-direction:column;gap:8px;transition:all .15s}
-.rp-card:hover{border-color:rgba(0,87,184,.25);box-shadow:0 3px 10px rgba(0,87,184,.08)}
+.rp-card{padding:14px 16px;display:flex;flex-direction:column;gap:8px}
 .rp-card.disabled{opacity:.5}
 .rp-head{display:flex;align-items:center;gap:10px}
-.rp-icon{width:34px;height:34px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;color:#fff;font-weight:800;flex-shrink:0}
+.rp-icon{width:34px;height:34px;border-radius:var(--radius-md);display:flex;align-items:center;justify-content:center;font-size:15px;color:var(--color-text-on-inverse);font-weight:800;flex-shrink:0}
 .rp-name{font-weight:700;font-size:13px;line-height:1.25}
-.rp-meta{font-size:10.5px;color:var(--ink3);margin-top:1px}
+.rp-meta{font-size:10.5px;color:var(--color-text-muted);margin-top:1px}
 .rp-actions{display:flex;gap:6px;flex-wrap:wrap}
-.rp-mini{font-size:11px;padding:4px 10px;border-radius:50px;border:1px solid rgba(0,87,184,.20);background:transparent;color:var(--blue);cursor:pointer;font-family:var(--fb);font-weight:600}
-.rp-mini:hover{background:rgba(0,87,184,.05)}
 
-/* ── Agent result blocks ── */
-.ablock{background:#fff;border:1px solid var(--line);border-radius:10px;padding:18px 22px;margin-bottom:12px}
-.ablock h3{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.10em;color:var(--purple);margin-bottom:10px}
-.abar{display:grid;grid-template-columns:160px 1fr 80px;gap:10px;align-items:center;padding:7px 0;border-bottom:1px solid var(--line)}
+/* ── Agent result blocks (card recipe above) ── */
+.ablock{padding:18px 22px;margin-bottom:12px}
+.ablock h3{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.10em;color:var(--color-primary);margin-bottom:10px}
+.abar{display:grid;grid-template-columns:160px 1fr 80px;gap:10px;align-items:center;padding:7px 0;border-bottom:1px solid var(--color-border)}
 .abar-fund{font-weight:600}
-.abar-track{height:11px;background:rgba(0,87,184,.06);border-radius:6px;overflow:hidden}
-.abar-fill{height:100%;background:linear-gradient(90deg,#7c3aed,var(--blue));border-radius:6px}
+.abar-track{height:11px;background:var(--color-primary-tint-1);border-radius:6px;overflow:hidden}
+.abar-fill{height:100%;background:linear-gradient(90deg,var(--color-primary-deep),var(--color-primary));border-radius:6px}
 .abar-pct{text-align:right;font-weight:700;font-variant-numeric:tabular-nums}
-.arat{font-size:11px;color:var(--ink3);grid-column:1/-1;padding:2px 0 4px;font-style:italic;line-height:1.5}
+.arat{font-size:11px;color:var(--color-text-muted);grid-column:1/-1;padding:2px 0 4px;font-style:italic;line-height:1.5}
 
-/* ── Toast ── */
-#toast{position:fixed;bottom:24px;right:24px;background:#16213e;color:#fff;padding:11px 18px;border-radius:50px;font-size:13px;font-weight:600;box-shadow:0 12px 32px rgba(0,0,0,.25);transform:translateY(20px);opacity:0;transition:all .25s;z-index:9999;pointer-events:none}
+/* ── Toast (restyled in P2-11) ── */
+#toast{position:fixed;bottom:24px;right:24px;background:var(--color-text);color:var(--color-text-on-inverse);padding:11px 18px;border-radius:var(--radius-pill);font-size:13px;font-weight:600;box-shadow:var(--shadow-xl);transform:translateY(20px);opacity:0;transition:all .25s;z-index:var(--z-tooltip);pointer-events:none}
 #toast.show{transform:translateY(0);opacity:1}
-#toast.ok{background:var(--green)}
-#toast.err{background:var(--red)}
+#toast.ok{background:var(--color-success);color:var(--color-on-success)}
+#toast.err{background:var(--color-error);color:var(--color-on-error)}
 
 /* ── Errors banner ── */
-#errBar{position:fixed;top:0;left:0;right:0;z-index:99999;background:var(--red);color:#fff;padding:10px 20px;font:600 12px/1.5 var(--fm);max-height:160px;overflow-y:auto;display:none}
+#errBar{position:fixed;top:0;left:0;right:0;z-index:var(--z-splash);background:var(--color-error);color:var(--color-on-error);padding:10px 20px;font:600 12px/1.5 var(--font-mono);max-height:160px;overflow-y:auto;display:none}
 #errBar.show{display:block}
 
 /* ── Logs ── */
-.log{display:grid;grid-template-columns:150px 70px 1fr;gap:10px;padding:7px 12px;border-bottom:1px solid var(--line);font-size:11.5px;font-family:var(--fm)}
-.log-ts{color:var(--ink3)}
+.log{display:grid;grid-template-columns:150px 70px 1fr;gap:10px;padding:7px 12px;border-bottom:1px solid var(--color-border);font-size:11.5px;font-family:var(--font-mono)}
+.log-ts{color:var(--color-text-muted)}
 .log-lvl{font-weight:700;text-align:center;padding:1px 6px;border-radius:4px;font-size:9.5px;text-transform:uppercase}
-.log-lvl.info{background:rgba(0,87,184,.10);color:var(--blue)}
-.log-lvl.warn{background:rgba(245,158,11,.13);color:var(--amber)}
-.log-lvl.err{background:rgba(227,24,55,.10);color:var(--red)}
-.log-lvl.ok{background:rgba(0,135,90,.10);color:var(--green)}
+.log-lvl.info{background:var(--color-primary-tint-2);color:var(--color-primary)}
+.log-lvl.warn{background:var(--color-warning-tint);color:var(--color-warning-text)}
+.log-lvl.err{background:var(--color-error-tint);color:var(--color-error-text)}
+.log-lvl.ok{background:var(--color-success-tint);color:var(--color-success-text)}
 
-/* ── Test cards ── */
-.test-card{display:grid;grid-template-columns:30px 1fr auto;gap:12px;align-items:center;padding:10px 14px;background:#fff;border:1px solid var(--line);border-radius:8px;margin-bottom:6px}
-.test-card.pass{border-left:3px solid var(--green)}
-.test-card.fail{border-left:3px solid var(--red);background:rgba(227,24,55,.03)}
-.test-badge{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#fff}
-.test-badge.pass{background:var(--green)}
-.test-badge.fail{background:var(--red)}
+/* ── Test cards (card recipe above; status accent on the left) ── */
+.test-card{display:grid;grid-template-columns:30px 1fr auto;gap:12px;align-items:center;padding:10px 14px;margin-bottom:6px}
+.test-card.pass{border-left-color:var(--color-success)}
+.test-card.fail{border-left-color:var(--color-error);background:var(--color-error-tint)}
+.test-badge{width:26px;height:26px;border-radius:var(--radius-full);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800}
+.test-badge.pass{background:var(--color-success);color:var(--color-on-success)}
+.test-badge.fail{background:var(--color-error);color:var(--color-on-error)}
 .test-name{font-weight:700;font-size:13px}
-.test-detail{font-size:11px;color:var(--ink3);font-family:var(--fm);margin-top:2px}
+.test-detail{font-size:11px;color:var(--color-text-muted);font-family:var(--font-mono);margin-top:2px}
 
-/* ── Live update banner ── */
-#liveUp{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);z-index:9998;background:linear-gradient(135deg,var(--blue),#003d82);color:#fff;padding:13px 22px;border-radius:50px;font-size:13px;font-weight:600;display:none;align-items:center;gap:12px;box-shadow:0 12px 40px rgba(0,87,184,.35)}
+/* ── Live update banner (navy in P2-11) ── */
+#liveUp{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);z-index:calc(var(--z-tooltip) - 1);background:linear-gradient(135deg,var(--color-primary),var(--color-primary-deep));color:var(--color-on-primary);padding:13px 22px;border-radius:var(--radius-pill);font-size:13px;font-weight:600;display:none;align-items:center;gap:12px;box-shadow:var(--shadow-primary-hover)}
 #liveUp.show{display:flex}
 
 ::-webkit-scrollbar{width:6px;height:6px}
-::-webkit-scrollbar-thumb{background:rgba(0,87,184,.20);border-radius:3px}
+::-webkit-scrollbar-thumb{background:var(--color-border-strong);border-radius:3px}
+
+/* Motion off when the OS asks for it (§4.8). Add new motion here. */
+@media (prefers-reduced-motion: reduce){
+  .wealth-hero,.wealth-hero::before,.btn:hover::after{animation:none!important}
+  .nav:hover,.btn:hover,.btn:active,.btn-ghost:hover,.btn-link:hover,.rp-mini:hover,.btn-danger:hover,.btn-danger:active,.kpi:hover{transform:none}
+  .kpi,.nav{transition:none}
+}
 </style>
 </head>
 <body>
@@ -206,7 +307,7 @@ textarea{font-family:var(--fm);font-size:12px;width:100%;min-height:70px;resize:
   <div class="nav" data-tab="research"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M3 1h7l3 3v11H3zm5 0v3h3M5 6h6v1H5V6zm0 2h6v1H5V8zm0 2h4v1H5v-1z"/></svg>Research Library</div>
 
   <div class="grp">Testing &amp; QA</div>
-  <div class="nav" data-tab="enginestress"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M3 1h2v4H3zm0 5h2v4H3zm0 5h2v4H3zm3-9h2v14H6zm3 3h2v11H9zm3-2h2v13h-2z"/></svg>Engine Stress Test<span class="nav-new" style="background:linear-gradient(135deg,#00875a,#0057b8)">NEW</span></div>
+  <div class="nav" data-tab="enginestress"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M3 1h2v4H3zm0 5h2v4H3zm0 5h2v4H3zm3-9h2v14H6zm3 3h2v11H9zm3-2h2v13h-2z"/></svg>Engine Stress Test<span class="nav-new">NEW</span></div>
   <div class="nav" data-tab="testbench"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M4 1v6L1 14h14L12 7V1zm2 1h4v5l2 5H4l2-5z"/></svg>Calc Test Bench</div>
   <div class="nav" data-tab="stress"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M1 12l4-5 3 3 3-4 4 5H1z"/></svg>Monte Carlo Stress</div>
 
@@ -214,7 +315,7 @@ textarea{font-family:var(--fm);font-size:12px;width:100%;min-height:70px;resize:
   <div class="nav" data-tab="constants"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M2 3h12v2H2zm0 4h12v2H2zm0 4h12v2H2z"/></svg>Constants Editor</div>
   <div class="nav" data-tab="market"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M1 13l4-6 3 3 3-5 4 8z"/></svg>Market Data</div>
   <div class="nav" data-tab="taxdb"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M2 2h12v2H2zm1 3h10v8a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1zm2 2v1h6V7zm0 3v1h6v-1zm0 3v1h4v-1z"/></svg>Tax Database</div>
-  <div class="nav" data-tab="taxaccuracy"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M14 3.5l-8 8-4-4L3.4 6.1 6 8.7l6.6-6.6z"/></svg>Tax Data Accuracy<span class="nav-new" style="background:linear-gradient(135deg,#00875a,#0057b8)">NEW</span></div>
+  <div class="nav" data-tab="taxaccuracy"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M14 3.5l-8 8-4-4L3.4 6.1 6 8.7l6.6-6.6z"/></svg>Tax Data Accuracy<span class="nav-new">NEW</span></div>
   <div class="nav" data-tab="keys"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M10 2a4 4 0 100 8 4 4 0 000-8zM2 14l5-5 1 1-5 5z"/></svg>API Keys</div>
 
   <div class="grp">System</div>
@@ -227,10 +328,10 @@ textarea{font-family:var(--fm);font-size:12px;width:100%;min-height:70px;resize:
 
 <!-- ─── DASHBOARD ─── -->
 <div class="tab active" id="tab-dashboard">
-  <div class="hero">
-    <h1>🎛 Admin Console Dashboard</h1>
-    <p>Connected to your local Wealth Analyzer app — shares localStorage for profile, keys, and configuration. No backend required.</p>
-  </div>
+  <div class="wealth-hero"><div class="wh-left">
+    <h1 class="wh-title"><span class="wh-ico" aria-hidden="true">🎛</span> Admin Console Dashboard</h1>
+    <p class="wh-sub">Connected to your local Wealth Analyzer app — shares localStorage for profile, keys, and configuration. No backend required.</p>
+  </div></div>
   <div class="kpi-grid" id="dashKpis"></div>
   <div class="grid2">
     <div class="panel">
@@ -246,10 +347,10 @@ textarea{font-family:var(--fm);font-size:12px;width:100%;min-height:70px;resize:
 
 <!-- ─── USERS ─── -->
 <div class="tab" id="tab-users">
-  <div class="hero" style="background:linear-gradient(135deg,#0057b8,#003d82)">
-    <h1>👥 User Management</h1>
-    <p>Track every user who creates a financial plan. When a user saves their plan in the main app, it appears here automatically. Click <strong>Build Portfolio</strong> on any user to send their plan to the AI Agent and generate an institutional-grade recommendation.</p>
-  </div>
+  <div class="wealth-hero"><div class="wh-left">
+    <h1 class="wh-title"><span class="wh-ico" aria-hidden="true">👥</span> User Management</h1>
+    <p class="wh-sub">Track every user who creates a financial plan. When a user saves their plan in the main app, it appears here automatically. Click <strong>Build Portfolio</strong> on any user to send their plan to the AI Agent and generate an institutional-grade recommendation.</p>
+  </div></div>
 
   <div class="kpi-grid" id="userStats"></div>
 
@@ -262,27 +363,27 @@ textarea{font-family:var(--fm);font-size:12px;width:100%;min-height:70px;resize:
       <input type="text" id="userSearch" placeholder="Search by name or email..." style="margin-left:auto;width:240px" oninput="renderUserTable()">
     </div>
     <div id="userTable"></div>
-    <div style="font-size:11px;color:var(--ink3);margin-top:14px;line-height:1.6;padding:10px 12px;background:rgba(0,87,184,.04);border-radius:6px">
-      <strong style="color:var(--blue)">💡 How users get added:</strong> the admin automatically watches the main app's <code>wa_pending_profile</code> localStorage key. When a user saves their profile in the main app and clicks "↻ Capture from Main App" here, the latest profile is registered as a user. You can also manually add users via the + Add User button.
+    <div style="font-size:11px;color:var(--color-text-muted);margin-top:14px;line-height:1.6;padding:10px 12px;background:rgba(0,87,184,.04);border-radius:6px">
+      <strong style="color:var(--color-primary)">💡 How users get added:</strong> the admin automatically watches the main app's <code>wa_pending_profile</code> localStorage key. When a user saves their profile in the main app and clicks "↻ Capture from Main App" here, the latest profile is registered as a user. You can also manually add users via the + Add User button.
     </div>
   </div>
 
   <!-- User detail panel (slides in when a user is selected) -->
   <div class="panel" id="userDetailPanel" style="display:none">
-    <div class="ptitle">User Detail — <span id="userDetailName" style="text-transform:none;color:var(--ink)">—</span></div>
+    <div class="ptitle">User Detail — <span id="userDetailName" style="text-transform:none;color:var(--color-text)">—</span></div>
     <div id="userDetailBody"></div>
   </div>
 </div>
 
 <!-- ─── AI AGENT ─── -->
 <div class="tab" id="tab-agent">
-  <div class="hero purple">
-    <h1>🤖 AI Portfolio Construction Agent</h1>
-    <p>Synthesizes research from <span class="js-prov-count">16</span> institutional sources, the client's financial plan, and a curated fund universe to produce a complete portfolio recommendation. Powered by AI.</p>
-  </div>
+  <div class="wealth-hero"><div class="wh-left">
+    <h1 class="wh-title"><span class="wh-ico" aria-hidden="true">🤖</span> AI Portfolio Construction Agent</h1>
+    <p class="wh-sub">Synthesizes research from <span class="js-prov-count">16</span> institutional sources, the client's financial plan, and a curated fund universe to produce a complete portfolio recommendation. Powered by AI.</p>
+  </div></div>
 
   <!-- Master switch: show / hide the AI Portfolio Builder in the client-facing app -->
-  <div class="panel" style="border:1px solid rgba(124,58,237,.28);background:linear-gradient(135deg,#fff,#faf5ff)">
+  <div class="panel">
     <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap">
       <div style="flex:1;min-width:240px">
         <div class="ptitle" style="margin:0 0 4px">Client-app feature · AI Portfolio Builder</div>
@@ -290,7 +391,7 @@ textarea{font-family:var(--fm);font-size:12px;width:100%;min-height:70px;resize:
       </div>
       <button class="wa-switch" id="aiBuilderSwitch" role="switch" aria-checked="true" data-action="toggleAIBuilderFeature" title="Toggle AI Portfolio Builder in the client app"><span class="wa-on">ON</span><span class="wa-off">OFF</span><span class="wa-knob"></span></button>
     </div>
-    <div class="pdesc" style="margin-top:10px;font-size:11px;color:var(--ink3)">Applies on the client app's next load, or instantly when its browser tab regains focus (same site / shared browser).</div>
+    <div class="pdesc" style="margin-top:10px;font-size:11px;color:var(--color-text-muted)">Applies on the client app's next load, or instantly when its browser tab regains focus (same site / shared browser).</div>
   </div>
 
   <div class="panel">
@@ -355,42 +456,42 @@ textarea{font-family:var(--fm);font-size:12px;width:100%;min-height:70px;resize:
       </div>
     </div>
     <div style="margin-top:14px">
-      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink3);margin-bottom:6px">Goals (name | year | amount, one per line)</div>
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--color-text-muted);margin-bottom:6px">Goals (name | year | amount, one per line)</div>
       <textarea id="agGoals">Retirement | 2055 | 80000
 College fund | 2040 | 200000
 Down payment | 2028 | 150000</textarea>
     </div>
     <div style="margin-top:10px">
-      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink3);margin-bottom:6px">Notes / mandates</div>
-      <textarea id="agNotes" style="font-family:var(--fb)">Prefer low-cost passive vehicles where possible. Avoid leveraged ETFs and crypto.</textarea>
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--color-text-muted);margin-bottom:6px">Notes / mandates</div>
+      <textarea id="agNotes" style="font-family:var(--font-sans)">Prefer low-cost passive vehicles where possible. Avoid leveraged ETFs and crypto.</textarea>
     </div>
   </div>
 
   <div class="panel">
-    <div class="ptitle">② Research Sources <span style="color:var(--green);font-weight:600">— all <span class="js-prov-count">16</span> enabled by default</span></div>
-    <div class="pdesc">All institutional sources are automatically pulled when you open this tab. <strong style="color:var(--green)">Auto-refresh runs every 5 minutes</strong>. Uncheck any you want to exclude from the agent's reasoning.</div>
+    <div class="ptitle">② Research Sources <span style="color:var(--color-success);font-weight:600">— all <span class="js-prov-count">16</span> enabled by default</span></div>
+    <div class="pdesc">All institutional sources are automatically pulled when you open this tab. <strong style="color:var(--color-success)">Auto-refresh runs every 5 minutes</strong>. Uncheck any you want to exclude from the agent's reasoning.</div>
     <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center">
       <button class="btn-ghost" data-action="manualResearchRefresh">↻ Pull latest now</button>
       <button class="btn-ghost" data-action="tickAllResearch">✓ Tick all</button>
       <button class="btn-ghost" data-action="untickAllResearch">✕ Untick all</button>
-      <span id="autoRefreshCountdown" style="margin-left:auto;font-size:11px;color:var(--green);font-weight:600;font-family:var(--fm)"></span>
+      <span id="autoRefreshCountdown" style="margin-left:auto;font-size:11px;color:var(--color-success);font-weight:600;font-family:var(--font-mono)"></span>
     </div>
     <div id="agResearch" class="grid3" style="gap:8px"></div>
   </div>
 
   <div class="panel" style="background:linear-gradient(135deg,#fff,#f0fdf4);border-color:rgba(0,135,90,.25)">
-    <div class="ptitle" style="color:var(--green)">③ Build Portfolio — Deterministic Research Engine</div>
+    <div class="ptitle" style="color:var(--color-success)">③ Build Portfolio — Deterministic Research Engine</div>
     <div class="pdesc">
       The <strong>Research Engine</strong> scans every cached research item across all <span class="js-prov-count">16</span> institutions, extracts <strong>asset-class signals</strong>, <strong>theme votes</strong>, <strong>sector calls</strong>, and <strong>regional positioning</strong> via keyword matching. It then picks funds from the universe based on consensus strength and your constraints. <strong>Every decision is explained with full citations to the underlying research.</strong> No LLM call required — runs instantly and is fully deterministic + auditable.
     </div>
     <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
-      <button class="btn" data-action="runResearchEngine" style="background:var(--green);font-size:14px;padding:11px 24px">🔬 Build with Research Engine</button>
-      <span id="engineStatus" style="font-size:12px;color:var(--ink3)"></span>
+      <button class="btn" data-action="runResearchEngine" style="font-size:14px;padding:11px 24px">🔬 Build with Research Engine</button>
+      <span id="engineStatus" style="font-size:12px;color:var(--color-text-muted)"></span>
     </div>
   </div>
 
-  <div class="panel" style="background:linear-gradient(135deg,#fff,#f3f0ff);border-color:rgba(124,58,237,.25)">
-    <div class="ptitle" style="color:var(--purple)">③b Build Portfolio — AI Agent</div>
+  <div class="panel">
+    <div class="ptitle">③b Build Portfolio — AI Agent</div>
     <div class="pdesc">Alternative: send the full client brief + research excerpts to the AI engine for an LLM-augmented recommendation. Use this when you want narrative reasoning beyond signal counts.</div>
     <div class="row">
       <label class="lbl">AI model</label>
@@ -401,9 +502,9 @@ Down payment | 2028 | 150000</textarea>
       </select>
     </div>
     <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:14px;align-items:center">
-      <button class="btn-purple" data-action="runAgent">🤖 Build with AI</button>
+      <button class="btn" data-action="runAgent">🤖 Build with AI</button>
       <button class="btn-ghost" data-action="exportToProposal" disabled id="agExportBtn">↗ Export to Main App's Investment Proposal</button>
-      <span id="agStatus" style="font-size:12px;color:var(--ink3)"></span>
+      <span id="agStatus" style="font-size:12px;color:var(--color-text-muted)"></span>
     </div>
   </div>
 
@@ -414,7 +515,7 @@ Down payment | 2028 | 150000</textarea>
 
   <!-- Methodology — How the Agent Selects Funds -->
   <div class="panel" style="background:linear-gradient(135deg,#fff,#f0f9ff);border:1px solid rgba(0,87,184,.20)">
-    <div class="ptitle" style="color:var(--blue);display:flex;align-items:center;justify-content:space-between">
+    <div class="ptitle" style="color:var(--color-primary);display:flex;align-items:center;justify-content:space-between">
       <span>🔬 How the Agent Selects Funds — Full Decision Logic</span>
       <button class="btn-ghost" onclick="document.getElementById('methodBody').style.display = document.getElementById('methodBody').style.display==='none'?'block':'none'" style="font-size:11px;padding:4px 12px">Show / Hide</button>
     </div>
@@ -422,9 +523,9 @@ Down payment | 2028 | 150000</textarea>
       <div class="pdesc">Every fund selection is fully traceable. The engine follows a deterministic 5-stage pipeline with explicit scoring, constraints, and rationale. Below is the complete decision logic — same logic used by both the Research Engine and the AI agent.</div>
 
       <!-- Stage 1 — Signal extraction -->
-      <div style="background:#fff;border:1px solid var(--line);border-left:4px solid #0057b8;border-radius:8px;padding:16px 20px;margin-bottom:12px">
+      <div style="background:#fff;border:1px solid var(--color-border);border-left:4px solid #0057b8;border-radius:8px;padding:16px 20px;margin-bottom:12px">
         <div style="font-weight:700;font-size:14px;color:#0057b8;margin-bottom:8px">STAGE 1 — Signal Extraction from Research</div>
-        <div style="font-size:12.5px;line-height:1.7;color:var(--ink2)">
+        <div style="font-size:12.5px;line-height:1.7;color:var(--color-text-secondary)">
           For each cached research item (typically 100+ per provider, 1,600+ total), the engine parses the title + summary against keyword lexicons:
           <ul style="margin:8px 0 0 20px">
             <li><strong>Sentiment lexicons:</strong> 18 bullish phrases (overweight, bullish, favor, top pick, overperform, attractive, compelling, upside, tailwind, constructive, accumulate…) weighted +1 to +4. 16 bearish phrases (underweight, bearish, avoid, cautious, stretched, headwind, exit, trim…) weighted −1 to −4.</li>
@@ -438,9 +539,9 @@ Down payment | 2028 | 150000</textarea>
       </div>
 
       <!-- Stage 2 — Aggregation -->
-      <div style="background:#fff;border:1px solid var(--line);border-left:4px solid #00875a;border-radius:8px;padding:16px 20px;margin-bottom:12px">
+      <div style="background:#fff;border:1px solid var(--color-border);border-left:4px solid #00875a;border-radius:8px;padding:16px 20px;margin-bottom:12px">
         <div style="font-weight:700;font-size:14px;color:#00875a;margin-bottom:8px">STAGE 2 — Cross-Provider Consensus Aggregation</div>
-        <div style="font-size:12.5px;line-height:1.7;color:var(--ink2)">
+        <div style="font-size:12.5px;line-height:1.7;color:var(--color-text-secondary)">
           Net votes summed across all <span class="js-prov-count">16</span> providers. For each signal (e.g. "overweight Equity"), the engine tracks:
           <ul style="margin:8px 0 0 20px">
             <li><strong>Total net votes</strong>: sum of all signed sentiments across all items mentioning this signal</li>
@@ -448,16 +549,16 @@ Down payment | 2028 | 150000</textarea>
             <li><strong>Top 8 supporting research items</strong>: kept for citation in the position's rationale</li>
             <li><strong>Ticker conviction</strong>: tickers mentioned by 3+ providers get a +1 score bonus per additional provider</li>
           </ul>
-          <div style="margin-top:8px;padding:8px 12px;background:rgba(0,135,90,.05);border-radius:5px;font-family:var(--fm);font-size:11px">
+          <div style="margin-top:8px;padding:8px 12px;background:rgba(0,135,90,.05);border-radius:5px;font-family:var(--font-mono);font-size:11px">
             <strong>Example:</strong> If BofA, JPM, Morgan Stanley, Goldman, BlackRock, and Pictet all express "overweight equities" with weight 3 each → Equity gets +18 net votes from 6 providers
           </div>
         </div>
       </div>
 
       <!-- Stage 3 — Allocation -->
-      <div style="background:#fff;border:1px solid var(--line);border-left:4px solid #f59e0b;border-radius:8px;padding:16px 20px;margin-bottom:12px">
+      <div style="background:#fff;border:1px solid var(--color-border);border-left:4px solid #f59e0b;border-radius:8px;padding:16px 20px;margin-bottom:12px">
         <div style="font-weight:700;font-size:14px;color:#f59e0b;margin-bottom:8px">STAGE 3 — Strategic Asset Allocation (Risk Baseline + Research Tilt)</div>
-        <div style="font-size:12.5px;line-height:1.7;color:var(--ink2)">
+        <div style="font-size:12.5px;line-height:1.7;color:var(--color-text-secondary)">
           Starts with a <strong>risk-profile baseline</strong>, then tilts based on research consensus:
         </div>
         <div class="tbl-wrap" style="margin-top:10px"><table class="tbl" style="font-size:11.5px">
@@ -472,9 +573,9 @@ Down payment | 2028 | 150000</textarea>
             <tr><td>Very Aggressive</td><td class="num">85%</td><td class="num">5%</td><td class="num">5%</td><td class="num">0%</td><td class="num">0%</td><td class="num">5%</td></tr>
           </tbody>
         </table></div>
-        <div style="font-size:12.5px;line-height:1.7;color:var(--ink2);margin-top:10px">
+        <div style="font-size:12.5px;line-height:1.7;color:var(--color-text-secondary);margin-top:10px">
           <strong>Research tilt:</strong> each asset class can be shifted ±8 percentage points from baseline based on net votes. Formula:
-          <div style="padding:8px 12px;background:rgba(245,158,11,.06);border-radius:5px;font-family:var(--fm);font-size:11px;margin-top:6px">
+          <div style="padding:8px 12px;background:rgba(245,158,11,.06);border-radius:5px;font-family:var(--font-mono);font-size:11px;margin-top:6px">
             tilt = max(-8, min(+8, netVotes / 4))<br>
             allocation[class] = baseline[class] + tilt
           </div>
@@ -483,9 +584,9 @@ Down payment | 2028 | 150000</textarea>
       </div>
 
       <!-- Stage 4 — Fund Selection -->
-      <div style="background:#fff;border:1px solid var(--line);border-left:4px solid #7c3aed;border-radius:8px;padding:16px 20px;margin-bottom:12px">
-        <div style="font-weight:700;font-size:14px;color:#7c3aed;margin-bottom:8px">STAGE 4 — Fund Selection from Universe</div>
-        <div style="font-size:12.5px;line-height:1.7;color:var(--ink2)">
+      <div style="background:#fff;border:1px solid var(--color-border);border-left:4px solid var(--color-primary);border-radius:8px;padding:16px 20px;margin-bottom:12px">
+        <div style="font-weight:700;font-size:14px;color:var(--color-primary);margin-bottom:8px">STAGE 4 — Fund Selection from Universe</div>
+        <div style="font-size:12.5px;line-height:1.7;color:var(--color-text-secondary)">
           For each asset class with allocation ≥ 2%, the engine picks specific funds:
           <ol style="margin:8px 0 0 20px">
             <li><strong>Filter candidates by class:</strong> only funds where <code>fund.cls === targetClass</code></li>
@@ -497,7 +598,7 @@ Down payment | 2028 | 150000</textarea>
               </ul>
             </li>
             <li><strong>Score each candidate:</strong>
-              <div style="padding:10px 14px;background:rgba(124,58,237,.05);border-radius:5px;font-family:var(--fm);font-size:11px;margin-top:6px;line-height:1.8">
+              <div style="padding:10px 14px;background:var(--color-primary-tint-1);border-radius:5px;font-family:var(--font-mono);font-size:11px;margin-top:6px;line-height:1.8">
                 score = <strong>(1 − expense_ratio)</strong>        ← low cost preferred<br>
                 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;+ <strong>2 + (mentions × 0.3)</strong> if fund's ticker explicitly cited in research<br>
                 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;− <strong>0.2</strong> if sponsor already used for another position
@@ -517,9 +618,9 @@ Down payment | 2028 | 150000</textarea>
       </div>
 
       <!-- Stage 5 — Rationale -->
-      <div style="background:#fff;border:1px solid var(--line);border-left:4px solid #e31837;border-radius:8px;padding:16px 20px;margin-bottom:12px">
+      <div style="background:#fff;border:1px solid var(--color-border);border-left:4px solid #e31837;border-radius:8px;padding:16px 20px;margin-bottom:12px">
         <div style="font-weight:700;font-size:14px;color:#e31837;margin-bottom:8px">STAGE 5 — Rationale Generation (per position)</div>
-        <div style="font-size:12.5px;line-height:1.7;color:var(--ink2)">
+        <div style="font-size:12.5px;line-height:1.7;color:var(--color-text-secondary)">
           Every fund pick gets a multi-part rationale:
           <ul style="margin:8px 0 0 20px">
             <li><strong>Consensus citation:</strong> "<em>N/<span class="js-prov-count">16</span> providers overweight [class] (+X net votes)</em>"</li>
@@ -534,7 +635,7 @@ Down payment | 2028 | 150000</textarea>
       <!-- Worked example -->
       <div style="background:linear-gradient(135deg,#fff,#fef3c7);border:1px solid rgba(245,158,11,.30);border-radius:8px;padding:16px 20px">
         <div style="font-weight:700;font-size:13px;color:#92400e;margin-bottom:10px">📝 WORKED EXAMPLE — Moderate Profile, Sample Walkthrough</div>
-        <div style="font-size:11.5px;line-height:1.8;color:var(--ink2);font-family:var(--fm)">
+        <div style="font-size:11.5px;line-height:1.8;color:var(--color-text-secondary);font-family:var(--font-mono)">
 <strong>Brief:</strong> risk = moderate · NW = $500k · ESG = none · tax = medium · liquidity = medium · max pos = 20%<br>
 <strong>Research scanned:</strong> 1,420 items across 16 providers<br><br>
 
@@ -570,39 +671,39 @@ Citations:<br>
       </div>
 
       <!-- Determinism note -->
-      <div style="margin-top:14px;padding:12px 16px;background:rgba(0,87,184,.05);border-radius:6px;font-size:12px;color:var(--ink2);line-height:1.6">
-        <strong style="color:var(--blue)">🔒 Determinism guarantee:</strong> the Research Engine is fully deterministic. Same brief + same cached research → always same output. Run it twice in a row and verify identical fund picks via the Engine Stress Test tab → "Robustness Checks" → "Determinism" test. The only thing that changes the output is (a) you change the brief, (b) new research arrives in the cache, or (c) you modify the fund universe / risk-baseline / scoring constants directly in the code.
+      <div style="margin-top:14px;padding:12px 16px;background:rgba(0,87,184,.05);border-radius:6px;font-size:12px;color:var(--color-text-secondary);line-height:1.6">
+        <strong style="color:var(--color-primary)">🔒 Determinism guarantee:</strong> the Research Engine is fully deterministic. Same brief + same cached research → always same output. Run it twice in a row and verify identical fund picks via the Engine Stress Test tab → "Robustness Checks" → "Determinism" test. The only thing that changes the output is (a) you change the brief, (b) new research arrives in the cache, or (c) you modify the fund universe / risk-baseline / scoring constants directly in the code.
       </div>
 
       <!-- Differences from AI agent version -->
-      <div style="margin-top:10px;padding:12px 16px;background:rgba(124,58,237,.05);border-radius:6px;font-size:12px;color:var(--ink2);line-height:1.6">
-        <strong style="color:var(--purple)">🤖 How the AI agent differs:</strong> the AI version receives the same client brief + research items + fund universe as the deterministic engine, but uses an LLM to reason narratively over the inputs. It may suggest weights that deviate from the deterministic baseline (e.g. tactical overweights based on theme strength), and can produce richer prose rationale. Both produce the same JSON shape and feed the same Export-to-Proposal button. Pick deterministic for auditability, AI for narrative reasoning.
+      <div style="margin-top:10px;padding:12px 16px;background:var(--color-primary-tint-1);border-radius:6px;font-size:12px;color:var(--color-text-secondary);line-height:1.6">
+        <strong style="color:var(--color-primary)">🤖 How the AI agent differs:</strong> the AI version receives the same client brief + research items + fund universe as the deterministic engine, but uses an LLM to reason narratively over the inputs. It may suggest weights that deviate from the deterministic baseline (e.g. tactical overweights based on theme strength), and can produce richer prose rationale. Both produce the same JSON shape and feed the same Export-to-Proposal button. Pick deterministic for auditability, AI for narrative reasoning.
       </div>
     </div>
   </div>
 
   <div class="panel">
     <div class="ptitle">Curated Fund Universe</div>
-    <div id="fundAsOf" style="font-size:11px;color:var(--ink3);margin:-4px 0 8px"></div>
+    <div id="fundAsOf" style="font-size:11px;color:var(--color-text-muted);margin:-4px 0 8px"></div>
     <div id="fundTable"></div>
   </div>
 </div>
 
 <!-- ─── RESEARCH ─── -->
 <div class="tab" id="tab-research">
-  <div class="hero">
-    <h1>📚 Research Library</h1>
-    <p><span class="js-prov-count">16</span> institutional sources from the world's largest wealth managers, investment banks, private banks, and analyst platforms. Refresh feeds and the AI Agent uses them when building portfolios.</p>
-  </div>
+  <div class="wealth-hero"><div class="wh-left">
+    <h1 class="wh-title"><span class="wh-ico" aria-hidden="true">📚</span> Research Library</h1>
+    <p class="wh-sub"><span class="js-prov-count">16</span> institutional sources from the world's largest wealth managers, investment banks, private banks, and analyst platforms. Refresh feeds and the AI Agent uses them when building portfolios.</p>
+  </div></div>
   <div class="panel">
-    <div class="ptitle">Sources <span style="color:var(--green);font-weight:600">— auto-refresh every 5 minutes</span></div>
+    <div class="ptitle">Sources <span style="color:var(--color-success);font-weight:600">— auto-refresh every 5 minutes</span></div>
     <div id="researchCorpusSummary" style="font-size:11.5px;margin:-2px 0 12px;line-height:1.5"></div>
     <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;align-items:center">
       <button class="btn" data-action="refreshAll">↻ Refresh ALL</button>
       <button class="btn-ghost" data-action="enableAll">✓ Enable all</button>
       <button class="btn-ghost" data-action="disableAll">✕ Disable all</button>
-      <span id="refreshStatus" style="font-size:11px;color:var(--ink3);align-self:center"></span>
-      <span id="autoRefreshCountdown2" style="margin-left:auto;font-size:11px;color:var(--green);font-weight:600;font-family:var(--fm);background:rgba(0,135,90,.08);padding:5px 12px;border-radius:50px"></span>
+      <span id="refreshStatus" style="font-size:11px;color:var(--color-text-muted);align-self:center"></span>
+      <span id="autoRefreshCountdown2" style="margin-left:auto;font-size:11px;color:var(--color-success);font-weight:600;font-family:var(--font-mono);background:rgba(0,135,90,.08);padding:5px 12px;border-radius:50px"></span>
     </div>
     <div id="monthlyIssueBanner"></div>
     <div class="rp" id="rpList"></div>
@@ -611,7 +712,7 @@ Citations:<br>
   <!-- ─── Ingest a monthly issue you are entitled to ─── -->
   <div class="panel">
     <div class="ptitle section-dropdown" data-action="toggleIngest" style="margin:0;cursor:pointer">
-      📥 Ingest a monthly issue <span style="font-weight:400;color:var(--ink3);font-size:12px">— paste or upload an issue you have access to · click to expand</span>
+      📥 Ingest a monthly issue <span style="font-weight:400;color:var(--color-text-muted);font-size:12px">— paste or upload an issue you have access to · click to expand</span>
     </div>
     <div id="ingestBody" style="display:none;padding-top:14px">
       <div class="pdesc" style="margin-bottom:12px">
@@ -620,20 +721,20 @@ Citations:<br>
         parsed into research items, tagged with the issue month, and fed to the engine like any other source. Nothing is uploaded anywhere; parsing happens in this browser.
       </div>
       <div style="display:grid;grid-template-columns:minmax(200px,1fr) 150px;gap:10px;margin-bottom:10px">
-        <label style="font-size:12px;font-weight:600;color:var(--ink2)">Publication
+        <label style="font-size:12px;font-weight:600;color:var(--color-text-secondary)">Publication
           <select id="ingestProvider" style="width:100%;margin-top:4px"></select>
         </label>
-        <label style="font-size:12px;font-weight:600;color:var(--ink2)">Issue month
+        <label style="font-size:12px;font-weight:600;color:var(--color-text-secondary)">Issue month
           <input type="month" id="ingestMonth" style="width:100%;margin-top:4px">
         </label>
       </div>
-      <textarea id="ingestText" rows="8" placeholder="Paste the issue text here — headings, bullets and paragraphs are all handled." style="width:100%;font-family:var(--fm);font-size:12px;padding:10px;margin-bottom:10px"></textarea>
+      <textarea id="ingestText" rows="8" placeholder="Paste the issue text here — headings, bullets and paragraphs are all handled." style="width:100%;font-family:var(--font-mono);font-size:12px;padding:10px;margin-bottom:10px"></textarea>
       <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px">
         <input type="file" id="ingestFile" accept=".txt,.md,.text,.pdf" style="font-size:12px">
         <button class="btn-ghost" data-action="previewIngest">🔍 Parse &amp; preview</button>
         <button class="btn" data-action="commitIngest" id="ingestCommitBtn" disabled>📥 Ingest</button>
         <button class="btn-ghost" data-action="clearIngest">✕ Clear</button>
-        <span id="ingestStatus" style="font-size:11.5px;color:var(--ink3)"></span>
+        <span id="ingestStatus" style="font-size:11.5px;color:var(--color-text-muted)"></span>
       </div>
       <div id="ingestPreview"></div>
     </div>
@@ -647,19 +748,19 @@ Citations:<br>
 
 <!-- ─── ENGINE STRESS TEST ─── -->
 <div class="tab" id="tab-enginestress">
-  <div class="hero" style="background:linear-gradient(135deg,#00875a,#0057b8)">
-    <h1>🧪 AI Portfolio Engine Stress Test</h1>
-    <p>Daily sensitivity & robustness testing for the deterministic Research Engine. Sweep across risk profiles, net worth levels, ESG settings, and research provider counts — verify the engine reacts coherently to every input change. Daily benchmark snapshots track engine drift over time.</p>
-  </div>
+  <div class="wealth-hero"><div class="wh-left">
+    <h1 class="wh-title"><span class="wh-ico" aria-hidden="true">🧪</span> AI Portfolio Engine Stress Test</h1>
+    <p class="wh-sub">Daily sensitivity & robustness testing for the deterministic Research Engine. Sweep across risk profiles, net worth levels, ESG settings, and research provider counts — verify the engine reacts coherently to every input change. Daily benchmark snapshots track engine drift over time.</p>
+  </div></div>
 
   <!-- Daily Benchmark — record today's engine output for a standard client -->
   <div class="panel">
     <div class="ptitle">📅 Daily Benchmark Snapshot</div>
     <div class="pdesc">Records today's engine output for a <strong>standard benchmark client</strong> (Moderate risk · $500k NW · $150k income · 15+ year horizon · Medium tax sensitivity · No ESG preference). Run daily to track how engine recommendations drift as institutional research evolves.</div>
     <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:14px">
-      <button class="btn" data-action="runDailyBenchmark" style="background:linear-gradient(135deg,#00875a,#0057b8)">📅 Run Today's Benchmark</button>
+      <button class="btn" data-action="runDailyBenchmark">📅 Run Today's Benchmark</button>
       <button class="btn-ghost" data-action="clearBenchmarkHistory">↺ Clear history</button>
-      <span id="benchmarkStatus" style="font-size:11px;color:var(--ink3)"></span>
+      <span id="benchmarkStatus" style="font-size:11px;color:var(--color-text-muted)"></span>
     </div>
     <div id="benchmarkTimeline"></div>
   </div>
@@ -670,28 +771,28 @@ Citations:<br>
     <div class="pdesc">Run the engine 5-7 times with one parameter varied. See how allocation shifts in response. Useful for finding edge cases or verifying expected behavior.</div>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin-bottom:14px">
       <button class="btn-ghost" data-action="sweepRisk" style="text-align:left;padding:12px 16px;height:auto">
-        <div style="font-weight:700;font-size:13px;color:var(--blue)">🎯 Risk Profile Sweep</div>
-        <div style="font-size:11px;color:var(--ink3);margin-top:2px">7 profiles · Very Cons → Very Agg</div>
+        <div style="font-weight:700;font-size:13px;color:var(--color-primary)">🎯 Risk Profile Sweep</div>
+        <div style="font-size:11px;color:var(--color-text-muted);margin-top:2px">7 profiles · Very Cons → Very Agg</div>
       </button>
       <button class="btn-ghost" data-action="sweepNW" style="text-align:left;padding:12px 16px;height:auto">
-        <div style="font-weight:700;font-size:13px;color:var(--blue)">💰 Net Worth Sweep</div>
-        <div style="font-size:11px;color:var(--ink3);margin-top:2px">$100k · $500k · $2M · $10M · $50M</div>
+        <div style="font-weight:700;font-size:13px;color:var(--color-primary)">💰 Net Worth Sweep</div>
+        <div style="font-size:11px;color:var(--color-text-muted);margin-top:2px">$100k · $500k · $2M · $10M · $50M</div>
       </button>
       <button class="btn-ghost" data-action="sweepESG" style="text-align:left;padding:12px 16px;height:auto">
-        <div style="font-weight:700;font-size:13px;color:var(--blue)">🌱 ESG Strictness Sweep</div>
-        <div style="font-size:11px;color:var(--ink3);margin-top:2px">None · Prefer · Strict</div>
+        <div style="font-weight:700;font-size:13px;color:var(--color-primary)">🌱 ESG Strictness Sweep</div>
+        <div style="font-size:11px;color:var(--color-text-muted);margin-top:2px">None · Prefer · Strict</div>
       </button>
       <button class="btn-ghost" data-action="sweepTax" style="text-align:left;padding:12px 16px;height:auto">
-        <div style="font-weight:700;font-size:13px;color:var(--blue)">💼 Tax Sensitivity Sweep</div>
-        <div style="font-size:11px;color:var(--ink3);margin-top:2px">Low · Medium · High</div>
+        <div style="font-weight:700;font-size:13px;color:var(--color-primary)">💼 Tax Sensitivity Sweep</div>
+        <div style="font-size:11px;color:var(--color-text-muted);margin-top:2px">Low · Medium · High</div>
       </button>
       <button class="btn-ghost" data-action="sweepLiquidity" style="text-align:left;padding:12px 16px;height:auto">
-        <div style="font-weight:700;font-size:13px;color:var(--blue)">💧 Liquidity Need Sweep</div>
-        <div style="font-size:11px;color:var(--ink3);margin-top:2px">Low · Medium · High</div>
+        <div style="font-weight:700;font-size:13px;color:var(--color-primary)">💧 Liquidity Need Sweep</div>
+        <div style="font-size:11px;color:var(--color-text-muted);margin-top:2px">Low · Medium · High</div>
       </button>
       <button class="btn-ghost" data-action="sweepResearch" style="text-align:left;padding:12px 16px;height:auto">
-        <div style="font-weight:700;font-size:13px;color:var(--blue)">📚 Research Source Count Sweep</div>
-        <div style="font-size:11px;color:var(--ink3);margin-top:2px">1 · 4 · 8 · 16 sources</div>
+        <div style="font-weight:700;font-size:13px;color:var(--color-primary)">📚 Research Source Count Sweep</div>
+        <div style="font-size:11px;color:var(--color-text-muted);margin-top:2px">1 · 4 · 8 · 16 sources</div>
       </button>
     </div>
     <div id="sweepResult"></div>
@@ -702,8 +803,8 @@ Citations:<br>
     <div class="ptitle">🔒 Robustness Checks</div>
     <div class="pdesc">Verify the engine produces sensible output across edge cases. Each check runs the engine once and grades the result green/amber/red.</div>
     <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px">
-      <button class="btn" data-action="runRobustnessChecks" style="background:var(--green)">▶ Run All Robustness Checks</button>
-      <span id="robustnessStatus" style="font-size:11px;color:var(--ink3);align-self:center"></span>
+      <button class="btn" data-action="runRobustnessChecks">▶ Run All Robustness Checks</button>
+      <span id="robustnessStatus" style="font-size:11px;color:var(--color-text-muted);align-self:center"></span>
     </div>
     <div id="robustnessResults"></div>
   </div>
@@ -714,7 +815,7 @@ Citations:<br>
     <div class="pdesc">Run the engine twice with two different briefs side-by-side. Useful for showing clients how their portfolio changes between scenarios.</div>
     <div class="grid2">
       <div>
-        <div style="font-weight:700;font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--blue);margin-bottom:10px">Scenario A</div>
+        <div style="font-weight:700;font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--color-primary);margin-bottom:10px">Scenario A</div>
         <div class="row"><label class="lbl">Risk</label>
           <select id="abRiskA" class="fw">
             <option value="conservative">Conservative</option>
@@ -728,7 +829,7 @@ Citations:<br>
         </div>
       </div>
       <div>
-        <div style="font-weight:700;font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--purple);margin-bottom:10px">Scenario B</div>
+        <div style="font-weight:700;font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--color-brand-ink);margin-bottom:10px">Scenario B</div>
         <div class="row"><label class="lbl">Risk</label>
           <select id="abRiskB" class="fw">
             <option value="conservative">Conservative</option>
@@ -749,10 +850,10 @@ Citations:<br>
 
 <!-- ─── TEST BENCH ─── -->
 <div class="tab" id="tab-testbench">
-  <div class="hero">
-    <h1>🧪 Calculation Test Bench</h1>
-    <p>Run any internal financial calculation with custom inputs, or run the full automated test suite to verify all math.</p>
-  </div>
+  <div class="wealth-hero"><div class="wh-left">
+    <h1 class="wh-title"><span class="wh-ico" aria-hidden="true">🧪</span> Calculation Test Bench</h1>
+    <p class="wh-sub">Run any internal financial calculation with custom inputs, or run the full automated test suite to verify all math.</p>
+  </div></div>
   <div class="panel">
     <div class="ptitle">Automated Test Suite</div>
     <div style="display:flex;gap:10px;align-items:center;margin-bottom:14px">
@@ -767,7 +868,7 @@ Citations:<br>
       <label class="lbl">Function</label>
       <select id="tbFn" class="w260"></select>
     </div>
-    <div id="tbFormula" style="font-family:var(--fm);font-size:11.5px;background:rgba(0,87,184,.04);padding:10px 14px;border-radius:6px;color:var(--ink2);margin:10px 0 14px"></div>
+    <div id="tbFormula" style="font-family:var(--font-mono);font-size:11.5px;background:rgba(0,87,184,.04);padding:10px 14px;border-radius:6px;color:var(--color-text-secondary);margin:10px 0 14px"></div>
     <div id="tbInputs"></div>
     <div style="display:flex;gap:10px;margin-top:14px">
       <button class="btn" data-action="runTb">▶ Run Once</button>
@@ -779,10 +880,10 @@ Citations:<br>
 
 <!-- ─── CONSTANTS ─── -->
 <div class="tab" id="tab-constants">
-  <div class="hero">
-    <h1>⚙ Constants Editor</h1>
-    <p>Edit financial constants used throughout the main app. Export edited values as JSON for deployment.</p>
-  </div>
+  <div class="wealth-hero"><div class="wh-left">
+    <h1 class="wh-title"><span class="wh-ico" aria-hidden="true">⚙</span> Constants Editor</h1>
+    <p class="wh-sub">Edit financial constants used throughout the main app. Export edited values as JSON for deployment.</p>
+  </div></div>
   <div class="panel">
     <div style="display:flex;gap:8px;margin-bottom:12px">
       <button class="btn-ghost" data-action="exportConstants">⬇ Export JSON</button>
@@ -796,10 +897,10 @@ Citations:<br>
 
 <!-- ─── STRESS ─── -->
 <div class="tab" id="tab-stress">
-  <div class="hero">
-    <h1>📊 Monte Carlo Stress Test</h1>
-    <p>Parameter sweep — vary one input while holding others constant, plot p10/p50/p90 across the sweep range.</p>
-  </div>
+  <div class="wealth-hero"><div class="wh-left">
+    <h1 class="wh-title"><span class="wh-ico" aria-hidden="true">📊</span> Monte Carlo Stress Test</h1>
+    <p class="wh-sub">Parameter sweep — vary one input while holding others constant, plot p10/p50/p90 across the sweep range.</p>
+  </div></div>
   <div class="panel">
     <div class="grid2">
       <div>
@@ -835,10 +936,10 @@ Citations:<br>
 
 <!-- ─── PROFILES ─── -->
 <div class="tab" id="tab-profiles">
-  <div class="hero">
-    <h1>👤 Profile Manager</h1>
-    <p>Load any <code>wealth-profile.json</code> from the main app, inspect it, edit fields, and push back to the main app's localStorage.</p>
-  </div>
+  <div class="wealth-hero"><div class="wh-left">
+    <h1 class="wh-title"><span class="wh-ico" aria-hidden="true">👤</span> Profile Manager</h1>
+    <p class="wh-sub">Load any <code>wealth-profile.json</code> from the main app, inspect it, edit fields, and push back to the main app's localStorage.</p>
+  </div></div>
   <div class="panel">
     <div style="display:flex;gap:8px;flex-wrap:wrap">
       <button class="btn-ghost" data-action="loadProfileFile2">⬆ Load JSON</button>
@@ -850,27 +951,27 @@ Citations:<br>
   </div>
   <div class="panel" id="questionnairePanel">
     <div class="ptitle">📄 Client Intake Questionnaire</div>
-    <p style="color:var(--ink3);font-size:13px;margin:6px 0 12px;line-height:1.6">The blank 4-page client questionnaire (household, income, expenses, assets, goals, retirement, risk, tax, disclosure). Download it to send to a client, or print and have them fill it in — then transcribe into the main app.</p>
+    <p style="color:var(--color-text-muted);font-size:13px;margin:6px 0 12px;line-height:1.6">The blank 4-page client questionnaire (household, income, expenses, assets, goals, retirement, risk, tax, disclosure). Download it to send to a client, or print and have them fill it in — then transcribe into the main app.</p>
     <div style="display:flex;gap:8px;flex-wrap:wrap">
       <button class="btn" data-action="downloadQuestionnaire">⬇ Download questionnaire (PDF)</button>
       <button class="btn-ghost" data-action="toggleQuestionnairePreview" id="qPreviewBtn">👁 Preview</button>
     </div>
     <div id="questionnairePreview" style="display:none;margin-top:14px">
-      <iframe id="questionnaireFrame" style="width:100%;height:640px;border:1px solid var(--line);border-radius:8px;background:#fff"></iframe>
+      <iframe id="questionnaireFrame" style="width:100%;height:640px;border:1px solid var(--color-border);border-radius:8px;background:#fff"></iframe>
     </div>
   </div>
   <div class="panel">
     <div class="ptitle">Profile JSON</div>
-    <div id="pfTree" style="font-family:var(--fm);font-size:12px;max-height:500px;overflow-y:auto;line-height:1.7"><div style="color:var(--ink3);padding:14px">No profile loaded.</div></div>
+    <div id="pfTree" style="font-family:var(--font-mono);font-size:12px;max-height:500px;overflow-y:auto;line-height:1.7"><div style="color:var(--color-text-muted);padding:14px">No profile loaded.</div></div>
   </div>
 </div>
 
 <!-- ─── MARKET DATA ─── -->
 <div class="tab" id="tab-market">
-  <div class="hero">
-    <h1>📈 Market Data Console</h1>
-    <p>Test live quote retrieval. Verified keyless on 2026-08-02: <strong>Yahoo Finance</strong> (equities/ETFs), <strong>CoinGecko</strong> and <strong>Coinbase</strong> (crypto), <strong>Frankfurter/ECB</strong> and <strong>Open ER API</strong> (FX), <strong>Treasury.gov</strong> (yield curve). <strong>SEC EDGAR</strong> resolves ticker&rarr;CIK but its filings API refuses browser requests &mdash; that half needs a server relay. Everything else needs a key in the API Keys tab; enterprise feeds (Bloomberg, FactSet, Refinitiv) need a user-deployed proxy.</p>
-  </div>
+  <div class="wealth-hero"><div class="wh-left">
+    <h1 class="wh-title"><span class="wh-ico" aria-hidden="true">📈</span> Market Data Console</h1>
+    <p class="wh-sub">Test live quote retrieval. Verified keyless on 2026-08-02: <strong>Yahoo Finance</strong> (equities/ETFs), <strong>CoinGecko</strong> and <strong>Coinbase</strong> (crypto), <strong>Frankfurter/ECB</strong> and <strong>Open ER API</strong> (FX), <strong>Treasury.gov</strong> (yield curve). <strong>SEC EDGAR</strong> resolves ticker&rarr;CIK but its filings API refuses browser requests &mdash; that half needs a server relay. Everything else needs a key in the API Keys tab; enterprise feeds (Bloomberg, FactSet, Refinitiv) need a user-deployed proxy.</p>
+  </div></div>
   <div class="panel">
     <div class="row">
       <label class="lbl">Ticker</label><input id="mdTicker" placeholder="AAPL" class="w160" value="AAPL">
@@ -939,15 +1040,15 @@ Citations:<br>
       <button class="btn-ghost" data-action="testAllProviders">⚡ Test All</button>
     </div>
   </div>
-  <div class="panel"><div class="ptitle">Result</div><div id="mdResult"><div style="color:var(--ink3);padding:8px 0">Enter a ticker and click Fetch Quote.</div></div></div>
+  <div class="panel"><div class="ptitle">Result</div><div id="mdResult"><div style="color:var(--color-text-muted);padding:8px 0">Enter a ticker and click Fetch Quote.</div></div></div>
 </div>
 
 <!-- ─── TAX DB ─── -->
 <div class="tab" id="tab-taxdb">
-  <div class="hero">
-    <h1>🏛 Tax Database</h1>
-    <p>Browse income tax for all 39 supported countries — national/federal brackets + representative regional/state/municipal tax, synced live from the client app. US ZIP auto-detection is wired into the main app (below).</p>
-  </div>
+  <div class="wealth-hero"><div class="wh-left">
+    <h1 class="wh-title"><span class="wh-ico" aria-hidden="true">🏛</span> Tax Database</h1>
+    <p class="wh-sub">Browse income tax for all 39 supported countries — national/federal brackets + representative regional/state/municipal tax, synced live from the client app. US ZIP auto-detection is wired into the main app (below).</p>
+  </div></div>
   <div class="panel">
     <div class="ptitle">ZIP Lookup</div>
     <div class="row">
@@ -972,15 +1073,15 @@ Citations:<br>
 
 <!-- ─── TAX DATA ACCURACY ─── -->
 <div class="tab" id="tab-taxaccuracy">
-  <div class="hero">
-    <h1>✅ Tax Data Accuracy</h1>
-    <p>Tracks the income-tax dataset the client app actually uses — coverage, the official source authority per country, tax year, automated sanity checks, and your manual verification status. The dataset syncs live from the main app via shared browser storage.</p>
-  </div>
+  <div class="wealth-hero"><div class="wh-left">
+    <h1 class="wh-title"><span class="wh-ico" aria-hidden="true">✅</span> Tax Data Accuracy</h1>
+    <p class="wh-sub">Tracks the income-tax dataset the client app actually uses — coverage, the official source authority per country, tax year, automated sanity checks, and your manual verification status. The dataset syncs live from the main app via shared browser storage.</p>
+  </div></div>
   <div class="panel">
     <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:10px">
       <div class="ptitle" style="margin:0">Coverage &amp; verification</div>
       <div style="display:flex;gap:8px;align-items:center">
-        <span id="taxAccSummary" style="font-size:11px;color:var(--ink3)"></span>
+        <span id="taxAccSummary" style="font-size:11px;color:var(--color-text-muted)"></span>
         <button class="btn-ghost" data-action="renderTaxAccuracy" style="font-size:12px;padding:8px 14px">↻ Refresh</button>
       </div>
     </div>
@@ -990,64 +1091,64 @@ Citations:<br>
 
 <!-- ─── KEYS ─── -->
 <div class="tab" id="tab-keys">
-  <div class="hero">
-    <h1>🔑 API Keys & Endpoints</h1>
-    <p>All credentials stored in browser localStorage and shared with the main app. <strong>Keys are auto-tested every 2 minutes</strong> to ensure they're working — see the Health column.</p>
-  </div>
+  <div class="wealth-hero"><div class="wh-left">
+    <h1 class="wh-title"><span class="wh-ico" aria-hidden="true">🔑</span> API Keys & Endpoints</h1>
+    <p class="wh-sub">All credentials stored in browser localStorage and shared with the main app. <strong>Keys are auto-tested every 2 minutes</strong> to ensure they're working — see the Health column.</p>
+  </div></div>
   <div class="panel" style="padding:12px 16px">
-    <div style="font-size:12px;color:var(--ink2);line-height:1.6">Enter a ticker (VOO, AAPL), ISIN/UCIT number (IE00B3RBWM25), exchange symbol (VUSA.L, IWDA.AS), or fund name to search in the main app's Add Investment box. Data fills automatically from Yahoo Finance &amp; OpenFIGI — no key needed. <strong>API keys for enhanced data are managed here</strong> and auto-checked every 2 minutes.</div>
+    <div style="font-size:12px;color:var(--color-text-secondary);line-height:1.6">Enter a ticker (VOO, AAPL), ISIN/UCIT number (IE00B3RBWM25), exchange symbol (VUSA.L, IWDA.AS), or fund name to search in the main app's Add Investment box. Data fills automatically from Yahoo Finance &amp; OpenFIGI — no key needed. <strong>API keys for enhanced data are managed here</strong> and auto-checked every 2 minutes.</div>
   </div>
   <div class="panel">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:10px">
-      <div class="ptitle" style="margin:0">Free Providers <span style="color:var(--green);font-weight:600">— health-checked every 2 minutes</span></div>
+      <div class="ptitle" style="margin:0">Free Providers <span style="color:var(--color-success);font-weight:600">— health-checked every 2 minutes</span></div>
       <div style="display:flex;gap:8px;align-items:center">
-        <span id="keyHealthSummary" style="font-size:11px;color:var(--ink3)"></span>
-        <button class="btn-primary" data-action="testAllKeysNow" style="font-size:12px;padding:8px 14px">⚡ Test All Configured Keys Now</button>
+        <span id="keyHealthSummary" style="font-size:11px;color:var(--color-text-muted)"></span>
+        <button class="btn" data-action="testAllKeysNow" style="font-size:12px;padding:8px 14px">⚡ Test All Configured Keys Now</button>
       </div>
     </div>
     <table class="tbl"><thead><tr><th>Provider</th><th>Key</th><th>Status</th><th>Health</th><th>Action</th></tr></thead><tbody id="keysTbl"></tbody></table>
-    <div style="font-size:11px;color:var(--ink3);margin-top:10px;line-height:1.7">
+    <div style="font-size:11px;color:var(--color-text-muted);margin-top:10px;line-height:1.7">
       <strong>Equity quote APIs (free tier):</strong>
-      <a href="https://finnhub.io/register" target="_blank" style="color:var(--blue)">finnhub</a> ·
-      <a href="https://www.alphavantage.co/support/#api-key" target="_blank" style="color:var(--blue)">alphavantage</a> ·
-      <a href="https://twelvedata.com/pricing" target="_blank" style="color:var(--blue)">twelvedata</a> ·
-      <a href="https://site.financialmodelingprep.com/developer" target="_blank" style="color:var(--blue)">FMP</a> ·
-      <a href="https://tiingo.com/account/api/token" target="_blank" style="color:var(--blue)">tiingo</a> ·
-      <a href="https://polygon.io/dashboard/api-keys" target="_blank" style="color:var(--blue)">polygon</a> ·
-      <a href="https://intrinio.com/signup" target="_blank" style="color:var(--blue)">intrinio</a> ·
-      <a href="https://data.nasdaq.com/sign-up" target="_blank" style="color:var(--blue)">Nasdaq Data Link</a> ·
-      <a href="https://eodhistoricaldata.com/register" target="_blank" style="color:var(--blue)">EOD HD</a> ·
-      <a href="https://marketstack.com/signup/free" target="_blank" style="color:var(--blue)">marketstack</a> ·
-      <a href="https://stockdata.org/register" target="_blank" style="color:var(--blue)">stockdata</a> ·
-      <a href="https://finazon.io/register" target="_blank" style="color:var(--blue)">finazon</a><br>
+      <a href="https://finnhub.io/register" target="_blank" style="color:var(--color-primary)">finnhub</a> ·
+      <a href="https://www.alphavantage.co/support/#api-key" target="_blank" style="color:var(--color-primary)">alphavantage</a> ·
+      <a href="https://twelvedata.com/pricing" target="_blank" style="color:var(--color-primary)">twelvedata</a> ·
+      <a href="https://site.financialmodelingprep.com/developer" target="_blank" style="color:var(--color-primary)">FMP</a> ·
+      <a href="https://tiingo.com/account/api/token" target="_blank" style="color:var(--color-primary)">tiingo</a> ·
+      <a href="https://polygon.io/dashboard/api-keys" target="_blank" style="color:var(--color-primary)">polygon</a> ·
+      <a href="https://intrinio.com/signup" target="_blank" style="color:var(--color-primary)">intrinio</a> ·
+      <a href="https://data.nasdaq.com/sign-up" target="_blank" style="color:var(--color-primary)">Nasdaq Data Link</a> ·
+      <a href="https://eodhistoricaldata.com/register" target="_blank" style="color:var(--color-primary)">EOD HD</a> ·
+      <a href="https://marketstack.com/signup/free" target="_blank" style="color:var(--color-primary)">marketstack</a> ·
+      <a href="https://stockdata.org/register" target="_blank" style="color:var(--color-primary)">stockdata</a> ·
+      <a href="https://finazon.io/register" target="_blank" style="color:var(--color-primary)">finazon</a><br>
 
       <strong>Account-based:</strong>
-      <a href="https://tradier.com/products/marketdata" target="_blank" style="color:var(--blue)">tradier</a> ·
-      <a href="https://alpaca.markets/learn/api-keys" target="_blank" style="color:var(--blue)">alpaca</a> ·
-      <a href="https://rapidapi.com/apidojo/api/yh-finance" target="_blank" style="color:var(--blue)">RapidAPI Yahoo</a><br>
+      <a href="https://tradier.com/products/marketdata" target="_blank" style="color:var(--color-primary)">tradier</a> ·
+      <a href="https://alpaca.markets/learn/api-keys" target="_blank" style="color:var(--color-primary)">alpaca</a> ·
+      <a href="https://rapidapi.com/apidojo/api/yh-finance" target="_blank" style="color:var(--color-primary)">RapidAPI Yahoo</a><br>
 
       <strong>News:</strong>
-      <a href="https://newsapi.org/register" target="_blank" style="color:var(--blue)">NewsAPI</a> ·
-      <a href="https://marketaux.com/account/dashboard" target="_blank" style="color:var(--blue)">marketaux</a> ·
-      <a href="https://benzinga.com/apis/cloud-api" target="_blank" style="color:var(--blue)">benzinga</a><br>
+      <a href="https://newsapi.org/register" target="_blank" style="color:var(--color-primary)">NewsAPI</a> ·
+      <a href="https://marketaux.com/account/dashboard" target="_blank" style="color:var(--color-primary)">marketaux</a> ·
+      <a href="https://benzinga.com/apis/cloud-api" target="_blank" style="color:var(--color-primary)">benzinga</a><br>
 
       <strong>Crypto:</strong>
-      <a href="https://coinmarketcap.com/api/" target="_blank" style="color:var(--blue)">CoinMarketCap</a> ·
-      <a href="https://messari.io/api" target="_blank" style="color:var(--blue)">messari</a><br>
+      <a href="https://coinmarketcap.com/api/" target="_blank" style="color:var(--color-primary)">CoinMarketCap</a> ·
+      <a href="https://messari.io/api" target="_blank" style="color:var(--color-primary)">messari</a><br>
 
       <strong>FX:</strong>
-      <a href="https://openexchangerates.org/signup/free" target="_blank" style="color:var(--blue)">Open Exchange Rates</a> ·
-      <a href="https://currencyapi.com/register" target="_blank" style="color:var(--blue)">CurrencyAPI.com</a> ·
-      <a href="https://currencylayer.com/product" target="_blank" style="color:var(--blue)">CurrencyLayer</a><br>
+      <a href="https://openexchangerates.org/signup/free" target="_blank" style="color:var(--color-primary)">Open Exchange Rates</a> ·
+      <a href="https://currencyapi.com/register" target="_blank" style="color:var(--color-primary)">CurrencyAPI.com</a> ·
+      <a href="https://currencylayer.com/product" target="_blank" style="color:var(--color-primary)">CurrencyLayer</a><br>
 
       <strong>Macro + AI:</strong>
-      <a href="https://fred.stlouisfed.org/docs/api/api_key.html" target="_blank" style="color:var(--blue)">FRED</a> ·
-      <span style="color:var(--ink2)">AI Assistant</span>
+      <a href="https://fred.stlouisfed.org/docs/api/api_key.html" target="_blank" style="color:var(--color-primary)">FRED</a> ·
+      <span style="color:var(--color-text-secondary)">AI Assistant</span>
       <br><br>
-      <strong style="color:var(--green)">No key needed (verified working 2026-08-02):</strong>
+      <strong style="color:var(--color-success)">No key needed (verified working 2026-08-02):</strong>
       Yahoo Finance · CoinGecko · Coinbase Spot · Frankfurter (ECB) · Open ER API · Treasury.gov
       <br>
-      <strong style="color:var(--amber)">No longer usable from the browser:</strong>
+      <strong style="color:var(--color-warning)">No longer usable from the browser:</strong>
       Stooq (CSV endpoint retired) · CryptoCompare (now key-required) · ExchangeRate.host (now key-required) ·
       SEC EDGAR filings (data.sec.gov blocks browser requests; ticker&rarr;CIK lookup still works) ·
       OpenFIGI (rate-limited without a key)
@@ -1057,10 +1158,10 @@ Citations:<br>
 
 <!-- ─── LOGS ─── -->
 <div class="tab" id="tab-logs">
-  <div class="hero">
-    <h1>📋 System Logs</h1>
-    <p>Action audit trail, browser environment, and full localStorage inspector.</p>
-  </div>
+  <div class="wealth-hero"><div class="wh-left">
+    <h1 class="wh-title"><span class="wh-ico" aria-hidden="true">📋</span> System Logs</h1>
+    <p class="wh-sub">Action audit trail, browser environment, and full localStorage inspector.</p>
+  </div></div>
   <div class="panel">
     <div style="display:flex;gap:8px;flex-wrap:wrap">
       <button class="btn-ghost" data-action="copyLogs">📋 Copy logs</button>
@@ -1077,13 +1178,13 @@ Citations:<br>
 
 <!-- ─── DOCS ─── -->
 <div class="tab" id="tab-docs">
-  <div class="hero">
-    <h1>📖 Documentation</h1>
-    <p>How the admin connects to the main Wealth Analyzer app and how to use each tab.</p>
-  </div>
+  <div class="wealth-hero"><div class="wh-left">
+    <h1 class="wh-title"><span class="wh-ico" aria-hidden="true">📖</span> Documentation</h1>
+    <p class="wh-sub">How the admin connects to the main Wealth Analyzer app and how to use each tab.</p>
+  </div></div>
   <div class="panel">
     <h2 style="font-size:17px;margin-bottom:10px">How the admin connects to the main app</h2>
-    <p style="margin-bottom:12px;color:var(--ink2);line-height:1.65">Both <code>admin.html</code> and <code>wealth-analyzer.html</code> are static files sharing the same browser origin and therefore the same <code>localStorage</code>. The admin reads + writes specific keys that the main app reads on load:</p>
+    <p style="margin-bottom:12px;color:var(--color-text-secondary);line-height:1.65">Both <code>admin.html</code> and <code>wealth-analyzer.html</code> are static files sharing the same browser origin and therefore the same <code>localStorage</code>. The admin reads + writes specific keys that the main app reads on load:</p>
     <table class="tbl" style="margin-bottom:14px">
       <thead><tr><th>localStorage key</th><th>Direction</th><th>Description</th></tr></thead>
       <tbody>
@@ -1098,7 +1199,7 @@ Citations:<br>
       </tbody>
     </table>
     <h2 style="font-size:17px;margin:18px 0 10px">Tab guide</h2>
-    <ul style="margin-left:20px;line-height:1.85;color:var(--ink2)">
+    <ul style="margin-left:20px;line-height:1.85;color:var(--color-text-secondary)">
       <li><strong>Dashboard</strong> — KPI grid + provider status + recent activity</li>
       <li><strong>AI Portfolio Agent</strong> — AI-powered portfolio construction with 16 research sources</li>
       <li><strong>Research Library</strong> — Configure RSS feeds for each institutional source</li>
@@ -1149,7 +1250,7 @@ function toggleQuestionnairePreview(){
 // ═══════════════════════════════════════════════════════════
 // VERSION + UTILS
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260923-1135";
+const APP_VERSION = "20260924-2232";
 const $ = (id) => document.getElementById(id);
 const $$ = (sel, ctx) => Array.from((ctx||document).querySelectorAll(sel));
 
@@ -1234,6 +1335,11 @@ function showTab(name){
     addLog("err",name+" init failed: "+e.message);
   }
 }
+
+// Perf: pause the tab-header aurora while the browser tab is hidden (same as the demo)
+document.addEventListener("visibilitychange",()=>{
+  document.body.classList.toggle("wa-page-hidden", document.hidden);
+});
 
 // Single click handler — event delegation
 document.addEventListener("click",function(ev){
@@ -3706,10 +3812,10 @@ function renderDashboard(){
     const all = subs.reduce((a,s)=>a.concat(s.items), []);
     const open = idx===0 ? ' open' : '';
     ph += `<details${open} style="border:1px solid rgba(120,120,120,.18);border-radius:8px;margin-bottom:8px;overflow:hidden">`;
-    ph += `<summary style="cursor:pointer;padding:10px 12px;font-weight:600;font-size:12.5px;user-select:none">${escapeHtml(p)}<span style="float:right;font-weight:400;font-size:11px;color:var(--ink3)">${conn(all)}/${reachable(all)} connected${all.length - reachable(all) ? " · " + (all.length - reachable(all)) + " unavailable" : ""}</span></summary>`;
+    ph += `<summary style="cursor:pointer;padding:10px 12px;font-weight:600;font-size:12.5px;user-select:none">${escapeHtml(p)}<span style="float:right;font-weight:400;font-size:11px;color:var(--color-text-muted)">${conn(all)}/${reachable(all)} connected${all.length - reachable(all) ? " · " + (all.length - reachable(all)) + " unavailable" : ""}</span></summary>`;
     ph += '<div style="padding:0 12px 10px">';
     subs.forEach(s => {
-      if(s.sub) ph += `<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink3);margin:10px 0 4px">${escapeHtml(s.sub)} <span style="font-weight:400">(${conn(s.items)}/${reachable(s.items)})</span></div>`;
+      if(s.sub) ph += `<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--color-text-muted);margin:10px 0 4px">${escapeHtml(s.sub)} <span style="font-weight:400">(${conn(s.items)}/${reachable(s.items)})</span></div>`;
       ph += '<table class="tbl" style="margin-bottom:6px"><tbody>';
       s.items.forEach(pr => {
         // Three states, not two. "Not set" means the operator has not supplied a
@@ -3717,7 +3823,7 @@ function renderDashboard(){
         // supplying a key would not help. Collapsing the second into the first
         // sends someone hunting for a credential that does not exist.
         const cell = pr.unavailable
-          ? `<span class="pill pill-off" style="border-color:var(--amber);color:var(--amber)" title="${escapeHtml(pr.unavailable)}">Unavailable</span> <span style="font-size:10.5px;color:var(--ink3)">${escapeHtml(pr.unavailable)}</span>`
+          ? `<span class="pill pill-off" style="border-color:var(--color-warning);color:var(--color-warning)" title="${escapeHtml(pr.unavailable)}">Unavailable</span> <span style="font-size:10.5px;color:var(--color-text-muted)">${escapeHtml(pr.unavailable)}</span>`
           : (pr.k ? '<span class="pill pill-on">Connected</span>' : '<span class="pill pill-off">Not set</span>');
         ph += `<tr><td><strong>${escapeHtml(pr.n)}</strong></td><td>${cell}</td></tr>`;
       });
@@ -3730,7 +3836,7 @@ function renderDashboard(){
   // Recent logs
   const logs = getLogs().slice(0,15);
   $("dashLogs").innerHTML = logs.length===0
-    ? '<div style="color:var(--ink3);padding:14px;text-align:center">No activity yet</div>'
+    ? '<div style="color:var(--color-text-muted);padding:14px;text-align:center">No activity yet</div>'
     : logs.map(l => `<div class="log"><span class="log-ts">${new Date(l.ts).toLocaleTimeString()}</span><span class="log-lvl ${l.level}">${l.level}</span><span>${escapeHtml(l.msg)}</span></div>`).join("");
 }
 function kpiCard(label, value, sub, tone){
@@ -3751,11 +3857,11 @@ function renderAgentPicker(){
     const cfg = getProviderCfg(p.id);
     const cnt = (cfg.items||[]).length;
     // ✓ all sources checked by default (regardless of cache state)
-    return `<label style="display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:#fff;font-size:11.5px;cursor:pointer" id="agPick-${p.id}">
+    return `<label style="display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--color-border);border-radius:8px;background:#fff;font-size:11.5px;cursor:pointer" id="agPick-${p.id}">
       <input type="checkbox" data-prov="${p.id}" checked>
       <span class="rp-icon" style="background:${p.color};width:22px;height:22px;font-size:11px">${p.letter}</span>
       <span style="flex:1">${escapeHtml(p.name)}</span>
-      <span style="color:${cnt>0?'var(--green)':'var(--ink3)'};font-size:10px;font-weight:600" id="agPickCnt-${p.id}">${cnt>0?cnt+' items':'⏳ loading…'}</span>
+      <span style="color:${cnt>0?'var(--color-success)':'var(--color-text-muted)'};font-size:10px;font-weight:600" id="agPickCnt-${p.id}">${cnt>0?cnt+' items':'⏳ loading…'}</span>
     </label>`;
   }).join("");
 }
@@ -3780,7 +3886,7 @@ async function autoRefreshAllResearch(silent){
         if(cnt > 0) ok++;
         // Live-update this card's count
         const el = $("agPickCnt-"+p.id);
-        if(el){ el.textContent = cnt + ' items'; el.style.color = cnt > 0 ? 'var(--green)' : 'var(--amber)'; }
+        if(el){ el.textContent = cnt + ' items'; el.style.color = cnt > 0 ? 'var(--color-success)' : 'var(--color-warning)'; }
       } catch(_){}
       done++;
       if(status && !silent) status.textContent = `📡 Refreshed ${done}/${RESEARCH_PROVIDERS.length} sources (${ok} with data)…`;
@@ -3812,7 +3918,7 @@ function renderAIBuilderSwitch(){
   const lbl = document.getElementById("aiBuilderSwitchState");
   const on  = aiBuilderEnabled();
   if(sw){ sw.classList.toggle("on", on); sw.setAttribute("aria-checked", on ? "true" : "false"); }
-  if(lbl){ lbl.textContent = on ? "ON — visible to clients" : "OFF — hidden in client app"; lbl.style.color = on ? "var(--green)" : "var(--ink3)"; }
+  if(lbl){ lbl.textContent = on ? "ON — visible to clients" : "OFF — hidden in client app"; lbl.style.color = on ? "var(--color-success)" : "var(--color-text-muted)"; }
 }
 function toggleAIBuilderFeature(){
   const next = !aiBuilderEnabled();
@@ -3838,7 +3944,7 @@ function renderAgent(){
     ft.innerHTML = '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Ticker</th><th>Name</th><th>Sponsor</th><th>Class</th><th>Vehicle</th><th class="num">ER%</th><th class="num">Yld%</th></tr></thead><tbody>' +
       FUND_UNIVERSE.map(f =>
         `<tr><td><strong>${f.tkr}</strong>${f.esg?' <span class="pill pill-on" style="font-size:9px;padding:1px 5px">ESG</span>':''}</td>
-         <td>${escapeHtml(f.name)}</td><td style="color:var(--ink3)">${f.sponsor}</td>
+         <td>${escapeHtml(f.name)}</td><td style="color:var(--color-text-muted)">${f.sponsor}</td>
          <td>${f.cls}</td><td>${f.vehicle}</td>
          <td class="num">${f.er.toFixed(2)}</td><td class="num">${f.yld.toFixed(1)}</td></tr>`
       ).join("") + '</tbody></table></div>';
@@ -3878,7 +3984,7 @@ async function runAgent(){
   if(!key){ toast("No AI key. Set one in API Keys tab.","err"); return; }
   $("agStatus").textContent = "🤖 Thinking…";
   $("agResultPanel").style.display = "block";
-  $("agResult").innerHTML = '<div style="text-align:center;padding:30px;color:var(--ink3)"><div style="font-size:32px">🤖</div>Synthesizing research, classifying client, constructing portfolio…</div>';
+  $("agResult").innerHTML = '<div style="text-align:center;padding:30px;color:var(--color-text-muted)"><div style="font-size:32px">🤖</div>Synthesizing research, classifying client, constructing portfolio…</div>';
 
   const brief = {
     risk:$("agRisk").value, horizon:$("agHorizon").value,
@@ -3995,7 +4101,7 @@ Constraints:
       + (rec.validation.warnings.length ? " · "+rec.validation.warnings.join(" · ") : ""));
   } catch(e){
     $("agResult").innerHTML = `<div class="code" style="background:#7f1d1d">Error: ${escapeHtml(e.message)}</div>
-      <div style="font-size:12px;color:var(--ink3);margin-top:14px;line-height:1.6">
+      <div style="font-size:12px;color:var(--color-text-muted);margin-top:14px;line-height:1.6">
         <strong>Common issues:</strong><br>
         • AI key missing/invalid — set one in API Keys tab<br>
         • Network/CORS — try a different model or check connection<br>
@@ -4095,9 +4201,9 @@ function validateAgentRec(rec, eligibleUniverse, brief){
 function renderAgentResult(rec){
   let h = '';
   if(rec.validation && rec.validation.warnings.length){
-    h += `<div class="ablock" style="border-left:4px solid var(--amber)"><h3 style="color:var(--amber)">⚠ Auto-corrections applied to the model output</h3>
+    h += `<div class="ablock" style="border-left:4px solid var(--color-warning)"><h3 style="color:var(--color-warning)">⚠ Auto-corrections applied to the model output</h3>
       <ul style="margin:6px 0 0 18px;line-height:1.7;font-size:12.5px">${rec.validation.warnings.map(w=>`<li>${escapeHtml(w)}</li>`).join("")}</ul>
-      <div style="font-size:11px;color:var(--ink3);margin-top:8px">Weights were renormalized to 100% and constrained to the client's eligible universe and position cap before export.</div></div>`;
+      <div style="font-size:11px;color:var(--color-text-muted);margin-top:8px">Weights were renormalized to 100% and constrained to the client's eligible universe and position cap before export.</div></div>`;
   }
   h += `<div class="ablock"><h3>🎯 Executive Summary</h3><div style="line-height:1.7">${escapeHtml(rec.summary||"")}</div></div>`;
   h += `<div class="kpi-grid">
@@ -4119,7 +4225,7 @@ function renderAgentResult(rec){
     rec.positions.forEach(p => {
       const f = FUND_UNIVERSE.find(x => x.tkr===p.ticker);
       h += `<div class="abar">
-        <div class="abar-fund">${escapeHtml(p.ticker)}<br><span style="font-size:10.5px;color:var(--ink3);font-weight:400">${escapeHtml(f?.name||"")}</span></div>
+        <div class="abar-fund">${escapeHtml(p.ticker)}<br><span style="font-size:10.5px;color:var(--color-text-muted);font-weight:400">${escapeHtml(f?.name||"")}</span></div>
         <div class="abar-track"><div class="abar-fill" style="width:${Math.min(100,p.weight*5)}%"></div></div>
         <div class="abar-pct">${p.weight.toFixed(1)}%</div>
         <div class="arat">💡 ${escapeHtml(p.rationale||"")}</div>
@@ -4131,7 +4237,7 @@ function renderAgentResult(rec){
     h += `<div class="ablock"><h3>📚 Research Citations</h3><ul style="margin:0;padding-left:20px;line-height:1.7">${rec.researchCitations.map(c=>`<li>${escapeHtml(c)}</li>`).join("")}</ul></div>`;
   }
   if(rec.risks?.length){
-    h += `<div class="ablock" style="border-left:4px solid var(--red)"><h3 style="color:var(--red)">⚠ Key Risks</h3><ul style="margin:0;padding-left:20px;line-height:1.7">${rec.risks.map(r=>`<li>${escapeHtml(r)}</li>`).join("")}</ul></div>`;
+    h += `<div class="ablock" style="border-left:4px solid var(--color-error)"><h3 style="color:var(--color-error)">⚠ Key Risks</h3><ul style="margin:0;padding-left:20px;line-height:1.7">${rec.risks.map(r=>`<li>${escapeHtml(r)}</li>`).join("")}</ul></div>`;
   }
   if(rec.rebalancingGuidance){
     h += `<div class="ablock"><h3>🔄 Rebalancing Guidance</h3><div style="line-height:1.7">${escapeHtml(rec.rebalancingGuidance)}</div></div>`;
@@ -4424,12 +4530,12 @@ async function previewIngest(){
   _ingestParsed = items;
   if(commit){ commit.disabled = false; commit.textContent = `📥 Ingest ${items.length} item${items.length>1?'s':''}`; }
   status.textContent = `${items.length} item${items.length>1?'s':''} parsed from ${(raw.length/1024).toFixed(1)} KB`;
-  host.innerHTML = `<div style="max-height:320px;overflow-y:auto;border:1px solid var(--line);border-radius:8px">${
-    items.map((it,i) => `<div style="padding:8px 12px;border-bottom:1px solid var(--line);font-size:12px">
-      <div style="font-weight:600;color:var(--ink)">${i+1}. ${escapeHtml(it.title)}</div>
-      ${it.summary ? `<div style="color:var(--ink3);margin-top:2px">${escapeHtml(it.summary)}</div>` : ""}
+  host.innerHTML = `<div style="max-height:320px;overflow-y:auto;border:1px solid var(--color-border);border-radius:8px">${
+    items.map((it,i) => `<div style="padding:8px 12px;border-bottom:1px solid var(--color-border);font-size:12px">
+      <div style="font-weight:600;color:var(--color-text)">${i+1}. ${escapeHtml(it.title)}</div>
+      ${it.summary ? `<div style="color:var(--color-text-muted);margin-top:2px">${escapeHtml(it.summary)}</div>` : ""}
     </div>`).join("")}</div>
-    <div style="font-size:11px;color:var(--ink3);margin-top:6px">Review before ingesting — anything that looks like a page header or disclaimer can be removed by editing the pasted text and re-parsing.</div>`;
+    <div style="font-size:11px;color:var(--color-text-muted);margin-top:6px">Review before ingesting — anything that looks like a page header or disclaimer can be removed by editing the pasted text and re-parsing.</div>`;
 }
 function commitIngest(){
   if(!_ingestParsed || !_ingestParsed.length) return;
@@ -4490,7 +4596,7 @@ function renderMonthlyIssueBanner(){
   if(outstanding.length === 0){
     const monthly = RESEARCH_PROVIDERS.filter(p => p.cadence === "monthly").length;
     host.innerHTML = monthly
-      ? `<div style="margin:0 0 12px;padding:10px 14px;background:rgba(0,135,90,.07);border:1px solid rgba(0,135,90,.25);border-radius:8px;font-size:12px;color:var(--green);font-weight:600">✓ All ${monthly} monthly publications are current for ${currentIssueYM()}.</div>`
+      ? `<div style="margin:0 0 12px;padding:10px 14px;background:rgba(0,135,90,.07);border:1px solid rgba(0,135,90,.25);border-radius:8px;font-size:12px;color:var(--color-success);font-weight:600">✓ All ${monthly} monthly publications are current for ${currentIssueYM()}.</div>`
       : "";
     return;
   }
@@ -4499,9 +4605,9 @@ function renderMonthlyIssueBanner(){
   ).join("");
   const anyOverdue = outstanding.some(o => o.st.state === "overdue");
   host.innerHTML = `<div style="margin:0 0 12px;padding:11px 14px;background:${anyOverdue?'rgba(227,24,55,.06)':'rgba(245,158,11,.08)'};border:1px solid ${anyOverdue?'rgba(227,24,55,.3)':'rgba(245,158,11,.35)'};border-radius:8px;font-size:12px;line-height:1.65">
-    <div style="font-weight:700;color:${anyOverdue?'var(--red)':'var(--amber)'};margin-bottom:5px">${anyOverdue?'⚠':'●'} ${outstanding.length} monthly issue${outstanding.length>1?'s':''} outstanding for ${currentIssueYM()}</div>
-    <ul style="margin:0 0 0 18px;padding:0;color:var(--ink2)">${rows}</ul>
-    <div style="font-size:11px;color:var(--ink3);margin-top:7px">The news feeds behind these sources refresh continuously, but the monthly issue itself has to be ingested — use “Mark ingested” on the card once it is in the library.</div>
+    <div style="font-weight:700;color:${anyOverdue?'var(--color-error)':'var(--color-warning)'};margin-bottom:5px">${anyOverdue?'⚠':'●'} ${outstanding.length} monthly issue${outstanding.length>1?'s':''} outstanding for ${currentIssueYM()}</div>
+    <ul style="margin:0 0 0 18px;padding:0;color:var(--color-text-secondary)">${rows}</ul>
+    <div style="font-size:11px;color:var(--color-text-muted);margin-top:7px">The news feeds behind these sources refresh continuously, but the monthly issue itself has to be ingested — use “Mark ingested” on the card once it is in the library.</div>
   </div>`;
 }
 
@@ -4523,7 +4629,7 @@ function renderResearchCorpusSummary(){
   });
   const s = researchLiveSummary();
   live = s.liveItems;
-  if(!measured){ el.innerHTML = '<span style="color:var(--ink3)">Refresh to measure feed health.</span>'; return; }
+  if(!measured){ el.innerHTML = '<span style="color:var(--color-text-muted)">Refresh to measure feed health.</span>'; return; }
   // Scope every claim to the providers actually measured. Describing an
   // unmeasured provider's items as "the curated library" is a statement we have
   // no evidence for — those 1,170 items may well have come off the wire.
@@ -4536,19 +4642,19 @@ function renderResearchCorpusSummary(){
   const dark = measured - s.liveProviders;
   const scope = unmeasured ? ' of the ' + measured + ' measured' : '';
   el.innerHTML =
-    '<span style="color:' + (dark ? 'var(--amber)' : 'var(--green)') + ';font-weight:600">' +
+    '<span style="color:' + (dark ? 'var(--color-warning)' : 'var(--color-success)') + ';font-weight:600">' +
       s.liveProviders + ' of ' + measured + ' measured source' + (measured === 1 ? '' : 's') +
       ' returning live items</span>' +
-    '<span style="color:var(--ink3)"> · ' + live + ' of ' + measuredTotal + ' items (' + pct + '%)' +
+    '<span style="color:var(--color-text-muted)"> · ' + live + ' of ' + measuredTotal + ' items (' + pct + '%)' +
       scope + ' came off the wire; the rest is the curated library bundled with the app' +
       (stale ? ' · ' + stale + ' item' + (stale === 1 ? '' : 's') + ' older than a year' : '') +
     '</span>' +
     (unmeasured
-      ? '<div style="color:var(--amber);margin-top:3px">' + unmeasured + ' source' + (unmeasured === 1 ? '' : 's') +
+      ? '<div style="color:var(--color-warning);margin-top:3px">' + unmeasured + ' source' + (unmeasured === 1 ? '' : 's') +
         ' not yet refreshed since feed-health tracking was added — nothing above describes ' +
         (unmeasured === 1 ? 'it' : 'them') + '. Use &ldquo;Refresh ALL&rdquo; for a complete picture.</div>'
       : '') +
-    (dark ? '<div style="color:var(--ink3);margin-top:3px">Sources on curated fallback still contribute to the tally — the agent is reading fewer independent live views than the source count suggests.</div>' : '');
+    (dark ? '<div style="color:var(--color-text-muted);margin-top:3px">Sources on curated fallback still contribute to the tally — the agent is reading fewer independent live views than the source count suggests.</div>' : '');
 }
 
 function renderResearch(){
@@ -4569,10 +4675,10 @@ function renderResearch(){
     const feedNote = live === undefined ? ""
       : (live > 0 ? ` · ${live} live` : " · curated only");
     const feedWarn = live === 0
-      ? `<div style="font-size:11px;font-weight:600;color:var(--red);margin-top:3px" title="${escapeHtml((cfg.feedErrors||[]).join(" · "))}">⚠ ${cfg.feedsConfigured || 0} feed${(cfg.feedsConfigured||0) === 1 ? "" : "s"} unreachable — showing curated library only</div>`
+      ? `<div style="font-size:11px;font-weight:600;color:var(--color-error);margin-top:3px" title="${escapeHtml((cfg.feedErrors||[]).join(" · "))}">⚠ ${cfg.feedsConfigured || 0} feed${(cfg.feedsConfigured||0) === 1 ? "" : "s"} unreachable — showing curated library only</div>`
       : "";
     const iss = monthlyIssueStatus(p, cfg);
-    const issColor = iss ? ({current:"var(--green)", pending:"var(--ink3)", due:"var(--amber)", overdue:"var(--red)"})[iss.state] : "";
+    const issColor = iss ? ({current:"var(--color-success)", pending:"var(--color-text-muted)", due:"var(--color-warning)", overdue:"var(--color-error)"})[iss.state] : "";
     return `<div class="rp-card${en?'':' disabled'}">
       <div class="rp-head">
         <div class="rp-icon" style="background:${p.color}">${p.letter}</div>
@@ -4582,7 +4688,7 @@ function renderResearch(){
         </div>
         <label style="cursor:pointer"><input type="checkbox" ${en?'checked':''} data-action="toggleProvider" data-prov="${p.id}"></label>
       </div>
-      <div style="font-size:11px;color:var(--ink3)">Last: ${lr}</div>
+      <div style="font-size:11px;color:var(--color-text-muted)">Last: ${lr}</div>
       ${feedWarn}
       ${iss ? `<div style="font-size:11px;font-weight:600;color:${issColor};margin-top:3px">${iss.state==="current"?"✓":"●"} ${escapeHtml(iss.label)}</div>` : ""}
       <div class="rp-actions">
@@ -4603,16 +4709,16 @@ function renderResearchFeed(){
   });
   items.sort((a,b) => a.date < b.date ? 1 : -1);
   if(items.length === 0){
-    $("rpFeed").innerHTML = '<div style="color:var(--ink3);padding:14px">Click ↻ Refresh on cards above to populate.</div>';
+    $("rpFeed").innerHTML = '<div style="color:var(--color-text-muted);padding:14px">Click ↻ Refresh on cards above to populate.</div>';
     return;
   }
   $("rpFeed").innerHTML = items.slice(0,60).map(it =>
-    `<div style="display:flex;gap:10px;padding:9px 12px;border-bottom:1px solid var(--line)">
+    `<div style="display:flex;gap:10px;padding:9px 12px;border-bottom:1px solid var(--color-border)">
       <div class="rp-icon" style="background:${it.color};width:26px;height:26px;font-size:12px;flex-shrink:0">${it.letter}</div>
       <div style="flex:1;min-width:0">
         <div style="font-weight:600;font-size:12.5px">${escapeHtml(it.title)}</div>
-        <div style="font-size:10.5px;color:var(--ink3);margin-top:2px"><strong>${escapeHtml(it.provider)}</strong> · ${escapeHtml(it.date||"recent")}</div>
-        ${it.summary ? `<div style="font-size:11.5px;color:var(--ink2);margin-top:3px">${escapeHtml(it.summary)}</div>` : ''}
+        <div style="font-size:10.5px;color:var(--color-text-muted);margin-top:2px"><strong>${escapeHtml(it.provider)}</strong> · ${escapeHtml(it.date||"recent")}</div>
+        ${it.summary ? `<div style="font-size:11.5px;color:var(--color-text-secondary);margin-top:3px">${escapeHtml(it.summary)}</div>` : ''}
       </div>
     </div>`).join("");
 }
@@ -4732,9 +4838,9 @@ function renderTestBench(){
 function renderTbInputs(){
   const k = $("tbFn").value;
   const fn = TB_FUNCS[k];
-  $("tbFormula").innerHTML = '<span style="color:var(--blue);font-weight:700">ƒ</span> ' + fn.formula;
+  $("tbFormula").innerHTML = '<span style="color:var(--color-primary);font-weight:700">ƒ</span> ' + fn.formula;
   $("tbInputs").innerHTML = fn.inputs.length === 0
-    ? '<div style="color:var(--ink3);padding:8px 0;font-size:12px">No inputs required</div>'
+    ? '<div style="color:var(--color-text-muted);padding:8px 0;font-size:12px">No inputs required</div>'
     : fn.inputs.map(i => `<div class="row"><label class="lbl">${i.label}</label><input id="tb-${i.id}" value="${i.def}" class="w200" step="any"></div>`).join("");
 }
 function gatherTbInputs(){
@@ -4750,10 +4856,10 @@ function runTb(){
   try {
     const result = fn.run(inputs);
     const dt = performance.now() - t0;
-    let html = `<div style="font-size:12.5px;color:var(--ink3);margin-bottom:8px"><strong>${name}</strong> ran in ${dt.toFixed(2)} ms</div>`;
+    let html = `<div style="font-size:12.5px;color:var(--color-text-muted);margin-bottom:8px"><strong>${name}</strong> ran in ${dt.toFixed(2)} ms</div>`;
     html += '<div class="code">' + JSON.stringify(result, (k,v)=>typeof v==="number"?Number(v.toFixed(4)):v, 2) + '</div>';
     if(typeof result === "number" && Math.abs(result) >= 1000){
-      html += '<div style="margin-top:8px;font-size:12px">Formatted: <strong style="color:var(--blue)">'+fmt$(result)+'</strong></div>';
+      html += '<div style="margin-top:8px;font-size:12px">Formatted: <strong style="color:var(--color-primary)">'+fmt$(result)+'</strong></div>';
     }
     $("tbResult").innerHTML = html;
     addLog("ok","Ran "+name);
@@ -4773,7 +4879,7 @@ function runTbStress(){
     const mean = results.reduce((s,v)=>s+v,0)/N;
     const std = Math.sqrt(results.reduce((s,v)=>s+(v-mean)**2,0)/N);
     const stats = {N, dtMs:+dt.toFixed(1), mean:+mean.toFixed(4), median:+results[N/2].toFixed(4), stdDev:+std.toFixed(4), p10:+results[N*0.1|0].toFixed(4), p90:+results[N*0.9|0].toFixed(4), min:+results[0].toFixed(4), max:+results[N-1].toFixed(4)};
-    $("tbResult").innerHTML = `<div style="font-size:12.5px;color:var(--ink3);margin-bottom:8px">⚡ <strong>${N}</strong> iterations in <strong style="color:var(--blue)">${dt.toFixed(0)} ms</strong></div><div class="code">${JSON.stringify(stats,null,2)}</div>`;
+    $("tbResult").innerHTML = `<div style="font-size:12.5px;color:var(--color-text-muted);margin-bottom:8px">⚡ <strong>${N}</strong> iterations in <strong style="color:var(--color-primary)">${dt.toFixed(0)} ms</strong></div><div class="code">${JSON.stringify(stats,null,2)}</div>`;
   } catch(e){ $("tbResult").innerHTML = '<div class="code" style="background:#7f1d1d">Error: '+escapeHtml(e.message)+'</div>'; }
 }
 
@@ -4797,12 +4903,12 @@ function runTests(){
   });
   results.forEach(r => r.passed ? passed++ : failed++);
   const dt = performance.now() - t0;
-  $("testSummary").innerHTML = `<strong style="color:var(--green)">${passed} passed</strong> · <strong style="color:${failed>0?'var(--red)':'var(--ink3)'}">${failed} failed</strong> · ${dt.toFixed(0)}ms`;
+  $("testSummary").innerHTML = `<strong style="color:var(--color-success)">${passed} passed</strong> · <strong style="color:${failed>0?'var(--color-error)':'var(--color-text-muted)'}">${failed} failed</strong> · ${dt.toFixed(0)}ms`;
   $("testResults").innerHTML = results.map(r => `
     <div class="test-card ${r.passed?'pass':'fail'}">
       <div class="test-badge ${r.passed?'pass':'fail'}">${r.passed?'✓':'✗'}</div>
       <div><div class="test-name">${escapeHtml(r.name)}</div><div class="test-detail">${escapeHtml(r.detail)}</div></div>
-      <div style="font-size:10.5px;color:var(--ink3)">${r.fn}</div>
+      <div style="font-size:10.5px;color:var(--color-text-muted)">${r.fn}</div>
     </div>
   `).join("");
   addLog(failed===0?"ok":"warn",`Test suite: ${passed}/${results.length} passed`);
@@ -4932,7 +5038,7 @@ function renderProfile(){
   h += kpiCard("Net Worth",fmt$(totA-totL),"","tone-green");
   h += kpiCard("Goals",goals.length,"");
   $("pfStats").innerHTML = h;
-  $("pfTree").innerHTML = '<pre style="margin:0;font-family:var(--fm);font-size:11px">'+escapeHtml(JSON.stringify(loadedProfile,null,2))+'</pre>';
+  $("pfTree").innerHTML = '<pre style="margin:0;font-family:var(--font-mono);font-size:11px">'+escapeHtml(JSON.stringify(loadedProfile,null,2))+'</pre>';
 }
 function saveProfile(){
   if(!loadedProfile) return;
@@ -5333,9 +5439,9 @@ async function testQuote(){
     const dt = performance.now()-t0;
     let h = `<div style="display:flex;align-items:baseline;gap:14px;margin-bottom:14px">
       <div style="font-size:32px;font-weight:800;letter-spacing:-.03em">$${fmtN(d.price,2)}</div>
-      ${d.change!=null?`<div style="font-size:15px;font-weight:700;color:${d.change>=0?'var(--green)':'var(--red)'}">${d.change>=0?'+':''}${fmtN(d.change,2)} (${fmtN(d.changePct,2)}%)</div>`:''}
+      ${d.change!=null?`<div style="font-size:15px;font-weight:700;color:${d.change>=0?'var(--color-success)':'var(--color-error)'}">${d.change>=0?'+':''}${fmtN(d.change,2)} (${fmtN(d.changePct,2)}%)</div>`:''}
     </div>
-    <div style="font-size:11px;color:var(--ink3)"><span class="pill pill-on">via ${d.source}</span> in ${dt.toFixed(0)}ms</div>
+    <div style="font-size:11px;color:var(--color-text-muted)"><span class="pill pill-on">via ${d.source}</span> in ${dt.toFixed(0)}ms</div>
     <div class="code" style="margin-top:14px">${JSON.stringify(d,null,2)}</div>`;
     $("mdResult").innerHTML = h;
     addLog("ok",`${ticker} via ${d.source}: $${d.price.toFixed(2)}`);
@@ -5354,7 +5460,7 @@ async function testAllProviders(){
   }));
   let h = '<table class="tbl"><thead><tr><th>Provider</th><th>Status</th><th class="num">Price</th><th class="num">ms</th><th>Note</th></tr></thead><tbody>';
   results.forEach(r => {
-    h += `<tr><td><strong>${r.p}</strong></td><td>${r.ok?'<span class="pill pill-on">OK</span>':'<span class="pill pill-off">FAIL</span>'}</td><td class="num">${r.ok?'$'+fmtN(r.price,2):'—'}</td><td class="num">${r.ms.toFixed(0)}</td><td style="font-size:11px;color:var(--ink3)">${escapeHtml(r.err||"—")}</td></tr>`;
+    h += `<tr><td><strong>${r.p}</strong></td><td>${r.ok?'<span class="pill pill-on">OK</span>':'<span class="pill pill-off">FAIL</span>'}</td><td class="num">${r.ok?'$'+fmtN(r.price,2):'—'}</td><td class="num">${r.ms.toFixed(0)}</td><td style="font-size:11px;color:var(--color-text-muted)">${escapeHtml(r.err||"—")}</td></tr>`;
   });
   h += '</tbody></table>';
   $("mdResult").innerHTML = h;
@@ -5393,27 +5499,27 @@ function renderTaxStateDropdown(){
   renderTaxBracket();
 }
 function _fmtRegBands(bands){
-  if(!bands||!bands.length) return '<div style="color:var(--ink3);padding:14px">No bracket data</div>';
+  if(!bands||!bands.length) return '<div style="color:var(--color-text-muted);padding:14px">No bracket data</div>';
   return '<table class="tbl"><thead><tr><th>Income up to</th><th class="num">Marginal rate</th></tr></thead><tbody>'+
     bands.map(b=>{ const up=(b[0]==null)?'∞':Number(b[0]).toLocaleString(); return `<tr><td class="num">${up}</td><td class="num"><strong>${b[1]}%</strong></td></tr>`; }).join("")+'</tbody></table>';
 }
 function renderTaxBracket(){
   const c=_regCountry($("txCountry").value); if(!c) return;
   const src=c.source||{};
-  $("taxFedBrackets").innerHTML = `<h3 style="font-size:13px;margin-bottom:8px;color:var(--blue)">National / federal — ${escapeHtml(c.name)} <span style="color:var(--ink3);font-weight:400">(${escapeHtml(src.taxYear||"")}${c.currency?(", "+escapeHtml(c.currency)):""})</span></h3>` + _fmtRegBands(c.bands)
-    + (src.url?`<div style="font-size:11px;margin-top:6px"><a href="${escapeHtml(src.url)}" target="_blank" style="color:var(--blue)">${escapeHtml(src.authority||"official source")}</a></div>`:"");
+  $("taxFedBrackets").innerHTML = `<h3 style="font-size:13px;margin-bottom:8px;color:var(--color-primary)">National / federal — ${escapeHtml(c.name)} <span style="color:var(--color-text-muted);font-weight:400">(${escapeHtml(src.taxYear||"")}${c.currency?(", "+escapeHtml(c.currency)):""})</span></h3>` + _fmtRegBands(c.bands)
+    + (src.url?`<div style="font-size:11px;margin-top:6px"><a href="${escapeHtml(src.url)}" target="_blank" style="color:var(--color-primary)">${escapeHtml(src.authority||"official source")}</a></div>`:"");
   const sub=c.sub||null;
   if(sub && sub.hasSub){
-    $("taxStateBrackets").innerHTML = `<h3 style="font-size:13px;margin:14px 0 8px;color:var(--green)">${escapeHtml(sub.label)} — representative effective add-on (% of income)</h3>`
+    $("taxStateBrackets").innerHTML = `<h3 style="font-size:13px;margin:14px 0 8px;color:var(--color-success)">${escapeHtml(sub.label)} — representative effective add-on (% of income)</h3>`
       + '<table class="tbl"><thead><tr><th>'+escapeHtml(sub.label)+'</th><th class="num">Add-on rate</th></tr></thead><tbody>'
       + sub.items.map(it=>`<tr><td>${escapeHtml(it.name)}</td><td class="num"><strong>${it.rate}%</strong></td></tr>`).join("")+'</tbody></table>'
-      + (sub.note?`<div style="font-size:11px;color:var(--ink3);margin-top:8px;line-height:1.6">${escapeHtml(sub.note)}</div>`:"");
+      + (sub.note?`<div style="font-size:11px;color:var(--color-text-muted);margin-top:8px;line-height:1.6">${escapeHtml(sub.note)}</div>`:"");
   } else {
-    $("taxStateBrackets").innerHTML = `<div style="font-size:12px;color:var(--ink3);margin-top:14px;padding:10px 12px;background:rgba(0,0,0,.03);border-radius:6px">No separate regional/state/municipal income tax — national rates only.${sub&&sub.note?(" "+escapeHtml(sub.note)):""}</div>`;
+    $("taxStateBrackets").innerHTML = `<div style="font-size:12px;color:var(--color-text-muted);margin-top:14px;padding:10px 12px;background:rgba(0,0,0,.03);border-radius:6px">No separate regional/state/municipal income tax — national rates only.${sub&&sub.note?(" "+escapeHtml(sub.note)):""}</div>`;
   }
 }
 function renderBrackets(brackets){
-  if(!brackets||brackets.length===0) return '<div style="color:var(--ink3);padding:14px">No income tax / flat 0%</div>';
+  if(!brackets||brackets.length===0) return '<div style="color:var(--color-text-muted);padding:14px">No income tax / flat 0%</div>';
   return '<table class="tbl"><thead><tr><th>From</th><th>To</th><th class="num">Marginal Rate</th></tr></thead><tbody>' +
     brackets.map((b,i) => {
       const top = brackets[i+1] ? brackets[i+1].t : null;
@@ -5460,21 +5566,21 @@ function renderTaxAccuracy(){
     const status = vmap[c.code]==="verified" ? "verified" : "review";
     if(status==="verified") verified++; else review++;
     const chk = issues.length
-      ? '<span style="color:var(--amber)" title="'+escapeHtml(issues.join(", "))+'">&#9888; '+issues.length+'</span>'
-      : '<span style="color:var(--green)">&#10003; ok</span>';
+      ? '<span style="color:var(--color-warning)" title="'+escapeHtml(issues.join(", "))+'">&#9888; '+issues.length+'</span>'
+      : '<span style="color:var(--color-success)">&#10003; ok</span>';
     const stBadge = status==="verified"
-      ? '<span style="color:var(--green);font-weight:600">&#10003; verified</span>'
-      : '<span style="color:var(--amber);font-weight:600">&#9679; needs review</span>';
+      ? '<span style="color:var(--color-success);font-weight:600">&#10003; verified</span>'
+      : '<span style="color:var(--color-warning);font-weight:600">&#9679; needs review</span>';
     const src = c.source||{};
-    const link = src.url ? '<a href="'+escapeHtml(src.url)+'" target="_blank" style="color:var(--blue)">'+escapeHtml(src.authority||"source")+'</a>' : (src.authority?escapeHtml(src.authority):'—');
+    const link = src.url ? '<a href="'+escapeHtml(src.url)+'" target="_blank" style="color:var(--color-primary)">'+escapeHtml(src.authority||"source")+'</a>' : (src.authority?escapeHtml(src.authority):'—');
     const sub=c.sub||null;
     const subCell = sub
       ? (sub.hasSub
-          ? escapeHtml(sub.label)+' <span style="color:var(--ink3)">~'+sub.repRate+'%'+(sub.maxRate>sub.repRate?(' (max '+sub.maxRate+'%)'):'')+'</span>'
-          : '<span style="color:var(--ink3)">national only</span>')
-      : '<span style="color:var(--ink3)">—</span>';
+          ? escapeHtml(sub.label)+' <span style="color:var(--color-text-muted)">~'+sub.repRate+'%'+(sub.maxRate>sub.repRate?(' (max '+sub.maxRate+'%)'):'')+'</span>'
+          : '<span style="color:var(--color-text-muted)">national only</span>')
+      : '<span style="color:var(--color-text-muted)">—</span>';
     return '<tr>'
-      +'<td>'+escapeHtml(c.name||c.code)+' <span style="color:var(--ink3)">'+escapeHtml(c.code)+'</span></td>'
+      +'<td>'+escapeHtml(c.name||c.code)+' <span style="color:var(--color-text-muted)">'+escapeHtml(c.code)+'</span></td>'
       +'<td class="num">'+escapeHtml(c.currency||'—')+'</td>'
       +'<td class="num"><strong>'+(typeof c.topRate==="number"?c.topRate+'%':'—')+'</strong></td>'
       +'<td class="num">'+(c.bandCount||0)+'</td>'
@@ -5489,7 +5595,7 @@ function renderTaxAccuracy(){
   body.innerHTML =
     '<table class="tbl"><thead><tr><th>Country</th><th class="num">Ccy</th><th class="num">Top rate</th><th class="num">Bands</th><th>Sub-national (regional/state/municipal)</th><th class="num">Tax yr</th><th>Official source</th><th>Sanity</th><th>Status</th><th>Action</th></tr></thead><tbody>'
     + trs + '</tbody></table>'
-    + '<div style="font-size:11px;color:var(--ink3);margin-top:10px;line-height:1.7">Synced '+escapeHtml(reg.generatedAt||"")+(reg.appVersion?(" &middot; client v"+escapeHtml(reg.appVersion)):"")+'. Top rate &amp; bands are the national/federal scale; the Sub-national column shows representative regional/state/municipal income tax (“~” = effective add-on; many countries are national-only). <strong>Verify each country against its official source link before relying on it.</strong></div>';
+    + '<div style="font-size:11px;color:var(--color-text-muted);margin-top:10px;line-height:1.7">Synced '+escapeHtml(reg.generatedAt||"")+(reg.appVersion?(" &middot; client v"+escapeHtml(reg.appVersion)):"")+'. Top rate &amp; bands are the national/federal scale; the Sub-national column shows representative regional/state/municipal income tax (“~” = effective add-on; many countries are national-only). <strong>Verify each country against its official source link before relying on it.</strong></div>';
   { const _s=$("taxAccSummary"); if(_s) _s.innerHTML = reg.countries.length+" countries &middot; "+verified+" verified &middot; "+review+" need review &middot; "+problems+" flagged"; }
 }
 window.renderTaxAccuracy = renderTaxAccuracy;
@@ -5575,7 +5681,7 @@ function renderKeys(){
       else fail++;
     });
     if(cfg === 0) summary.textContent = "No keys configured yet";
-    else summary.innerHTML = `<span style="color:var(--green);font-weight:600">${ok} working</span> · <span style="color:${fail>0?'var(--red)':'var(--ink3)'};font-weight:600">${fail} failing</span>${pending?` · <span style="color:var(--ink3)">${pending} pending</span>`:''}`;
+    else summary.innerHTML = `<span style="color:var(--color-success);font-weight:600">${ok} working</span> · <span style="color:${fail>0?'var(--color-error)':'var(--color-text-muted)'};font-weight:600">${fail} failing</span>${pending?` · <span style="color:var(--color-text-muted)">${pending} pending</span>`:''}`;
   }
   let h = '';
   // Header row gains a Health column
@@ -5583,7 +5689,7 @@ function renderKeys(){
   API_KEY_DEFS.forEach(k => {
     const v = localStorage.getItem(k.id) || "";
     const hh = health[k.id] || {};
-    let healthPill = '<span class="pill" style="background:rgba(156,163,175,.15);color:var(--ink3)">Not checked</span>';
+    let healthPill = '<span class="pill" style="background:rgba(156,163,175,.15);color:var(--color-text-muted)">Not checked</span>';
     if(v){
       if(hh.lastCheck){
         const age = Date.now() - hh.lastCheck;
@@ -5595,8 +5701,8 @@ function renderKeys(){
       }
     }
     h += `<tr>
-      <td><strong>${k.n}</strong><br><a href="https://${k.url}" target="_blank" style="font-size:10.5px;color:var(--blue)">↗ ${k.url}</a>${k.note?'<br><span style="font-size:10px;color:var(--ink3);font-style:italic">'+escapeHtml(k.note)+'</span>':''}</td>
-      <td><input type="password" id="key-${k.id}" value="${escapeHtml(v)}" placeholder="API key" style="width:220px;font-family:var(--fm);font-size:11px"></td>
+      <td><strong>${k.n}</strong><br><a href="https://${k.url}" target="_blank" style="font-size:10.5px;color:var(--color-primary)">↗ ${k.url}</a>${k.note?'<br><span style="font-size:10px;color:var(--color-text-muted);font-style:italic">'+escapeHtml(k.note)+'</span>':''}</td>
+      <td><input type="password" id="key-${k.id}" value="${escapeHtml(v)}" placeholder="API key" style="width:220px;font-family:var(--font-mono);font-size:11px"></td>
       <td>${v?'<span class="pill pill-on">Set ('+v.length+' chars)</span>':'<span class="pill pill-off">Empty</span>'}</td>
       <td>${healthPill}</td>
       <td><button class="btn-ghost" data-action="saveKey" data-key="${k.id}">Save</button> ${v?'<button class="btn-ghost" data-action="testKeyHealthNow" data-key="'+k.id+'" style="font-size:10px;padding:3px 8px">Test</button>':''}</td>
@@ -5864,7 +5970,7 @@ async function testAllKeysNow(el){
     await new Promise(r => setTimeout(r, 500));
   }
   if(el){ el.disabled = false; el.textContent = "⚡ Test All Configured Keys Now"; }
-  if(summary) summary.innerHTML = `<span style="color:var(--green);font-weight:600">${ok} working</span> · <span style="color:${fail>0?'var(--red)':'var(--ink3)'};font-weight:600">${fail} failing</span> · Tested ${new Date().toLocaleTimeString()}`;
+  if(summary) summary.innerHTML = `<span style="color:var(--color-success);font-weight:600">${ok} working</span> · <span style="color:${fail>0?'var(--color-error)':'var(--color-text-muted)'};font-weight:600">${fail} failing</span> · Tested ${new Date().toLocaleTimeString()}`;
   toast(`Tested ${configured.length} keys — ${ok} working, ${fail} failing`, fail>0?"warn":"ok");
   addLog(fail>0?"warn":"ok", `Manual key test complete: ${ok} working, ${fail} failing`);
   renderKeys();
@@ -5905,7 +6011,7 @@ function startKeyHealthAutoCheck(){
 function renderLogs(){
   const logs = getLogs();
   $("logsView").innerHTML = logs.length === 0
-    ? '<div style="color:var(--ink3);padding:14px">No log entries</div>'
+    ? '<div style="color:var(--color-text-muted);padding:14px">No log entries</div>'
     : logs.map(l => `<div class="log"><span class="log-ts">${new Date(l.ts).toLocaleString()}</span><span class="log-lvl ${l.level}">${l.level}</span><span>${escapeHtml(l.msg)}</span></div>`).join("");
 
   // Env info
@@ -5918,12 +6024,12 @@ function renderLogs(){
     ["Online", navigator.onLine?"Yes":"No"],
     ["Timezone", Intl.DateTimeFormat().resolvedOptions().timeZone]
   ];
-  $("envInfo").innerHTML = '<table class="tbl">'+env.map(([k,v]) => `<tr><td style="width:140px;font-weight:600">${k}</td><td style="font-family:var(--fm);font-size:11px;color:var(--ink3);word-break:break-all">${escapeHtml(v)}</td></tr>`).join("")+'</table>';
+  $("envInfo").innerHTML = '<table class="tbl">'+env.map(([k,v]) => `<tr><td style="width:140px;font-weight:600">${k}</td><td style="font-family:var(--font-mono);font-size:11px;color:var(--color-text-muted);word-break:break-all">${escapeHtml(v)}</td></tr>`).join("")+'</table>';
 
   // LS inspector
   const keys = Object.keys(localStorage).sort();
   $("lsView").innerHTML = keys.length === 0
-    ? '<div style="color:var(--ink3);padding:14px">Empty</div>'
+    ? '<div style="color:var(--color-text-muted);padding:14px">Empty</div>'
     : '<table class="tbl"><thead><tr><th>Key</th><th class="num">Size</th></tr></thead><tbody>'+
       keys.map(k => `<tr><td><code style="font-size:11px">${k}</code></td><td class="num">${fmtBytes((localStorage.getItem(k)||"").length)}</td></tr>`).join("")+
       '</tbody></table>';
@@ -7003,7 +7109,7 @@ function buildSummaryNarrative(brief, allocation, signals, eligibleCount){
 async function runResearchEngine(){
   $("engineStatus").textContent = "🔬 Extracting signals from all research…";
   $("agResultPanel").style.display = "block";
-  $("agResult").innerHTML = '<div style="text-align:center;padding:30px;color:var(--ink3)"><div style="font-size:32px">🔬</div>Scanning all research items, extracting signals, computing consensus…</div>';
+  $("agResult").innerHTML = '<div style="text-align:center;padding:30px;color:var(--color-text-muted)"><div style="font-size:32px">🔬</div>Scanning all research items, extracting signals, computing consensus…</div>';
 
   // Gather brief
   const brief = {
@@ -7061,8 +7167,8 @@ function renderEngineResult(r){
         <div style="font-size:22px">${isUcits?'🇪🇺':'🇺🇸'}</div>
         <div>
           <div style="font-size:13px;font-weight:700;color:${isUcits?'#92400e':'#065f46'};margin-bottom:4px">Regulatory wrapper: ${escapeHtml(r.domicilePolicy.label)}</div>
-          <div style="font-size:12px;line-height:1.6;color:var(--ink2)">${escapeHtml(r.domicilePolicy.note)}</div>
-          <div style="font-size:11px;color:var(--ink3);margin-top:6px">Client country: <strong>${escapeHtml(r.brief.country||"US")}</strong> · Eligible universe filtered down from ${r.universeFiltered.total} to ${r.universeFiltered.eligible} funds</div>
+          <div style="font-size:12px;line-height:1.6;color:var(--color-text-secondary)">${escapeHtml(r.domicilePolicy.note)}</div>
+          <div style="font-size:11px;color:var(--color-text-muted);margin-top:6px">Client country: <strong>${escapeHtml(r.brief.country||"US")}</strong> · Eligible universe filtered down from ${r.universeFiltered.total} to ${r.universeFiltered.eligible} funds</div>
         </div>
       </div>
     </div>`;
@@ -7077,15 +7183,15 @@ function renderEngineResult(r){
     <div class="kpi tone-amber"><div class="kpi-l">Volatility (σ)</div><div class="kpi-v">${(r.expectedVolatility*100).toFixed(2)}%</div></div>
     <div class="kpi tone-blue"><div class="kpi-l">Sharpe Ratio</div><div class="kpi-v">${(pm.sharpe||0).toFixed(2)}</div></div>
     <div class="kpi"><div class="kpi-l">Portfolio Beta</div><div class="kpi-v">${(pm.beta||0).toFixed(2)}</div></div>
-    <div class="kpi"><div class="kpi-l">Max Drawdown</div><div class="kpi-v" style="color:var(--red)">${(pm.maxDD||0).toFixed(0)}%</div></div>
+    <div class="kpi"><div class="kpi-l">Max Drawdown</div><div class="kpi-v" style="color:var(--color-error)">${(pm.maxDD||0).toFixed(0)}%</div></div>
     <div class="kpi"><div class="kpi-l">Positions</div><div class="kpi-v">${r.positions.length}</div></div>
   </div>`;
   // Secondary KPI row — trailing performance & cost
   h += `<div class="kpi-grid" style="margin-top:8px">
-    <div class="kpi"><div class="kpi-l">1-Year Return</div><div class="kpi-v" style="color:${(pm.r1y||0)>=0?'var(--green)':'var(--red)'}">${(pm.r1y||0).toFixed(1)}%</div></div>
-    <div class="kpi"><div class="kpi-l">3-Year Annualized</div><div class="kpi-v" style="color:${(pm.r3y||0)>=0?'var(--green)':'var(--red)'}">${(pm.r3y||0).toFixed(1)}%</div></div>
-    <div class="kpi"><div class="kpi-l">5-Year Annualized</div><div class="kpi-v" style="color:${(pm.r5y||0)>=0?'var(--green)':'var(--red)'}">${(pm.r5y||0).toFixed(1)}%</div></div>
-    <div class="kpi"><div class="kpi-l">10-Year Annualized</div><div class="kpi-v" style="color:${(pm.r10y||0)>=0?'var(--green)':'var(--red)'}">${pm.r10y==null?'n/a':pm.r10y.toFixed(1)+'%'}</div></div>
+    <div class="kpi"><div class="kpi-l">1-Year Return</div><div class="kpi-v" style="color:${(pm.r1y||0)>=0?'var(--color-success)':'var(--color-error)'}">${(pm.r1y||0).toFixed(1)}%</div></div>
+    <div class="kpi"><div class="kpi-l">3-Year Annualized</div><div class="kpi-v" style="color:${(pm.r3y||0)>=0?'var(--color-success)':'var(--color-error)'}">${(pm.r3y||0).toFixed(1)}%</div></div>
+    <div class="kpi"><div class="kpi-l">5-Year Annualized</div><div class="kpi-v" style="color:${(pm.r5y||0)>=0?'var(--color-success)':'var(--color-error)'}">${(pm.r5y||0).toFixed(1)}%</div></div>
+    <div class="kpi"><div class="kpi-l">10-Year Annualized</div><div class="kpi-v" style="color:${(pm.r10y||0)>=0?'var(--color-success)':'var(--color-error)'}">${pm.r10y==null?'n/a':pm.r10y.toFixed(1)+'%'}</div></div>
     <div class="kpi"><div class="kpi-l">Blended ER</div><div class="kpi-v">${(pm.blendedER||0).toFixed(2)}%</div></div>
     <div class="kpi"><div class="kpi-l">Blended Yield</div><div class="kpi-v">${(pm.blendedYield||0).toFixed(2)}%</div></div>
   </div>`;
@@ -7106,49 +7212,49 @@ function renderEngineResult(r){
     const pretty = {classes:["Asset class", prettyClass], regions:["Geographic region", prettyRegion],
                     sectors:["Market sector", prettyClass], themes:["Themes", prettyTheme],
                     drivers:["Market drivers", k=>k.replace(/_/g," ").replace(/\b\w/g,c=>c.toUpperCase())]};
-    h += `<div class="ablock"><h3 style="color:var(--blue)">🧮 Points system — ${S.scoredItems} distinct research views scored`
-       + (S.sharedDuplicatesSkipped ? ` <span style="font-weight:400;font-size:12px;color:var(--ink3)">(${S.sharedDuplicatesSkipped} shared baseline duplicates counted once)</span>` : "")
+    h += `<div class="ablock"><h3 style="color:var(--color-primary)">🧮 Points system — ${S.scoredItems} distinct research views scored`
+       + (S.sharedDuplicatesSkipped ? ` <span style="font-weight:400;font-size:12px;color:var(--color-text-muted)">(${S.sharedDuplicatesSkipped} shared baseline duplicates counted once)</span>` : "")
        + `</h3>`;
-    h += `<div style="font-size:11.5px;color:var(--ink3);margin-bottom:10px">Every view lands in exactly one column — overweight, neutral or underweight. A bucket is only called when at least 3 views point the same way, the net margin is 3+, and the split is at least 2:1.</div>`;
+    h += `<div style="font-size:11.5px;color:var(--color-text-muted);margin-bottom:10px">Every view lands in exactly one column — overweight, neutral or underweight. A bucket is only called when at least 3 views point the same way, the net margin is 3+, and the split is at least 2:1.</div>`;
     Object.entries(pretty).forEach(([bucket, [label, fmtKey]]) => {
       const rows = Object.entries(S.points[bucket] || {})
         .filter(([,e]) => e.total > 0)
         .sort((a,b) => b[1].net - a[1].net)
         .slice(0, 8);
       if(!rows.length) return;
-      h += `<div style="margin-bottom:12px"><div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--ink3);margin-bottom:5px">${label}</div>`;
-      h += `<div style="display:grid;grid-template-columns:1.4fr 46px 46px 46px 62px 96px;gap:0;border:1px solid var(--line);border-radius:6px;overflow:hidden;font-size:11.5px">`;
+      h += `<div style="margin-bottom:12px"><div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--color-text-muted);margin-bottom:5px">${label}</div>`;
+      h += `<div style="display:grid;grid-template-columns:1.4fr 46px 46px 46px 62px 96px;gap:0;border:1px solid var(--color-border);border-radius:6px;overflow:hidden;font-size:11.5px">`;
       h += ["", "OW", "N", "UW", "Net", "Call"].map((c,i) =>
-        `<div style="padding:4px 8px;background:var(--ink);color:#fff;font-weight:600;${i>0?'text-align:center':''}">${c}</div>`).join("");
+        `<div style="padding:4px 8px;background:var(--color-text);color:#fff;font-weight:600;${i>0?'text-align:center':''}">${c}</div>`).join("");
       rows.forEach(([k, e]) => {
-        const col = e.stance === "overweight" ? "var(--green)" : (e.stance === "underweight" ? "var(--red)" : "var(--ink3)");
+        const col = e.stance === "overweight" ? "var(--color-success)" : (e.stance === "underweight" ? "var(--color-error)" : "var(--color-text-muted)");
         const tag = e.stance === "overweight" ? "OVERWEIGHT" : (e.stance === "underweight" ? "UNDERWEIGHT" : "neutral");
-        h += `<div style="padding:4px 8px;border-top:1px solid var(--line)">${escapeHtml(fmtKey(k))}</div>`
-           + `<div style="padding:4px 8px;border-top:1px solid var(--line);text-align:center;color:var(--green)">${e.ow}</div>`
-           + `<div style="padding:4px 8px;border-top:1px solid var(--line);text-align:center;color:var(--ink3)">${e.neutral}</div>`
-           + `<div style="padding:4px 8px;border-top:1px solid var(--line);text-align:center;color:var(--red)">${e.uw}</div>`
-           + `<div style="padding:4px 8px;border-top:1px solid var(--line);text-align:center;font-weight:600">${e.net>0?'+':''}${e.net}</div>`
-           + `<div style="padding:4px 8px;border-top:1px solid var(--line);text-align:center;font-weight:700;color:${col}">${tag}</div>`;
+        h += `<div style="padding:4px 8px;border-top:1px solid var(--color-border)">${escapeHtml(fmtKey(k))}</div>`
+           + `<div style="padding:4px 8px;border-top:1px solid var(--color-border);text-align:center;color:var(--color-success)">${e.ow}</div>`
+           + `<div style="padding:4px 8px;border-top:1px solid var(--color-border);text-align:center;color:var(--color-text-muted)">${e.neutral}</div>`
+           + `<div style="padding:4px 8px;border-top:1px solid var(--color-border);text-align:center;color:var(--color-error)">${e.uw}</div>`
+           + `<div style="padding:4px 8px;border-top:1px solid var(--color-border);text-align:center;font-weight:600">${e.net>0?'+':''}${e.net}</div>`
+           + `<div style="padding:4px 8px;border-top:1px solid var(--color-border);text-align:center;font-weight:700;color:${col}">${tag}</div>`;
       });
       h += `</div></div>`;
     });
     const ctx = marketContextLine(S);
-    if(ctx) h += `<div style="font-size:12px;color:var(--ink2);padding:8px 12px;background:rgba(0,87,184,.05);border-radius:6px"><strong>${escapeHtml(ctx)}</strong></div>`;
+    if(ctx) h += `<div style="font-size:12px;color:var(--color-text-secondary);padding:8px 12px;background:rgba(0,87,184,.05);border-radius:6px"><strong>${escapeHtml(ctx)}</strong></div>`;
     h += `</div>`;
   }
 
-  h += `<div class="ablock"><h3 style="color:var(--green)">📊 Asset Class Consensus (Net Votes Across ${r.signals.providerCount} Providers)</h3>`;
+  h += `<div class="ablock"><h3 style="color:var(--color-success)">📊 Asset Class Consensus (Net Votes Across ${r.signals.providerCount} Providers)</h3>`;
   const sortedClasses = Object.entries(r.signals.classes).sort((a,b) => b[1].votes - a[1].votes);
   sortedClasses.forEach(([cls, d]) => {
     const vote = d.votes;
-    const color = vote > 5 ? "var(--green)" : (vote < -5 ? "var(--red)" : "var(--ink3)");
+    const color = vote > 5 ? "var(--color-success)" : (vote < -5 ? "var(--color-error)" : "var(--color-text-muted)");
     const direction = vote > 0 ? "OW" : (vote < 0 ? "UW" : "Neutral");
     const width = Math.min(100, Math.abs(vote) * 4);
     h += `<div style="margin-bottom:10px">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:3px">
         <strong style="width:130px;font-size:13px">${prettyClass(cls)}</strong>
         <span style="font-size:11px;font-weight:700;color:${color};width:90px">${direction} ${vote>0?'+':''}${vote}</span>
-        <span style="font-size:11px;color:var(--ink3)" title="${d.forCount} overweight · ${d.againstCount} underweight · ${d.providerCount} mentioning">${d.agreeCount} of ${r.signals.providerCount} providers agree</span>
+        <span style="font-size:11px;color:var(--color-text-muted)" title="${d.forCount} overweight · ${d.againstCount} underweight · ${d.providerCount} mentioning">${d.agreeCount} of ${r.signals.providerCount} providers agree</span>
       </div>
       <div style="height:8px;background:rgba(0,0,0,.05);border-radius:4px;position:relative;margin-left:130px">
         <div style="position:absolute;${vote>=0?'left:50%':'right:50%'};width:${width/2}%;height:100%;background:${color};border-radius:4px;${vote>=0?'':'transform:scaleX(-1);transform-origin:right'}"></div>
@@ -7159,16 +7265,16 @@ function renderEngineResult(r){
   h += `</div>`;
 
   // TOP THEMES
-  h += `<div class="ablock"><h3 style="color:var(--purple)">🌐 Dominant Themes</h3>`;
+  h += `<div class="ablock"><h3>🌐 Dominant Themes</h3>`;
   const sortedThemes = Object.entries(r.signals.themes).sort((a,b) => b[1].providerCount - a[1].providerCount).slice(0,8);
   sortedThemes.forEach(([t, d]) => {
-    h += `<div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--line)">
+    h += `<div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--color-border)">
       <span style="width:200px;font-size:13px;font-weight:600">${prettyTheme(t)}</span>
-      <span style="font-size:11px;color:var(--ink3);width:130px">${d.providerCount}/${r.signals.providerCount} providers cite</span>
+      <span style="font-size:11px;color:var(--color-text-muted);width:130px">${d.providerCount}/${r.signals.providerCount} providers cite</span>
       <div style="flex:1;height:8px;background:rgba(0,0,0,.05);border-radius:4px;overflow:hidden">
-        <div style="width:${Math.min(100, d.providerCount/Math.max(1,r.signals.providerCount)*100)}%;height:100%;background:var(--purple)"></div>
+        <div style="width:${Math.min(100, d.providerCount/Math.max(1,r.signals.providerCount)*100)}%;height:100%;background:var(--color-primary)"></div>
       </div>
-      <span style="font-size:11px;color:var(--ink2);width:50px;text-align:right;font-weight:700">${d.votes} votes</span>
+      <span style="font-size:11px;color:var(--color-text-secondary);width:50px;text-align:right;font-weight:700">${d.votes} votes</span>
     </div>`;
   });
   h += `</div>`;
@@ -7178,7 +7284,7 @@ function renderEngineResult(r){
   Object.entries(r.allocation).filter(([,v]) => v > 0).forEach(([cls, pct]) => {
     h += `<div class="abar">
       <div class="abar-fund">${prettyClass(cls)}</div>
-      <div class="abar-track"><div class="abar-fill" style="width:${Math.min(100,Math.max(0,pct))}%;background:var(--green)"></div></div>
+      <div class="abar-track"><div class="abar-fill" style="width:${Math.min(100,Math.max(0,pct))}%;background:var(--color-success)"></div></div>
       <div class="abar-pct">${pct.toFixed(1)}%</div>
     </div>`;
   });
@@ -7189,43 +7295,43 @@ function renderEngineResult(r){
   r.positions.forEach(p => {
     const m = p.metrics || {};
     const flags = [m.ucits?'UCITS':'', m.esg?'ESG':'', (m.dom && m.dom!=='US')?m.dom:''].filter(Boolean).join(' · ');
-    h += `<div style="border-left:3px solid var(--green);padding:12px 14px;margin-bottom:12px;background:rgba(0,135,90,.03);border-radius:0 6px 6px 0">
+    h += `<div style="border-left:3px solid var(--color-success);padding:12px 14px;margin-bottom:12px;background:rgba(0,135,90,.03);border-radius:0 6px 6px 0">
       <div style="display:flex;align-items:baseline;gap:12px;margin-bottom:6px">
         <strong style="font-size:15px">${escapeHtml(p.ticker)}</strong>
-        <span style="color:var(--ink3);font-size:12px">${escapeHtml(p.name)} · ${escapeHtml(p.sponsor)}${flags?' · <span style="background:rgba(124,58,237,.1);color:#7c3aed;padding:1px 6px;border-radius:3px;font-size:10px;font-weight:600">'+flags+'</span>':''}</span>
-        <span style="margin-left:auto;font-size:14px;font-weight:700;color:var(--green)">${p.weight.toFixed(1)}%</span>
+        <span style="color:var(--color-text-muted);font-size:12px">${escapeHtml(p.name)} · ${escapeHtml(p.sponsor)}${flags?' · <span style="background:var(--color-primary-tint-2);color:var(--color-primary);padding:1px 6px;border-radius:3px;font-size:10px;font-weight:600">'+flags+'</span>':''}</span>
+        <span style="margin-left:auto;font-size:14px;font-weight:700;color:var(--color-success)">${p.weight.toFixed(1)}%</span>
       </div>
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(90px,1fr));gap:6px;margin:8px 0;padding:8px;background:rgba(0,0,0,.025);border-radius:5px;font-size:11px">
-        <div><div style="color:var(--ink3);font-size:9px;text-transform:uppercase;letter-spacing:.05em">ER</div><strong>${(m.er||0).toFixed(2)}%</strong></div>
-        <div><div style="color:var(--ink3);font-size:9px;text-transform:uppercase;letter-spacing:.05em">Yield</div><strong>${(m.yld||0).toFixed(1)}%</strong></div>
-        <div><div style="color:var(--ink3);font-size:9px;text-transform:uppercase;letter-spacing:.05em">Sharpe</div><strong>${(m.sharpe||0).toFixed(2)}</strong></div>
-        <div><div style="color:var(--ink3);font-size:9px;text-transform:uppercase;letter-spacing:.05em">μ</div><strong>${(m.mu||0).toFixed(1)}%</strong></div>
-        <div><div style="color:var(--ink3);font-size:9px;text-transform:uppercase;letter-spacing:.05em">σ</div><strong>${(m.sigma||0).toFixed(1)}%</strong></div>
-        <div><div style="color:var(--ink3);font-size:9px;text-transform:uppercase;letter-spacing:.05em">β</div><strong>${(m.beta||0).toFixed(2)}</strong></div>
-        <div><div style="color:var(--ink3);font-size:9px;text-transform:uppercase;letter-spacing:.05em">Max DD</div><strong style="color:var(--red)">${(m.maxDD||0).toFixed(0)}%</strong></div>
-        <div><div style="color:var(--ink3);font-size:9px;text-transform:uppercase;letter-spacing:.05em">5y</div><strong style="color:${m.r5y==null?'var(--ink3)':(m.r5y>=0?'var(--green)':'var(--red)')}">${m.r5y==null?'n/a':m.r5y.toFixed(1)+'%'}</strong></div>
-        <div><div style="color:var(--ink3);font-size:9px;text-transform:uppercase;letter-spacing:.05em">10y</div><strong style="color:${m.r10y==null?'var(--ink3)':(m.r10y>=0?'var(--green)':'var(--red)')}">${m.r10y==null?'n/a':m.r10y.toFixed(1)+'%'}</strong></div>
-        <div><div style="color:var(--ink3);font-size:9px;text-transform:uppercase;letter-spacing:.05em">Holdings</div><strong>${(m.holdings||0).toLocaleString()}</strong></div>
-        <div><div style="color:var(--ink3);font-size:9px;text-transform:uppercase;letter-spacing:.05em">AUM</div><strong>$${m.aum||0}B</strong></div>
-        <div><div style="color:var(--ink3);font-size:9px;text-transform:uppercase;letter-spacing:.05em">Inception</div><strong>${m.inception||'—'}</strong></div>
+        <div><div style="color:var(--color-text-muted);font-size:9px;text-transform:uppercase;letter-spacing:.05em">ER</div><strong>${(m.er||0).toFixed(2)}%</strong></div>
+        <div><div style="color:var(--color-text-muted);font-size:9px;text-transform:uppercase;letter-spacing:.05em">Yield</div><strong>${(m.yld||0).toFixed(1)}%</strong></div>
+        <div><div style="color:var(--color-text-muted);font-size:9px;text-transform:uppercase;letter-spacing:.05em">Sharpe</div><strong>${(m.sharpe||0).toFixed(2)}</strong></div>
+        <div><div style="color:var(--color-text-muted);font-size:9px;text-transform:uppercase;letter-spacing:.05em">μ</div><strong>${(m.mu||0).toFixed(1)}%</strong></div>
+        <div><div style="color:var(--color-text-muted);font-size:9px;text-transform:uppercase;letter-spacing:.05em">σ</div><strong>${(m.sigma||0).toFixed(1)}%</strong></div>
+        <div><div style="color:var(--color-text-muted);font-size:9px;text-transform:uppercase;letter-spacing:.05em">β</div><strong>${(m.beta||0).toFixed(2)}</strong></div>
+        <div><div style="color:var(--color-text-muted);font-size:9px;text-transform:uppercase;letter-spacing:.05em">Max DD</div><strong style="color:var(--color-error)">${(m.maxDD||0).toFixed(0)}%</strong></div>
+        <div><div style="color:var(--color-text-muted);font-size:9px;text-transform:uppercase;letter-spacing:.05em">5y</div><strong style="color:${m.r5y==null?'var(--color-text-muted)':(m.r5y>=0?'var(--color-success)':'var(--color-error)')}">${m.r5y==null?'n/a':m.r5y.toFixed(1)+'%'}</strong></div>
+        <div><div style="color:var(--color-text-muted);font-size:9px;text-transform:uppercase;letter-spacing:.05em">10y</div><strong style="color:${m.r10y==null?'var(--color-text-muted)':(m.r10y>=0?'var(--color-success)':'var(--color-error)')}">${m.r10y==null?'n/a':m.r10y.toFixed(1)+'%'}</strong></div>
+        <div><div style="color:var(--color-text-muted);font-size:9px;text-transform:uppercase;letter-spacing:.05em">Holdings</div><strong>${(m.holdings||0).toLocaleString()}</strong></div>
+        <div><div style="color:var(--color-text-muted);font-size:9px;text-transform:uppercase;letter-spacing:.05em">AUM</div><strong>$${m.aum||0}B</strong></div>
+        <div><div style="color:var(--color-text-muted);font-size:9px;text-transform:uppercase;letter-spacing:.05em">Inception</div><strong>${m.inception||'—'}</strong></div>
       </div>
-      <div style="font-size:12px;color:var(--ink2);line-height:1.6;margin-bottom:8px"><strong>Why selected:</strong> ${escapeHtml(p.rationale)}</div>
-      ${p.citations.length ? `<div style="font-size:11px;color:var(--ink3);font-style:italic;line-height:1.6"><strong style="color:var(--ink2);font-style:normal">Citations:</strong><br>${p.citations.map(c => '• '+escapeHtml(c)).join('<br>')}</div>` : ''}
+      <div style="font-size:12px;color:var(--color-text-secondary);line-height:1.6;margin-bottom:8px"><strong>Why selected:</strong> ${escapeHtml(p.rationale)}</div>
+      ${p.citations.length ? `<div style="font-size:11px;color:var(--color-text-muted);font-style:italic;line-height:1.6"><strong style="color:var(--color-text-secondary);font-style:normal">Citations:</strong><br>${p.citations.map(c => '• '+escapeHtml(c)).join('<br>')}</div>` : ''}
     </div>`;
   });
   h += `</div>`;
 
   // RISKS
   if(r.risks.length){
-    h += `<div class="ablock" style="border-left:4px solid var(--red)"><h3 style="color:var(--red)">⚠ Key Risks (extracted from research)</h3>`;
+    h += `<div class="ablock" style="border-left:4px solid var(--color-error)"><h3 style="color:var(--color-error)">⚠ Key Risks (extracted from research)</h3>`;
     h += `<ul style="margin:0;padding-left:20px;line-height:1.7">${r.risks.map(rk => `<li>${escapeHtml(rk)}</li>`).join("")}</ul>`;
     h += `</div>`;
   }
 
   // METHODOLOGY
   h += `<div class="ablock" style="background:rgba(0,87,184,.04);font-size:11.5px;line-height:1.7">
-    <h3 style="color:var(--blue)">🔬 Methodology — How This Was Built</h3>
-    <ol style="margin-left:20px;color:var(--ink2)">
+    <h3 style="color:var(--color-primary)">🔬 Methodology — How This Was Built</h3>
+    <ol style="margin-left:20px;color:var(--color-text-secondary)">
       <li><strong>Signal extraction:</strong> Scanned ${r.signals.totalItems} research items via keyword lexicons across asset classes, sectors, regions, themes, and ticker mentions. Each item parsed for sentiment direction (overweight/underweight phrases).</li>
       <li><strong>Aggregation:</strong> Net votes computed per signal — provider count and total votes tracked. Tickers explicitly mentioned by multiple providers get conviction bonus.</li>
       <li><strong>Allocation:</strong> Started with your ${prettyRisk(r.signals.providerCount ? '' : '')}<strong>${$("agRisk").value.replace(/_/g," ")}</strong> baseline (${Object.entries(RISK_TO_ALLOCATION[$("agRisk").value]||{}).map(([k,v]) => `${k}:${v}%`).slice(0,4).join(", ")}). Tilted ±8% based on net research votes.</li>
@@ -7319,7 +7425,7 @@ function renderBenchmarkTimeline(){
   const el = $("benchmarkTimeline");
   if(!el) return;
   if(history.length === 0){
-    el.innerHTML = '<div style="text-align:center;padding:30px;color:var(--ink3)"><div style="font-size:32px;margin-bottom:6px">📅</div>No benchmark snapshots yet. Click "Run Today\'s Benchmark" to start tracking.</div>';
+    el.innerHTML = '<div style="text-align:center;padding:30px;color:var(--color-text-muted)"><div style="font-size:32px;margin-bottom:6px">📅</div>No benchmark snapshots yet. Click "Run Today\'s Benchmark" to start tracking.</div>';
     return;
   }
   // Stats
@@ -7334,7 +7440,7 @@ function renderBenchmarkTimeline(){
   h += kpiCard("Latest Positions", latest.positions.length, "");
   h += '</div>';
   // Timeline chart (Chart.js) — expected return over time
-  h += '<div style="position:relative;height:200px;margin-bottom:14px;background:#fff;padding:10px;border-radius:8px;border:1px solid var(--line)"><canvas id="benchmarkChart"></canvas></div>';
+  h += '<div style="position:relative;height:200px;margin-bottom:14px;background:#fff;padding:10px;border-radius:8px;border:1px solid var(--color-border)"><canvas id="benchmarkChart"></canvas></div>';
   // Recent snapshots table
   h += '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Date</th><th class="num">E[R]</th><th class="num">E[σ]</th><th class="num">Positions</th><th class="num">Research items</th><th>Top theme</th></tr></thead><tbody>';
   history.slice(0,15).forEach(s => {
@@ -7344,7 +7450,7 @@ function renderBenchmarkTimeline(){
       <td class="num">${(s.expectedVolatility*100).toFixed(2)}%</td>
       <td class="num">${s.positions.length}</td>
       <td class="num">${s.totalItems||0}</td>
-      <td style="font-size:11.5px;color:var(--ink3)">${escapeHtml(theme)}</td></tr>`;
+      <td style="font-size:11.5px;color:var(--color-text-muted)">${escapeHtml(theme)}</td></tr>`;
   });
   h += '</tbody></table></div>';
   el.innerHTML = h;
@@ -7356,8 +7462,8 @@ function renderBenchmarkTimeline(){
     window._benchmarkChart = new Chart(canvas, {
       type:"line",
       data:{labels:reversed.map(s => s.date), datasets:[
-        {label:"E[R] %", data:reversed.map(s => +(s.expectedReturn*100).toFixed(2)), borderColor:"var(--green)", backgroundColor:"rgba(0,135,90,.12)", fill:true, tension:0.3, yAxisID:"y"},
-        {label:"E[σ] %", data:reversed.map(s => +(s.expectedVolatility*100).toFixed(2)), borderColor:"var(--amber)", backgroundColor:"rgba(245,158,11,.08)", fill:false, tension:0.3, yAxisID:"y"}
+        {label:"E[R] %", data:reversed.map(s => +(s.expectedReturn*100).toFixed(2)), borderColor:"var(--color-success)", backgroundColor:"rgba(0,135,90,.12)", fill:true, tension:0.3, yAxisID:"y"},
+        {label:"E[σ] %", data:reversed.map(s => +(s.expectedVolatility*100).toFixed(2)), borderColor:"var(--color-warning)", backgroundColor:"rgba(245,158,11,.08)", fill:false, tension:0.3, yAxisID:"y"}
       ]},
       options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:"top",labels:{font:{size:11}}}},scales:{x:{ticks:{maxTicksLimit:8,font:{size:10}}},y:{title:{display:true,text:"% return",font:{size:10}},ticks:{font:{size:10}}}}}
     });
@@ -7371,7 +7477,7 @@ function makeBrief(overrides){
 
 function renderSweepResult(title, sweepVar, results){
   const allClasses = Array.from(new Set(results.flatMap(r => Object.keys(r.result.allocation))));
-  let h = `<div style="background:#fff;border:1px solid var(--line);border-radius:8px;padding:16px 18px">
+  let h = `<div style="background:#fff;border:1px solid var(--color-border);border-radius:8px;padding:16px 18px">
     <div style="font-weight:700;font-size:14px;margin-bottom:14px">${escapeHtml(title)}</div>
     <div class="tbl-wrap"><table class="tbl">
     <thead><tr><th>${escapeHtml(sweepVar)}</th>${allClasses.map(c => `<th class="num">${prettyClass(c)}</th>`).join("")}<th class="num">E[R]</th><th class="num">E[σ]</th><th class="num">Positions</th></tr></thead><tbody>`;
@@ -7390,7 +7496,7 @@ function renderSweepResult(title, sweepVar, results){
   setTimeout(() => {
     const canvas = $("sweepChart"); if(!canvas) return;
     if(window._sweepChart) window._sweepChart.destroy();
-    const colors = {equity:"#0057b8",fixed_income:"#00875a",real_estate:"#f59e0b",commodity:"#d4af37",cash:"#06b6d4",mixed:"#7c3aed",alternative:"#e31837"};
+    const colors = {equity:"#0057b8",fixed_income:"#00875a",real_estate:"#f59e0b",commodity:"#d4af37",cash:"#06b6d4",mixed:"#1e3a8a",alternative:"#e31837"};
     window._sweepChart = new Chart(canvas, {
       type:"bar",
       data:{labels:results.map(r => r.label), datasets: allClasses.filter(c => results.some(r => (r.result.allocation[c]||0) > 0)).map(c => ({
@@ -7476,7 +7582,7 @@ function sweepResearch(){
 function runRobustnessChecks(){
   const providerIds = getAllEnabledProviders();
   if(providerIds.length === 0){
-    $("robustnessResults").innerHTML = '<div style="padding:14px;color:var(--red)">No research available — pull research first in Research Library</div>';
+    $("robustnessResults").innerHTML = '<div style="padding:14px;color:var(--color-error)">No research available — pull research first in Research Library</div>';
     return;
   }
   const checks = [
@@ -7573,10 +7679,10 @@ function runRobustnessChecks(){
   const passed = results.filter(r => r.pass).length;
   $("robustnessStatus").textContent = `${passed}/${results.length} checks passed`;
   $("robustnessResults").innerHTML = results.map(r => `
-    <div style="display:grid;grid-template-columns:30px 1fr auto;gap:12px;align-items:center;padding:10px 14px;background:#fff;border:1px solid var(--line);border-radius:8px;margin-bottom:6px;border-left:3px solid ${r.pass?'var(--green)':'var(--red)'}">
-      <div style="width:26px;height:26px;border-radius:50%;background:${r.pass?'var(--green)':'var(--red)'};color:#fff;font-weight:800;display:flex;align-items:center;justify-content:center;font-size:13px">${r.pass?'✓':'✗'}</div>
-      <div><div style="font-weight:700;font-size:13px">${escapeHtml(r.name)}</div><div style="font-size:11px;color:var(--ink3);font-family:var(--fm);margin-top:2px">${escapeHtml(r.msg)}</div></div>
-      <div style="font-size:10px;color:var(--ink3);text-transform:uppercase;letter-spacing:.05em">${r.pass?'PASS':'FAIL'}</div>
+    <div style="display:grid;grid-template-columns:30px 1fr auto;gap:12px;align-items:center;padding:10px 14px;background:#fff;border:1px solid var(--color-border);border-radius:8px;margin-bottom:6px;border-left:3px solid ${r.pass?'var(--color-success)':'var(--color-error)'}">
+      <div style="width:26px;height:26px;border-radius:50%;background:${r.pass?'var(--color-success)':'var(--color-error)'};color:#fff;font-weight:800;display:flex;align-items:center;justify-content:center;font-size:13px">${r.pass?'✓':'✗'}</div>
+      <div><div style="font-weight:700;font-size:13px">${escapeHtml(r.name)}</div><div style="font-size:11px;color:var(--color-text-muted);font-family:var(--font-mono);margin-top:2px">${escapeHtml(r.msg)}</div></div>
+      <div style="font-size:10px;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:.05em">${r.pass?'PASS':'FAIL'}</div>
     </div>
   `).join("");
   addLog(passed===results.length?"ok":"warn", `Robustness: ${passed}/${results.length} passed`);
@@ -7593,37 +7699,37 @@ function runAB(){
   const allClasses = Array.from(new Set([...Object.keys(a.allocation), ...Object.keys(b.allocation)]));
   let h = '<div class="grid2">';
   function side(label, color, r, brief){
-    let s = `<div style="background:#fff;border:1px solid var(--line);border-left:4px solid ${color};border-radius:8px;padding:14px 16px">`;
+    let s = `<div style="background:#fff;border:1px solid var(--color-border);border-left:4px solid ${color};border-radius:8px;padding:14px 16px">`;
     s += `<div style="font-weight:700;font-size:13px;color:${color};margin-bottom:6px">${label}</div>`;
-    s += `<div style="font-size:11px;color:var(--ink3);margin-bottom:10px">${brief.risk.replace(/_/g," ")} · ${fmt$(brief.nw)} · ${brief.esg} ESG</div>`;
-    s += `<div style="margin-bottom:8px"><strong style="font-size:18px;color:var(--green)">${(r.expectedReturn*100).toFixed(2)}%</strong> E[R] · <strong style="color:var(--amber)">${(r.expectedVolatility*100).toFixed(2)}%</strong> E[σ]</div>`;
-    s += '<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--ink3);margin-bottom:4px">Allocation</div>';
+    s += `<div style="font-size:11px;color:var(--color-text-muted);margin-bottom:10px">${brief.risk.replace(/_/g," ")} · ${fmt$(brief.nw)} · ${brief.esg} ESG</div>`;
+    s += `<div style="margin-bottom:8px"><strong style="font-size:18px;color:var(--color-success)">${(r.expectedReturn*100).toFixed(2)}%</strong> E[R] · <strong style="color:var(--color-warning)">${(r.expectedVolatility*100).toFixed(2)}%</strong> E[σ]</div>`;
+    s += '<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--color-text-muted);margin-bottom:4px">Allocation</div>';
     Object.entries(r.allocation).filter(([,v])=>v>0).forEach(([cls,pct]) => {
-      s += `<div style="display:flex;justify-content:space-between;font-size:12px;padding:3px 0;border-bottom:1px dashed var(--line)"><span>${prettyClass(cls)}</span><strong>${pct.toFixed(1)}%</strong></div>`;
+      s += `<div style="display:flex;justify-content:space-between;font-size:12px;padding:3px 0;border-bottom:1px dashed var(--color-border)"><span>${prettyClass(cls)}</span><strong>${pct.toFixed(1)}%</strong></div>`;
     });
-    s += `<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--ink3);margin:10px 0 4px">Positions (${r.positions.length})</div>`;
+    s += `<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--color-text-muted);margin:10px 0 4px">Positions (${r.positions.length})</div>`;
     r.positions.forEach(p => {
       s += `<div style="display:flex;justify-content:space-between;font-size:11.5px;padding:3px 0"><span><strong>${p.ticker}</strong></span><span>${p.weight.toFixed(1)}%</span></div>`;
     });
     s += '</div>';
     return s;
   }
-  h += side("Scenario A", "var(--blue)", a, briefA);
-  h += side("Scenario B", "var(--purple)", b, briefB);
+  h += side("Scenario A", "var(--color-primary)", a, briefA);
+  h += side("Scenario B", "var(--color-brand-ink)", b, briefB);
   h += '</div>';
   // Delta summary
   h += '<div style="background:rgba(0,87,184,.04);border-radius:8px;padding:14px 18px;margin-top:14px">';
-  h += '<div style="font-weight:700;font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--blue);margin-bottom:8px">B vs A — Key Differences</div>';
+  h += '<div style="font-weight:700;font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--color-primary);margin-bottom:8px">B vs A — Key Differences</div>';
   const deltaER = (b.expectedReturn - a.expectedReturn) * 100;
   const deltaSig = (b.expectedVolatility - a.expectedVolatility) * 100;
   h += `<div style="font-size:12.5px;line-height:1.7">`;
-  h += `<div>Expected return: <strong style="color:${deltaER>=0?'var(--green)':'var(--red)'}">${deltaER>=0?'+':''}${deltaER.toFixed(2)}%</strong></div>`;
-  h += `<div>Expected volatility: <strong style="color:${deltaSig>=0?'var(--red)':'var(--green)'}">${deltaSig>=0?'+':''}${deltaSig.toFixed(2)}%</strong></div>`;
+  h += `<div>Expected return: <strong style="color:${deltaER>=0?'var(--color-success)':'var(--color-error)'}">${deltaER>=0?'+':''}${deltaER.toFixed(2)}%</strong></div>`;
+  h += `<div>Expected volatility: <strong style="color:${deltaSig>=0?'var(--color-error)':'var(--color-success)'}">${deltaSig>=0?'+':''}${deltaSig.toFixed(2)}%</strong></div>`;
   allClasses.forEach(c => {
     const da = a.allocation[c]||0, db = b.allocation[c]||0;
     const d = db - da;
     if(Math.abs(d) < 1) return;
-    h += `<div>${prettyClass(c)}: <strong style="color:${d>=0?'var(--green)':'var(--red)'}">${d>=0?'+':''}${d.toFixed(1)}%</strong></div>`;
+    h += `<div>${prettyClass(c)}: <strong style="color:${d>=0?'var(--color-success)':'var(--color-error)'}">${d>=0?'+':''}${d.toFixed(1)}%</strong></div>`;
   });
   h += '</div></div>';
   $("abResult").innerHTML = h;
@@ -7759,7 +7865,7 @@ function viewUser(el){
   // Actions
   h += '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">';
   if(u.plan){
-    h += '<button class="btn-purple" data-action="buildPortfolioForUser" data-uid="'+u.id+'">🤖 Build Portfolio with AI</button>';
+    h += '<button class="btn" data-action="buildPortfolioForUser" data-uid="'+u.id+'">🤖 Build Portfolio with AI</button>';
     h += '<button class="btn-ghost" data-action="loadUserIntoAgent" data-uid="'+u.id+'">↗ Load into AI Agent</button>';
   }
   h += '<button class="btn-danger" data-action="deleteUser" data-uid="'+u.id+'">Delete user</button>';
@@ -7768,17 +7874,17 @@ function viewUser(el){
   if(u.portfolios && u.portfolios.length){
     h += '<div class="ptitle" style="margin-top:18px">Portfolio History</div>';
     u.portfolios.forEach((p,i) => {
-      h += '<div style="background:rgba(124,58,237,.04);border-left:3px solid var(--purple);padding:12px 16px;border-radius:6px;margin-bottom:8px">';
+      h += '<div style="background:var(--color-primary-tint-1);border-left:3px solid var(--color-primary);padding:12px 16px;border-radius:6px;margin-bottom:8px">';
       h += '<div style="font-weight:700;font-size:13px;margin-bottom:4px">Portfolio #'+(i+1)+'</div>';
-      h += '<div style="font-size:11px;color:var(--ink3)">Built '+new Date(p.builtAt).toLocaleString()+' · '+(p.positions?.length||0)+' positions · Expected return '+((p.expectedReturn||0)*100).toFixed(2)+'%</div>';
-      h += '<div style="font-size:12px;color:var(--ink2);margin-top:6px;line-height:1.5">'+escapeHtml(p.summary||'')+'</div>';
+      h += '<div style="font-size:11px;color:var(--color-text-muted)">Built '+new Date(p.builtAt).toLocaleString()+' · '+(p.positions?.length||0)+' positions · Expected return '+((p.expectedReturn||0)*100).toFixed(2)+'%</div>';
+      h += '<div style="font-size:12px;color:var(--color-text-secondary);margin-top:6px;line-height:1.5">'+escapeHtml(p.summary||'')+'</div>';
       h += '</div>';
     });
   }
   // Plan details
   if(u.plan){
     h += '<div class="ptitle" style="margin-top:18px">Current Plan</div>';
-    h += '<details style="background:rgba(0,87,184,.03);padding:10px 14px;border-radius:6px"><summary style="cursor:pointer;font-weight:600;font-size:12.5px">View raw plan JSON ('+(JSON.stringify(u.plan).length/1024).toFixed(1)+' KB)</summary><pre style="font-family:var(--fm);font-size:11px;margin-top:10px;max-height:300px;overflow-y:auto">'+escapeHtml(JSON.stringify(u.plan,null,2))+'</pre></details>';
+    h += '<details style="background:rgba(0,87,184,.03);padding:10px 14px;border-radius:6px"><summary style="cursor:pointer;font-weight:600;font-size:12.5px">View raw plan JSON ('+(JSON.stringify(u.plan).length/1024).toFixed(1)+' KB)</summary><pre style="font-family:var(--font-mono);font-size:11px;margin-top:10px;max-height:300px;overflow-y:auto">'+escapeHtml(JSON.stringify(u.plan,null,2))+'</pre></details>';
   }
   $("userDetailBody").innerHTML = h;
   $("userDetailPanel").scrollIntoView({behavior:"smooth"});
@@ -7855,7 +7961,7 @@ function renderUserTable(){
   const q = ($("userSearch")?.value || "").toLowerCase().trim();
   const filtered = q ? users.filter(u => (u.name||"").toLowerCase().includes(q) || (u.email||"").toLowerCase().includes(q)) : users;
   if(filtered.length === 0){
-    $("userTable").innerHTML = '<div style="text-align:center;padding:30px;color:var(--ink3)"><div style="font-size:36px;margin-bottom:8px">👤</div>No users yet. Click <strong>+ Add User</strong> or <strong>↻ Capture from Main App</strong> to get started.</div>';
+    $("userTable").innerHTML = '<div style="text-align:center;padding:30px;color:var(--color-text-muted)"><div style="font-size:36px;margin-bottom:8px">👤</div>No users yet. Click <strong>+ Add User</strong> or <strong>↻ Capture from Main App</strong> to get started.</div>';
     return;
   }
   let h = '<div class="tbl-wrap"><table class="tbl">';
@@ -7866,13 +7972,13 @@ function renderUserTable(){
     const statusPill = u.plan ? '<span class="pill pill-on">Active</span>' : '<span class="pill pill-warn">Draft</span>';
     const riskLbl = ({very_conservative:"Very Cons.",conservative:"Cons.",moderately_conservative:"Mod. Cons.",moderate:"Moderate",moderately_aggressive:"Mod. Agg.",aggressive:"Aggressive",very_aggressive:"Very Agg."})[s.risk] || (s.risk || "—");
     h += `<tr style="cursor:pointer" data-action="viewUser" data-uid="${u.id}">
-      <td><strong>${escapeHtml(u.name)}</strong>${u.email?'<br><span style="font-size:10.5px;color:var(--ink3)">'+escapeHtml(u.email)+'</span>':''}</td>
+      <td><strong>${escapeHtml(u.name)}</strong>${u.email?'<br><span style="font-size:10.5px;color:var(--color-text-muted)">'+escapeHtml(u.email)+'</span>':''}</td>
       <td>${statusPill}</td>
       <td class="num">${s.netWorth!=null?fmt$(s.netWorth):'—'}</td>
       <td class="num">${s.annualIncome?fmt$(s.annualIncome):'—'}</td>
       <td><span style="font-size:11px">${riskLbl}</span></td>
       <td class="num">${u.portfolios?.length||0}</td>
-      <td style="font-size:11px;color:var(--ink3)">${updated}</td>
+      <td style="font-size:11px;color:var(--color-text-muted)">${updated}</td>
       <td>
         ${u.plan?`<button class="btn-ghost" style="font-size:11px;padding:4px 12px" data-action="buildPortfolioForUser" data-uid="${u.id}">🤖 Build</button>`:''}
         <button class="btn-ghost" style="font-size:11px;padding:4px 12px" data-action="viewUser" data-uid="${u.id}">View</button>
@@ -7920,7 +8026,7 @@ function startLivePoll(){
         available = true;
         const bar = $("liveUp");
         let secs = 5;
-        function render(){ bar.innerHTML = `🚀 <span><strong>New version v${escapeHtml(j.version)}</strong> — auto-reloading in <strong>${secs}</strong>s</span> <button class="btn-ghost" onclick="location.reload()" style="background:#fff;color:var(--blue)">Reload now</button> <button class="btn-ghost" onclick="this.parentElement.classList.remove('show')" style="border-color:rgba(255,255,255,.3);color:#fff">Cancel</button>`; }
+        function render(){ bar.innerHTML = `🚀 <span><strong>New version v${escapeHtml(j.version)}</strong> — auto-reloading in <strong>${secs}</strong>s</span> <button class="btn-ghost" onclick="location.reload()" style="background:#fff;color:var(--color-primary)">Reload now</button> <button class="btn-ghost" onclick="this.parentElement.classList.remove('show')" style="border-color:rgba(255,255,255,.3);color:#fff">Cancel</button>`; }
         render(); bar.classList.add("show");
         const iv = setInterval(()=>{ if(!bar.classList.contains("show")){ clearInterval(iv); return;} secs--; render(); if(secs<=0){ clearInterval(iv); if(bar.classList.contains("show")) location.reload(); } }, 1000);
       }

@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Version** | v1.1 release candidate (2026-09-24). Becomes v1.0 when the team signs it off. Rules marked **Standard** in v1.1 came from design review and need the same sign-off |
+| **Version** | v1.2 release candidate (2026-09-24). Becomes v1.0 when the team signs it off. Rules marked **Standard** in v1.1 came from design review and need the same sign-off |
 | **Owner** | The team; **lead: Momir**, who approves changes |
 | **Reference implementation** | `wealth-analyzer.html` (the pitch demo) |
 | **Applies to** | The demo, `admin.html` (from Phase 2) and `wealth-app-next/` (from Phase 4). Not `index.html` or `wealth-analyzer-avaloq.html` |
@@ -95,6 +95,8 @@ Defined in the single `:root` block, `wealth-analyzer.html:28-39`.
 
 ⚠ `--gold` and `--gold2` hold blue values. The name is left over from an earlier dark/gold theme. The brand colour is blue/navy, and gold is not part of the theme. **Until Phase 3, read `--gold` as "primary".**
 
+**Where the semantic names are live.** Since Phase 2 the admin console's `:root` (`admin.html`) uses the proposed semantic names from §4.1–§4.9 with the demo's values; it is the reference for the target token block. The demo keeps its current names until Phase 3. The admin block also defines a few tokens not listed in the tables above, each for a value the demo already uses: `--color-on-primary` (`#ffffff`), `--color-bg-bar` (topbar, §4.2), `--color-primary-on-inverse-end` (§4.1a), three effect colours (§4.2) and `--shadow-primary-hover`, `--shadow-bar`, `--shadow-inverse` (§4.7).
+
 ### 4.1a Colour — navy / inverse palette (the theme's dark side)
 
 The deep navy is the second pillar of the brand, next to the primary blue. Today it exists only as literals in the hero, the wordmark and the insight card. It becomes a first-class token group in Phase 3 (P3-15).
@@ -108,7 +110,7 @@ The deep navy is the second pillar of the brand, next to the primary blue. Today
 | `#003d82` / `#003d8f` | Insight card, primary button gradient | Deep primary | `--color-primary-deep` |
 | `#ffffff` | Hero values | Text on inverse | `--color-text-on-inverse` |
 | `rgba(213,225,245,.60–.74)` | Hero labels, captions | Muted text on inverse | `--color-text-on-inverse-muted` |
-| `#bcd8ff`, `#9cc4ff`, `#8fbaff` | Hero title gradient, icons, chips | Primary accent on inverse | `--color-primary-on-inverse` |
+| `#bcd8ff`, `#9cc4ff`, `#8fbaff` | Hero title gradient, icons, chips | Primary accent on inverse | `--color-primary-on-inverse` (admin console: `#bcd8ff`; the title gradient's end `#8fbaff` is `--color-primary-on-inverse-end`) |
 | `rgba(255,255,255,.07–.15)` | Glass tiles, secondary button on navy | Glass fill | `--color-glass-fill` |
 | `rgba(255,255,255,.15–.30)` | Glass tile borders | Glass border | `--color-glass-border` |
 | `rgba(77,166,255,.28–.38)` | Aurora glow, net-worth glow | Blue glow | `--color-glow-primary` |
@@ -152,6 +154,11 @@ These values show up many times as raw literals. They are part of the look and s
 | `--color-bg-surface-tinted` | `#f8faff` | `#f8faff` | Nested card fill (`.client-card`, `.asset-item`, `.loan-item`) |
 | `--color-primary-light` | `#4da6ff` | `#4da6ff` | Gradient end / light brand blue, favicon |
 | `--color-success-bright` | `#39d98a` | `#39d98a` | "Has data" dot, onboarding progress. Kept as a **second success colour** (Q6) |
+| `--color-bg-bar` | `rgba(255,255,255,.96)` | `.96` | Topbar fill (near-opaque instead of a blur) |
+| `--color-glow-canvas` | `rgba(0,105,217,.05)` | `.05` | Radial glow at the top right of `.main` |
+| `--color-hairline-primary` | `rgba(0,105,217,.45)` | `.45` | Gradient hairline on panel hover |
+| `--color-sheen` | `rgba(255,255,255,.38)` | `.38` | Primary button sheen |
+| `--color-selection` / `--color-focus-ring` | `rgba(0,105,217,.20)` / `.55` | as listed | Text selection, focus outline (§4.10) |
 | `--color-overlay` | **not decided** | `.34` (drawer), `.42` (modal) of `rgba(8,20,45,…)` | Modal / drawer overlay: one value or two |
 
 ### 4.3 Colour — data visualisation palettes
@@ -179,7 +186,7 @@ Defined in JS, not CSS: `CLASS_COLORS` at `wealth-analyzer.html:6006`, `TYPE_COL
 |---|---|---|
 | 80% likelihood (conservative) | `#1b6841` | `--color-success-text` |
 | 50% likelihood (expected) | `#0057b8` | `--color-primary` |
-| 30% likelihood (optimistic) | `#7c3aed` | depends on Q19 |
+| 30% likelihood (optimistic) | `#7c3aed` | **not decided** (Phase 3): purple is not part of the theme (Q12, Q19), so this series gets a new colour when P3-01 removes it |
 | Band between 80% and 30% | primary at ~6% opacity | `--color-primary-tint-1` |
 | Retirement marker | dashed line `rgba(15,23,42,.35)`, 4/3 dash, label 10px | `--color-text-muted` |
 
@@ -250,7 +257,9 @@ Layout constants: topbar height **64px**, sidebar width **200px**, main padding 
 | Rest | `0 1px 4px rgba(0,0,0,.04)` | Panels, tiles at rest | `--shadow-sm` |
 | Hover lift | `0 6px 18px rgba(0,87,184,.10)` + `translateY(-2px)` | Metric tiles, cards on hover | `--shadow-md` |
 | Panel hover | `0 8px 26px rgba(10,40,100,.09)` | `.panel:hover` | `--shadow-md-soft` |
-| Primary button | `0 4px 14px rgba(0,87,184,.30)` → hover `0 9px 24px …/.42` | `.btn-primary` | `--shadow-primary` |
+| Primary button | `0 4px 14px rgba(0,87,184,.30)` → hover `0 9px 24px …/.42` | `.btn-primary` | `--shadow-primary` → `--shadow-primary-hover` |
+| Topbar | `0 2px 12px rgba(0,0,0,.05)` | `.topbar` | `--shadow-bar` |
+| Feature surface | `0 22px 54px rgba(4,20,50,.38), 0 2px 8px rgba(4,20,50,.22)` | `.wealth-hero` | `--shadow-inverse` |
 | Overlay | `0 24px 70px rgba(0,40,120,.25)` | Modal | `--shadow-xl` |
 | Drawer | `-14px 0 44px rgba(0,40,120,.18)` | Settings drawer | `--shadow-drawer` |
 
@@ -411,10 +420,11 @@ Each entry lists purpose, anatomy (current classes), key tokens, states, usage r
 - **Topbar:** gradient wordmark `.logo` (navy → primary), currency picker `.ccy-picker` (pill), round `.icon-btn` (gear rotates 35° on hover).
 - **Sidebar:** `.nav-grp-label` (micro uppercase), `.nav-item` (13px, 3px left border). Active state = primary text + primary left border + left-to-right tint gradient. Hover = 2px slide right. `.nav-dot` turns green when the section holds data.
 - **Wordmark and favicon:** `favicon.svg` (added in `522b06f`) is a 64×64 rounded square (radius 14) with a `#0057b8 → #4da6ff` gradient (`--color-primary` → `--color-primary-light`) and a white "W". It uses Arial because an SVG favicon can't load web fonts; that is accepted.
-- **"NEW" badge on a nav item** (`:1519`): inline-styled 8px pill, purple→primary gradient, white text. Colour depends on Q19; the class to create is part of P3-11.
+- **"NEW" badge on a nav item** (`:1519`): 8px pill, white text. **Theme: navy** (`--color-bg-inverse` fill, `--color-text-on-inverse` text), as `.nav-new` in the admin console. ⚠ The demo still uses an inline purple→primary gradient until Phase 3 (Q19, P3-11).
 - **Responsive:** at ≤ 900px the sidebar is hidden and main padding drops to 16px. *(Gap: there is no mobile nav replacement, G-12; see §4.12.)*
 - **States (nav item):** rest (`--text2`), hover (tint + 2px slide right), active (primary text, primary left border, tint gradient; standard: `aria-current="page"`), has-data (green `.nav-dot`), focus (⚠ not focusable today, G-33). **Topbar:** the currency picker and icon buttons follow §4.13; the status text slot (`#topbarStatus`, set by `toastTopbar()`) shows a message for 3.5s.
-- **Admin:** already has `.topbar`/`.logo`, align values. **SaaS:** `components/nav/sidebar.tsx`, align active/hover states.
+- **Admin (Phase 2, done):** `.topbar`, gradient `.logo` with the red "ADMIN" badge kept as the admin identifier, `.sidebar` with `.grp` (= `.nav-grp-label`) and `.nav` (= `.nav-item`: hover glide, active gradient), ambient glow on `.main`. One deliberate difference: the admin rail is **220px** (`--sidebar-w`), because its longer labels with a NEW badge wrap at 200px. 📷 [admin-dashboard](style-guide-assets/admin-dashboard.png)
+- **SaaS:** `components/nav/sidebar.tsx`, align active/hover states.
 
 ### 5.2 Panel (card) and section title
 
@@ -424,6 +434,7 @@ Each entry lists purpose, anatomy (current classes), key tokens, states, usage r
 - **Hover:** deeper shadow, 2px gradient hairline across the top (`::after`), 3px left border tint.
 - **Section title `.ptitle`:** uppercase label (§4.4) + 14×3px gradient marker before it + hairline rule filling the rest of the row.
 - **Rules:** a panel holds one topic. Always start with a `.ptitle`. Don't nest panels; use `.client-card`/`.asset-item` (tinted `#f8faff` surface) for inner cards.
+- **Admin (Phase 2, done):** `.panel` and the other card-like elements (`.ablock`, `.rp-card`, `.test-card`) share this recipe: radius, border, shadow and hover. `.panel` and `.ablock` also get the hover hairline. `.test-card` keeps its status left border (success / error).
 - **SaaS target:** `components/ui/card.tsx` (`Card`, `CardHeader` → section-title variant).
 
 ### 5.3 Collapsible sections
@@ -462,7 +473,8 @@ Two patterns, don't mix within one panel:
 - **Sizes:** primary 10×24 / 13px, secondary 8×18 / 12px, small 5×14 / 11px.
 - **Rules:** one primary button per panel. Destructive actions use the Danger variant (red at rest, Q15). A danger button is never the only button in a view and should sit apart from the primary action. Row-level removal in dense lists still uses the quiet `.btn-x`.
 - ⚠ `.btn-primary` is defined twice (`:204` flat, `:864` gradient override). The effective look is the gradient (G-08).
-- **Admin:** `.btn` = primary, `.btn-ghost` = secondary. **SaaS:** `button.tsx` currently uses `rounded-lg` and flat fill, so it needs pill radius, gradient primary, and `secondary`/`add`/`icon`/`segmented` variants.
+- **Disabled:** opacity .5, `cursor: not-allowed`, no lift, sheen or shadow (§4.13). In the admin console this is a shared rule for every variant.
+- **Admin (Phase 2, done):** `.btn` = primary (gradient, sheen, press), `.btn-ghost` = secondary, `.btn-link` / `.rp-mini` = small secondary, `.btn-danger` = Danger. The purple `.btn-purple` is gone; AI actions use `.btn`. No inline background overrides on buttons. **SaaS:** `button.tsx` currently uses `rounded-lg` and flat fill, so it needs pill radius, gradient primary, and `secondary`/`add`/`icon`/`segmented` variants.
 
 ### 5.5 Form controls
 
@@ -515,6 +527,8 @@ The demo has **eight** near-identical tile components (G-09). Common spec: upper
 | `.wh-stat` | Hero KPI grid | Icon chip on the left, glass look inside the hero |
 | `.pf-mc` | Portfolio summary | `--bg3` fill, `--radius-md`, value 18px; hover turns the fill white |
 | `.wi-stat` | What-if scenario results | White tile inside a `--bg3` card, value 15px, `.pos`/`.neg`/`.gold` modifiers like `.mc` |
+
+**Admin (Phase 2, done):** `.kpi` follows the `.ss-card` recipe: primary left accent by default, `tone-green` / `tone-amber` / `tone-red` map to success / warning / error (`tone-blue` = primary), value 23px weight 800, lift and `--shadow-md` on hover.
 
 **Proposed consolidation (Phase 2 for the admin console, Phase 3 for the demo, Phase 4 for the SaaS):** one `MetricTile` with `tone` (neutral/success/warning/error/primary), `accent` (none/left/top), `align` (start/center) and optional `icon`.
 
@@ -628,7 +642,7 @@ The reference table is the **cash-flow table** `.cf-tbl` (`:633`, Simulation tab
 - Chart.js in the app. The PDF report draws its charts with jsPDF primitives.
 - Fixed height wrapper `.chart-wrap` (340px). The `.chart-legend` class (8px square dots) is not rendered anywhere (G-22); charts use Chart.js's built-in legend.
 - ⚠ No chart sets a font, so chart ticks and legends render in Chart.js's default (Helvetica/Arial), not Plus Jakarta Sans (G-24).
-- ⚠ The main projection chart draws the optimistic band in purple `#7c3aed` (G-23, Q19).
+- ⚠ The main projection chart draws the optimistic band in purple `#7c3aed` (G-23). Purple is not part of the theme (Q19 resolved: keep Q12); the demo keeps it until Phase 3.
 - Colours come from the §4.3 palettes and the series conventions there.
 - **States:** before a simulation has run, the projection chart area stays empty under its title; standard: an empty state (§5.11) that says what to do ("Run the simulation to see your projection"). Hover shows Chart.js's tooltip with the year and all series values (not restyled, **not decided**). Loading: pending text on the run button (§4.13).
 - **SaaS target:** `react-chartjs-2` already in use, so share the palette constants (Phase 4).
@@ -654,6 +668,7 @@ The Wealth Overview Hero is the reference implementation of the theme's **featur
 - The cursor-tracking spring glow (`interactive-glow.js`, inlined at `:26359`) targets this area.
 - It is the only dark surface **inside the app shell**. (The intro splash, §5.21, is a second, full-screen one shown before the app.) It also holds the only warm tones in the theme (`rgba(212,175,95,…)` in the aurora, `rgba(255,205,100,…)` in the completion flash). They stay as a small warm highlight (Q10), named by role (`--color-highlight-warm`); the code comments that call them "gold-lit" are reworded in P3-01.
 - **Reuse (Q11):** wherever a navy surface is needed, use the **`.wealth-hero` class itself**, not a new class. Its children (`.wh-left`, `.wh-title`, `.wh-sub`, `.wh-amount`, `.wh-stat-grid`, `.wh-actions`, `.wh-right`) are the building blocks; use only the ones a page needs.
+- **Admin (Phase 2, done):** every one of the 15 tab headers is a `.wealth-hero` with only `.wh-left` → `h1.wh-title` + `p.wh-sub`. Without a `.wh-right` panel the hero sizes to its content (`.wealth-hero:not(:has(.wh-right))` drops the 290px showcase height and tightens the padding). A leading emoji sits in `span.wh-ico` so it keeps its colours instead of being clipped to the title gradient. The aurora pauses while the browser tab is hidden (`body.wa-page-hidden`, same listener as the demo) and stops under reduced motion. 📷 [admin-agent](style-guide-assets/admin-agent.png)
 - **Anatomy:** `.wealth-hero` (navy gradient + aurora layer) → headline label + value (display size, §4.4) → optional KPI grid of glass `MetricTile`s → optional actions row → optional side panel (chart).
 
 ### 5.14 Code block and inline code
@@ -774,7 +789,7 @@ Short messages inside a panel. All of them use a status tint, a status-coloured 
 
 ## Screenshot index
 
-In [`style-guide-assets/`](style-guide-assets/) (47 PNGs, ~4 MB). Regenerate with `node docs/style-guide-assets/capture.mjs` (Node 22+, Chrome on PATH, network for the CDN scripts). The script also works for the P2-14 before/after comparison. Captured at 1440×900 with the Béatrice Keller sample profile and a simulation run. Each §5 entry links its own images; this is the full index.
+In [`style-guide-assets/`](style-guide-assets/) (49 PNGs, ~4 MB). Regenerate with `node docs/style-guide-assets/capture.mjs` (Node 22+, Chrome on PATH, network for the CDN scripts). The script also works for the P2-14 before/after comparison. Captured at 1440×900 with the Béatrice Keller sample profile and a simulation run. Each §5 entry links its own images; this is the full index.
 
 | § | File |
 |---|---|
@@ -798,6 +813,7 @@ In [`style-guide-assets/`](style-guide-assets/) (47 PNGs, ~4 MB). Regenerate wit
 | 5.18 | `5.18-avatars-client-card` |
 | 5.19 | `5.19-pill-tabs` |
 | 5.21 | `5.21-intro-splash` |
+| Admin console | `admin-dashboard`, `admin-agent` (`node docs/style-guide-assets/capture-admin.mjs`) |
 
 Not captured: `.fund-tbl`, `.insight-card`, the scenario bar chart and `#prob-tip-box` (never rendered, G-22); `.btn-add`, the empty state, `.loan-item`, the `.pf-bar` rows, `.ov-tbl` and the callouts in §5.20 (the Keller profile doesn't trigger them; the script tries and skips); the onboarding card (dismisses itself before the capture); the band buttons (inside a collapsed settings section); the shared-session banner (needs a shared link).
 
@@ -807,5 +823,6 @@ Not captured: `.fund-tbl`, `.insight-card`, the scenario bar chart and `#prob-ti
 
 | Date | Version | Change |
 |---|---|---|
+| 2026-09-24 | v1.2 RC | Phase 2 Tier 1 landed in the admin console: target token block live in `admin.html` (§4.1 note); new tokens `--color-on-primary`, `--color-bg-bar`, `--color-glow-canvas`, `--color-hairline-primary`, `--color-sheen`, `--color-selection`, `--color-focus-ring`, `--color-primary-on-inverse-end`, `--shadow-primary-hover`, `--shadow-bar`, `--shadow-inverse` (§4.1a, §4.2, §4.7); admin notes in §5.1, §5.2, §5.4 (plus a shared disabled rule), §5.6, §5.13; NEW badge is navy in the theme; Q19 resolved (purple stays out of the theme). Two admin screenshots |
 | 2026-09-24 | v1.1 RC | Design review incorporated: single proposed values or "not decided" for every token (§4.2, §4.4, §4.6, §4.8, §4.9); duplicate colour rows removed from §4.2; contents and a new-screen checklist; "one light theme" principle (§3.8); new §4.10 accessibility standard (WCAG 2.1 AA, contrast floors, 24px targets, keyboard, dialogs), §4.11 number formatting, §4.12 breakpoints, §4.13 interaction states, §4.14 content and voice; form states and rules (§5.5); operation results, pending, failure and destructive-confirm patterns (§5.11); states for shell, tooltips, charts, bars, icons; six new screenshots. New gaps G-30 to G-36 in the plan |
 | 2026-09-24 | v1.0 RC | Moved out of the plan into this file. Content as of plan r11: §3–§5 checked against the running demo (plan Appendix D), §4.3 palettes in full, §5.8 based on the tables that render, §5.15–§5.22 added, screenshots for every captured component |
