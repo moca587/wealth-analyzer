@@ -28,9 +28,9 @@ lucide.createIcons({icons});\``);if(typeof document>"u")throw new Error("`create
 <style>
 /* ══════════════════════════════════════════════════════════════
    THEME TOKENS — docs/style-guide.md §4.
-   Values are identical to the demo (wealth-analyzer.html); names are the
-   target semantic names (docs/plans/style-guide-plan.md §7.1). Use tokens
-   only: no raw colours in rules, markup or generated HTML.
+   Values match the demo; names are the target semantic set
+   (docs/plans/style-guide-plan.md §7.1). Prefer tokens; some literals
+   remain in status/research markup and migrate over time.
    ══════════════════════════════════════════════════════════════ */
 :root{
   /* Colour — core (§4.1, §4.2) */
@@ -354,7 +354,7 @@ textarea{font-family:var(--font-mono);font-size:12px;width:100%;min-height:70px;
 <!-- ─── DASHBOARD ─── -->
 <div class="tab active" id="tab-dashboard">
   <div class="wealth-hero"><div class="wh-left">
-    <h1 class="wh-title"><i data-lucide="layout-dashboard" class="icon wh-ico" aria-hidden="true"></i><span class="wh-title-text">Admin Console Dashboard</span></h1>
+    <h1 class="wh-title"><i data-lucide="layout-dashboard" class="icon" aria-hidden="true"></i><span class="wh-title-text">Admin Console Dashboard</span></h1>
     <p class="wh-sub">Connected to your local Wealth Analyzer app — shares localStorage for profile, keys, and configuration. No backend required.</p>
   </div></div>
   <div class="kpi-grid" id="dashKpis"></div>
@@ -373,7 +373,7 @@ textarea{font-family:var(--font-mono);font-size:12px;width:100%;min-height:70px;
 <!-- ─── USERS ─── -->
 <div class="tab" id="tab-users">
   <div class="wealth-hero"><div class="wh-left">
-    <h1 class="wh-title"><i data-lucide="users" class="icon wh-ico" aria-hidden="true"></i><span class="wh-title-text">User Management</span></h1>
+    <h1 class="wh-title"><i data-lucide="users" class="icon" aria-hidden="true"></i><span class="wh-title-text">User Management</span></h1>
     <p class="wh-sub">Track every user who creates a financial plan. When a user saves their plan in the main app, it appears here automatically. Click <strong>Build Portfolio</strong> on any user to send their plan to the AI Agent and generate an institutional-grade recommendation.</p>
   </div></div>
 
@@ -403,7 +403,7 @@ textarea{font-family:var(--font-mono);font-size:12px;width:100%;min-height:70px;
 <!-- ─── AI AGENT ─── -->
 <div class="tab" id="tab-agent">
   <div class="wealth-hero"><div class="wh-left">
-    <h1 class="wh-title"><i data-lucide="bot" class="icon wh-ico" aria-hidden="true"></i><span class="wh-title-text">AI Portfolio Construction Agent</span></h1>
+    <h1 class="wh-title"><i data-lucide="bot" class="icon" aria-hidden="true"></i><span class="wh-title-text">AI Portfolio Construction Agent</span></h1>
     <p class="wh-sub">Synthesizes research from <span class="js-prov-count">16</span> institutional sources, the client's financial plan, and a curated fund universe to produce a complete portfolio recommendation. Powered by AI.</p>
   </div></div>
 
@@ -717,7 +717,7 @@ Citations:<br>
 <!-- ─── RESEARCH ─── -->
 <div class="tab" id="tab-research">
   <div class="wealth-hero"><div class="wh-left">
-    <h1 class="wh-title"><i data-lucide="library" class="icon wh-ico" aria-hidden="true"></i><span class="wh-title-text">Research Library</span></h1>
+    <h1 class="wh-title"><i data-lucide="library" class="icon" aria-hidden="true"></i><span class="wh-title-text">Research Library</span></h1>
     <p class="wh-sub"><span class="js-prov-count">16</span> institutional sources from the world's largest wealth managers, investment banks, private banks, and analyst platforms. Refresh feeds and the AI Agent uses them when building portfolios.</p>
   </div></div>
   <div class="panel">
@@ -774,7 +774,7 @@ Citations:<br>
 <!-- ─── ENGINE STRESS TEST ─── -->
 <div class="tab" id="tab-enginestress">
   <div class="wealth-hero"><div class="wh-left">
-    <h1 class="wh-title"><i data-lucide="flask-conical" class="icon wh-ico" aria-hidden="true"></i><span class="wh-title-text">AI Portfolio Engine Stress Test</span></h1>
+    <h1 class="wh-title"><i data-lucide="flask-conical" class="icon" aria-hidden="true"></i><span class="wh-title-text">AI Portfolio Engine Stress Test</span></h1>
     <p class="wh-sub">Daily sensitivity & robustness testing for the deterministic Research Engine. Sweep across risk profiles, net worth levels, ESG settings, and research provider counts — verify the engine reacts coherently to every input change. Daily benchmark snapshots track engine drift over time.</p>
   </div></div>
 
@@ -876,7 +876,7 @@ Citations:<br>
 <!-- ─── TEST BENCH ─── -->
 <div class="tab" id="tab-testbench">
   <div class="wealth-hero"><div class="wh-left">
-    <h1 class="wh-title"><i data-lucide="flask-conical" class="icon wh-ico" aria-hidden="true"></i><span class="wh-title-text">Calculation Test Bench</span></h1>
+    <h1 class="wh-title"><i data-lucide="flask-conical" class="icon" aria-hidden="true"></i><span class="wh-title-text">Calculation Test Bench</span></h1>
     <p class="wh-sub">Run any internal financial calculation with custom inputs, or run the full automated test suite to verify all math.</p>
   </div></div>
   <div class="panel">
@@ -906,7 +906,7 @@ Citations:<br>
 <!-- ─── CONSTANTS ─── -->
 <div class="tab" id="tab-constants">
   <div class="wealth-hero"><div class="wh-left">
-    <h1 class="wh-title"><i data-lucide="settings" class="icon wh-ico" aria-hidden="true"></i><span class="wh-title-text">Constants Editor</span></h1>
+    <h1 class="wh-title"><i data-lucide="settings" class="icon" aria-hidden="true"></i><span class="wh-title-text">Constants Editor</span></h1>
     <p class="wh-sub">Edit financial constants used throughout the main app. Export edited values as JSON for deployment.</p>
   </div></div>
   <div class="panel">
@@ -923,7 +923,7 @@ Citations:<br>
 <!-- ─── STRESS ─── -->
 <div class="tab" id="tab-stress">
   <div class="wealth-hero"><div class="wh-left">
-    <h1 class="wh-title"><i data-lucide="chart-column" class="icon wh-ico" aria-hidden="true"></i><span class="wh-title-text">Monte Carlo Stress Test</span></h1>
+    <h1 class="wh-title"><i data-lucide="chart-column" class="icon" aria-hidden="true"></i><span class="wh-title-text">Monte Carlo Stress Test</span></h1>
     <p class="wh-sub">Parameter sweep — vary one input while holding others constant, plot p10/p50/p90 across the sweep range.</p>
   </div></div>
   <div class="panel">
@@ -962,7 +962,7 @@ Citations:<br>
 <!-- ─── PROFILES ─── -->
 <div class="tab" id="tab-profiles">
   <div class="wealth-hero"><div class="wh-left">
-    <h1 class="wh-title"><i data-lucide="user" class="icon wh-ico" aria-hidden="true"></i><span class="wh-title-text">Profile Manager</span></h1>
+    <h1 class="wh-title"><i data-lucide="user" class="icon" aria-hidden="true"></i><span class="wh-title-text">Profile Manager</span></h1>
     <p class="wh-sub">Load any <code>wealth-profile.json</code> from the main app, inspect it, edit fields, and push back to the main app's localStorage.</p>
   </div></div>
   <div class="panel">
@@ -994,7 +994,7 @@ Citations:<br>
 <!-- ─── MARKET DATA ─── -->
 <div class="tab" id="tab-market">
   <div class="wealth-hero"><div class="wh-left">
-    <h1 class="wh-title"><i data-lucide="trending-up" class="icon wh-ico" aria-hidden="true"></i><span class="wh-title-text">Market Data Console</span></h1>
+    <h1 class="wh-title"><i data-lucide="trending-up" class="icon" aria-hidden="true"></i><span class="wh-title-text">Market Data Console</span></h1>
     <p class="wh-sub">Test live quote retrieval. Verified keyless on 2026-08-02: <strong>Yahoo Finance</strong> (equities/ETFs), <strong>CoinGecko</strong> and <strong>Coinbase</strong> (crypto), <strong>Frankfurter/ECB</strong> and <strong>Open ER API</strong> (FX), <strong>Treasury.gov</strong> (yield curve). <strong>SEC EDGAR</strong> resolves ticker&rarr;CIK but its filings API refuses browser requests &mdash; that half needs a server relay. Everything else needs a key in the API Keys tab; enterprise feeds (Bloomberg, FactSet, Refinitiv) need a user-deployed proxy.</p>
   </div></div>
   <div class="panel">
@@ -1071,7 +1071,7 @@ Citations:<br>
 <!-- ─── TAX DB ─── -->
 <div class="tab" id="tab-taxdb">
   <div class="wealth-hero"><div class="wh-left">
-    <h1 class="wh-title"><i data-lucide="landmark" class="icon wh-ico" aria-hidden="true"></i><span class="wh-title-text">Tax Database</span></h1>
+    <h1 class="wh-title"><i data-lucide="landmark" class="icon" aria-hidden="true"></i><span class="wh-title-text">Tax Database</span></h1>
     <p class="wh-sub">Browse income tax for all 39 supported countries — national/federal brackets + representative regional/state/municipal tax, synced live from the client app. US ZIP auto-detection is wired into the main app (below).</p>
   </div></div>
   <div class="panel">
@@ -1099,7 +1099,7 @@ Citations:<br>
 <!-- ─── TAX DATA ACCURACY ─── -->
 <div class="tab" id="tab-taxaccuracy">
   <div class="wealth-hero"><div class="wh-left">
-    <h1 class="wh-title"><i data-lucide="badge-check" class="icon wh-ico" aria-hidden="true"></i><span class="wh-title-text">Tax Data Accuracy</span></h1>
+    <h1 class="wh-title"><i data-lucide="badge-check" class="icon" aria-hidden="true"></i><span class="wh-title-text">Tax Data Accuracy</span></h1>
     <p class="wh-sub">Tracks the income-tax dataset the client app actually uses — coverage, the official source authority per country, tax year, automated sanity checks, and your manual verification status. The dataset syncs live from the main app via shared browser storage.</p>
   </div></div>
   <div class="panel">
@@ -1117,7 +1117,7 @@ Citations:<br>
 <!-- ─── KEYS ─── -->
 <div class="tab" id="tab-keys">
   <div class="wealth-hero"><div class="wh-left">
-    <h1 class="wh-title"><i data-lucide="key" class="icon wh-ico" aria-hidden="true"></i><span class="wh-title-text">API Keys & Endpoints</span></h1>
+    <h1 class="wh-title"><i data-lucide="key" class="icon" aria-hidden="true"></i><span class="wh-title-text">API Keys & Endpoints</span></h1>
     <p class="wh-sub">All credentials stored in browser localStorage and shared with the main app. <strong>Keys are auto-tested every 2 minutes</strong> to ensure they're working — see the Health column.</p>
   </div></div>
   <div class="panel" style="padding:12px 16px">
@@ -1184,7 +1184,7 @@ Citations:<br>
 <!-- ─── LOGS ─── -->
 <div class="tab" id="tab-logs">
   <div class="wealth-hero"><div class="wh-left">
-    <h1 class="wh-title"><i data-lucide="clipboard-list" class="icon wh-ico" aria-hidden="true"></i><span class="wh-title-text">System Logs</span></h1>
+    <h1 class="wh-title"><i data-lucide="clipboard-list" class="icon" aria-hidden="true"></i><span class="wh-title-text">System Logs</span></h1>
     <p class="wh-sub">Action audit trail, browser environment, and full localStorage inspector.</p>
   </div></div>
   <div class="panel">
@@ -1204,7 +1204,7 @@ Citations:<br>
 <!-- ─── DOCS ─── -->
 <div class="tab" id="tab-docs">
   <div class="wealth-hero"><div class="wh-left">
-    <h1 class="wh-title"><i data-lucide="book-open" class="icon wh-ico" aria-hidden="true"></i><span class="wh-title-text">Documentation</span></h1>
+    <h1 class="wh-title"><i data-lucide="book-open" class="icon" aria-hidden="true"></i><span class="wh-title-text">Documentation</span></h1>
     <p class="wh-sub">How the admin connects to the main Wealth Analyzer app and how to use each tab.</p>
   </div></div>
   <div class="panel">
@@ -1296,23 +1296,26 @@ function icon(name, extraClass){
   const cls = extraClass ? ("icon "+extraClass) : "icon";
   return `<i data-lucide="${name}" class="${cls}" aria-hidden="true"></i>`;
 }
-function refreshIcons(root){
-  if(typeof lucide === "undefined" || !lucide.createIcons) return;
-  // UMD createIcons has no root option — scoped pass via temporarily limiting is unnecessary;
-  // fresh innerHTML always ships new <i data-lucide> placeholders.
+function refreshIcons(){
+  if(typeof lucide === "undefined" || typeof lucide.createIcons !== "function") return;
+  // UMD createIcons scans the whole document and keeps data-lucide on the
+  // replacement <svg>, so a naïve call re-builds every icon. Only convert
+  // pending <i> placeholders; strip the attr from SVGs so later calls are cheap.
+  if(!document.querySelector("i[data-lucide]")) return;
+  document.querySelectorAll("svg[data-lucide]").forEach(el => el.removeAttribute("data-lucide"));
   lucide.createIcons();
+  document.querySelectorAll("svg[data-lucide]").forEach(el => el.removeAttribute("data-lucide"));
 }
-function setIconLabel(el, name, label){
+function setIconLabel(el, name, label, opts){
   if(!el) return;
   el.innerHTML = (name ? icon(name)+" " : "") + escapeHtml(label);
-  refreshIcons();
+  if(!(opts && opts.skipIcons)) refreshIcons();
 }
 
 function toast(msg, type){
   const t=$("toast"); if(!t) return;
-  const clean = String(msg).replace(/^[✓✗⚠✅❌]\s*/, "");
   const ico = type==="ok" ? "check" : type==="err" ? "x" : type==="warn" ? "triangle-alert" : null;
-  t.innerHTML = (ico ? icon(ico)+" " : "") + escapeHtml(clean);
+  t.innerHTML = (ico ? icon(ico)+" " : "") + escapeHtml(String(msg));
   t.className="show "+(type||"");
   refreshIcons();
   setTimeout(()=>t.className="",2400);
@@ -1341,6 +1344,7 @@ window.addEventListener("error",function(ev){
     const stack=(ev.error&&ev.error.stack)?ev.error.stack.split("\n").slice(0,3).join(" | "):"";
     bar.innerHTML += `<div>${icon("triangle-alert")} ${escapeHtml(ev.message||"unknown")} <span style="opacity:.85">@ ${escapeHtml((ev.filename||"").split("/").pop())}:${ev.lineno}:${ev.colno||0}</span>${stack?'<br><span style="opacity:.7;font-size:11px">'+escapeHtml(stack)+'</span>':''}</div>`;
     bar.classList.add("show");
+    refreshIcons();
   } catch(_){}
 });
 
@@ -3935,7 +3939,8 @@ async function autoRefreshAllResearch(silent){
         if(el){ el.textContent = cnt + ' items'; el.style.color = cnt > 0 ? 'var(--color-success)' : 'var(--color-warning)'; }
       } catch(_){}
       done++;
-      if(status && !silent) setIconLabel(status, "radio", `Refreshed ${done}/${RESEARCH_PROVIDERS.length} sources (${ok} with data)…`);
+      // skipIcons: avoid a full Lucide pass per provider; final setIconLabel refreshes once
+      if(status && !silent) setIconLabel(status, "radio", `Refreshed ${done}/${RESEARCH_PROVIDERS.length} sources (${ok} with data)…`, {skipIcons:true});
     }
   });
   await Promise.all(workers);
@@ -7478,6 +7483,7 @@ function renderBenchmarkTimeline(){
   if(!el) return;
   if(history.length === 0){
     el.innerHTML = '<div style="text-align:center;padding:30px;color:var(--color-text-muted)">' + icon("calendar","icon-lg") + '<div style="margin-top:8px">No benchmark snapshots yet. Click "Run Today\'s Benchmark" to start tracking.</div>';
+    refreshIcons();
     return;
   }
   // Stats
@@ -8081,9 +8087,10 @@ function startLivePoll(){
         available = true;
         const bar = $("liveUp");
         let secs = 5;
-        function render(){ bar.innerHTML = `${icon("rocket")} <span><strong>New version v${escapeHtml(j.version)}</strong> — auto-reloading in <strong>${secs}</strong>s</span> <button class="btn-ghost" onclick="location.reload()" style="background:#fff;color:var(--color-primary)">Reload now</button> <button class="btn-ghost" onclick="this.parentElement.classList.remove('show')" style="border-color:rgba(255,255,255,.3);color:#fff">Cancel</button>`;  refreshIcons();}
-        render(); bar.classList.add("show");
-        const iv = setInterval(()=>{ if(!bar.classList.contains("show")){ clearInterval(iv); return;} secs--; render(); if(secs<=0){ clearInterval(iv); if(bar.classList.contains("show")) location.reload(); } }, 1000);
+        bar.innerHTML = `${icon("rocket")} <span><strong>New version v${escapeHtml(j.version)}</strong> — auto-reloading in <strong id="liveUpSecs">${secs}</strong>s</span> <button class="btn-ghost" onclick="location.reload()" style="background:#fff;color:var(--color-primary)">Reload now</button> <button class="btn-ghost" onclick="this.parentElement.classList.remove('show')" style="border-color:rgba(255,255,255,.3);color:#fff">Cancel</button>`;
+        refreshIcons();
+        bar.classList.add("show");
+        const iv = setInterval(()=>{ if(!bar.classList.contains("show")){ clearInterval(iv); return;} secs--; const el=$("liveUpSecs"); if(el) el.textContent=secs; if(secs<=0){ clearInterval(iv); if(bar.classList.contains("show")) location.reload(); } }, 1000);
       }
     } catch(_){} finally { polling = false; }
   }

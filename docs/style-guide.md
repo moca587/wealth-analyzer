@@ -668,7 +668,7 @@ The Wealth Overview Hero is the reference implementation of the theme's **featur
 - The cursor-tracking spring glow (`interactive-glow.js`, inlined at `:26359`) targets this area.
 - It is the only dark surface **inside the app shell**. (The intro splash, §5.21, is a second, full-screen one shown before the app.) It also holds the only warm tones in the theme (`rgba(212,175,95,…)` in the aurora, `rgba(255,205,100,…)` in the completion flash). They stay as a small warm highlight (Q10), named by role (`--color-highlight-warm`); the code comments that call them "gold-lit" are reworded in P3-01.
 - **Reuse (Q11):** wherever a navy surface is needed, use the **`.wealth-hero` class itself**, not a new class. Its children (`.wh-left`, `.wh-title`, `.wh-sub`, `.wh-amount`, `.wh-stat-grid`, `.wh-actions`, `.wh-right`) are the building blocks; use only the ones a page needs.
-- **Admin (Phase 2, done):** every one of the 15 tab headers is a `.wealth-hero` with only `.wh-left` → `h1.wh-title` + `p.wh-sub`. Without a `.wh-right` panel the hero sizes to its content (`.wealth-hero:not(:has(.wh-right))` drops the 290px showcase height and tightens the padding). A leading emoji sits in `span.wh-ico` so it keeps its colours instead of being clipped to the title gradient. The aurora pauses while the browser tab is hidden (`body.wa-page-hidden`, same listener as the demo) and stops under reduced motion. 📷 [admin-agent](style-guide-assets/admin-agent.png)
+- **Admin (Phase 2, done):** every one of the 15 tab headers is a `.wealth-hero` with only `.wh-left` → `h1.wh-title` + `p.wh-sub`. Without a `.wh-right` panel the hero sizes to its content (`.wealth-hero:not(:has(.wh-right))` drops the 290px showcase height and tightens the padding). A leading Lucide icon (`<i data-lucide>` → SVG via `refreshIcons()`) sits beside `span.wh-title-text` so the glyph keeps `currentColor` instead of being clipped to the title gradient (sized by `.wh-title .icon`). The aurora pauses while the browser tab is hidden (`body.wa-page-hidden`, same listener as the demo) and stops under reduced motion. 📷 [admin-agent](style-guide-assets/admin-agent.png)
 - **Anatomy:** `.wealth-hero` (navy gradient + aurora layer) → headline label + value (display size, §4.4) → optional KPI grid of glass `MetricTile`s → optional actions row → optional side panel (chart).
 
 ### 5.14 Code block and inline code
@@ -779,7 +779,7 @@ Short messages inside a panel. All of them use a status tint, a status-coloured 
 
 📷 [5.1-sidebar](style-guide-assets/5.1-sidebar.png) · [5.13-wealth-hero](style-guide-assets/5.13-wealth-hero.png)
 
-- **Style:** inline SVG line icons, 1.7–2px stroke, round caps and joins, `currentColor`: primary on light surfaces, `#7fb6ff` / `#9cc4ff` on dark ones.
+- **Style:** inline SVG line icons, 1.7–2px stroke, round caps and joins, `currentColor`: primary on light surfaces, `#7fb6ff` / `#9cc4ff` on dark ones. **Admin console** uses Lucide 0.460.0 (`vendor/lucide.min.js`, same pin as `wealth-app-next`'s `lucide-react`); the demo still uses hand-authored SVG paths. Both share the same stroke recipe and size scale.
 - **Sizes:** 16px is the default next to 13px text (the most common fixed size); 12–13px inside small buttons and chips; 17–18px in the topbar; 25px in the splash feature cards. Hero KPI icons sit in a 34px, 9px-radius tinted chip (`.wh-stat-icon`).
 - **States:** icons take the colour of their control, so they follow its hover, active and disabled states. Meaningful icons need 3:1 contrast (§4.10).
 - **When an icon needs a text label:** always, except for the universal ones: close (×), settings (gear), info (i), expand/collapse chevrons. An icon-only button has an `aria-label` and a `title`. An icon next to text is decorative: `aria-hidden="true"`.
@@ -789,7 +789,7 @@ Short messages inside a panel. All of them use a status tint, a status-coloured 
 
 ## Screenshot index
 
-In [`style-guide-assets/`](style-guide-assets/) (49 PNGs, ~4 MB). Regenerate with `node docs/style-guide-assets/capture.mjs` (Node 22+, Chrome on PATH, network for the CDN scripts). The script also works for the P2-14 before/after comparison. Captured at 1440×900 with the Béatrice Keller sample profile and a simulation run. Each §5 entry links its own images; this is the full index.
+In [`style-guide-assets/`](style-guide-assets/) (49 PNGs, ~4 MB). Regenerate demo shots with `node docs/style-guide-assets/capture.mjs` (Node 22+, Chrome on PATH, network for the CDN scripts). Admin shots and the P2-14 before/after comparison use `node docs/style-guide-assets/capture-admin.mjs` (optionally `<dir> all`). Captured at 1440×900 with the Béatrice Keller sample profile and a simulation run. Each §5 entry links its own images; this is the full index.
 
 | § | File |
 |---|---|
