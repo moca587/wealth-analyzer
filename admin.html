@@ -875,63 +875,18 @@ Citations:<br>
       <label class="lbl">Ticker</label><input id="mdTicker" placeholder="AAPL" class="w160" value="AAPL">
       <label class="lbl" style="min-width:60px">Provider</label>
       <select id="mdProvider" class="w260">
-        <option value="auto">Auto (try all in failover order)</option>
-        <optgroup label="── Equities — Premium ──">
-          <option value="finnhub">Finnhub</option>
-          <option value="polygon">Polygon.io</option>
-          <option value="intrinio">Intrinio</option>
+        <option value="auto">Auto (try all keyless in failover order)</option>
+        <optgroup label="── Equities — free, no key ──">
+          <option value="yahoo">Yahoo Finance (via proxy)</option>
+          <option value="stooq">Stooq (via proxy)</option>
         </optgroup>
-        <optgroup label="── Equities — Generous free tier ──">
-          <option value="twelvedata">Twelve Data</option>
-          <option value="fmp">Financial Modeling Prep</option>
-          <option value="tiingo">Tiingo</option>
-          <option value="alphavantage">Alpha Vantage</option>
-          <option value="nasdaq">Nasdaq Data Link / Quandl</option>
+        <optgroup label="── Crypto — free, no key ──">
+          <option value="coingecko">CoinGecko</option>
+          <option value="coinbase">Coinbase Spot</option>
+          <option value="cryptocompare">CryptoCompare</option>
         </optgroup>
-        <optgroup label="── Equities — Account-based ──">
-          <option value="tradier">Tradier (free w/ account)</option>
-          <option value="alpaca">Alpaca Markets (Key + Secret)</option>
-          <option value="rapidapi_yahoo">RapidAPI · Yahoo Finance</option>
-        </optgroup>
-        <optgroup label="── Equities — Specialty ──">
-          <option value="eodhd">EOD Historical Data</option>
-          <option value="marketstack">Marketstack</option>
-          <option value="stockdata">Stockdata.org</option>
-          <option value="finazon">Finazon (SIP)</option>
-        </optgroup>
-        <optgroup label="── Equities — No key ──">
-          <option value="yahoo">Yahoo Finance (direct)</option>
-          <option value="stooq">Stooq — retired upstream</option>
-        </optgroup>
-        <optgroup label="── News ──">
-          <option value="newsapi">NewsAPI.org</option>
-          <option value="marketaux">Marketaux (+ sentiment)</option>
-          <option value="benzinga">Benzinga</option>
-        </optgroup>
-        <optgroup label="── Crypto ──">
-          <option value="coingecko">CoinGecko (no key)</option>
-          <option value="cryptocompare">CryptoCompare (key required)</option>
-          <option value="coinbase">Coinbase Spot (no key)</option>
-          <option value="coinmarketcap">CoinMarketCap (key)</option>
-          <option value="messari">Messari (key)</option>
-        </optgroup>
-        <optgroup label="── FX — No key ──">
+        <optgroup label="── FX — free, no key ──">
           <option value="frankfurter">Frankfurter / ECB</option>
-          <option value="exchangerate_host">ExchangeRate.host (key required)</option>
-          <option value="open_er_api">Open ER API</option>
-        </optgroup>
-        <optgroup label="── FX — Keyed ──">
-          <option value="oxr">Open Exchange Rates</option>
-          <option value="currencyapi">CurrencyAPI.com</option>
-          <option value="currencylayer">CurrencyLayer</option>
-        </optgroup>
-        <optgroup label="── Macro / Rates ──">
-          <option value="fred">FRED — St Louis Fed (key)</option>
-          <option value="treasury">Treasury.gov (no key)</option>
-        </optgroup>
-        <optgroup label="── Reference Data (no key) ──">
-          <option value="openfigi">OpenFIGI (ISIN/CUSIP/FIGI)</option>
-          <option value="secedgar">SEC EDGAR (filings — needs server relay)</option>
         </optgroup>
       </select>
       <button class="btn" data-action="testQuote">▶ Fetch Quote</button>
@@ -1148,7 +1103,7 @@ function toggleQuestionnairePreview(){
 // ═══════════════════════════════════════════════════════════
 // VERSION + UTILS
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260924-1500";
+const APP_VERSION = "20260924-1509";
 const $ = (id) => document.getElementById(id);
 const $$ = (sel, ctx) => Array.from((ctx||document).querySelectorAll(sel));
 
@@ -3628,61 +3583,20 @@ function renderDashboard(){
   $("dashKpis").innerHTML = h;
 
   // Provider status — grouped by data class
+  // Free, keyless market-data sources only — routed through the app's data proxy.
+  // Key-required and enterprise providers were removed (they can't feed live data here).
   const groups = [
-    {label:"Equities — Premium", items:[
-      {n:"Finnhub",  k:localStorage.getItem("fhKey")},
-      {n:"Polygon",  k:localStorage.getItem("wa_polygon_key")},
-      {n:"Intrinio", k:localStorage.getItem("wa_intrinio_key")}
+    {label:"Equities — free, no key", items:[
+      {n:"Yahoo Finance", k:"always"},
+      {n:"Stooq",         k:"always"}
     ]},
-    {label:"Equities — Generous free tier", items:[
-      {n:"Twelve Data",  k:localStorage.getItem("wa_twelvedata_key")},
-      {n:"FMP",          k:localStorage.getItem("wa_fmp_key")},
-      {n:"Tiingo",       k:localStorage.getItem("wa_tiingo_key")},
-      {n:"Alpha Vantage",k:localStorage.getItem("avKey")},
-      {n:"Nasdaq Data Link", k:localStorage.getItem("wa_nasdaq_key")}
-    ]},
-    {label:"Equities — Account-based", items:[
-      {n:"Tradier",      k:localStorage.getItem("wa_tradier_key")},
-      {n:"Alpaca",       k:(localStorage.getItem("wa_alpaca_key") && localStorage.getItem("wa_alpaca_secret"))?"set":""},
-      {n:"RapidAPI Yahoo", k:localStorage.getItem("wa_rapidapi_key")}
-    ]},
-    {label:"Equities — Specialty", items:[
-      {n:"EOD HD",      k:localStorage.getItem("wa_eodhd_key")},
-      {n:"Marketstack", k:localStorage.getItem("wa_marketstack_key")},
-      {n:"Stockdata",   k:localStorage.getItem("wa_stockdata_key")},
-      {n:"Finazon",     k:localStorage.getItem("wa_finazon_key")}
-    ]},
-    {label:"Equities — No key", items:[
-      {n:"Yahoo Finance",   k:"always"},
-      {n:"Stooq (CSV)",     k:null, unavailable:"CSV endpoint retired upstream"},
-      {n:"OpenFIGI (ref)",  k:"always"},
-      {n:"SEC EDGAR (ref)", k:null, unavailable:"data.sec.gov blocks browser requests — needs a server relay"}
-    ]},
-    {label:"News", items:[
-      {n:"NewsAPI.org",   k:localStorage.getItem("wa_newsapi_key")},
-      {n:"Marketaux",     k:localStorage.getItem("wa_marketaux_key")},
-      {n:"Benzinga",      k:localStorage.getItem("wa_benzinga_key")}
-    ]},
-    {label:"Crypto", items:[
+    {label:"Crypto — free, no key", items:[
       {n:"CoinGecko",     k:"always"},
-      {n:"CryptoCompare", k:null, unavailable:"now requires an API key"},
       {n:"Coinbase Spot", k:"always"},
-      {n:"CoinMarketCap", k:localStorage.getItem("wa_cmc_key")},
-      {n:"Messari",       k:localStorage.getItem("wa_messari_key")}
+      {n:"CryptoCompare", k:"always"}
     ]},
-    {label:"FX — No key", items:[
-      {n:"Frankfurter (ECB)", k:"always"},
-      {n:"ExchangeRate.host", k:null, unavailable:"now requires an API key"},
-      {n:"Open ER API",       k:"always"}
-    ]},
-    {label:"FX — Keyed", items:[
-      {n:"Open Exchange Rates", k:localStorage.getItem("wa_oxr_key")},
-      {n:"CurrencyAPI.com",     k:localStorage.getItem("wa_currencyapi_key")},
-      {n:"CurrencyLayer",       k:localStorage.getItem("wa_currencylayer_key")}
-    ]},
-    {label:"Macro / Rates", items:[
-      {n:"FRED (St Louis Fed)", k:localStorage.getItem("wa_fred_key")},
-      {n:"Treasury.gov",        k:"always"}
+    {label:"FX — free, no key", items:[
+      {n:"Frankfurter (ECB)", k:"always"}
     ]},
     {label:"AI / LLM", items:[
       {n:"AI Assistant", k:aiKey}
@@ -5345,7 +5259,8 @@ async function testAllProviders(){
   const ticker = $("mdTicker").value.trim().toUpperCase();
   if(!ticker) return toast("Enter a ticker","err");
   $("mdResult").innerHTML = "Testing all providers for "+ticker+"…";
-  const providers = ["finnhub","alphavantage","polygon","twelvedata","fmp","tiingo","intrinio","nasdaq","tradier","alpaca","rapidapi_yahoo","eodhd","marketstack","stockdata","finazon","yahoo","stooq","cryptocompare","coinbase"];
+  // Free, keyless sources only — the providers that actually feed live data with no API key.
+  const providers = ["yahoo","stooq","coingecko","cryptocompare","coinbase","frankfurter"];
   const results = await Promise.all(providers.map(async p => {
     const t0 = performance.now();
     try { const d = await fetchQuote(ticker, p); return {p, ok:true, price:d.price, ms:performance.now()-t0}; }
@@ -5519,41 +5434,11 @@ function testZip(){
 // KEYS
 // ═══════════════════════════════════════════════════════════
 const API_KEY_DEFS = [
-  // ── Equity quotes — Premium tier (paid, fastest) ──
-  {id:"fhKey", n:"Finnhub", url:"finnhub.io/register", note:"60 calls/min · stocks/FX/crypto/news"},
-  {id:"wa_polygon_key", n:"Polygon.io", url:"polygon.io/dashboard/api-keys", note:"5/min · US stocks/options"},
-  {id:"wa_intrinio_key", n:"Intrinio", url:"intrinio.com/signup", note:"Dev tier · stocks + fundamentals"},
-  // ── Equity quotes — Generous free tier ──
-  {id:"avKey", n:"Alpha Vantage", url:"alphavantage.co/support/#api-key", note:"25/day · 5/min · stocks"},
-  {id:"wa_twelvedata_key", n:"Twelve Data", url:"twelvedata.com/pricing", note:"800/day · stocks/FX/crypto"},
-  {id:"wa_fmp_key", n:"Financial Modeling Prep", url:"site.financialmodelingprep.com", note:"250/day · stocks + fundamentals"},
-  {id:"wa_tiingo_key", n:"Tiingo", url:"tiingo.com/account/api/token", note:"IEX feed + news"},
-  {id:"wa_nasdaq_key", n:"Nasdaq Data Link (Quandl)", url:"data.nasdaq.com/sign-up", note:"50/day · WIKI, SHARADAR datasets"},
-  // ── Equity quotes — Account-based ──
-  {id:"wa_tradier_key", n:"Tradier", url:"tradier.com/products/marketdata", note:"Real-time delayed · free w/ Tradier account"},
-  {id:"wa_alpaca_key", n:"Alpaca — Key ID", url:"alpaca.markets/learn/api-keys", note:"Paper or live account · Key ID"},
-  {id:"wa_alpaca_secret", n:"Alpaca — Secret", url:"alpaca.markets/learn/api-keys", note:"Paper or live account · Secret key"},
-  {id:"wa_rapidapi_key", n:"RapidAPI (Yahoo Finance)", url:"rapidapi.com/apidojo/api/yh-finance", note:"500/month · YH-Finance via RapidAPI"},
-  // ── Equity quotes — Specialty ──
-  {id:"wa_eodhd_key", n:"EOD Historical Data", url:"eodhistoricaldata.com/register", note:"20/day · 60+ exchanges global"},
-  {id:"wa_marketstack_key", n:"Marketstack", url:"marketstack.com/signup/free", note:"100/month · global stocks"},
-  {id:"wa_stockdata_key", n:"Stockdata.org", url:"stockdata.org/register", note:"100/day · real-time stocks"},
-  {id:"wa_finazon_key", n:"Finazon", url:"finazon.io/register", note:"Free tier · institutional SIP feed"},
-  // ── News ──
-  {id:"wa_newsapi_key", n:"NewsAPI.org", url:"newsapi.org/register", note:"100/day · general + financial news"},
-  {id:"wa_marketaux_key", n:"Marketaux", url:"marketaux.com/account/dashboard", note:"100/day · financial news + sentiment"},
-  {id:"wa_benzinga_key", n:"Benzinga", url:"benzinga.com/apis/cloud-api", note:"News + analyst ratings + calendar"},
-  // ── Crypto ──
-  {id:"wa_cmc_key", n:"CoinMarketCap", url:"coinmarketcap.com/api/", note:"333/day · crypto + market cap"},
-  {id:"wa_messari_key", n:"Messari", url:"messari.io/api", note:"Crypto research + metrics"},
-  // ── FX ──
-  {id:"wa_oxr_key", n:"Open Exchange Rates", url:"openexchangerates.org/signup/free", note:"1000/month · 170 currencies"},
-  {id:"wa_currencyapi_key", n:"CurrencyAPI.com", url:"currencyapi.com/register", note:"300/month · 170 currencies"},
-  {id:"wa_currencylayer_key", n:"CurrencyLayer", url:"currencylayer.com/product", note:"250/month · 168 currencies"},
-  // ── Macro ──
-  {id:"wa_fred_key", n:"FRED (St Louis Fed)", url:"fred.stlouisfed.org/docs/api/api_key.html", note:"Free unlimited · US economic data"},
-  // ── AI / LLM ──
-  {id:"wa_ai_key", n:"AI Assistant", url:"", note:"Powers narrative AI agent"}
+  // Market data now runs on FREE, KEYLESS sources only — Yahoo & Stooq (equities),
+  // CoinGecko / Coinbase / CryptoCompare (crypto) and Frankfurter (FX) — routed through
+  // the app's data proxy. None need an API key, so none are listed here. The only key the
+  // app uses is the AI Assistant key, which reads uploaded documents (not market data).
+  {id:"wa_ai_key", n:"AI Assistant", url:"", note:"Powers the AI document reader & narrative agent (not a market-data provider)"}
 ];
 // Health status persisted per-key — updated by the 2-minute auto-check loop
 function getKeyHealth(){ try { return JSON.parse(localStorage.getItem("wa_key_health")||"{}"); } catch(_){return {};} }
@@ -5633,7 +5518,11 @@ async function corsFetch(url, opts){
     if(r.status >= 400 && r.status < 500) return r;
     throw new Error("HTTP "+r.status);
   } catch(_){
-    return await fetch("https://corsproxy.io/?" + encodeURIComponent(url), opts);
+    // Prefer the app's configured data proxy (free Cloudflare Worker) over the public
+    // fallback, so keyless sources like Yahoo actually return live data.
+    const base=(localStorage.getItem("wa_cors_proxy")||"").trim().replace(/\/+$/,"");
+    const proxied = base ? (base+"/?url="+encodeURIComponent(url)) : ("https://corsproxy.io/?"+encodeURIComponent(url));
+    return await fetch(proxied, opts);
   }
 }
 
