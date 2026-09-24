@@ -2899,6 +2899,56 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
 <!-- ═══ PORTFOLIO ═══ -->
 <div class="tab" id="tab-portfolio">
 
+<style>
+  .pf-switcher{display:flex;gap:6px;flex-wrap:wrap}
+  .pf-tab{padding:6px 14px;border-radius:999px;border:1px solid var(--border);background:var(--bg2);color:var(--text);cursor:pointer;font-size:12.5px;font-weight:600;line-height:1.2}
+  .pf-tab:hover{border-color:var(--gold)}
+  .pf-tab.active{background:var(--gold);color:#fff;border-color:transparent}
+  .pf-tab .pf-tab-n{display:inline-block;min-width:16px;margin-left:5px;padding:0 5px;border-radius:999px;background:rgba(0,0,0,.12);font-size:10.5px;font-weight:700;text-align:center}
+  .pf-tab.active .pf-tab-n{background:rgba(255,255,255,.28)}
+  .ov-tbl{margin-top:8px;border:1px solid var(--border);border-radius:8px;overflow:hidden}
+  .ov-row{display:grid;grid-template-columns:1fr 110px 110px;gap:8px;padding:8px 12px;font-size:12.5px;align-items:center;border-top:1px solid var(--border)}
+  .ov-row:first-child{border-top:none}
+  .ov-row.ov-head{background:var(--bg3);font-weight:700;font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--text3)}
+  .ov-name{font-weight:600;color:var(--text)}
+  .ov-cur,.ov-prop{text-align:right;color:var(--text2)}
+  .ov-warn{font-size:12.5px;color:#b45309;background:rgba(245,158,11,.10);border-left:3px solid var(--amber,#f59e0b);border-radius:4px;padding:8px 12px;line-height:1.5}
+  .ov-ok{font-size:12.5px;color:#1b6841;background:rgba(27,104,65,.08);border-left:3px solid #1b6841;border-radius:4px;padding:8px 12px;line-height:1.5}
+  .ov-chip{display:inline-block;background:var(--bg3);border:1px solid var(--border);border-radius:999px;padding:1px 8px;font-size:11px;margin:1px 2px}
+</style>
+<!-- Portfolio switcher — multiple named portfolios, each with its own holdings -->
+<div class="panel">
+  <div class="ptitle">Portfolios</div>
+  <div id="pfSwitcher" class="pf-switcher"></div>
+  <div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap">
+    <button class="btn-secondary" onclick="pfNew()">+ New portfolio</button>
+    <button class="btn-secondary" onclick="pfRename()">Rename</button>
+    <button class="btn-secondary" onclick="pfDuplicate()">Duplicate</button>
+    <button class="btn-secondary" onclick="pfDelete()">Delete</button>
+  </div>
+  <div style="font-size:11px;color:var(--text3);margin-top:8px">Each portfolio keeps its own holdings and linked account. Switch here, then run the Simulation on whichever portfolio is active — they're evaluated separately.</div>
+</div>
+
+<!-- Cross-portfolio overlap screen -->
+<div class="panel">
+  <div class="ptitle">Position Overlap — Across Portfolios</div>
+  <div style="font-size:12px;color:var(--text3);margin-bottom:8px;line-height:1.6">Positions held in more than one of your named portfolios (matched by ticker / ISIN / name), so you can screen for overlapping exposure across them.</div>
+  <div id="pfCrossOverlap"><div class="cmp-empty">Add a second portfolio to screen for positions held in more than one.</div></div>
+</div>
+
+<!-- Live prices — free, via a user-deployed Cloudflare Worker proxy (no API key) -->
+<div class="panel">
+  <div class="ptitle">Live Prices <span style="font-size:11px;color:var(--text3);font-weight:500">— free, no API key</span></div>
+  <div style="font-size:12px;color:var(--text3);margin-bottom:8px;line-height:1.6">Pulls live quotes from Yahoo Finance with no API key, through a free proxy you deploy once (Yahoo can't be called directly from a browser). Paste your Cloudflare Worker URL below. Prices are cached, so the last-known value still shows if a fetch fails.</div>
+  <div class="frow"><label class="flbl">Data proxy URL</label>
+    <input id="pfProxyUrl" placeholder="https://your-worker.workers.dev" onchange="savePfProxy(this.value)" style="min-width:280px;flex:1">
+  </div>
+  <div style="display:flex;gap:8px;margin-top:10px;align-items:center;flex-wrap:wrap">
+    <button class="btn-primary" onclick="refreshAllPrices()">↻ Refresh live prices</button>
+    <span id="pfRefreshStatus" style="font-size:12px;color:var(--text3)"></span>
+  </div>
+  <div style="font-size:11px;color:var(--text3);margin-top:8px;line-height:1.6">No key means keyless free sources (Yahoo, Stooq); brokerage-account linking (Fidelity/Vanguard/Schwab holdings) needs a licensed aggregator and belongs in the server-side product.</div>
+</div>
 
 <!-- Market data API keys moved to Settings (gear, top-right) → "Data & integrations". -->
 
@@ -3686,6 +3736,13 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
   </div>
 </div>
 
+<!-- Position overlap — Portfolio vs Proposal -->
+<div class="panel">
+  <div class="ptitle">Position Overlap — Portfolio vs Proposal</div>
+  <div style="font-size:12px;color:var(--text3);margin-bottom:8px;line-height:1.6">Positions the active portfolio and the proposal have in common (matched by ticker / ISIN / name). Overlap means the proposal doubles up on something already held — screen these so current and proposed positions don't overlap.</div>
+  <div id="cmpOverlap"><div class="cmp-empty">Run comparison to screen for overlap.</div></div>
+</div>
+
 <!-- Total return horizon comparison — clean 4-row by 4-column grid (collapsible detail) -->
 <div class="panel">
   <div class="ptitle section-dropdown" onclick="toggleDropdown('aarBody')">Average Annualized Return — 1Y / 3Y / 5Y / 10Y — detailed table <span class="dropdown-hint">click to expand</span><span class="ptitle-line"></span></div>
@@ -4025,7 +4082,7 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
 // ═══════════════════════════════════════════════════════════
 // VERSION — updated by build-standalone.pl on each build
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260920-1339";
+const APP_VERSION = "20260923-1135";
 
 // ═══════════════════════════════════════════════════════════
 // DATA
@@ -6957,6 +7014,7 @@ let whatIfScenarios=[]; let whatIfSeq=0;
 let pfLinkedAccountId="";
 let children=[]; let childSeq=0;
 let investments=[]; let invSeq=0;
+let portfolios=[]; let activePfId=""; let pfSeq=0;  // multiple named portfolios — investments/invSeq/pfLinkedAccountId mirror the ACTIVE one
 let proposals=[]; let propSeq=0;
 let band={low:30,mid:50,high:80};
 let bandMode="standard";
@@ -6985,10 +7043,13 @@ function showTab(name,el){
   if(name==="expenses"){ try{ updateExpTotal(); }catch(_){} }
   if(name==="income"){ try{ updateIncTotal(); updateSavingsPanel(); }catch(_){} }
   if(name==="portfolio"){
+    _pfEnsure(); renderPortfolioSwitcher();
     renderInvestments();renderPortfolioMetrics();drawPortfolioPie();
+    try{ const pe=$("pfProxyUrl"); if(pe) pe.value=localStorage.getItem("wa_cors_proxy")||""; }catch(_){}
     try { applyMdKeysState(); renderMdKeysGrid(); } catch(_){}
   }
   if(name==="proposal"){renderProposals();renderProposalMetrics();renderProposalBars();drawProposalPie();syncProposalClient();ordFillRouteForm();ordRenderRouteSummary();ordRenderLog();}
+  if(name==="report"){ try{ rptSelectsToCheckboxes(); }catch(_){} }
   if(name==="simulation"){
     buildSimInputsSummary();
     // Refresh the proposal-source banner so it shows the right state
@@ -8966,6 +9027,7 @@ function addInvestment(){
   try{ renderFundPerf('pf',null); }catch(_){}  _lastFundPerf=null;   // clear the fetched-performance panel after add
   renderInvestments(); renderPortfolioMetrics(); drawPortfolioPie();
   refreshTopMetrics();
+  try{ renderPortfolioSwitcher(); }catch(_){}
 }
 function editInvestment(id){
   const i=investments.find(x=>x.id===id); if(!i) return;
@@ -9001,6 +9063,7 @@ function removeInvestment(id){
   investments=investments.filter(i=>i.id!==id);
   renderInvestments(); renderPortfolioMetrics(); drawPortfolioPie();
   refreshTopMetrics();
+  try{ renderPortfolioSwitcher(); }catch(_){}
 }
 
 // ── Alternatives line: private equity / hedge fund / structured product ──
@@ -11255,6 +11318,144 @@ function siCommitMapping(){
 window.openStatementImporter=openStatementImporter; window.siRenderFileList=siRenderFileList; window.siRun=siRun;
 window.siSetDelim=siSetDelim; window.siSetHeaderRow=siSetHeaderRow; window.siOnMapChange=siOnMapChange;
 window.siCommitMapping=siCommitMapping; window.siCloseMap=siCloseMap;
+
+// ═══════════════════════════════════════════════════════════════════
+// MULTIPLE NAMED PORTFOLIOS
+// The global `investments` / `invSeq` / `pfLinkedAccountId` always hold the
+// ACTIVE portfolio's working set, so every existing render / metric / sim
+// path keeps operating on it unchanged. `portfolios[]` stores each named
+// set; we snapshot the live globals into the active entry on switch & save.
+// ═══════════════════════════════════════════════════════════════════
+function _pfEsc(s){return String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
+function _pfSnapshotActive(){
+  const p=portfolios.find(x=>x.id===activePfId);
+  if(p){ p.investments=investments; p.invSeq=invSeq; p.pfLinkedAccountId=pfLinkedAccountId; }
+}
+function _pfEnsure(){
+  if(!portfolios.length){
+    const id="pf"+(++pfSeq);
+    portfolios=[{id,name:"Portfolio 1",investments:investments||[],invSeq:invSeq||0,pfLinkedAccountId:pfLinkedAccountId||""}];
+    activePfId=id;
+  }
+  if(!portfolios.find(x=>x.id===activePfId)) activePfId=portfolios[0].id;
+}
+function _pfLoadInto(id){
+  const p=portfolios.find(x=>x.id===id); if(!p) return;
+  activePfId=id;
+  investments=p.investments||[]; invSeq=p.invSeq||_maxIdSeq(investments);
+  pfLinkedAccountId=p.pfLinkedAccountId||"";
+  try{ refreshPortfolioAccountDropdown(); }catch(_){}
+  if($("pfLinkedAccount")) $("pfLinkedAccount").value=pfLinkedAccountId;
+  try{ updateLinkedReconcile(); }catch(_){}
+  renderPortfolioSwitcher();
+  renderInvestments(); renderPortfolioMetrics(); try{ drawPortfolioPie(); }catch(_){}
+  try{ refreshTopMetrics(); }catch(_){}
+}
+function renderPortfolioSwitcher(){
+  const host=$("pfSwitcher"); if(!host) return;
+  _pfEnsure(); _pfSnapshotActive();
+  host.innerHTML=portfolios.map(p=>{
+    const n=(p.investments||[]).length;
+    return '<button class="pf-tab'+(p.id===activePfId?' active':'')+'" onclick="pfSwitchTo(\''+p.id+'\')" title="'+_pfEsc(p.name)+'">'
+      +_pfEsc(p.name)+' <span class="pf-tab-n">'+n+'</span></button>';
+  }).join("");
+  try{ renderCrossPortfolioOverlap(); }catch(_){}
+}
+function pfSwitchTo(id){ if(id===activePfId) return; _pfSnapshotActive(); _pfLoadInto(id); }
+function pfNew(){
+  _pfSnapshotActive();
+  const nm=prompt("Name for the new portfolio:","Portfolio "+(portfolios.length+1));
+  if(nm===null) return;
+  const id="pf"+(++pfSeq);
+  portfolios.push({id,name:(nm.trim()||("Portfolio "+(portfolios.length+1))),investments:[],invSeq:0,pfLinkedAccountId:""});
+  _pfLoadInto(id);
+}
+function pfDuplicate(){
+  _pfSnapshotActive();
+  const cur=portfolios.find(x=>x.id===activePfId); if(!cur) return;
+  let s=0; const holds=(cur.investments||[]).map(h=>({...h,id:"inv"+(++s)}));
+  const id="pf"+(++pfSeq);
+  portfolios.push({id,name:cur.name+" (copy)",investments:holds,invSeq:s,pfLinkedAccountId:cur.pfLinkedAccountId||""});
+  _pfLoadInto(id);
+}
+function pfRename(){
+  _pfEnsure(); const cur=portfolios.find(x=>x.id===activePfId); if(!cur) return;
+  const nm=prompt("Rename portfolio:",cur.name); if(nm===null) return;
+  cur.name=nm.trim()||cur.name; renderPortfolioSwitcher();
+}
+function pfDelete(){
+  if(portfolios.length<=1){ alert("You need at least one portfolio — create another before deleting this one."); return; }
+  const cur=portfolios.find(x=>x.id===activePfId); if(!cur) return;
+  if(!confirm('Delete "'+cur.name+'" and its holdings? This cannot be undone.')) return;
+  portfolios=portfolios.filter(x=>x.id!==activePfId);
+  _pfLoadInto(portfolios[0].id);
+}
+
+// Save the free market-data proxy (Cloudflare Worker) URL used for live prices.
+function savePfProxy(v){
+  try{ localStorage.setItem("wa_cors_proxy", String(v||"").trim()); }catch(_){}
+  const s=$("pfRefreshStatus"); if(s) s.textContent = (v&&String(v).trim()) ? "Proxy saved — live prices will route through it." : "Proxy cleared — using public fallback (unreliable).";
+}
+
+// Render the report "Sections to Include" Yes/No selects as a checkbox checklist.
+// The hidden <select>s remain the source of truth, so the PDF generator's
+// val("rptInc...") reads are unchanged — the checkbox just drives them.
+function rptSelectsToCheckboxes(){
+  const host=$("rptSectionsBody"); if(!host) return;
+  host.querySelectorAll('select[id^="rptInc"]').forEach(sel=>{
+    if(sel.dataset.cbified) return; sel.dataset.cbified="1";
+    const frow=sel.closest('.frow'); const lab=frow&&frow.querySelector('label'); if(!lab) return;
+    const cb=document.createElement('input');
+    cb.type='checkbox'; cb.checked=(sel.value!=="no");
+    cb.style.cssText='width:16px;height:16px;accent-color:var(--gold);cursor:pointer;margin-right:9px;flex:0 0 auto;vertical-align:middle';
+    cb.onchange=()=>{ sel.value=cb.checked?"yes":"no"; };
+    sel.hidden=true;
+    lab.style.cursor='pointer';
+    lab.insertBefore(cb, lab.firstChild);
+  });
+}
+
+// ── Position-overlap screening (matched by ticker → ISIN → name) ──────
+function _posKey(x){
+  const tkr=String(x&&x.tkr||"").toUpperCase().trim();
+  const isin=String(x&&x.isin||"").toUpperCase().trim();
+  const nm=String(x&&x.name||"").toLowerCase().replace(/\s+/g," ").trim();
+  return tkr||isin||nm||"";
+}
+function _posLabel(x){ return String(x&&(x.name||x.tkr||x.isin)||"Position"); }
+function renderOverlapVsProposal(){
+  const host=$("cmpOverlap"); if(!host) return;
+  if(!investments.length || !proposals.length){
+    host.innerHTML='<div class="cmp-empty">Add holdings to the active portfolio and positions to the proposal to screen for overlap.</div>'; return;
+  }
+  const totalCur=investments.reduce((s,i)=>s+(+i.val||0),0);
+  const cur={}, prop={};
+  investments.forEach(i=>{ const k=_posKey(i); if(!k) return; (cur[k]=cur[k]||{label:_posLabel(i),wt:0}).wt += totalCur>0?(+i.val||0)/totalCur*100:0; });
+  proposals.forEach(p=>{ const k=_posKey(p); if(!k) return; (prop[k]=prop[k]||{label:_posLabel(p),alloc:0}).alloc += (+p.alloc||0); });
+  const keys=Object.keys(cur).filter(k=>prop[k]);
+  if(!keys.length){
+    host.innerHTML='<div class="ov-ok">✓ No overlapping positions — every proposed position is distinct from the current holdings, so nothing is double-counted.</div>'; return;
+  }
+  const rows=keys.map(k=>'<div class="ov-row"><div class="ov-name">'+_pfEsc(prop[k].label||cur[k].label)+'</div>'
+    +'<div class="ov-cur">'+cur[k].wt.toFixed(1)+'%</div><div class="ov-prop">'+prop[k].alloc.toFixed(1)+'%</div></div>').join("");
+  host.innerHTML='<div class="ov-warn">⚠ '+keys.length+' position'+(keys.length>1?'s':'')+' appear in both the active portfolio and the proposal — added on top of current holdings they would double-count. Treat the proposal as a replacement, or trim these.</div>'
+    +'<div class="ov-tbl"><div class="ov-row ov-head"><div class="ov-name">Position</div><div class="ov-cur">In portfolio</div><div class="ov-prop">In proposal</div></div>'+rows+'</div>';
+}
+function renderCrossPortfolioOverlap(){
+  const host=$("pfCrossOverlap"); if(!host) return;
+  _pfEnsure(); _pfSnapshotActive();
+  if(portfolios.length<2){ host.innerHTML='<div class="cmp-empty">Add a second portfolio to screen for positions held in more than one.</div>'; return; }
+  const map={};
+  portfolios.forEach(pf=>{ const seen=new Set();
+    (pf.investments||[]).forEach(h=>{ const k=_posKey(h); if(!k||seen.has(k)) return; seen.add(k);
+      (map[k]=map[k]||{label:_posLabel(h),names:[]}).names.push(pf.name); });
+  });
+  const dup=Object.keys(map).filter(k=>map[k].names.length>1);
+  if(!dup.length){ host.innerHTML='<div class="ov-ok">✓ No position appears in more than one portfolio — they don\'t overlap.</div>'; return; }
+  const rows=dup.map(k=>'<div class="ov-row"><div class="ov-name">'+_pfEsc(map[k].label)+'</div><div class="ov-prop" style="grid-column:2 / -1;text-align:left">'+map[k].names.map(n=>'<span class="ov-chip">'+_pfEsc(n)+'</span>').join(" ")+'</div></div>').join("");
+  host.innerHTML='<div class="ov-warn">⚠ '+dup.length+' position'+(dup.length>1?'s':'')+' held in more than one portfolio — overlapping exposure across your portfolios:</div>'
+    +'<div class="ov-tbl"><div class="ov-row ov-head"><div class="ov-name">Position</div><div class="ov-prop" style="grid-column:2 / -1;text-align:left">Appears in</div></div>'+rows+'</div>';
+}
 
 function renderInvestments(){
   const list=$("pfList"); if(!list) return;
@@ -15764,6 +15965,13 @@ const MarketData = (function(){
   // Tries the direct URL first. If it fails with a network/CORS error
   // (TypeError or opaque response), retries through corsproxy.io which
   // adds the missing Access-Control-Allow-Origin header for us.
+  // Build the proxy URL for a target. Prefers a user-configured proxy
+  // (a free Cloudflare Worker set in the Live Prices panel) over the public
+  // corsproxy.io fallback, so keyless sources like Yahoo work reliably.
+  function _proxyUrl(u){
+    const base=(localStorage.getItem("wa_cors_proxy")||"").trim().replace(/\/+$/,"");
+    return base ? (base+"/?url="+encodeURIComponent(u)) : ("https://corsproxy.io/?"+encodeURIComponent(u));
+  }
   async function corsFetch(url, opts){
     opts = opts || {};
     try {
@@ -15775,8 +15983,8 @@ const MarketData = (function(){
       if(r.status >= 400 && r.status < 500) return r;
       throw new Error("HTTP "+r.status);
     } catch(_){
-      // Network error → retry through CORS proxy
-      const proxied = "https://corsproxy.io/?" + encodeURIComponent(url);
+      // Network error → retry through the configured proxy (Worker) or public fallback
+      const proxied = _proxyUrl(url);
       return await fetch(proxied, opts);
     }
   }
@@ -15913,7 +16121,7 @@ const MarketData = (function(){
   async function tryYahoo(t){
     const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(t)}?interval=1d`;
     let r;
-    try { r = await fetch(url); } catch(e){ r = await fetch(`https://corsproxy.io/?${encodeURIComponent(url)}`); }
+    try { r = await fetch(url); } catch(e){ r = await fetch(_proxyUrl(url)); }
     if(!r.ok) throw new Error("HTTP "+r.status);
     const j = await r.json(); const m = j.chart && j.chart.result && j.chart.result[0] && j.chart.result[0].meta;
     if(!m) throw new Error("No meta");
@@ -15943,7 +16151,7 @@ const MarketData = (function(){
     const sym = t.includes(".") ? t.toLowerCase() : t.toLowerCase() + ".us";
     const url = `https://stooq.com/q/l/?s=${encodeURIComponent(sym)}&f=sd2t2ohlcv&h&e=csv`;
     let r;
-    try { r = await fetch(url); } catch(e){ r = await fetch(`https://corsproxy.io/?${encodeURIComponent(url)}`); }
+    try { r = await fetch(url); } catch(e){ r = await fetch(_proxyUrl(url)); }
     if(!r.ok) throw new Error("HTTP "+r.status);
     const txt = await r.text();
     const lines = txt.trim().split("\n"); if(lines.length < 2) throw new Error("No data");
@@ -16173,9 +16381,19 @@ const MarketData = (function(){
       if(needsKey[n] && !needsKey[n]()) continue;
       try {
         const d = await fetchOne(t, n);
-        if(d && d.price>0){ cache.set(k,{data:d,ts:Date.now()}); return d; }
+        if(d && d.price>0){
+          cache.set(k,{data:d,ts:Date.now()});
+          try{ localStorage.setItem("wa_lastquote_"+t, JSON.stringify({data:d,ts:Date.now()})); }catch(_){}
+          return d;
+        }
       } catch(e){ console.warn(`MarketData ${n} failed:`, e.message); }
     }
+    // Graceful fallback — serve the last good quote saved for this symbol so
+    // the app always shows a number even when every live source is unreachable.
+    try{
+      const saved=JSON.parse(localStorage.getItem("wa_lastquote_"+t)||"null");
+      if(saved && saved.data && saved.data.price>0){ return {...saved.data, stale:true, asOf:saved.ts}; }
+    }catch(_){}
     throw new Error("All providers failed for "+t);
   }
 
@@ -19459,6 +19677,9 @@ function runComparison(){
   // ── Twin pie charts — Current vs Proposed asset class breakdown
   drawComparisonPies();
 
+  // ── Position-overlap screen — active portfolio vs proposal
+  try{ renderOverlapVsProposal(); }catch(_){}
+
   // ── Total Return Comparison (1y / 3y / 5y / 10y) — deterministic + MC median
   renderReturnHorizon(curParams.mu, curParams.sig, propMu, propSig);
 
@@ -21928,7 +22149,7 @@ function drawFanChart(){
       cf:             () => val("rptIncCF") !== "no",
       pension:        () => val("rptIncPension") !== "no" && ((((val("penSrc")||"none")!=="none") && num("penAnnual",0)>0)
                             || ($("c2card") && $("c2card").style.display!=="none" && ((val("penSrc2")||"none")!=="none") && num("penAnnual2",0)>0)
-                            || ((val("c1co")||"")==="CH" && assets.some(a=>["bvg_lpp","vested_benefits","pillar_3a_bank","pillar_3a_fund","pillar_3a_insurance","savings_3a_bank"].includes(a.type) && (+a.value||0)>0))),
+                            || ((val("c1co")||"")==="CH" && (assets.some(a=>["bvg_lpp","vested_benefits","pillar_3a_bank","pillar_3a_fund","pillar_3a_insurance","savings_3a_bank"].includes(a.type) && (+a.value||0)>0) || num("chP2",0)>0 || num("chP3a",0)>0 || num("anCap",0)>0))),
       whatif:         () => val("rptIncWhatIf") !== "no" && (typeof whatIfScenarios!=="undefined") && whatIfScenarios.length>0,
       method:         () => val("rptIncMethod") !== "no",
       educharts:       () => getSelectedEduCharts().length > 0,
@@ -23713,9 +23934,17 @@ function drawFanChart(){
         const src2=hasC2?(val("penSrc2")||"none"):"none";
         const base2=src2==="none"?0:num("penAnnual2",0), fra2=num("penStartAge2",67);
         const P2=new Set(["bvg_lpp","vested_benefits"]), P3=new Set(["pillar_3a_bank","pillar_3a_fund","pillar_3a_insurance","savings_3a_bank"]);
-        const p2Bal=assets.filter(a=>P2.has(a.type)).reduce((s,a)=>s+(+a.value||0),0);
-        const p3Bal=assets.filter(a=>P3.has(a.type)).reduce((s,a)=>s+(+a.value||0),0);
-        const isCH=cc==="CH", pillarTot=p2Bal+p3Bal;
+        let p2Bal=assets.filter(a=>P2.has(a.type)).reduce((s,a)=>s+(+a.value||0),0);
+        let p3Bal=assets.filter(a=>P3.has(a.type)).reduce((s,a)=>s+(+a.value||0),0);
+        const isCH=cc==="CH";
+        // Fall back to the Swiss calculator panels (chP2 / chP3a / anCap) when the pillar
+        // balances were entered only there and not on the Assets tab — otherwise the whole
+        // Swiss pension section silently skips even though the advisor filled it in.
+        if(isCH){
+          if(p2Bal<=0) p2Bal = num("chP2",0) || num("anCap",0);
+          if(p3Bal<=0) p3Bal = num("chP3a",0);
+        }
+        const pillarTot=p2Bal+p3Bal;
         if(!(base1>0 || base2>0 || (isCH&&pillarTot>0))) return;
         newPage();
         sectionH2("Retirement Pensions");
@@ -23739,7 +23968,7 @@ function drawFanChart(){
               return [String(r.a)+(r.a===fra1?" (your plan)":"")+(r.a===best.a?" (best)":""), fmt(r.annual), fmt(r.total), d===0?"—":(d>0?"+":"-")+fmt(Math.abs(d))]; }));
         }
         if(isCH && pillarTot>0 && typeof chLumpTax==="function"){
-          const canton=(val("taxState")||val("c1st")||"ZH");
+          const canton=(val("chCanton")||val("taxState")||val("c1st")||"ZH");
           const cName=(typeof CH_CANTON_NAMES!=="undefined"&&CH_CANTON_NAMES[canton])||canton;
           const t1=chLumpTax(canton,pillarTot)||0, r1=(typeof chLumpRate==="function"?chLumpRate(canton,pillarTot):0)||0;
           const s2=2*chLumpTax(canton,pillarTot/2), s3=3*chLumpTax(canton,pillarTot/3);
@@ -24997,6 +25226,7 @@ PROFILE_FIELDS.forEach(id=>{ const el=$(id); if(el) PROFILE_DEFAULTS[id]=el.valu
 function _maxIdSeq(arr){ return (arr||[]).reduce((m,x)=>Math.max(m, +String(x&&x.id||"").replace(/\D/g,"")||0), 0); }
 
 function saveProfile(){
+  _pfEnsure(); _pfSnapshotActive();   // fold the live holdings into the active portfolio before serialising
   const fields={};
   PROFILE_FIELDS.forEach(id=>{if($(id)) fields[id]=$(id).value;});
   PROFILE_CHECKBOXES.forEach(id=>{if($(id)) fields["chk_"+id]=$(id).checked;});
@@ -25007,7 +25237,8 @@ function saveProfile(){
     bandMode:(typeof bandMode!=="undefined"?bandMode:"standard"),
     ccy:CURRENT_CCY, ccyManual:(typeof _ccyManual!=="undefined"?_ccyManual:false),
     assets,loans,goals,children,investments,proposals,insurances,equityComp,beneficiaries,whatIfScenarios,
-    assetSeq,loanSeq,goalSeq,childSeq,invSeq,propSeq,insSeq,eqSeq,benSeq,whatIfSeq,pfLinkedAccountId
+    assetSeq,loanSeq,goalSeq,childSeq,invSeq,propSeq,insSeq,eqSeq,benSeq,whatIfSeq,pfLinkedAccountId,
+    portfolios,activePfId,pfSeq
   };
   const blob=new Blob([JSON.stringify(profile,null,2)],{type:"application/json"});
   const url=URL.createObjectURL(blob);
@@ -25079,6 +25310,20 @@ function restoreProfile(p){
   refreshPortfolioAccountDropdown();
   if(pfLinkedAccountId && $("pfLinkedAccount")) $("pfLinkedAccount").value=pfLinkedAccountId;
   updateLinkedReconcile();
+  // ── Multiple named portfolios (migrate legacy single-portfolio profiles) ──
+  if(Array.isArray(p.portfolios) && p.portfolios.length){
+    portfolios=p.portfolios.map((pf,i)=>({
+      id:pf.id||("pf"+(i+1)), name:String(pf.name||("Portfolio "+(i+1))),
+      investments:(pf.investments||[]).map(h=>({...h,val:(+h.val||0)})),
+      invSeq:pf.invSeq||_maxIdSeq(pf.investments||[]),
+      pfLinkedAccountId:pf.pfLinkedAccountId||""
+    }));
+    pfSeq=Math.max(p.pfSeq||0,_maxIdSeq(portfolios));
+    activePfId=(p.activePfId&&portfolios.some(x=>x.id===p.activePfId))?p.activePfId:portfolios[0].id;
+  } else {
+    portfolios=[]; activePfId=""; pfSeq=0;   // fall through to migration from the single `investments` set
+  }
+  _pfEnsure(); _pfLoadInto(activePfId);
   // EU sub-selects: repopulate dependent options for the saved EU country, then
   // re-apply the saved region/city picks on top.
   if(f.c1eu && $("c1eu")){
