@@ -29,7 +29,7 @@ const APPS = [
   { name: "Admin",                    source: "admin.html",                    standalone: "admin-standalone.html",                    versionFile: "version.json",         minBytes:   200_000, requireData: false },
 ];
 
-const VENDOR = ["chart.min.js", "jspdf.min.js", "autotable.min.js", "pdf.min.js", "pdf.worker.min.js"];
+const VENDOR = ["chart.min.js", "jspdf.min.js", "autotable.min.js", "pdf.min.js", "pdf.worker.min.js", "lucide.min.js"];
 
 const APP_VERSION_RE = /const\s+APP_VERSION\s*=\s*"([^"]*)"/;
 const VERSION_FMT_RE = /^\d{8}-\d{4}$/;
