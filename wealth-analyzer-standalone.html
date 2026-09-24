@@ -4528,7 +4528,7 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
 // ═══════════════════════════════════════════════════════════
 // VERSION — updated by build-standalone.pl on each build
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260923-1135";
+const APP_VERSION = "20260924-1131";
 
 // ═══════════════════════════════════════════════════════════
 // DATA
@@ -7497,6 +7497,7 @@ function showTab(name,el){
   if(name==="proposal"){renderProposals();renderProposalMetrics();renderProposalBars();drawProposalPie();syncProposalClient();ordFillRouteForm();ordRenderRouteSummary();ordRenderLog();}
   if(name==="report"){ try{ rptSelectsToCheckboxes(); }catch(_){} }
   if(name==="simulation"){
+    try{ relocateSwissPensionPanels(); }catch(_){}
     buildSimInputsSummary();
     // Refresh the proposal-source banner so it shows the right state
     // when the user navigates back to the Simulation tab.
@@ -11841,6 +11842,20 @@ function pfDelete(){
 function savePfProxy(v){
   try{ localStorage.setItem("wa_cors_proxy", String(v||"").trim()); }catch(_){}
   const s=$("pfRefreshStatus"); if(s) s.textContent = (v&&String(v).trim()) ? "Proxy saved — live prices will route through it." : "Proxy cleared — using public fallback (unreliable).";
+}
+
+// Swiss pension is retirement content, not portfolio analytics — relocate the two
+// Swiss panels from the "Portfolio efficiency & risk" group into the end of the
+// "Retirement income & withdrawals" group (in the DOM, once).
+function relocateSwissPensionPanels(){
+  const cp=document.getElementById("chPensionPanel"), ap=document.getElementById("chAnnuityPanel");
+  if(!cp||!ap || cp.dataset.relocated) return;
+  const dividers=[...document.querySelectorAll('#tab-simulation .sim-group')];
+  const cashDiv=dividers.find(d=>/cash flow/i.test(d.textContent||""));
+  if(!cashDiv || !cashDiv.parentNode) return;
+  cashDiv.parentNode.insertBefore(cp, cashDiv);
+  cashDiv.parentNode.insertBefore(ap, cashDiv);
+  cp.dataset.relocated="1";
 }
 
 // Render the report "Sections to Include" Yes/No selects as a checkbox checklist.
