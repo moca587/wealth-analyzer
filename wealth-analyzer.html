@@ -86,6 +86,12 @@ body{font-family:var(--fb);background:var(--bg);color:var(--text);font-size:14px
 .btn-secondary .icon{width:14px;height:14px}
 .set-close .icon{width:15px;height:15px;vertical-align:middle}
 .md-pill .icon{width:11px;height:11px;stroke-width:2.5;vertical-align:-0.12em}
+/* Section-title icon (ptitle is uppercase text; the icon inherits its colour) */
+.ptitle .ptitle-icon{width:15px;height:15px;color:var(--gold);margin-right:2px}
+.btn-primary .icon{width:14px;height:14px;vertical-align:-0.15em}
+.fund-tag .icon{width:11px;height:11px;stroke-width:2.5;vertical-align:-0.15em}
+/* Status line helper — statusMsg(el, kind, text) */
+.st-msg .icon{width:13px;height:13px;vertical-align:-0.15em;margin-right:3px}
 /* AI Portfolio Builder tab */
 .aib-hero-icon{width:84px;height:84px;stroke-width:1.5;opacity:.85}
 .aib-step-chip{width:48px;height:48px;border-radius:12px;margin:0 auto 10px;display:flex;align-items:center;justify-content:center;background:rgba(124,58,237,.10);color:#7c3aed}
@@ -93,7 +99,6 @@ body{font-family:var(--fb);background:var(--bg);color:var(--text);font-size:14px
 .aib-step-num{font-size:10px;font-weight:700;letter-spacing:.10em;text-transform:uppercase;color:#7c3aed;margin-bottom:4px}
 .aib-go .icon{width:20px;height:20px;vertical-align:-0.25em;margin-right:6px}
 .aib-h .icon{color:#7c3aed;margin-right:6px}
-.aib-banner-icon{width:26px;height:26px}
 .set-switch{position:relative;display:inline-block;width:44px;height:24px;flex-shrink:0}
 .set-switch input{opacity:0;width:0;height:0}
 .set-switch span{position:absolute;inset:0;background:var(--bg4);border-radius:50px;cursor:pointer;transition:.2s}
@@ -2425,7 +2430,7 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
 
 <!-- Run Simulation button -->
 <div class="panel sim-run-panel" style="text-align:center">
-    <button class="btn-primary full" onclick="runSim()">▶ Run Simulation</button>
+    <button class="btn-primary full" onclick="runSim()"><i data-lucide="play" class="icon" aria-hidden="true"></i> Run Simulation</button>
     <div style="margin-top:8px;font-size:12px;color:var(--text2)">Fine-tune projection years, simulations, probability bands and stress scenarios in the <strong>Settings</strong> panel (gear, top-right).</div>
 </div>
 
@@ -2445,7 +2450,7 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
   </div>
   <div id="simInputsBody" class="dropdown-body">
     <div id="simInputsSummary" style="font-size:12px;color:var(--text3);line-height:1.8;padding-top:6px">
-      Fill in the tabs on the left and click <strong style="color:var(--text2)">▶ Run Simulation</strong> — a summary of everything that feeds in will appear here.
+      Fill in the tabs on the left and click <strong style="color:var(--text2)"><i data-lucide="play" class="icon" aria-hidden="true"></i> Run Simulation</strong> — a summary of everything that feeds in will appear here.
     </div>
   </div>
 </div>
@@ -2514,7 +2519,7 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
 <!-- Goals-Based Analysis (moved from its own tab) -->
 <div class="panel" id="goalsBasedPanel" style="border-left:4px solid #7c3aed">
   <div class="ptitle section-dropdown" onclick="toggleDropdown('goalsBasedBody')" style="margin:0">
-    🎯 Goals-Based Analysis <span class="dropdown-hint">institutional funding-ratio method · click to expand</span>
+    <i data-lucide="target" class="icon ptitle-icon" aria-hidden="true"></i>Goals-Based Analysis <span class="dropdown-hint">institutional funding-ratio method · click to expand</span>
     <span class="ptitle-line"></span>
   </div>
   <div class="dropdown-body" id="goalsBasedBody">
@@ -2522,7 +2527,7 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
       Institutional goals-based methodology using per-asset-class capital market assumptions with a full correlation matrix for accurate portfolio risk. This feeds the <strong>Goal Funding</strong> panel above (present-value cost, priority-weighted discount rate, funding ratio) — this section shows the underlying assumptions and your Wealth Allocation Framework.
     </div>
     <div style="margin-bottom:14px;display:flex;gap:10px;flex-wrap:wrap;align-items:center">
-      <button class="btn-primary" onclick="runGoalsBased()" style="font-size:13px;padding:9px 20px">▶ Run / refresh</button>
+      <button class="btn-primary" onclick="runGoalsBased()" style="font-size:13px;padding:9px 20px"><i data-lucide="play" class="icon" aria-hidden="true"></i> Run / refresh</button>
       <span id="gbStatus" style="font-size:12px;color:var(--text3)"></span>
     </div>
 
@@ -2565,7 +2570,7 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
   <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-bottom:12px">
     <label class="flbl" style="min-width:0">Plan through age</label>
     <input type="number" id="rdPlanAge" value="90" min="70" max="110" step="1" class="w120">
-    <button class="btn-primary" onclick="runRetirementDrawdown()">▶ Run drawdown analysis</button>
+    <button class="btn-primary" onclick="runRetirementDrawdown()"><i data-lucide="play" class="icon" aria-hidden="true"></i> Run drawdown analysis</button>
     <span id="rdStatus" style="font-size:12px;color:var(--text3)"></span>
   </div>
   <div id="rdResults"><div class="pf-empty">Set your retirement age, spending, and pensions above, then run the drawdown analysis.</div></div>
@@ -2609,7 +2614,7 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
   <div class="dropdown-body" id="rmdBody">
   <div style="font-size:12px;color:var(--text3);line-height:1.6;margin:10px 0 10px">Many countries force a minimum annual withdrawal from tax-deferred retirement accounts once you reach a set age — the US <strong style="color:var(--text2)">RMD</strong>, Canada's <strong style="color:var(--text2)">RRIF minimum</strong>, Australia's <strong style="color:var(--text2)">minimum pension drawdown</strong>. This projects that mandatory schedule from your retirement pool and estimates the tax it triggers, using your household country's rule. Illustrative — not tax advice.</div>
   <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-bottom:12px">
-    <button class="btn-primary" onclick="runRMDSchedule()">▶ Project minimum withdrawals</button>
+    <button class="btn-primary" onclick="runRMDSchedule()"><i data-lucide="play" class="icon" aria-hidden="true"></i> Project minimum withdrawals</button>
     <span id="rmdStatus" style="font-size:12px;color:var(--text3)"></span>
   </div>
   <div id="rmdResults"><div class="pf-empty">Set your country (Household tab) and retirement accounts, then project the schedule.</div></div>
@@ -2625,7 +2630,7 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
   <div class="dropdown-body" id="rothBody">
   <div style="font-size:12px;color:var(--text3);line-height:1.6;margin:10px 0 10px">Converting tax-deferred savings to a <strong style="color:var(--text2)">tax-free</strong> account in low-income years — the gap between retiring and when mandatory withdrawals or pensions begin — locks in today's lower tax rate and shrinks future required withdrawals. This sizes that window from your retirement pool, using your country's equivalent mechanism (or flags where none exists). Illustrative — not tax advice.</div>
   <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-bottom:12px">
-    <button class="btn-primary" onclick="runRothConversion()">▶ Analyze conversion window</button>
+    <button class="btn-primary" onclick="runRothConversion()"><i data-lucide="play" class="icon" aria-hidden="true"></i> Analyze conversion window</button>
     <span id="rothStatus" style="font-size:12px;color:var(--text3)"></span>
   </div>
   <div id="rothResults"><div class="pf-empty">Set your country, retirement age, and retirement accounts, then analyze.</div></div>
@@ -2853,7 +2858,7 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
     <div style="display:flex;gap:18px;flex-wrap:wrap;margin-bottom:8px;align-items:flex-end">
       <div class="frow" style="margin:0"><label class="flbl">Estate tax exemption</label><input type="number" id="estExemption" value="13610000" step="100000" class="w160" oninput="this.dataset.userset='1';renderEstate()"></div>
       <div class="frow" style="margin:0"><label class="flbl">Estate tax rate %</label><input type="number" id="estRate" value="40" step="1" min="0" max="80" class="w120" oninput="this.dataset.userset='1';renderEstate()"></div>
-      <button class="btn-secondary" onclick="syncEstateRegime(true)" style="padding:7px 14px">↺ Use country defaults</button>
+      <button class="btn-secondary" onclick="syncEstateRegime(true)" style="padding:7px 14px"><i data-lucide="rotate-ccw" class="icon" aria-hidden="true"></i> Use country defaults</button>
     </div>
     <div id="estRegimeNote" style="font-size:11px;color:var(--text3);line-height:1.6;margin-bottom:12px;padding:8px 10px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--rs)"></div>
     <div class="sdiv">
@@ -5765,9 +5770,9 @@ function computeRMDSchedule(){
 }
 function runRMDSchedule(){
   const st=$("rmdStatus"); if(st){ st.textContent="Projecting…"; st.style.color="var(--text3)"; }
-  let s; try{ s=computeRMDSchedule(); }catch(e){ if(st){ st.textContent="✗ "+e.message; st.style.color="var(--red)"; } return; }
+  let s; try{ s=computeRMDSchedule(); }catch(e){ statusMsg(st,"err",e.message); return; }
   renderRMDSchedule(s);
-  if(st){ st.textContent="✓ done"; st.style.color="var(--green)"; }
+  statusMsg(st,"ok","done");
 }
 // Reusable metric tile (.mc): a label + value, with an optional hover-reveal
 // explanation using the app's existing .info-ic/.info-pop tooltip component
@@ -5852,8 +5857,8 @@ function computeRothConversion(){
 }
 function runRothConversion(){
   const st=$("rothStatus"); if(st){ st.textContent="Analyzing…"; st.style.color="var(--text3)"; }
-  try{ renderRothConversion(computeRothConversion()); }catch(e){ if(st){ st.textContent="✗ "+e.message; st.style.color="var(--red)"; } return; }
-  if(st){ st.textContent="✓ done"; st.style.color="var(--green)"; }
+  try{ renderRothConversion(computeRothConversion()); }catch(e){ statusMsg(st,"err",e.message); return; }
+  statusMsg(st,"ok","done");
 }
 function renderRothConversion(s){
   const host=$("rothResults"); if(!host) return;
@@ -7165,6 +7170,14 @@ function refreshIcons(){
   document.querySelectorAll("svg[data-lucide]").forEach(el => el.removeAttribute("data-lucide"));
 }
 window.refreshIcons = refreshIcons;
+// Status line with a leading Lucide icon. kind: "ok" | "err". text is escaped.
+function statusMsg(el, kind, text){
+  if(!el) return;
+  const ok = kind === "ok";
+  el.innerHTML = '<span class="st-msg">' + lucideIcon(ok ? "circle-check" : "circle-x") + escapeForHTML(String(text)) + '</span>';
+  el.style.color = ok ? "var(--green)" : "var(--red)";
+  refreshIcons();
+}
 document.addEventListener("DOMContentLoaded", refreshIcons);
 
 function renderMdKeysGrid(){
@@ -13509,7 +13522,9 @@ function renderSimpleAIResult(rec, simpleBrief){
     const isUcits = rec.domicilePolicy.type === "UCITS";
     const cc = rec.universeFiltered?.country || "US";
     h += '<div style="background:' + (isUcits?'linear-gradient(135deg,#fff7ed,#fef3c7)':'linear-gradient(135deg,#ecfdf5,#d1fae5)') + ';border-left:4px solid ' + (isUcits?'#f59e0b':'#10b981') + ';border-radius:10px;padding:14px 18px;margin-bottom:14px;display:flex;gap:14px;align-items:flex-start">';
-    h += '<div style="flex-shrink:0;color:' + (isUcits?'#b45309':'#047857') + '">' + lucideIcon("shield-check", "aib-banner-icon") + '</div>';
+    const flagMap = {US:"🇺🇸",GB:"🇬🇧",CH:"🇨🇭",DE:"🇩🇪",FR:"🇫🇷",IT:"🇮🇹",ES:"🇪🇸",NL:"🇳🇱",SE:"🇸🇪",AU:"🇦🇺",JP:"🇯🇵",SG:"🇸🇬",HK:"🇭🇰",CN:"🇨🇳",IN:"🇮🇳",CA:"🇨🇦",EU:"🇪🇺",MX:"🇲🇽",BR:"🇧🇷",ZA:"🇿🇦",SA:"🇸🇦",ID:"🇮🇩",KR:"🇰🇷",TW:"🇹🇼"};
+    const flag = flagMap[cc] || "🌐";
+    h += '<div style="font-size:28px;flex-shrink:0">' + flag + '</div>';
     h += '<div style="flex:1">';
     h += '<div style="font-size:12px;font-weight:700;color:' + (isUcits?'#92400e':'#065f46') + ';margin-bottom:4px">' + (isUcits?'UCITS funds only':'US-listed funds only') + ' — picked for your country (' + escapeForHTML(cc) + ')</div>';
     h += '<div style="font-size:12px;line-height:1.55;color:var(--text2)">' + escapeForHTML(rec.domicilePolicy.note) + '</div>';
@@ -17597,7 +17612,7 @@ function runRetirementDrawdown(){
     need0, pen0, wd0:Math.max(0,need0-pen0), seed,
     band:bands.map((c,y)=>({age:c1Age+y, p10:pctl(c,10), p50:pctl(c,50), p90:pctl(c,90)})).filter(b=>b.age>=retAge)
   });
-  if(st){ st.textContent="✓ "+sims+" paths"; st.style.color="var(--green)"; }
+  statusMsg(st,"ok",sims+" paths");
 }
 function renderRetirementDrawdown(s){
   const host=$("rdResults"); if(!host) return;
@@ -19329,7 +19344,7 @@ function renderCFComparison(niData,curData,propData,curMu,propMu,curParams,propP
       :"1fr 68px 120px 108px 115px 95px";
     const tag=(nw,amt,color)=>{
       const ok=nw>=amt;
-      return `<div><span class="fund-tag ${ok?'fund-ok':'fund-bad'}">${ok?"✓ Funded":"✗ Short"}</span>`+
+      return `<div><span class="fund-tag ${ok?'fund-ok':'fund-bad'}">${ok?lucideIcon("check")+" Funded":lucideIcon("x")+" Short"}</span>`+
         `<div style="font-size:10px;color:${color||'var(--text3)'};margin-top:2px;font-variant-numeric:tabular-nums">${fmtMoney(nw)}</div></div>`;
     };
     const goalRows=goals.map(g=>{
@@ -19362,6 +19377,7 @@ function renderCFComparison(niData,curData,propData,curMu,propMu,curParams,propP
       </div>
       ${goalRows}
     `);
+    refreshIcons();
   } else {
     setH("cfcGoals",`<div style="font-size:12px;color:var(--text3);padding:8px 0">No goals defined — add goals on the Goals tab to see funding comparison.</div>`);
   }
@@ -20366,7 +20382,7 @@ function runGoalsBased(){
   gbRenderCMA(weights, port);
 
   const cmaEl = document.getElementById("gbCmaPanel"); if(cmaEl) cmaEl.style.display = "block";
-  if(status) status.innerHTML = '✓ <strong style="color:#1b6841">Analysis complete</strong> — portfolio μ ' + (port.geoMu*100).toFixed(2) + '% · σ ' + (port.sigma*100).toFixed(2) + '%';
+  if(status) status.innerHTML = '<span class="st-msg">' + lucideIcon("circle-check") + '</span><strong style="color:#1b6841">Analysis complete</strong> — portfolio μ ' + (port.geoMu*100).toFixed(2) + '% · σ ' + (port.sigma*100).toFixed(2) + '%'; refreshIcons();
 }
 window.runGoalsBased = runGoalsBased;
 
