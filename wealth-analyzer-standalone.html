@@ -550,7 +550,7 @@ body{font-family:var(--fb);background:var(--bg);color:var(--text);font-size:14px
 .btn-primary .icon{width:14px;height:14px;vertical-align:-0.15em}
 .fetch-ic{width:12px;height:12px;vertical-align:-0.15em}
 .fund-tag .icon{width:11px;height:11px;stroke-width:2.5;vertical-align:-0.15em}
-/* Status line helper — statusMsg(el, kind, text) */
+/* Status line helper — statusMsg(el, kind, text); kind is ok | warn | err */
 .st-msg .icon{width:13px;height:13px;vertical-align:-0.15em;margin-right:3px}
 /* AI Portfolio Builder tab */
 .aib-hero-icon{width:84px;height:84px;stroke-width:1.5;opacity:.85}
@@ -4646,7 +4646,7 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
 // ═══════════════════════════════════════════════════════════
 // VERSION — updated by build-standalone.pl on each build
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260925-1945";
+const APP_VERSION = "20260925-2100";
 
 // ═══════════════════════════════════════════════════════════
 // DATA
@@ -7682,10 +7682,15 @@ const APP_KEY_DEFS = [
 ];
 
 /* Lucide helpers — decorative icons (§5.22). lucideIcon() returns an <i> placeholder;
-   call refreshIcons() after injecting HTML that contains one. Same logic as admin.html. */
-function lucideIcon(name, extraClass){
-  const cls = extraClass ? ("icon "+extraClass) : "icon";
-  return '<i data-lucide="'+name+'" class="'+cls+'" aria-hidden="true"></i>';
+   call refreshIcons() after injecting HTML that contains one. */
+function lucideIcon(name){
+  return '<i data-lucide="'+name+'" class="icon" aria-hidden="true"></i>';
+}
+function rowActionsHtml(editCall, delCall, label){
+  return '<span class="row-actions">'
+    + '<button type="button" class="row-act" onclick="'+editCall+'" title="Edit" aria-label="Edit '+label+'">'+lucideIcon("pencil")+'</button>'
+    + '<button type="button" class="row-act row-act-del" onclick="'+delCall+'" title="Remove" aria-label="Remove '+label+'">'+lucideIcon("trash-2")+'</button>'
+    + '</span>';
 }
 function refreshIcons(){
   if(typeof lucide === "undefined" || typeof lucide.createIcons !== "function") return;
@@ -7699,11 +7704,11 @@ function refreshIcons(){
 }
 window.refreshIcons = refreshIcons;
 
-// .info-ic tooltips: render the hovered icon's .info-pop in one body-level fixed box so no
-// overflow:hidden/auto ancestor can clip it. Delegated, so dynamically rendered icons work too.
+// Bumped in restoreProfile so a pending goal-undo refuses after another household loads.
+let profileGen = 0;
 // Undo notice: "<msg> · Undo". One at a time (a new one replaces the old); auto-dismisses.
 // onUndo may return a string to show instead (e.g. why undo isn't possible).
-function showUndoToast(msg, onUndo, ms){
+function showUndoToast(msg, onUndo){
   let t=document.getElementById("undo-toast");
   if(!t){
     t=document.createElement("div"); t.id="undo-toast"; t.setAttribute("role","status"); t.setAttribute("aria-live","polite");
@@ -7722,10 +7727,12 @@ function showUndoToast(msg, onUndo, ms){
   };
   refreshIcons();
   t.classList.add("show");
-  t._timer=setTimeout(close, ms||8000);
+  t._timer=setTimeout(close, 8000);
 }
 window.showUndoToast=showUndoToast;
 
+// .info-ic tooltips: render the hovered icon's .info-pop in one body-level fixed box so no
+// overflow:hidden/auto ancestor can clip it. Delegated, so dynamically rendered icons work too.
 function initInfoPops(){
   if(document.getElementById("info-pop-box")) return;
   const box = document.createElement("div");
@@ -7756,12 +7763,14 @@ function initInfoPops(){
   document.addEventListener("keydown", e => { if(e.key === "Escape" && cur) hide(); });
 }
 document.addEventListener("DOMContentLoaded", initInfoPops);
-// Status line with a leading Lucide icon. kind: "ok" | "err". text is escaped.
+// Status line with a leading Lucide icon. kind: "ok" | "warn" | "err". text is escaped.
 function statusMsg(el, kind, text){
   if(!el) return;
-  const ok = kind === "ok";
-  el.innerHTML = '<span class="st-msg">' + lucideIcon(ok ? "circle-check" : "circle-x") + escapeForHTML(String(text)) + '</span>';
-  el.style.color = ok ? "var(--green)" : "var(--red)";
+  const spec = kind === "ok" ? ["circle-check", "var(--green)"]
+    : kind === "warn" ? ["triangle-alert", "var(--amber)"]
+    : ["circle-x", "var(--red)"];
+  el.innerHTML = '<span class="st-msg">' + lucideIcon(spec[0]) + escapeForHTML(String(text)) + '</span>';
+  el.style.color = spec[1];
   refreshIcons();
 }
 document.addEventListener("DOMContentLoaded", refreshIcons);
@@ -9208,10 +9217,10 @@ function cancelEditGoal(){
 function delGoal(id){
   const idx=goals.findIndex(g=>g.id===id); if(idx<0) return;
   if(_editingGoalId===id) cancelEditGoal();
-  const item=goals[idx], gen=window._profileGen||0;
+  const item=goals[idx], gen=profileGen;
   goals=goals.filter(g=>g.id!==id); renderGoals();
   showUndoToast('Removed "'+(item.name||"goal")+'"', ()=>{
-    if((window._profileGen||0)!==gen) return 'Can\'t undo: a different profile has been loaded.';
+    if(profileGen!==gen) return 'Can\'t undo: a different profile has been loaded.';
     if(goals.some(g=>g.id===item.id)) return;
     goals.splice(Math.min(idx,goals.length),0,item);
     renderGoals();
@@ -9259,10 +9268,7 @@ function renderGoals(){
       <span style="flex:1;font-weight:600;color:var(--text)">${_daEsc(g.name)}</span>
       <span style="font-variant-numeric:tabular-nums;font-weight:600">${amtDisplay}${extraNote}</span>
       <span style="font-size:11px;color:var(--text3)">${g.startYear}–${g.endYear} <span style="color:var(--text2)">(${fmtMoney(g.amt*years)} total)</span></span>
-      <span class="row-actions">
-        <button type="button" class="row-act" onclick="editGoal('${g.id}')" title="Edit" aria-label="Edit ${_daEsc(g.name)}">${lucideIcon("pencil")}</button>
-        <button type="button" class="row-act row-act-del" onclick="delGoal('${g.id}')" title="Remove" aria-label="Remove ${_daEsc(g.name)}">${lucideIcon("trash-2")}</button>
-      </span>
+      ${rowActionsHtml(`editGoal('${g.id}')`, `delGoal('${g.id}')`, _daEsc(g.name))}
     </div>`;
   }).join("");
   refreshIcons();
@@ -9781,10 +9787,10 @@ function removeInvestment(id){
   const idx=investments.findIndex(i=>i.id===id); if(idx<0) return;
   if(_editingInvId===id) cancelEditInvestment();
   if(_editingAltId===id) cancelEditAltInvestment();
-  try{ _pfEnsure(); }catch(_){}
+  _pfEnsure();
   // Undo puts the holding back into the SAME portfolio object at the same position.
   // If that portfolio no longer exists (deleted, or another profile was loaded), undo refuses.
-  const item=investments[idx], pfObj=(typeof portfolios!=="undefined")?portfolios.find(x=>x.id===activePfId):null;
+  const item=investments[idx], pfObj=portfolios.find(x=>x.id===activePfId)||null;
   investments=investments.filter(i=>i.id!==id);
   _afterInvestmentsChange();
   showUndoToast('Removed "'+(item.name||item.tkr||"holding")+'"', ()=>{
@@ -9930,10 +9936,9 @@ function closeUploadDoc(){ const m=$("uploadDocModal"); if(m) m.style.display="n
 function uploadDocKeyNote(){
   const n=$("uploadDocKeyNote"), b=$("uploadDocExtractBtn"), kb=$("uploadDocKeyBtn");
   const has = !!getAIKey();
-  if(n) n.innerHTML = has
-    ? '<span class="st-msg" style="color:var(--green)">'+lucideIcon("circle-check")+'AI key detected — ready to read documents.</span>'
-    : '<span class="st-msg" style="color:var(--amber)">'+lucideIcon("triangle-alert")+'No AI key set. The agent needs your AI API key to read documents.</span>';
-  refreshIcons();
+  statusMsg(n, has ? "ok" : "warn", has
+    ? "AI key detected — ready to read documents."
+    : "No AI key set. The agent needs your AI API key to read documents.");
   if(b) b.disabled = !has;
   if(kb) kb.style.display = has ? "none" : "inline-flex";
 }
@@ -9989,11 +9994,10 @@ window.onUploadDocFilesChange    = onUploadDocFilesChange;
 window.runUploadDocExtract       = runUploadDocExtract;
 window.onAgentFilesChange        = onAgentFilesChange;
 function daKeyNote(){
-  const n=$("aiAgentKeyNote"); if(!n) return;
-  n.innerHTML = getAIKey()
-    ? '<span class="st-msg" style="color:var(--green)">'+lucideIcon("circle-check")+'AI key detected — vision document reading is enabled.</span>'
-    : '<span class="st-msg" style="color:var(--amber)">'+lucideIcon("triangle-alert")+'No AI key set. The AI Data Agent needs your AI API key (Settings → Data &amp; integrations, or Admin → API Keys) to read documents.</span>';
-  refreshIcons();
+  const has = !!getAIKey();
+  statusMsg($("aiAgentKeyNote"), has ? "ok" : "warn", has
+    ? "AI key detected — vision document reading is enabled."
+    : "No AI key set. The AI Data Agent needs your AI API key (Settings → Data & integrations, or Admin → API Keys) to read documents.");
 }
 function renderAgentFileList(){
   const el=$("aiAgentFileList"), inp=$("aiAgentFiles"); if(!el) return;
@@ -12207,10 +12211,7 @@ function renderInvestments(){
       <span style="color:var(--text2);font-variant-numeric:tabular-nums">${er}</span>
       <span style="color:var(--text2);font-variant-numeric:tabular-nums">${yld}</span>
       <span class="pnote">${_daEsc(i.note||"—")}</span>
-      <span class="row-actions">
-        <button type="button" class="row-act" onclick="editInvestment('${i.id}')" title="Edit" aria-label="Edit ${_daEsc(i.name)}">${lucideIcon("pencil")}</button>
-        <button type="button" class="row-act row-act-del" onclick="removeInvestment('${i.id}')" title="Remove" aria-label="Remove ${_daEsc(i.name)}">${lucideIcon("trash-2")}</button>
-      </span>
+      ${rowActionsHtml(`editInvestment('${i.id}')`, `removeInvestment('${i.id}')`, _daEsc(i.name))}
     </div>`;
   }).join("");
   refreshIcons();
@@ -19893,7 +19894,6 @@ function renderCashFlow(){
     </tr>`;
   });
   tbody.innerHTML=html;
-  refreshIcons();
   try{ renderComponentsChart(); }catch(e){ console.warn("components chart:", e); }
 
   const cfPct=(cfMu*100).toFixed(1);
@@ -19925,9 +19925,12 @@ function renderCashFlow(){
   const cmpPanel=$("cfComparePanel");
   if(cmpPanel){
     cmpPanel.style.display="";
-    renderCFComparison(niData,curData,propData,cfMu,propCfMu,params,propParams,
-      retAge,penStart,retSeed,rmdStartAge,penSrc,cy,a1);
+    try{
+      renderCFComparison(niData,curData,propData,cfMu,propCfMu,params,propParams,
+        retAge,penStart,retSeed,rmdStartAge,penSrc,cy,a1);
+    }catch(e){ console.warn("cf comparison:", e); }
   }
+  refreshIcons();
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -20049,7 +20052,6 @@ function renderCFComparison(niData,curData,propData,curMu,propMu,curParams,propP
       </div>
       ${goalRows}
     `);
-    refreshIcons();
   } else {
     setH("cfcGoals",`<div style="font-size:12px;color:var(--text3);padding:8px 0">No goals defined — add goals on the Goals tab to see funding comparison.</div>`);
   }
@@ -20522,6 +20524,11 @@ function wiAutoCutRefresh(){
 // Set only while a what-if scenario with a pension withdrawal is being simulated;
 // runMC() applies it as an age-triggered transfer out of the retirement pool.
 let _wiPensionDraw=null;
+function setWiAddBtn(editing){
+  const btn=$("wiAddBtn"); if(!btn) return;
+  btn.innerHTML=lucideIcon("play")+(editing?" Re-run Scenario":" Run Scenario");
+  refreshIcons();
+}
 function addWhatIf(){
   const name=val("wiName").trim();
   if(!name){alert("Enter a scenario name"); return;}
@@ -20562,7 +20569,7 @@ function addWhatIf(){
   if(_editingWhatIfId){
     whatIfScenarios=whatIfScenarios.map(w=>w.id===_editingWhatIfId?{...scen,id:_editingWhatIfId}:w);
     _editingWhatIfId=null;
-    $("wiAddBtn").innerHTML=lucideIcon("play")+" Run Scenario"; refreshIcons();
+    setWiAddBtn(false);
     show("wiCancelBtn",false);
   } else {
     whatIfScenarios.push(scen);
@@ -20581,7 +20588,7 @@ function clearWhatIfForm(){
 function cancelEditWhatIf(){
   _editingWhatIfId=null;
   clearWhatIfForm();
-  $("wiAddBtn").innerHTML=lucideIcon("play")+" Run Scenario"; refreshIcons();
+  setWiAddBtn(false);
   show("wiCancelBtn",false);
 }
 function deleteWhatIf(id){
@@ -20611,7 +20618,7 @@ function editWhatIf(id){
   }
   try{ wiAutoCutRefresh(); }catch(_){}
   _editingWhatIfId=id;
-  $("wiAddBtn").innerHTML=lucideIcon("play")+" Re-run Scenario"; refreshIcons();
+  setWiAddBtn(true);
   show("wiCancelBtn",true);
 }
 
@@ -26003,7 +26010,7 @@ function loadProfile(){
 }
 
 function restoreProfile(p){
-  window._profileGen=(window._profileGen||0)+1;   // lets Undo notices refuse after another profile loads
+  profileGen++;
   const f=p.fields||{};
   // Missing keys (older profiles) reset to app defaults so the previous client's
   // values never leak into a newly loaded profile.
