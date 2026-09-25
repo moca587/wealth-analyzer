@@ -94,18 +94,23 @@ $html =~ s|<script (?:defer )?src="https://cdnjs\.cloudflare\.com/ajax/libs/pdf\
 # Fix workerSrc line
 $html =~ s|pdfjsLib\.GlobalWorkerOptions\.workerSrc="https://cdnjs\.cloudflare\.com/ajax/libs/pdf\.js/3\.11\.174/pdf\.worker\.min\.js";|pdfjsLib.GlobalWorkerOptions.workerSrc=window._pdfWorkerBlobUrl\|\|"";|;
 
-# 5. Inline jsPDF
-my $jspdf_block = "<script>/* jsPDF 2.5.1 — inlined */\n$jspdf_js\n</script>";
+# (pdf.js: the main app no longer loads it, so the pdf.js block above finds no tag
+#  to replace and is not embedded — 1.7 MB saved. Admin / Avaloq builds unaffected.)
+
+# 5-7. jsPDF, jsPDF-autotable and qrcodejs are embedded LAZY: type="text/plain"
+# means the browser neither parses nor compiles them at startup (~410 KB of JS
+# that only the PDF report and Share use). The app's waLib(name) runs a block on
+# first use. Still fully offline — nothing is fetched.
+my $jspdf_block = "<script type=\"text/plain\" data-lazy-lib=\"jspdf\">/* jsPDF 2.5.1 — inlined (lazy) */\n$jspdf_js\n</script>";
 $html =~ s|<script (?:defer )?src="https://cdnjs\.cloudflare\.com/ajax/libs/jspdf/2\.5\.1/jspdf\.umd\.min\.js"></script>|$jspdf_block|;
 
-# 6. Inline jsPDF-autotable
-my $auto_block = "<script>/* jsPDF-autotable 3.8.2 — inlined */\n$autotable_js\n</script>";
+my $auto_block = "<script type=\"text/plain\" data-lazy-lib=\"autotable\">/* jsPDF-autotable 3.8.2 — inlined (lazy) */\n$autotable_js\n</script>";
 $html =~ s|<script (?:defer )?src="https://cdnjs\.cloudflare\.com/ajax/libs/jspdf-autotable/3\.8\.2/jspdf\.plugin\.autotable\.min\.js"></script>|$auto_block|;
 
-# 7. Inline qrcodejs (share-session QR rendering) — optional, skip if vendor file missing
+# qrcodejs (share-session QR rendering) — optional, skip if vendor file missing
 if(-f "$V/qrcode.min.js"){
   my $qr_js = slurp_text("$V/qrcode.min.js");
-  my $qr_block = "<script>/* qrcodejs 1.0.0 — inlined */\n$qr_js\n</script>";
+  my $qr_block = "<script type=\"text/plain\" data-lazy-lib=\"qrcode\">/* qrcodejs 1.0.0 — inlined (lazy) */\n$qr_js\n</script>";
   $html =~ s|<script (?:defer )?src="https://cdnjs\.cloudflare\.com/ajax/libs/qrcodejs/1\.0\.0/qrcode\.min\.js"></script>|$qr_block|;
 }
 

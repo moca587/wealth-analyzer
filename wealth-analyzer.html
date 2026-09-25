@@ -18,9 +18,12 @@
 <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,200;0,300;0,400;0,500;0,600;0,700;0,800;1,300;1,400;1,500&display=swap"></noscript>
 <!-- defer: none of these are used at parse time (all usage is inside functions
      that run at/after DOMContentLoaded, and deferred scripts are guaranteed to
-     execute before DOMContentLoaded). Unblocks first paint — pdf.js alone is ~1MB. -->
+     execute before DOMContentLoaded).
+     pdf.js was removed (2026-09-25): nothing in this app calls it any more — PDFs
+     go to Claude natively — and it was 1.7 MB of the standalone (42%).
+     In the standalone build jsPDF / autotable / qrcode are embedded but NOT run at
+     startup (type="text/plain"); waLib() runs them on first use. -->
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-<script defer src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
@@ -420,6 +423,14 @@ input[type=date]{color-scheme:light}
 
 /* ── AI Data Agent ── */
 .da-note{font-size:12px;color:var(--text2);line-height:1.55}
+/* AI intake pipeline steps (Upload Document window) */
+.da-steps{list-style:none;margin:12px 0 0;padding:10px 12px;border:1px solid var(--border);border-radius:var(--rs,6px);background:var(--bg3)}
+.da-step{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 8px;font-size:12px;line-height:1.5;padding:2px 0}
+.da-step-i{flex:0 0 14px;font-weight:700;text-align:center}
+.da-step-l{color:var(--text);font-weight:600}
+.da-step-pending .da-step-l{color:var(--text3);font-weight:500}
+.da-step-d{color:var(--text2);flex:1 1 220px;min-width:0;overflow-wrap:anywhere}
+.da-step-fail .da-step-d{color:var(--red)}
 .da-sec{margin-bottom:14px}
 .da-sec-h{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--gold);margin:12px 0 6px}
 .da-row{display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;padding:7px 9px;border:1px solid var(--border);border-radius:var(--rs);background:var(--bg3);margin-bottom:6px}
@@ -1093,6 +1104,20 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
 .intro-privacy svg{width:17px;height:17px;stroke:#7ce0aa;fill:none;stroke-width:1.8;flex-shrink:0}
 .intro-more-cta{display:flex;gap:13px;justify-content:center;flex-wrap:wrap;align-items:center}
 .intro-launch.sm{font-size:15px;padding:14px 34px}
+
+/* ── Snappy UI (2026-09-25) ─────────────────────────────────────────────────
+   Measured: tab switches, keystrokes and a 500-path simulation all run in
+   0–60 ms of JS — the sluggish feel was presentation. Every tab switch slid each
+   panel up over .30s with a stagger, so the last panel landed at ~.54s; the
+   overview header ran an infinite 17s "aurora" transform. Now content appears
+   at once with a short opacity-only fade, and nothing animates forever. */
+@keyframes waQuickIn{from{opacity:0}to{opacity:1}}
+.tab.active .panel{animation:waQuickIn .12s ease-out both!important;animation-delay:0s!important}
+.wealth-hero,.onboard-card,.sim-summary,.sim-section{animation:waQuickIn .12s ease-out both!important}
+.dropdown-body.open{animation:waQuickIn .1s ease-out!important}
+.wealth-hero::before{animation:none!important}
+#introScreen{transition:opacity .2s ease!important}
+.intro-inner{animation-duration:.35s!important}
 </style>
 <div id="introScreen" role="dialog" aria-label="Welcome to Wealth Analyzer">
   <div class="intro-inner">
@@ -1175,19 +1200,27 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
   function launchApp(){
     var s=document.getElementById('introScreen');
     if(!s) return;
+    try{ localStorage.setItem('wa_intro_seen','1'); }catch(_){}
     s.classList.add('intro-hide');
-    setTimeout(function(){ s.style.display='none'; }, 650);
+    setTimeout(function(){ s.style.display='none'; }, 220);   // was 650 ms — Launch should feel instant
   }
   window.launchApp=launchApp;
 
-  // Respect the "Welcome screen" preference — skip the splash entirely if the
-  // user turned it off in Settings (runs synchronously, so no flash of the intro).
-  // Share-link arrivals also skip it: the viewer should land straight on the data.
+  // Welcome screen: shown on the FIRST visit only (it used to greet you on every
+  // open). "Show every time" in Settings brings it back; "no" hides it for good.
+  // Runs synchronously, so there's no flash. Share-link arrivals always skip it.
   try{
-    if(localStorage.getItem('wa_show_intro')==='no' || location.hash.indexOf('#share=')===0){
+    var _pref=localStorage.getItem('wa_show_intro');
+    if(_pref==='no' || (_pref!=='yes' && localStorage.getItem('wa_intro_seen')==='1') || location.hash.indexOf('#share=')===0){
       var _i=document.getElementById('introScreen'); if(_i) _i.style.display='none';
     }
   }catch(_){}
+  // Charts: 250 ms animations instead of Chart.js's 1 s default — every redraw used
+  // to make you wait a second. Deferred/inline Chart.js is loaded before DOMContentLoaded,
+  // and this listener is registered before the app's own, so defaults apply first.
+  document.addEventListener('DOMContentLoaded', function(){
+    try{ if(window.Chart && Chart.defaults && Chart.defaults.animation){ Chart.defaults.animation.duration=250; } }catch(_){}
+  });
 
   // ── Settings drawer ──
   function openSettings(){
@@ -1223,7 +1256,7 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
   window.addEventListener('load', function(){
     try{
       var cb=document.getElementById('setShowIntro');
-      if(cb) cb.checked = (localStorage.getItem('wa_show_intro')!=='no');
+      if(cb) cb.checked = (localStorage.getItem('wa_show_intro')==='yes');   // "show every time" is now opt-in
     }catch(_){}
     try{
       var v=document.getElementById('setVersion');
@@ -1491,11 +1524,15 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
       </div>
 
       <div id="uploadDocKeyNote" style="font-size:11.5px;margin-top:12px;line-height:1.5"></div>
+      <!-- Live pipeline: each stage of the AI read, with its result (filled by _daStepsRender) -->
+      <ol id="uploadDocSteps" class="da-steps" style="display:none" aria-live="polite"></ol>
     </div>
     <!-- Footer -->
     <div style="display:flex;align-items:center;gap:10px;padding:14px 22px;border-top:1px solid var(--border);
                 background:var(--bg3)">
       <span id="uploadDocStatus" style="font-size:11.5px;color:var(--text3);flex:1;min-width:0"></span>
+      <button id="uploadDocCopyBtn" class="btn-secondary" onclick="daCopyReport(this)" title="Copy a report of this read (no key included) to paste to support"
+              style="padding:7px 12px;font-size:12px;display:none">Copy report</button>
       <button id="uploadDocKeyBtn" class="btn-secondary" onclick="uploadDocOpenKeySettings()"
               style="padding:7px 14px;font-size:12px;display:none">Add AI key</button>
       <button class="btn-secondary" onclick="closeUploadDoc()" style="padding:7px 14px;font-size:12px">Cancel</button>
@@ -3113,6 +3150,7 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
       <button class="btn-primary" onclick="runDataAgent()">Extract data</button>
       <button class="btn-secondary" onclick="daCancelAgent()">Cancel</button>
       <span id="aiAgentStatus" style="font-size:12px;color:var(--text3);margin-left:6px"></span>
+      <button class="btn-secondary" onclick="daCopyReport(this)" title="Copy a report of the last AI read (no key included)" style="font-size:11px;padding:4px 10px;margin-left:auto">Copy report</button>
     </div>
   </div>
   <!-- Statement Importer panel (hidden by default) — deterministic CSV/OFX/QFX parse, no AI key -->
@@ -4122,7 +4160,7 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
 // ═══════════════════════════════════════════════════════════
 // VERSION — updated by build-standalone.pl on each build
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260925-1331";
+const APP_VERSION = "20260925-1517";
 
 // ═══════════════════════════════════════════════════════════
 // DATA
@@ -9246,6 +9284,10 @@ function uploadDocument(){
   setT("uploadDocStatus", "");
   setT("uploadDocFileList", "");
   uploadDocKeyNote();
+  // Steps: live while a read from this window is running; a fresh open starts clean
+  // (the last run's report stays copyable).
+  const sEl=$("uploadDocSteps"); if(sEl) sEl.style.display=(_daBusy&&_daRunOwner==="upload")?"block":"none";
+  const cb=$("uploadDocCopyBtn"); if(cb) cb.style.display=_daReport?"inline-flex":"none";
   m.style.display = "flex";
 }
 // Closing the window cancels a read it started (it used to keep running, keep
@@ -9277,6 +9319,107 @@ function onUploadDocFilesChange(){
     : '<div style="font-size:11px;color:var(--text3)">No files selected yet.</div>';
   setT("uploadDocStatus", "");
 }
+// ═══════════════════════════════════════════════════════════════════════════
+// AI INTAKE PIPELINE v2 (2026-09-25) — one pipeline for Upload Document and the
+// AI Data Agent. Every stage is shown as it happens (steps list in the Upload
+// window) and recorded in a key-free report the user can copy, so a failure on
+// any machine is diagnosable from a single screenshot or paste.
+// ═══════════════════════════════════════════════════════════════════════════
+const _DA_STEPS=[["read","Read the file"],["send","Sent to Claude (Anthropic)"],["reply","Claude replied"],["parse","Data recognized"],["review","Review opened"],["apply","Added to the app"]];
+let _daReport=null;        // key-free record of the current / last AI read
+let _daReviewToken=null;   // the extraction object the report belongs to (statement imports have their own)
+function _daKeyInfo(){ const k=getAIKey(); return k ? ("present, "+k.length+" chars, "+(/^sk-ant-/.test(k)?"sk-ant- prefix":"UNEXPECTED prefix — check the key")) : "missing"; }
+function _daReportNew(owner, files, docType){
+  _daReport={ app:(typeof APP_VERSION!=="undefined"?APP_VERSION:"?"), when:new Date().toISOString(), site:location.origin+location.pathname,
+    browser:navigator.userAgent, flow:owner, docType:docType||"", model:AI_MODEL, key:_daKeyInfo(),
+    files:files.map(f=>({name:f.name,size:f.size,type:f.type||"?"})), steps:{}, http:[], reply:null, counts:null, apply:null, error:null };
+  _daStepsRender();
+}
+function _daStep(id,state,detail){ if(!_daReport) return; _daReport.steps[id]={state:state,detail:detail||""}; _daStepsRender(); }
+function _daStepsRender(){
+  const el=$("uploadDocSteps"), cb=$("uploadDocCopyBtn");
+  const show=!!(_daReport && _daReport.flow==="upload");
+  if(cb) cb.style.display=_daReport?"inline-flex":"none";
+  if(!el) return; el.style.display=show?"block":"none"; if(!show) return;
+  const ICON={pending:"○",active:"◌",ok:"✓",fail:"✗",skip:"–"}, COL={pending:"var(--text3)",active:"var(--gold)",ok:"var(--green)",fail:"var(--red)",skip:"var(--text3)"};
+  el.innerHTML=_DA_STEPS.map(([id,label])=>{ const s=_daReport.steps[id]||{state:"pending",detail:""};
+    return `<li class="da-step da-step-${s.state}"><span class="da-step-i" style="color:${COL[s.state]}">${ICON[s.state]}</span><span class="da-step-l">${label}</span>`
+      +(s.detail?`<span class="da-step-d">${_daEsc(s.detail)}</span>`:"")+`</li>`; }).join("");
+}
+function _daReportHttp(entry){ if(_daReport) _daReport.http.push(entry); }
+// Apply's outcome, recorded only for the extraction this report belongs to (the
+// deterministic statement importer reuses Apply with its own data).
+function _daApplyRecord(ok, summary, errors, skipped){
+  if(!_daReport || _daReviewToken!==_daExtraction) return;
+  _daReport.apply={summary:summary, errors:(errors||[]).slice(0,5), skipped:(skipped||[]).slice(0,8)};
+  _daStep("apply", ok?"ok":"fail", summary); }
+function _daReportText(){
+  const r=_daReport; if(!r) return "No AI document read has run in this session yet.";
+  const ICON={pending:"○",active:"…",ok:"✓",fail:"✗",skip:"–"};
+  const L=[];
+  L.push("Wealth Analyzer — AI document intake report");
+  L.push("App v"+r.app+" · "+r.site+" · "+r.when);
+  L.push("Browser: "+r.browser);
+  L.push("Flow: "+(r.flow==="upload"?"Upload Document":"AI Data Agent")+(r.docType?" · document type: "+r.docType:"")+" · model: "+r.model);
+  L.push("AI key: "+r.key);
+  L.push("Files: "+(r.files.map(f=>f.name+" ("+f.size+" bytes, "+f.type+")").join("; ")||"none"));
+  L.push("Steps:");
+  _DA_STEPS.forEach(([id,label])=>{ const s=r.steps[id]; L.push("  "+(s?ICON[s.state]:"○")+" "+label+(s&&s.detail?" — "+s.detail:"")); });
+  if(r.http.length) L.push("Requests: "+r.http.map((h,i)=>"#"+(i+1)+" → "+(h.status||"no response")+(h.ms!=null?" in "+(h.ms/1000).toFixed(1)+" s":"")+(h.msg?" ("+h.msg+")":"")).join(" · "));
+  if(r.reply) L.push("Reply: stop "+(r.reply.stop_reason||"?")+" · tokens in "+(r.reply.input_tokens??"?")+" / out "+(r.reply.output_tokens??"?")+" · blocks "+(r.reply.blocks||"?")+(r.reply.shape?" · shape "+r.reply.shape:""));
+  if(r.counts) L.push("Recognized: "+Object.keys(r.counts).filter(k=>r.counts[k]).map(k=>k+" "+r.counts[k]).join(", "));
+  if(r.apply) L.push("Apply: "+r.apply.summary+(r.apply.errors&&r.apply.errors.length?" · errors: "+r.apply.errors.join("; "):"")+(r.apply.skipped&&r.apply.skipped.length?" · skipped: "+r.apply.skipped.join("; "):""));
+  L.push("Error: "+(r.error||"none"));
+  return L.join("\n");
+}
+async function daCopyReport(btn){
+  const txt=_daReportText(); let ok=false;
+  try{ await navigator.clipboard.writeText(txt); ok=true; }catch(_){}
+  if(!ok){ try{ const ta=document.createElement("textarea"); ta.value=txt; ta.style.cssText="position:fixed;left:-9999px;top:0"; document.body.appendChild(ta); ta.select(); ok=document.execCommand("copy"); ta.remove(); }catch(_){} }
+  if(!ok){ try{ window.prompt("Copy this report (Ctrl+C), then paste it to support:", txt); ok=true; }catch(_){} }
+  if(btn){ const t=btn.textContent; btn.textContent=ok?"✓ Report copied":"Couldn't copy"; setTimeout(()=>{ btn.textContent=t; },1800); }
+}
+window.daCopyReport=daCopyReport;
+
+// The one runner both flows use. Returns the extraction on success, else null
+// (the status line and the steps say why).
+async function _daRunIntake(o){   // o: {owner:"upload"|"agent", files, docType, instruction, st}
+  const st=o.st, say=(t,c)=>{ if(st){ st.textContent=t; st.style.color=c||"var(--text3)"; } };
+  if(_daBusy){ say("⏳ A document is already being read — wait for it to finish, or "+(o.owner==="upload"?"close this window":"press Cancel")+" to stop it.","var(--amber)"); return null; }
+  _daBusy=true; _daRunOwner=o.owner; const run=_daRunCtl=new AbortController();
+  _fdActiveLabel=""; _daSourceLabel=(o.owner==="upload"?"Upload Document (AI)":"AI Data Agent");   // provenance: never a previous import's name
+  _daReportNew(o.owner, o.files, o.docType);
+  try{
+    // 1 · Read the file(s)
+    _daStep("read","active"); say("Reading "+o.files.length+" file"+(o.files.length>1?"s":"")+"…");
+    const content=[]; let readOk=0, lastReadErr="";
+    for(const f of o.files){
+      try{ const blocks=await fileToBlocks(f); content.push({type:"text",text:"=== Source: "+f.name+" ==="}, ...blocks); readOk++; }
+      catch(e){ lastReadErr=e.message; content.push({type:"text",text:"=== Source: "+f.name+" (could not read: "+e.message+") ==="}); } }
+    if(!readOk){ _daStep("read","fail",lastReadErr); _daReport.error="read: "+lastReadErr;
+      say("✗ Couldn't read "+(o.files.length>1?"any of the files":"the file")+": "+lastReadErr,"var(--red)"); return null; }
+    _daStep("read","ok", o.files.map(f=>f.name+" ("+Math.max(1,Math.round(f.size/1024))+" KB)").join(", ")+(readOk<o.files.length?" — "+(o.files.length-readOk)+" unreadable":""));
+    content.push({type:"text",text:o.instruction});
+    // 2-4 · Send → reply → recognize (callAIExtract records steps 2-3; one automatic re-ask)
+    _daStep("send","active",AI_MODEL);
+    const {raw,total,ext}=await _daExtractWithRetry(content, st, run.signal);
+    if(run.signal.aborted) return null;
+    if(!total){ _daStep("parse","fail","nothing recognizable in the reply — "+_daDescribeRaw(raw,_daLastAI)); _daReport.error="no usable data in Claude's reply";
+      say(_daNothingMsg(raw),"var(--amber)"); return null; }
+    _daReport.counts=Object.fromEntries(Object.keys(ext).map(k=>[k,ext[k].length]));
+    _daStep("parse","ok", total+" item"+(total!==1?"s":"")+" — "+Object.keys(ext).filter(k=>ext[k].length).map(k=>k+" "+ext[k].length).join(", "));
+    _daExtraction=ext; _daReviewToken=ext; _daRunCtl=null;
+    say("✓ Extracted "+total+" item"+(total!==1?"s":"")+" — review below.","var(--green)");
+    return ext;
+  }catch(e){
+    if(e && e.cancelled){ _daStep("reply","skip","cancelled by you"); _daReport.error="cancelled"; say("Cancelled — nothing was read."); return null; }
+    _daReport.error=String((e&&e.message)||e);
+    const ss=_daReport.steps.send, rs=_daReport.steps.reply;   // mark the step that actually failed, once
+    if(!(ss && ss.state==="fail") && !(rs && rs.state==="fail")) _daStep("reply","fail",_daReport.error);
+    say("✗ "+_daReport.error,"var(--red)"); try{ console.error("[AI intake]",e); }catch(_){} return null;
+  }finally{ if(_daRunCtl===run) _daRunCtl=null; _daBusy=false; _daRunOwner=""; }
+}
+
 async function runUploadDocExtract(){
   const st=$("uploadDocStatus");
   if(!getAIKey()){
@@ -9286,36 +9429,11 @@ async function runUploadDocExtract(){
     return; }
   const inp=$("uploadDocFiles"), files=inp&&inp.files?Array.from(inp.files):[];
   if(!files.length){ if(st){st.textContent="⚠ Choose one or more files first."; st.style.color="var(--amber)";} return; }
-  // One AI read at a time, shared with the AI Data Agent panel — a second click, a
-  // re-opened window or the other panel would otherwise pay for a duplicate read.
-  if(_daBusy){ if(st){ st.textContent="⏳ A document is already being read — wait for it to finish, or close its window to cancel it."; st.style.color="var(--amber)"; } return; }
-  _daBusy=true; _daRunOwner="upload"; const run=_daRunCtl=new AbortController();
-  _fdActiveLabel=""; _daSourceLabel="Upload Document (AI)";   // provenance: never label this data with a previous import's name
-  const xb=$("uploadDocExtractBtn"); if(xb) xb.disabled=true;
+  const xb=$("uploadDocExtractBtn"); const wasBusy=_daBusy; if(xb && !wasBusy) xb.disabled=true;
   try{
-    if(st){ st.textContent="Reading "+files.length+" file"+(files.length>1?"s":"")+"…"; st.style.color="var(--text3)"; }
-    const content=[]; let readOk=0, lastReadErr="";
-    for(const f of files){
-      try{ const blocks=await fileToBlocks(f); content.push({type:"text",text:"=== Source: "+f.name+" ==="}, ...blocks); readOk++; }
-      catch(e){ lastReadErr=e.message; content.push({type:"text",text:"=== Source: "+f.name+" (could not read: "+e.message+") ==="}); }
-    }
-    // Nothing readable → stop here, rather than sending Anthropic an empty request
-    // that comes back as a misleading "no financial data detected".
-    if(!readOk){ if(st){ st.textContent="✗ Couldn't read "+(files.length>1?"any of the files":"the file")+": "+lastReadErr; st.style.color="var(--red)"; } return; }
-    content.push({type:"text",text:_daInstruction(val("uploadDocType"))});
-    // Live elapsed-time status, so a normal 30-60 s read doesn't look frozen.
-    const {raw,total,ext}=await _daExtractWithRetry(content, st, run.signal);
-    if(run.signal.aborted) return;
-    if(!total){ if(st){ st.textContent=_daNothingMsg(raw); st.style.color="var(--amber)"; } return; }
-    _daExtraction=ext;
-    if(st){ st.textContent="✓ Extracted "+total+" item"+(total!==1?"s":"")+" — review below."; st.style.color="var(--green)"; }
-    _daRunCtl=null;          // finished: closing the window now must not "cancel" it
-    closeUploadDoc();
-    renderReviewModal();
-  }catch(e){
-    if(e && e.cancelled){ if(st){ st.textContent="Cancelled — nothing was read."; st.style.color="var(--text3)"; } return; }
-    if(st){ st.textContent="✗ "+e.message; st.style.color="var(--red)"; } console.error("[UploadDoc]",e); }
-  finally{ if(_daRunCtl===run) _daRunCtl=null; _daBusy=false; _daRunOwner=""; if(xb) xb.disabled=false; }
+    const ext=await _daRunIntake({owner:"upload", files, docType:val("uploadDocType"), instruction:_daInstruction(val("uploadDocType")), st});
+    if(ext){ closeUploadDoc(); renderReviewModal(); _daStep("review","ok","tick the rows you want, then “Add to the app”"); }
+  }finally{ if(xb && !wasBusy) xb.disabled=false; }
 }
 // Back-compat: keep the panel-based AI Data Agent flow working (Portfolio tab).
 function onAgentFilesChange(){
@@ -9721,7 +9839,10 @@ async function _daExtractWithRetry(content, st, signal){
   let raw=null, total=0, ext=null;
   for(let pass=0; pass<2; pass++){
     const t0=Date.now(), label = pass ? "Claude's first reply couldn't be read — asking again… " : "Reading with Claude (Anthropic)… ";
-    const tickFn=()=>{ if(st && !(signal&&signal.aborted)){ st.textContent=label+Math.round((Date.now()-t0)/1000)+"s — usually under a minute"; st.style.color="var(--text3)"; } };
+    if(pass){ _daStep("send","active",AI_MODEL+" · asking again"); _daStep("reply","active","first reply had no usable data — asking Claude once more"); }
+    const tickFn=()=>{ if(signal&&signal.aborted) return; const secs=Math.round((Date.now()-t0)/1000);
+      if(st){ st.textContent=label+secs+"s — usually under a minute"; st.style.color="var(--text3)"; }
+      if(_daReport && (_daReport.steps.send||{}).state==="active") _daStep("send","active",AI_MODEL+" · waiting "+secs+" s"); };
     tickFn(); const tick=setInterval(tickFn,1000);
     try{ raw=await callAIExtract(content, signal); } finally{ clearInterval(tick); }
     ext=normalizeExtraction(raw);   // not written to _daExtraction here: a cancelled / superseded run must not replace an open review
@@ -9762,35 +9883,47 @@ async function callAIExtract(content, signal){
     const timer=setTimeout(()=>{ timedOut=true; ctl.abort(); }, AI_TIMEOUT_MS);
     const onUserAbort=()=>ctl.abort(); if(signal) signal.addEventListener("abort",onUserAbort,{once:true});
     const done=()=>{ clearTimeout(timer); if(signal) signal.removeEventListener("abort",onUserAbort); };
-    let r;
+    let r; const t0=performance.now();
     try{ r=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers,body:payload,signal:ctl.signal}); }
     catch(e){
       done();
+      const userCancel=!!(e && e.name==="AbortError" && !timedOut);
+      _daReportHttp({attempt:attempt+1,status:0,ms:Math.round(performance.now()-t0),msg:userCancel?"cancelled":(timedOut?"timed out":String((e&&e.message)||e))});
+      if(!userCancel) _daStep("send","fail", timedOut ? "no answer within "+Math.round(AI_TIMEOUT_MS/60000)+" minutes" : "couldn't reach api.anthropic.com — "+((e&&e.message)||e)+" (network, firewall or a browser extension blocking it?)");
       if(e && e.name==="AbortError"){ if(!timedOut) throw _daCancelledErr();
         throw new Error("Anthropic took longer than "+Math.round(AI_TIMEOUT_MS/60000)+" minutes to answer — try again, or upload fewer / smaller files."); }
       throw new Error("Couldn't reach Anthropic's API ("+((e&&e.message)||e)+") — check your internet connection, then try again.");
     }
     done();
+    const ms=Math.round(performance.now()-t0);
+    _daStep("send","ok",AI_MODEL+" · "+Math.max(1,Math.round(payload.length/1024))+" KB request");
     if(!r.ok){
       const t=await r.text(); let apiMsg=""; try{ const j=JSON.parse(t); apiMsg=(j&&j.error&&j.error.message)||""; }catch(_){ apiMsg=t.slice(0,200); }
+      _daReportHttp({attempt:attempt+1,status:r.status,ms,msg:String(apiMsg||"").slice(0,200)});
       // Busy / overloaded / rate-limited: one automatic retry after a short pause —
       // honouring retry-after when Anthropic sends it (and readable across CORS);
       // a long wait is reported instead of silently retried.
       if(attempt===0 && (r.status===429 || r.status===529 || r.status>=500)){
         const ra=parseInt(r.headers.get("retry-after")||"",10), wait=(isFinite(ra)&&ra>0)?ra:5;
-        if(wait<=20 && !(r.status===429 && /token/i.test(apiMsg))){ await _daSleep(wait*1000, signal); continue; }
+        if(wait<=20 && !(r.status===429 && /token/i.test(apiMsg))){ _daStep("reply","active","HTTP "+r.status+" — Anthropic busy, retrying in "+wait+" s"); await _daSleep(wait*1000, signal); continue; }
       }
-      throw new Error(_aiErrorMessage(r.status, apiMsg));
+      const friendly=_aiErrorMessage(r.status, apiMsg);
+      _daStep("reply","fail","HTTP "+r.status+" — "+friendly);
+      throw new Error(friendly);
     }
     const data=await r.json();
+    _daReportHttp({attempt:attempt+1,status:r.status,ms});
     // Key-free summary of the reply, for the "nothing extracted" diagnostic.
     _daLastAI={ stop_reason:data.stop_reason||"", output_tokens:(data.usage&&data.usage.output_tokens!=null)?data.usage.output_tokens:null,
       input_tokens:(data.usage&&data.usage.input_tokens!=null)?data.usage.input_tokens:null, blocks:(data.content||[]).map(b=>b.type).join("+") };
     if(data.stop_reason==="refusal") throw new Error("Claude declined to process this document.");
     // A tool call cut off by max_tokens is incomplete — never apply a partial profile.
     if(data.stop_reason==="max_tokens") throw new Error("The document produced more data than fits in one answer — upload fewer files at a time.");
+    if(_daReport) _daReport.reply=Object.assign({},_daLastAI);
     const tu=(data.content||[]).find(b=>b.type==="tool_use");
     if(!tu) throw new Error("The model returned no structured data — try again.");
+    if(_daReport && _daReport.reply) _daReport.reply.shape=_daDescribeRaw(tu.input||{});
+    _daStep("reply","ok","HTTP "+r.status+" · "+(ms/1000).toFixed(1)+" s · "+(_daLastAI.output_tokens!=null?_daLastAI.output_tokens:"?")+" output tokens");
     return tu.input||{};
   }
 }
@@ -9927,31 +10060,11 @@ function normalizeExtraction(raw){
 // ── Main entry ───────────────────────────────────────────────────────────────
 async function runDataAgent(){
   const st=$("aiAgentStatus");
-  _fdActiveLabel=""; _daSourceLabel="AI Data Agent";   // keep provenance honest
   if(!getAIKey()){ daKeyNote(); if(st){st.textContent="⚠ Add your AI key first."; st.style.color="var(--amber)";} return; }
   const inp=$("aiAgentFiles"), files=inp&&inp.files?Array.from(inp.files):[];
   if(!files.length){ if(st){st.textContent="⚠ Choose one or more files first."; st.style.color="var(--amber)";} return; }
-  // Same single-read guard as Upload Document (this panel had none: a double click
-  // or an impatient re-click paid for duplicate reads).
-  if(_daBusy){ if(st){ st.textContent="⏳ A document is already being read — wait for it to finish, or press Cancel to stop it."; st.style.color="var(--amber)"; } return; }
-  _daBusy=true; _daRunOwner="agent"; const run=_daRunCtl=new AbortController();
-  try{
-    if(st){ st.textContent="Reading "+files.length+" file"+(files.length>1?"s":"")+"…"; st.style.color="var(--text3)"; }
-    const content=[]; let readOk=0, lastReadErr="";
-    for(const f of files){ try{ const blocks=await fileToBlocks(f); content.push({type:"text",text:"=== Source: "+f.name+" ==="}, ...blocks); readOk++; }
-      catch(e){ lastReadErr=e.message; content.push({type:"text",text:"=== Source: "+f.name+" (could not read: "+e.message+") ==="}); } }
-    if(!readOk){ if(st){ st.textContent="✗ Couldn't read "+(files.length>1?"any of the files":"the file")+": "+lastReadErr; st.style.color="var(--red)"; } return; }
-    content.push({type:"text",text:_daHoldingsInstruction()});
-    const {raw,total,ext}=await _daExtractWithRetry(content, st, run.signal);
-    if(run.signal.aborted) return;
-    if(!total){ if(st){ st.textContent=_daNothingMsg(raw); st.style.color="var(--amber)"; } return; }
-    _daExtraction=ext;
-    if(st){ st.textContent="✓ Extracted "+total+" item"+(total!==1?"s":"")+" — review below."; st.style.color="var(--green)"; }
-    renderReviewModal();
-  }catch(e){
-    if(e && e.cancelled){ if(st){ st.textContent="Cancelled — nothing was read."; st.style.color="var(--text3)"; } return; }
-    if(st){ st.textContent="✗ "+e.message; st.style.color="var(--red)"; } console.error("[DataAgent]",e); }
-  finally{ if(_daRunCtl===run) _daRunCtl=null; _daBusy=false; _daRunOwner=""; }
+  const ext=await _daRunIntake({owner:"agent", files, docType:"statement / holdings", instruction:_daHoldingsInstruction(), st});
+  if(ext){ renderReviewModal(); _daStep("review","ok","tick the rows you want, then “Add to the app”"); }
 }
 // Panel Cancel: stop a read this panel started, then hide the panel.
 function daCancelAgent(){ if(_daBusy && _daRunOwner==="agent") _daCancelRun(); show("aiAgentPanel",false); }
@@ -10088,6 +10201,7 @@ function renderReviewModal(){
       <div class="da-modal-body">${html||'<div class="pf-empty">Nothing to review.</div>'}</div>
       <div class="da-modal-foot"><span id="daApplyStatus" style="font-size:12px;color:var(--text3);flex:1;min-width:0"></span>
         <span id="daTickCount" style="font-size:12px;color:var(--text2);white-space:nowrap"></span>
+        ${(_daReport && _daReviewToken===_daExtraction)?`<button class="btn-secondary" onclick="daCopyReport(this)" title="Copy a report of this read (no key included)">Copy report</button>`:""}
         <button class="btn-secondary" onclick="daRequestClose()">Cancel</button>
         <button class="btn-primary da-apply-btn" onclick="applyDataAgent()">✓ Add to the app</button></div>
     </div>`;
@@ -10269,12 +10383,14 @@ function applyDataAgent(){
               : errors.length ? "the ticked rows couldn't be added ("+errors[0]+")."
               : "the ticked rows have no values"+(skipped.length?" ("+skipped.slice(0,3).join("; ")+")":"")+" — fill them in, then click Add.";
     if(stt){ stt.textContent="⚠ Nothing was added: "+why; stt.style.color="var(--amber)"; }
+    _daApplyRecord(false, "nothing added — "+why, errors, skipped);
     return;
   }
   const NOUN={people:["person","people"],incomes:["income","incomes"],expenses:["expense set","expense sets"],accounts:["account","accounts"],property:["property","properties"],"other assets":["other asset","other assets"],loans:["loan","loans"],goals:["goal","goals"],holdings:["holding","holdings"],"retirement plan":["retirement plan","retirement plans"]};
   const summary=Object.keys(added).map(k=>{ const w=NOUN[k]||[k,k]; return added[k]+" "+(added[k]===1?w[0]:w[1]); }).join(", ");
   const tail=(errors.length?" · "+errors.length+" row"+(errors.length!==1?"s":"")+" couldn't be added":"")+(skipped.length?" · skipped "+skipped.length+" empty row"+(skipped.length!==1?"s":""):"");
   if(stt){ stt.textContent="✓ Added to the app: "+summary+tail+"."; stt.style.color="var(--green)"; }
+  _daApplyRecord(true, "added "+summary+tail, errors, skipped);
   if(ast){ ast.textContent="✓ Added "+summary+"."; ast.style.color="var(--green)"; }
   _daApplied=true;
   try{ if(typeof _topStatus==="function") _topStatus("✓ Added from "+_daImportSource()+": "+summary); }catch(_){}
@@ -21572,11 +21688,27 @@ function downscaleLogoDataUrl(dataUrl, maxPx){
     }catch(_){ resolve(dataUrl); }
   });
 }
+// Run a library the standalone build embeds lazily (<script type="text/plain"
+// data-lazy-lib="…">) the first time it's needed, so ~410 KB of PDF/QR code isn't
+// parsed on every startup. No-op when it's already loaded (the CDN source version,
+// or a second call). Synchronous: an appended inline <script> runs immediately.
+function waLib(name){
+  const ready={ jspdf:()=>!!(window.jspdf&&window.jspdf.jsPDF),
+    autotable:()=>!!(window.jspdf&&window.jspdf.jsPDF&&window.jspdf.jsPDF.API&&window.jspdf.jsPDF.API.autoTable),
+    qrcode:()=>typeof window.QRCode!=="undefined" }[name];
+  if(ready && ready()) return true;
+  if(name==="autotable") waLib("jspdf");   // the plugin registers onto jsPDF
+  const blk=document.querySelector('script[type="text/plain"][data-lazy-lib="'+name+'"]');
+  if(blk){ try{ const s=document.createElement("script"); s.text=blk.textContent; document.head.appendChild(s); blk.removeAttribute("data-lazy-lib"); }
+           catch(e){ try{ console.error("[waLib] "+name,e); }catch(_){} } }
+  return ready ? ready() : !!blk;
+}
 async function generatePDFReport(mode, previewWin){
   // mode: undefined/"download" → save the file; "preview" → show the SAME
   // document in a browser tab via blob URL (guarantees preview === download).
   if(mode!=="preview") setT("rptStatus","Generating PDF…");
   try{
+    waLib("jspdf"); waLib("autotable");   // embedded lazily in the standalone — run on first use
     const {jsPDF}=window.jspdf;
     if(!jsPDF) throw new Error("jsPDF not loaded");
 
@@ -26005,6 +26137,7 @@ async function shareSession(){
       gz.length.toLocaleString() + " B compressed → " + enc.length.toLocaleString() + " chars in URL";
     // QR rendering (qrcodejs is reliable up to ~1200 char payloads at error level L)
     const qrHost = $("shareQr"); qrHost.innerHTML = "";
+    waLib("qrcode");   // embedded lazily in the standalone — run on first use
     if(typeof QRCode !== "undefined" && url.length < 1300){
       try {
         new QRCode(qrHost, {
@@ -26319,7 +26452,7 @@ document.addEventListener("DOMContentLoaded",function(){
       // (The old filter deleted 12 saved API keys + the advisor logo per update.)
       // wa_cors_proxy = the data proxy URL (Admin → Market Data); without it,
       // Yahoo prices and ticker lookups would switch off after every deploy.
-      const keep = new Set(["wa_ai_key","wa_av_key","wa_fh_key","wa_ai_builder_enabled","wa_key_health","wa_app_version","wa_cors_proxy"]);
+      const keep = new Set(["wa_ai_key","wa_av_key","wa_fh_key","wa_ai_builder_enabled","wa_key_health","wa_app_version","wa_cors_proxy","wa_show_intro","wa_intro_seen"]);
       try{ APP_KEY_DEFS.forEach(d => keep.add(d.id)); }catch(_){}
       Object.keys(localStorage)
         .filter(k => k.startsWith("wa_") && !keep.has(k) && !k.startsWith("wa_rpt_"))
