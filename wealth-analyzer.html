@@ -720,6 +720,13 @@ input[type=date]{color-scheme:light}
 .info-ic .info-pop{visibility:hidden;opacity:0;position:absolute;bottom:140%;left:50%;transform:translateX(-50%);width:260px;background:var(--bg2);border:1px solid var(--border2);border-radius:8px;padding:10px 13px;font-size:11px;font-weight:400;color:var(--text2);line-height:1.65;box-shadow:0 8px 28px rgba(0,0,0,.45);z-index:9999;transition:opacity .15s;text-align:left;pointer-events:none}
 .info-ic:hover .info-pop{visibility:visible;opacity:1}
 .info-ic .info-pop::after{content:"";position:absolute;top:100%;left:50%;transform:translateX(-50%);border:6px solid transparent;border-top-color:var(--border2)}
+/* The in-place .info-pop is clipped by any overflow:hidden/auto ancestor (tables, .cmp-grid,
+   scroll areas). With JS, its content is shown in one body-level fixed box instead (initInfoPops). */
+html.info-pop-float .info-ic .info-pop{display:none}
+#info-pop-box{position:fixed;z-index:10001;width:260px;max-width:calc(100vw - 16px);box-sizing:border-box;background:var(--bg2);border:1px solid var(--border2);border-radius:8px;padding:10px 13px;font-size:11px;font-weight:400;font-family:var(--fb);color:var(--text2);line-height:1.65;box-shadow:0 8px 28px rgba(0,0,0,.18);text-align:left;text-transform:none;letter-spacing:0;pointer-events:none;opacity:0;visibility:hidden;transition:opacity .15s}
+#info-pop-box.show{opacity:1;visibility:visible}
+#info-pop-box::after{content:"";position:absolute;left:var(--arrow-x,50%);transform:translateX(-50%);border:6px solid transparent;top:100%;border-top-color:var(--border2)}
+#info-pop-box.below::after{top:auto;bottom:100%;border-top-color:transparent;border-bottom-color:var(--border2)}
 #inv-tip-box{position:fixed;z-index:9999;background:var(--bg2);border:1px solid var(--border2);border-radius:8px;padding:12px 15px;font-size:11.5px;font-family:var(--fb);color:var(--text);line-height:1.85;box-shadow:0 8px 28px rgba(0,0,0,.55);pointer-events:none;opacity:0;transition:opacity .12s;min-width:270px;max-width:320px}
 #inv-tip-box.vis{opacity:1}
 /* ── Probability explanation tooltip ── */
@@ -7170,6 +7177,39 @@ function refreshIcons(){
   document.querySelectorAll("svg[data-lucide]").forEach(el => el.removeAttribute("data-lucide"));
 }
 window.refreshIcons = refreshIcons;
+
+// .info-ic tooltips: render the hovered icon's .info-pop in one body-level fixed box so no
+// overflow:hidden/auto ancestor can clip it. Delegated, so dynamically rendered icons work too.
+function initInfoPops(){
+  if(document.getElementById("info-pop-box")) return;
+  const box = document.createElement("div");
+  box.id = "info-pop-box"; box.setAttribute("role","tooltip");
+  document.body.appendChild(box);
+  document.documentElement.classList.add("info-pop-float");
+  let cur = null;
+  const hide = () => { cur = null; box.classList.remove("show"); };
+  const show = ic => {
+    const src = ic.querySelector(".info-pop"); if(!src) return;
+    cur = ic;
+    box.innerHTML = src.innerHTML;
+    box.classList.remove("below");
+    const r = ic.getBoundingClientRect(), w = box.offsetWidth, h = box.offsetHeight, M = 8, G = 10;
+    const cx = r.left + r.width/2;
+    const left = Math.max(M, Math.min(cx - w/2, window.innerWidth - w - M));
+    let top = r.top - h - G;
+    if(top < M){ top = r.bottom + G; box.classList.add("below"); }
+    box.style.left = left + "px"; box.style.top = top + "px";
+    box.style.setProperty("--arrow-x", Math.max(12, Math.min(cx - left, w - 12)) + "px");
+    box.classList.add("show");
+  };
+  document.addEventListener("mouseover", e => { const ic = e.target.closest && e.target.closest(".info-ic"); if(ic && ic !== cur) show(ic); else if(!ic && cur) hide(); });
+  document.addEventListener("focusin", e => { const ic = e.target.closest && e.target.closest(".info-ic"); if(ic) show(ic); });
+  document.addEventListener("focusout", e => { if(cur && e.target.closest && e.target.closest(".info-ic") === cur) hide(); });
+  window.addEventListener("scroll", hide, true);
+  window.addEventListener("resize", hide);
+  document.addEventListener("keydown", e => { if(e.key === "Escape" && cur) hide(); });
+}
+document.addEventListener("DOMContentLoaded", initInfoPops);
 // Status line with a leading Lucide icon. kind: "ok" | "err". text is escaped.
 function statusMsg(el, kind, text){
   if(!el) return;
