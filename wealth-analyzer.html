@@ -322,6 +322,8 @@ input[type=date]{color-scheme:light}
 /* ── Goals ── */
 .goal-item{display:flex;align-items:center;padding:11px 12px;border-bottom:1px solid var(--border);font-size:13px;gap:10px;flex-wrap:wrap;transition:background .15s;border-radius:8px}
 .goal-item:hover{background:rgba(0,87,184,.03)}
+.cf-warn .icon{width:12px;height:12px;vertical-align:-0.15em}
+.goal-icon .icon{width:16px;height:16px}
 .goal-icon{width:32px;height:32px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;border:1px solid currentColor;border-color:rgba(0,0,0,.05)}
 .goal-add{display:grid;grid-template-columns:minmax(0,1fr) 170px 110px 110px 150px 215px auto;gap:8px;align-items:center;margin-top:10px}
 .goal-add input,.goal-add select{width:100%}
@@ -537,11 +539,11 @@ input[type=date]{color-scheme:light}
 }
 
 .pf-row:hover{background:var(--bg2)}
-.pf-actions{display:inline-flex;gap:4px;justify-self:end}
-.pf-act{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;padding:0;border:1px solid var(--border);border-radius:6px;background:transparent;color:var(--text3);cursor:pointer;transition:color .15s,border-color .15s,background .15s}
-.pf-act .icon{width:14px;height:14px}
-.pf-act:hover,.pf-act:focus-visible{color:var(--gold);border-color:var(--gold);background:var(--bg3)}
-.pf-act-del:hover,.pf-act-del:focus-visible{color:var(--red);border-color:var(--red);background:rgba(227,24,55,.06)}
+.row-actions{display:inline-flex;gap:4px;justify-self:end}
+.row-act{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;padding:0;border:1px solid var(--border);border-radius:6px;background:transparent;color:var(--text3);cursor:pointer;transition:color .15s,border-color .15s,background .15s}
+.row-act .icon{width:14px;height:14px}
+.row-act:hover,.row-act:focus-visible{color:var(--gold);border-color:var(--gold);background:var(--bg3)}
+.row-act-del:hover,.row-act-del:focus-visible{color:var(--red);border-color:var(--red);background:rgba(227,24,55,.06)}
 .pf-row .pname{font-weight:500;color:var(--text)}
 .pf-row .ptkr{font-family:'DM Sans',monospace;font-size:11px;color:var(--text3);letter-spacing:.04em}
 .pf-row .pnote{color:var(--text3);font-size:11px;font-style:italic;line-height:1.4;overflow:hidden;text-overflow:ellipsis}
@@ -2369,17 +2371,17 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
       <input type="number" id="gstart" placeholder="Start year" min="2024" max="2100">
       <input type="number" id="gend" placeholder="End year" min="2024" max="2100">
       <select id="gcat" onchange="onGoalCatChange()">
-        <option value="retirement">🏖 Retirement</option>
-        <option value="home">🏠 Home purchase</option>
-        <option value="education">🎓 Education</option>
-        <option value="travel">✈️ Travel</option>
-        <option value="emergency">🛡 Emergency fund</option>
-        <option value="business">💼 Business</option>
-        <option value="wedding">💍 Wedding</option>
-        <option value="car">🚗 Vehicle</option>
-        <option value="health">🏥 Healthcare</option>
-        <option value="legacy">🎁 Legacy / Inheritance</option>
-        <option value="other" selected>⭐ Other</option>
+        <option value="retirement">Retirement</option>
+        <option value="home">Home purchase</option>
+        <option value="education">Education</option>
+        <option value="travel">Travel</option>
+        <option value="emergency">Emergency fund</option>
+        <option value="business">Business</option>
+        <option value="wedding">Wedding</option>
+        <option value="car">Vehicle</option>
+        <option value="health">Healthcare</option>
+        <option value="legacy">Legacy / Inheritance</option>
+        <option value="other" selected>Other</option>
       </select>
       <select id="gtier">
         <option value="essential">Essential — must have</option>
@@ -2435,7 +2437,7 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
     <div id="wiStatus" style="font-size:12px;color:var(--text3);margin-bottom:6px"></div>
     <div style="display:flex;gap:8px;margin-top:4px">
       <button id="wiAddBtn" class="btn-primary" onclick="addWhatIf()" style="flex:1">▶ Run Scenario</button>
-      <button id="wiCancelBtn" class="btn-secondary" onclick="cancelEditWhatIf()" style="display:none">✕ Cancel</button>
+      <button id="wiCancelBtn" class="btn-secondary" onclick="cancelEditWhatIf()" style="display:none"><i data-lucide="x" class="icon" aria-hidden="true"></i> Cancel</button>
     </div>
   </div>
   </div>
@@ -4138,7 +4140,7 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
 // ═══════════════════════════════════════════════════════════
 // VERSION — updated by build-standalone.pl on each build
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260925-1831";
+const APP_VERSION = "20260925-1931";
 
 // ═══════════════════════════════════════════════════════════
 // DATA
@@ -8645,22 +8647,30 @@ function cancelEditGoal(){
   onGoalCatChange();
 }
 function delGoal(id){
+  const idx=goals.findIndex(g=>g.id===id); if(idx<0) return;
   if(_editingGoalId===id) cancelEditGoal();
+  const item=goals[idx], gen=window._profileGen||0;
   goals=goals.filter(g=>g.id!==id); renderGoals();
+  showUndoToast('Removed "'+(item.name||"goal")+'"', ()=>{
+    if((window._profileGen||0)!==gen) return 'Can\'t undo: a different profile has been loaded.';
+    if(goals.some(g=>g.id===item.id)) return;
+    goals.splice(Math.min(idx,goals.length),0,item);
+    renderGoals();
+  });
 }
-// Goal category icons — SVG paths + colour for each category
+// Goal category icons — Lucide icon name + colour for each category
 const GOAL_ICONS = {
-  retirement:  {emoji:"🏖", color:"#f59e0b", bg:"rgba(245,158,11,.12)",  label:"Retirement"},
-  home:        {emoji:"🏠", color:"#0057b8", bg:"rgba(0,87,184,.10)",    label:"Home"},
-  education:   {emoji:"🎓", color:"#7c3aed", bg:"rgba(124,58,237,.12)",  label:"Education"},
-  travel:      {emoji:"✈️", color:"#0891b2", bg:"rgba(8,145,178,.12)",   label:"Travel"},
-  emergency:   {emoji:"🛡", color:"#e31837", bg:"rgba(227,24,55,.10)",   label:"Emergency"},
-  business:    {emoji:"💼", color:"#16213e", bg:"rgba(22,33,62,.10)",    label:"Business"},
-  wedding:     {emoji:"💍", color:"#db2777", bg:"rgba(219,39,119,.12)",  label:"Wedding"},
-  car:         {emoji:"🚗", color:"#0d9488", bg:"rgba(13,148,136,.12)",  label:"Vehicle"},
-  health:      {emoji:"🏥", color:"#dc2626", bg:"rgba(220,38,38,.10)",   label:"Health"},
-  legacy:      {emoji:"🎁", color:"#5b21b6", bg:"rgba(91,33,182,.12)",   label:"Legacy"},
-  other:       {emoji:"⭐", color:"#6b7280", bg:"rgba(107,114,128,.10)", label:"Other"}
+  retirement:  {icon:"tree-palm", color:"#f59e0b", bg:"rgba(245,158,11,.12)",  label:"Retirement"},
+  home:        {icon:"house", color:"#0057b8", bg:"rgba(0,87,184,.10)",    label:"Home"},
+  education:   {icon:"graduation-cap", color:"#7c3aed", bg:"rgba(124,58,237,.12)",  label:"Education"},
+  travel:      {icon:"plane", color:"#0891b2", bg:"rgba(8,145,178,.12)",   label:"Travel"},
+  emergency:   {icon:"shield-check", color:"#e31837", bg:"rgba(227,24,55,.10)",   label:"Emergency"},
+  business:    {icon:"briefcase", color:"#16213e", bg:"rgba(22,33,62,.10)",    label:"Business"},
+  wedding:     {icon:"gem", color:"#db2777", bg:"rgba(219,39,119,.12)",  label:"Wedding"},
+  car:         {icon:"car", color:"#0d9488", bg:"rgba(13,148,136,.12)",  label:"Vehicle"},
+  health:      {icon:"heart-pulse", color:"#dc2626", bg:"rgba(220,38,38,.10)",   label:"Health"},
+  legacy:      {icon:"gift", color:"#5b21b6", bg:"rgba(91,33,182,.12)",   label:"Legacy"},
+  other:       {icon:"star", color:"#6b7280", bg:"rgba(107,114,128,.10)", label:"Other"}
 };
 
 // Goal-relative optimization: when several goals compete for the same dollars
@@ -8684,16 +8694,19 @@ function renderGoals(){
       extraNote=`<span style="font-size:10px;color:var(--gold)"> → ${fmtMoney(g.amt)}/yr at ${rate}%</span>`;
     }
     return `<div class="goal-item">
-      <span class="goal-icon" style="background:${icon.bg};color:${icon.color}" title="${icon.label}">${icon.emoji}</span>
+      <span class="goal-icon" style="background:${icon.bg};color:${icon.color}" title="${icon.label}">${lucideIcon(icon.icon)}</span>
       <span class="gtag tcat" style="background:${icon.bg};color:${icon.color};border-color:${icon.bg}">${icon.label.toLowerCase()}</span><span class="info-ic">i<span class="info-pop">Goal category: <strong>${icon.label}</strong>. Categorizes the goal for icon display and drives category-specific analysis (e.g. education funding gap and retirement success checks look for goals tagged with the matching category). Priority weighting in funding-shortfall alerts is set separately by the goal's tier (essential/important/aspirational), shown in the tag next to this one.</span></span>
       <span class="gtag ${tierClass}">${g.tier||"important"}</span><span class="info-ic">i<span class="info-pop"><strong>Goal priority tier.</strong> Controls funding order when assets and savings are limited: <strong>essential</strong> goals draw from the shared assets/savings pool first and are flagged high-severity if underfunded; <strong>important</strong> goals are funded next (medium severity if short); <strong>aspirational</strong> and <strong>legacy</strong> goals are funded last, from whatever assets/savings remain, and are flagged low-severity if underfunded.</span></span>
       <span style="flex:1;font-weight:600;color:var(--text)">${_daEsc(g.name)}</span>
       <span style="font-variant-numeric:tabular-nums;font-weight:600">${amtDisplay}${extraNote}</span>
       <span style="font-size:11px;color:var(--text3)">${g.startYear}–${g.endYear} <span style="color:var(--text2)">(${fmtMoney(g.amt*years)} total)</span></span>
-      <button class="btn-secondary" style="padding:2px 8px;font-size:11px" onclick="editGoal('${g.id}')">Edit</button>
-      <button class="btn-x" onclick="delGoal('${g.id}')">✕</button>
+      <span class="row-actions">
+        <button type="button" class="row-act" onclick="editGoal('${g.id}')" title="Edit" aria-label="Edit ${_daEsc(g.name)}">${lucideIcon("pencil")}</button>
+        <button type="button" class="row-act row-act-del" onclick="delGoal('${g.id}')" title="Remove" aria-label="Remove ${_daEsc(g.name)}">${lucideIcon("trash-2")}</button>
+      </span>
     </div>`;
   }).join("");
+  refreshIcons();
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -11635,9 +11648,9 @@ function renderInvestments(){
       <span style="color:var(--text2);font-variant-numeric:tabular-nums">${er}</span>
       <span style="color:var(--text2);font-variant-numeric:tabular-nums">${yld}</span>
       <span class="pnote">${_daEsc(i.note||"—")}</span>
-      <span class="pf-actions">
-        <button type="button" class="pf-act" onclick="editInvestment('${i.id}')" title="Edit" aria-label="Edit ${_daEsc(i.name)}">${lucideIcon("pencil")}</button>
-        <button type="button" class="pf-act pf-act-del" onclick="removeInvestment('${i.id}')" title="Remove" aria-label="Remove ${_daEsc(i.name)}">${lucideIcon("trash-2")}</button>
+      <span class="row-actions">
+        <button type="button" class="row-act" onclick="editInvestment('${i.id}')" title="Edit" aria-label="Edit ${_daEsc(i.name)}">${lucideIcon("pencil")}</button>
+        <button type="button" class="row-act row-act-del" onclick="removeInvestment('${i.id}')" title="Remove" aria-label="Remove ${_daEsc(i.name)}">${lucideIcon("trash-2")}</button>
       </span>
     </div>`;
   }).join("");
@@ -18018,10 +18031,10 @@ function renderCombinedGoalFunding(paths,yrs){
     const nw50 = percentileAt(paths,relYr,50);
     const prob = goalSuccessFromPaths(g,paths,yrs)||0;
     const probCls = prob>=80?"fund-ok":(prob>=50||prob>=25?"fund-warn":"fund-bad");
-    const icon=(typeof GOAL_ICONS!=="undefined"&&GOAL_ICONS[g.cat])||{emoji:"⭐",color:"#6b7280",bg:"rgba(107,114,128,.10)"};
+    const icon=(typeof GOAL_ICONS!=="undefined"&&GOAL_ICONS[g.cat])||{icon:"star",color:"#6b7280",bg:"rgba(107,114,128,.10)"};
     h += '<div style="margin-bottom:16px;padding:12px 14px;background:var(--bg3);border-radius:10px">';
     h += '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px">';
-    h += '<div class="goal-icon" style="background:'+icon.bg+';color:'+icon.color+';width:26px;height:26px;font-size:13px">'+icon.emoji+'</div>';
+    h += '<div class="goal-icon" style="background:'+icon.bg+';color:'+icon.color+';width:26px;height:26px;font-size:13px">'+lucideIcon(icon.icon)+'</div>';
     h += '<span style="font-size:13.5px;font-weight:700">'+_daEsc(g.name)+'</span>';
     if(pv) h += '<span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:50px;background:'+tierColor[pv.tier]+'1a;color:'+tierColor[pv.tier]+'">'+tierLabel[pv.tier]+' · '+pv.conf+'%</span>';
     h += '<span style="font-size:11px;color:var(--text3)">'+g.endYear+' · '+fmtMoney(g.amt)+'/yr</span>';
@@ -18048,6 +18061,7 @@ function renderCombinedGoalFunding(paths,yrs){
     h += '</div>';
   });
   listHost.innerHTML = h;
+  refreshIcons();
 }
 
 // ─── Achievable Lifestyle in the Simulation tab (3 confidence levels) ───
@@ -19309,7 +19323,7 @@ function renderCashFlow(){
       <td class="cf-tip-cell" data-cf-tip='${tipTax.replace(/'/g,"&#39;")}'>${fmtMoney(tax)}</td>
       <td class="cf-tip-cell" data-cf-tip='${tipExp.replace(/'/g,"&#39;")}'>${fmtMoney(livingExp)}</td>
       <td class="cf-tip-cell" data-cf-tip='${tipDebt.replace(/'/g,"&#39;")}'>${debt>0?fmtMoney(debt):"—"}</td>
-      <td class="cf-tip-cell" data-cf-tip='${tipSav.replace(/'/g,"&#39;")}'>${retired?"—":actualSav>0?fmtMoney(actualSav)+(actualSav<effectiveSav?' <span style="font-size:10px;color:#c98a3a;cursor:default" title="Savings target: '+fmtMoney(effectiveSav)+' — constrained by surplus">⚠</span>':""):"—"}</td>
+      <td class="cf-tip-cell" data-cf-tip='${tipSav.replace(/'/g,"&#39;")}'>${retired?"—":actualSav>0?fmtMoney(actualSav)+(actualSav<effectiveSav?' <span class="cf-warn" style="color:#c98a3a;cursor:default" title="Savings target: '+fmtMoney(effectiveSav)+' — constrained by surplus" aria-label="Savings target: '+fmtMoney(effectiveSav)+' — constrained by surplus">'+lucideIcon("triangle-alert")+'</span>':""):"—"}</td>
       <td class="${surpAfterSav>=0?'cf-pos':'cf-neg'} cf-tip-cell" data-cf-tip='${tipSurp.replace(/'/g,"&#39;")}'>${fmtMoney(surpAfterSav)}</td>
       <td class="cf-tip-cell" data-cf-tip='${tipGoal.replace(/'/g,"&#39;")}'>${goalOut>0?fmtMoney(goalOut):"—"}</td>
       <td class="cf-tip-cell" data-cf-tip='${tipCash.replace(/'/g,"&#39;")}'>${fmtMoney(cash)}</td>
@@ -19320,6 +19334,7 @@ function renderCashFlow(){
     </tr>`;
   });
   tbody.innerHTML=html;
+  refreshIcons();
   try{ renderComponentsChart(); }catch(e){ console.warn("components chart:", e); }
 
   const cfPct=(cfMu*100).toFixed(1);
@@ -25429,6 +25444,7 @@ function loadProfile(){
 }
 
 function restoreProfile(p){
+  window._profileGen=(window._profileGen||0)+1;   // lets Undo notices refuse after another profile loads
   const f=p.fields||{};
   // Missing keys (older profiles) reset to app defaults so the previous client's
   // values never leak into a newly loaded profile.
