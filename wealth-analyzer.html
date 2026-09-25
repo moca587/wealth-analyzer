@@ -24,6 +24,8 @@
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<!-- Lucide 0.460.0 (pinned; same file as admin.html and wealth-app-next lucide-react) -->
+<script defer src="vendor/lucide.min.js"></script>
 <style>
 :root{
   --bg:#f4f6fb;--bg2:#ffffff;--bg3:#eef1f8;--bg4:#e2e8f2;
@@ -79,6 +81,11 @@ body{font-family:var(--fb);background:var(--bg);color:var(--text);font-size:14px
 .set-link{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--gold);text-decoration:none;padding:11px 13px;border:1px solid var(--border);border-radius:var(--rs);transition:all .15s}
 .set-link:hover{background:rgba(0,87,184,.06);border-color:var(--border2)}
 .set-link-ext{margin-left:auto;color:var(--text3);font-size:12px}
+/* Lucide icons (§5.22) — stroke currentColor; <i data-lucide> → SVG via refreshIcons() */
+.icon{width:16px;height:16px;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;fill:none;flex-shrink:0;display:inline-block;vertical-align:-0.2em}
+.btn-secondary .icon{width:14px;height:14px}
+.set-close .icon{width:15px;height:15px;vertical-align:middle}
+.md-pill .icon{width:11px;height:11px;stroke-width:2.5;vertical-align:-0.12em}
 .set-switch{position:relative;display:inline-block;width:44px;height:24px;flex-shrink:0}
 .set-switch input{opacity:0;width:0;height:0}
 .set-switch span{position:absolute;inset:0;background:var(--bg4);border-radius:50px;cursor:pointer;transition:.2s}
@@ -1251,7 +1258,7 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
 <aside id="settingsPanel" role="dialog" aria-label="Settings" aria-hidden="true">
   <div class="set-head">
     <div class="set-title">Settings</div>
-    <button class="set-close" onclick="closeSettings()" aria-label="Close settings">✕</button>
+    <button class="set-close" onclick="closeSettings()" aria-label="Close settings"><i data-lucide="x" class="icon" aria-hidden="true"></i></button>
   </div>
   <div class="set-body">
 
@@ -1358,7 +1365,7 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
       <div class="set-actions">
         <button class="btn-secondary" onclick="loadProfile();closeSettings()" style="padding:8px 16px">⬆ Load profile</button>
         <button class="btn-secondary" onclick="saveProfile();closeSettings()" style="padding:8px 16px">⬇ Save profile</button>
-        <button class="btn-secondary" onclick="shareSession();closeSettings()" style="padding:8px 16px">🔗 Share session</button>
+        <button class="btn-secondary" onclick="shareSession();closeSettings()" style="padding:8px 16px"><i data-lucide="link" class="icon" aria-hidden="true"></i> Share session</button>
       </div>
       <div class="set-note">Save your household to a file on this device, load one back, or share a read-only snapshot via link / QR — everything stays private in your browser, nothing is uploaded.</div>
     </div>
@@ -1366,7 +1373,7 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
     <div class="set-sec">
       <div class="set-sec-h">Data &amp; integrations</div>
       <!-- AI API key — the primary one; always visible so it's easy to find -->
-      <label for="aiKeyInput" style="display:block;font-size:12.5px;font-weight:600;color:var(--text);margin-bottom:5px">🤖 AI API key</label>
+      <label for="aiKeyInput" style="display:block;font-size:12.5px;font-weight:600;color:var(--text);margin-bottom:5px"><i data-lucide="bot" class="icon" aria-hidden="true"></i> AI API key</label>
       <input type="password" id="aiKeyInput" placeholder="paste your key here" autocomplete="off" spellcheck="false"
              onchange="onAiKeyInput()" oninput="onAiKeyInput()"
              style="width:100%;font-family:var(--fm);font-size:12px;padding:8px 10px;border:1px solid var(--border);border-radius:var(--rs);background:var(--bg2);color:var(--text)">
@@ -1376,7 +1383,7 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
       <!-- Market data provider keys (collapsed by default) -->
       <div id="mdKeysPanel" style="margin-top:14px">
         <div onclick="toggleMdKeys()" style="cursor:pointer;user-select:none;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:11px 13px;border:1px solid var(--border);border-radius:var(--rs);background:var(--bg3)">
-          <span style="font-size:13px;font-weight:600;color:var(--text)">🔑 Provider API keys <span id="mdKeysSummary" style="font-size:11px;font-weight:500;color:var(--text3);margin-left:4px"></span></span>
+          <span style="font-size:13px;font-weight:600;color:var(--text)"><i data-lucide="key-round" class="icon" aria-hidden="true"></i> Provider API keys <span id="mdKeysSummary" style="font-size:11px;font-weight:500;color:var(--text3);margin-left:4px"></span></span>
           <span id="mdKeysCaret" style="font-size:13px;color:var(--text3);transition:transform .2s">▼</span>
         </div>
         <div id="mdKeysBody" style="display:none;padding-top:12px">
@@ -1384,13 +1391,13 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
           <div id="mdKeysGrid" style="display:grid;grid-template-columns:1fr;gap:10px"></div>
           <div style="margin-top:12px;padding:10px 12px;background:rgba(245,158,11,.06);border-left:3px solid var(--amber);border-radius:6px;font-size:11px;color:var(--text2);line-height:1.6"><strong>CORS note:</strong> Some providers (CoinMarketCap, FRED, NewsAPI, Marketstack) block direct browser requests — the app retries those via corsproxy.io.</div>
           <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-            <button class="btn-secondary" onclick="testAllMdKeys()" style="font-size:12px;padding:7px 14px">⚡ Test all keys</button>
+            <button class="btn-secondary" onclick="testAllMdKeys()" style="font-size:12px;padding:7px 14px"><i data-lucide="zap" class="icon" aria-hidden="true"></i> Test all keys</button>
             <span id="mdKeysTestStatus" style="font-size:12px;color:var(--text3)"></span>
           </div>
         </div>
       </div>
       <!-- Admin console — full key manager + advanced tools -->
-      <a class="set-link" href="admin.html" target="_blank" style="margin-top:10px">⚙ Admin Console <span class="set-link-ext">full manager ↗</span></a>
+      <a class="set-link" href="admin.html" target="_blank" style="margin-top:10px"><i data-lucide="settings" class="icon" aria-hidden="true"></i> Admin Console <span class="set-link-ext">full manager ↗</span></a>
       <div class="set-note">Keys you set here and in the Admin console are the same — manage them in whichever is handier.</div>
     </div>
 
@@ -4085,7 +4092,7 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
 // ═══════════════════════════════════════════════════════════
 // VERSION — updated by build-standalone.pl on each build
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260924-2320";
+const APP_VERSION = "20260925-1824";
 
 // ═══════════════════════════════════════════════════════════
 // DATA
@@ -7120,6 +7127,25 @@ const APP_KEY_DEFS = [
   // market-data provider grid.
 ];
 
+/* Lucide helpers — decorative icons (§5.22). lucideIcon() returns an <i> placeholder;
+   call refreshIcons() after injecting HTML that contains one. Same logic as admin.html. */
+function lucideIcon(name, extraClass){
+  const cls = extraClass ? ("icon "+extraClass) : "icon";
+  return '<i data-lucide="'+name+'" class="'+cls+'" aria-hidden="true"></i>';
+}
+function refreshIcons(){
+  if(typeof lucide === "undefined" || typeof lucide.createIcons !== "function") return;
+  // UMD createIcons scans the whole document and keeps data-lucide on the
+  // replacement <svg>, so a naive call re-builds every icon. Only convert
+  // pending <i> placeholders; strip the attr from SVGs so later calls are cheap.
+  if(!document.querySelector("i[data-lucide]")) return;
+  document.querySelectorAll("svg[data-lucide]").forEach(el => el.removeAttribute("data-lucide"));
+  lucide.createIcons();
+  document.querySelectorAll("svg[data-lucide]").forEach(el => el.removeAttribute("data-lucide"));
+}
+window.refreshIcons = refreshIcons;
+document.addEventListener("DOMContentLoaded", refreshIcons);
+
 function renderMdKeysGrid(){
   const grid = document.getElementById("mdKeysGrid");
   if(!grid) return;
@@ -7130,8 +7156,8 @@ function renderMdKeysGrid(){
     const stamp = hh.lastCheck ? (Date.now() - hh.lastCheck) : null;
     const ago = stamp == null ? "" : (stamp < 60000 ? Math.floor(stamp/1000)+"s ago" : Math.floor(stamp/60000)+"m ago");
     const pill = !v ? '<span style="background:rgba(156,163,175,.15);color:var(--text3);padding:2px 8px;border-radius:50px;font-size:10px;font-weight:600">Empty</span>'
-               : hh.lastCheck && hh.ok ? '<span style="background:rgba(0,135,90,.15);color:#1b6841;padding:2px 8px;border-radius:50px;font-size:10px;font-weight:600">✓ '+ (hh.latencyMs||"—") +'ms · ' + ago + '</span>'
-               : hh.lastCheck && !hh.ok ? '<span style="background:rgba(227,24,55,.15);color:#a83232;padding:2px 8px;border-radius:50px;font-size:10px;font-weight:600" title="'+escapeForHTML(hh.error||"")+'">✗ failing</span>'
+               : hh.lastCheck && hh.ok ? '<span style="background:rgba(0,135,90,.15);color:#1b6841;padding:2px 8px;border-radius:50px;font-size:10px;font-weight:600" class="md-pill">'+lucideIcon("check")+' '+ (hh.latencyMs||"—") +'ms · ' + ago + '</span>'
+               : hh.lastCheck && !hh.ok ? '<span style="background:rgba(227,24,55,.15);color:#a83232;padding:2px 8px;border-radius:50px;font-size:10px;font-weight:600" title="'+escapeForHTML(hh.error||"")+'" class="md-pill">'+lucideIcon("x")+' failing</span>'
                : '<span style="background:rgba(91,155,213,.15);color:#1e40af;padding:2px 8px;border-radius:50px;font-size:10px;font-weight:600">' + v.length + ' chars · pending</span>';
     h += '<div style="border:1px solid var(--border);background:var(--bg3);border-radius:8px;padding:10px 12px">';
     h += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px">';
@@ -7145,6 +7171,7 @@ function renderMdKeysGrid(){
     h += '</div>';
   });
   grid.innerHTML = h;
+  refreshIcons();
   // Summary
   let configured = 0, working = 0, failing = 0;
   APP_KEY_DEFS.forEach(k => {
@@ -7218,7 +7245,8 @@ async function testAllMdKeys(){
     renderMdKeysGrid();
     await new Promise(r => setTimeout(r, 250));
   }
-  if(status) status.innerHTML = '<span style="color:#1b6841">✓ ' + ok + ' working</span>' + (fail ? ' · <span style="color:#a83232">' + fail + ' failing</span>' : "");
+  if(status) status.innerHTML = '<span style="color:#1b6841">' + lucideIcon("check") + ' ' + ok + ' working</span>' + (fail ? ' · <span style="color:#a83232">' + fail + ' failing</span>' : "");
+  refreshIcons();
 }
 
 function toggleMdKeys(){
@@ -9149,8 +9177,9 @@ function syncAiKeyNote(){
   const n=document.getElementById("aiKeyNote"); if(!n) return;
   const has=!!getAIKey();
   n.innerHTML = has
-    ? '<span style="color:var(--green)">✓ Key detected — AI features and document upload are enabled.</span>'
+    ? '<span style="color:var(--green)">'+lucideIcon("check")+' Key detected — AI features and document upload are enabled.</span>'
     : '<span style="color:var(--text3)">No key set yet — paste your key above to enable Upload Document.</span>';
+  refreshIcons();
 }
 // Reflect the stored key + note whenever the field is present (Settings open).
 function refreshAiKeyField(){

@@ -40,6 +40,9 @@ const VERSION_FMT_RE = /^\d{8}-\d{4}$/;
 const LIVE_CDN_SCRIPT = /<script\b[^>]*\bsrc\s*=\s*"https:\/\/cdnjs\.cloudflare\.com[^"]*"/i;
 const LIVE_FONT_LINK  = /<link\b[^>]*\bhref\s*=\s*"https:\/\/fonts\.googleapis\.com[^"]*"/i;
 const CDN_WORKER      = /workerSrc\s*=\s*"https:\/\/cdnjs\.cloudflare\.com[^"]*"/i;
+// A relative vendor/ script only resolves next to the repo checkout; a standalone
+// copied anywhere else silently loses it (e.g. Lucide icons render as blanks).
+const LIVE_VENDOR_SCRIPT = /<script\b[^>]*\bsrc\s*=\s*"vendor\/[^"]*"/i;
 
 const errors = [];
 const notes = [];
@@ -91,6 +94,7 @@ for (const app of APPS) {
   if (LIVE_CDN_SCRIPT.test(st)) fail(app.name, `standalone has a live <script src="cdnjs…"> — not offline-safe`);
   if (LIVE_FONT_LINK.test(st)) fail(app.name, `standalone has a live Google Fonts <link> — not offline-safe`);
   if (CDN_WORKER.test(st)) fail(app.name, `standalone pdf workerSrc still points at cdnjs — worker won't load offline`);
+  if (LIVE_VENDOR_SCRIPT.test(st)) fail(app.name, `standalone has a live <script src="vendor/…"> — not inlined, breaks when copied`);
 
   // Plausible size (fully-vendored files are multi-MB; a tiny one lost its inlines).
   const bytes = statSync(stPath).size;
