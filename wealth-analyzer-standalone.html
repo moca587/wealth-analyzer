@@ -585,7 +585,7 @@ body.shared-view #tab-household input,body.shared-view #tab-household select,bod
 body.shared-view .nav-item{cursor:pointer;opacity:.95}
 
 /* ── Sidebar ── */
-.sidebar{width:200px;flex-shrink:0;background:#ffffff;border-right:1px solid rgba(0,87,184,0.08);overflow-y:auto;padding:20px 0}
+.sidebar{width:200px;flex-shrink:0;background:#ffffff;border-right:1px solid rgba(0,87,184,0.08);overflow-y:auto;overflow-x:hidden;padding:20px 0} /* x hidden: the 2px hover glide must not open a horizontal scrollbar (it flickered, G-37) */
 .nav-grp-label{font-size:9.5px;font-weight:700;letter-spacing:.10em;text-transform:uppercase;color:var(--text3);padding:14px 18px 5px}
 .nav-item{display:flex;align-items:center;gap:9px;padding:9px 18px;cursor:pointer;color:var(--text2);font-size:13px;font-weight:500;border-left:3px solid transparent;transition:all .12s;user-select:none}
 .nav-item:hover{color:var(--text);background:rgba(0,87,184,0.03)}
@@ -4551,7 +4551,7 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
 // ═══════════════════════════════════════════════════════════
 // VERSION — updated by build-standalone.pl on each build
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260925-1824";
+const APP_VERSION = "20260925-1831";
 
 // ═══════════════════════════════════════════════════════════
 // DATA

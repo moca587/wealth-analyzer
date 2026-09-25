@@ -422,7 +422,7 @@ Each entry lists purpose, anatomy (current classes), key tokens, states, usage r
 - **Wordmark and favicon:** `favicon.svg` (added in `522b06f`) is a 64×64 rounded square (radius 14) with a `#0057b8 → #4da6ff` gradient (`--color-primary` → `--color-primary-light`) and a white "W". It uses Arial because an SVG favicon can't load web fonts; that is accepted.
 - **"NEW" badge on a nav item** (`.nav-new`): 8px pill, white text, purple→primary gradient (`#7c3aed` → `--color-primary` / demo `--gold`). Shared by the demo and the admin console. ⚠ Purple is still not a theme token (Q19); Phase 3 (P3-01) may retint this without changing the class.
 - **Responsive:** at ≤ 900px the sidebar is hidden and main padding drops to 16px. *(Gap: there is no mobile nav replacement, G-12; see §4.12.)*
-- **Rail overflow:** the sidebar sets `overflow-x: hidden`, because the 2px hover slide would otherwise open a horizontal scrollbar and make the rail flicker (G-37). ⚠ The demo doesn't set it yet.
+- **Rail overflow:** the sidebar sets `overflow-x: hidden`, because the 2px hover slide would otherwise open a horizontal scrollbar and make the rail flicker (G-37).
 - **States (nav item):** rest (`--text2`), hover (tint + 2px slide right), active (primary text, primary left border, tint gradient; standard: `aria-current="page"`), has-data (green `.nav-dot`), focus (⚠ not focusable today, G-33). **Topbar:** the currency picker and icon buttons follow §4.13; the status text slot (`#topbarStatus`, set by `toastTopbar()`) shows a message for 3.5s.
 - **Admin (Phase 2, done):** `.topbar`, gradient `.logo` with the red "ADMIN" badge kept as the admin identifier, `.sidebar` with `.grp` (= `.nav-grp-label`) and `.nav` (= `.nav-item`: hover glide, active gradient), ambient glow on `.main`. One deliberate difference: the admin rail is **220px** (`--sidebar-w`), because its longer labels with a NEW badge wrap at 200px. 📷 [admin-dashboard](style-guide-assets/admin-dashboard.png)
 - **SaaS:** `components/nav/sidebar.tsx`, align active/hover states.
@@ -824,6 +824,7 @@ Not captured: `.fund-tbl`, `.insight-card`, the scenario bar chart and `#prob-ti
 
 | Date | Version | Change |
 |---|---|---|
+| 2026-09-25 | v1.2 RC | §5.1: the demo sidebar clips horizontal overflow too (G-37 fixed in both surfaces) |
 | 2026-09-24 | v1.2 RC | §5.1: sidebar clips horizontal overflow so the hover slide can't flicker (G-37); fixed in the admin console |
 | 2026-09-24 | v1.2.1 | `.nav-new` consolidated: admin + demo (+ Avaloq) share the purple→primary gradient badge (admin had been navy) |
 | 2026-09-24 | v1.2 RC | Phase 2 Tier 1 landed in the admin console: target token block live in `admin.html` (§4.1 note); new tokens `--color-on-primary`, `--color-bg-bar`, `--color-glow-canvas`, `--color-hairline-primary`, `--color-sheen`, `--color-selection`, `--color-focus-ring`, `--color-primary-on-inverse-end`, `--shadow-primary-hover`, `--shadow-bar`, `--shadow-inverse` (§4.1a, §4.2, §4.7); admin notes in §5.1, §5.2, §5.4 (plus a shared disabled rule), §5.6, §5.13; NEW badge initially navy (later aligned to demo in v1.2.1); Q19 resolved (purple stays out of the theme tokens). Two admin screenshots |
