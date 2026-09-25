@@ -784,7 +784,8 @@ Short messages inside a panel. All of them use a status tint, a status-coloured 
 - **Sizes:** 16px is the default next to 13px text (the most common fixed size); 12–13px inside small buttons and chips; 17–18px in the topbar; 25px in the splash feature cards. Hero KPI icons sit in a 34px, 9px-radius tinted chip (`.wh-stat-icon`).
 - **States:** icons take the colour of their control, so they follow its hover, active and disabled states. Meaningful icons need 3:1 contrast (§4.10).
 - **When an icon needs a text label:** always, except for the universal ones: close (×), settings (gear), info (i), expand/collapse chevrons. An icon-only button has an `aria-label` and a `title`. An icon next to text is decorative: `aria-hidden="true"`.
-- **Emoji** are used as goal category icons and in some AI status text. They are content, not part of the icon set, and never the only label.
+- **Emoji** are used as goal category icons. They are content, not part of the icon set, and never the only label.
+- **AI Portfolio Builder (done):** the tab uses Lucide throughout: `bot` in the hero and on the Build button, `user-round` / `file-search` / `chart-pie` in 48px tinted step chips (`.aib-step-chip`, with a "Step N" label in place of keycap emoji), `target` on result titles, and `shield-check` on the UCITS / US-listed banner in place of the country flag. Status lines use `circle-check` / `circle-x`. Asset-mix rows use a colour swatch that matches the bar. `<option>` text is plain, because a `<select>` can't render an SVG.
 
 ---
 
