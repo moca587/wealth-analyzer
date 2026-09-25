@@ -327,8 +327,29 @@ input[type=date]{color-scheme:light}
 .goal-icon{width:32px;height:32px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;border:1px solid currentColor;border-color:rgba(0,0,0,.05)}
 .goal-add{display:grid;grid-template-columns:minmax(0,1fr) 170px 110px 110px 150px 215px auto;gap:8px;align-items:center;margin-top:10px}
 .goal-add input,.goal-add select{width:100%}
+/* What-if "Add Scenario": label | fixed-width field | hint — every field starts at the same x */
+.wi-grid{display:grid;grid-template-columns:minmax(150px,210px) 220px minmax(0,1fr);column-gap:16px;row-gap:10px;align-items:center}
+.wi-grid > input,.wi-grid > .ccy-field{width:100%;box-sizing:border-box}
+.wi-lbl{font-size:12px;color:var(--text2);font-weight:500}
+.wi-hint{font-size:11px;color:var(--text3);line-height:1.4}
+.wi-note{grid-column:2 / -1;font-size:10.5px;color:var(--text3);margin-top:-4px}
+.wi-note:empty{display:none}
+.wi-group{grid-column:1 / -1;display:flex;align-items:center;gap:8px;margin-top:10px;padding-top:14px;border-top:1px solid var(--border)}
+.wi-group-title{font-size:13px;font-weight:700;color:var(--text)}
+.wi-group .info-ic{margin-left:0}
+.opt-badge{margin-left:auto;font-size:10px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--text3);background:var(--bg3);border:1px solid var(--border);border-radius:50px;padding:2px 9px}
+@media(max-width:700px){
+  .wi-grid{grid-template-columns:1fr;row-gap:4px}
+  .wi-lbl{margin-top:8px}
+  .wi-hint:empty{display:none}
+  .wi-note{grid-column:1}
+}
+/* Suffix variant of .ccy-field (unit after the value, e.g. %, yrs) */
+.ccy-field.sfx{padding:0 10px 0 0}
+.ccy-field.sfx input{padding-left:10px}
+.ccy-field.sfx .ccy-sym{color:var(--text3);font-weight:600}
 /* Currency-prefixed input: the wrapper is the visible field, the inner input is bare */
-.ccy-field{display:flex;align-items:center;gap:6px;width:100%;min-width:0;box-sizing:border-box;background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:0 0 0 10px;transition:border-color .18s,box-shadow .18s,background .18s}
+.ccy-field{display:flex;align-items:center;gap:6px;width:100%;min-width:0;box-sizing:border-box;background:#ffffff;border:1.5px solid rgba(0,87,184,0.14);border-radius:var(--rs);padding:0 0 0 10px;transition:border-color .18s,box-shadow .18s,background .18s}
 .ccy-field:hover:not(:focus-within){border-color:rgba(0,87,184,.34)}
 .ccy-field:focus-within{border-color:var(--gold);box-shadow:0 0 0 4px rgba(0,105,217,.10);background:#fbfdff}
 .ccy-field .ccy-sym{font-family:var(--fb);font-size:12px;font-weight:700;color:var(--gold);flex-shrink:0}
@@ -2412,31 +2433,56 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
   <!-- Add / edit form -->
   <div class="sdiv">
     <div class="slbl">Add Scenario</div>
-    <div class="frow"><label class="flbl">Scenario name</label><input id="wiName" placeholder="e.g. Early retirement at 55" class="w220"></div>
-    <div class="frow"><label class="flbl">Override retire age</label>
-      <input type="number" id="wiRetAge" placeholder="Leave blank for default" step="1" class="w140">
-      <span style="font-size:11px;color:var(--text3);margin-left:6px">yrs</span>
+    <div class="wi-grid">
+      <label class="wi-lbl" for="wiName">Scenario name</label>
+      <input id="wiName" placeholder="e.g. Early retirement at 55">
+      <span class="wi-hint"></span>
+
+      <label class="wi-lbl" for="wiRetAge">Override retire age</label>
+      <span class="ccy-field sfx"><input type="number" id="wiRetAge" placeholder="default" step="1"><span class="ccy-sym">yrs</span></span>
+      <span class="wi-hint">Leave blank to keep the Household retirement age</span>
+
+      <label class="wi-lbl" for="wiIncChange">Income change</label>
+      <span class="ccy-field sfx"><input type="number" id="wiIncChange" value="0" step="1"><span class="ccy-sym">%</span></span>
+      <span class="wi-hint">of current gross income (negative = reduction)</span>
+
+      <label class="wi-lbl" for="wiExtraExp">Extra annual expense</label>
+      <span class="ccy-field"><span class="ccy-sym ccy-cur">$</span><input type="number" id="wiExtraExp" value="0" step="500"></span>
+      <span class="wi-hint">per year, ongoing</span>
+
+      <div class="wi-group"><span class="wi-group-title">One-time goal</span><span class="opt-badge">Optional</span></div>
+
+      <label class="wi-lbl" for="wiGoalName">Goal name</label>
+      <input id="wiGoalName" placeholder="e.g. Buy beach house">
+      <span class="wi-hint"></span>
+
+      <label class="wi-lbl" for="wiGoalAmt">Goal amount</label>
+      <span class="ccy-field"><span class="ccy-sym ccy-cur">$</span><input type="number" id="wiGoalAmt" value="0" step="1000"></span>
+      <span class="wi-hint">paid once, in the goal year</span>
+
+      <label class="wi-lbl" for="wiGoalYear">Goal year</label>
+      <input type="number" id="wiGoalYear" placeholder="e.g. 2032" step="1">
+      <span class="wi-hint"></span>
+
+      <div class="wi-group"><span class="wi-group-title">Early pension withdrawal</span><span class="info-ic">i<span class="info-pop">Models taking money <strong>out of the locked retirement / pension pool</strong> at a chosen age — e.g. a client who retires at 65 but wants part of their pillar 2 out at 58. In that year the amount leaves the pension pool; what's left after the tax &amp; penalty % lands in cash. For Swiss clients, read the effective capital-withdrawal rate from the Swiss lump-sum box (plus any early-withdrawal penalty) and enter the combined %.</span></span><span class="opt-badge">Optional</span></div>
+
+      <label class="wi-lbl" for="wiPenAmt">Amount to withdraw</label>
+      <span class="ccy-field"><span class="ccy-sym ccy-cur">$</span><input type="number" id="wiPenAmt" value="0" step="10000" min="0" oninput="wiAutoCutRefresh()"></span>
+      <span class="wi-hint"></span>
+
+      <label class="wi-lbl" for="wiPenAge">Taken at age</label>
+      <span class="ccy-field sfx"><input type="number" id="wiPenAge" placeholder="e.g. 58" step="1" min="30" max="80" oninput="wiAutoCutRefresh()"><span class="ccy-sym">yrs</span></span>
+      <span class="wi-hint">Client 1's age</span>
+
+      <label class="wi-lbl" for="wiPenCut">Lost to tax &amp; penalty</label>
+      <span class="ccy-field sfx"><input type="number" id="wiPenCut" value="0" step="0.5" min="0" max="100" oninput="this.dataset.touched='1';wiAutoCutRefresh()"><span class="ccy-sym">%</span></span>
+      <span class="wi-hint">auto-estimated, edit to override</span>
+
+      <div id="wiPenCutNote" class="wi-note"></div>
     </div>
-    <div class="frow"><label class="flbl">Income change %</label>
-      <input type="number" id="wiIncChange" value="0" step="1" class="w120">
-      <span style="font-size:11px;color:var(--text3);margin-left:6px">% of current gross (neg = reduction)</span>
-    </div>
-    <div class="frow"><label class="flbl">Extra annual expense</label>
-      <input type="number" id="wiExtraExp" value="0" step="500" class="w140">
-      <span style="font-size:11px;color:var(--text3);margin-left:6px">per year (ongoing)</span>
-    </div>
-    <div style="font-size:11px;font-weight:600;color:var(--text2);margin:10px 0 6px;letter-spacing:.04em;text-transform:uppercase">One-Time Goal (optional)</div>
-    <div class="frow"><label class="flbl">Goal name</label><input id="wiGoalName" placeholder="e.g. Buy beach house" class="w200"></div>
-    <div class="frow"><label class="flbl">Goal amount</label><input type="number" id="wiGoalAmt" value="0" step="1000" class="w140"></div>
-    <div class="frow"><label class="flbl">Goal year</label><input type="number" id="wiGoalYear" placeholder="e.g. 2032" step="1" class="w120"></div>
-    <div style="font-size:11px;font-weight:600;color:var(--text2);margin:10px 0 6px;letter-spacing:.04em;text-transform:uppercase">Early Pension Withdrawal (optional)<span class="info-ic">i<span class="info-pop">Models taking money <strong>out of the locked retirement / pension pool</strong> at a chosen age — e.g. a client who retires at 65 but wants part of their pillar 2 out at 58. In that year the amount leaves the pension pool; what's left after the tax &amp; penalty % lands in cash. For Swiss clients, read the effective capital-withdrawal rate from the Swiss lump-sum box (plus any early-withdrawal penalty) and enter the combined %.</span></span></div>
-    <div class="frow"><label class="flbl">Amount to withdraw</label><input type="number" id="wiPenAmt" value="0" step="10000" min="0" class="w140" oninput="wiAutoCutRefresh()"></div>
-    <div class="frow"><label class="flbl">Taken at age</label><input type="number" id="wiPenAge" placeholder="e.g. 58" step="1" min="30" max="80" class="w120" oninput="wiAutoCutRefresh()"><span style="font-size:11px;color:var(--text3);margin-left:6px">client 1's age</span></div>
-    <div class="frow"><label class="flbl">Lost to tax &amp; penalty</label><input type="number" id="wiPenCut" value="0" step="0.5" min="0" max="100" class="w120" oninput="this.dataset.touched='1';wiAutoCutRefresh()"><span style="font-size:11px;color:var(--text3);margin-left:6px">% · auto-estimated, edit to override</span></div>
-    <div id="wiPenCutNote" style="font-size:10.5px;color:var(--text3);margin:-2px 0 8px"></div>
     <div id="wiStatus" style="font-size:12px;color:var(--text3);margin-bottom:6px"></div>
     <div style="display:flex;gap:8px;margin-top:4px">
-      <button id="wiAddBtn" class="btn-primary" onclick="addWhatIf()" style="flex:1">▶ Run Scenario</button>
+      <button id="wiAddBtn" class="btn-primary" onclick="addWhatIf()" style="flex:1"><i data-lucide="play" class="icon" aria-hidden="true"></i> Run Scenario</button>
       <button id="wiCancelBtn" class="btn-secondary" onclick="cancelEditWhatIf()" style="display:none"><i data-lucide="x" class="icon" aria-hidden="true"></i> Cancel</button>
     </div>
   </div>
@@ -4140,7 +4186,7 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
 // ═══════════════════════════════════════════════════════════
 // VERSION — updated by build-standalone.pl on each build
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260925-1931";
+const APP_VERSION = "20260925-1940";
 
 // ═══════════════════════════════════════════════════════════
 // DATA
@@ -7950,6 +7996,8 @@ function syncCcySym(){
   // Goals tab — currency badge next to the Amount input, and the ISO code
   // in the hint text underneath.
   setT("gamtCcy", sym);
+  // What-if scenario money fields (prefix badges)
+  document.querySelectorAll(".ccy-cur").forEach(e=>{ e.textContent=sym; });
   setT("goalAmtCcyName", CURRENT_CCY);
 }
 function popCurrencyTag(){
@@ -19978,7 +20026,7 @@ function addWhatIf(){
   if(goalName && goalAmt>0 && goalYear>0){
     const cy=currentYear(), horizon=cy+num("simYrs",20);
     if(goalYear<cy || goalYear>horizon){
-      setT("wiStatus",`⚠ Goal year ${goalYear} is outside the projection window (${cy}–${horizon}), so it would never be simulated. Adjust the year or extend Projection years on the Simulation tab.`);
+      statusMsg($("wiStatus"),"err",`Goal year ${goalYear} is outside the projection window (${cy}–${horizon}), so it would never be simulated. Adjust the year or extend Projection years on the Simulation tab.`);
       return;
     }
   }
@@ -19990,7 +20038,7 @@ function addWhatIf(){
   if(penAmt>0 && penAge>0){
     const a0=ageFromDOB(val("c1d"))||30, horizonEnd=a0+num("simYrs",20);
     if(penAge<a0 || penAge>=horizonEnd){
-      setT("wiStatus",`⚠ Withdrawal age ${penAge} is outside the projection window (age ${a0}–${horizonEnd-1}), so it would never be simulated. Adjust the age or extend Projection years on the Simulation tab.`);
+      statusMsg($("wiStatus"),"err",`Withdrawal age ${penAge} is outside the projection window (age ${a0}–${horizonEnd-1}), so it would never be simulated. Adjust the age or extend Projection years on the Simulation tab.`);
       return;
     }
   }
@@ -20003,7 +20051,7 @@ function addWhatIf(){
   if(_editingWhatIfId){
     whatIfScenarios=whatIfScenarios.map(w=>w.id===_editingWhatIfId?{...scen,id:_editingWhatIfId}:w);
     _editingWhatIfId=null;
-    $("wiAddBtn").textContent="▶ Run Scenario";
+    $("wiAddBtn").innerHTML=lucideIcon("play")+" Run Scenario"; refreshIcons();
     show("wiCancelBtn",false);
   } else {
     whatIfScenarios.push(scen);
@@ -20022,7 +20070,7 @@ function clearWhatIfForm(){
 function cancelEditWhatIf(){
   _editingWhatIfId=null;
   clearWhatIfForm();
-  $("wiAddBtn").textContent="▶ Run Scenario";
+  $("wiAddBtn").innerHTML=lucideIcon("play")+" Run Scenario"; refreshIcons();
   show("wiCancelBtn",false);
 }
 function deleteWhatIf(id){
@@ -20052,7 +20100,7 @@ function editWhatIf(id){
   }
   try{ wiAutoCutRefresh(); }catch(_){}
   _editingWhatIfId=id;
-  $("wiAddBtn").textContent="▶ Re-run Scenario";
+  $("wiAddBtn").innerHTML=lucideIcon("play")+" Re-run Scenario"; refreshIcons();
   show("wiCancelBtn",true);
 }
 

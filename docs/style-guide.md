@@ -510,6 +510,8 @@ Two patterns, don't mix within one panel:
 - Validate when the user leaves the field or submits; show the message **next to the field**, keep what they typed, and move focus to the first invalid field. Don't use `alert()` for validation.
 - Required fields: **not decided** (G-35). The demo marks neither required nor optional fields today.
 - Units and currency sit in the label or as a suffix, not inside the value.
+- **Unit adornments (done):** `.ccy-field` wraps an input with a unit badge and looks like a standard input (white, 1.5px primary-tint border, `--rs` radius, focus ring on the wrapper). Currency goes before the value (`<span class="ccy-sym ccy-cur">`, kept in sync with the household currency by `syncCcySym()`). Other units go after it: `.ccy-field.sfx` with `%` or `yrs`. Used on the Goals amount field and the What-if form.
+- **Aligned label / field / hint grid (done, What-if "Add Scenario"):** `.wi-grid` is three columns: label (150–210px), a fixed 220px field, then a hint. Every field starts at the same x whatever the hint length. Hints go in the third column (`.wi-hint`, 11px `--text3`), never between the label and the field. Subsections are `.wi-group` rows: a full-width divider, a 13px bold `--text` title, an optional ⓘ, and an `.opt-badge` "Optional" pill on the right, instead of an uppercase label-style caption. Below 700px it stacks label → field → hint.
 - **SaaS target:** `input.tsx`, `select.tsx`, `label.tsx`, plus a new `Switch` and a `FieldError`.
 
 ### 5.6 Metric tiles (KPI)
