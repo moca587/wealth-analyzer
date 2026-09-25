@@ -1916,6 +1916,7 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
           <div id="mdKeysGrid" style="display:grid;grid-template-columns:1fr;gap:10px"></div>
           <div style="margin-top:12px;padding:10px 12px;background:rgba(245,158,11,.06);border-left:3px solid var(--amber);border-radius:6px;font-size:11px;color:var(--text2);line-height:1.6"><strong>CORS note:</strong> Some providers (CoinMarketCap, FRED, NewsAPI, Marketstack) block direct browser requests — the app retries those via corsproxy.io.</div>
           <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+            <button class="btn-secondary" onclick="quickLoadMdKeys()" title="Load keys from dev-api.key (gitignored) next to this page" style="font-size:12px;padding:7px 14px"><i data-lucide="file-key" class="icon" aria-hidden="true"></i> Quick load</button>
             <button class="btn-secondary" onclick="testAllMdKeys()" style="font-size:12px;padding:7px 14px"><i data-lucide="zap" class="icon" aria-hidden="true"></i> Test all keys</button>
             <span id="mdKeysTestStatus" style="font-size:12px;color:var(--text3)"></span>
           </div>
@@ -4645,7 +4646,7 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
 // ═══════════════════════════════════════════════════════════
 // VERSION — updated by build-standalone.pl on each build
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260925-1940";
+const APP_VERSION = "20260925-1945";
 
 // ═══════════════════════════════════════════════════════════
 // DATA
@@ -7867,6 +7868,57 @@ async function testAllMdKeys(){
   if(status) status.innerHTML = '<span style="color:#1b6841">' + lucideIcon("check") + ' ' + ok + ' working</span>' + (fail ? ' · <span style="color:#a83232">' + fail + ' failing</span>' : "");
   refreshIcons();
 }
+
+// Dev quick-load: provider keys from a gitignored `dev-api.key` beside this page — a JSON object
+// keyed by the localStorage ids above ({"fhKey":"…","wa_ai_key":"…"}); see dev-api.key.example.
+// Served over http it is fetched directly; on file:// (fetch blocked) the user picks the file.
+// Same logic as admin.html quickLoadKeys().
+const DEV_KEYS_FILE = "dev-api.key";
+const DEV_KEY_ID_RE = /^(fhKey|avKey|wa_[a-z0-9]+_(key|secret))$/;
+async function readDevKeysFile(){
+  try {
+    const r = await fetch(DEV_KEYS_FILE, {cache:"no-store"});
+    if(r.ok) return await r.text();
+  } catch(_){}
+  return new Promise((resolve, reject) => {
+    const inp = document.createElement("input");
+    inp.type = "file"; inp.accept = ".key,.json,application/json";
+    inp.onchange = () => { const f = inp.files && inp.files[0]; f ? f.text().then(resolve, reject) : resolve(null); };
+    inp.oncancel = () => resolve(null);
+    inp.click();
+  });
+}
+// Writes recognised non-blank keys to localStorage; a changed key drops its stale health record.
+function applyDevKeys(text){
+  const obj = JSON.parse(text);
+  if(!obj || typeof obj !== "object" || Array.isArray(obj)) throw new Error("expected a JSON object of { keyId: \"value\" }");
+  const health = mdGetHealth();
+  let loaded = 0; const skipped = [];
+  Object.keys(obj).forEach(id => {
+    const v = obj[id];
+    if(!DEV_KEY_ID_RE.test(id) || typeof v !== "string"){ if(id.charAt(0) !== "_") skipped.push(id); return; }
+    const t = v.trim(); if(!t) return;
+    if(localStorage.getItem(id) !== t){ localStorage.setItem(id, t); delete health[id]; }
+    loaded++;
+  });
+  mdSetHealth(health);
+  return {loaded, skipped};
+}
+async function quickLoadMdKeys(){
+  const status = document.getElementById("mdKeysTestStatus");
+  try {
+    const text = await readDevKeysFile();
+    if(text == null) return;
+    const r = applyDevKeys(text);
+    const ai = document.getElementById("aiKeyInput");
+    if(ai){ ai.value = localStorage.getItem("wa_ai_key") || ""; onAiKeyInput(); }
+    renderMdKeysGrid();
+    statusMsg(status, r.loaded ? "ok" : "err", "Loaded " + r.loaded + " key" + (r.loaded === 1 ? "" : "s") + (r.skipped.length ? " · ignored: " + r.skipped.join(", ") : ""));
+  } catch(e){
+    statusMsg(status, "err", DEV_KEYS_FILE + ": " + (e.message || e));
+  }
+}
+window.quickLoadMdKeys = quickLoadMdKeys;
 
 function toggleMdKeys(){
   const open = (function(){ try { return localStorage.getItem("wa_md_keys_open") === "1"; } catch(_) { return false; } })();
