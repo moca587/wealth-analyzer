@@ -18,7 +18,7 @@ import { join } from "node:path";
 import { importLegacyPlan, isLegacyExport } from "../from-legacy";
 import { migratePlan } from "../migrate";
 import { parsePlan } from "../schema";
-import { runMonteCarlo } from "@/lib/engine/monte-carlo";
+import { runMonteCarlo } from "@/lib/engine/monte-carlo-old";
 
 const SAMPLES = join(process.cwd(), "..", "Sample Client profiles");
 const load = (name: string) =>
@@ -230,9 +230,9 @@ describe("refusing to invent numbers", () => {
   it("divides annual expenses by twelve, exactly", () => {
     const { plan } = legacy({ c1f: "A", c1l: "B", expL: "78000", expI: "12000", expO: "10000" });
     const byName = Object.fromEntries(plan.expenses.map((e) => [e.name, e.amount]));
-    expect(byName.Living).toBe(6500);
-    expect(byName.Insurance).toBe(1000);
-    expect(byName.Other).toBeCloseTo(833.33, 2);
+    expect(byName["Living expenses"]).toBe(6500);
+    expect(byName["Insurance / health"]).toBe(1000);
+    expect(byName["Other expenses"]).toBeCloseTo(833.33, 2);
   });
 
   it("keeps a genuinely named pension source", () => {

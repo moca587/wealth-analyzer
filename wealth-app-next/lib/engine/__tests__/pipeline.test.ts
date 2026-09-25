@@ -133,7 +133,7 @@ describe("pipeline: retirement-category goals don't double-count against decumul
   // engine now excludes retirement-category goals from goal-funding when
   // retirement is enabled, so adding one is a no-op on the decumulation outcome.
   const base: WealthPlan = {
-    version: 1, currency: "USD", inflationRate: 0.03, inflationRegion: "US",
+    version: 1, annualSavings: 0, annualRaiseRate: 0, currency: "USD", inflationRate: 0.03, inflationRegion: "US",
     clients: [{ id: "c1", first: "P", last: "Q", dob: "1970-01-01", country: "US", risk: "moderate", horizon: "15_plus" }],
     children: [],
     incomes: [{ id: "i1", clientId: "c1", source: "Salary", amount: 150000, taxable: true }],

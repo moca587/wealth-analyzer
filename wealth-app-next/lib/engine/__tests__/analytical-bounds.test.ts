@@ -22,7 +22,7 @@ const ASOF = 2026;
 
 function mk(assets: Asset[], extra: Partial<WealthPlan> = {}): WealthPlan {
   return {
-    version: 1, currency: "USD", inflationRate: 0.03, inflationRegion: "US",
+    version: 1, annualSavings: 0, annualRaiseRate: 0, currency: "USD", inflationRate: 0.03, inflationRegion: "US",
     clients: [{ id: "c1", first: "A", last: "B", country: "US", risk: "moderate", horizon: "15_plus" }],
     children: [],
     // Income exactly equals expense ⇒ zero surplus ⇒ terminal wealth is driven
@@ -100,7 +100,7 @@ describe("analytical bounds — distribution shape", () => {
 
   it("percentiles are monotonically ordered every year", () => {
     const r = run(plans[0][1], 333);
-    const check = (p: { p10: number; p25: number; p50: number; p75: number; p90: number }) => {
+    const check = (p: Record<string, number>) => {
       expect(p.p10).toBeLessThanOrEqual(p.p25);
       expect(p.p25).toBeLessThanOrEqual(p.p50);
       expect(p.p50).toBeLessThanOrEqual(p.p75);
@@ -128,14 +128,14 @@ describe("analytical bounds — composition effects", () => {
     // Higher expected return ⇒ higher median terminal wealth.
     expect(equity.final.p50).toBeGreaterThan(cash.final.p50);
     // Higher volatility ⇒ wider dispersion.
-    const spread = (r: { final: { p90: number; p10: number } }) => r.final.p90 - r.final.p10;
+    const spread = (r: { final: Record<string, number> }) => r.final.p90 - r.final.p10;
     expect(spread(equity)).toBeGreaterThan(spread(cash));
   });
 
   it("diversification: a 50/50 equity+fixed_income sleeve is less volatile than pure equity of equal value", () => {
     const equity = run(mk([asset("equity", 500_000)]), 601);
     const mixed = run(mk([asset("equity", 250_000), asset("fixed_income", 250_000)]), 601);
-    const cv = (r: { final: { p90: number; p10: number; p50: number } }) => (r.final.p90 - r.final.p10) / r.final.p50;
+    const cv = (r: { final: Record<string, number> }) => (r.final.p90 - r.final.p10) / r.final.p50;
     // Correlation < 1 between equity and fixed income ⇒ blended portfolio σ is
     // below the value-weighted average, so relative spread narrows.
     expect(cv(mixed)).toBeLessThan(cv(equity));

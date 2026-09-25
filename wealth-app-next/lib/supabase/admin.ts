@@ -13,6 +13,7 @@
 // ─────────────────────────────────────────────────────────────────
 
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { serverSupabaseUrl } from "./config";
 
 export function serviceRoleAvailable(): boolean {
   return !!(process.env.SUPABASE_SERVICE_ROLE_KEY || "").trim()
@@ -22,7 +23,7 @@ export function serviceRoleAvailable(): boolean {
 let cached: SupabaseClient | null = null;
 
 export function createAdminClient(): SupabaseClient {
-  const url = (process.env.NEXT_PUBLIC_SUPABASE_URL || "").trim();
+  const url = (serverSupabaseUrl() || "").trim();
   const key = (process.env.SUPABASE_SERVICE_ROLE_KEY || "").trim();
   if (!url || !key) {
     throw new Error(

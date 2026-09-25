@@ -53,14 +53,14 @@ describe("the runner applies every migration end-to-end against real Postgres", 
     expect(result.failed, result.failed ? `${result.failed.version}: ${result.failed.error}` : "").toBeUndefined();
   }, 60_000);
 
-  it("records all 13 in the ledger, in order", async () => {
+  it("records all 14 in the ledger, in order", async () => {
     const v = await ledger(db);
     expect(v).toEqual([
       "001_init", "002_feeds", "003_orders", "004_audit",
       "005_fix_erasure_and_entitlement", "006_tenancy",
       "007_fix_entitlement_grants", "008_rekey_to_households",
       "009_household_management", "010_survive_a_departure",
-      "011_invites", "012_seats_that_work", "013_billing",
+      "011_invites", "012_seats_that_work", "013_billing", "014_proposals",
     ]);
   });
 
@@ -82,7 +82,7 @@ describe("the runner applies every migration end-to-end against real Postgres", 
 
   it("resumes cleanly from a partial ledger", async () => {
     // Simulate a deploy that stopped after 006 (e.g. a dropped connection):
-    // a fresh run must apply exactly 007-013 and nothing earlier.
+    // a fresh run must apply exactly 007-014 and nothing earlier.
     const partial = await freshDb();
     const first = planMigrations(allFiles(), []);
     await applyPending(adapter(partial), first.pending.slice(0, 6), readMigration);
@@ -92,11 +92,11 @@ describe("the runner applies every migration end-to-end against real Postgres", 
     expect(pending.map((p) => p.version)).toEqual([
       "007_fix_entitlement_grants", "008_rekey_to_households",
       "009_household_management", "010_survive_a_departure",
-      "011_invites", "012_seats_that_work", "013_billing",
+      "011_invites", "012_seats_that_work", "013_billing", "014_proposals",
     ]);
     const result = await applyPending(adapter(partial), pending, readMigration);
     expect(result.failed).toBeUndefined();
-    expect(await ledger(partial)).toHaveLength(13);
+    expect(await ledger(partial)).toHaveLength(14);
   }, 60_000);
 
   it("rolls back a failing migration and does NOT record it", async () => {

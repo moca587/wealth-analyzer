@@ -1,0 +1,202 @@
+# Development environment for wealth-app-next/: the Next.js app plus a local
+# Supabase (Postgres, GoTrue auth, PostgREST, gateway, mail catcher).
+#
+#   cp wealth-app-next/.env.local.example wealth-app-next/.env.local   # once
+#   docker compose up --build          # http://localhost:3000, hot reload
+#   docker compose up --build --watch  # also restart app when deps change
+#                                      # (entrypoint re-runs npm ci)
+#
+# The first `up` builds the image, initialises Postgres, lets GoTrue create the
+# auth schema, then the `migrate` job applies supabase/migrations/*.sql.
+#
+# Sign up in the app, then open the confirmation email at http://localhost:8025
+# (emails never leave the machine). Confirmations are ON on purpose: 012's
+# accept_invite refuses an unconfirmed address.
+#
+# Ports (host, loopback only): app 3000 (APP_PORT), Supabase API 54321,
+# Postgres 55432, mail UI 8025.
+#
+# Tests / type-check / lint run in the same image:
+#   docker compose run --rm app npm run test:run
+#   docker compose run --rm app npm run type-check
+#   docker compose run --rm app npm run lint
+#
+# Reset the database:   docker compose down -v
+#
+# Supabase URLs are set below and override .env.local: the browser uses
+# http://localhost:54321, the app container uses http://gateway:8000
+# (SUPABASE_INTERNAL_URL). To use a hosted project instead, remove those
+# three variables from the `app` service and fill in .env.local.
+#
+# The project is mounted at /workspace, NOT /app: with the project root at
+# /app, Next.js mis-resolves the app/ directory and serves the gated
+# app/app/layout.tsx for every route (all pages 307 to /login).
+#
+# env_file path/required syntax needs Compose 2.24+.
+# If you change APP_PORT, auth redirects follow it automatically (set below).
+#
+# Note: the source is bind-mounted, so npm scripts run in the container CAN
+# write to the host checkout. For inspecting untrusted code use a copy, not this.
+
+x-dev-secrets:
+  # Dev-only values. Never reuse outside this compose file.
+  jwt_secret: &jwt_secret dev-only-jwt-secret-not-for-production-0123456789
+  db_password: &db_password dev-only-password
+  # HS256 JWT (role=anon) signed with jwt_secret above.
+  anon_key: &anon_key eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJ3ZWFsdGgtYW5hbHl6ZXItZGV2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjcyMjU2MDAsImV4cCI6NDEwMjQ0NDgwMH0.5BIhtcA9XD7A4-3jRSZG4nEi5yo8gZGXy8SsKLhhc1E
+
+services:
+  app:
+    build:
+      context: .
+      target: dev
+    image: wealth-analyzer-dev
+    init: true
+    ports:
+      - "127.0.0.1:${APP_PORT:-3000}:3000"
+    env_file:
+      - path: wealth-app-next/.env.local
+        required: false
+    environment:
+      NODE_ENV: development
+      # Browser -> gateway via the published port; server -> gateway via the
+      # compose network (see SUPABASE_INTERNAL_URL in lib/supabase/config.ts).
+      # These override wealth-app-next/.env.local. Dev-only keys, signed with
+      # JWT_SECRET below.
+      NEXT_PUBLIC_SUPABASE_URL: http://localhost:54321
+      SUPABASE_INTERNAL_URL: http://gateway:8000
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: *anon_key
+      NEXT_PUBLIC_APP_URL: http://localhost:${APP_PORT:-3000}
+    depends_on:
+      gateway:
+        condition: service_started
+      migrate:
+        condition: service_completed_successfully
+    volumes:
+      - ./wealth-app-next:/workspace
+      - node_modules:/workspace/node_modules
+      - next_cache:/workspace/.next
+    # Bind-mount already hot-reloads source. Restart on lockfile/package.json
+    # change so the entrypoint can `npm ci` into the named volume (a Watch
+    # `rebuild` only refreshes the image and leaves the volume stale).
+    # sync+restart: this Compose build has no bare `restart` action; sync is
+    # a no-op under the bind mount but the restart is what we need.
+    develop:
+      watch:
+        - action: sync+restart
+          path: wealth-app-next/package-lock.json
+          target: /workspace/package-lock.json
+        - action: sync+restart
+          path: wealth-app-next/package.json
+          target: /workspace/package.json
+
+  # ── Local Supabase (dev only) ────────────────────────────────────
+  # The services the app actually talks to: Postgres, GoTrue (auth),
+  # PostgREST, and a gateway putting them behind one origin. Studio is left
+  # out; use `psql` on 127.0.0.1:55432 or the mail UI on :8025.
+
+  db:
+    image: supabase/postgres:15.8.1.085
+    command: postgres -c config_file=/etc/postgresql/postgresql.conf -c log_min_messages=fatal
+    environment:
+      POSTGRES_PASSWORD: *db_password
+      POSTGRES_DB: postgres
+      JWT_SECRET: *jwt_secret
+    ports:
+      - "127.0.0.1:55432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -h localhost"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+    volumes:
+      - db_data:/var/lib/postgresql/data
+      - ./docker/db-roles.sql:/docker-entrypoint-initdb.d/init-scripts/99-roles.sql:ro
+
+  auth:
+    image: supabase/gotrue:v2.174.0
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      GOTRUE_API_HOST: 0.0.0.0
+      GOTRUE_API_PORT: "9999"
+      API_EXTERNAL_URL: http://localhost:54321
+      GOTRUE_DB_DRIVER: postgres
+      GOTRUE_DB_DATABASE_URL: postgres://supabase_auth_admin:dev-only-password@db:5432/postgres
+      GOTRUE_SITE_URL: http://localhost:${APP_PORT:-3000}
+      GOTRUE_URI_ALLOW_LIST: http://localhost:${APP_PORT:-3000}/**
+      GOTRUE_DISABLE_SIGNUP: "false"
+      GOTRUE_JWT_SECRET: *jwt_secret
+      GOTRUE_JWT_EXP: "3600"
+      GOTRUE_JWT_DEFAULT_GROUP_NAME: authenticated
+      GOTRUE_JWT_ADMIN_ROLES: service_role
+      GOTRUE_JWT_AUD: authenticated
+      GOTRUE_EXTERNAL_EMAIL_ENABLED: "true"
+      # Confirmations ON: 012's accept_invite refuses an unconfirmed address.
+      GOTRUE_MAILER_AUTOCONFIRM: "false"
+      GOTRUE_SMTP_HOST: mail
+      GOTRUE_SMTP_PORT: "1025"
+      GOTRUE_SMTP_ADMIN_EMAIL: dev@wealth-analyzer.local
+      GOTRUE_SMTP_SENDER_NAME: Wealth Analyzer (dev)
+      GOTRUE_MAILER_URLPATHS_CONFIRMATION: /auth/v1/verify
+      GOTRUE_MAILER_URLPATHS_INVITE: /auth/v1/verify
+      GOTRUE_MAILER_URLPATHS_RECOVERY: /auth/v1/verify
+      GOTRUE_MAILER_URLPATHS_EMAIL_CHANGE: /auth/v1/verify
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:9999/health"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  rest:
+    image: postgrest/postgrest:v12.2.12
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    environment:
+      PGRST_DB_URI: postgres://authenticator:dev-only-password@db:5432/postgres
+      PGRST_DB_SCHEMAS: public
+      PGRST_DB_ANON_ROLE: anon
+      PGRST_JWT_SECRET: *jwt_secret
+      PGRST_DB_USE_LEGACY_GUCS: "false"
+
+  gateway:
+    image: nginx:1.27-alpine
+    depends_on:
+      - auth
+      - rest
+    ports:
+      - "127.0.0.1:54321:8000"
+    volumes:
+      - ./docker/gateway.conf:/etc/nginx/conf.d/default.conf:ro
+
+  mail:
+    image: axllent/mailpit:v1.21
+    ports:
+      - "127.0.0.1:8025:8025"   # inbox UI: confirmation / reset emails land here
+
+  # One-shot: applies wealth-app-next/supabase/migrations/*.sql. Must run after
+  # GoTrue has created auth.users (001 puts a trigger on it).
+  migrate:
+    build:
+      context: .
+      target: dev
+    image: wealth-analyzer-dev
+    init: true
+    working_dir: /workspace
+    depends_on:
+      auth:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgres://postgres:dev-only-password@db:5432/postgres?sslmode=disable
+    volumes:
+      - ./wealth-app-next:/workspace
+      - node_modules:/workspace/node_modules
+    command: npm run db:migrate
+    restart: "no"
+
+volumes:
+  node_modules:
+  next_cache:
+  db_data:
