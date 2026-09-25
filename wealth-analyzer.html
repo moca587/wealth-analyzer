@@ -202,6 +202,9 @@ select{cursor:pointer}
 select option{background:var(--bg3)}
 input[type=date]{color-scheme:light}
 .fw{width:100%!important}
+/* Uniform-width form block: every field inside shares one width; change --fld-w to resize them all */
+.form-uniform{--fld-w:200px}
+.form-uniform .frow input:not([type=checkbox]):not([type=radio]),.form-uniform .frow select{width:var(--fld-w)}
 .w120{width:120px}.w140{width:140px}.w160{width:160px}.w180{width:180px}.w200{width:200px}
 .dual{display:flex;gap:6px}.dual input{width:100px}
 
@@ -2131,16 +2134,16 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
 <div class="panel">
   <div class="ptitle">Liabilities — Loans</div>
   <div id="loanList"><div class="empty">No loans added.</div></div>
-  <div class="sdiv">
+  <div class="sdiv form-uniform">
     <div class="slbl">Add Loan</div>
     <div class="frow"><label class="flbl">Loan type</label>
-      <select id="ltype" class="w200" onchange="prefillLoan()"></select>
+      <select id="ltype" onchange="prefillLoan()"></select>
     </div>
-    <div class="frow"><label class="flbl">Owned by</label><select id="lowner" class="w200"></select></div>
-    <div class="frow"><label class="flbl">Balance</label><input type="number" id="lbal" placeholder="Balance" step="1000" class="w140"></div>
-    <div class="frow"><label class="flbl">Interest rate %</label><input type="number" id="lrate" placeholder="Rate %" step="0.1" class="w120"></div>
-    <div class="frow"><label class="flbl">Years remaining</label><input type="number" id="lyrs" placeholder="Years" step="1" class="w120"></div>
-    <div class="frow"><label class="flbl">Label (optional)</label><input id="llbl" placeholder="e.g. Home 2019" class="w200"></div>
+    <div class="frow"><label class="flbl">Owned by</label><select id="lowner"></select></div>
+    <div class="frow"><label class="flbl">Balance</label><input type="number" id="lbal" placeholder="Balance" step="1000"></div>
+    <div class="frow"><label class="flbl">Interest rate %</label><input type="number" id="lrate" placeholder="Rate %" step="0.1"></div>
+    <div class="frow"><label class="flbl">Years remaining</label><input type="number" id="lyrs" placeholder="Years" step="1"></div>
+    <div class="frow"><label class="flbl">Label (optional)</label><input id="llbl" placeholder="e.g. Home 2019"></div>
     <button id="loanAddBtn" class="btn-secondary full" onclick="addLoan()">+ Add Loan</button>
     <button id="loanCancelBtn" class="btn-secondary full" onclick="cancelEditLoan()" style="display:none;margin-top:4px;color:var(--text3)">✕ Cancel edit</button>
   </div>
@@ -2155,10 +2158,10 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
   <div class="dropdown-body" id="insBody">
   <div style="font-size:12px;color:var(--text3);margin-bottom:12px;line-height:1.5">Track life, disability, and long-term-care policies. <strong style="color:var(--text2)">Cash value</strong> counts toward net worth; <strong style="color:var(--text2)">death benefits</strong> feed the estate transfer summary; premiums can flow into annual expenses below.</div>
   <div id="insList"><div class="empty">No policies added.</div></div>
-  <div class="sdiv">
+  <div class="sdiv form-uniform">
     <div class="slbl">Add Policy</div>
     <div class="frow"><label class="flbl">Policy type</label>
-      <select id="istype" class="w200">
+      <select id="istype">
         <option value="term_life">Term life</option>
         <option value="whole_life">Whole life</option>
         <option value="universal_life">Universal / variable life</option>
@@ -2168,13 +2171,13 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
       </select>
     </div>
     <div class="frow"><label class="flbl">Insured</label>
-      <select id="isins" class="w160"><option value="c1">Client 1</option><option value="c2">Client 2</option></select>
+      <select id="isins"><option value="c1">Client 1</option><option value="c2">Client 2</option></select>
     </div>
-    <div class="frow"><label class="flbl">Benefit amount</label><input type="number" id="isben" placeholder="Death benefit / monthly / daily" step="1000" class="w160"></div>
-    <div class="frow"><label class="flbl">Cash value (if any)</label><input type="number" id="iscash" placeholder="0" step="1000" class="w140"></div>
-    <div class="frow"><label class="flbl">Annual premium</label><input type="number" id="isprem" placeholder="0" step="100" class="w140"></div>
-    <div class="frow"><label class="flbl">Beneficiary (optional)</label><input id="isbenef" placeholder="e.g. Spouse 50% / Children 50%" class="w220"></div>
-    <div class="frow"><label class="flbl">Label (optional)</label><input id="islbl" placeholder="e.g. Zurich term 2040" class="w200"></div>
+    <div class="frow"><label class="flbl">Benefit amount</label><input type="number" id="isben" placeholder="Death benefit / monthly / daily" step="1000"></div>
+    <div class="frow"><label class="flbl">Cash value (if any)</label><input type="number" id="iscash" placeholder="0" step="1000"></div>
+    <div class="frow"><label class="flbl">Annual premium</label><input type="number" id="isprem" placeholder="0" step="100"></div>
+    <div class="frow"><label class="flbl">Beneficiary (optional)</label><input id="isbenef" placeholder="e.g. Spouse 50% / Children 50%"></div>
+    <div class="frow"><label class="flbl">Label (optional)</label><input id="islbl" placeholder="e.g. Zurich term 2040"></div>
     <button id="insAddBtn" class="btn-secondary full" onclick="addInsurance()">+ Add Policy</button>
     <button id="insCancelBtn" class="btn-secondary full" onclick="cancelEditInsurance()" style="display:none;margin-top:4px;color:var(--text3)">✕ Cancel edit</button>
   </div>
