@@ -114,6 +114,11 @@ if(-f "$V/qrcode.min.js"){
   $html =~ s|<script (?:defer )?src="https://cdnjs\.cloudflare\.com/ajax/libs/qrcodejs/1\.0\.0/qrcode\.min\.js"></script>|$qr_block|;
 }
 
+# 8. Inline Lucide (required — the source loads vendor/lucide.min.js)
+my $lucide_block = "<script>/* Lucide 0.460.0 - inlined */\n$lucide_js\n</script>";
+$html =~ s|<script (?:defer )?src="vendor/lucide\.min\.js"></script>|$lucide_block|;
+$html =~ s|<!-- Lucide 0\.460\.0[^>]*-->\s*||;
+
 # Write output
 print "Writing $DEST...\n";
 open my $out, '>:encoding(UTF-8)', $DEST or die "Cannot write: $!";
@@ -153,7 +158,6 @@ if (-f "admin.html") {
     # Inline Chart.js
     $admin =~ s|<script (?:defer )?src="https://cdnjs\.cloudflare\.com/ajax/libs/Chart\.js/4\.4\.1/chart\.umd\.min\.js"></script>|$chart_block|;
     # Inline Lucide (required — admin source loads vendor/lucide.min.js)
-    my $lucide_block = "<script>/* Lucide 0.460.0 - inlined */\n$lucide_js\n</script>";
     $admin =~ s|<script src="vendor/lucide\.min\.js"></script>|$lucide_block|;
     $admin =~ s|<!-- Lucide 0\.460\.0[^>]*-->\s*||;
 
