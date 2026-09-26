@@ -2386,7 +2386,7 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
             </select>
           </div>
           <div class="frow"><label class="flbl">Annual benefit</label><input type="number" id="penAnnual" class="w160" placeholder="22000" value="22000" oninput="markPenEdited()"></div>
-          <div class="frow"><label class="flbl">Start age</label><input type="number" id="penStartAge" class="w120" placeholder="67" value="67" min="50" max="85" oninput="markPenEdited()"></div>
+          <div class="frow"><label class="flbl">Start age</label><input type="number" id="penStartAge" class="w120" placeholder="67" value="67" min="50" max="85" oninput="markPenAgeEdited(1)"></div>
         </div>
         <div>
           <div class="frow"><label class="flbl">COLA<span class="info-ic">i<span class="info-pop"><strong>Cost-of-Living Adjustment.</strong> How a pension/Social-Security benefit keeps pace with inflation over time. <strong>Full</strong>: rises with inflation each year (preserves purchasing power). <strong>Partial</strong>: rises at 50% of inflation (slowly loses value). <strong>None</strong>: fixed nominal amount — purchasing power erodes every year.</span></span></label>
@@ -2426,7 +2426,7 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
             </select>
           </div>
           <div class="frow"><label class="flbl">Annual benefit</label><input type="number" id="penAnnual2" class="w160" placeholder="22000" value="22000" oninput="markPen2Edited()"></div>
-          <div class="frow"><label class="flbl">Start age</label><input type="number" id="penStartAge2" class="w120" placeholder="67" value="67" min="50" max="85" oninput="markPen2Edited()"></div>
+          <div class="frow"><label class="flbl">Start age</label><input type="number" id="penStartAge2" class="w120" placeholder="67" value="67" min="50" max="85" oninput="markPenAgeEdited(2)"></div>
         </div>
         <div>
           <div class="frow"><label class="flbl">COLA<span class="info-ic">i<span class="info-pop"><strong>Cost-of-Living Adjustment.</strong> How a pension/Social-Security benefit keeps pace with inflation over time. <strong>Full</strong>: rises with inflation each year (preserves purchasing power). <strong>Partial</strong>: rises at 50% of inflation (slowly loses value). <strong>None</strong>: fixed nominal amount — purchasing power erodes every year.</span></span></label>
@@ -2631,11 +2631,11 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
     <div class="panel">
     <div class="ptitle">Potentially Achievable Annual Lifestyle</div>
     <div style="font-size:12px;color:var(--text3);margin-bottom:12px">
-      Estimated sustainable annual retirement spending in today's dollars.
+      Estimated sustainable annual retirement spending in today's money.
     </div>
     <div class="chart-wrap" style="height:300px"><canvas id="simLifestyleCandle" role="img" aria-label="Bar chart of expected achievable annual lifestyle by retirement age"></canvas></div>
     <div style="font-size:11px;color:var(--text3);margin:8px 2px 16px;text-align:center;line-height:1.8">
-      Each bar is the <strong style="color:var(--text2)">expected</strong> sustainable annual spending (today's dollars) if you retired at that age. Hover a bar for the optimistic and conservative cases.
+      Each bar is the <strong style="color:var(--text2)">expected</strong> sustainable annual spending (today's money) if you retired at that age. Hover a bar for the optimistic and conservative cases.
     </div>
     <div id="simLifestyle">
       Run the simulation to estimate sustainable retirement spending.
@@ -2815,7 +2815,8 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
     <span><span class="swatch sw-ret"></span>Retirement starts</span>
     <span><span class="swatch sw-pen"></span>State pension starts</span>
     <span><span class="swatch sw-goal"></span>Goal year</span>
-    <span style="color:var(--text3)">Deterministic projection at the household's mean return; investment growth assumes reinvested surplus and a 30/70 cash–invest split during accumulation. In retirement, earned income → 0 and expenses swap to the inflation-adjusted retirement spend; state pension / Social Security is credited from the configured start age (with the chosen COLA treatment). <strong>Pension / SS / RMD</strong> column combines all income-equivalent payments including mandatory drawdowns from locked accounts (401k/IRA RMD starts at 73, Canadian RRIF at 71, Australian Super at 60). <strong>Ret. pool</strong> shows the remaining retirement account balance after each year's RMD deduction — it grows at a <strong>fixed 3.5%/yr</strong> (extremely conservative, intentionally decoupled from the household risk profile, the AI Portfolio Builder, and the Investment Proposal so an aggressive investment stance never affects the retirement reserve). <strong>Income tax</strong> is recomputed each year on gross earned income + pension + RMD; <strong>savings target</strong> is funded first each year from net cash flow before remaining surplus is split.</span>
+    <span id="cfChNote" style="display:none;color:var(--text2)"></span>
+    <span style="color:var(--text3)">Deterministic projection at the household's mean return; investment growth assumes reinvested surplus and a 30/70 cash–invest split during accumulation. In retirement, earned income → 0 and expenses swap to the inflation-adjusted retirement spend; state pension / Social Security is credited from the configured start age (with the chosen COLA treatment). <strong>Pension / SS / RMD</strong> column combines all income-equivalent payments including mandatory drawdowns from locked accounts (401k/IRA RMD starts at 73, Canadian RRIF at 71, Australian Super at 60). <strong>Ret. pool</strong> shows the remaining retirement account balance after each year's RMD deduction — it grows at a <strong>fixed 3.5%/yr</strong> (fixed, intentionally decoupled from the household risk profile, the AI Portfolio Builder, and the Investment Proposal so an aggressive investment stance never affects the retirement reserve). <strong>Income tax</strong> is recomputed each year on gross earned income + pension + RMD; <strong>savings target</strong> is funded first each year from net cash flow before remaining surplus is split.</span>
   </div>
   </div>
 </div>
@@ -2906,8 +2907,8 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
     Taking your <strong style="color:var(--text2)">2nd pillar (BVG/LPP)</strong> or <strong style="color:var(--text2)">pillar 3a</strong> as a <strong>lump sum</strong> is taxed once, separately from your other income, at a reduced rate that varies widely by canton. This estimates that one-time capital-withdrawal tax and shows how <strong style="color:var(--text2)">staggering</strong> across years — and <strong style="color:var(--text2)">where you reside</strong> — changes it.
   </div>
   <div class="frow"><label class="flbl">Canton of residence</label><select id="chCanton" class="w220" onchange="this.dataset.touched='1';renderCHLumpSum()"></select></div>
-  <div class="frow"><label class="flbl">2nd pillar (BVG/LPP) balance</label><input type="number" id="chP2" step="1000" min="0" placeholder="0" class="w160" oninput="_chMark(this);renderCHLumpSum()"><span style="font-size:11px;color:var(--text3);margin-left:6px">CHF</span></div>
-  <div class="frow"><label class="flbl">Pillar 3a balance</label><input type="number" id="chP3a" step="1000" min="0" placeholder="0" class="w160" oninput="_chMark(this);renderCHLumpSum()"><span style="font-size:11px;color:var(--text3);margin-left:6px">CHF</span></div>
+  <div class="frow"><label class="flbl">2nd pillar (BVG/LPP) balance today</label><input type="number" id="chP2" step="1000" min="0" placeholder="0" class="w160" oninput="_chMark(this);renderCHLumpSum()"><span style="font-size:11px;color:var(--text3);margin-left:6px">CHF</span></div>
+  <div class="frow"><label class="flbl">Pillar 3a balance today</label><input type="number" id="chP3a" step="1000" min="0" placeholder="0" class="w160" oninput="_chMark(this);renderCHLumpSum()"><span style="font-size:11px;color:var(--text3);margin-left:6px">CHF</span></div>
   <div class="frow"><label class="flbl">Planned withdrawal age<span class="info-ic">i<span class="info-pop">Defaults to the plan's retirement age. <strong>Pillar 3a</strong> and vested-benefits accounts can be drawn from 5 years before the AHV reference age (<strong>age 60</strong>). A <strong>pension fund</strong> can pay out from <strong>age 58</strong> if its regulations allow early retirement. After 65 only while still working, and <strong>no later than 70</strong>. Earlier only for specific purposes: buying or amortising your main home, becoming self-employed, leaving Switzerland for good (the mandatory 2nd-pillar part stays locked if you move to an EU/EFTA country), or a full disability pension.</span></span></label><input type="number" id="chWithdrawAge" step="1" min="50" max="70" value="65" class="w120" oninput="_chMark(this);renderCHLumpSum()"><span style="font-size:11px;color:var(--text3);margin-left:6px">yrs</span></div>
   <div class="frow"><label class="flbl">Early-withdrawal penalty<span class="info-ic">i<span class="info-pop">Swiss pillars impose <strong>no standard percentage penalty</strong> — early withdrawal is instead restricted to the purposes above, and the capital-withdrawal tax still applies. Use this to model any fund-specific reduction or a scenario penalty, applied only to the part that would be drawn <strong>before its legal age</strong> (58 for a pension fund with early retirement, 60 for pillar 3a and vested benefits). Default 0%.</span></span></label><input type="number" id="chEarlyPenalty" step="0.5" min="0" max="50" value="0" class="w120" oninput="_chMark(this);renderCHLumpSum()"><span style="font-size:11px;color:var(--text3);margin-left:6px">% if drawn early</span></div>
   <div id="chLumpFillNote" style="font-size:10.5px;color:var(--text3);margin:-2px 0 10px"></div>
@@ -2930,7 +2931,7 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
   </div>
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:0 24px">
     <div>
-      <div class="frow"><label class="flbl">2nd pillar (BVG/LPP) capital</label><input type="number" id="anCap" step="1000" min="0" placeholder="0" class="w160" oninput="_chMark(this);renderCHAnnuity()"><span style="font-size:11px;color:var(--text3);margin-left:6px">CHF</span></div>
+      <div class="frow"><label class="flbl">2nd pillar (BVG/LPP) capital today</label><input type="number" id="anCap" step="1000" min="0" placeholder="0" class="w160" oninput="_chMark(this);renderCHAnnuity()"><span style="font-size:11px;color:var(--text3);margin-left:6px">CHF</span></div>
       <div class="frow"><label class="flbl">Conversion rate<span class="info-ic">i<span class="info-pop">The <em>Umwandlungssatz</em> — the % of your capital your fund pays as an annual pension for life. Swiss funds' average rate at 65 was about <strong>5.2%</strong> in 2025 (OAK BV), and falling. The 6.8% BVG minimum applies only to the mandatory part of your capital. <strong>Enter the rate your fund quotes for your retirement age</strong> — until you do, the results are marked as using the market average.</span></span></label><input type="number" id="anConv" step="0.1" min="0" value="5.2" class="w120" oninput="_chMark(this);renderCHAnnuity()"><span style="font-size:11px;color:var(--text3);margin-left:6px">%</span></div>
       <div class="frow"><label class="flbl">Retire at age</label><input type="number" id="anRetAge" step="1" min="58" max="70" value="65" class="w120" oninput="_chMark(this);renderCHAnnuity()"></div>
       <div class="frow"><label class="flbl">Early-retirement cut<span class="info-ic">i<span class="info-pop">Drawing your 2nd-pillar pension before the reference age (65) lowers the conversion rate your fund applies — typically about <strong>0.1–0.2 percentage points</strong> for each year early, which reduces your lifelong pension. Set your fund's figure; 0 disables it.</span></span></label><input type="number" id="anEarlyCut" step="0.05" min="0" max="1" value="0.15" class="w120" oninput="_chMark(this);renderCHAnnuity()"><span style="font-size:11px;color:var(--text3);margin-left:6px">%pt / yr early</span></div>
@@ -4286,7 +4287,7 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
 // ═══════════════════════════════════════════════════════════
 // VERSION — updated by build-standalone.pl on each build
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260926-1549";
+const APP_VERSION = "20260926-1627";
 
 // ═══════════════════════════════════════════════════════════
 // DATA
@@ -4445,13 +4446,13 @@ CH:{flag:"🇨🇭",name:"Switzerland",groups:[
   {value:"savings_youth",label:"Jugendkonto / Compte jeunes",note:"Youth savings (often higher rates).",liquid:true}
 ]},
 {group:"Pension system (3 pillars)",accounts:[
-  {value:"ahv_avs",label:"AHV/AVS – 1st pillar (estimated annual)",note:"State pension. Full pension CHF 15,120–30,240/yr (2025–26 scale), paid 13× a year from Dec 2026 (13th AHV pension); married couples capped at 150% of the maximum.",liquid:false,withdrawAge:65},
-  {value:"bvg_lpp",label:"BVG/LPP – 2nd pillar (occupational)",note:"Mandatory occupational pension fund.",liquid:false,withdrawAge:65},
-  {value:"pillar_3a_bank",label:"Pillar 3a — Bank (Vorsorgekonto)",note:"Tax-deductible. 2024 limit: CHF 7,056 (employed) / CHF 35,280 (self-employed).",liquid:false,withdrawAge:60},
+  {value:"ahv_avs",label:"AHV/AVS – 1st pillar (estimated annual)",note:"State pension. Full pension CHF 1,260–2,520 a month (2025–26 scale), paid 13× a year from Dec 2026 (13th AHV pension): CHF 16,380–32,760/yr. Married couples capped at 150% of the maximum.",liquid:false,withdrawAge:65},
+  {value:"bvg_lpp",label:"BVG/LPP – 2nd pillar (occupational)",note:"Occupational pension fund. Paid at retirement as a lump sum or a pension (from 58 if the fund allows early retirement, at the latest 70).",liquid:false,withdrawAge:65},
+  {value:"pillar_3a_bank",label:"Pillar 3a — Bank (Vorsorgekonto)",note:"Tax-deductible. 2025–26 limit: CHF 7,258 with a pension fund / 20% of earnings up to CHF 36,288 without. Drawable from 60 (5 years before the reference age).",liquid:false,withdrawAge:60},
   {value:"pillar_3a_fund",label:"Pillar 3a — Fund / Securities",note:"Pillar 3a via securities account (higher long-term return potential).",liquid:false,withdrawAge:60},
   {value:"pillar_3a_insurance",label:"Pillar 3a — Insurance (lebensversicherung)",note:"Pillar 3a via life insurance. Death/disability benefit included.",liquid:false,withdrawAge:60},
   {value:"pillar_3b",label:"Pillar 3b – Free pension",note:"Flexible non-tied savings. No contribution limits, no tax deduction.",liquid:true},
-  {value:"vested_benefits",label:"Vested benefits / Freizügigkeitskonto",note:"Preserved BVG assets during career gap.",liquid:false,withdrawAge:60}
+  {value:"vested_benefits",label:"Vested benefits / Freizügigkeitskonto",note:"Preserved pension-fund assets during a career gap; paid out as capital from 60.",liquid:false,withdrawAge:60}
 ]},
 {group:"Investment & securities",accounts:[
   {value:"depot",label:"Securities account (Depot)",note:"Swiss brokerage. Capital gains tax-free for private investors.",liquid:true},
@@ -7242,6 +7243,7 @@ let _penEdited=false;
 let _pen2Edited=false;
 let _colaEdited=false;
 let _cola2Edited=false;
+let _penAgeEdited=false, _pen2AgeEdited=false;   // a start age typed while the amount stays estimated
 let _ccyManual=false;
 let _chartReal=true;
 
@@ -8310,8 +8312,82 @@ function updateAssetNote(){
   } else if(m.withdrawAge===0){
     txt+=(txt?" · ":"")+"Duration-locked (not age-based)";
   }
+  if(isStatePensionDef(m)) txt+=(txt?" · ":"")+"A yearly benefit, not a balance: adding it sets the owner's pension on the Income tab.";
   setT("anote",txt);
   show("anote",!!txt);
+}
+// State pensions (AHV/AVS, Social Security, CPP, OAS…) are a YEARLY BENEFIT, not a
+// balance. Entered as an account one was counted in net worth, grown in the retirement
+// pool and paid out like savings — and beside the Income tab's own pension, counted a
+// second time. These account types go to the owner's pension on the Income tab instead.
+function isStatePensionDef(d){ return !!d && (/\(estimated annual\)/i.test(d.label||"") || d.value==="gesetzliche_rente"); }
+function _penIds(n){ return n===2 ? {src:"penSrc2",amt:"penAnnual2",age:"penStartAge2"} : {src:"penSrc",amt:"penAnnual",age:"penStartAge"}; }
+// A pension figure typed by hand (not one set from a state-pension account type).
+function _penTyped(n){ const a=$(_penIds(n).amt); return !!((n===2?_pen2Edited:_penEdited) && a && !a.dataset.fromTypes && (+a.value||0)>0); }
+// Put a state-pension amount on its owner's pension (joint → client 1: a state pension is
+// personal). Benefits from DIFFERENT programmes add up (CPP + OAS); the same programme
+// again replaces its earlier figure, as does any figure typed by hand (reported back).
+// batch (one object per import / profile load): a SECOND entry of the same programme for
+// the same client must not silently overwrite the first — it goes to client 2 when they
+// have none from this batch and no typed figure, else it is reported as a conflict.
+function applyStatePension(def, annual, owner, batch){
+  let n=(owner==="c2" && _chHasC2())?2:1, guessed=false;
+  const whoOf=k=>k===2?(val("c2f")||"Client 2"):(val("c1f")||"Client 1");
+  const name=String(def.label||def.value).replace(/\s*\(estimated annual\)/i,"");
+  if(!(annual>0)) return null;
+  if(batch){ const key=k=>k+":"+def.value;
+    if(batch[key(n)]){
+      if(n===1 && _chHasC2() && !batch[key(2)] && !_penTyped(2)){ n=2; guessed=true; }
+      else return {conflict:true, n, name, who:whoOf(n), annual};
+    }
+    batch[key(n)]=true; }
+  const I=_penIds(n), srcEl=$(I.src), amtEl=$(I.amt), ageEl=$(I.age);
+  if(!srcEl || !amtEl) return null;
+  const prev={src:srcEl.value, amt:amtEl.value, age:ageEl?ageEl.value:"", from:amtEl.dataset.fromTypes||"",
+    edited:n===2?_pen2Edited:_penEdited, ageEdited:n===2?_pen2AgeEdited:_penAgeEdited};
+  const from=prev.from?prev.from.split(","):[];
+  const keep=prev.src==="manual" && from.length>0 && !from.includes(def.value);
+  const total=Math.round((keep?(+prev.amt||0):0)+annual);
+  srcEl.value="manual"; amtEl.value=total;
+  amtEl.dataset.fromTypes=(keep?from.concat(def.value):[def.value]).join(",");
+  if(ageEl && def.withdrawAge!=null && !keep) ageEl.value=def.withdrawAge;
+  if(n===2) _pen2Edited=true; else _penEdited=true;
+  try{ refreshPensionEstimates(); }catch(_){}   // the other spouse's AHV is no longer split
+  return {n, prev, total, age:ageEl?ageEl.value:def.withdrawAge, who:whoOf(n), name, guessed,
+    joint:owner==="joint",
+    replaced:(prev.src==="manual" && !keep && (+prev.amt||0)>0)?(+prev.amt):null};
+}
+function statePensionMsg(r){
+  return r.name+" is a yearly benefit, not a balance, so it is "+r.who+"'s pension on the Income tab: "+fmtMoneyFull(r.total)+"/yr from "+r.age
+    +(r.replaced!=null?" (replaces "+fmtMoneyFull(r.replaced)+")":"")+(r.joint?" (a state pension is personal, so a joint entry goes to "+r.who+")":"")
+    +(r.guessed?" (a second "+r.name+" entry, taken as "+r.who+"'s — check it)":"")+".";
+}
+function undoStatePension(r){
+  const I=_penIds(r.n), s=$(I.src), a=$(I.amt), g=$(I.age);
+  if(s) s.value=r.prev.src;
+  if(a){ a.value=r.prev.amt; if(r.prev.from) a.dataset.fromTypes=r.prev.from; else delete a.dataset.fromTypes; }
+  if(g) g.value=r.prev.age;
+  if(r.n===2){ _pen2Edited=r.prev.edited; _pen2AgeEdited=r.prev.ageEdited; } else { _penEdited=r.prev.edited; _penAgeEdited=r.prev.ageEdited; }
+  try{ refreshPensionEstimates(); }catch(_){}
+  refreshTopMetrics();
+}
+function showInfoToast(msg){ showUndoToast(msg, null); const u=document.querySelector("#undo-toast .ut-undo"); if(u) u.remove(); }
+// Profiles saved before 2026-09 could hold a state pension as an account. Move it to the
+// owner's pension; a pension already typed on the Income tab is kept and the account
+// dropped — it was the same benefit counted a second time, as wealth.
+function migrateStatePensionAssets(ctry){
+  const msgs=[], batch={};
+  assets=assets.filter(a=>{ const d=_acctDef(a.country||ctry||"US", a.type);
+    if(!isStatePensionDef(d)) return true;
+    const n=(a.owner==="c2" && _chHasC2())?2:1, amtEl=$(_penIds(n).amt);
+    if(_penTyped(n) && !batch[n+":"+d.value]){
+      msgs.push(String(d.label).replace(/\s*\(estimated annual\)/i,"")+" ("+(n===2?(val("c2f")||"Client 2"):(val("c1f")||"Client 1"))+"): kept the pension already on the Income tab, "+fmtMoneyFull(+amtEl.value)+"/yr.");
+      batch[n+":"+d.value]=true; return false; }
+    const r=applyStatePension(d, +a.value||0, a.owner, batch);
+    if(r && r.conflict){ msgs.push(r.name+" of "+fmtMoneyFull(r.annual)+"/yr: a second entry of the same benefit for "+r.who+" — left on the Assets tab to check."); return true; }
+    if(r) msgs.push(statePensionMsg(r));
+    return false; });
+  return msgs;
 }
 function addAsset(){
   const m=getSelectedAssetMeta(); if(!m){alert("Pick an account type"); return;}
@@ -8319,6 +8395,13 @@ function addAsset(){
   const lbl=val("albl")||m.label;
   const ccy=val("accy")||CURRENT_CCY;
   const owner=val("aowner")||"c1";
+  if(!_editingAssetId && isStatePensionDef(m)){
+    const r=applyStatePension(m, v, owner);
+    if(r){ $("aval").value=""; $("albl").value=""; refreshTopMetrics();
+      const gen=profileGen;
+      showUndoToast(statePensionMsg(r), ()=>{ if(gen!==profileGen) return "Another household has been loaded since — nothing to undo."; undoStatePension(r); });
+      return; }
+  }
   if(_editingAssetId){
     assets=assets.map(a=>a.id===_editingAssetId?{...a,label:lbl,value:v,ccy:ccy,owner:owner}:a);
     _editingAssetId=null;
@@ -8953,7 +9036,9 @@ function calcPension(src,annual,startAge,cola,age,inf,ageNow){
   if(src==="none"||annual<=0||age<startAge) return 0;
   const pre=(ageNow!=null && cola!=="none") ? Math.max(0,startAge-ageNow) : 0;
   const base=annual*Math.pow(1+inf,pre);
-  const yrs=age-startAge;
+  // Indexed from its start — or from today for a pension already in payment: the
+  // entered figure is what it pays now, not what it paid when it started.
+  const yrs=Math.max(0, age-(ageNow!=null ? Math.max(startAge,ageNow) : startAge));
   if(cola==="full") return base*Math.pow(1+inf,yrs);
   if(cola==="partial") return base*Math.pow(1+inf*0.5,yrs);
   return base;
@@ -8966,6 +9051,13 @@ const AHV_REF_AGE=65;   // reference age (women born 1961-63: 64y3m-64y9m — no
 function ahvClaimFactor(start){ const d=start-AHV_REF_AGE;
   return d<0 ? 1-AHV_EARLY_CUT_PER_YEAR*Math.min(2,-d) : 1+(AHV_DEFER_SUPPLEMENT[Math.min(5,d)]||0); }
 function ahvClampStart(a){ return Math.min(AHV_REF_AGE+5, Math.max(AHV_REF_AGE-2, a)); }
+// Client n's AHV at the reference age (65): an estimate is held at 65; a typed figure is
+// the amount at its own start age, so it is scaled back when that age is within 63-70.
+function ahvRefBase(n){ const sfx=n===2?"2":"", b=num("penAnnual"+sfx,0), s=num("penStartAge"+sfx,AHV_REF_AGE);
+  return ((val("penSrc"+sfx)||"auto")==="manual" && s>=AHV_REF_AGE-2 && s<=AHV_REF_AGE+5) ? b/ahvClaimFactor(s) : b; }
+// Income-tab note for an estimated AHV drawn away from 65.
+function _claimNote(c, start){ if(c!=="CH") return ""; const s=ahvClampStart(start); if(s===AHV_REF_AGE) return ""; const f=ahvClaimFactor(s);
+  return " · drawn at "+s+": "+(f<1?"−":"+")+(Math.abs(f-1)*100).toFixed(1)+"% for life ("+(f<1?"early-draw cut":"deferral supplement")+")"; }
 // Effective per-client pension inputs, read once per run. ageNow1/2 = each
 // client's age in year 0 of the calling engine.
 function pensionSetup(ageNow1, ageNow2){
@@ -8976,9 +9068,10 @@ function pensionSetup(ageNow1, ageNow2){
     let base=src==="none"?0:num("penAnnual"+sfx,0), start=num("penStartAge"+sfx,67);
     const cola=val("penCola"+sfx)||"full";
     // Switzerland: AHV is claimed between 63 and 70. An ESTIMATED pension gets the
-    // early-draw cut / deferral supplement; a typed figure is used as entered (it
-    // may already be the at-claim-age amount, or include a pension-fund annuity).
-    if((n===2?cc2:cc1)==="CH"){ start=ahvClampStart(start); if(src==="auto") base*=ahvClaimFactor(start); }
+    // early-draw cut / deferral supplement at its start age. A typed figure is used
+    // as entered, at its typed start age (it may already be the at-claim-age amount,
+    // or a pension-fund annuity, which can start from 58).
+    if((n===2?cc2:cc1)==="CH" && src==="auto"){ start=ahvClampStart(start); base*=ahvClaimFactor(start); }
     return {src, base, start, cola}; };
   const S={showC2, c1:rd(1), c2:rd(2), ageNow1, ageNow2:(ageNow2!=null?ageNow2:ageNow1), couple:null};
   // Swiss married couple, both estimated: each draws on their OWN record until both
@@ -9050,8 +9143,8 @@ function refreshPensionEstimates(){
   if(!_penEdited && (val("penSrc")||"auto")==="auto"){
     const c=val("c1co")||"US", p=penDefaultsFor(c), est=estStatePension(c, clientIncomeFor(1));
     if($("penAnnual")) $("penAnnual").value=est;
-    if($("penStartAge")) $("penStartAge").value=p.age||67;
-    setT("penNote", _penNote(c,p,est));
+    if($("penStartAge") && !_penAgeEdited) $("penStartAge").value=p.age||67;
+    setT("penNote", _penNote(c,p,est)+_claimNote(c, num("penStartAge",p.age||67)));
   }
   // client 1 — COLA / indexation (auto unless the user changed it)
   if(!_colaEdited && (val("penSrc")||"auto")==="auto" && $("penCola")){
@@ -9061,8 +9154,8 @@ function refreshPensionEstimates(){
   if($("penAnnual2") && !_pen2Edited && (val("penSrc2")||"auto")==="auto"){
     const c=val("c2co")||val("c1co")||"US", p=penDefaultsFor(c), est=estStatePension(c, clientIncomeFor(2));
     $("penAnnual2").value=est;
-    if($("penStartAge2")) $("penStartAge2").value=p.age||67;
-    setT("penNote2", _penNote(c,p,est));
+    if($("penStartAge2") && !_pen2AgeEdited) $("penStartAge2").value=p.age||67;
+    setT("penNote2", _penNote(c,p,est)+_claimNote(c, num("penStartAge2",p.age||67)));
   }
   // client 2 — COLA / indexation
   if($("penCola2") && !_cola2Edited && (val("penSrc2")||"auto")==="auto"){
@@ -9120,21 +9213,29 @@ function _ahvCoupleCheck(){
 window.refreshPensionEstimates=refreshPensionEstimates;
 function onPensionSourceChange(){
   const m=$("penSrc").value;
-  if(m==="auto"){_penEdited=false; _colaEdited=false; refreshPensionEstimates();}
+  if(m==="auto"){_penEdited=false; _penAgeEdited=false; _colaEdited=false;} else _penEdited=true;
   if(m==="none"){$("penAnnual").value=0;}
+  // Always re-estimate: a Swiss couple's AHV is split only while BOTH are estimated, so
+  // the other spouse's figure changes when this one leaves (or returns to) Auto.
+  refreshPensionEstimates();
 }
 // Typing a figure makes it a manual override — the select says so (it used to stay
 // "Auto" while holding a typed number, and a reload could re-estimate over it).
-function markPenEdited(){_penEdited=true; if($("penSrc") && $("penSrc").value==="auto") $("penSrc").value="manual"; try{ _ahvCoupleCheck(); }catch(_){} }
+function markPenEdited(){_penEdited=true; if($("penSrc") && $("penSrc").value==="auto") $("penSrc").value="manual"; if($("penAnnual")) delete $("penAnnual").dataset.fromTypes; try{ refreshPensionEstimates(); }catch(_){} }
+// A start age typed on an ESTIMATED pension keeps it estimated — in Switzerland the AHV
+// early-draw cut / deferral supplement then applies. Only typing the AMOUNT makes it manual.
+function markPenAgeEdited(n){ if(n===2) _pen2AgeEdited=true; else _penAgeEdited=true; try{ refreshPensionEstimates(); }catch(_){} }
+window.markPenAgeEdited=markPenAgeEdited;
 function markColaEdited(){_colaEdited=true;}
 function markCola2Edited(){_cola2Edited=true;}
 window.markColaEdited=markColaEdited; window.markCola2Edited=markCola2Edited;
 function onPensionSource2Change(){
   const m=$("penSrc2").value;
-  if(m==="auto"){_pen2Edited=false; _cola2Edited=false; syncC2Pension();}
+  if(m==="auto"){_pen2Edited=false; _pen2AgeEdited=false; _cola2Edited=false;} else _pen2Edited=true;
   if(m==="none" && $("penAnnual2")) $("penAnnual2").value=0;
+  syncC2Pension();
 }
-function markPen2Edited(){_pen2Edited=true; if($("penSrc2") && $("penSrc2").value==="auto") $("penSrc2").value="manual"; try{ _ahvCoupleCheck(); }catch(_){} }
+function markPen2Edited(){_pen2Edited=true; if($("penSrc2") && $("penSrc2").value==="auto") $("penSrc2").value="manual"; if($("penAnnual2")) delete $("penAnnual2").dataset.fromTypes; try{ refreshPensionEstimates(); }catch(_){} }
 function syncC2Pension(){ refreshPensionEstimates(); }
 
 // ═══════════════════════════════════════════════════════════
@@ -10234,11 +10335,13 @@ function buildExtractionSchema(){
       holdings:{type:"array",description:"only positions with a stated market value",items:{type:"object",properties:{
         name:str,tkr:str,val:num,type:E(invType),cls:E(invClass),region:E(invRegion),
         er:num,yld:num,note:str,confidence:conf,sourceQuote:src}}},
-      retirement:{type:"object",description:"Retirement plan: desired spending, planned retirement ages, and each client's pension / social-security benefit.",properties:{
+      retirement:{type:"object",description:"Retirement plan: desired spending, planned retirement ages, and each client's STATE pension (AHV/AVS, social security, state pension).",properties:{
         desiredAnnualSpend:num,
         client1RetirementAge:num, client2RetirementAge:num,
-        client1PensionAnnual:num, client1PensionStartAge:num,
-        client2PensionAnnual:num, client2PensionStartAge:num,
+        client1PensionAnnual:{type:"number",description:"client 1's state pension per year only — never an employer / pension-fund annuity"}, client1PensionStartAge:num,
+        client2PensionAnnual:{type:"number",description:"client 2's state pension per year only — never an employer / pension-fund annuity"}, client2PensionStartAge:num,
+        client1CombinedPensionAnnual:{type:"number",description:"only when the document gives client 1's state + pension-fund income as ONE figure"},
+        client2CombinedPensionAnnual:{type:"number",description:"only when the document gives client 2's state + pension-fund income as ONE figure"},
         confidence:conf, sourceQuote:src}},
       tax:{type:"object",description:"Tax as the document states it",properties:{
         incomeTaxPct:{type:"number",description:"the client's current income-tax rate % as stated (total, all levels)"},capitalGainsPct:{type:"number",description:"capital-gains rate % (0 if stated as exempt)"},
@@ -10262,7 +10365,7 @@ const AI_SYSTEM_PROMPT=[
   "Goals: amount per year in today's money; startYear = first year; endYear = startYear + duration − 1 (a one-off goal ends the year it starts). tier from the marked priority.",
   "Risk tolerance and time horizon per client from their marked boxes; for a horizon range pick the option containing its midpoint.",
   "Holdings: only positions with a stated market value; skip instruments that are only mentioned in notes.",
-  "Retirement: desired yearly spending, each client's retirement age, and each client's pension / social security per year with its start age.",
+  "Retirement: desired yearly spending, each client's retirement age, and each client's STATE pension (AHV/AVS, social security, state pension) per year with its start age. An employer or pension-fund annuity (Pensionskasse / BVG / LPP, occupational pension) is not the state pension: report the fund's capital balance as an asset instead. When the document gives only one combined state + pension-fund income figure, put it in clientNCombinedPensionAnnual, not clientNPensionAnnual.",
   "confidence: 0-1 per row. sourceQuote: at most 6 words copied from the document."
 ].join("\n");
 // Per-document-type focus hints appended to the extraction prompt, so the reader
@@ -10649,13 +10752,14 @@ function normalizeExtraction(raw){
     type:_daKey(h.type,_DA_TYPE_ALIAS,INV_TYPE_LABELS,"other"), cls:_daKey(h.cls,_DA_CLS_ALIAS,INV_CLASS_LABELS,"other"),
     region:_daKey(h.region,_DA_REGION_ALIAS,INV_REGION_LABELS,"other"), er:_daRate(h.er), yld:_daRate(h.yld), note:h.note||"" }); });
   if(raw.retirement && typeof raw.retirement==="object"){ const rt=raw.retirement;
-    const anyVal=[rt.desiredAnnualSpend,rt.client1RetirementAge,rt.client2RetirementAge,rt.client1PensionAnnual,rt.client1PensionStartAge,rt.client2PensionAnnual,rt.client2PensionStartAge].some(v=>v!=null&&v!=="");
+    const anyVal=[rt.desiredAnnualSpend,rt.client1RetirementAge,rt.client2RetirementAge,rt.client1PensionAnnual,rt.client1PensionStartAge,rt.client2PensionAnnual,rt.client2PensionStartAge,rt.client1CombinedPensionAnnual,rt.client2CombinedPensionAnnual].some(v=>v!=null&&v!=="");
     if(anyVal){ const age=v=>{ const n=parseInt(String(v==null?"":v).replace(/[^\d]/g,""),10); return (isFinite(n)&&n>0)?n:null; };
       out.retirement.push({ _ok:ok(rt.confidence), _src:rt.sourceQuote||"",
         desiredAnnualSpend:_daNum(rt.desiredAnnualSpend),
         client1RetirementAge:age(rt.client1RetirementAge), client2RetirementAge:age(rt.client2RetirementAge),
         client1PensionAnnual:_daNum(rt.client1PensionAnnual), client1PensionStartAge:age(rt.client1PensionStartAge),
-        client2PensionAnnual:_daNum(rt.client2PensionAnnual), client2PensionStartAge:age(rt.client2PensionStartAge) }); } }
+        client2PensionAnnual:_daNum(rt.client2PensionAnnual), client2PensionStartAge:age(rt.client2PensionStartAge),
+        client1CombinedPensionAnnual:_daNum(rt.client1CombinedPensionAnnual), client2CombinedPensionAnnual:_daNum(rt.client2CombinedPensionAnnual) }); } }
   if(raw.tax && typeof raw.tax==="object"){ const tx=raw.tax;
     const inc=tx.includeTaxes, incl=(inc===true||/^(yes|true|ja|oui)$/i.test(String(inc)))?"yes":(inc===false||/^(no|false|nein|non)$/i.test(String(inc)))?"no":"";
     const row={ _ok:ok(tx.confidence), _src:tx.sourceQuote||"", incomeTaxPct:_daRate(tx.incomeTaxPct), capitalGainsPct:_daRate(tx.capitalGainsPct), includeTaxes:incl };
@@ -10816,10 +10920,10 @@ function renderReviewModal(){
   html+=section("Retirement plan", (x.retirement||[]).map((r,i)=>_daRow("retirement",i,r._ok,r._src,[
     {lbl:"Desired spend $/yr",html:_daInput("retirement",i,"desiredAnnualSpend",r.desiredAnnualSpend,"number"),w:"flex:1.1"},
     {lbl:"C1 retire age",html:_daInput("retirement",i,"client1RetirementAge",r.client1RetirementAge,"number"),w:"flex:0 0 90px"},
-    {lbl:"C1 pension $/yr",html:_daInput("retirement",i,"client1PensionAnnual",r.client1PensionAnnual,"number"),w:"flex:1"},
+    {lbl:"C1 state pension /yr",html:_daInput("retirement",i,"client1PensionAnnual",r.client1PensionAnnual,"number"),w:"flex:1"},
     {lbl:"C1 from age",html:_daInput("retirement",i,"client1PensionStartAge",r.client1PensionStartAge,"number"),w:"flex:0 0 85px"},
     {lbl:"C2 retire age",html:_daInput("retirement",i,"client2RetirementAge",r.client2RetirementAge,"number"),w:"flex:0 0 90px"},
-    {lbl:"C2 pension $/yr",html:_daInput("retirement",i,"client2PensionAnnual",r.client2PensionAnnual,"number"),w:"flex:1"},
+    {lbl:"C2 state pension /yr",html:_daInput("retirement",i,"client2PensionAnnual",r.client2PensionAnnual,"number"),w:"flex:1"},
     {lbl:"C2 from age",html:_daInput("retirement",i,"client2PensionStartAge",r.client2PensionStartAge,"number"),w:"flex:0 0 85px"}
   ],req(r._ok))));
 
@@ -11100,7 +11204,7 @@ function applyDataAgent(){
 
   // Assets. Property and other personal assets have dedicated fields (aProp /
   // aOther) — as an account a house would count as spendable cash in the simulation.
-  let propSum=0, otherSum=0;
+  let propSum=0, otherSum=0; const spBatch={};
   each("assets",x.assets,r=>{ const v=_daNum(r.value); if(!(v>0)){ skipped.push("“"+(r.label||"an account")+"” (no value)"); return; }
     if(r._kind==="property"){ propSum+=v; bump("property"); return; }
     if(r._kind==="other"){ otherSum+=v; bump("other assets"); return; }
@@ -11110,6 +11214,9 @@ function applyDataAgent(){
     // without withdrawAge a pension (pillar 2 / 3a, 401k…) is not in the retirement
     // pool at all — the projections treated it as spendable cash at any age.
     const def=_acctDef(ctry,mk.type), own=_daOwnerCode(r.owner);
+    if(isStatePensionDef(def)){ const sp=applyStatePension(def, v, own, spBatch);
+      if(sp && sp.conflict){ notes.push(sp.name+" of "+fmtMoneyFull(sp.annual)+"/yr was not applied: "+sp.who+" already has one from this document — enter it on the Income tab if it is a different benefit"); return; }
+      if(sp){ notes.push(statePensionMsg(sp).replace(/\.$/,"")); bump("pensions"); return; } }
     assets.push({id:"a"+(++assetSeq),type:mk.type,group:mk.group,label:r.label||mk.type,baseLabel:r.label||mk.type,value:v,liquid:mk.liquid,country:ctry,
       withdrawAge:(def&&def.withdrawAge!=null)?def.withdrawAge:null, owner:own,
       note:(r.accountTypeHint?(_daImportSource()+": "+r.accountTypeHint):("Imported by "+_daImportSource()))});
@@ -11149,10 +11256,15 @@ function applyDataAgent(){
     if(parseInt(r.client2RetirementAge,10)>0 && $("retAge2")){ _daSet("retAge2",parseInt(r.client2RetirementAge,10)); touched=true; }
     // Client 1 pension: switch source to Manual, then set the benefit + start age
     if(p1>0){ _daSetSel("penSrc","manual"); _daSet("penAnnual",p1); try{ if(typeof markPenEdited==="function") markPenEdited(); }catch(_){} touched=true; }
-    if(parseInt(r.client1PensionStartAge,10)>0){ _daSet("penStartAge",parseInt(r.client1PensionStartAge,10)); touched=true; }
+    if(parseInt(r.client1PensionStartAge,10)>0){ _daSet("penStartAge",parseInt(r.client1PensionStartAge,10)); _penAgeEdited=true; touched=true; }
     // Client 2 pension
     if(p2>0){ _daSetSel("penSrc2","manual"); _daSet("penAnnual2",p2); try{ if(typeof markPen2Edited==="function") markPen2Edited(); }catch(_){} touched=true; }
-    if(parseInt(r.client2PensionStartAge,10)>0){ _daSet("penStartAge2",parseInt(r.client2PensionStartAge,10)); touched=true; }
+    if(parseInt(r.client2PensionStartAge,10)>0){ _daSet("penStartAge2",parseInt(r.client2PensionStartAge,10)); _pen2AgeEdited=true; touched=true; }
+    // A combined state + pension-fund income is NOT the state pension: the pension fund is
+    // modelled from its balance, so writing the total here would count the fund twice.
+    [[1,_daNum(r.client1CombinedPensionAnnual),p1],[2,_daNum(r.client2CombinedPensionAnnual),p2]].forEach(([n,c,p])=>{ if(!(c>0) || p>0) return;
+      notes.push("the document gives "+(n===2?(val("c2f")||"client 2"):(val("c1f")||"client 1"))+"'s state and pension-fund income only as one figure ("+fmtMoneyFull(c)+"/yr); the pension fund is modelled from its balance, so the state pension was not set from it — check it on the Income tab");
+      touched=true; });
     if(touched) bump("retirement plan"); else skipped.push("a retirement row with no values"); });
 
   // Tax as the document states it. The stated income-tax rate is the client's
@@ -11188,7 +11300,7 @@ function applyDataAgent(){
     _daApplyRecord(false, "nothing added — "+why, errors, skipped);
     return;
   }
-  const NOUN={people:["person","people"],incomes:["income","incomes"],expenses:["expense set","expense sets"],accounts:["account","accounts"],property:["property","properties"],"other assets":["other asset","other assets"],loans:["loan","loans"],goals:["goal","goals"],holdings:["holding","holdings"],"retirement plan":["retirement plan","retirement plans"],"tax settings":["tax setting","tax settings"]};
+  const NOUN={people:["person","people"],incomes:["income","incomes"],expenses:["expense set","expense sets"],accounts:["account","accounts"],property:["property","properties"],"other assets":["other asset","other assets"],loans:["loan","loans"],goals:["goal","goals"],holdings:["holding","holdings"],"retirement plan":["retirement plan","retirement plans"],"tax settings":["tax setting","tax settings"],pensions:["state pension","state pensions"]};
   const summary=Object.keys(added).map(k=>{ const w=NOUN[k]||[k,k]; return added[k]+" "+(added[k]===1?w[0]:w[1]); }).join(", ");
   const tail=(errors.length?" · "+errors.length+" row"+(errors.length!==1?"s":"")+" couldn't be added":"")+(skipped.length?" · skipped "+skipped.length+" empty row"+(skipped.length!==1?"s":""):"");
   if(stt){ stt.textContent="✓ Added to the app: "+summary+tail+"."+(notes.length?" Note: "+notes.join("; ")+".":""); stt.style.color="var(--green)"; }
@@ -18441,13 +18553,15 @@ function claimAgeRows(base, fra, life, cc){
 }
 function claimAgeRuleText(cc){
   return cc==="CH"
-    ? "AHV rules: the pension can be drawn up to 2 years early (-6.8% per year, for life) or deferred up to 5 years (+5.2% after 1 year, +10.8% after 2, +17.1% after 3, +24.0% after 4, +31.5% after 5). Women of the transitional generation (born 1961-1969) and lower incomes get smaller early-draw cuts"   // plain hyphens: the PDF's standard font has no Unicode minus
+    ? "AHV rules: the pension can be drawn up to 2 years early (-6.8% per year, for life) or deferred up to 5 years (+5.2% after 1 year, +10.8% after 2, +17.1% after 3, +24.0% after 4, +31.5% after 5). Women of the transitional generation (born 1961-1969) and lower incomes get smaller early-draw cuts. The reference age is 65; for women born 1960 or earlier it is 64 (born 1961: 64 and 3 months, 1962: 64 and 6 months, 1963: 64 and 9 months), and the plan uses 65 throughout"   // plain hyphens: the PDF's standard font has no Unicode minus
     : "each year of early claiming reduces the benefit by "+num("caAdj",7).toFixed(1)+"%, each year of delay increases it by the same";
 }
 function renderClaimAge(){
   const host=$("claimAgeTable"); if(!host) return;
-  const base=num("penAnnual",0), fra=num("penStartAge",67), cc=val("c1co")||"US";
-  const baseEl=$("caBase"); if(baseEl) baseEl.textContent=base>0?fmtMoneyFull(base)+"/yr from age "+fra:"—";
+  const fra=num("penStartAge",67), cc=val("c1co")||"US", base=cc==="CH"?ahvRefBase(1):num("penAnnual",0);
+  const baseEl=$("caBase"); if(baseEl) baseEl.textContent=base<=0?"—":cc==="CH"
+    ? fmtMoneyFull(base)+"/yr at the reference age 65"+(ahvClampStart(fra)!==AHV_REF_AGE?" (plan draws at "+ahvClampStart(fra)+")":"")
+    : fmtMoneyFull(base)+"/yr from age "+fra;
   // The ±% input only drives non-Swiss countries — say so rather than silently ignore it.
   const adjEl=$("caAdj"); if(adjEl){ adjEl.disabled=(cc==="CH"); adjEl.title=(cc==="CH")?"Not used for Switzerland — the AHV early-draw cut and deferral supplements apply.":""; }
   if(base<=0 || (val("penSrc")||"none")==="none"){
@@ -18719,7 +18833,7 @@ function runMC(years,sims,muOverride,sigOverride){
       path.push(
         Math.max(0, cash + inv) + prop + other + retPot - debtTotal - unfunded
       );
-      spendable.push(Math.max(0, cash + inv) + (chPay ? chPoolsNet(chPay, retPot1, retPot2, y, inf) : retPot) - debtTotal - unfunded);
+      spendable.push(Math.max(0, cash + inv) + (chPay ? chPoolsNet(chPay, retPot1, retPot2, y, inf, c1Age0+y, c2Age0+y) : retPot) - debtTotal - unfunded);
 
       if (y === years) break;
 
@@ -18743,15 +18857,17 @@ function runMC(years,sims,muOverride,sigOverride){
       // Per-owner sub-pools (real ownership shares, not an assumed 50/50):
       // each client's share draws independently from their own retirement age.
       const rp1Before=retPot1, rp2Before=retPot2; // prior year-end — IRS uses this as RMD base
-      retPot1*=(1+retMu); retPot2*=(1+retMu);
       let rmd=0;
       if(chPay){
-        // Switzerland: no annual draw — each owner's pillars leave the pool once, in
-        // their payout year, as a lump sum taxed at the capital-withdrawal rate, and
-        // the net is invested. (Never counted as income, so never taxed as salary.)
+        // Switzerland: no annual draw — each owner's pillars leave the pool once, at the
+        // START of their payout year (the balance the lump-sum panel and the PDF show), as
+        // a lump sum taxed at the capital-withdrawal rate; the net is invested and earns
+        // the portfolio return from that year. (Never income, so never taxed as salary.)
         const po=chPayoutYear(chPay, retPot1, retPot2, age, c2AgeY, y, inf);
         if(po){ retPot1-=po.a1; retPot2-=po.a2; inv+=po.net; assetBuckets=scaleBucketsToTotal(assetBuckets, inv); inv=sumBuckets(assetBuckets); }
-      } else {
+      }
+      retPot1*=(1+retMu); retPot2*=(1+retMu);
+      if(!chPay){
         if(rp1Before>0 && retired){ const r1=Math.max(calcRMD(rp1Before,age,country),rp1Before*0.04); retPot1=Math.max(0,retPot1-r1); rmd+=r1; }
         if(rp2Before>0 && showC2 && c2AgeY>=retAge2){ const r2=Math.max(calcRMD(rp2Before,c2AgeY,country),rp2Before*0.04); retPot2=Math.max(0,retPot2-r2); rmd+=r2; }
       }
@@ -18945,7 +19061,7 @@ function _drawdownSeed(){
   // Swiss pillars are spendable only after the one-time capital-withdrawal tax.
   const chP=(typeof chPayoutSetup==="function")?chPayoutSetup():null;
   const sh=retirementOwnerShares();
-  const pool=chP ? chPoolsNet(chP, retSeed*sh.c1, retSeed*sh.c2, 0, 0) : retSeed;
+  const pool=chP ? chPoolsNet(chP, retSeed*sh.c1, retSeed*sh.c2, 0, 0, _chAgeNow(1), _chAgeNow(2)) : retSeed;
   return Math.max(0, investSeed+cashSeed+pool);
 }
 
@@ -20132,7 +20248,7 @@ function renderDownsideAnalysis(paths){
 
   setH("downsideAnalysis", `
     <div style="margin-bottom:10px;color:var(--text3)">
-      Based on the worst ${cutoff} of ${paths.length} simulations by final-year wealth, shown in today's dollars.
+      Based on the worst ${cutoff} of ${paths.length} simulations by final-year wealth, shown in today's money.
     </div>
 
     <div style="display:grid;grid-template-columns:1fr;gap:12px;text-align:center">
@@ -20174,7 +20290,7 @@ function renderUpsideAnalysis(paths){
 
   setH("upsideAnalysis", `
     <div style="margin-bottom:10px;color:var(--text3)">
-      Based on the best ${cutoff} of ${paths.length} simulations by final-year wealth, shown in today's dollars.
+      Based on the best ${cutoff} of ${paths.length} simulations by final-year wealth, shown in today's money.
     </div>
 
     <div style="display:grid;grid-template-columns:1fr;gap:12px;text-align:center">
@@ -20273,6 +20389,8 @@ function cfPensionHeader(){ const cc=val("c1co")||"US";
 function renderCashFlow(){
   const tbody=$("cfBody"); if(!tbody) return;
   setT("cfPenHdr", cfPensionHeader());
+  { const n=$("cfChNote"); if(n){ const ch=(val("c1co")||"")==="CH"; n.style.display=ch?"":"none";
+    n.textContent=ch?"Switzerland: the pillars (2nd pillar, vested benefits, 3a) are not drawn down year by year — each client's are paid out once as a lump sum when they retire (60–70, or at the planned withdrawal age set in the lump-sum panel), taxed at the canton's capital-withdrawal rate, and the net is invested (see the \"pillars paid out\" notes). ":""; } }
   const a1=ageFromDOB(val("c1d"))||35;
   const retAge=num("retAge",65);
   // Project until EVERY client reaches age 90 — with a younger second client
@@ -20451,14 +20569,17 @@ function renderCashFlow(){
       // from their own retirement age.
       const rpBefore=rp; // prior year-end balance — base for RMD calculation
       const rp1Before=rp1, rp2Before=rp2;
-      rp1*=(1+retMu); rp2*=(1+retMu);
-      const rpGrowth=(rp1+rp2)-rpBefore;
       let rmd=0, rmd1=0, rmd2=0, chLump=null;
       if(chPay){
-        // Switzerland: pillars paid out once as a taxed lump sum; the net is invested.
+        // Switzerland: pillars paid out once, at the start of the payout year, as a taxed
+        // lump sum; the net is invested (same timing as runMC and the lump-sum panel).
         const po=chPayoutYear(chPay, rp1, rp2, age, c2AgeY, y, inf);
-        if(po){ rp1-=po.a1; rp2-=po.a2; iv+=po.net; chLump={gross:po.a1+po.a2, tax:po.t1+po.t2, net:po.net, c1:po.a1>0, c2:po.a2>0}; }
-      } else {
+        if(po){ rp1-=po.a1; rp2-=po.a2; iv+=po.net; chLump={gross:po.a1+po.a2, tax:po.t1+po.t2, pen:po.pen, net:po.net, c1:po.a1>0, c2:po.a2>0}; }
+      }
+      const rpPre=rp1+rp2;
+      rp1*=(1+retMu); rp2*=(1+retMu);
+      const rpGrowth=(rp1+rp2)-rpPre;
+      if(!chPay){
         if(rp1Before>0 && retired){ rmd1=Math.max(calcRMD(rp1Before,age,country),rp1Before*0.04); rp1=Math.max(0,rp1-rmd1); }
         if(rp2Before>0 && showC2 && c2AgeY>=retAge2){ rmd2=Math.max(calcRMD(rp2Before,c2AgeY,country),rp2Before*0.04); rp2=Math.max(0,rp2-rmd2); }
       }
@@ -20643,7 +20764,7 @@ function renderCashFlow(){
     if(c1RetNow||c2RetNow){cls=cls+" cf-ret"; const who=(!showC2||(c1RetNow&&c2RetNow))?"retirement starts":((c1RetNow?_n1:_n2)+" retires"); tags+='<span class="cf-tag cf-tag-ret">'+_daEsc(who)+'</span>';}
     if(age===PS.c1.start&&PS.c1.src!=="none"&&PS.c1.base>0){cls=cls+" cf-pen"; tags+='<span class="cf-tag cf-tag-pen">'+(showC2?_daEsc(_n1)+"'s pension starts":"pension starts")+'</span>';}
     if(showC2&&c2AgeRow===PS.c2.start&&PS.c2.src!=="none"&&PS.c2.base>0){cls=cls+" cf-pen"; tags+='<span class="cf-tag cf-tag-pen">'+_daEsc(_n2)+"'s pension starts"+'</span>';}
-    if(d.chLump){tags+='<span class="cf-tag cf-tag-pen">pillars paid out '+fmtMoney(d.chLump.gross)+' · tax '+fmtMoney(d.chLump.tax)+'</span>';}   // Switzerland: one-time taxed lump sum
+    if(d.chLump){tags+='<span class="cf-tag cf-tag-pen">pillars paid out '+fmtMoney(d.chLump.gross)+' · tax '+fmtMoney(d.chLump.tax)+(d.chLump.pen>0?' · penalty '+fmtMoney(d.chLump.pen):'')+'</span>';}   // Switzerland: one-time taxed lump sum
     else if(!chPay && age===retAge&&retSeed>0){tags+='<span class="cf-tag cf-tag-pen">acct. drawdown starts</span>';}
     if(!chPay && age===rmdStartAge&&rmdStartAge>retAge&&retSeed>0){tags+='<span class="cf-tag cf-tag-pen">'+(country==="US"?"mandatory RMD":"mandatory withdrawals")+'</span>';}
     if(goalOut>0){cls=cls+" cf-goal"; tags+='<span class="cf-tag cf-tag-goal">goal</span>';}
@@ -20722,7 +20843,7 @@ function renderCashFlow(){
     ? "AI-recommended portfolio return"
     : (hasPortfolio ? "holdings-weighted return" : "risk-profile return");
   const rmdNote=retSeed>0
-    ?` · <strong>Ret. pool (${fmtMoney(retSeed)})</strong>: <strong>3.5%/yr always</strong> (extremely conservative — decoupled from household risk profile and AI/Proposal returns; only the Investments column tracks those). 4% voluntary drawdown from age ${retAge}, mandatory rules from age ${rmdStartAge}.`
+    ?` · <strong>Ret. pool (${fmtMoney(retSeed)})</strong>: <strong>3.5%/yr fixed</strong> (decoupled from household risk profile and AI/Proposal returns; only the Investments column tracks those; no new contributions). ${country==="CH"?"Swiss pillars paid out once per client at retirement, taxed at the capital-withdrawal rate":"4% voluntary drawdown from age "+retAge+", mandatory rules from age "+rmdStartAge}.`
     :"";
   setH("cfHeader",
     `<strong>Median cash flow projection — Current Portfolio</strong> — age ${a1} to ${a1+horizon} (${horizon+1} years${showC2?" · covers both clients to age 90":""}) &nbsp;`+
@@ -23198,7 +23319,7 @@ function drawFanChart(){
         doc.setFillColor.apply(doc,ac); doc.rect(xc-bw/2,yT,bw,Math.max(0.4,(cy0+ch)-yT),"F"); });
       y=cy0+ch+13;
       doc.setFontSize(7); doc.setTextColor(...MUTED);
-      doc.setFillColor.apply(doc,ac); doc.rect(cx,y-2.6,4,3.4,"F"); doc.text("Expected (50%) sustainable annual spending by retirement age (today's $)",cx+6,y);
+      doc.setFillColor.apply(doc,ac); doc.rect(cx,y-2.6,4,3.4,"F"); doc.text("Expected (50%) sustainable annual spending by retirement age (today's money)",cx+6,y);
       y+=7; doc.setTextColor(40); doc.setFont("helvetica","normal"); doc.setFontSize(fsz);
     }
 
@@ -25577,7 +25698,7 @@ function drawFanChart(){
             const manual=[[PSr.c1,n1],[PSr.c2,n2]].filter(([s],i)=>(i===0?on1:on2) && s.src==="manual");
             const aMax=Math.round(AHV_MAX_MONTHLY*AHV_PAYMENTS_PER_YEAR), bvgCap=(I?I.aP2:0);
             const over=manual.filter(([s])=>s.base>aMax+1);
-            const coupleOver=_ahvCouple() && on1 && on2 && PSr.c1.src==="manual" && PSr.c2.src==="manual" && (PSr.c1.base+PSr.c2.base)>ahvCoupleCap()+1;
+            const coupleOver=_ahvCouple() && on1 && on2 && !(PSr.c1.src==="auto" && PSr.c2.src==="auto") && (PSr.c1.base+PSr.c2.base)>ahvCoupleCap()+1;
             if(over.length || coupleOver){
               para("Note: "+(over.length?over.map(([s,nm])=>nm+"'s entered pension ("+fmt(s.base)+")").join(" and ")+" exceed"+(over.length>1?"":"s")+" the maximum AHV pension of "+fmt(aMax)+" a year":"the two entered pensions exceed the AHV couple maximum of "+fmt(ahvCoupleCap())+" a year")+
                 (bvgCap>0?", so they appear to include a pension-fund annuity - while the 2nd-pillar capital ("+fmt(bvgCap)+") is also counted in the projection. Enter AHV only, or the 2nd pillar is counted twice.":". If they include a pension-fund annuity, that is fine as no 2nd-pillar capital is recorded."), [168,90,20]);
@@ -25587,11 +25708,11 @@ function drawFanChart(){
         if(on1){
           const life=num("caLife",90);
           const ref=isCH?AHV_REF_AGE:PSr.c1.start;
-          const refBase=isCH?num("penAnnual",0):PSr.c1.base;   // AHV factors apply to the reference-age amount
+          const refBase=isCH?ahvRefBase(1):PSr.c1.base;   // AHV factors apply to the reference-age amount — the same one the projection credits
           const crows=claimAgeRows(refBase, ref, life, cc);
           const best=crows.reduce((m,r)=>r.total>m.total?r:m,crows[0]);
           const planRow=crows.find(r=>r.a===PSr.c1.start)||crows[0];
-          para("Claiming age matters - "+claimAgeRuleText(cc)+". Cumulative totals to age "+life+" for "+n1+" (nominal, before tax"+(isCH&&PSr.c1.src==="manual"?"; applies the AHV factors to the whole amount entered":"")+"):");
+          para("Claiming age matters - "+claimAgeRuleText(cc)+". Cumulative totals to age "+life+" for "+n1+" (nominal, before tax"+(isCH&&PSr.c1.src==="manual"?"; the amount entered is taken as the benefit at its start age":"")+"):");
           tbl(["Claim at age","Annual benefit","Total by age "+life,"vs your plan"],
             crows.map(r=>{ const d=r.total-planRow.total;
               return [String(r.a)+(r.a===PSr.c1.start?" (your plan)":"")+(r.a===best.a?" (best)":""), fmt(r.annual), fmt(r.total), Math.abs(d)<0.5?"—":(d>0?"+":"-")+fmt(Math.abs(d))]; }));
@@ -25742,12 +25863,15 @@ function drawFanChart(){
         checkY(30);
         sectionH2("Methodology & Assumptions");
         para("Return simulation: Log-normal returns sampled via Box-Muller transform. Each annual return is drawn as (μ − 0.5σ²) + σ×N(0,1), producing the full distribution of outcomes rather than a single deterministic path.");
-        para("Asset growth: Investment accounts grow at the sampled portfolio return. Property appreciates stochastically at 3% ± 2% per year. Retirement pool grows at a fixed 3.5% nominal across both accumulation and retirement (intentionally conservative, decoupled from household risk and AI portfolio). Cash earns no explicit return.");
+        para("Asset growth: Investment accounts grow at the sampled portfolio return. Property appreciates stochastically at 3% ± 2% per year. Retirement pool grows at a fixed 3.5% nominal across both accumulation and retirement, decoupled from household risk and the AI portfolio, with no new contributions credited"+((val("c1co")||"")==="CH"?" (for Swiss pension funds this is above the 1.25% BVG minimum interest for 2026; pillar 3a funds and credited interest often differ)":"")+". Cash earns no explicit return.");
         para("Savings & surplus: The annual savings target is deposited to cash each year if surplus allows. Positive residual surplus (above savings) is treated as discretionary spending. Deficits draw from cash first, then investments.");
         para("Debt amortisation: Each loan amortises annually using standard mortgage math. Interest and principal separation is computed per loan at each simulation step.");
         para("Net figures: Projections apply prevailing income and investment taxes internally so that surplus, cash flow and net worth stay realistic. This report does not itemise, display or advise on tax — consult a qualified tax professional for tax matters.");
-        para("Retirement drawdown: Voluntary 4% drawdown begins at the configured retirement age. When two clients are present, the pool is split equally and each half draws independently based on each client's own retirement age. Any statutory minimum withdrawals are applied from the relevant age where they exist.");
-        para("Inflation: All expenses, retirement spend, and pension COLA adjustments compound at the configured annual inflation rate.");
+        para((val("c1co")||"")==="CH"
+          ? "Swiss pillars: the 2nd pillar, vested-benefits and pillar 3a balances are not drawn down year by year. Each client's pillars are paid out once as a lump sum at the start of the year that client retires (within the legal window of 60 to 70, or at the planned withdrawal age set in the lump-sum panel), taxed at the canton's capital-withdrawal rate (a married couple's same-year withdrawals are taxed together), and the net is invested. Pillars belong to the client named as owner on each account (joint accounts half each)."
+          : "Retirement drawdown: a voluntary 4% drawdown from each client's retirement accounts begins at that client's own retirement age. The pool is split between the clients by each account's owner (joint accounts half each). Any statutory minimum withdrawals are applied from the relevant age where they exist.");
+        para("Pensions are entered in today's money; an indexed pension keeps pace with inflation until it starts and adjusts by its indexation setting afterwards. "+((val("c1co")||"")==="CH"?"An estimated AHV pension uses the official scale (full contribution record, 13 payments a year incl. the 13th pension); a married couple's two pensions are capped at 150% of the maximum once both are paid, and drawing early or late applies the AHV reduction or supplement. ":"")+"Each client's salary stops at their own retirement age.");
+        para("Inflation: All expenses, retirement spend, and pension indexation compound at the configured annual inflation rate.");
       },
       // ─── INVESTOR EDUCATION CHARTS (advisor-selected) ──
       educharts: () => {
@@ -26175,17 +26299,17 @@ function chCantonCode(){
   for(const c of [pick,val("c1st"),val("taxState")]) if(c && CH_CANTON_NAMES[c]) return c;
   return "ZH";
 }
-// Married couples and registered partners are taxed together: capital withdrawals
-// in the same calendar year are added before the rate is looked up. Anyone else is
-// taxed alone. (The rate table is the single tariff; married rates are usually lower.)
-function chJointTaxed(){ return _chHasC2() && ["spouse","domestic_partner"].includes(val("rel")); }
+// Married couples (and registered partners, entered as "Spouse" — the same rule as the
+// AHV couple cap) are taxed together: capital withdrawals in the same calendar year are
+// added before the rate is looked up. Unmarried partners are taxed alone.
+function chJointTaxed(){ return _chHasC2() && val("rel")==="spouse"; }
 // Each client's retirement age (client 2 falls back to the household's).
 function retAgeFor(n){
   const r1=num("retAge",65); if(n!==2) return r1;
   const e=$("retAge2"), v=(e && String(e.value).trim()!=="")?+e.value:NaN;
   return (isFinite(v)&&v>0)?v:r1;
 }
-function _chAgeNow(n){ const a1=ageFromDOB(val("c1d"))||45; return n===2 ? (ageFromDOB(val("c2d"))||a1) : a1; }
+function _chAgeNow(n){ const a1=ageFromDOB(val("c1d"))||35; return n===2 ? (ageFromDOB(val("c2d"))||a1) : a1; }   // 35: the report tables' default
 // Today's pillar balances per owner (joint split 50/50; no owner → client 1).
 function chOwnerPillars(){
   const hasC2=_chHasC2(), o={c1:{bvg:0,fz:0,p3:0},c2:{bvg:0,fz:0,p3:0}};
@@ -26204,8 +26328,8 @@ function chPensionInputs(){
   const aP2=own.c1.bvg+own.c1.fz+own.c2.bvg+own.c2.fz, aP3=own.c1.p3+own.c2.p3, aBvg=own.c1.bvg+own.c2.bvg;
   const clampN=(v,lo,hi,d)=>{ v=+v; return isFinite(v)?Math.min(hi,Math.max(lo,v)):d; };
   const hasC2=_chHasC2();
-  // A typed age applies to each client at their own age; otherwise each client's plan retirement age.
-  const wAgeFor=n=>clampN(_chTouched("chWithdrawAge")?num("chWithdrawAge",65):retAgeFor(n), 50, 70, 65);
+  // The projection's payout age (a typed age applies to each client at their own age).
+  const wAgeFor=chPayoutAge;
   const rAgeFor=n=>clampN(_chTouched("anRetAge")?num("anRetAge",65):retAgeFor(n), 58, 70, 65);
   const I={
     own, aP2, aP3, aBvg, hasC2,
@@ -26214,7 +26338,7 @@ function chPensionInputs(){
     cap: _chTouched("anCap")?Math.max(0,num("anCap",0)):aBvg,   // annuity: pension-fund capital (vested benefits are paid as capital)
     canton: chCantonCode(), joint: chJointTaxed(),
     wAge:[wAgeFor(1), wAgeFor(2)], rAge:[rAgeFor(1), rAgeFor(2)],
-    penPct: clampN(num("chEarlyPenalty",0),0,50,0),
+    penPct: chPenaltyPct(),
     conv: clampN(_chTouched("anConv")?num("anConv",AN_CONV_DEFAULT):AN_CONV_DEFAULT, 0, 12, AN_CONV_DEFAULT)/100,
     convAssumed: !_chTouched("anConv"),
     earlyCut: clampN(num("anEarlyCut",0.15),0,1,0.15),
@@ -26291,10 +26415,20 @@ function chAnnuityCompare(I){
 // capital-withdrawal rate, in the year each owner reaches their payout age — their
 // retirement age within the legal window (3a from 60, at the latest 70). No annual
 // "4% drawdown taxed as salary" (that US-style rule never applied in Switzerland).
-function chPayoutAge(n){ return Math.min(70, Math.max(60, retAgeFor(n))); }
+// ONE payout age for the panel, the PDF and the projection: the planned withdrawal age
+// typed in the lump-sum panel (a what-if, 50-70 — earlier than 60 only for a home,
+// self-employment or leaving Switzerland), else the client's retirement age within the
+// legal window for all pillars (60-70).
+function chPayoutAge(n){ const t=_chTouched("chWithdrawAge"), v=t?num("chWithdrawAge",65):retAgeFor(n);
+  return Math.min(70, Math.max(t?50:60, isFinite(v)?v:65)); }
+function chPenaltyPct(){ const v=num("chEarlyPenalty",0); return isFinite(v)?Math.min(50,Math.max(0,v)):0; }
 function chPayoutSetup(){
   if((val("c1co")||"")!=="CH") return null;
-  return {canton:chCantonCode(), joint:chJointTaxed(), age1:chPayoutAge(1), age2:chPayoutAge(2), showC2:_chHasC2()};
+  const own=chOwnerPillars(), pp=chPenaltyPct()/100, age1=chPayoutAge(1), age2=chPayoutAge(2);
+  // Share of each owner's pillars lost to the entered penalty — only the part drawn
+  // before its legal age (the panel applies the same rule).
+  const pen=(o,A)=>{ const t=o.bvg+o.fz+o.p3; return (t>0 && pp>0) ? pp*chRestricted(o.bvg,o.fz,o.p3,A)/t : 0; };
+  return {canton:chCantonCode(), joint:chJointTaxed(), age1, age2, showC2:_chHasC2(), pen1:pen(own.c1,age1), pen2:pen(own.c2,age2)};
 }
 // Amounts leaving each owner's pool this year and the tax on them (nominal), or null.
 function chPayoutYear(P, pot1, pot2, age1, age2, y, inf){
@@ -26306,15 +26440,19 @@ function chPayoutYear(P, pot1, pot2, age1, age2, y, inf){
   let t1=0, t2=0;
   if(due1 && due2 && P.joint){ const r=rate(a1+a2); t1=a1*r; t2=a2*r; }
   else { if(due1) t1=a1*rate(a1); if(due2) t2=a2*rate(a2); }
-  return {a1, a2, t1, t2, net:a1+a2-t1-t2};
+  const pen=a1*(P.pen1||0)+a2*(P.pen2||0);
+  return {a1, a2, t1, t2, pen, net:a1+a2-t1-t2-pen};
 }
-// What the pools would be worth after the one-time tax if paid out now (for
-// spendable-wealth figures).
-function chPoolsNet(P, pot1, pot2, y, inf){
+// What the pools are worth after the one-time tax (for spendable-wealth figures). A
+// married couple's pillars are taxed together only when the projection pays both out
+// in the same calendar year (age1/age2 = each client's age in year y).
+function chPoolsNet(P, pot1, pot2, y, inf, age1, age2){
   if(!P) return pot1+pot2;
   const d=Math.pow(1+inf,y), rate=amt=>amt>0?(chLumpRate(P.canton, amt/d)||0)/100:0;
-  if(P.joint && pot1>0 && pot2>0){ const r=rate(pot1+pot2); return (pot1+pot2)*(1-r); }
-  return pot1*(1-rate(pot1)) + pot2*(1-rate(pot2));
+  const sameYear=(age1==null||age2==null) || Math.max(0,P.age1-age1)===Math.max(0,P.age2-age2);
+  const pen=pot1*(P.pen1||0)+pot2*(P.pen2||0);
+  if(P.joint && pot1>0 && pot2>0 && sameYear){ const r=rate(pot1+pot2); return (pot1+pot2)*(1-r)-pen; }
+  return pot1*(1-rate(pot1)) + pot2*(1-rate(pot2)) - pen;
 }
 // ── Per-client panel state (saved with the profile, reset between clients) ──
 function _chFillCantons(){
@@ -26337,11 +26475,16 @@ function resetSwissPanels(saved){
 window.resetSwissPanels=resetSwissPanels;
 // Untouched inputs show the automatic figure actually used.
 function _chSyncInputs(I){
-  const set=(id,v)=>{ const e=$(id); if(e && !_chTouched(id)) e.value=v; };
-  _chFillCantons(); const sel=$("chCanton"); if(sel && !_chTouched("chCanton")) sel.value=I.canton;
+  // Never the field being typed in — refilling a just-cleared field made the next
+  // keystrokes append to the automatic figure (65 → "6560").
+  const set=(id,v)=>{ const e=$(id); if(e && !_chTouched(id) && e!==document.activeElement) e.value=v; };
+  _chFillCantons(); const sel=$("chCanton"); if(sel && !_chTouched("chCanton") && sel!==document.activeElement) sel.value=I.canton;
   set("chP2", I.aP2>0?Math.round(I.aP2):""); set("chP3a", I.aP3>0?Math.round(I.aP3):""); set("anCap", I.aBvg>0?Math.round(I.aBvg):"");
   set("chWithdrawAge", I.wAge[0]); set("anRetAge", I.rAge[0]); set("anConv", AN_CONV_DEFAULT.toFixed(1));
 }
+// A panel field left empty shows the automatic figure again once it loses focus.
+document.addEventListener("focusout", e=>{ const id=e.target && e.target.id;
+  if(id && CH_PANEL_IDS.includes(id) && !_chTouched(id)) setTimeout(()=>{ try{ renderCHLumpSum(); }catch(_){} }, 0); });
 function updateCHPensionVisibility(){
   const panel=document.getElementById("chPensionPanel");
   const anPanel=document.getElementById("chAnnuityPanel");
@@ -26383,7 +26526,7 @@ function renderCHLumpSum(){
     h+='<div style="display:flex;justify-content:space-between;gap:10px;padding:6px 12px;background:var(--bg3);border-radius:8px;margin-bottom:4px"><span style="color:var(--text2)">'+_daEsc(r.name)+' — '+r.year+' (age '+r.age+')'+(r.sameYear?' <span style="color:var(--amber)">same tax year as spouse — taxed together</span>':'')+'</span>'
       +'<span style="font-variant-numeric:tabular-nums">'+F(r.today)+' today → <strong>'+F(r.real)+'</strong> <span style="font-size:10.5px">('+F(r.nominal)+' in '+r.year+')</span> · tax '+F(r.taxReal)+'</span></div>';
   });
-  h+='<div style="font-size:10.5px;margin-top:4px">Balances grown at '+(I.growth*100).toFixed(1)+'%/yr to each withdrawal (the projection\'s retirement-pool rate; no new contributions — enter the projected capital from the pension certificate to be exact), shown in today\'s money at '+(I.inf*100).toFixed(1)+'% inflation.'+(I.hasC2&&!I.joint?' Not married or registered partners: each is taxed alone.':'')+'</div>';
+  h+='<div style="font-size:10.5px;margin-top:4px">Balances grown at '+(I.growth*100).toFixed(1)+'%/yr to each withdrawal (the projection\'s retirement-pool rate; no new contributions — enter today\'s retirement assets from the pension certificate, not its projected capital, which is already grown), shown in today\'s money at '+(I.inf*100).toFixed(1)+'% inflation.'+(I.hasC2&&!I.joint?' Not married or registered partners: each is taxed alone.':'')+'</div>';
   h+='</div>';
   // Early-withdrawal rules
   const w=I.wAge[0];
@@ -27010,6 +27153,7 @@ function restoreProfile(p){
   profileGen++;
   const f=p.fields||{};
   try{ const tf=$("taxFlat"); if(tf) delete tf.dataset.statedTotal; }catch(_){}   // a previous import's stated total must not re-derive this client's flat rate
+  ["penAnnual","penAnnual2"].forEach(id=>{ const e=$(id); if(e) delete e.dataset.fromTypes; });
   // Swiss panels: the previous client's pillar balances / canton / assumptions must never
   // reach this client's panel or report — reset, then apply this client's own saved inputs.
   try{ if(typeof resetSwissPanels==="function") resetSwissPanels(p.chPanel); }catch(_){}
@@ -27054,6 +27198,8 @@ function restoreProfile(p){
   // Pension override flags belong to THIS profile (a previous client's manual edit must
   // not freeze this client's auto estimate, nor the reverse).
   try{ _penEdited=f.penSrc==="manual"; _pen2Edited=f.penSrc2==="manual";
+    _penAgeEdited=(f.penSrc||"auto")==="auto" && f.penStartAge!=null && +f.penStartAge!==(penDefaultsFor(f.c1co||"US").age||67);
+    _pen2AgeEdited=(f.penSrc2||"auto")==="auto" && f.penStartAge2!=null && +f.penStartAge2!==(penDefaultsFor(f.c2co||f.c1co||"US").age||67);
     _colaEdited=f.penCola!=null && f.penCola!==(penDefaultsFor(f.c1co||"US").cola||"full");
     _cola2Edited=f.penCola2!=null && f.penCola2!==(penDefaultsFor(f.c2co||f.c1co||"US").cola||"full"); }catch(_){}
   refreshAssetTypes(); onRegion(); syncAssetCountry();
@@ -27093,6 +27239,11 @@ function restoreProfile(p){
   // Saved values win over any auto-suggestion fired by the update cascade above
   // (updateRetLifestyle overwrites retSpend, syncSimYrs overwrites simYrs, …).
   PROFILE_REAPPLY.forEach(id=>{ if(f[id]!=null && $(id)) $(id).value=f[id]; });
+  // An estimated pension is re-estimated: a profile saved under older rules would
+  // otherwise bring back its old figures (e.g. no AHV couple cap) over the new estimate.
+  if((f.penSrc||"auto")==="auto" || (f.penSrc2||"auto")==="auto"){ try{ refreshPensionEstimates(); }catch(_){} }
+  // After the re-apply, which would otherwise put the saved pension figures back over it.
+  let _spMoved=[]; try{ _spMoved=migrateStatePensionAssets(f.c1co); if(_spMoved.length) renderAssets(); }catch(e){ console.warn("[restore] state pension",e); }
   // Probability-band preset (blow/bmid/bhigh field values were re-applied above)
   try{ if(p.bandMode && typeof setBand==="function") setBand(p.bandMode); }catch(_){}
   // Refresh panels that depend on the re-applied values / restored checkboxes.
@@ -27105,6 +27256,7 @@ function restoreProfile(p){
   try{ if(typeof renderProposalMetrics==="function") renderProposalMetrics(); }catch(_){}
   refreshTopMetrics();
   _topStatus("✓ Profile loaded");
+  if(_spMoved.length) showInfoToast("Moved from Assets to the Income tab. "+_spMoved.join(" "));
 }
 
 function _topStatus(msg){
