@@ -116,7 +116,13 @@ Website: [Website]
 
 **10.1** The processing of personal data is governed by the [Privacy Policy](./PRIVACY-EN.md), which forms an integral part of these ToS.
 
-**10.2** Depending on the plan chosen, financial data entered by the Customer into the Software is stored entirely locally in the browser (localStorage) and is **not** transmitted to the Provider. The Provider has no access to that data. Backup and data sovereignty rest with the Customer.
+**10.2** The two products differ fundamentally in where data is held, and this clause must be read product by product.
+
+**(a) Wealth Analyzer (browser software).** Financial data the Customer enters is stored entirely locally in the browser (localStorage) and is **not** transmitted to the Provider. The Provider has no access to it. Backup and data sovereignty rest with the Customer. Optional integrations that the Customer activates on the Customer's own credentials — AI document intake, market-data providers and configured custodian, CRM or order-management endpoints — transmit data from the Customer's browser to those third parties; the Customer is the transmitting party in each case.
+
+**(b) Wealth Analyzer Platform (hosted service).** Data entered into or imported into the Platform is stored **on servers operated by the Provider and its sub-processors**. It does not remain in the browser. For the financial data of the Customer's own clients the Customer is the controller and the Provider acts as processor on the Customer's documented instructions, under a separate data processing agreement concluded before onboarding.
+
+The [Privacy Policy](./PRIVACY-EN.md) sets out which statements apply to which product, and names the sub-processors.
 
 ## 11. Term and Termination
 

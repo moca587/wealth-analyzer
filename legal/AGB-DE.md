@@ -116,7 +116,13 @@ Website: [Website]
 
 **10.1** Der Umgang mit personenbezogenen Daten richtet sich nach der [Datenschutzerklärung](./DATENSCHUTZ-DE.md), die einen integralen Bestandteil dieser AGB bildet.
 
-**10.2** Die vom Kunden in die Software eingegebenen Finanzdaten werden — je nach gewähltem Angebot — vollständig lokal im Browser (localStorage) gespeichert und **nicht** an die Anbieterin übermittelt. Die Anbieterin hat keinen Zugriff auf diese Daten. Sicherungspflicht und Datenhoheit liegen beim Kunden.
+**10.2** Die beiden Produkte unterscheiden sich grundlegend darin, wo Daten gehalten werden; diese Ziffer ist daher produktbezogen zu lesen.
+
+**(a) Wealth Analyzer (Browser-Software).** Die vom Kunden eingegebenen Finanzdaten werden vollständig lokal im Browser (localStorage) gespeichert und **nicht** an die Anbieterin übermittelt. Die Anbieterin hat keinen Zugriff auf diese Daten. Sicherungspflicht und Datenhoheit liegen beim Kunden. Optionale Integrationen, die der Kunde mit eigenen Zugangsdaten aktiviert — KI-Dokumentenerfassung, Marktdatenanbieter sowie selbst konfigurierte Depotbank-, CRM- oder Ordermanagement-Schnittstellen — übermitteln Daten aus dem Browser des Kunden an diese Dritten; übermittelnde Partei ist dabei jeweils der Kunde.
+
+**(b) Wealth Analyzer Platform (gehosteter Dienst).** In die Platform eingegebene oder importierte Daten werden **auf Servern der Anbieterin und ihrer Unterauftragsbearbeiter** gespeichert. Sie verbleiben nicht im Browser. Für die Finanzdaten der Endkunden des Kunden ist der Kunde Verantwortlicher und die Anbieterin Auftragsbearbeiterin nach den dokumentierten Weisungen des Kunden; Grundlage ist ein vor dem Onboarding abzuschliessender Auftragsbearbeitungsvertrag.
+
+Die [Datenschutzerklärung](./DATENSCHUTZ-DE.md) hält fest, welche Aussagen für welches Produkt gelten, und nennt die Unterauftragsbearbeiter.
 
 ## 11. Vertragsdauer und Kündigung
 
