@@ -95,6 +95,29 @@ API Keys). Read these before touching any request or the document intake:
 - The admin's 2-minute key auto-check never pings Anthropic (it was a billed request every
   two minutes); the AI key is tested only on request and only while AI is on.
 
+### Swiss pension taxes (2026-09-28): tariff, church, progressive income, wealth
+The Swiss pillar panels, the report and the projection share one tax model built from the
+**official ESTV tax calculator** (tax year 2026, each canton's capital): `CH_CAP_TAX`
+(capital-withdrawal tax), `CH_INC_TAX` (pensioner income tax on gross pensions),
+`CH_WLT_TAX` (wealth tax), each as CHF tax at fixed amounts in six columns (single, married,
+church tax for Reformed / Roman Catholic, single and married). They replaced finpension's
+single-tariff, no-church capital rates. **Generated, never hand-edited**; the generator and
+its off-grid check against the live calculator live outside the repo (median gap under 0.2%
+of the tax). To regenerate for a new tax year, query `API_calculateManyCapitalTaxes` and
+`API_calculateDetailedTaxes` (RevenueType 3 = pensioner; Relationship 1 single / 2 married;
+Confession 1 Reformed / 2 Roman Catholic / 4 none).
+- **Tariff:** `chTariff()` = the panel's pick, else married when client 2 is the Spouse.
+  `chJointTaxed()` follows the tariff. **Church:** per client (`chChurch1/2`); a married
+  couple pays half of each partner's rate, which is exactly what the calculator does.
+- **Annuity:** income tax = tax(other pensions + annuity) − tax(other pensions), the other
+  pensions being the tax unit's AHV (couple cap applied) once all are paid; `anTaxRate` is now
+  an override that shows the automatic rate. **Lump sum:** the one-time tax, then wealth tax
+  every year on top of `chOtherWealth()` (accounts outside the pillars, property as entered,
+  less debts).
+- Built with CHF 500k of wealth (BL and VS relieve low incomes only for households with
+  almost none) and wealth tax with a high income (Basel-Stadt's cap for low incomes is not
+  modelled). The main projection's general income tax is unchanged (flat canton rates).
+
 ---
 
 ## UI/UX Decisions
