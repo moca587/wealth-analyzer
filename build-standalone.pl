@@ -29,6 +29,13 @@ my $lucide_js    = slurp_text("$V/lucide.min.js");
 
 print "Transforming...\n";
 
+# Required markers first, BEFORE anything is stamped or written: a build that stops
+# half way must not leave the source restamped and version.json rewritten.
+for my $mk ("pdfjs", "jszip"){
+  die "The source has no <!-- wa-lazy: $mk --> marker: local document reading would not work offline.\n"
+    unless $html =~ /<!-- wa-lazy: \Q$mk\E -->/;
+}
+
 # 0. Stamp APP_VERSION with current build timestamp (YYYYMMDD-HHMM)
 my $version = strftime("%Y%m%d-%H%M", localtime);
 $html =~ s/const APP_VERSION\s*=\s*"[^"]*"/const APP_VERSION = "$version"/;
@@ -113,6 +120,22 @@ if(-f "$V/qrcode.min.js"){
   my $qr_block = "<script type=\"text/plain\" data-lazy-lib=\"qrcode\">/* qrcodejs 1.0.0 — inlined (lazy) */\n$qr_js\n</script>";
   $html =~ s|<script (?:defer )?src="https://cdnjs\.cloudflare\.com/ajax/libs/qrcodejs/1\.0\.0/qrcode\.min\.js"></script>|$qr_block|;
 }
+
+# 7b. pdf.js for LOCAL DOCUMENT READING (2026-09-28): the app reads PDFs on the device
+# (Upload Document, local mode). Embedded LAZY like jsPDF, both files as plain text (no
+# base64, nothing parsed at startup): waPdfJs() runs the library on first use and starts
+# the worker from the second block's text. The marker is required: without it the
+# standalone could not read a PDF offline, so the build stops rather than ship that.
+my $pdfjs_worker_text = slurp_text("$V/pdf.worker.min.js");
+for my $js ($pdfjs_main, $pdfjs_worker_text){ die "pdf.js contains </script: cannot embed it as a text block\n" if $js =~ m{</script}i; }
+my $lazy_pdf = "<script type=\"text/plain\" data-lazy-lib=\"pdfjs\">/* pdf.js 3.11.174 - inlined (lazy) */\n$pdfjs_main\n</script>\n"
+             . "<script type=\"text/plain\" data-lazy-lib=\"pdfjs-worker\">/* pdf.js 3.11.174 worker - inlined (lazy) */\n$pdfjs_worker_text\n</script>";
+$html =~ s|<!-- wa-lazy: pdfjs -->|$lazy_pdf| or die "The source has no <!-- wa-lazy: pdfjs --> marker: local PDF reading would not work offline.\n";
+# JSZip 3.10.1 (Word / PowerPoint / OpenDocument read on the device), lazy like pdf.js.
+my $jszip_js = slurp_text("$V/jszip.min.js");
+die "jszip contains </script: cannot embed it as a text block\n" if $jszip_js =~ m{</script}i;
+my $lazy_zip = "<script type=\"text/plain\" data-lazy-lib=\"jszip\">/* JSZip 3.10.1 - inlined (lazy) */\n$jszip_js\n</script>";
+$html =~ s|<!-- wa-lazy: jszip -->|$lazy_zip| or die "The source has no <!-- wa-lazy: jszip --> marker.\n";
 
 # 8. Inline Lucide (required — the source loads vendor/lucide.min.js)
 my $lucide_block = "<script>/* Lucide 0.460.0 - inlined */\n$lucide_js\n</script>";

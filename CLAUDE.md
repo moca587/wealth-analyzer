@@ -47,6 +47,54 @@ A single-file (`wealth-analyzer.html`) personal wealth analysis web application 
 
 No other external dependencies. If offline use is required, both can be vendored locally.
 
+### Local mode (2026-09-28): client data stays on the device
+Banks and EAMs will not accept client documents going to an AI vendor by default, so the
+demo app and admin console run in **local mode unless the firm turns AI features on**
+(localStorage `wa_ai_enabled` = "1"; Settings → Privacy and AI, or Admin → Portfolio Agent /
+API Keys). Read these before touching any request or the document intake:
+- **The network guard is the first thing in `<head>`** (identical block in both pages). It
+  injects a `connect-src` Content-Security-Policy listing the only addresses the page may
+  reach (public market-data hosts, code CDNs, the firm's configured proxy / feeds / order
+  route / enterprise proxies as stored at load) and adds `api.anthropic.com` **only if AI was
+  on when the page loaded**. A request from any code path, even a library's XHR, to an
+  unlisted address is refused by the browser. It also wraps `fetch` to refuse AI calls the
+  moment the switch goes off and logs every request for the Privacy panel. Adding a new
+  outbound host means adding it to the guard's list, or the browser blocks it.
+- **Turning AI on reloads the page** (the policy is fixed at load) and carries the plan across
+  in sessionStorage (`waReloadKeepingPlan` / `_waRestoreAfterReload`); there is no autosave.
+  Turning it off needs no reload. The restore runs on window `load`, like a shared session:
+  run earlier it wrote into empty dropdowns and the start-up defaults turned a Swiss
+  household into a US one. An address configured after load (proxy, feed, order route) is
+  refused until a reload; `waReloadOffer` says so at the save point and offers the
+  plan-keeping reload, and order validation refuses BUY to such a route before anything is sent.
+- **Upload Document and Read a statement read on the device**: pdf.js text (embedded lazily in
+  the standalone, `vendor/pdf*.js` in source), Tesseract.js OCR for scans and photos
+  (`vendor/tesseract/`, jsDelivr fallback on `file://`; pdf.js pages rendered with
+  `intent:"print"` because background tabs pause requestAnimationFrame), then the local
+  readers (`lxReadQuestionnaire` for the app's own questionnaire, `lxReadStatement` for
+  bank/custody statements, `lxReadPensionCertificate` for Swiss BVG certificates), which
+  return the same raw shape as the AI tool, so `normalizeExtraction` and the review are shared.
+  Claude is a per-upload choice only when AI is on. The readers are built and tested as
+  modules outside the page (node tests: questionnaire ~1.6k, statement ~1.1k, pension ~0.4k
+  assertions plus adversarial and OCR suites) and pasted in between the `LOCAL DOCUMENT
+  READERS (begin/end)` markers; edit the modules, not the pasted copy. JSZip is embedded
+  lazily (Word questionnaires), SheetJS is served from `vendor/` (0.9 MB), both with a cdnjs
+  fallback. A PDF page is OCR'd when it has almost no text or is an image with a text stamp;
+  form-field and typed-annotation text is read too; any OCR'd page puts the document on OCR
+  confidence caps.
+- **Several documents in one read are de-duplicated** (`_waDedupe`): the same person, account
+  (type + value within 1%), loan, ISIN or holding from two files, or already in the plan,
+  starts unticked with the reason on the row. A pension certificate's insured person is
+  placed by name; its account and salary follow them. Its contributions, conversion rate and
+  interest each have their own tick and confidence; the conversion rate and fund interest are
+  household-wide fields a client-2 certificate may not silently replace.
+- **Every review row shows its source text, checked against the document** (`_daVerifyQuotes`:
+  found / missing / none / unchecked). A row starts ticked only with confidence ≥ 0.6, a
+  confidence at all (missing = null, never a 0.7 default), and a quote not shown missing. The
+  AI schema requires `confidence` and `sourceQuote` on every row.
+- The admin's 2-minute key auto-check never pings Anthropic (it was a billed request every
+  two minutes); the AI key is tested only on request and only while AI is on.
+
 ---
 
 ## UI/UX Decisions
