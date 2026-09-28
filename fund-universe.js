@@ -1167,9 +1167,11 @@ const FUND_UNIVERSE = [
 
 // ════════════════════════════════════════════════════════════════════
 // FUND METRICS ENRICHMENT — populate performance & risk stats on every
-// fund so the AI Portfolio Agent can score them. Real values are used
-// for ~80 flagship funds; class-typical defaults with deterministic
-// per-ticker jitter for the rest.
+// fund. Curated figures (FUND_OVERRIDES) are used where they exist. Every
+// other figure is the plain asset-class assumption (CLASS_DEFAULTS) and is
+// listed in f.est, so it is never shown as the fund's own number, fed to
+// the model as one, or used to rank funds. Trailing returns have no
+// assumption: without a curated figure they are null ("n/a").
 // ════════════════════════════════════════════════════════════════════
 const CLASS_DEFAULTS = {
   equity:       {mu:9.5,  sigma:15.0, holdings:500,  aum:50,  beta:1.00, r1y:13.0, r3y:9.5,  r5y:11.0, r10y:10.5},
@@ -1507,14 +1509,11 @@ const FUND_OVERRIDES = {
 
 };
 
-// Deterministic per-ticker hash for stable jitter
-function _fundHash(tkr){
-  let h = 0;
-  for(let i = 0; i < tkr.length; i++){ h = ((h<<5) - h) + tkr.charCodeAt(i); h |= 0; }
-  return Math.abs(h);
-}
-
-// Enrich every fund in-place with full metric set
+// Enrich every fund in-place with full metric set.
+// These used to be the class default jittered ±15% by a hash of the TICKER
+// STRING for every fund without an override: invented per-fund AUM, holdings,
+// Sharpe, drawdown and trailing returns for 707 of 973 funds, which also drove
+// fund selection. f.est now records which figures are assumptions instead.
 // Risk-free rate by currency, anchored to the same 2024-12-31 as FUND_DATA_AS_OF.
 // Sharpe has to be measured against the risk-free of the fund's OWN currency: a
 // CHF-hedged share class earns the (negative) CHF-vs-USD rate differential, so
@@ -1531,30 +1530,23 @@ const RISK_FREE_BY_CCY = {
   FUND_UNIVERSE.forEach(f => {
     const d = CLASS_DEFAULTS[f.cls] || CLASS_DEFAULTS.equity;
     const ov = FUND_OVERRIDES[f.tkr] || {};
-    const h = _fundHash(f.tkr);
-    const j = [
-      ((h        % 100) / 100 - 0.5) * 0.30,
-      (((h >> 4) % 100) / 100 - 0.5) * 0.30,
-      (((h >> 8) % 100) / 100 - 0.5) * 0.30,
-      (((h >> 12)% 100) / 100 - 0.5) * 0.30,
-      (((h >> 16)% 100) / 100 - 0.5) * 0.30
-    ];
-    f.mu       = ov.mu       ?? +(d.mu       * (1 + j[0])).toFixed(2);
-    f.sigma    = ov.sigma    ?? +(d.sigma    * (1 + j[1])).toFixed(2);
-    f.holdings = ov.holdings ?? Math.max(1, Math.round(d.holdings * (1 + j[2])));
-    f.aum      = ov.aum      ?? +Math.max(0.1, d.aum * (1 + j[3])).toFixed(1);
-    f.beta     = ov.beta     ?? +(Math.max(-0.5, d.beta + j[0]*0.4)).toFixed(2);
-    f.r1y      = ov.r1y      ?? +(d.r1y  + j[0]*10).toFixed(2);
-    f.r3y      = ov.r3y      ?? +(d.r3y  + j[1]*5).toFixed(2);
-    f.r5y      = ov.r5y      ?? +(d.r5y  + j[2]*4).toFixed(2);
-    f.r10y     = ov.r10y     ?? +(d.r10y + j[3]*3).toFixed(2);
+    const est = [];   // fields that are asset-class assumptions for THIS fund
+    const take = (k, assumed) => { if(ov[k] != null) return ov[k]; est.push(k); return assumed; };
+    f.mu       = take("mu",       d.mu);
+    f.sigma    = take("sigma",    d.sigma);
+    f.holdings = take("holdings", d.holdings);
+    f.aum      = take("aum",      d.aum);
+    f.beta     = take("beta",     d.beta);
+    // Trailing returns: curated or null. FUND_OVERRIDES uses 0 as a "fund is
+    // younger than this window" sentinel, which is null (no track record) too.
+    ["r1y","r3y","r5y","r10y"].forEach(k => { f[k] = (ov[k] == null || ov[k] === 0) ? null : ov[k]; });
     // A long-only, unlevered fund cannot draw down more than 100%. The
     // sigma-derived fallback is unbounded and crypto's sigma of 65 pushed 19
     // funds past -100% (worst -145.7), a figure that then reached the LLM
     // prompt and the client-facing "Max DD" chip as though it were historical.
     // Levered and inverse products are exempt — they genuinely can exceed it.
     const _levered = /\b(2x|3x|ultra|leveraged|inverse|short|bull|bear)\b/i.test(f.name || "");
-    const _rawDD   = ov.maxDD ?? -(+(f.sigma * 2.0 * (1 + Math.abs(j[4])*0.5)).toFixed(1));
+    const _rawDD   = take("maxDD", -(+(f.sigma * 2.0).toFixed(1)));
     f.maxDD    = _levered ? _rawDD : Math.max(-100, _rawDD);
     const rf   = RISK_FREE_BY_CCY[(f.ccy || "USD").toUpperCase()] ?? RISK_FREE_BY_CCY.USD;
     // The Math.max(0.5, sigma) floor binds only on cash (most cash funds sit
@@ -1572,17 +1564,11 @@ const RISK_FREE_BY_CCY = {
     } else {
       f.sharpe = +((f.mu - rf) / Math.max(0.5, f.sigma)).toFixed(2);
     }
-    // Tracking error: active mutual funds 1.5-4%, ETFs <0.3%
-    f.te = ov.te ?? (f.vehicle === "mutual_fund"
-      ? +(1.5 + (h % 25) / 10).toFixed(2)
-      : +(0.05 + (h % 25) / 100).toFixed(2));
-    // Trailing returns: FUND_OVERRIDES uses 0.0 as a "fund is younger than this
-    // period" sentinel. Left as 0.0 it renders as a real 0.0% annualized return
-    // (e.g. a 2024-launched fund showing "10y: 0.0%") and drags portfolio
-    // aggregates toward zero. Normalize the sentinel to null = no track record.
-    ["r1y","r3y","r5y","r10y"].forEach(k => {
-      if(ov[k] === 0) f[k] = null;
-    });
+    // A Sharpe computed from an assumed return or volatility is an assumption too.
+    if(ov.sharpe == null && (est.includes("mu") || est.includes("sigma"))) est.push("sharpe");
+    // Tracking error: no curated figures; a typical value for the vehicle
+    // (active mutual funds ~2.5%, ETFs ~0.15%), as an assumption.
+    f.te = take("te", f.vehicle === "mutual_fund" ? 2.5 : 0.15);
     // Inception year — only when actually curated. It used to be fabricated
     // (every override fund got 2005, everything else 2010+hash), which stated a
     // false launch year for funds that launched in 2024 and fed an "inception
@@ -1590,6 +1576,7 @@ const RISK_FREE_BY_CCY = {
     f.inception = ov.inception ?? null;
     // Income type — derive from yield
     f.income = f.yld >= 4 ? "high" : (f.yld >= 2 ? "moderate" : "low");
+    f.est = est.join(",");
   });
 })();
 
