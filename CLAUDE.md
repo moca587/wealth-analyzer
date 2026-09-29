@@ -153,8 +153,12 @@ jurisdiction is untouched (`chIncomeTaxOn()` gates it all).
   canton differs from the address, has it pinned as the pick on restore.
 - **An imported stated tax rate no longer switches a Swiss household to flat mode**: it is kept
   as the manual flat rate and shown beside the tables' rate in the tax panel.
-- Known, not changed here: `CHILD_TAX_RULES.DE` is typed "mixed", so German households with
-  children get South Korea's KRW child credits (their tax comes out 0).
+- **Child tax rules (fixed 2026-09-29):** `CHILD_TAX_RULES` type "mixed" used to hard-code
+  South Korea's KRW credits, and Germany and Austria were typed "mixed", so their households with
+  children paid no tax. Korea's tiers are now its own data (`tiers`); Austria's Familienbonus
+  Plus is a plain "credit"; Germany is type "better": Kindergeld, or the tax the child
+  allowances (`deduction`, EUR 9,540 per child in 2024, the year of its brackets) save if that
+  is more, which is the tax office's own check.
 
 ---
 
