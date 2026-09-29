@@ -115,8 +115,46 @@ Confession 1 Reformed / 2 Roman Catholic / 4 none).
   every year on top of `chOtherWealth()` (accounts outside the pillars, property as entered,
   less debts).
 - Built with CHF 500k of wealth (BL and VS relieve low incomes only for households with
-  almost none) and wealth tax with a high income (Basel-Stadt's cap for low incomes is not
-  modelled). The main projection's general income tax is unchanged (flat canton rates).
+  almost none) and wealth tax with a high income. **Basel-Stadt's low-income discount** is
+  applied on top in `chWealthTax` (official BS tax guide: taxable income < CHF 14,000 single /
+  20,000 married → 75% / 50% / 25% off at taxable wealth up to 100k / 200k / 400k; taxable
+  income from `CH_BS_TAXABLE`). Its second reduction (low-yield wealth) is not modelled: the
+  model has no yield separate from the return.
+
+### Swiss income tax in the projection (2026-09-29): official tables, not brackets
+A household whose tax jurisdiction is Switzerland, in tax mode **Auto**, pays income tax from
+the ESTV tables everywhere: both engines (runMC, the cash-flow table), the tax panel, the
+metric cards / surplus and every `effTax` proxy. Flat and None keep the old rules; any other
+jurisdiction is untouched (`chIncomeTaxOn()` gates it all).
+- **`chIncomeTaxYear(S, q)`** is the one function: per client `sal` (gross salary), `ded`
+  (employee pension-fund half + 3a), `inc` (pensions, drawdowns, vesting), `kids` (under 18
+  that year), `d` (price level): everything is **deflated to today's money** before the
+  lookup (Swiss tariffs are indexed). A married couple (tariff "m" with client 2) is assessed
+  together; anyone else alone, the children with whoever has the larger income that year (a
+  parent with no income would otherwise lose every child deduction). Engines call it per client
+  (`chIncomeTaxYearCached`, per-year cache: every path has the same income). `q.age` makes
+  `chSocial` follow the law past 65 (AHV only above CHF 16,800, no ALV), which the calculator
+  ignores.
+- **Social contributions are a tax deduction only, not a cash outflow**, as for every country in
+  the app (US FICA is defined but unread): charging them would be an app-wide modelling change.
+- **`CH_EMP_TAX` is keyed by NET salary** (gross − `chSocial` AHV/IV/EO 5.3% + ALV 1.1% + NBU
+  0.4% up to CHF 148,200 − the app's pension contributions). The calculator's own BVG estimate
+  is taken out of the key, so the app's BVG figure is never counted twice. Columns: kids 0-3 ×
+  the usual six; a `FED` pseudo-canton holds the federal share. `CH_TWO_EARNER` (the second
+  earner's deductions as a net-income reduction, federal + cantonal at 100k / 250k) and
+  `CH_INC_FED` (federal share of the pensioner table) complete it. Verified against the live
+  calculator on 230 random households: median gap 0.15% of the tax, never more than 0.7% of
+  income (4+ children and retired single parents are the roughest).
+- **One canton, one tariff, one church** for every Swiss tax: the tax panel's canton select,
+  tariff and church rows write the Swiss pension panel's settings (`onTaxStateChange`,
+  `chMirrorSet`, `chTaxSettingChanged` re-runs the projection); `updateTaxPanel` shows
+  `chCantonCode()`, **in Auto only** and before `_taxReconcileStated` (flat and None keep the
+  tax panel's own canton, byte-identical to before). A profile saved before this, whose tax-panel
+  canton differs from the address, has it pinned as the pick on restore.
+- **An imported stated tax rate no longer switches a Swiss household to flat mode**: it is kept
+  as the manual flat rate and shown beside the tables' rate in the tax panel.
+- Known, not changed here: `CHILD_TAX_RULES.DE` is typed "mixed", so German households with
+  children get South Korea's KRW child credits (their tax comes out 0).
 
 ---
 
