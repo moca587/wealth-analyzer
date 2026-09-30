@@ -348,6 +348,17 @@ input[type=date]{color-scheme:light}
 .wi-add-row.wi-add-event{grid-template-columns:minmax(100px,1fr) minmax(110px,1.1fr) minmax(72px,0.7fr) minmax(72px,0.7fr) minmax(72px,0.7fr) auto}
 .wi-add-row input,.wi-add-row select{width:100%;min-width:0;box-sizing:border-box}
 .wi-add-row > .btn-secondary{justify-self:start;white-space:nowrap;padding:7px 16px}
+.wi-actions{grid-column:1 / -1;display:flex;gap:8px;align-items:center;margin-top:10px;padding-top:14px;border-top:1px solid var(--border)}
+.wi-actions .btn-primary{flex:1}
+.wi-req{color:var(--red);font-weight:700;margin-left:3px}
+input.fld-invalid,.ccy-field.fld-invalid{
+  border-color:var(--red)!important;
+  background:rgba(224,92,92,.06)!important;
+  box-shadow:0 0 0 4px rgba(224,92,92,.18)!important;
+}
+.wi-hint.fld-err{color:var(--red);font-weight:500}
+#wiStatus:empty{display:none}
+#wiStatus{font-size:12px;color:var(--text3);margin:10px 0 0}
 @media(max-width:700px){
   .wi-add-row,.wi-add-row.wi-add-event{grid-template-columns:1fr 1fr}
 }
@@ -2453,9 +2464,9 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
   <div class="sdiv">
     <div class="slbl">Add Scenario</div>
     <div class="wi-grid">
-      <label class="wi-lbl" for="wiName">Scenario name</label>
-      <input id="wiName" placeholder="e.g. Early retirement at 55">
-      <span class="wi-hint"></span>
+      <label class="wi-lbl" for="wiName">Scenario name<span class="wi-req" title="Required" aria-hidden="true">*</span></label>
+      <input id="wiName" placeholder="e.g. Early retirement at 55" required aria-required="true" aria-describedby="wiNameHint" oninput="wiClearNameError()">
+      <span class="wi-hint" id="wiNameHint"></span>
 
       <label class="wi-lbl" for="wiRetAge">Override retire age</label>
       <span class="ccy-field sfx"><input type="number" id="wiRetAge" placeholder="default" step="1"><span class="ccy-sym">yrs</span></span>
@@ -2514,9 +2525,9 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
 
       <div id="wiPenCutNote" class="wi-note"></div>
     </div>
-    <div id="wiStatus" style="font-size:12px;color:var(--text3);margin-bottom:6px"></div>
-    <div style="display:flex;gap:8px;margin-top:4px">
-      <button id="wiAddBtn" class="btn-primary" onclick="addWhatIf()" style="flex:1"><i data-lucide="play" class="icon" aria-hidden="true"></i> Run Scenario</button>
+    <div id="wiStatus"></div>
+    <div class="wi-actions">
+      <button id="wiAddBtn" class="btn-primary" onclick="addWhatIf()"><i data-lucide="play" class="icon" aria-hidden="true"></i> Run Scenario</button>
       <button id="wiCancelBtn" class="btn-secondary" onclick="cancelEditWhatIf()" style="display:none"><i data-lucide="x" class="icon" aria-hidden="true"></i> Cancel</button>
     </div>
   </div>
@@ -3349,7 +3360,7 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
       <div class="fld"><label>Expense Ratio %</label><input type="number" id="pfEr" placeholder="0" min="0" max="10" step="0.01"></div>
       <div class="fld"><label>Yield %</label><input type="number" id="pfYld" placeholder="0" min="0" max="50" step="0.01"></div>
       <div class="fld"><label>Notes</label><input id="pfNote" placeholder="optional note"></div>
-      <div style="display:flex;gap:6px;margin-top:2px">
+      <div style="display:flex;gap:8px;margin-top:10px;padding-top:14px;border-top:1px solid var(--border)">
         <button id="pfAddBtn" class="btn-secondary" style="flex:1" onclick="addInvestment()">Add</button>
         <button id="pfCancelBtn" class="btn-secondary" onclick="cancelEditInvestment()" style="display:none;color:var(--text3)"><i data-lucide="x" class="icon" aria-hidden="true"></i> Cancel</button>
       </div>
@@ -3386,7 +3397,7 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
       <div class="fld"><label>Expense Ratio %</label><input type="number" id="pfAltEr" placeholder="0" min="0" max="10" step="0.01"></div>
       <div class="fld"><label>Yield %</label><input type="number" id="pfAltYld" placeholder="0" min="0" max="50" step="0.01"></div>
       <div class="fld"><label>Notes</label><input id="pfAltNote" placeholder="optional note"></div>
-      <div style="display:flex;gap:6px;margin-top:2px">
+      <div style="display:flex;gap:8px;margin-top:10px;padding-top:14px;border-top:1px solid var(--border)">
         <button id="pfAltAddBtn" class="btn-secondary" style="flex:1" onclick="addAltInvestment()">Add alternative</button>
         <button id="pfAltCancelBtn" class="btn-secondary" onclick="cancelEditAltInvestment()" style="display:none;color:var(--text3)"><i data-lucide="x" class="icon" aria-hidden="true"></i> Cancel</button>
       </div>
@@ -3582,7 +3593,7 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
       <div class="fld"><label>Expense Ratio %</label><input type="number" id="prAltEr" placeholder="0" min="0" max="10" step="0.01"></div>
       <div class="fld"><label>Yield %</label><input type="number" id="prAltYld" placeholder="0" min="0" max="50" step="0.01"></div>
       <div class="fld"><label>Rationale</label><input id="prAltNote" placeholder="optional note"></div>
-      <div style="display:flex;gap:6px;margin-top:2px">
+      <div style="display:flex;gap:8px;margin-top:10px;padding-top:14px;border-top:1px solid var(--border)">
         <button id="prAltAddBtn" class="btn-secondary" style="flex:1" onclick="addAltProposal()">Add alternative</button>
       </div>
     </div>
@@ -4220,7 +4231,7 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(0,105,217,.10)
 // ═══════════════════════════════════════════════════════════
 // VERSION — updated by build-standalone.pl on each build
 // ═══════════════════════════════════════════════════════════
-const APP_VERSION = "20260930-1331";
+const APP_VERSION = "20260930-1351";
 
 // ═══════════════════════════════════════════════════════════
 // DATA
@@ -20245,6 +20256,22 @@ function setWiAddBtn(editing){
   btn.innerHTML=lucideIcon("play")+(editing?" Re-run Scenario":" Run Scenario");
   refreshIcons();
 }
+function wiClearNameError(){
+  const el=$("wiName"); if(el) el.classList.remove("fld-invalid");
+  const h=$("wiNameHint"); if(h){ h.textContent=""; h.classList.remove("fld-err"); }
+}
+function wiShowNameError(msg){
+  const el=$("wiName");
+  if(el){
+    el.classList.add("fld-invalid");
+    try{ el.focus({preventScroll:false}); el.scrollIntoView({behavior:"smooth",block:"nearest"}); }catch(_){ try{ el.focus(); }catch(__){} }
+  }
+  const h=$("wiNameHint");
+  if(h){
+    h.textContent=msg||"Required — enter a name for this scenario.";
+    h.classList.add("fld-err");
+  }
+}
 function addWhatIf(){
   // Commit any partially filled goal/event row so users don't lose typed data.
   const pendingGoal=val("wiGoalName").trim();
@@ -20256,7 +20283,8 @@ function addWhatIf(){
   }
 
   const name=val("wiName").trim();
-  if(!name){alert("Enter a scenario name"); return;}
+  if(!name){ wiShowNameError(); return; }
+  wiClearNameError();
   const wiRetAge=val("wiRetAge").trim();
   const retAgeOvr=wiRetAge===""?null:parseInt(wiRetAge);
   const incChangePct=num("wiIncChange",0);
@@ -20313,6 +20341,7 @@ function clearWhatIfForm(){
   const _wek=$("wiEvKind"); if(_wek) _wek.value="incomePct";
   _wiDraftGoals=[]; _wiDraftEvents=[];
   wiRenderDraftLists();
+  wiClearNameError();
   setT("wiPenCutNote","");
   setT("wiStatus","");
 }
