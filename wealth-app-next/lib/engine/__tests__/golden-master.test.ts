@@ -34,6 +34,8 @@ function mk(p: Partial<WealthPlan> & Pick<WealthPlan, "clients">): WealthPlan {
     version: 1,
     currency: "USD",
     inflationRate: 0.038,
+    annualSavings: 0,
+    annualRaiseRate: 0,
     inflationRegion: "US",
     children: [],
     incomes: [],

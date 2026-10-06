@@ -8,6 +8,8 @@ function makePlan(overrides: Partial<WealthPlan> = {}): WealthPlan {
     version: 1,
     currency: "USD",
     inflationRate: 0.038,
+    annualSavings: 0,
+    annualRaiseRate: 0,
     inflationRegion: "US",
     clients: [
       {

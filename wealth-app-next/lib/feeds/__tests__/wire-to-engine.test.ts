@@ -19,7 +19,7 @@ import { adaptFeed, detectFormat } from "../adapters";
 import { diffPlan, applyChanges } from "../apply";
 import { parsePlan } from "@/lib/plan/schema";
 import { emptyPlan } from "@/lib/plan/default-plan";
-import { runMonteCarlo } from "@/lib/engine/monte-carlo";
+import { runMonteCarlo } from "@/lib/engine/monte-carlo-old";
 import type { WealthPlan } from "@/lib/engine/types";
 
 // A Swiss household as three separate custodian/CRM deliveries — the shapes a

@@ -12,7 +12,7 @@ const ASOF = 2026;
 
 function mk(assets: Asset[], extra: Partial<WealthPlan> = {}): WealthPlan {
   return {
-    version: 1, currency: "USD", inflationRate: 0.03, inflationRegion: "US",
+    version: 1, annualSavings: 0, annualRaiseRate: 0, currency: "USD", inflationRate: 0.03, inflationRegion: "US",
     clients: [{ id: "c1", first: "A", last: "B", country: "US", risk: "moderate", horizon: "15_plus" }],
     children: [],
     incomes: [{ id: "i1", clientId: "c1", source: "Salary", amount: 0, taxable: true }],

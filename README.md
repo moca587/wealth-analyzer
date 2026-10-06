@@ -28,18 +28,64 @@ python -m http.server 8080
 # http://localhost:8080/wealth-analyzer.html
 ```
 
+
 ### Next.js SaaS application
+
+Two ways to run it: entirely locally with Docker Compose (recommended for development), or against your own hosted Supabase project.
+
+#### Option 1: local, with Docker Compose
+
+One command starts the app with hot reload and a complete local Supabase (Postgres, auth, REST API, mail catcher), and applies every migration. No Node.js or Supabase account is needed on your machine.
+
+**Prerequisites:** Docker and Docker Compose 2.24+.
+
+```bash
+cp wealth-app-next/.env.local.example wealth-app-next/.env.local   # once
+docker compose up --build
+```
+
+The first start builds the image and initialises the database, so it takes a few minutes; later starts are fast. Then:
+
+1. Open <http://localhost:3000> and sign up.
+2. Email confirmation is on, and no mail leaves your machine. Open the local inbox at <http://localhost:8025> and click the confirmation link; it signs you in.
+3. A new account has no plan yet. Open **Plan**, fill in the sections that apply and click **Save**; the other pages load from that plan.
+
+| Service | Host address (loopback only) |
+|---------|------------------------------|
+| App | <http://localhost:3000> (set `APP_PORT` to change) |
+| Supabase API (auth + REST) | <http://localhost:54321> |
+| Postgres | `localhost:55432`, user `postgres`, password `dev-only-password` |
+| Mail inbox | <http://localhost:8025> |
+
+Common tasks:
+
+```bash
+APP_PORT=3100 docker compose up            # port 3000 already in use
+docker compose up --build --watch          # restart the app when package.json / lockfile change
+docker compose run --rm app npm run test:run
+docker compose run --rm app npm run lint
+docker compose down                        # stop, keep the database
+docker compose down -v                     # stop and wipe the database and caches
+```
+
+Notes:
+- This setup is for development only; the production image is `wealth-app-next/Dockerfile`. The Supabase URLs and JWT keys in `docker-compose.yaml` are dev-only and must never be reused elsewhere.
+- The source is bind-mounted, so anything run in the container can write to your checkout.
+- The browser reaches Supabase at `localhost:54321`, while the app container uses `SUPABASE_INTERNAL_URL=http://gateway:8000` (see `wealth-app-next/lib/supabase/config.ts`).
+- The project is mounted at `/workspace`, not `/app`: with the root at `/app`, Next.js serves the gated layout for every route and all pages redirect to `/login`.
+
+#### Option 2: hosted Supabase project
 
 Requires Node.js 20+ and a Supabase project:
 
 ```bash
 cd wealth-app-next
 npm ci
-cp .env.local.example .env.local
+cp .env.local.example .env.local   # then fill in your Supabase URL and anon key
 npm run dev
 ```
 
-Apply **every** migration in `wealth-app-next/supabase/migrations/` in filename order (001 through 010) before using authentication or persistence — applying only 001 leaves the app 500ing on first login, because `/api/plan` reads tables created in 006-009. See [docs/deploy-runbook.md](docs/deploy-runbook.md).
+Apply **every** migration in `wealth-app-next/supabase/migrations/` in filename order (001 through 014) before using authentication or persistence. Applying only 001 leaves the app returning 500 on first login, because `/api/plan` reads tables created in 006-009. See [docs/deploy-runbook.md](docs/deploy-runbook.md).
 
 ## Capabilities
 

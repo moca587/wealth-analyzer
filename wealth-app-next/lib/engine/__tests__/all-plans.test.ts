@@ -40,7 +40,7 @@ function richPlan(): WealthPlan {
     { id: "a_cr", type: "crypto", label: "Crypto", value: 50000, liquid: true, cls: "crypto" },
   ];
   return {
-    version: 1, currency: "USD", inflationRate: 0.038, inflationRegion: "US",
+    version: 1, annualSavings: 0, annualRaiseRate: 0, currency: "USD", inflationRate: 0.038, inflationRegion: "US",
     clients: [
       { id: "c1", first: "Marcus", last: "Vance", dob: "1969-03-01", country: "US", risk: "moderately_aggressive", horizon: "15_plus" },
       { id: "c2", first: "Lena", last: "Vance", dob: "1971-08-01", country: "US", risk: "moderate", horizon: "15_plus" },
@@ -114,9 +114,11 @@ describe("all-plans integration", () => {
 
     it("models an accumulate→decumulate horizon to planToAge", () => {
       // primary client age at asOf 2026 = 56 (born 1969-03, before Jan 1) → 95-56 = 39 yrs
-      expect(r.years).toBe(39);
+      // (the engine's horizon is max(requested years, planToAge - age), so ask for fewer)
+      const short = run(plan, { years: 30 });
+      expect(short.years).toBe(39);
       // horizon reaches past age 73, so the RMD branch is exercised
-      expect(r.years).toBeGreaterThan(73 - 56);
+      expect(short.years).toBeGreaterThan(73 - 56);
     });
 
     it("returns a 'will my money last?' summary that is internally consistent", () => {

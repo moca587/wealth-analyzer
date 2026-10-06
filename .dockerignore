@@ -1,0 +1,8 @@
+# Build context is the repo root, but the Dockerfile only COPYs the lockfile
+# pair and the dev entrypoint. Allowlist those; ignore everything else so
+# standalones, vendor/, docs, and host node_modules never hit the daemon.
+*
+!docker-entrypoint.dev.sh
+!wealth-app-next/
+!wealth-app-next/package.json
+!wealth-app-next/package-lock.json

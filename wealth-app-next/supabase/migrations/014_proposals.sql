@@ -101,3 +101,5 @@ create policy "proposals_update"
   );
 
 -- No DELETE policy for now.
+insert into public.schema_migrations (version) values ('014_proposals')
+on conflict (version) do nothing;

@@ -12,7 +12,7 @@ const ALL = [
   "005_fix_erasure_and_entitlement.sql", "006_tenancy.sql",
   "007_fix_entitlement_grants.sql", "008_rekey_to_households.sql",
   "009_household_management.sql", "010_survive_a_departure.sql",
-  "011_invites.sql", "012_seats_that_work.sql", "013_billing.sql",
+  "011_invites.sql", "012_seats_that_work.sql", "013_billing.sql", "014_proposals.sql",
 ];
 
 describe("planMigrations", () => {
@@ -24,7 +24,7 @@ describe("planMigrations", () => {
       "005_fix_erasure_and_entitlement", "006_tenancy",
       "007_fix_entitlement_grants", "008_rekey_to_households",
       "009_household_management", "010_survive_a_departure",
-      "011_invites", "012_seats_that_work", "013_billing",
+      "011_invites", "012_seats_that_work", "013_billing", "014_proposals",
     ]);
   });
 
@@ -32,7 +32,7 @@ describe("planMigrations", () => {
     const shuffled = [...ALL].reverse();
     const { pending } = planMigrations(shuffled, []);
     expect(pending[0].version).toBe("001_init");
-    expect(pending.at(-1)!.version).toBe("013_billing");
+    expect(pending.at(-1)!.version).toBe("014_proposals");
   });
 
   it("skips what the ledger already records, resuming from the gap", () => {
@@ -42,7 +42,7 @@ describe("planMigrations", () => {
     expect(pending.map((p) => p.version)).toEqual([
       "007_fix_entitlement_grants", "008_rekey_to_households",
       "009_household_management", "010_survive_a_departure",
-      "011_invites", "012_seats_that_work", "013_billing",
+      "011_invites", "012_seats_that_work", "013_billing", "014_proposals",
     ]);
   });
 

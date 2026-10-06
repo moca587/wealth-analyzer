@@ -98,7 +98,7 @@ describe("every migration applies to a real Postgres", () => {
       "004_audit.sql", "005_fix_erasure_and_entitlement.sql", "006_tenancy.sql",
       "007_fix_entitlement_grants.sql", "008_rekey_to_households.sql",
       "009_household_management.sql", "010_survive_a_departure.sql",
-      "011_invites.sql", "012_seats_that_work.sql", "013_billing.sql",
+      "011_invites.sql", "012_seats_that_work.sql", "013_billing.sql", "014_proposals.sql",
     ]);
   });
 
@@ -851,7 +851,7 @@ describe("010: operational plumbing", () => {
       `select version from public.schema_migrations order by 1`)).map((r) => r.version);
     expect(v).toContain("001_init");
     expect(v).toContain("010_survive_a_departure");
-    expect(v.length).toBe(13);
+    expect(v.length).toBe(14);
   });
 
   it("keeps the ledger away from clients", async () => {

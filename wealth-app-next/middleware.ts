@@ -7,6 +7,7 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { securityHeaders } from "@/lib/csp";
+import { authCookieName, serverSupabaseUrl } from "@/lib/supabase/config";
 
 /**
  * Stamp the security headers on whatever response we end up returning.
@@ -23,9 +24,10 @@ export async function middleware(request: NextRequest) {
   let response = NextResponse.next({ request: { headers: request.headers } });
 
   const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    serverSupabaseUrl(),
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
+      cookieOptions: { name: authCookieName() },
       cookies: {
         get(name: string) {
           return request.cookies.get(name)?.value;

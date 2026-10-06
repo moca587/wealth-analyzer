@@ -34,7 +34,7 @@ function beatricePlan(): WealthPlan {
     ({ id, type: tkr || "holding", label, value, liquid: true, country: "CH" as const, cls });
 
   return {
-    version: 1, currency: "CHF", inflationRate: 0.021, inflationRegion: "CH",
+    version: 1, annualSavings: 0, annualRaiseRate: 0, currency: "CHF", inflationRate: 0.021, inflationRegion: "CH",
     clients: [c1, c2],
     children: [{ id: "ch1", first: "Elena", last: "Keller", dob: "2015-05-20" }],
     incomes: [
