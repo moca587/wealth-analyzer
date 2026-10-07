@@ -36,6 +36,8 @@ const CLASS_ORDER: AssetClass[] = [
 ];
 
 export function GoalsBasedAnalysisSection({ plan }: Props) {
+  console.log("PLAN ASSETS:", plan.assets);
+  console.log("HOLDINGS:", plan.holdings);
   /*
    * Match the Monte Carlo:
    * real estate is excluded from the investable return portfolio.
